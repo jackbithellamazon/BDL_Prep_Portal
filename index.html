@@ -761,6 +761,9 @@ select.fi-in option{background:var(--bg2);}
         <select class="fi-in" id="f-bun" onchange="tbq()"><option value="No">No</option><option value="Yes">Yes</option></select>
       </div>
       <div class="fi" id="bqG" style="display:none;"><label class="fl">How Many in Bundle</label><input class="fi-in" type="number" id="f-bqty" placeholder="0"></div>
+      <div class="fi"><label class="fl">Subscribe & Save?</label>
+        <select class="fi-in" id="f-subSave"><option value="No">No</option><option value="Yes">Yes — S&S order (exempt from overdue alerts)</option></select>
+      </div>
       <div class="fi"><label class="fl">Status</label>
         <select class="fi-in" id="f-status">
           <option>In-Transit</option><option>In Warehouse</option><option>Delivered</option>
@@ -1445,6 +1448,7 @@ function openEdit(id){
   document.getElementById('f-aqty').value=r.aqty||'';
   document.getElementById('f-bun').value=r.bun||'No';
   document.getElementById('f-bqty').value=r.bqty||'';
+  const ssEl=document.getElementById('f-subSave');if(ssEl)ssEl.value=r.subSave||'No';
   document.getElementById('f-status').value=r.status||'In-Transit';
   document.getElementById('f-rcvd').value=r.rcvd||'';
   document.getElementById('f-issueType').value=r.issueType||'';
@@ -1464,7 +1468,7 @@ function openEdit(id){
 function clearForm(){
   ['f-oid','f-prod','f-asin','f-sku','f-sas','f-exp','f-aqty','f-bqty','f-rcvd','f-ship','f-shipId','f-issueQty','f-notes','f-vaNotes','f-expectedDelivery'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
   document.getElementById('f-sup').value='';
-  ['f-bun','f-sent','f-reimb','f-pri'].forEach(i=>document.getElementById(i).value='No');
+  ['f-bun','f-sent','f-reimb','f-pri','f-subSave'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='No';});
   document.getElementById('f-status').value='In-Transit';
   document.getElementById('f-prepStatus').value='Pending';
   document.getElementById('f-issueType').value='';
@@ -1491,6 +1495,7 @@ function saveRowForm(){
     aqty:parseInt(document.getElementById('f-aqty').value)||0,
     bun:document.getElementById('f-bun').value,
     bqty:document.getElementById('f-bqty').value,
+    subSave:(document.getElementById('f-subSave')||{}).value||'No',
     status:document.getElementById('f-status').value,
     rcvd:parseInt(document.getElementById('f-rcvd').value)||0,
     issueType:document.getElementById('f-issueType').value,
@@ -3021,6 +3026,7 @@ function confirmImport(){
       aqty:parseInt(row['Quanity Bought *']||row['Quantity Bought']||row['Quanity Bought']||1)||1,
       bun:(row['In a Bundle?']||'No').trim(),
       bqty:(row['How Many In a Bundle?']||'').trim(),
+      subSave:(row['S&S (AC)']||'No').trim()==='Yes'?'Yes':'No',
       rcvd:0,
       issueType:'',
       issueQty:0,
@@ -3056,8 +3062,8 @@ function confirmImport(){
 }
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
-const SUPA_URL='https://ktegyjobhicnlgoadkfs.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0ZWd5am9iaGljbmxnb2Fka2ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2Nzg2MTgsImV4cCI6MjA5NDI1NDYxOH0.EDv-ql3c-K6I4FUdVY5GXHAHfJP_7vxE7S9INEcH6_E';
+const SUPA_URL='https://vsekpaibspetreadkxyi.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzZWtwYWlic3BldHJlYWRreHlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDE0NzcsImV4cCI6MjA5NDI3NzQ3N30.DVDI1nsBTyDbRPJDw_fcc7oohmH94erM07626xC4MtY';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 // ── SYNC STATUS ───────────────────────────────────────────────────────────────
@@ -3122,6 +3128,7 @@ function rowToDb(r){
     expected_qty:r.exp||0,
     bundle:r.bun||'No',
     bundle_qty:r.bqty||'',
+    sub_save:r.subSave||'No',
     status:r.status||'In-Transit',
     qty_received:r.rcvd||0,
     issue_type:r.issueType||'',
@@ -3155,6 +3162,7 @@ function dbToRow(d){
     aqty:d.expected_qty||0,
     bun:d.bundle||'No',
     bqty:d.bundle_qty||'',
+    subSave:d.sub_save||'No',
     status:d.status||'In-Transit',
     rcvd:d.qty_received||0,
     issueType:d.issue_type||'',
