@@ -753,6 +753,9 @@ select.fi-in option{background:var(--bg2);}
       <div class="fi"><label class="fl">DG (Dangerous Goods)?</label>
         <select class="fi-in" id="f-dg"><option value="">—</option><option value="Yes">Yes</option><option value="No">No</option></select>
       </div>
+      <div class="fi"><label class="fl">Subscribe & Save?</label>
+        <select class="fi-in" id="f-subSave"><option value="No">No</option><option value="Yes">Yes — S&S (exempt from overdue alerts)</option></select>
+      </div>
       <div class="fi"><label class="fl">SKU</label><input class="fi-in" type="text" id="f-sku" placeholder="e.g. Amg_73.61_1803_105"></div>
       <div class="fi"><label class="fl">SAS Link (auto from ASIN)</label><input class="fi-in" type="url" id="f-sas" placeholder="Auto-filled"></div>
       <div class="fi"><label class="fl">Expected Units</label><input class="fi-in" type="number" id="f-exp" placeholder="0"></div>
@@ -761,9 +764,6 @@ select.fi-in option{background:var(--bg2);}
         <select class="fi-in" id="f-bun" onchange="tbq()"><option value="No">No</option><option value="Yes">Yes</option></select>
       </div>
       <div class="fi" id="bqG" style="display:none;"><label class="fl">How Many in Bundle</label><input class="fi-in" type="number" id="f-bqty" placeholder="0"></div>
-      <div class="fi"><label class="fl">Subscribe & Save?</label>
-        <select class="fi-in" id="f-subSave"><option value="No">No</option><option value="Yes">Yes — S&S order (exempt from overdue alerts)</option></select>
-      </div>
       <div class="fi"><label class="fl">Status</label>
         <select class="fi-in" id="f-status">
           <option>In-Transit</option><option>In Warehouse</option><option>Delivered</option>
@@ -1327,7 +1327,7 @@ function renderPrepRows(data){
     // Sub & Save exempt from stuck flag — delay is expected
     const isStuck=daysSinceCreate>20&&!safeStatuses.includes(r.status)&&expectedPassed&&!isSubSave;
     const statusClass=r.status==='In Warehouse'?'st-warehouse':r.status==='Delivered'?'st-delivered':r.status==='Issue'?'st-issue':r.status==='Returned'?'st-returned':r.status==='Not Arrived'?'st-notarrived':'';
-    const rowCls=[isSent?'row-sent':isStuck?'row-stuck':isSubSave?'row-subsave':statusClass,isOld&&!isStuck&&!isSubSave?'row-old':'',r.pri==='Yes'?'row-pri':''].filter(Boolean).join(' ');
+    const rowCls=[isSent?'row-sent':isStuck?'row-stuck':isSubSave?'row-subsave':statusClass,isOld&&!isStuck&&!isSubSave&&!safeStatuses.includes(r.status)?'row-old':'',r.pri==='Yes'?'row-pri':''].filter(Boolean).join(' ');
     const rcvdColor=r.rcvd>0&&r.rcvd>=r.exp?'var(--green)':r.rcvd>0?'var(--amber)':'';
     return `<tr class="${rowCls}" id="row-${r.id}" data-id="${r.id}">
       <td style="text-align:center;font-size:9px;color:var(--text3);font-family:var(--mono);user-select:none;">${data.indexOf(r)+1}</td>
