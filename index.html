@@ -59,6 +59,11 @@ html.light-mode{
   --mono:#111;
 }
 
+/* SUB & SAVE ROW */
+tbody tr.row-subsave{background:rgba(255,170,51,.12)!important;border-left:3px solid #ffaa33!important;}
+tbody tr.row-subsave td{border-color:rgba(255,170,51,.3)!important;}
+tbody tr.row-subsave:hover{background:rgba(255,170,51,.2)!important;}
+
 /* ── LIGHT MODE OVERRIDES ── */
 html.light-mode .sb{background:#2a2a28;}
 html.light-mode .sb-head{border-bottom-color:#3a3a38;}
@@ -66,53 +71,77 @@ html.light-mode .sb-item{color:#aaa;}
 html.light-mode .sb-item:hover{background:#333330;color:#eee;}
 html.light-mode .sb-item.on{background:#3a3a38;color:#fff;}
 html.light-mode .sb-role{color:#888;}
+html.light-mode .sb-sec{color:#666;}
+html.light-mode .sb-name{color:#ddd;}
 html.light-mode .sb-foot{border-top-color:#3a3a38;}
 html.light-mode .sb-av{background:#3a3a38;color:#aaa;}
 html.light-mode .topbar{background:#c4c9ce;border-color:#b0b6bc;}
-html.light-mode .page-title{color:#0a0a0a;}
+html.light-mode .page-title{color:#0a0a0a!important;}
 html.light-mode .stats{background:#c4c9ce;border-color:#b0b6bc;}
 html.light-mode .stat{background:linear-gradient(135deg,#b8bec4,#c4c9ce);}
 html.light-mode .stat-label{color:#6b3800;}
+html.light-mode .stat-val{color:#0a0a0a;}
 html.light-mode thead tr{background:linear-gradient(90deg,#2a2a28,#3a3a38)!important;}
 html.light-mode th{color:#ffb84d!important;}
+html.light-mode tbody tr{color:#0a0a0a;}
 html.light-mode tbody tr:nth-child(odd){background:#c8cdd2;}
 html.light-mode tbody tr:nth-child(even){background:#c0c5cb;}
 html.light-mode tbody tr:hover{background:#b5bbc2;}
+html.light-mode td{color:#0a0a0a;border-color:#b0b6bc!important;}
 html.light-mode .toolbar{background:#c4c9ce;border-color:#b0b6bc;}
 html.light-mode .search-box{background:#d8dce0;border-color:#a0a7ae;}
+html.light-mode .search-box input{color:#0a0a0a;}
+html.light-mode .search-box input::placeholder{color:#606060;}
 html.light-mode select.fsel{background:#d0d4d8;color:#0a0a0a;border-color:#a0a7ae;}
-html.light-mode .ci{color:#0a0a0a;background:transparent;}
+html.light-mode .ci{color:#0a0a0a!important;background:transparent;}
 html.light-mode .ci:focus{background:#e0e4e8;border-color:#c05c00;}
-html.light-mode select.ci-sel{background:#c8cdd2;color:#0a0a0a;border-color:#a0a7ae;}
-html.light-mode select.ci-sel:hover{background:#bec3c9;}
-html.light-mode .s-asin{background:rgba(0,0,0,.1);color:#1a1a1a;}
-html.light-mode .s-sku{background:rgba(0,0,0,.1);color:#1a1a1a;}
-html.light-mode .s-date,.s-oid,.s-sup{color:#0a0a0a;}
-html.light-mode .kb-hint{background:#b8bec4;border-color:#a0a7ae;}
+html.light-mode select.ci-sel{background:#c8cdd2;color:#0a0a0a!important;border-color:#a0a7ae;}
+html.light-mode .s-date{color:#0a0a0a!important;}
+html.light-mode .s-oid{color:#1a1a1a!important;}
+html.light-mode .s-sup{color:#2a2a2a!important;}
+html.light-mode .s-title{color:#0a0a0a!important;}
+html.light-mode .s-asin{background:rgba(0,0,0,.12);color:#1a1a1a!important;}
+html.light-mode .s-sku{background:rgba(0,0,0,.12);color:#1a1a1a!important;}
+html.light-mode .nt-zero{color:#404040!important;}
+html.light-mode .kb-hint{background:#b8bec4;border-color:#a0a7ae;color:#2a2a2a;}
 html.light-mode .kbd{background:#d0d4d8;border-color:#a0a7ae;color:#0a0a0a;}
 html.light-mode .ic{background:#c4c9ce;border-color:#b0b6bc;}
 html.light-mode .ic-title{color:#6b3800;}
 html.light-mode .ic-sub{color:#404040;}
+html.light-mode .ic-val{color:#0a0a0a;}
 html.light-mode .modal{background:#c8cdd2;border-color:#a0a7ae;}
 html.light-mode .mh{background:#b8bec4;border-color:#a0a7ae;}
 html.light-mode .mh-title{color:#0a0a0a;}
 html.light-mode .fi-in{background:#d0d4d8;border-color:#a0a7ae;color:#0a0a0a;}
 html.light-mode .fi-in:focus{border-color:#c05c00;}
-html.light-mode .fl{color:#2a2a2a;}
+html.light-mode .fl{color:#1a1a1a;}
 html.light-mode .btn-cancel{background:#b8bec4;color:#1a1a1a;border-color:#a0a7ae;}
 html.light-mode .hgroup{background:#c4c9ce;border-color:#b0b6bc;}
 html.light-mode .hhead{background:#b8bec4;border-color:#a0a7ae;}
+html.light-mode .htitle{color:#0a0a0a;}
+html.light-mode .hmeta{color:#404040;}
+html.light-mode .hchev{color:#404040;}
 html.light-mode .hbody{background:#c4c9ce;}
 html.light-mode .empty{color:#404040;}
+html.light-mode .empty-t{color:#2a2a2a;}
 html.light-mode .row-focus{outline:2px solid #c05c00!important;}
 html.light-mode .cell-focused{background:rgba(192,92,0,.15)!important;}
 html.light-mode .nt-ok{background:#dcfce7;color:#15803d;}
 html.light-mode .nt-bad{background:#fee2e2;color:#b91c1c;}
-html.light-mode .s-title{color:#0a0a0a;}
-html.light-mode td{border-color:#b0b6bc!important;}
-html.light-mode .brow .blabel{color:#2a2a2a;}
+html.light-mode .brow .blabel{color:#1a1a1a;}
+html.light-mode .bval{color:#1a1a1a;}
 html.light-mode .btrack{background:#b0b6bc;}
-html.light-mode .trow-label{color:#404040;}
+html.light-mode .trow-label{color:#2a2a2a;}
+html.light-mode .trow-val{color:#0a0a0a;}
+html.light-mode .audit-txt{color:#0a0a0a;}
+html.light-mode .audit-time{color:#404040;}
+html.light-mode .conf-title{color:#0a0a0a;}
+html.light-mode .conf-text{color:#2a2a2a;}
+html.light-mode .toast{background:#c8cdd2;color:#0a0a0a;border-color:#a0a7ae;}
+html.light-mode .user-chip{background:#b8bec4;border-color:#a0a7ae;}
+html.light-mode .user-chip-name{color:#0a0a0a;}
+html.light-mode ::-webkit-scrollbar-track{background:#c4c9ce;}
+html.light-mode ::-webkit-scrollbar-thumb{background:#a0a7ae;}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;height:100vh;overflow:hidden;display:flex;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;font-rendering:optimizeSpeed;text-rendering:geometricPrecision;}
 
 /* ── SIDEBAR ── */
@@ -291,8 +320,8 @@ tbody tr.st-notarrived{background:rgba(245,158,11,.15)!important;border-bottom:2
 tbody tr.st-notarrived td{color:#fcd34d!important;}
 
 /* 20+ DAYS OLD — only applies when no status colour is set */
-tbody tr.row-old:not(.st-warehouse):not(.st-delivered):not(.st-sent):not(.st-issue):not(.st-returned):not(.st-notarrived):not(.row-sent){background:rgba(239,68,68,.15)!important;}
-tbody tr.row-old td{border-color:rgba(239,68,68,.4)!important;}
+tbody tr.row-old:not(.st-warehouse):not(.st-delivered):not(.st-sent):not(.st-issue):not(.st-returned):not(.st-notarrived):not(.row-sent):not(.row-stuck):not(.row-subsave){background:rgba(239,68,68,.15)!important;}
+tbody tr.row-old:not(.st-warehouse):not(.st-delivered):not(.st-sent):not(.st-issue):not(.st-returned):not(.st-notarrived):not(.row-sent):not(.row-stuck):not(.row-subsave) td{border-color:rgba(239,68,68,.4)!important;}
 
 /* 20+ DAYS STUCK — not arrived, not in warehouse, not delivered — ACTION NEEDED */
 tbody tr.row-stuck{background:rgba(255,0,0,.22)!important;border-bottom:2px solid #ff3333!important;border-left:3px solid #ff0000!important;}
@@ -430,7 +459,7 @@ select.fi-in option{background:var(--bg2);}
     <button class="sb-item" onclick="goPage('prep',this)">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="12" height="12" rx="1"/><line x1="1" y1="5" x2="13" y2="5"/><line x1="5" y1="5" x2="5" y2="13"/></svg>
       <span>Prep Sheet</span>
-      <span class="sb-badge" id="stuckBadge" style="display:none;background:#ff3333;color:#fff;">0</span>
+      <span class="sb-badge" id="stuckBadge" style="display:none;background:#ff3333;color:#fff;margin-left:auto;">0</span>
     </button>
     <button class="sb-item" onclick="goPage('shipments',this)">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="12" height="8" rx="1"/><path d="M4 4V3a2 2 0 014 0v1"/><line x1="7" y1="7" x2="7" y2="10"/><line x1="5" y1="8.5" x2="9" y2="8.5"/></svg>
@@ -444,7 +473,7 @@ select.fi-in option{background:var(--bg2);}
     <button class="sb-item" onclick="goPage('claims',this)">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h10M2 7h7M2 11h5"/><circle cx="11" cy="10" r="2.5"/><line x1="12.8" y1="11.8" x2="14" y2="13"/></svg>
       <span>Actions</span>
-      <span class="sb-badge" id="claimBadge">0</span>
+      <span class="sb-badge" id="claimBadge" style="margin-left:auto;">0</span>
       <div class="sb-dot" id="claimDot" style="display:none;"></div>
     </button>
     <div class="sb-sec" style="margin-top:6px;">Analytics</div>
@@ -455,6 +484,11 @@ select.fi-in option{background:var(--bg2);}
     <button class="sb-item" onclick="goPage('audit',this)">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M7 4v3l2 2"/></svg>
       <span>Audit Log</span>
+    </button>
+    <div class="sb-sec" style="margin-top:6px;">System</div>
+    <button class="sb-item" onclick="goPage('settings',this)">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="2"/><path d="M7 1v1M7 12v1M1 7h1M12 7h1M2.5 2.5l.7.7M10.8 10.8l.7.7M2.5 11.5l.7-.7M10.8 3.2l.7-.7"/></svg>
+      <span>Settings</span>
     </button>
   </div>
   <div class="sb-foot">
@@ -619,6 +653,66 @@ select.fi-in option{background:var(--bg2);}
       <button class="btn-add" onclick="openAddLav()">+ Add Lavarion ASIN</button>
     </div>
     <div class="tbl-wrap" style="padding:12px;" id="lavList"></div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div style="padding:24px;max-width:600px;">
+      <div style="font-size:14px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:20px;">Settings</div>
+
+      <!-- Import -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">Purchase Sheet Import</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">The Google Sheet URL used for CSV imports. This is informational only — use the Import button on the Prep Sheet to import data.</div>
+        <div style="font-size:11px;color:var(--text3);">Sheet: <span style="color:var(--accent);font-family:var(--mono);font-size:10px;">Q2 AMZ - OA (Added To Home Prep Portal = Yes)</span></div>
+      </div>
+
+      <!-- Data management -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">Data Management</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:14px;">Use these to clear trial data after testing. These actions are permanent and cannot be undone.</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text);">Clear All Prep Rows</div>
+              <div style="font-size:10px;color:var(--text3);">Removes all rows from the Prep Sheet</div>
+            </div>
+            <button onclick="clearTable('prep_rows','prep rows')" style="padding:6px 14px;background:rgba(239,68,68,.15);border:1px solid #ef4444;color:#ef4444;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text);">Clear All Actions</div>
+              <div style="font-size:10px;color:var(--text3);">Removes all actions/claims</div>
+            </div>
+            <button onclick="clearTable('actions','actions')" style="padding:6px 14px;background:rgba(239,68,68,.15);border:1px solid #ef4444;color:#ef4444;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text);">Clear Shipment Data</div>
+              <div style="font-size:10px;color:var(--text3);">Removes all ship box counts</div>
+            </div>
+            <button onclick="clearTable('ship_boxes','shipment box data')" style="padding:6px 14px;background:rgba(239,68,68,.15);border:1px solid #ef4444;color:#ef4444;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text);">🗑️ Wipe Everything</div>
+              <div style="font-size:10px;color:var(--text3);">Clears ALL data — use after trial to start fresh</div>
+            </div>
+            <button onclick="clearEverything()" style="padding:6px 14px;background:rgba(239,68,68,.3);border:1px solid #ef4444;color:#fff;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Wipe All</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- App info -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">App Info</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v1.7.1</div>
+          <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
+          <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- INSIGHTS PAGE -->
@@ -1102,7 +1196,7 @@ function goPage(n,btn){
   btn.classList.add('on');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+n).classList.add('active');
-  const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'Lavarion ASINs',claims:'Actions',insights:'Insights',audit:'Audit Log'};
+  const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'Lavarion ASINs',claims:'Actions',insights:'Insights',audit:'Audit Log',settings:'Settings'};
   document.getElementById('pageTitle').textContent=t[n]||n;
   if(n==='dashboard')renderDashboard();
   if(n==='insights')renderInsights();
@@ -1226,9 +1320,11 @@ function renderPrepRows(data){
     const expectedDeliveryDate=r.expectedDelivery?new Date(r.expectedDelivery):null;
     const expectedPassed=!expectedDeliveryDate||new Date()>expectedDeliveryDate;
     const safeStatuses=['Delivered','In Warehouse','Sent to Amazon'];
-    const isStuck=daysSinceCreate>20&&!safeStatuses.includes(r.status)&&expectedPassed;
+    const isSubSave=r.subSave==='Yes';
+    // Sub & Save exempt from stuck flag — delay is expected
+    const isStuck=daysSinceCreate>20&&!safeStatuses.includes(r.status)&&expectedPassed&&!isSubSave;
     const statusClass=r.status==='In Warehouse'?'st-warehouse':r.status==='Delivered'?'st-delivered':r.status==='Issue'?'st-issue':r.status==='Returned'?'st-returned':r.status==='Not Arrived'?'st-notarrived':'';
-    const rowCls=[isSent?'row-sent':isStuck?'row-stuck':statusClass,isOld&&!isStuck?'row-old':'',r.pri==='Yes'?'row-pri':''].filter(Boolean).join(' ');
+    const rowCls=[isSent?'row-sent':isStuck?'row-stuck':isSubSave?'row-subsave':statusClass,isOld&&!isStuck&&!isSubSave?'row-old':'',r.pri==='Yes'?'row-pri':''].filter(Boolean).join(' ');
     const rcvdColor=r.rcvd>0&&r.rcvd>=r.exp?'var(--green)':r.rcvd>0?'var(--amber)':'';
     return `<tr class="${rowCls}" id="row-${r.id}" data-id="${r.id}">
       <td style="text-align:center;font-size:9px;color:var(--text3);font-family:var(--mono);user-select:none;">${data.indexOf(r)+1}</td>
@@ -3224,6 +3320,36 @@ function uf(id,field,val){
   _origUf(id,field,val);
   const r=rows.find(x=>x.id===id);
   if(r)debounce('save_'+id,()=>saveRow(r),600);
+}
+
+// ── SETTINGS: CLEAR DATA ──────────────────────────────────────────────────────
+async function clearTable(table,label){
+  showConfirm(`Clear all ${label}?`,`This permanently deletes all ${label} from Supabase. Cannot be undone.`,async()=>{
+    setSyncStatus('syncing');
+    const res=await sb.from(table).delete().neq('id','00000000-0000-0000-0000-000000000000');
+    if(res.error){setSyncStatus('error');toast(`Error clearing ${label}`,'er');return;}
+    setSyncStatus('synced');
+    if(table==='prep_rows'){rows=[];renderPrep();renderDashboard();updateCB();}
+    if(table==='actions'){claims=[];renderClaims();updateCB();}
+    if(table==='ship_boxes'){shipBoxes={};}
+    toast(`✓ All ${label} cleared`);
+  });
+}
+async function clearEverything(){
+  showConfirm('Wipe ALL data?','This deletes every row, action, shipment and Lavarion entry. Use after the trial to start fresh.',async()=>{
+    setSyncStatus('syncing');
+    await Promise.all([
+      sb.from('prep_rows').delete().neq('id','00000000-0000-0000-0000-000000000000'),
+      sb.from('actions').delete().neq('id','00000000-0000-0000-0000-000000000000'),
+      sb.from('ship_boxes').delete().neq('id','00000000-0000-0000-0000-000000000000'),
+      sb.from('lavarion_asins').delete().neq('id','00000000-0000-0000-0000-000000000000'),
+      sb.from('lavarion_shipments').delete().neq('id','00000000-0000-0000-0000-000000000000'),
+    ]);
+    rows=[];claims=[];shipBoxes={};lavAsins=[];lavShipments=[];
+    renderPrep();renderDashboard();renderClaims();updateCB();
+    setSyncStatus('synced');
+    toast('✓ All data wiped — fresh start');
+  });
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
