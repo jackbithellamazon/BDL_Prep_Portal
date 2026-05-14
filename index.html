@@ -1361,10 +1361,10 @@ function renderPrepRows(data){
       </select></td>
       <td class="col-bundle">${r.bun==='Yes'?`<input class="ci ci-num" type="text" value="${r.bqty||''}" placeholder="—" onchange="uf(${r.id},'bqty',this.value);" tabindex="-1">`:`<span style="color:var(--text3);">—</span>`}</td>
       <td><input class="ci ci-num" type="number" value="${r.exp}" oninput="uf(${r.id},'exp',+this.value);debounce('rp',renderPrep);" tabindex="-1"></td>
-      <td><select class="ci-sel" onchange="uf(${r.id},'status',this.value);if(this.value==='Sent to Amazon'){uf(${r.id},'sent','Yes');uf(${r.id},'sentDate','${todayStr}');}renderPrep();logAudit('Status',this.options[this.selectedIndex].value);" tabindex="-1">
+      <td><select class="ci-sel" onchange="uf(${r.id},'status',this.value);if(this.value==='Sent to Amazon'){uf(${r.id},'sent','Yes');uf(${r.id},'sentDate','${todayStr}');}const _sr=rows.find(x=>x.id===${r.id});if(_sr)saveRow(_sr);renderPrep();logAudit('Status',this.options[this.selectedIndex].value);" tabindex="-1">
         ${['In-Transit','In Warehouse','Delivered','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
       </select></td>
-      <td><input class="ci ci-num" type="number" value="${r.rcvd}" oninput="uf(${r.id},'rcvd',+this.value);debounce('rp',renderPrep);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
+      <td><input class="ci ci-num" type="number" value="${r.rcvd}" oninput="uf(${r.id},'rcvd',+this.value);updateDiffCell(${r.id},+this.value,${r.exp||0});debounce('rp',renderPrep);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
       <td>${diffEl}</td>
       <td>
         <select class="ci-sel" onchange="uf(${r.id},'issueType',this.value);renderPrep();" tabindex="-1" style="width:55px;">
@@ -1405,25 +1405,49 @@ function uf(id,field,val){
 
 function filterPrep(){
   flushPending();
+  const wrap=document.querySelector('#page-prep .tbl-wrap');
+  const scrollTop=wrap?wrap.scrollTop:0;
   const q=document.getElementById('prepSrch').value.toLowerCase();
   const st=document.getElementById('prepStF').value;
-  if(!q&&!st){renderPrepRows(rows);return;}
-  const filtered=rows.filter(r=>{
-    if(st&&r.status!==st)return false;
-    if(q){
-      // Use cached search string if available
-      if(!r._srch)r._srch=(r.sku+'|'+r.asin+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+r.date).toLowerCase();
-      if(!r._srch.includes(q))return false;
-    }
-    return true;
-  });
-  renderPrepRows(filtered);
+  if(!q&&!st){renderPrepRows(rows);}
+  else{
+    const filtered=rows.filter(r=>{
+      if(st&&r.status!==st)return false;
+      if(q){
+        if(!r._srch)r._srch=(r.sku+'|'+r.asin+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+r.date).toLowerCase();
+        if(!r._srch.includes(q))return false;
+      }
+      return true;
+    });
+    renderPrepRows(filtered);
+  }
+  if(wrap)wrap.scrollTop=scrollTop;
 }
 
 function renderPrep(){
   sortRows();
   renderStats();
-  renderPrepRows(rows);
+  // Preserve scroll position
+  const wrap=document.querySelector('#page-prep .tbl-wrap');
+  const scrollTop=wrap?wrap.scrollTop:0;
+  // Re-apply active filter instead of showing all rows
+  const q=(document.getElementById('prepSrch')||{}).value?.toLowerCase()||'';
+  const st=(document.getElementById('prepStF')||{}).value||'';
+  if(q||st){
+    const filtered=rows.filter(r=>{
+      if(st&&r.status!==st)return false;
+      if(q){
+        if(!r._srch)r._srch=(r.sku+'|'+r.asin+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+r.date).toLowerCase();
+        if(!r._srch.includes(q))return false;
+      }
+      return true;
+    });
+    renderPrepRows(filtered);
+  }else{
+    renderPrepRows(rows);
+  }
+  // Restore scroll position
+  if(wrap)wrap.scrollTop=scrollTop;
 }
 
 // ── ADD ROW ───────────────────────────────────────────────────────────────────
@@ -2584,6 +2608,20 @@ function sortTable(field){
   }
 }
 
+// Update diff cell instantly without full re-render
+function updateDiffCell(id,rcvd,exp){
+  const tr=document.getElementById('row-'+id);if(!tr)return;
+  const tds=getVisibleTds(tr);
+  const rcvdIdx=tds.findIndex(td=>td.querySelector('input[oninput*="rcvd"]'));
+  if(rcvdIdx<0)return;
+  const diffTd=tds[rcvdIdx+1];if(!diffTd)return;
+  const diff=exp-rcvd;
+  if(rcvd===0){diffTd.innerHTML='<span class="nt-zero">—</span>';return;}
+  if(diff===0)diffTd.innerHTML='<span class="nt nt-ok">✓</span>';
+  else if(diff>0)diffTd.innerHTML=`<span class="nt nt-bad">-${diff}</span>`;
+  else diffTd.innerHTML=`<span class="nt nt-ok">+${Math.abs(diff)}</span>`;
+}
+
 // Flush all pending debounced saves before re-rendering
 function flushPending(){
   Object.keys(_debTimers).forEach(key=>{
@@ -2659,7 +2697,16 @@ function doBulkAction(){
     const r=rows.find(x=>x.id===id);
     if(r){
       r.status=action;
-      if(action==='Sent to Amazon'){r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();}
+      if(action==='Sent to Amazon'){
+        r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
+        // Auto-fill rcvd and ship if not already set
+        if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
+        if(!r.ship||r.ship===0)r.ship=r.rcvd;
+      }
+      if(action==='In Warehouse'||action==='Delivered'){
+        // Auto-fill rcvd if not already set
+        if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
+      }
       saveRow(r);logAudit('Bulk Status Update',r.sku);
     }
   });
@@ -2708,15 +2755,22 @@ document.addEventListener('DOMContentLoaded',()=>{
 // ── PER-ROW: ALL ARRIVED ──────────────────────────────────────────────────────
 function doAllArrived(id){
   const r=rows.find(x=>x.id===id);if(!r)return;
-  showConfirm(
-    'Mark All Arrived?',
-    `Sets Qty Received to ${r.exp} and Status to In Warehouse. You can edit Qty Received afterwards if not all arrived.`,
-    ()=>{
-      r.rcvd=r.exp||0;r.status='In Warehouse';r.issueType='';r.issueQty=0;
-      saveRow(r);
-      logAudit('All Arrived',r.sku);renderPrep();toast('All arrived ✈ — '+r.sku.split('_')[0]);
-    }
-  );
+  // Toggle: if already all arrived, undo it
+  if(r.rcvd===r.exp&&r.status==='In Warehouse'){
+    showConfirm('Undo All Arrived?','Resets Qty Received to 0 and Status back to In-Transit.',()=>{
+      r.rcvd=0;r.status='In-Transit';
+      saveRow(r);logAudit('Undo All Arrived',r.sku);renderPrep();toast('All Arrived undone — '+r.sku.split('_')[0]);
+    });
+  }else{
+    showConfirm(
+      'Mark All Arrived?',
+      `Sets Qty Received to ${r.exp} and Status to In Warehouse. Click again to undo.`,
+      ()=>{
+        r.rcvd=r.exp||0;r.status='In Warehouse';r.issueType='';r.issueQty=0;
+        saveRow(r);logAudit('All Arrived',r.sku);renderPrep();toast('All arrived ✈ — '+r.sku.split('_')[0]);
+      }
+    );
+  }
 }
 
 // ── PER-ROW: ALL SHIPPED ──────────────────────────────────────────────────────
@@ -3334,7 +3388,11 @@ function setupRealtime(){
       if(!rows.find(x=>x.uuid===r.uuid))rows.push(r);
     }else if(payload.eventType==='UPDATE'){
       const i=rows.findIndex(x=>x.uuid===payload.new.id);
-      if(i>=0)rows[i]=dbToRow(payload.new);
+      if(i>=0){
+        // Don't overwrite if we have a pending local save for this row
+        if(rows[i]._dirty)return;
+        rows[i]=dbToRow(payload.new);
+      }
     }else if(payload.eventType==='DELETE'){
       rows=rows.filter(x=>x.uuid!==payload.old.id);
     }
@@ -3371,7 +3429,7 @@ const _origUf=uf;
 function uf(id,field,val){
   _origUf(id,field,val);
   const r=rows.find(x=>x.id===id);
-  if(r){r._dirty=true;r._srch=null;debounce('save_'+id,()=>{saveRow(r);r._dirty=false;},600);}
+  if(r){r._dirty=true;r._srch=null;debounce('save_'+id,()=>{saveRow(r);r._dirty=false;},300);}
 }
 
 // ── SETTINGS: CLEAR DATA ──────────────────────────────────────────────────────
