@@ -35,11 +35,11 @@
 }
 
 html.light-mode{
-  --bg:#d0d4d8;
-  --bg2:#c4c9ce;
-  --bg3:#b8bec4;
-  --bg4:#acb3ba;
-  --bg5:#a0a8b0;
+  --bg:#b8bdc3;
+  --bg2:#adb3ba;
+  --bg3:#a2a9b0;
+  --bg4:#979fa7;
+  --bg5:#8c959e;
   --border:#b0b6bc;
   --border2:#a0a7ae;
   --accent:#c05c00;
@@ -60,9 +60,9 @@ html.light-mode{
 }
 
 /* SUB & SAVE ROW */
-tbody tr.row-subsave{background:rgba(255,170,51,.12)!important;border-left:3px solid #ffaa33!important;}
-tbody tr.row-subsave td{border-color:rgba(255,170,51,.3)!important;}
-tbody tr.row-subsave:hover{background:rgba(255,170,51,.2)!important;}
+tbody tr.row-subsave{background:rgba(85,153,255,.1)!important;border-left:3px solid #5599ff!important;}
+tbody tr.row-subsave td{border-color:rgba(85,153,255,.25)!important;color:#aaccff!important;}
+tbody tr.row-subsave:hover{background:rgba(85,153,255,.18)!important;}
 
 /* ── LIGHT MODE OVERRIDES ── */
 html.light-mode .sb{background:#2a2a28;}
@@ -84,10 +84,23 @@ html.light-mode .stat-val{color:#0a0a0a;}
 html.light-mode thead tr{background:linear-gradient(90deg,#2a2a28,#3a3a38)!important;}
 html.light-mode th{color:#ffb84d!important;}
 html.light-mode tbody tr{color:#0a0a0a;}
-html.light-mode tbody tr:nth-child(odd){background:#c8cdd2;}
-html.light-mode tbody tr:nth-child(even){background:#c0c5cb;}
-html.light-mode tbody tr:hover{background:#b5bbc2;}
-html.light-mode td{color:#0a0a0a;border-color:#b0b6bc!important;}
+/* Light mode status row colours */
+html.light-mode tbody tr.row-sent{background:rgba(21,128,61,.15)!important;border-bottom:2px solid #15803d!important;}
+html.light-mode tbody tr.row-sent td{color:#14532d!important;}
+html.light-mode tbody tr.st-delivered{background:rgba(21,128,61,.1)!important;border-bottom:1px solid rgba(21,128,61,.4)!important;}
+html.light-mode tbody tr.st-delivered td{color:#14532d!important;}
+html.light-mode tbody tr.st-warehouse{background:rgba(109,40,217,.12)!important;border-bottom:2px solid rgba(109,40,217,.5)!important;}
+html.light-mode tbody tr.st-warehouse td{color:#4c1d95!important;}
+html.light-mode tbody tr.st-issue{background:rgba(220,38,38,.15)!important;border-left:3px solid #dc2626!important;border-bottom:2px solid #dc2626!important;}
+html.light-mode tbody tr.st-issue td{color:#7f1d1d!important;}
+html.light-mode tbody tr.row-stuck{background:rgba(220,38,38,.08)!important;border-left:2px solid rgba(220,38,38,.4)!important;}
+html.light-mode tbody tr.row-stuck td{color:#991b1b!important;}
+html.light-mode tbody tr.row-subsave{background:rgba(37,99,235,.1)!important;border-left:3px solid #2563eb!important;}
+html.light-mode tbody tr.row-subsave td{color:#1e3a8a!important;}
+html.light-mode tbody tr:nth-child(odd){background:#b2b8bf;}
+html.light-mode tbody tr:nth-child(even){background:#aab0b7;}
+html.light-mode tbody tr:hover{background:#a0a7af;}
+html.light-mode td{color:#0a0a0a!important;}
 html.light-mode .toolbar{background:#c4c9ce;border-color:#b0b6bc;}
 html.light-mode .search-box{background:#d8dce0;border-color:#a0a7ae;}
 html.light-mode .search-box input{color:#0a0a0a;}
@@ -308,25 +321,24 @@ select.ci-sel option{background:var(--bg3);color:var(--text);font-weight:600;}
 .st-transit{}
 tbody tr.st-warehouse{background:var(--purple-bg)!important;border-bottom:2px solid var(--purple)!important;}
 tbody tr.st-warehouse td{color:var(--purple)!important;}
-tbody tr.st-delivered{background:rgba(34,197,94,.15)!important;border-bottom:2px solid #86efac!important;}
-tbody tr.st-delivered td{color:#86efac!important;}
+tbody tr.st-delivered{background:rgba(34,197,94,.07)!important;border-bottom:1px solid rgba(134,239,172,.3)!important;}
+tbody tr.st-delivered td{color:#a7f3d0!important;}
 tbody tr.st-sent{background:rgba(34,197,94,.25)!important;border-bottom:2px solid var(--green)!important;}
 tbody tr.st-sent td{color:#4ade80!important;}
-tbody tr.st-issue{background:var(--red-bg)!important;border-bottom:2px solid var(--red)!important;}
-tbody tr.st-issue td{color:var(--red)!important;}
+tbody tr.st-issue{background:rgba(255,0,0,.2)!important;border-bottom:3px solid #ff0000!important;border-left:3px solid #ff0000!important;}
+tbody tr.st-issue td{color:#ffaaaa!important;border-color:rgba(255,50,50,.5)!important;}
 tbody tr.st-returned{background:rgba(107,114,128,.15)!important;border-bottom:2px solid #d1d5db!important;}
 tbody tr.st-returned td{color:#d1d5db!important;}
 tbody tr.st-notarrived{background:rgba(245,158,11,.15)!important;border-bottom:2px solid #fcd34d!important;}
 tbody tr.st-notarrived td{color:#fcd34d!important;}
 
 /* 20+ DAYS OLD — only applies when no status colour is set */
-tbody tr.row-old:not(.st-warehouse):not(.st-delivered):not(.st-sent):not(.st-issue):not(.st-returned):not(.st-notarrived):not(.row-sent):not(.row-stuck):not(.row-subsave){background:rgba(239,68,68,.15)!important;}
-tbody tr.row-old:not(.st-warehouse):not(.st-delivered):not(.st-sent):not(.st-issue):not(.st-returned):not(.st-notarrived):not(.row-sent):not(.row-stuck):not(.row-subsave) td{border-color:rgba(239,68,68,.4)!important;}
+/* row-old removed — use row-stuck for 20+ day in-transit only */
 
 /* 20+ DAYS STUCK — not arrived, not in warehouse, not delivered — ACTION NEEDED */
-tbody tr.row-stuck{background:rgba(255,0,0,.22)!important;border-bottom:2px solid #ff3333!important;border-left:3px solid #ff0000!important;}
-tbody tr.row-stuck td{color:#ffaaaa!important;border-color:rgba(255,50,50,.5)!important;}
-tbody tr.row-stuck:hover{background:rgba(255,0,0,.32)!important;}
+tbody tr.row-stuck{background:rgba(239,68,68,.1)!important;border-left:2px solid rgba(239,68,68,.5)!important;}
+tbody tr.row-stuck td{color:#fca5a5!important;border-color:rgba(239,68,68,.2)!important;}
+tbody tr.row-stuck:hover{background:rgba(239,68,68,.18)!important;}
 
 /* ── NUMBER TAGS ── */
 .nt{display:inline-flex;align-items:center;justify-content:center;min-width:32px;padding:4px 7px;border-radius:4px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.2px;}
@@ -531,7 +543,7 @@ select.fi-in option{background:var(--bg2);}
       </div>
       <select class="fsel" id="prepStF" onchange="filterPrep()">
         <option value="">All Statuses</option>
-        <option>In-Transit</option><option>In Warehouse</option><option>Delivered</option>
+        <option>In-Transit</option><option>Delivered</option><option>In Warehouse</option>
         <option>Sent to Amazon</option><option>Issue</option><option>Not Arrived</option><option>Returned</option>
       </select>
       <select class="fsel" id="prepSortF" onchange="sortTable(this.value)">
@@ -766,7 +778,7 @@ select.fi-in option{background:var(--bg2);}
       <div class="fi" id="bqG" style="display:none;"><label class="fl">How Many in Bundle</label><input class="fi-in" type="number" id="f-bqty" placeholder="0"></div>
       <div class="fi"><label class="fl">Status</label>
         <select class="fi-in" id="f-status">
-          <option>In-Transit</option><option>In Warehouse</option><option>Delivered</option>
+          <option>In-Transit</option><option>Delivered</option><option>In Warehouse</option>
           <option>Prepping</option><option>Boxed</option><option>Sent to Amazon</option>
           <option>Issue</option><option>Not Arrived</option><option>Returned</option>
         </select>
@@ -805,6 +817,7 @@ select.fi-in option{background:var(--bg2);}
       <div class="fi full"><label class="fl">Packing Notes</label><textarea class="fi-in" id="f-notes" placeholder="Any notes…"></textarea></div>
       <div class="fi full"><label class="fl">VA Notes</label><textarea class="fi-in" id="f-vaNotes" placeholder="VA notes (rare, for late items)…"></textarea></div>
       <div class="fi"><label class="fl">Expected Delivery</label><input class="fi-in" type="date" id="f-expectedDelivery"></div>
+      <div class="fi"><label class="fl">Sheet Row # <span style="font-size:9px;color:var(--text3);">(optional)</span></label><input class="fi-in" type="number" id="f-sheetRow" placeholder="e.g. 2334"></div>
     </div></div>
     <div class="mf"><button class="btn-cancel" onclick="cm('addModal')">Cancel</button><button class="btn-save" onclick="saveRowForm()">Save Row</button></div>
   </div>
@@ -1081,7 +1094,7 @@ document.addEventListener('keydown',e=>{
     const td=getVisibleTds(trs[focusRow])[focusCol];
     const sel=td&&td.querySelector('select.ci-sel');
     if(sel&&sel.options.length>1){
-      const statuses=['In-Transit','In Warehouse','Delivered','Sent to Amazon','Issue','Not Arrived','Returned'];
+      const statuses=['In-Transit','Delivered','In Warehouse','Sent to Amazon','Issue','Not Arrived','Returned'];
       const idx=parseInt(e.key)-1;
       if(idx>=0&&idx<statuses.length&&Array.from(sel.options).some(o=>o.value===statuses[idx])){
         e.preventDefault();
@@ -1324,13 +1337,28 @@ function renderPrepRows(data){
     const expectedPassed=!expectedDeliveryDate||new Date()>expectedDeliveryDate;
     const safeStatuses=['Delivered','In Warehouse','Sent to Amazon'];
     const isSubSave=r.subSave==='Yes';
-    // Sub & Save exempt from stuck flag — delay is expected
-    const isStuck=daysSinceCreate>20&&!safeStatuses.includes(r.status)&&expectedPassed&&!isSubSave;
-    const statusClass=r.status==='In Warehouse'?'st-warehouse':r.status==='Delivered'?'st-delivered':r.status==='Issue'?'st-issue':r.status==='Returned'?'st-returned':r.status==='Not Arrived'?'st-notarrived':'';
-    const rowCls=[isSent?'row-sent':isStuck?'row-stuck':isSubSave?'row-subsave':statusClass,isOld&&!isStuck&&!isSubSave&&!safeStatuses.includes(r.status)?'row-old':'',r.pri==='Yes'?'row-pri':''].filter(Boolean).join(' ');
+    const isStuck=daysSinceCreate>20&&r.status==='In-Transit'&&expectedPassed&&!isSubSave;
+    // S&S only shows light blue when In-Transit — otherwise status colour wins
+    const isSubSaveInTransit=isSubSave&&r.status==='In-Transit';
+    const statusClass=
+      r.status==='Sent to Amazon'?'row-sent':
+      r.status==='In Warehouse'?'st-warehouse':
+      r.status==='Delivered'?'st-delivered':
+      r.status==='Issue'?'st-issue':
+      r.status==='Returned'?'st-returned':
+      r.status==='Not Arrived'?'st-notarrived':'';
+    const rowCls=[
+      isStuck?'row-stuck':
+      isSubSaveInTransit?'row-subsave':
+      statusClass,
+      r.pri==='Yes'?'row-pri':''
+    ].filter(Boolean).join(' ');
     const rcvdColor=r.rcvd>0&&r.rcvd>=r.exp?'var(--green)':r.rcvd>0?'var(--amber)':'';
     return `<tr class="${rowCls}" id="row-${r.id}" data-id="${r.id}">
-      <td style="text-align:center;font-size:9px;color:var(--text3);font-family:var(--mono);user-select:none;">${data.indexOf(r)+1}</td>
+      <td style="text-align:center;font-size:9px;color:var(--text3);font-family:var(--mono);user-select:none;line-height:1.3;">
+        <div>${data.indexOf(r)+1}</div>
+        ${r.sheetRow?`<div style="color:var(--border2);font-size:8px;">${r.sheetRow}</div>`:''}
+      </td>
       <td style="text-align:center;"><input type="checkbox" class="bulk-check" ${_selectedIds.has(r.id)?'checked':''} onchange="if(this.checked)_selectedIds.add(${r.id});else _selectedIds.delete(${r.id});updateBulkUI();"></td>
       <td style="text-align:center;"><button onclick="doAllArrived(${r.id})" title="All Arrived — sets Qty Received = Expected Units, Status = In Warehouse. Can be overridden by editing Qty Received directly." style="background:rgba(85,153,255,.15);border:1px solid #5599ff;color:#5599ff;border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✈</button></td>
       <td style="text-align:center;"><button onclick="doAllShipped(${r.id})" title="All Shipped — sets Shipped = Received, prompts for Shipment ID" style="background:rgba(85,255,85,.12);border:1px solid #55ff55;color:#55ff55;border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✓</button></td>
@@ -1362,7 +1390,7 @@ function renderPrepRows(data){
       <td class="col-bundle">${r.bun==='Yes'?`<input class="ci ci-num" type="text" value="${r.bqty||''}" placeholder="—" onchange="uf(${r.id},'bqty',this.value);" tabindex="-1">`:`<span style="color:var(--text3);">—</span>`}</td>
       <td><input class="ci ci-num" type="number" value="${r.exp}" oninput="uf(${r.id},'exp',+this.value);debounce('rp',renderPrep);" tabindex="-1"></td>
       <td><select class="ci-sel" onchange="uf(${r.id},'status',this.value);if(this.value==='Sent to Amazon'){uf(${r.id},'sent','Yes');uf(${r.id},'sentDate','${todayStr}');}const _sr=rows.find(x=>x.id===${r.id});if(_sr)saveRow(_sr);renderPrep();logAudit('Status',this.options[this.selectedIndex].value);" tabindex="-1">
-        ${['In-Transit','In Warehouse','Delivered','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
+        ${['In-Transit','Delivered','In Warehouse','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
       </select></td>
       <td><input class="ci ci-num" type="number" value="${r.rcvd}" oninput="uf(${r.id},'rcvd',+this.value);updateDiffCell(${r.id},+this.value,${r.exp||0});debounce('rp',renderPrep);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
       <td>${diffEl}</td>
@@ -1492,12 +1520,13 @@ function openEdit(id){
   document.getElementById('f-notes').value=r.notes||'';
   const vaN=document.getElementById('f-vaNotes');if(vaN)vaN.value=r.vaNotes||'';
   const exD=document.getElementById('f-expectedDelivery');if(exD)exD.value=r.expectedDelivery||'';
+  const srEl=document.getElementById('f-sheetRow');if(srEl)srEl.value=r.sheetRow||'';
   const pS=document.getElementById('f-prepStatus');if(pS)pS.value=r.prepStatus||'Pending';
   tbq();
   om('addModal');
 }
 function clearForm(){
-  ['f-oid','f-prod','f-asin','f-sku','f-sas','f-exp','f-aqty','f-bqty','f-rcvd','f-ship','f-shipId','f-issueQty','f-notes','f-vaNotes','f-expectedDelivery'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  ['f-oid','f-prod','f-asin','f-sku','f-sas','f-exp','f-aqty','f-bqty','f-rcvd','f-ship','f-shipId','f-issueQty','f-notes','f-vaNotes','f-expectedDelivery','f-sheetRow'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
   document.getElementById('f-sup').value='';
   ['f-bun','f-sent','f-reimb','f-pri','f-subSave'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='No';});
   document.getElementById('f-status').value='In-Transit';
@@ -1539,6 +1568,7 @@ function saveRowForm(){
     notes:document.getElementById('f-notes').value,
     vaNotes:(document.getElementById('f-vaNotes')||{}).value||'',
     expectedDelivery:(document.getElementById('f-expectedDelivery')||{}).value||'',
+    sheetRow:(document.getElementById('f-sheetRow')||{}).value||'',
     prepStatus:(document.getElementById('f-prepStatus')||{}).value||'Pending',
     shipId:document.getElementById('f-shipId').value,
     createdAt:existing?.createdAt||getNowUK(),
@@ -2699,14 +2729,14 @@ function doBulkAction(){
       r.status=action;
       if(action==='Sent to Amazon'){
         r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
-        // Auto-fill rcvd and ship if not already set
         if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
         if(!r.ship||r.ship===0)r.ship=r.rcvd;
       }
-      if(action==='In Warehouse'||action==='Delivered'){
-        // Auto-fill rcvd if not already set
+      // In Warehouse = everything confirmed, auto-fill rcvd
+      if(action==='In Warehouse'){
         if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
       }
+      // Delivered = staff must enter rcvd manually — don't auto-fill
       saveRow(r);logAudit('Bulk Status Update',r.sku);
     }
   });
@@ -2985,7 +3015,6 @@ function handleImportCSV(input){
 }
 
 function parseCSV(csv){
-  // Normalise line endings — remove \r entirely, handle \r\n and bare \r
   csv=csv.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
   const lines=csv.split('\n');
   const headers=parseCSVLine(lines[0]);
@@ -2996,6 +3025,7 @@ function parseCSV(csv){
     if(cols.length<2)continue;
     const row={};
     headers.forEach((h,idx)=>{row[h.trim()]=(cols[idx]||'').trim();});
+    row._csvLine=i+1; // actual sheet row number (1-indexed, +1 for header)
     result.push(row);
   }
   return result;
@@ -3140,6 +3170,7 @@ function confirmImport(){
       createdISO:todayISO(),
       createdAt:getNowUK(),
       importedFrom:'Purchase Sheet',
+      sheetRow:row._csvLine||'',
     };
 
     rows.push(newRow);
@@ -3241,6 +3272,7 @@ function rowToDb(r){
     notes:r.notes||'',
     expected_delivery:r.expectedDelivery||null,
     imported_from:r.importedFrom||'',
+    sheet_row:r.sheetRow||null,
   };
 }
 function dbToRow(d){
@@ -3275,6 +3307,7 @@ function dbToRow(d){
     notes:d.notes||'',
     expectedDelivery:d.expected_delivery||'',
     importedFrom:d.imported_from||'',
+    sheetRow:d.sheet_row||'',
     createdISO:d.created_at?d.created_at.split('T')[0]:'',
   };
 }
