@@ -527,7 +527,7 @@ select.fi-in option{background:var(--bg2);}
     <div class="toolbar">
       <div class="search-box">
         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="13" y2="13"/></svg>
-        <input placeholder="Search SKU, ASIN, product, supplier…" id="prepSrch" oninput="debounce('search',filterPrep,200)">
+        <input placeholder="Search SKU, ASIN, product, supplier…" id="prepSrch" oninput="filterPrep()">
       </div>
       <select class="fsel" id="prepStF" onchange="filterPrep()">
         <option value="">All Statuses</option>
@@ -1332,7 +1332,7 @@ function renderPrepRows(data){
     return `<tr class="${rowCls}" id="row-${r.id}" data-id="${r.id}">
       <td style="text-align:center;font-size:9px;color:var(--text3);font-family:var(--mono);user-select:none;">${data.indexOf(r)+1}</td>
       <td style="text-align:center;"><input type="checkbox" class="bulk-check" ${_selectedIds.has(r.id)?'checked':''} onchange="if(this.checked)_selectedIds.add(${r.id});else _selectedIds.delete(${r.id});updateBulkUI();"></td>
-      <td style="text-align:center;"><button onclick="doAllArrived(${r.id})" title="All Arrived — sets Qty Received = Expected Units, Status = In Warehouse" style="background:rgba(85,153,255,.15);border:1px solid #5599ff;color:#5599ff;border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✈</button></td>
+      <td style="text-align:center;"><button onclick="doAllArrived(${r.id})" title="All Arrived — sets Qty Received = Expected Units, Status = In Warehouse. Can be overridden by editing Qty Received directly." style="background:rgba(85,153,255,.15);border:1px solid #5599ff;color:#5599ff;border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✈</button></td>
       <td style="text-align:center;"><button onclick="doAllShipped(${r.id})" title="All Shipped — sets Shipped = Received, prompts for Shipment ID" style="background:rgba(85,255,85,.12);border:1px solid #55ff55;color:#55ff55;border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✓</button></td>
       <td><a class="sas-btn" href="${r.sas}" target="_blank" style="font-size:10px;padding:2px 5px;">SAS</a></td>
       <td class="td-left">
@@ -1360,11 +1360,11 @@ function renderPrepRows(data){
         <option${r.bun==='No'?' selected':''}>No</option><option${r.bun==='Yes'?' selected':''}>Yes</option>
       </select></td>
       <td class="col-bundle">${r.bun==='Yes'?`<input class="ci ci-num" type="text" value="${r.bqty||''}" placeholder="—" onchange="uf(${r.id},'bqty',this.value);" tabindex="-1">`:`<span style="color:var(--text3);">—</span>`}</td>
-      <td><input class="ci ci-num" type="number" value="${r.exp}" onchange="uf(${r.id},'exp',+this.value);debounce('rp',renderPrep);" tabindex="-1"></td>
+      <td><input class="ci ci-num" type="number" value="${r.exp}" oninput="uf(${r.id},'exp',+this.value);debounce('rp',renderPrep);" tabindex="-1"></td>
       <td><select class="ci-sel" onchange="uf(${r.id},'status',this.value);if(this.value==='Sent to Amazon'){uf(${r.id},'sent','Yes');uf(${r.id},'sentDate','${todayStr}');}renderPrep();logAudit('Status',this.options[this.selectedIndex].value);" tabindex="-1">
         ${['In-Transit','In Warehouse','Delivered','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
       </select></td>
-      <td><input class="ci ci-num" type="number" value="${r.rcvd}" onchange="uf(${r.id},'rcvd',+this.value);debounce('rp',renderPrep);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
+      <td><input class="ci ci-num" type="number" value="${r.rcvd}" oninput="uf(${r.id},'rcvd',+this.value);debounce('rp',renderPrep);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
       <td>${diffEl}</td>
       <td>
         <select class="ci-sel" onchange="uf(${r.id},'issueType',this.value);renderPrep();" tabindex="-1" style="width:55px;">
@@ -1375,7 +1375,7 @@ function renderPrepRows(data){
         </select>
         <input class="ci ci-num" type="number" value="${r.issueQty||''}" onchange="uf(${r.id},'issueQty',+this.value);debounce('rp',renderPrep);" placeholder="—" tabindex="-1" style="width:32px;">
       </td>
-      <td><input class="ci ci-num" type="number" value="${r.ship}" onchange="uf(${r.id},'ship',+this.value);debounce('rp',renderPrep);" tabindex="-1"></td>
+      <td><input class="ci ci-num" type="number" value="${r.ship}" oninput="uf(${r.id},'ship',+this.value);debounce('rp',renderPrep);" tabindex="-1"></td>
       <td><select class="ci-sel" onchange="uf(${r.id},'sent',this.value);if(this.value==='Yes'){uf(${r.id},'sentDate','${todayStr}');}else{uf(${r.id},'sentDate','');}renderPrep();logAudit('Sent AMZ',this.value);" tabindex="-1">
         <option${r.sent==='No'?' selected':''}>No</option><option${r.sent==='Yes'?' selected':''}>Yes</option>
       </select></td>
@@ -1383,7 +1383,7 @@ function renderPrepRows(data){
       <td><select class="ci-sel" onchange="uf(${r.id},'reimb',this.value);" tabindex="-1">
         <option${r.reimb==='No'?' selected':''}>No</option><option${r.reimb==='Yes'?' selected':''}>Yes</option>
       </select></td>
-      <td class="td-left"><input class="ci ci-note" type="text" value="${r.notes}" placeholder="—" onchange="uf(${r.id},'notes',this.value);" tabindex="-1" title="${r.notes}" style="min-width:150px;" onfocus="this.style.minWidth='280px';this.style.position='relative';this.style.zIndex='10';" onblur="this.style.minWidth='';this.style.position='';this.style.zIndex='';"></td>
+      <td class="td-left"><input class="ci ci-note" type="text" value="${(r.notes||'').replace(/"/g,'&quot;')}" placeholder="—" onchange="uf(${r.id},'notes',this.value);" tabindex="-1" title="${(r.notes||'').replace(/"/g,'&quot;')}" style="min-width:150px;" onfocus="this.style.minWidth='280px';this.style.position='relative';this.style.zIndex='10';" onblur="this.style.minWidth='';this.style.position='';this.style.zIndex='';"></td>
       <td><div class="row-acts" style="opacity:1;">
         <button class="ra" title="Edit row" onclick="openEdit(${r.id})" style="border-color:#f97316;color:#f97316;background:rgba(249,115,22,.1);font-size:10px;font-weight:700;width:auto;padding:0 6px;">Edit</button>
         <button class="ra r" title="Raise Action" onclick="openClaim(${r.id})" style="font-size:9px;font-weight:700;width:auto;padding:0 5px;">⚑ Action</button>
@@ -1404,13 +1404,18 @@ function uf(id,field,val){
 }
 
 function filterPrep(){
-  // Flush any pending debounced saves so status changes aren't lost on re-render
   flushPending();
   const q=document.getElementById('prepSrch').value.toLowerCase();
   const st=document.getElementById('prepStF').value;
+  if(!q&&!st){renderPrepRows(rows);return;}
   const filtered=rows.filter(r=>{
-    const mq=!q||(r.sku+r.asin+r.prod+r.oid+r.sup).toLowerCase().includes(q);
-    return mq&&(!st||r.status===st);
+    if(st&&r.status!==st)return false;
+    if(q){
+      // Use cached search string if available
+      if(!r._srch)r._srch=(r.sku+'|'+r.asin+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+r.date).toLowerCase();
+      if(!r._srch.includes(q))return false;
+    }
+    return true;
   });
   renderPrepRows(filtered);
 }
@@ -2703,9 +2708,15 @@ document.addEventListener('DOMContentLoaded',()=>{
 // ── PER-ROW: ALL ARRIVED ──────────────────────────────────────────────────────
 function doAllArrived(id){
   const r=rows.find(x=>x.id===id);if(!r)return;
-  r.rcvd=r.exp||0;r.status='In Warehouse';r.issueType='';r.issueQty=0;
-  saveRow(r);
-  logAudit('All Arrived',r.sku);renderPrep();toast('All arrived ✈ — '+r.sku.split('_')[0]);
+  showConfirm(
+    'Mark All Arrived?',
+    `Sets Qty Received to ${r.exp} and Status to In Warehouse. You can edit Qty Received afterwards if not all arrived.`,
+    ()=>{
+      r.rcvd=r.exp||0;r.status='In Warehouse';r.issueType='';r.issueQty=0;
+      saveRow(r);
+      logAudit('All Arrived',r.sku);renderPrep();toast('All arrived ✈ — '+r.sku.split('_')[0]);
+    }
+  );
 }
 
 // ── PER-ROW: ALL SHIPPED ──────────────────────────────────────────────────────
@@ -3360,7 +3371,7 @@ const _origUf=uf;
 function uf(id,field,val){
   _origUf(id,field,val);
   const r=rows.find(x=>x.id===id);
-  if(r){r._dirty=true;debounce('save_'+id,()=>{saveRow(r);r._dirty=false;},600);}
+  if(r){r._dirty=true;r._srch=null;debounce('save_'+id,()=>{saveRow(r);r._dirty=false;},600);}
 }
 
 // ── SETTINGS: CLEAR DATA ──────────────────────────────────────────────────────
