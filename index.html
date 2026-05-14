@@ -2215,8 +2215,8 @@ function renderLavarion(){
         <td class="td-left" style="font-size:10px;color:var(--text3);">${a.notes||'—'}</td>
         <td>
           <div style="display:flex;gap:4px;">
-            <button onclick="openEditLav(${a.id})" style="padding:3px 8px;background:rgba(249,115,22,.1);border:1px solid #f97316;color:#f97316;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;">Edit</button>
-            <button onclick="deleteLav(${a.id})" style="padding:3px 8px;background:rgba(239,68,68,.1);border:1px solid #ef4444;color:#ef4444;border-radius:3px;font-size:10px;cursor:pointer;">✕</button>
+            <button onclick="openEditLav('${a.id}')" style="padding:3px 8px;background:rgba(249,115,22,.1);border:1px solid #f97316;color:#f97316;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;">Edit</button>
+            <button onclick="deleteLav('${a.id}')" style="padding:3px 8px;background:rgba(239,68,68,.1);border:1px solid #ef4444;color:#ef4444;border-radius:3px;font-size:10px;cursor:pointer;">✕</button>
           </div>
         </td>
       </tr>`;
