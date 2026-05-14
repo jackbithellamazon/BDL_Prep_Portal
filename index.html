@@ -596,7 +596,7 @@ select.fi-in option{background:var(--bg2);}
     <div class="tbl-wrap">
       <table id="prepTable">
         <thead><tr>
-          <th style="width:24px;font-size:9px;color:var(--text3);">#</th>
+          <th style="width:28px;font-size:8px;color:var(--text3);line-height:1.2;">#<br><span style="font-size:7px;opacity:.6;">sheet</span></th>
           <th style="width:32px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)"></th>
           <th style="width:22px;" title="All Arrived">✈</th>
           <th style="width:22px;" title="All Shipped">✓</th>
@@ -1154,6 +1154,7 @@ document.addEventListener('keydown',e=>{
     if(!td)return;
     const sel=td.querySelector('select.ci-sel');
     const inp=td.querySelector('input.ci,input.ci-num,input.ci-note');
+    const chk=td.querySelector('input[type="checkbox"]');
     const sas=td.querySelector('.sas-btn');
     const btn=td.querySelector('button');
     if(inInput){
@@ -1164,6 +1165,12 @@ document.addEventListener('keydown',e=>{
       active.blur();
       _navigating=true;
       setFocus(Math.min(focusRow+1,trs.length-1),focusCol);
+    }else if(chk){
+      // Toggle checkbox and update _selectedIds
+      chk.checked=!chk.checked;
+      const id=parseInt(trs[focusRow].dataset.id);
+      if(chk.checked)_selectedIds.add(id);else _selectedIds.delete(id);
+      updateBulkUI();
     }else if(sel){
       // Always open select first — even if cell also has a number input
       sel.focus();
@@ -2730,7 +2737,7 @@ function doBulkAction(){
       if(action==='Sent to Amazon'){
         r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
         if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
-        if(!r.ship||r.ship===0)r.ship=r.rcvd;
+        r.ship=r.rcvd; // always set ship = rcvd when sending to Amazon
       }
       // In Warehouse = everything confirmed, auto-fill rcvd
       if(action==='In Warehouse'){
@@ -2868,6 +2875,9 @@ function doBulkShipId(){
     if(r){
       r.shipId=shipId;r.shipType=shipType;
       r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
+      // Auto-fill ship qty from rcvd (or exp if rcvd not set)
+      r.ship=r.rcvd||r.exp||0;
+      if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
       saveRow(r);logAudit('Bulk Shipment ID',`${r.sku} → ${shipId} (${shipType})`);
     }
   });
