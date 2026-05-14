@@ -2314,7 +2314,8 @@ function onLavShipSelect(){
 function updateLavShipTotal(){
   const u=parseInt(document.getElementById('lavShip-units').value)||0;
   const c=parseFloat(document.getElementById('lavShip-cost').value)||0;
-  document.getElementById('lavShipTotal').textContent=fmtGBP(u*c);
+  const total=(u*c).toFixed(2);
+  document.getElementById('lavShipTotal').textContent='£'+total;
 }
 function confirmLavShip(){
   const asin=document.getElementById('lavShip-asin').value;
