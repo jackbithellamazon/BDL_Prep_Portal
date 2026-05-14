@@ -1396,7 +1396,7 @@ function renderPrepRows(data){
       </select></td>
       <td class="col-bundle">${r.bun==='Yes'?`<input class="ci ci-num" type="text" value="${r.bqty||''}" placeholder="—" onchange="uf(${r.id},'bqty',this.value);" tabindex="-1">`:`<span style="color:var(--text3);">—</span>`}</td>
       <td><input class="ci ci-num" type="number" value="${r.exp}" oninput="uf(${r.id},'exp',+this.value);debounce('rp',renderPrep);" tabindex="-1"></td>
-      <td><select class="ci-sel" onchange="uf(${r.id},'status',this.value);if(this.value==='Sent to Amazon'){uf(${r.id},'sent','Yes');uf(${r.id},'sentDate','${todayStr}');}const _sr=rows.find(x=>x.id===${r.id});if(_sr)saveRow(_sr);renderPrep();logAudit('Status',this.options[this.selectedIndex].value);" tabindex="-1">
+      <td><select class="ci-sel" onchange="handleStatusChange(${r.id},this);" tabindex="-1">
         ${['In-Transit','Delivered','In Warehouse','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
       </select></td>
       <td><input class="ci ci-num" type="number" value="${r.rcvd}" oninput="uf(${r.id},'rcvd',+this.value);updateDiffCell(${r.id},+this.value,${r.exp||0});debounce('rp',renderPrep);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
@@ -2200,17 +2200,10 @@ function renderLavarion(){
     <thead><tr>
       <th class="th-left">ASIN / SKU</th>
       <th class="th-left">Product Name</th>
-      <th>Cost/Unit</th>
-      <th>Total Stock</th>
-      <th>Units Sent</th>
-      <th>Remaining</th>
-      <th>DG</th>
       <th class="th-left">Notes</th>
       <th style="width:80px;"></th>
     </tr></thead>
     <tbody>${data.map(a=>{
-      const unitsSent=lavShipments.filter(s=>s.asin===a.asin).reduce((t,s)=>t+(s.units||0),0);
-      const remaining=Math.max(0,(a.total||0)-unitsSent);
       return`<tr>
         <td class="td-left">
           <div class="stack">
@@ -2219,11 +2212,6 @@ function renderLavarion(){
           </div>
         </td>
         <td class="td-left" style="font-weight:600;font-size:12px;">${a.prod}</td>
-        <td style="font-family:var(--mono);font-weight:700;color:#ffaa33;">£${(a.cost||0).toFixed(2)}</td>
-        <td style="font-family:var(--mono);font-weight:700;color:var(--blue);">${fmt(a.total||0)}</td>
-        <td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(unitsSent)}</td>
-        <td style="font-family:var(--mono);font-weight:700;color:${remaining<10?'#ff5555':'var(--text)'};">${fmt(remaining)}</td>
-        <td style="font-size:11px;color:${a.dg==='Yes'?'#ff5555':'var(--text3)'};">${a.dg||'No'}</td>
         <td class="td-left" style="font-size:10px;color:var(--text3);">${a.notes||'—'}</td>
         <td>
           <div style="display:flex;gap:4px;">
@@ -2260,8 +2248,7 @@ function renderLavarion(){
 function openAddLav(){
   lavEditId=null;
   document.getElementById('lavModalTitle').textContent='Add Lavarion ASIN';
-  ['lav-asin','lav-sku','lav-prod','lav-cost','lav-total','lav-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('lav-dg').value='No';
+  ['lav-asin','lav-sku','lav-prod','lav-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   om('lavModal');
 }
 function openEditLav(id){
@@ -2271,9 +2258,6 @@ function openEditLav(id){
   document.getElementById('lav-asin').value=a.asin||'';
   document.getElementById('lav-sku').value=a.sku||'';
   document.getElementById('lav-prod').value=a.prod||'';
-  document.getElementById('lav-cost').value=a.cost||'';
-  document.getElementById('lav-total').value=a.total||'';
-  document.getElementById('lav-dg').value=a.dg||'No';
   document.getElementById('lav-notes').value=a.notes||'';
   om('lavModal');
 }
@@ -2285,9 +2269,7 @@ function saveLav(){
   const obj={
     id:lavEditId||++_lavNid,
     asin,sku,prod,
-    cost:parseFloat(document.getElementById('lav-cost').value)||0,
-    total:parseInt(document.getElementById('lav-total').value)||0,
-    dg:document.getElementById('lav-dg').value,
+    cost:0,total:0,dg:'No',
     notes:document.getElementById('lav-notes').value.trim(),
   };
   if(lavEditId){const i=lavAsins.findIndex(x=>x.id===lavEditId);if(i>=0)lavAsins[i]=obj;}
@@ -2324,9 +2306,10 @@ function onLavShipSelect(){
   if(!a){det.style.display='none';return;}
   document.getElementById('lavShipProdName').textContent=a.prod;
   document.getElementById('lavShipSku').textContent=a.sku;
-  document.getElementById('lavShip-cost').value=a.cost||'';
+  document.getElementById('lavShip-units').value='';
+  document.getElementById('lavShip-cost').value=''; // always blank — entered per shipment
+  document.getElementById('lavShipTotal').textContent='£0';
   det.style.display='block';
-  updateLavShipTotal();
 }
 function updateLavShipTotal(){
   const u=parseInt(document.getElementById('lavShip-units').value)||0;
@@ -2659,6 +2642,39 @@ function updateDiffCell(id,rcvd,exp){
   else diffTd.innerHTML=`<span class="nt nt-ok">+${Math.abs(diff)}</span>`;
 }
 
+// ── STATUS CHANGE HANDLER ─────────────────────────────────────────────────────
+function handleStatusChange(id,sel){
+  const val=sel.value;
+  const r=rows.find(x=>x.id===id);if(!r)return;
+  if(val==='Sent to Amazon'){
+    sel.value=r.status; // revert dropdown while popup shows
+    showShipIdModal(
+      'Shipment ID Required',
+      'Enter the FBA Shipment ID to mark as Sent to Amazon.',
+      r.shipType||'Standard',
+      (shipId,type)=>{
+        r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
+        r.shipId=shipId;r.shipType=type;
+        if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
+        r.ship=r.rcvd;
+        saveRow(r);logAudit('Sent to Amazon',`${r.sku} → ${shipId}`);
+        renderPrep();
+      }
+    );
+  }else if(r.status==='Sent to Amazon'&&val!=='Sent to Amazon'){
+    // Reverting from Sent to Amazon — clear shipment data
+    r.status=val;r.sent='No';r.sentDate='';
+    r.ship=0;r.shipId='';
+    saveRow(r);logAudit(`Status reverted: ${val}`,r.sku);
+    renderPrep();
+  }else{
+    r.status=val;
+    if(!r._dirty)r._dirty=true;
+    saveRow(r);logAudit('Status',val);
+    renderPrep();
+  }
+}
+
 // Flush all pending debounced saves before re-rendering
 function flushPending(){
   Object.keys(_debTimers).forEach(key=>{
@@ -2729,21 +2745,24 @@ function toggleSelectAll(checked){
 function doBulkAction(){
   const action=document.getElementById('bulkActionDropdown').value;
   if(!action)return;
+  // Block Sent to Amazon via bulk dropdown — must use Stamp ID button instead
+  if(action==='Sent to Amazon'){
+    toast('Use "Stamp ID" to send to Amazon — Shipment ID is required','er');
+    document.getElementById('bulkActionDropdown').value='';
+    return;
+  }
   const selected=getSelectedRows();
   selected.forEach(id=>{
     const r=rows.find(x=>x.id===id);
     if(r){
       r.status=action;
-      if(action==='Sent to Amazon'){
-        r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
-        if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
-        r.ship=r.rcvd; // always set ship = rcvd when sending to Amazon
-      }
-      // In Warehouse = everything confirmed, auto-fill rcvd
       if(action==='In Warehouse'){
         if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
       }
-      // Delivered = staff must enter rcvd manually — don't auto-fill
+      // Reverting to In Warehouse from Sent to Amazon — clear shipment data
+      if(action==='In Warehouse'&&r.sent==='Yes'){
+        r.sent='No';r.sentDate='';r.ship=0;r.shipId='';
+      }
       saveRow(r);logAudit('Bulk Status Update',r.sku);
     }
   });
@@ -3599,13 +3618,8 @@ dbLoad().then(()=>setupRealtime());
     <div class="mb"><div class="fg">
       <div class="fi"><label class="fl">ASIN</label><input class="fi-in" type="text" id="lav-asin" placeholder="B0XXXXXXXXX"></div>
       <div class="fi"><label class="fl">SKU</label><input class="fi-in" type="text" id="lav-sku" placeholder="LAV-001"></div>
-      <div class="fi"><label class="fl">Product Name</label><input class="fi-in" type="text" id="lav-prod" placeholder="Full product name"></div>
-      <div class="fi"><label class="fl">Cost per Unit (£)</label><input class="fi-in" type="number" id="lav-cost" placeholder="0.00" step="0.01"></div>
-      <div class="fi"><label class="fl">Total Units in Stock</label><input class="fi-in" type="number" id="lav-total" placeholder="0"></div>
-      <div class="fi"><label class="fl">DG (Dangerous Goods)?</label>
-        <select class="fi-in" id="lav-dg"><option value="No">No</option><option value="Yes">Yes</option></select>
-      </div>
-      <div class="fi"><label class="fl">Notes</label><input class="fi-in" type="text" id="lav-notes" placeholder="Optional"></div>
+      <div class="fi full"><label class="fl">Product Name</label><input class="fi-in" type="text" id="lav-prod" placeholder="Full product name"></div>
+      <div class="fi full"><label class="fl">Notes</label><input class="fi-in" type="text" id="lav-notes" placeholder="Optional"></div>
     </div></div>
     <div class="mf">
       <button class="btn-cancel" onclick="cm('lavModal')">Cancel</button>
@@ -3631,9 +3645,9 @@ dbLoad().then(()=>setupRealtime());
           <div id="lavShipSku" style="color:var(--text3);font-family:var(--mono);font-size:10px;"></div>
         </div>
         <div class="fi"><label class="fl">Units to Send</label><input class="fi-in" type="number" id="lavShip-units" placeholder="0" min="1" oninput="updateLavShipTotal()"></div>
-        <div class="fi"><label class="fl">Cost per Unit (£) — confirm before locking</label><input class="fi-in" type="number" id="lavShip-cost" placeholder="0.00" step="0.01" oninput="updateLavShipTotal()"></div>
+        <div class="fi"><label class="fl">Cost of Goods per Unit (£) — for this shipment only</label><input class="fi-in" type="number" id="lavShip-cost" placeholder="0.00" step="0.01" oninput="updateLavShipTotal()"></div>
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-size:11px;color:var(--text3);">Total value</div>
+          <div style="font-size:11px;color:var(--text3);">Total COG for shipment</div>
           <div style="font-size:16px;font-weight:800;color:#ffaa33;font-family:var(--mono);" id="lavShipTotal">£0</div>
         </div>
       </div>
