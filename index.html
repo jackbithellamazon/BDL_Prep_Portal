@@ -59,6 +59,11 @@ html.light-mode{
   --mono:#111;
 }
 
+/* SHIPMENT DATE FILTER BUTTONS */
+.sdBtn{padding:3px 9px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text3);white-space:nowrap;}
+.sdBtn:hover{background:var(--bg3);color:var(--text);}
+.sdBtn-active{background:rgba(245,158,11,.15)!important;border-color:var(--accent)!important;color:var(--accent)!important;}
+
 /* SUB & SAVE ROW */
 tbody tr.row-subsave{background:rgba(85,153,255,.1)!important;border-left:3px solid #5599ff!important;}
 tbody tr.row-subsave td{border-color:rgba(85,153,255,.25)!important;color:#aaccff!important;}
@@ -646,11 +651,28 @@ select.fi-in option{background:var(--bg2);}
 
   <!-- SHIPMENTS PAGE -->
   <div class="page" id="page-shipments">
-    <div class="toolbar">
+    <div class="toolbar" style="flex-wrap:wrap;gap:6px;row-gap:6px;">
       <div class="search-box">
         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="13" y2="13"/></svg>
-        <input placeholder="Search shipment ID, SKU, supplier…" id="shipSrch" oninput="renderShipments()">
+        <input placeholder="Search FBA ID, SKU, ASIN, supplier…" id="shipSrch" oninput="renderShipments()">
       </div>
+      <select class="fsel" id="shipTypeF" onchange="renderShipments()">
+        <option value="">All Types</option>
+        <option>Standard</option><option>DG</option><option>Oversize</option>
+      </select>
+      <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;" id="shipDateBtns">
+        <span style="font-size:10px;color:var(--text3);font-weight:600;">Date:</span>
+        <button id="shipDateBtn-today" onclick="setShipDateFilter('today')" class="sdBtn">Today</button>
+        <button id="shipDateBtn-yesterday" onclick="setShipDateFilter('yesterday')" class="sdBtn">Yesterday</button>
+        <button id="shipDateBtn-7d" onclick="setShipDateFilter('7d')" class="sdBtn">7 Days</button>
+        <button id="shipDateBtn-mtd" onclick="setShipDateFilter('mtd')" class="sdBtn sdBtn-active">MTD</button>
+        <button id="shipDateBtn-ytd" onclick="setShipDateFilter('ytd')" class="sdBtn">YTD</button>
+        <button id="shipDateBtn-all" onclick="setShipDateFilter('all')" class="sdBtn">All</button>
+        <input type="date" id="shipDateFrom" onchange="setShipDateFilter('custom')" style="padding:2px 6px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:10px;margin-left:4px;">
+        <span style="font-size:10px;color:var(--text3);">→</span>
+        <input type="date" id="shipDateTo" onchange="setShipDateFilter('custom')" style="padding:2px 6px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:10px;">
+      </div>
+      <button class="btn-add" onclick="openNewShipment()" style="margin-left:auto;white-space:nowrap;">+ New Shipment</button>
     </div>
     <div class="tbl-wrap" style="padding:12px;" id="shipList"></div>
   </div>
@@ -969,6 +991,10 @@ function sortRows(){
   const field=sortBy.field||'date';
   const asc=sortBy.field?sortBy.asc:true;
   rows.sort((a,b)=>{
+    // Sent to Amazon always goes to bottom
+    const aSent=a.status==='Sent to Amazon'?1:0;
+    const bSent=b.status==='Sent to Amazon'?1:0;
+    if(aSent!==bSent)return aSent-bSent;
     let av,bv;
     if(field==='date'){
       av=a.date?a.date.split('/').reverse().join(''):'';
@@ -2221,28 +2247,7 @@ function renderLavarion(){
         </td>
       </tr>`;
     }).join('')}</tbody>
-  </table>
-
-  <!-- Shipment history for Lavarion -->
-  ${lavShipments.length?`
-  <div style="margin-top:16px;">
-    <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Lavarion Shipment History</div>
-    <table style="min-width:unset;width:100%;">
-      <thead style="position:static;"><tr>
-        <th>Date</th><th class="th-left">ASIN</th><th class="th-left">Product</th>
-        <th>Shipment ID</th><th>Units</th><th>Cost/Unit</th><th>Total Value</th>
-      </tr></thead>
-      <tbody>${[...lavShipments].reverse().map(s=>`<tr>
-        <td style="font-size:11px;">${s.date||'—'}</td>
-        <td class="td-left"><span class="s-asin" onclick="copyVal('${s.asin}',this)" style="display:inline-flex;font-size:10px;">${s.asin}</span></td>
-        <td class="td-left" style="font-size:11px;">${s.prod}</td>
-        <td style="font-family:var(--mono);font-size:10px;color:var(--accent);">${s.shipId}</td>
-        <td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(s.units)}</td>
-        <td style="font-family:var(--mono);color:#ffaa33;">£${(s.cost||0).toFixed(2)}</td>
-        <td style="font-family:var(--mono);font-weight:700;color:#ffaa33;">${fmtGBP((s.cost||0)*(s.units||0))}</td>
-      </tr>`).join('')}</tbody>
-    </table>
-  </div>`:''}`;
+  </table>`;
 }
 
 function openAddLav(){
@@ -2909,11 +2914,13 @@ function doBulkShipId(){
 function renderShipments(){
   const w=document.getElementById('shipList');
   const q=(document.getElementById('shipSrch')||{}).value?.toLowerCase()||'';
+  const typeF=(document.getElementById('shipTypeF')||{}).value||'';
+  const{s:dateFrom,e:dateTo}=getShipDateRange();
 
-  // Group all rows that have a shipId
+  // Group OA rows by shipId
   const shipMap={};
   rows.filter(r=>r.shipId).forEach(r=>{
-    if(!shipMap[r.shipId])shipMap[r.shipId]={id:r.shipId,date:r.sentDate||'',skus:[],units:0,value:0,boxes:shipBoxes[r.shipId]||0,type:r.shipType||'Standard'};
+    if(!shipMap[r.shipId])shipMap[r.shipId]={id:r.shipId,date:r.sentDate||'',skus:[],lavSkus:[],units:0,value:0,boxes:shipBoxes[r.shipId]||0,type:r.shipType||'Standard',hasLav:false};
     shipMap[r.shipId].skus.push(r);
     shipMap[r.shipId].units+=(r.ship||0);
     shipMap[r.shipId].value+=parseSKU(r.sku).cogs*(r.ship||0);
@@ -2921,50 +2928,68 @@ function renderShipments(){
     if(r.shipType)shipMap[r.shipId].type=r.shipType;
   });
 
+  // Add Lavarion shipments
+  lavShipments.forEach(ls=>{
+    if(!ls.shipId)return;
+    if(!shipMap[ls.shipId])shipMap[ls.shipId]={id:ls.shipId,date:ls.date||'',skus:[],lavSkus:[],units:0,value:0,boxes:shipBoxes[ls.shipId]||0,type:'Standard',hasLav:true};
+    shipMap[ls.shipId].lavSkus.push(ls);
+    shipMap[ls.shipId].units+=(ls.units||0);
+    shipMap[ls.shipId].value+=(ls.cost||0)*(ls.units||0);
+    shipMap[ls.shipId].hasLav=true;
+    if(ls.date&&ls.date>shipMap[ls.shipId].date)shipMap[ls.shipId].date=ls.date;
+  });
+
   let shipments=Object.values(shipMap).sort((a,b)=>b.date.localeCompare(a.date));
 
-  // Filter by search
+  // Date filter
+  if(dateFrom&&dateTo){
+    shipments=shipments.filter(s=>s.date>=dateFrom&&s.date<=dateTo);
+  }
+
+  // Type filter
+  if(typeF)shipments=shipments.filter(s=>s.type===typeF);
+
+  // Search
   if(q)shipments=shipments.filter(s=>
     s.id.toLowerCase().includes(q)||
-    s.skus.some(r=>(r.sku+r.asin+r.prod+r.sup).toLowerCase().includes(q))
+    s.skus.some(r=>(r.sku+r.asin+r.prod+r.sup).toLowerCase().includes(q))||
+    s.lavSkus.some(ls=>(ls.sku+ls.asin+ls.prod).toLowerCase().includes(q))
   );
 
-  // Update badge
+  // Badge
   const badge=document.getElementById('shipBadge');
   if(badge){badge.textContent=shipments.length;badge.style.display=shipments.length?'inline-flex':'none';}
 
   if(!shipments.length){
-    w.innerHTML=`<div class="empty"><div class="empty-ico">📦</div><div class="empty-t">${q?'No shipments match your search':'No shipments yet — stamp a Shipment ID on sent rows to see them here'}</div></div>`;
+    w.innerHTML=`<div class="empty"><div class="empty-ico">📦</div><div class="empty-t">No shipments found for this period</div></div>`;
     return;
   }
 
   w.innerHTML=shipments.map(s=>{
     const dateDisp=s.date?new Date(s.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
     const sfUrl=`https://app.sellerfuse.com/shipment-manager?search=${encodeURIComponent(s.id)}`;
-    const skuCount=s.skus.length;
+    const skuCount=s.skus.length+(s.lavSkus||[]).length;
     const safeId=s.id.replace(/[^a-z0-9]/gi,'_');
+    const tc=s.type==='DG'?'#ff5555':s.type==='Oversize'?'#ffaa33':'#5599ff';
     return`<div class="hgroup" id="ship-${safeId}">
-      <div class="hhead" onclick="this.parentElement.classList.toggle('open')" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="hhead" onclick="this.parentElement.classList.toggle('open')" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <span class="hchev">▶</span>
         <span class="htitle" style="font-family:var(--mono);font-size:13px;font-weight:800;color:var(--accent);letter-spacing:.04em;">${s.id}</span>
         <span style="font-size:10px;color:var(--text3);">${dateDisp}</span>
-        ${(()=>{const tc=s.type==='DG'?'#ff5555':s.type==='Oversize'?'#ffaa33':'#5599ff';return`<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:${tc}22;color:${tc};border:1px solid ${tc}44;letter-spacing:.06em;">${s.type||'Standard'}</span>`;})()}
+        <span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:${tc}22;color:${tc};border:1px solid ${tc}44;">${s.type||'Standard'}</span>
+        ${s.hasLav?`<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:rgba(204,153,255,.2);color:#cc99ff;border:1px solid rgba(204,153,255,.3);">LAV</span>`:''}
         <span style="font-size:10px;color:var(--blue);font-weight:700;">${skuCount} SKU${skuCount!==1?'s':''}</span>
-        <span style="font-size:10px;color:var(--green);font-weight:700;">${s.units} units</span>
+        <span style="font-size:10px;color:var(--green);font-weight:700;">${fmt(s.units)} units</span>
         <span style="font-size:10px;color:var(--amber);font-weight:700;">£${s.value.toFixed(0)}</span>
         <button onclick="event.stopPropagation();openLavShip('${s.id}')" style="padding:2px 8px;background:rgba(204,153,255,.15);border:1px solid #cc99ff;color:#cc99ff;border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Lavarion</button>
         <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);" onclick="event.stopPropagation()">
           📦
-          <input type="number" min="0" value="${s.boxes||''}" placeholder="0 boxes"
-            style="width:64px;padding:2px 6px;background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--text);font-size:11px;font-family:var(--mono);font-weight:700;outline:none;text-align:center;"
+          <input type="number" min="0" value="${s.boxes||''}" placeholder="0"
+            style="width:56px;padding:2px 6px;background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--text);font-size:11px;font-family:var(--mono);font-weight:700;outline:none;text-align:center;"
             onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"
-            onchange="shipBoxes['${s.id}']=+this.value;saveShipBoxes('${s.id}',+this.value);renderShipments();"
-            title="How many boxes in this shipment?">
-          <span style="font-size:9px;color:var(--text3);">boxes</span>
+            onchange="shipBoxes['${s.id}']=+this.value;saveShipBoxes('${s.id}',+this.value);renderShipments();">
         </span>
-        <a href="${sfUrl}" target="_blank" onclick="event.stopPropagation()" style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#1e3a8a;color:#93c5fd;border-radius:4px;font-size:10px;font-weight:700;font-family:var(--mono);text-decoration:none;white-space:nowrap;transition:background .15s;" onmouseover="this.style.background='#1e40af'" onmouseout="this.style.background='#1e3a8a'">
-          SF ↗
-        </a>
+        <a href="${sfUrl}" target="_blank" onclick="event.stopPropagation()" style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#1e3a8a;color:#93c5fd;border-radius:4px;font-size:10px;font-weight:700;font-family:var(--mono);text-decoration:none;white-space:nowrap;" onmouseover="this.style.background='#1e40af'" onmouseout="this.style.background='#1e3a8a'">SF ↗</a>
       </div>
       <div class="hbody">
         <table style="min-width:unset;width:100%;">
@@ -2973,26 +2998,40 @@ function renderShipments(){
             <th class="th-left">Product</th>
             <th>Supplier</th>
             <th>ASIN</th>
-            <th>Units<br>Shipped</th>
-            <th>Cost<br>Value</th>
-            <th>DG</th>
+            <th>Units</th>
+            <th>COG Value</th>
+            <th>Type</th>
           </tr></thead>
-          <tbody>${s.skus.map(r=>{
+          <tbody>
+          ${s.skus.map(r=>{
             const cogs=parseSKU(r.sku).cogs;
             const rowVal=cogs*(r.ship||0);
             return`<tr>
               <td class="td-left"><span class="s-sku" onclick="copyVal('${r.sku}',this)" style="display:inline-flex;font-size:10px;">${r.sku}</span></td>
-              <td class="td-left" style="font-size:11px;font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.prod}</td>
+              <td class="td-left" style="font-size:11px;font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.prod}">${r.prod}</td>
               <td style="font-size:11px;">${r.sup}</td>
               <td><span class="s-asin" onclick="copyVal('${r.asin}',this)" style="display:inline-flex;font-size:10px;">${r.asin}</span></td>
               <td style="color:var(--green);font-family:var(--mono);font-weight:700;">${r.ship||0}</td>
               <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">£${rowVal.toFixed(0)}</td>
-              <td style="font-size:11px;">${r.dg||'—'}</td>
+              <td style="font-size:10px;">${r.dg==='Yes'?'<span style="color:#ff5555;">DG</span>':'—'}</td>
             </tr>`;
-          }).join('')}</tbody>
+          }).join('')}
+          ${(s.lavSkus||[]).map(ls=>{
+            const rowVal=(ls.cost||0)*(ls.units||0);
+            return`<tr style="background:rgba(204,153,255,.08);">
+              <td class="td-left"><span class="s-sku" onclick="copyVal('${ls.sku}',this)" style="display:inline-flex;font-size:10px;">${ls.sku}</span></td>
+              <td class="td-left" style="font-size:11px;font-weight:500;">${ls.prod} <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(204,153,255,.2);color:#cc99ff;border:1px solid rgba(204,153,255,.3);">LAV</span></td>
+              <td style="font-size:11px;color:var(--text3);">Lavarion</td>
+              <td><span class="s-asin" onclick="copyVal('${ls.asin}',this)" style="display:inline-flex;font-size:10px;">${ls.asin}</span></td>
+              <td style="color:var(--green);font-family:var(--mono);font-weight:700;">${ls.units||0}</td>
+              <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">£${rowVal.toFixed(2)}</td>
+              <td style="font-size:10px;color:#cc99ff;">LAV</td>
+            </tr>`;
+          }).join('')}
+          </tbody>
           <tfoot><tr style="border-top:2px solid var(--accent);">
             <td colspan="4" class="td-left" style="font-size:11px;font-weight:700;color:var(--text2);padding:8px 14px;">TOTAL</td>
-            <td style="color:var(--green);font-family:var(--mono);font-weight:900;">${s.units}</td>
+            <td style="color:var(--green);font-family:var(--mono);font-weight:900;">${fmt(s.units)}</td>
             <td style="color:var(--amber);font-family:var(--mono);font-weight:900;">£${s.value.toFixed(0)}</td>
             <td style="color:var(--purple);font-family:var(--mono);font-weight:900;">${s.boxes?s.boxes+' box'+(s.boxes!==1?'es':''):'—'}</td>
           </tr></tfoot>
@@ -3001,6 +3040,8 @@ function renderShipments(){
     </div>`;
   }).join('');
 }
+
+
 
 // ── PURCHASE SHEET IMPORT ─────────────────────────────────────────────────────
 const SHEET_ID='1IG0BM8f2RIODPbUXu7hoXIUbqXTF2amCYCT5InZvMqU';
@@ -3525,6 +3566,111 @@ async function clearEverything(){
   });
 }
 
+// ── SHIPMENT DATE FILTER ──────────────────────────────────────────────────────
+let _shipDateFilter='mtd';
+
+function setShipDateFilter(v){
+  _shipDateFilter=v;
+  // Update button styles
+  ['today','yesterday','7d','mtd','ytd','all'].forEach(k=>{
+    const btn=document.getElementById('shipDateBtn-'+k);
+    if(btn){btn.classList.toggle('sdBtn-active',k===v);}
+  });
+  renderShipments();
+}
+
+function getShipDateRange(){
+  const now=new Date();
+  const todayStr=todayISO();
+  if(_shipDateFilter==='today') return{s:todayStr,e:todayStr};
+  if(_shipDateFilter==='yesterday'){const d=new Date();d.setDate(d.getDate()-1);const ds=d.toISOString().split('T')[0];return{s:ds,e:ds};}
+  if(_shipDateFilter==='7d'){const d=new Date();d.setDate(d.getDate()-6);return{s:d.toISOString().split('T')[0],e:todayStr};}
+  if(_shipDateFilter==='mtd'){const{s,e}=getMonthRange();return{s:s.toISOString().split('T')[0],e:e.toISOString().split('T')[0]};}
+  if(_shipDateFilter==='ytd'){return{s:`${now.getFullYear()}-01-01`,e:todayStr};}
+  if(_shipDateFilter==='custom'){
+    const f=document.getElementById('shipDateFrom')?.value||'';
+    const t=document.getElementById('shipDateTo')?.value||todayStr;
+    return{s:f,e:t};
+  }
+  return{s:null,e:null}; // all
+}
+
+// ── NEW SHIPMENT (LAVARION-ONLY) ──────────────────────────────────────────────
+let _nsLavCount=0;
+
+function openNewShipment(){
+  _nsLavCount=0;
+  document.getElementById('ns-id').value='';
+  document.getElementById('ns-type').value='Standard';
+  document.getElementById('ns-date').value=todayISO();
+  document.getElementById('ns-boxes').value='';
+  document.getElementById('ns-lavRows').innerHTML='';
+  addNsLavRow(); // start with one row
+  om('newShipModal');
+}
+
+function addNsLavRow(){
+  const idx=_nsLavCount++;
+  const container=document.getElementById('ns-lavRows');
+  const row=document.createElement('div');
+  row.id=`ns-lav-${idx}`;
+  row.style.cssText='display:grid;grid-template-columns:1fr 1fr 70px 70px 24px;gap:6px;margin-bottom:6px;align-items:center;';
+  row.innerHTML=`
+    <select class="fi-in" id="ns-lav-asin-${idx}" style="font-size:11px;" onchange="nsLavFill(${idx})">
+      <option value="">Select ASIN…</option>
+      ${lavAsins.map(a=>`<option value="${a.asin}">${a.prod} (${a.asin})</option>`).join('')}
+    </select>
+    <div id="ns-lav-name-${idx}" style="font-size:10px;color:var(--text3);"></div>
+    <input class="fi-in" type="number" id="ns-lav-units-${idx}" placeholder="Units" style="font-size:11px;">
+    <input class="fi-in" type="number" id="ns-lav-cost-${idx}" placeholder="£COG" step="0.01" style="font-size:11px;">
+    <button onclick="document.getElementById('ns-lav-${idx}').remove()" style="background:rgba(239,68,68,.15);border:1px solid #ef4444;color:#ef4444;border-radius:4px;cursor:pointer;font-size:12px;padding:2px 6px;">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+function nsLavFill(idx){
+  const asin=document.getElementById(`ns-lav-asin-${idx}`)?.value;
+  const a=lavAsins.find(x=>x.asin===asin);
+  const nameEl=document.getElementById(`ns-lav-name-${idx}`);
+  if(nameEl)nameEl.textContent=a?a.sku:'';
+}
+
+async function saveNewShipment(){
+  const shipId=document.getElementById('ns-id').value.trim().toUpperCase();
+  if(!shipId){toast('FBA Shipment ID is required','er');return;}
+  const type=document.getElementById('ns-type').value;
+  const date=document.getElementById('ns-date').value||todayISO();
+  const boxes=parseInt(document.getElementById('ns-boxes').value)||0;
+
+  // Collect Lavarion rows
+  const lavRows=[];
+  document.querySelectorAll('[id^="ns-lav-asin-"]').forEach(sel=>{
+    const idx=sel.id.split('-').pop();
+    const asin=sel.value;
+    const units=parseInt(document.getElementById(`ns-lav-units-${idx}`)?.value)||0;
+    const cost=parseFloat(document.getElementById(`ns-lav-cost-${idx}`)?.value)||0;
+    if(asin&&units>0){
+      const a=lavAsins.find(x=>x.asin===asin);
+      lavRows.push({shipId,asin,sku:a?.sku||'',prod:a?.prod||asin,units,cost,date});
+    }
+  });
+
+  if(!lavRows.length){toast('Add at least one Lavarion ASIN with units','er');return;}
+
+  // Save boxes
+  if(boxes>0){shipBoxes[shipId]=boxes;saveShipBoxes(shipId,boxes);}
+
+  // Save Lavarion shipments
+  for(const ls of lavRows){
+    lavShipments.push(ls);
+    await saveLavShipment(ls);
+  }
+
+  cm('newShipModal');renderShipments();
+  toast(`✓ Shipment ${shipId} created with ${lavRows.length} Lavarion ASIN${lavRows.length!==1?'s':''}`);
+  logAudit('New Shipment created',shipId);
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 setSyncStatus('syncing');
 dbLoad().then(()=>setupRealtime());
@@ -3671,6 +3817,31 @@ dbLoad().then(()=>setupRealtime());
     <div class="mf cx">
       <button class="btn-cancel" onclick="cm('confirmModal')">Cancel</button>
       <button class="btn-danger" id="confirmOkBtn" onclick="confirmOk()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW SHIPMENT MODAL (Lavarion-only) -->
+<div class="overlay" id="newShipModal">
+  <div class="modal" style="max-width:500px;">
+    <div class="mh"><div class="mh-title">New Shipment</div><button class="mh-close" onclick="cm('newShipModal')">✕</button></div>
+    <div class="mb" style="padding:16px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:14px;">Create a new shipment for Lavarion stock. The FBA ID is required.</div>
+      <div class="fg">
+        <div class="fi"><label class="fl">FBA Shipment ID</label><input class="fi-in" type="text" id="ns-id" placeholder="FBA12345678" style="text-transform:uppercase;"></div>
+        <div class="fi"><label class="fl">Shipment Type</label>
+          <select class="fi-in" id="ns-type"><option>Standard</option><option>DG</option><option>Oversize</option></select>
+        </div>
+        <div class="fi"><label class="fl">Date Sent</label><input class="fi-in" type="date" id="ns-date"></div>
+        <div class="fi"><label class="fl">Boxes</label><input class="fi-in" type="number" id="ns-boxes" placeholder="0"></div>
+      </div>
+      <div style="margin-top:14px;font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px;">Lavarion Units</div>
+      <div id="ns-lavRows"></div>
+      <button onclick="addNsLavRow()" style="margin-top:8px;padding:5px 12px;background:rgba(204,153,255,.15);border:1px solid #cc99ff;color:#cc99ff;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">+ Add Lavarion ASIN</button>
+    </div>
+    <div class="mf">
+      <button class="btn-cancel" onclick="cm('newShipModal')">Cancel</button>
+      <button class="btn-save" onclick="saveNewShipment()">Create Shipment</button>
     </div>
   </div>
 </div>
