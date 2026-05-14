@@ -660,6 +660,7 @@ select.fi-in option{background:var(--bg2);}
         <option value="">All Types</option>
         <option>Standard</option><option>DG</option><option>Oversize</option>
       </select>
+      <button id="shipLavBtn" onclick="toggleShipLavFilter()" style="padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid rgba(204,153,255,.4);background:var(--bg2);color:var(--text3);white-space:nowrap;">LAV Only</button>
       <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;" id="shipDateBtns">
         <span style="font-size:10px;color:var(--text3);font-weight:600;">Date:</span>
         <button id="shipDateBtn-today" onclick="setShipDateFilter('today')" class="sdBtn">Today</button>
@@ -2939,7 +2940,7 @@ function renderShipments(){
     if(ls.date&&ls.date>shipMap[ls.shipId].date)shipMap[ls.shipId].date=ls.date;
   });
 
-  let shipments=Object.values(shipMap).sort((a,b)=>b.date.localeCompare(a.date));
+  let shipments=Object.values(shipMap).sort((a,b)=>a.date.localeCompare(b.date));
 
   // Date filter
   if(dateFrom&&dateTo){
@@ -2948,6 +2949,9 @@ function renderShipments(){
 
   // Type filter
   if(typeF)shipments=shipments.filter(s=>s.type===typeF);
+
+  // LAV only filter
+  if(_shipLavOnly)shipments=shipments.filter(s=>s.hasLav);
 
   // Search
   if(q)shipments=shipments.filter(s=>
@@ -2980,7 +2984,7 @@ function renderShipments(){
         ${s.hasLav?`<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:rgba(204,153,255,.2);color:#cc99ff;border:1px solid rgba(204,153,255,.3);">LAV</span>`:''}
         <span style="font-size:10px;color:var(--blue);font-weight:700;">${skuCount} SKU${skuCount!==1?'s':''}</span>
         <span style="font-size:10px;color:var(--green);font-weight:700;">${fmt(s.units)} units</span>
-        <span style="font-size:10px;color:var(--amber);font-weight:700;">£${s.value.toFixed(0)}</span>
+        <span style="font-size:10px;color:var(--amber);font-weight:700;">£${s.value.toFixed(2)}</span>
         <button onclick="event.stopPropagation();openLavShip('${s.id}')" style="padding:2px 8px;background:rgba(204,153,255,.15);border:1px solid #cc99ff;color:#cc99ff;border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Lavarion</button>
         <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);" onclick="event.stopPropagation()">
           📦
@@ -3000,7 +3004,6 @@ function renderShipments(){
             <th>ASIN</th>
             <th>Units</th>
             <th>COG Value</th>
-            <th>Type</th>
           </tr></thead>
           <tbody>
           ${s.skus.map(r=>{
@@ -3012,8 +3015,7 @@ function renderShipments(){
               <td style="font-size:11px;">${r.sup}</td>
               <td><span class="s-asin" onclick="copyVal('${r.asin}',this)" style="display:inline-flex;font-size:10px;">${r.asin}</span></td>
               <td style="color:var(--green);font-family:var(--mono);font-weight:700;">${r.ship||0}</td>
-              <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">£${rowVal.toFixed(0)}</td>
-              <td style="font-size:10px;">${r.dg==='Yes'?'<span style="color:#ff5555;">DG</span>':'—'}</td>
+              <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">£${rowVal.toFixed(2)}</td>
             </tr>`;
           }).join('')}
           ${(s.lavSkus||[]).map(ls=>{
@@ -3025,14 +3027,14 @@ function renderShipments(){
               <td><span class="s-asin" onclick="copyVal('${ls.asin}',this)" style="display:inline-flex;font-size:10px;">${ls.asin}</span></td>
               <td style="color:var(--green);font-family:var(--mono);font-weight:700;">${ls.units||0}</td>
               <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">£${rowVal.toFixed(2)}</td>
-              <td style="font-size:10px;color:#cc99ff;">LAV</td>
+
             </tr>`;
           }).join('')}
           </tbody>
           <tfoot><tr style="border-top:2px solid var(--accent);">
             <td colspan="4" class="td-left" style="font-size:11px;font-weight:700;color:var(--text2);padding:8px 14px;">TOTAL</td>
             <td style="color:var(--green);font-family:var(--mono);font-weight:900;">${fmt(s.units)}</td>
-            <td style="color:var(--amber);font-family:var(--mono);font-weight:900;">£${s.value.toFixed(0)}</td>
+            <td style="color:var(--amber);font-family:var(--mono);font-weight:900;">£${s.value.toFixed(2)}</td>
             <td style="color:var(--purple);font-family:var(--mono);font-weight:900;">${s.boxes?s.boxes+' box'+(s.boxes!==1?'es':''):'—'}</td>
           </tr></tfoot>
         </table>
@@ -3567,7 +3569,17 @@ async function clearEverything(){
 }
 
 // ── SHIPMENT DATE FILTER ──────────────────────────────────────────────────────
-let _shipDateFilter='mtd';
+let _shipLavOnly=false;
+function toggleShipLavFilter(){
+  _shipLavOnly=!_shipLavOnly;
+  const btn=document.getElementById('shipLavBtn');
+  if(btn){
+    btn.style.background=_shipLavOnly?'rgba(204,153,255,.2)':'var(--bg2)';
+    btn.style.color=_shipLavOnly?'#cc99ff':'var(--text3)';
+    btn.style.borderColor=_shipLavOnly?'#cc99ff':'rgba(204,153,255,.4)';
+  }
+  renderShipments();
+}
 
 function setShipDateFilter(v){
   _shipDateFilter=v;
