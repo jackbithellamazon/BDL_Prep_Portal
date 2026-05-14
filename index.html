@@ -527,7 +527,7 @@ select.fi-in option{background:var(--bg2);}
     <div class="toolbar">
       <div class="search-box">
         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="13" y2="13"/></svg>
-        <input placeholder="Search SKU, ASIN, product, supplier…" id="prepSrch" oninput="filterPrep()">
+        <input placeholder="Search SKU, ASIN, product, supplier…" id="prepSrch" oninput="debounce('search',filterPrep,200)">
       </div>
       <select class="fsel" id="prepStF" onchange="filterPrep()">
         <option value="">All Statuses</option>
@@ -1331,7 +1331,7 @@ function renderPrepRows(data){
     const rcvdColor=r.rcvd>0&&r.rcvd>=r.exp?'var(--green)':r.rcvd>0?'var(--amber)':'';
     return `<tr class="${rowCls}" id="row-${r.id}" data-id="${r.id}">
       <td style="text-align:center;font-size:9px;color:var(--text3);font-family:var(--mono);user-select:none;">${data.indexOf(r)+1}</td>
-      <td style="text-align:center;"><input type="checkbox" class="bulk-check" onchange="updateBulkUI()"></td>
+      <td style="text-align:center;"><input type="checkbox" class="bulk-check" ${_selectedIds.has(r.id)?'checked':''} onchange="if(this.checked)_selectedIds.add(${r.id});else _selectedIds.delete(${r.id});updateBulkUI();"></td>
       <td style="text-align:center;"><button onclick="doAllArrived(${r.id})" title="All Arrived — sets Qty Received = Expected Units, Status = In Warehouse" style="background:rgba(85,153,255,.15);border:1px solid #5599ff;color:#5599ff;border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✈</button></td>
       <td style="text-align:center;"><button onclick="doAllShipped(${r.id})" title="All Shipped — sets Shipped = Received, prompts for Shipment ID" style="background:rgba(85,255,85,.12);border:1px solid #55ff55;color:#55ff55;border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✓</button></td>
       <td><a class="sas-btn" href="${r.sas}" target="_blank" style="font-size:10px;padding:2px 5px;">SAS</a></td>
@@ -1404,6 +1404,8 @@ function uf(id,field,val){
 }
 
 function filterPrep(){
+  // Flush any pending debounced saves so status changes aren't lost on re-render
+  flushPending();
   const q=document.getElementById('prepSrch').value.toLowerCase();
   const st=document.getElementById('prepStF').value;
   const filtered=rows.filter(r=>{
@@ -2577,7 +2579,27 @@ function sortTable(field){
   }
 }
 
-// ── DEBOUNCE ──────────────────────────────────────────────────────────────────
+// Flush all pending debounced saves before re-rendering
+function flushPending(){
+  Object.keys(_debTimers).forEach(key=>{
+    if(_debTimers[key]){
+      clearTimeout(_debTimers[key]);
+      delete _debTimers[key];
+    }
+  });
+  // Force save any dirty rows
+  rows.forEach(r=>{if(r._dirty){saveRow(r);r._dirty=false;}});
+}
+
+function getFilteredRows(){
+  const q=(document.getElementById('prepSrch')||{}).value?.toLowerCase()||'';
+  const st=(document.getElementById('prepStF')||{}).value||'';
+  return rows.filter(r=>{
+    if(st&&r.status!==st)return false;
+    if(q&&!(r.sku+r.asin+r.prod+r.sup+r.oid).toLowerCase().includes(q))return false;
+    return true;
+  });
+}
 const _debTimers={};
 function debounce(key,fn,delay=400){
   clearTimeout(_debTimers[key]);
@@ -2597,21 +2619,31 @@ function confirmOk(){
   if(_confirmCb)_confirmCb();
   _confirmCb=null;
 }
+let _selectedIds=new Set(); // persists checkbox state across re-renders
+
 function getSelectedRows(){
-  const checks=document.querySelectorAll('.bulk-check:checked');
-  return Array.from(checks).map(c=>parseInt(c.closest('tr').dataset.id));
+  return Array.from(_selectedIds);
 }
 function updateBulkUI(){
-  const selected=getSelectedRows();
+  const selected=_selectedIds.size;
   const bulkEl=document.getElementById('bulkActions');
   const countEl=document.getElementById('bulkCount');
-  if(selected.length>0){
+  if(selected>0){
     bulkEl.style.display='flex';
-    if(countEl)countEl.textContent=selected.length+' selected';
+    if(countEl)countEl.textContent=selected+' selected';
   }else{bulkEl.style.display='none';}
 }
 function toggleSelectAll(checked){
-  document.querySelectorAll('.bulk-check').forEach(c=>c.checked=checked);
+  if(checked){
+    getFilteredRows().forEach(r=>_selectedIds.add(r.id));
+  }else{
+    _selectedIds.clear();
+  }
+  // Update visible checkboxes
+  document.querySelectorAll('.bulk-check').forEach(c=>{
+    const id=parseInt(c.closest('tr').dataset.id);
+    c.checked=_selectedIds.has(id);
+  });
   updateBulkUI();
 }
 function doBulkAction(){
@@ -2630,6 +2662,7 @@ function doBulkAction(){
   toast(`${selected.length} row${selected.length!==1?'s':''} updated`);
 }
 function clearBulkSelect(){
+  _selectedIds.clear();
   document.querySelectorAll('.bulk-check').forEach(c=>c.checked=false);
   document.getElementById('selectAll').checked=false;
   updateBulkUI();
@@ -3327,7 +3360,7 @@ const _origUf=uf;
 function uf(id,field,val){
   _origUf(id,field,val);
   const r=rows.find(x=>x.id===id);
-  if(r)debounce('save_'+id,()=>saveRow(r),600);
+  if(r){r._dirty=true;debounce('save_'+id,()=>{saveRow(r);r._dirty=false;},600);}
 }
 
 // ── SETTINGS: CLEAR DATA ──────────────────────────────────────────────────────
