@@ -332,6 +332,9 @@ tbody tr.st-sent{background:rgba(34,197,94,.25)!important;border-bottom:2px soli
 tbody tr.st-sent td{color:#4ade80!important;}
 tbody tr.st-issue{background:rgba(255,0,0,.2)!important;border-bottom:3px solid #ff0000!important;border-left:3px solid #ff0000!important;}
 tbody tr.st-issue td{color:#ffaaaa!important;border-color:rgba(255,50,50,.5)!important;}
+tbody tr.st-partsent{background:rgba(255,112,67,.1)!important;border-left:3px solid #ff7043!important;}
+tbody tr.st-partsent td{color:#ffb39a!important;border-color:rgba(255,112,67,.25)!important;}
+tbody tr.st-partsent:hover{background:rgba(255,112,67,.18)!important;}
 tbody tr.st-returned{background:rgba(107,114,128,.15)!important;border-bottom:2px solid #d1d5db!important;}
 tbody tr.st-returned td{color:#d1d5db!important;}
 tbody tr.st-notarrived{background:rgba(245,158,11,.15)!important;border-bottom:2px solid #fcd34d!important;}
@@ -562,31 +565,38 @@ select.fi-in option{background:var(--bg2);}
       </select>
       <button class="btn-add" onclick="openAdd()">+ Add Row</button>
       <button onclick="openImport()" style="padding:6px 12px;background:rgba(85,153,255,.15);color:#5599ff;border:1px solid #5599ff;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;">📥 Import from Sheet</button>
-      <div id="bulkActions" style="display:none;margin-left:auto;align-items:center;gap:5px;flex-wrap:wrap;">
-        <span style="font-size:10px;color:var(--text3);font-weight:600;" id="bulkCount">0 selected</span>
-        <div style="width:1px;height:20px;background:var(--border2);"></div>
-        <select id="bulkActionDropdown" style="padding:5px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-size:11px;">
-          <option value="">Status…</option>
+      <div id="bulkActions" style="display:none;margin-left:auto;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:5px 10px;">
+        <span style="font-size:11px;color:var(--accent);font-weight:800;" id="bulkCount">0 selected</span>
+        <div style="width:1px;height:18px;background:var(--border2);"></div>
+        <!-- Status change group -->
+        <select id="bulkActionDropdown" style="padding:4px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-size:11px;" title="Change status of selected rows">
+          <option value="">Set Status…</option>
           <option value="In-Transit">In-Transit</option>
           <option value="In Warehouse">In Warehouse</option>
           <option value="Delivered">Delivered</option>
-          <option value="Sent to Amazon">Sent to Amazon</option>
+          <option value="Part Sent">Part Sent</option>
           <option value="Issue">Issue</option>
           <option value="Returned">Returned</option>
+          <option value="Not Arrived">Not Arrived</option>
         </select>
-        <button onclick="doBulkAction()" style="padding:5px 10px;background:var(--accent);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;">Set</button>
-        <div style="width:1px;height:20px;background:var(--border2);"></div>
-        <button onclick="doBulkAllArrived()" style="padding:5px 10px;background:rgba(85,153,255,.2);color:#5599ff;border:1px solid #5599ff;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">✈ All Arrived</button>
-        <button onclick="doBulkAllShipped()" style="padding:5px 10px;background:rgba(85,255,85,.15);color:#55ff55;border:1px solid #55ff55;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">✓ All Shipped</button>
-        <div style="width:1px;height:20px;background:var(--border2);"></div>
-        <input id="bulkShipId" placeholder="FBA ID…" style="padding:5px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;width:140px;font-family:var(--mono);outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-        <select id="bulkShipType" style="padding:5px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;cursor:pointer;">
-          <option value="Standard">Standard</option>
-          <option value="DG">DG</option>
-          <option value="Oversize">Oversize</option>
-        </select>
-        <button onclick="doBulkShipId()" style="padding:5px 10px;background:#1e3a8a;color:#93c5fd;border:none;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">Stamp ID</button>
-        <button onclick="clearBulkSelect()" style="padding:5px 8px;background:var(--bg3);color:var(--text3);border:1px solid var(--border2);border-radius:4px;cursor:pointer;font-size:11px;">✕</button>
+        <button onclick="doBulkAction()" style="padding:4px 10px;background:var(--accent);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:800;font-size:11px;">Set</button>
+        <div style="width:1px;height:18px;background:var(--border2);"></div>
+        <!-- Quick actions -->
+        <button onclick="doBulkAllArrived()" style="padding:4px 10px;background:rgba(85,153,255,.15);color:#5599ff;border:1px solid #5599ff;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;" title="Mark all received — sets Qty Received = Expected, status = In Warehouse">✈ All Arrived</button>
+        <button onclick="doBulkAllShipped()" style="padding:4px 10px;background:rgba(85,255,85,.12);color:#55ff55;border:1px solid #55ff55;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;" title="Mark all shipped — requires FBA ID">✓ All Shipped</button>
+        <div style="width:1px;height:18px;background:var(--border2);"></div>
+        <!-- Stamp FBA ID group -->
+        <div style="display:flex;align-items:center;gap:4px;" title="Stamp a single FBA ID across all selected rows and mark as Sent to Amazon">
+          <input id="bulkShipId" placeholder="FBA Shipment ID…" style="padding:4px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;width:160px;font-family:var(--mono);text-transform:uppercase;outline:none;" oninput="this.value=this.value.toUpperCase()" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <select id="bulkShipType" style="padding:4px 6px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:10px;cursor:pointer;">
+            <option value="Standard">STD</option>
+            <option value="DG">DG</option>
+            <option value="Oversize">OS</option>
+          </select>
+          <button onclick="doBulkShipId()" style="padding:4px 10px;background:#1e3a8a;color:#93c5fd;border:1px solid #3b5fc0;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">Stamp ID</button>
+        </div>
+        <div style="width:1px;height:18px;background:var(--border2);"></div>
+        <button onclick="clearBulkSelect()" style="padding:4px 8px;background:var(--bg3);color:var(--text3);border:1px solid var(--border2);border-radius:4px;cursor:pointer;font-size:11px;" title="Clear selection">✕ Clear</button>
       </div>
     </div>
     <div class="kb-hint">
@@ -1137,7 +1147,7 @@ document.addEventListener('keydown',e=>{
     const td=getVisibleTds(trs[focusRow])[focusCol];
     const sel=td&&td.querySelector('select.ci-sel');
     if(sel&&sel.options.length>1){
-      const statuses=['In-Transit','Delivered','In Warehouse','Sent to Amazon','Issue','Not Arrived','Returned'];
+      const statuses=['In-Transit','Delivered','In Warehouse','Part Sent','Sent to Amazon','Issue','Not Arrived','Returned'];
       const idx=parseInt(e.key)-1;
       if(idx>=0&&idx<statuses.length&&Array.from(sel.options).some(o=>o.value===statuses[idx])){
         e.preventDefault();
@@ -1378,20 +1388,20 @@ function renderPrepRows(data){
     let rowAgeDate=null;
     if(r.date){
       const[dd,mm]=r.date.split('/');
-      if(dd&&mm)rowAgeDate=new Date(`2026-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+      if(dd&&mm)rowAgeDate=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
     }
     const daysSinceCreate=rowAgeDate&&!isNaN(rowAgeDate)?Math.floor((new Date()-rowAgeDate)/(1000*60*60*24)):0;
     const isOld=daysSinceCreate>=20;
     // If expected delivery date is set and hasn't passed yet — never flag red
     const expectedDeliveryDate=r.expectedDelivery?new Date(r.expectedDelivery):null;
     const expectedPassed=!expectedDeliveryDate||new Date()>expectedDeliveryDate;
-    const safeStatuses=['Delivered','In Warehouse','Sent to Amazon'];
+    const safeStatuses=['Delivered','In Warehouse','Sent to Amazon','Part Sent'];
     const isSubSave=r.subSave==='Yes';
     const isStuck=daysSinceCreate>20&&r.status==='In-Transit'&&expectedPassed&&!isSubSave;
-    // S&S only shows light blue when In-Transit — otherwise status colour wins
     const isSubSaveInTransit=isSubSave&&r.status==='In-Transit';
     const statusClass=
       r.status==='Sent to Amazon'?'row-sent':
+      r.status==='Part Sent'?'st-partsent':
       r.status==='In Warehouse'?'st-warehouse':
       r.status==='Delivered'?'st-delivered':
       r.status==='Issue'?'st-issue':
@@ -1440,7 +1450,7 @@ function renderPrepRows(data){
       <td class="col-bundle">${r.bun==='Yes'?`<input class="ci ci-num" type="text" value="${r.bqty||''}" placeholder="—" onchange="uf(${r.id},'bqty',this.value);" tabindex="-1">`:`<span style="color:var(--text3);">—</span>`}</td>
       <td><input class="ci ci-num" type="number" value="${r.exp}" oninput="uf(${r.id},'exp',+this.value);debounce('rp',renderPrep);" tabindex="-1"></td>
       <td><select class="ci-sel" onchange="handleStatusChange(${r.id},this);" tabindex="-1">
-        ${['In-Transit','Delivered','In Warehouse','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
+        ${['In-Transit','Delivered','In Warehouse','Part Sent','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
       </select></td>
       <td><input class="ci ci-num" type="number" value="${r.rcvd}" oninput="uf(${r.id},'rcvd',+this.value);updateDiffCell(${r.id},+this.value,${r.exp||0});debounce('rp',renderPrep);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
       <td>${diffEl}</td>
@@ -1928,7 +1938,7 @@ function updateCB(){
     if(r.expectedDelivery&&new Date()<=new Date(r.expectedDelivery))return false;
     const[dd,mm]=(r.date||'').split('/');
     if(!dd||!mm)return false;
-    const d=new Date(`2026-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+    const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
     return!isNaN(d)&&Math.floor((new Date()-d)/864e5)>20;
   }).length;
   const sb=document.getElementById('stuckBadge');
@@ -2025,7 +2035,7 @@ function renderDashboard(){
     if(r.expectedDelivery&&new Date()<=new Date(r.expectedDelivery))return false;
     const[dd,mm]=(r.date||'').split('/');
     if(!dd||!mm)return false;
-    const d=new Date(`2026-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+    const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
     return!isNaN(d)&&Math.floor((new Date()-d)/864e5)>20;
   });
   const stuckValue=stuckRows.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
@@ -2056,9 +2066,9 @@ function renderDashboard(){
     weekDays.push({day:dayNames[i],ds,units:oaU+lavU,ships,boxes,isToday:ds===todayStr,isFuture});
   }
 
-  // Last week totals for comparison
-  const lastWs=new Date(ws);lastWs.setDate(lastWs.getDate()-7);
-  const lastWe=new Date(we);lastWe.setDate(lastWe.getDate()-7);
+  // Last week totals for comparison — clone ws/we properly
+  const lastWs=new Date(ws.getTime());lastWs.setDate(lastWs.getDate()-7);
+  const lastWe=new Date(we.getTime());lastWe.setDate(lastWe.getDate()-7);
   function localISOd(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
   const lastWss=localISOd(lastWs),lastWes=localISOd(lastWe);
   const lwOA=calcSentOARange(lastWs,lastWe);
@@ -2082,37 +2092,39 @@ function renderDashboard(){
 
   // ── KPI TILE HELPER ──────────────────────────────────────────────────────────
   const tile=(title,heroNum,heroLabel,heroColor,subs,borderColor,badge)=>`
-    <div style="background:var(--bg2);border:2px solid ${borderColor};border-radius:8px;padding:12px 14px;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;text-align:center;min-height:0;">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,${borderColor},transparent);"></div>
-      <div style="font-size:9px;font-weight:800;color:${borderColor};text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;">${title}</div>
-      <div style="font-size:36px;font-weight:900;color:${heroColor};font-family:var(--mono);line-height:1;">${heroNum}</div>
-      <div style="font-size:10px;font-weight:700;color:${heroColor};margin-top:3px;opacity:.85;">${heroLabel}</div>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center;">
-        ${subs.filter(Boolean).map(s=>`<div style="font-size:10px;color:var(--text3);">${s}</div>`).join('')}
+    <div style="background:linear-gradient(135deg,${borderColor}22 0%,${borderColor}08 100%);border:1px solid ${borderColor}66;border-top:3px solid ${borderColor};border-radius:8px;padding:14px 16px;position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;">
+      <div style="font-size:9px;font-weight:800;color:${borderColor};text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;">${title}</div>
+      <div style="font-size:40px;font-weight:900;color:${heroColor};font-family:var(--mono);line-height:1;">${heroNum}</div>
+      <div style="font-size:11px;font-weight:600;color:${heroColor};margin-top:4px;">${heroLabel}</div>
+      <div style="width:100%;height:1px;background:${borderColor}33;margin:10px 0;"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
+        ${subs.filter(Boolean).map(s=>`<div style="font-size:10px;color:var(--text2);background:${borderColor}18;padding:2px 8px;border-radius:10px;border:1px solid ${borderColor}22;">${s}</div>`).join('')}
       </div>
-      ${badge?`<div style="position:absolute;bottom:8px;right:10px;font-size:16px;font-weight:900;color:${trendCol};">${badge}</div>`:''}
+      ${badge?`<div style="position:absolute;top:10px;right:12px;font-size:20px;font-weight:900;color:${trendCol};">${badge}</div>`:''}
     </div>`;
 
   // Today ASINs
   const todayAsins=new Set(rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).map(r=>r.asin)).size;
   const weekAsins=new Set(rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we).map(r=>r.asin)).size;
+  const weekSkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we).length;
+  const weekLavAsins=new Set(lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).map(s=>s.asin)).size;
 
   w.innerHTML=`<div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
 
     <!-- ROW 1: 4 KPI TILES -->
     <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:10px;">
-      ${tile('In Transit',fmt(transit.units),'units in transit','#5599ff',[`£${transit.value.toFixed(2)} in transit`,`${fmt(transit.skus)} SKUs`,`${fmt(transit.asins)} ASINs`],'#5599ff','')}
-      ${tile('Sent Today',fmt(todayTotal.units),'units sent','#55ff55',[`£${todayTotal.value.toFixed(2)}`,`${fmt(todayOA.skus)} SKUs`,`${fmt(todayAsins)} ASINs`,`${fmt(todayBoxes)} boxes`],'#55ff55',trendArrow)}
-      ${tile('Yesterday',fmt(ydTotal.units),'units sent','#5599ff',[`£${ydTotal.value.toFixed(2)}`,`${fmt(ydOA.skus+lavShipments.filter(s=>s.date===yesterdayStr).length)} SKU lines`,`${fmt(ydBoxes)} boxes`],'rgba(85,153,255,.5)','')}
-      ${tile('This Week',fmt(weekTotal.units),'units sent','#ffaa33',[`£${weekTotal.value.toFixed(2)}`,`${fmt(weekShipments)} shipments`,`${fmt(weekAsins)} ASINs`,`${fmt(weekBoxes)} boxes`],'#ffaa33','')}
+      ${tile('In Transit',fmt(transit.units),'units in transit','#60a5fa',[`£${transit.value.toFixed(2)} in transit`,`${fmt(transit.skus)} SKUs`,`${fmt(transit.asins)} ASINs`],'#3b82f6','')}
+      ${tile('Sent Today',fmt(todayTotal.units),'units sent','#4ade80',[`£${todayTotal.value.toFixed(2)}`,`${fmt(todayOA.skus)} SKUs`,`${fmt(todayAsins)} ASINs`,`${fmt(todayBoxes)} boxes`],'#22c55e',trendArrow)}
+      ${tile('Yesterday',fmt(ydTotal.units),'units sent','#e879f9',[`£${ydTotal.value.toFixed(2)}`,`${fmt(ydOA.skus+lavShipments.filter(s=>s.date===yesterdayStr).length)} SKU lines`,`${fmt(ydBoxes)} boxes`],'#d946ef','')}
+      ${tile('This Week',fmt(weekTotal.units),'units sent','#fbbf24',[`£${weekTotal.value.toFixed(2)}`,`${fmt(weekShipments)} shipments`,`${fmt(weekSkus)} SKUs`,`${fmt(weekAsins)} ASINs`,`${weekLavAsins?fmt(weekLavAsins)+' LAV ASINs':''}`,`${fmt(weekBoxes)} boxes`],'#f59e0b','')}
     </div>
 
     <!-- ROW 2: OA vs LAV + SHIPMENT TYPES + WEEKLY ACTIVITY -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1.6fr;gap:10px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1.6fr;gap:10px;align-items:start;">
 
       <!-- OA vs Lavarion -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-        <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">OA vs Lavarion — This Week</div>
+        <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Stock vs Lavarion — This Week</div>
         <table style="width:100%;min-width:unset;border:none;">
           <thead><tr>
             <th class="th-left" style="font-size:8px;padding:2px 4px;border:none;background:none;color:var(--text3);">Type</th>
@@ -2120,7 +2132,7 @@ function renderDashboard(){
             <th style="font-size:8px;padding:2px 4px;border:none;background:none;color:var(--text3);">Value</th>
           </tr></thead>
           <tbody>
-          ${[['OA',weekOA.units,weekOA.value,'#5599ff'],['Lavarion',weekLav.units,weekLav.value,'#cc99ff'],['Total',weekTotal.units,weekTotal.value,'var(--text)']].map(([l,u,v,c])=>`
+          ${[['Stock',weekOA.units,weekOA.value,'#5599ff'],['Lavarion',weekLav.units,weekLav.value,'#cc99ff'],['Total',weekTotal.units,weekTotal.value,'var(--text)']].map(([l,u,v,c])=>`
             <tr style="${l==='Total'?'border-top:1px solid var(--border);':''}">
               <td class="td-left" style="font-size:11px;color:${c};font-weight:${l==='Total'?'800':'600'};padding:3px 4px;border:none;">${l}</td>
               <td style="font-size:11px;font-weight:700;font-family:var(--mono);color:${c};padding:3px 4px;border:none;">${fmt(u)}</td>
@@ -2203,17 +2215,11 @@ function renderDashboard(){
               <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:#cc99ff;text-align:right;">${totAsins}</div>
               <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:var(--text2);text-align:right;">${totBoxes}</div>
             </div>
-            <!-- Averages -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:3px 2px;border-top:1px solid var(--border);margin-top:2px;">
-              <div style="font-size:8px;color:var(--text3);">${daysWithShip} shipment day${daysWithShip!==1?'s':''}</div>
-              <div style="font-size:8px;color:var(--text3);">avg ${avgUps} units / ship</div>
-              <div style="font-size:8px;color:var(--text3);">avg ${avgSkuPs} SKUs / ship</div>
-              <div style="font-size:8px;color:var(--text3);">avg ${avgAsinPs} ASINs / ship</div>
-              <div style="font-size:8px;color:var(--text3);">avg ${avgBps} boxes / ship</div>
-            </div>
             <!-- vs Last Week -->
             <div style="border-top:1px solid var(--border);margin-top:3px;padding-top:3px;">
-              <div style="font-size:8px;color:var(--text3);font-weight:700;margin-bottom:2px;">vs Last Week</div>
+              ${lwTotal.units===0&&lwSkus===0?
+                `<div style="font-size:8px;color:var(--text3);text-align:center;padding:4px 0;">No last week data yet</div>`:
+                `<div style="font-size:8px;color:var(--text3);font-weight:700;margin-bottom:2px;">vs Last Week</div>
               <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px;">
                 ${[['Units',totUnits,lwTotal.units],['SKUs',totSkus,lwSkus],['Ships',totShips,lwShipments],['ASINs',totAsins,lwAsins],['Boxes',totBoxes,lwBoxes]].map(([l,c,p])=>`
                   <div style="text-align:center;background:var(--bg3);border-radius:3px;padding:3px 2px;">
@@ -2221,7 +2227,7 @@ function renderDashboard(){
                     <div style="font-size:10px;font-family:var(--mono);font-weight:700;color:var(--text2);">${fmt(c)}</div>
                     <div>${vsLW(c,p)}</div>
                   </div>`).join('')}
-              </div>
+              </div>`}
             </div>
           </div>`;
         })()}
@@ -2322,16 +2328,17 @@ function renderDashboard(){
           <div style="max-height:160px;overflow-y:auto;">
             ${stuckRows.map(r=>{
               const[dd,mm]=(r.date||'').split('/');
-              const d=new Date(`2026-\${(mm||'01').padStart(2,'0')}-\${(dd||'01').padStart(2,'0')}`);
+              const yr=new Date().getFullYear();
+              const d=new Date(`${yr}-${(mm||'01').padStart(2,'0')}-${(dd||'01').padStart(2,'0')}`);
               const days=Math.floor((new Date()-d)/864e5);
               return`<div style="padding:5px 0;border-bottom:1px solid var(--border);">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <div style="font-size:9px;font-family:var(--mono);color:#ff5555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">\${r.sku}</div>
-                  <div style="font-size:9px;color:#ffaa33;font-weight:700;flex-shrink:0;">\${days}d</div>
+                  <div style="font-size:9px;font-family:var(--mono);color:#ff5555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${r.sku}</div>
+                  <div style="font-size:9px;color:#ffaa33;font-weight:700;flex-shrink:0;">${days}d</div>
                 </div>
                 <div style="display:flex;justify-content:space-between;margin-top:1px;">
-                  <div style="font-size:9px;color:var(--text3);">\${r.sup}</div>
-                  <div style="font-size:9px;color:var(--text2);font-family:var(--mono);">\${fmt(r.exp||0)} units · \${fmtGBP(parseSKU(r.sku).cogs*(r.exp||0))}</div>
+                  <div style="font-size:9px;color:var(--text3);">${r.sup}</div>
+                  <div style="font-size:9px;color:var(--text2);font-family:var(--mono);">${fmt(r.exp||0)} units · £${(parseSKU(r.sku).cogs*(r.exp||0)).toFixed(2)}</div>
                 </div>
               </div>`;
             }).join('')}
@@ -2427,48 +2434,75 @@ function deleteLav(id){
 }
 
 // Called from Shipments page — "Add Lavarion Units" button
+let _lavLineCount=0;
 function openLavShip(shipId){
   _lavShipId=shipId;
-  const sel=document.getElementById('lavShip-asin');
-  sel.innerHTML='<option value="">Select…</option>'+lavAsins.map(a=>`<option value="${a.asin}">${a.prod} (${a.asin})</option>`).join('');
-  document.getElementById('lavShip-units').value='';
-  document.getElementById('lavShip-cost').value='';
-  document.getElementById('lavShipTotal').textContent='£0';
-  document.getElementById('lavShipDetails').style.display='none';
+  _lavLineCount=0;
+  document.getElementById('lavShipModalTitle').textContent='Add Lavarion to '+shipId;
+  document.getElementById('lavShipLines').innerHTML='';
+  addLavShipLine();
   om('lavShipModal');
 }
-function onLavShipSelect(){
-  const asin=document.getElementById('lavShip-asin').value;
-  const a=lavAsins.find(x=>x.asin===asin);
-  const det=document.getElementById('lavShipDetails');
-  if(!a){det.style.display='none';return;}
-  document.getElementById('lavShipProdName').textContent=a.prod;
-  document.getElementById('lavShipSku').textContent=a.sku;
-  document.getElementById('lavShip-units').value='';
-  document.getElementById('lavShip-cost').value=''; // always blank — entered per shipment
-  document.getElementById('lavShipTotal').textContent='£0';
-  det.style.display='block';
+function addLavShipLine(){
+  const idx=_lavLineCount++;
+  const container=document.getElementById('lavShipLines');
+  const div=document.createElement('div');
+  div.id='lsl-'+idx;
+  div.style.cssText='background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px;';
+  div.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);">ASIN ${idx+1}</div>
+      ${idx>0?`<button onclick="document.getElementById('lsl-${idx}').remove()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">&#10005;</button>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 70px 80px;gap:8px;align-items:end;">
+      <div>
+        <div style="font-size:9px;color:var(--text3);margin-bottom:3px;">ASIN</div>
+        <select class="fi-in" id="lsl-asin-${idx}" style="font-size:11px;" onchange="onLslSelect(${idx})">
+          <option value="">Select Lavarion ASIN…</option>
+          ${lavAsins.map(a=>'<option value="'+a.asin+'">'+a.prod+'</option>').join('')}
+        </select>
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--text3);margin-bottom:3px;">Units</div>
+        <input class="fi-in" type="number" id="lsl-units-${idx}" min="1" placeholder="0" style="font-size:12px;">
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--text3);margin-bottom:3px;">COG/Unit £</div>
+        <input class="fi-in" type="number" id="lsl-cost-${idx}" min="0" step="0.01" placeholder="0.00" style="font-size:12px;">
+      </div>
+    </div>
+    <div id="lsl-info-${idx}" style="font-size:9px;color:var(--text3);margin-top:4px;"></div>
+  `;
+  container.appendChild(div);
 }
-function updateLavShipTotal(){
-  const u=parseInt(document.getElementById('lavShip-units').value)||0;
-  const c=parseFloat(document.getElementById('lavShip-cost').value)||0;
-  const total=(u*c).toFixed(2);
-  document.getElementById('lavShipTotal').textContent='£'+total;
-}
-function confirmLavShip(){
-  const asin=document.getElementById('lavShip-asin').value;
-  const units=parseInt(document.getElementById('lavShip-units').value)||0;
-  const cost=parseFloat(document.getElementById('lavShip-cost').value)||0;
-  if(!asin){toast('Select a Lavarion ASIN','er');return;}
-  if(!units){toast('Enter units to send','er');return;}
+function onLslSelect(idx){
+  const asin=document.getElementById('lsl-asin-'+idx)?.value;
   const a=lavAsins.find(x=>x.asin===asin);
-  const entry={shipId:_lavShipId,asin,sku:a?.sku||'',prod:a?.prod||asin,units,cost,date:todayISO()};
-  lavShipments.push(entry);
-  saveLavShipment(entry);
+  const info=document.getElementById('lsl-info-'+idx);
+  if(info&&a)info.textContent='SKU: '+a.sku;
+}
+async function confirmLavShipMulti(){
+  if(!_lavShipId){toast('No shipment selected','er');return;}
+  const lines=[];
+  document.querySelectorAll('[id^="lsl-asin-"]').forEach(sel=>{
+    const idx=sel.id.split('-').pop();
+    const asin=sel.value;
+    const units=parseInt(document.getElementById('lsl-units-'+idx)?.value)||0;
+    const cost=parseFloat(document.getElementById('lsl-cost-'+idx)?.value)||0;
+    if(asin&&units>0){
+      const a=lavAsins.find(x=>x.asin===asin);
+      lines.push({shipId:_lavShipId,asin,sku:a?.sku||'',prod:a?.prod||asin,units,cost,date:todayISO()});
+    }
+  });
+  if(!lines.length){toast('Add at least one ASIN with units','er');return;}
+  for(const entry of lines){
+    lavShipments.push(entry);
+    await saveLavShipment(entry);
+    logAudit('Lavarion added to shipment',entry.asin+' x '+entry.units+' -> '+_lavShipId);
+  }
   cm('lavShipModal');
   renderShipments();renderLavarion();
-  toast(`✓ ${fmt(units)} Lavarion units added to ${_lavShipId}`);
-  logAudit('Lavarion units added to shipment',`${asin} × ${units} → ${_lavShipId}`);
+  toast('✓ '+lines.length+' Lavarion ASIN'+(lines.length!==1?'s':'')+' added to '+_lavShipId);
 }
 
 // ── INSIGHTS ─────────────────────────────────────────────────────────────────
@@ -2547,7 +2581,7 @@ function renderInsights(){
   rows.filter(r=>r.sentDate&&r.date).forEach(r=>{
     const[dd,mm]=(r.date||'').split('/');
     if(!dd||!mm)return;
-    const ordered=new Date(`2026-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+    const ordered=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
     const sent=new Date(r.sentDate);
     const days=Math.round((sent-ordered)/(864e5));
     if(days>=0&&days<200){
@@ -2633,8 +2667,8 @@ function renderInsights(){
     </div>
     <!-- OA vs Lavarion -->
     <div class="ig-row ig-4">
-      ${kpi('OA Units',fmt(oaUnits),`£${oaValue.toFixed(2)}`,'#5599ff')}
-      ${kpi('OA Shipments',fmt(oaShipIds.size),'FBA IDs','#5599ff')}
+      ${kpi('Stock Units',fmt(oaUnits),`£${oaValue.toFixed(2)}`,'#5599ff')}
+      ${kpi('Stock Shipments',fmt(oaShipIds.size),'FBA IDs','#5599ff')}
       ${kpi('Lavarion Units',fmt(lavUnits),`£${lavValue.toFixed(2)}`,'#cc99ff')}
       ${kpi('Lavarion Shipments',fmt(lavShipIds.size),'FBA IDs','#cc99ff')}
     </div>
@@ -2689,7 +2723,27 @@ function renderInsights(){
     </div>
 
     <!-- SECTION 3: SUPPLIER ANALYSIS -->
-    ${sectionHead('Supplier Analysis')}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:6px;border-bottom:2px solid var(--border);margin-top:6px;">
+      <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;">Supplier Analysis</div>
+      <button onclick="openAllSuppliersModal()" style="padding:6px 16px;background:rgba(245,158,11,.15);border:1px solid var(--accent);color:var(--accent);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.04em;">View All Suppliers ↗</button>
+    </div>
+    <!-- Top 3 mini cards -->
+    <div class="ig-row ig-3" style="margin-top:8px;">
+      ${supEntries.slice(0,3).map(([s,v])=>{
+        const avgCog=v.units?((v.value/v.units).toFixed(2)):'—';
+        const avgDays=v.days.length?Math.round(v.days.reduce((a,b)=>a+b,0)/v.days.length):'—';
+        return`<div class="ic" style="cursor:pointer;border-top:3px solid var(--accent);" onclick="openSupplierModal('${s.replace(/'/g,"\\'")}')">
+          <div class="ic-title">${s}</div>
+          <div class="ic-val" style="color:#55ff55;font-size:22px;">${fmt(v.units)}</div>
+          <div class="ic-sub">units sent · £${v.value.toFixed(2)}</div>
+          <div style="display:flex;gap:8px;margin-top:6px;justify-content:center;">
+            <span style="font-size:9px;color:var(--text3);">£${avgCog}/unit</span>
+            ${avgDays!=='—'?`<span style="font-size:9px;color:var(--text3);">${avgDays}d avg transit</span>`:''}
+            ${v.issues>0?`<span style="font-size:9px;color:#ff5555;">${v.issues} issues</span>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
       <table style="min-width:unset;width:100%;">
         <thead style="position:static;"><tr>
@@ -2816,6 +2870,52 @@ function renderInsights(){
   </div>`;
 }
 
+function openAllSuppliersModal(){
+  // Reuse the supplier modal with a full table of all suppliers
+  document.getElementById('supplierModalTitle').textContent='All Supplier Analysis';
+  const body=document.getElementById('supplierModalBody');
+  // Build supplier map from all rows
+  const supMap={};
+  rows.forEach(r=>{
+    const s=r.sup||'Unknown';
+    if(!supMap[s])supMap[s]={units:0,value:0,orders:new Set(),issues:0,issueVal:0,days:[]};
+    if(r.sent==='Yes'){supMap[s].units+=r.ship||0;supMap[s].value+=parseSKU(r.sku).cogs*(r.ship||0);}
+    if(r.oid)supMap[s].orders.add(r.oid);
+    if(r.issueQty>0){supMap[s].issues+=r.issueQty||0;supMap[s].issueVal+=parseSKU(r.sku).cogs*(r.issueQty||0);}
+    if(r.sentDate&&r.date){
+      const[dd,mm]=(r.date||'').split('/');
+      if(dd&&mm){const ord=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);const snt=new Date(r.sentDate);const d=Math.round((snt-ord)/(864e5));if(d>=0&&d<200)supMap[s].days.push(d);}
+    }
+  });
+  const entries=Object.entries(supMap).sort((a,b)=>b[1].value-a[1].value);
+  body.innerHTML=`
+    <div style="margin-bottom:12px;font-size:11px;color:var(--text3);">${entries.length} suppliers · Click any row for full detail</div>
+    <table style="min-width:unset;width:100%;">
+      <thead style="position:static;"><tr>
+        <th class="th-left">Supplier</th>
+        <th>Units Sent</th><th>COG Value</th><th>Avg COG/Unit</th>
+        <th>Avg Transit</th><th>Issues</th><th>Issue Value</th><th>Issue Rate</th>
+      </tr></thead>
+      <tbody>
+      ${entries.map(([s,v])=>{
+        const avgCog=v.units?((v.value/v.units).toFixed(2)):'—';
+        const avgDays=v.days.length?Math.round(v.days.reduce((a,b)=>a+b,0)/v.days.length):'—';
+        const issueRate=v.units?(v.issues/v.units*100).toFixed(1)+'%':'—';
+        return`<tr onclick="openSupplierModal('${s.replace(/'/g,"\\'")}');cm('supplierModal');setTimeout(()=>openSupplierModal('${s.replace(/'/g,"\\'")}'),50);" style="cursor:pointer;" onmouseover="this.style.background='rgba(245,158,11,.05)'" onmouseout="this.style.background=''">
+          <td class="td-left" style="font-weight:600;">${s} <span style="font-size:9px;color:var(--accent);">↗</span></td>
+          <td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(v.units)}</td>
+          <td style="font-family:var(--mono);font-weight:700;color:#ffaa33;">£${v.value.toFixed(2)}</td>
+          <td style="font-family:var(--mono);">£${avgCog}</td>
+          <td style="font-family:var(--mono);color:${avgDays>10?'#ffaa33':avgDays!=='—'?'#55ff55':'var(--text3)'};">${avgDays!=='—'?avgDays+'d':avgDays}</td>
+          <td style="font-family:var(--mono);color:${v.issues>0?'#ff5555':'#55ff55'};">${fmt(v.issues)}</td>
+          <td style="font-family:var(--mono);color:${v.issueVal>0?'#ff5555':'var(--text3)'};">${v.issueVal>0?'£'+v.issueVal.toFixed(2):'—'}</td>
+          <td style="font-family:var(--mono);color:${parseFloat(issueRate)>5?'#ff5555':parseFloat(issueRate)>0?'#ffaa33':'#55ff55'};">${issueRate}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>`;
+  om('supplierModal');
+}
 function openSupplierModal(sup){
   document.getElementById('supplierModalTitle').textContent=sup+' — Supplier Insight';
   const body=document.getElementById('supplierModalBody');
@@ -2847,7 +2947,7 @@ function openSupplierModal(sup){
   const daysList=sentRows.filter(r=>r.date).map(r=>{
     const[dd,mm]=(r.date||'').split('/');
     if(!dd||!mm)return null;
-    const ordered=new Date(`2026-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+    const ordered=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
     const sent=new Date(r.sentDate);
     const d=Math.round((sent-ordered)/(864e5));
     return d>=0&&d<200?d:null;
@@ -2943,7 +3043,7 @@ function openSupplierModal(sup){
         const[dd,mm]=(r.date||'').split('/');
         let daysT='—';
         if(dd&&mm&&r.sentDate){
-          const ord=new Date(`2026-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+          const ord=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
           const snt=new Date(r.sentDate);
           daysT=Math.round((snt-ord)/(864e5))+'d';
         }
@@ -3079,32 +3179,40 @@ function updateDiffCell(id,rcvd,exp){
 function handleStatusChange(id,sel){
   const val=sel.value;
   const r=rows.find(x=>x.id===id);if(!r)return;
-  if(val==='Sent to Amazon'){
-    sel.value=r.status; // revert dropdown while popup shows
+  if(val==='Sent to Amazon'||val==='Part Sent'){
+    sel.value=r.status;
+    const isPartial=val==='Part Sent';
+    const maxUnits=r.rcvd||r.exp||0;
     showShipIdModal(
-      'Shipment ID Required',
-      'Enter the FBA Shipment ID to mark as Sent to Amazon.',
+      isPartial?'Partial Send — Enter Shipment ID':'Shipment ID Required',
+      isPartial?`Sending partial units (${maxUnits} available). Enter FBA ID.`:'Enter the FBA Shipment ID.',
       r.shipType||'Standard',
-      (shipId,type)=>{
-        r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
-        r.shipId=shipId;r.shipType=type;
-        if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
-        r.ship=r.rcvd;
-        saveRow(r);logAudit('Sent to Amazon',`${r.sku} → ${shipId}`);
+      (shipId,type,partialUnits)=>{
+        const sendQty=(isPartial&&partialUnits)?partialUnits:maxUnits;
+        const prevIds=r.allShipIds||[];
+        if(!prevIds.includes(shipId))prevIds.push(shipId);
+        r.allShipIds=prevIds;
+        r.shipId=shipId;r.shipType=type;r.sentDate=todayISO();r.sentAt=getNowUK();
+        if(isPartial&&sendQty<maxUnits){
+          r.status='Part Sent';r.sent='No';
+          r.ship=(r.ship||0)+sendQty;
+        }else{
+          r.status='Sent to Amazon';r.sent='Yes';
+          r.ship=maxUnits;
+          if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
+        }
+        saveRow(r);logAudit(isPartial?'Part Sent':'Sent to Amazon',`${r.sku} → ${shipId} (${sendQty}u)`);
         renderPrep();
-      }
+      },
+      isPartial,maxUnits
     );
-  }else if(r.status==='Sent to Amazon'&&val!=='Sent to Amazon'){
-    // Reverting from Sent to Amazon — clear shipment data
-    r.status=val;r.sent='No';r.sentDate='';
-    r.ship=0;r.shipId='';
-    saveRow(r);logAudit(`Status reverted: ${val}`,r.sku);
-    renderPrep();
+  }else if((r.status==='Sent to Amazon'||r.status==='Part Sent')&&val!=='Sent to Amazon'&&val!=='Part Sent'){
+    r.status=val;r.sent='No';r.sentDate='';r.ship=0;r.shipId='';r.allShipIds=[];
+    saveRow(r);logAudit(`Status reverted: ${val}`,r.sku);renderPrep();
   }else{
     r.status=val;
-    if(!r._dirty)r._dirty=true;
-    saveRow(r);logAudit('Status',val);
-    renderPrep();
+    if(val==='In Warehouse'&&(!r.rcvd||r.rcvd===0))r.rcvd=r.exp||0;
+    r._dirty=true;saveRow(r);logAudit('Status',val);renderPrep();
   }
 }
 
@@ -3213,11 +3321,18 @@ function clearBulkSelect(){
 
 // ── SHIPMENT ID MODAL ─────────────────────────────────────────────────────────
 let _shipIdCallback=null;
-function showShipIdModal(title,desc,defaultType,callback){
+function showShipIdModal(title,desc,defaultType,callback,isPartial,maxUnits){
   document.getElementById('shipIdModalTitle').textContent=title;
   document.getElementById('shipIdModalDesc').textContent=desc;
   document.getElementById('shipIdModalInput').value='';
   document.getElementById('shipIdModalType').value=defaultType||'Standard';
+  // Show/hide partial units field
+  const partialRow=document.getElementById('shipIdPartialRow');
+  const partialInp=document.getElementById('shipIdPartialUnits');
+  if(partialRow){
+    partialRow.style.display=isPartial?'flex':'none';
+    if(partialInp){partialInp.value='';partialInp.max=maxUnits||999;partialInp.placeholder=`1–${maxUnits||'?'} units`;}
+  }
   _shipIdCallback=callback;
   om('shipIdModal');
   setTimeout(()=>document.getElementById('shipIdModalInput').focus(),120);
@@ -3226,8 +3341,10 @@ function confirmShipIdModal(){
   const id=document.getElementById('shipIdModalInput').value.trim().toUpperCase();
   const type=document.getElementById('shipIdModalType').value;
   if(!id){document.getElementById('shipIdModalInput').style.borderColor='var(--red)';return;}
+  const partialInp=document.getElementById('shipIdPartialUnits');
+  const partialUnits=partialInp&&partialInp.closest('[style*="flex"]')?parseInt(partialInp.value)||null:null;
   cm('shipIdModal');
-  if(_shipIdCallback)_shipIdCallback(id,type);
+  if(_shipIdCallback)_shipIdCallback(id,type,partialUnits);
   _shipIdCallback=null;
 }
 // Allow Enter key inside modal input to confirm — deferred so DOM is ready
@@ -3411,6 +3528,13 @@ function renderShipments(){
         <span style="font-size:10px;color:var(--blue);font-weight:700;">${skuCount} SKU${skuCount!==1?'s':''}</span>
         <span style="font-size:10px;color:var(--green);font-weight:700;">${fmt(s.units)} units</span>
         <span style="font-size:10px;color:var(--amber);font-weight:700;">£${s.value.toFixed(2)}</span>
+        <!-- Editable shipment type -->
+        <select onclick="event.stopPropagation()" onchange="updateShipmentType('${s.id}',this.value);renderShipments();"
+          style="padding:2px 6px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:${tc};font-size:9px;font-weight:700;cursor:pointer;">
+          <option value="Standard" ${s.type==='Standard'?'selected':''}>Standard</option>
+          <option value="DG" ${s.type==='DG'?'selected':''}>DG</option>
+          <option value="Oversize" ${s.type==='Oversize'?'selected':''}>Oversize</option>
+        </select>
         <button onclick="event.stopPropagation();openLavShip('${s.id}')" style="padding:2px 8px;background:rgba(204,153,255,.15);border:1px solid #cc99ff;color:#cc99ff;border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Lavarion</button>
         <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);" onclick="event.stopPropagation()">
           📦
@@ -3419,47 +3543,65 @@ function renderShipments(){
             onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"
             onchange="shipBoxes['${s.id}']=+this.value;saveShipBoxes('${s.id}',+this.value);renderShipments();">
         </span>
-        <a href="${sfUrl}" target="_blank" onclick="event.stopPropagation()" style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#1e3a8a;color:#93c5fd;border-radius:4px;font-size:10px;font-weight:700;font-family:var(--mono);text-decoration:none;white-space:nowrap;" onmouseover="this.style.background='#1e40af'" onmouseout="this.style.background='#1e3a8a'">SF ↗</a>
+        <a href="${sfUrl}" target="_blank" onclick="event.stopPropagation()" style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#1e3a8a;color:#93c5fd;border-radius:4px;font-size:10px;font-weight:700;font-family:var(--mono);text-decoration:none;white-space:nowrap;">SF ↗</a>
       </div>
       <div class="hbody">
         <table style="min-width:unset;width:100%;">
           <thead style="position:static;"><tr>
-            <th class="th-left">SKU</th>
             <th class="th-left">Product</th>
-            <th>Supplier</th>
             <th>ASIN</th>
+            <th class="th-left">SKU</th>
+            <th>Supplier</th>
             <th>Units</th>
-            <th>COG Value</th>
+            <th>Cost/Unit</th>
+            <th>Total COG</th>
+            <th style="width:60px;"></th>
           </tr></thead>
           <tbody>
           ${s.skus.map(r=>{
             const cogs=parseSKU(r.sku).cogs;
             const rowVal=cogs*(r.ship||0);
             return`<tr>
-              <td class="td-left"><span class="s-sku" onclick="copyVal('${r.sku}',this)" style="display:inline-flex;font-size:10px;">${r.sku}</span></td>
-              <td class="td-left" style="font-size:11px;font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.prod}">${r.prod}</td>
-              <td style="font-size:11px;">${r.sup}</td>
+              <td class="td-left" style="font-size:11px;font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.prod}">${r.prod}</td>
               <td><span class="s-asin" onclick="copyVal('${r.asin}',this)" style="display:inline-flex;font-size:10px;">${r.asin}</span></td>
+              <td class="td-left"><span class="s-sku" onclick="copyVal('${r.sku}',this)" style="display:inline-flex;font-size:10px;">${r.sku}</span></td>
+              <td style="font-size:11px;">${r.sup}</td>
               <td style="color:var(--green);font-family:var(--mono);font-weight:700;">${r.ship||0}</td>
+              <td style="font-family:var(--mono);color:var(--text2);">£${cogs.toFixed(2)}</td>
               <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">£${rowVal.toFixed(2)}</td>
+              <td></td>
             </tr>`;
           }).join('')}
-          ${(s.lavSkus||[]).map(ls=>{
+          ${(s.lavSkus||[]).map((ls,li)=>{
             const rowVal=(ls.cost||0)*(ls.units||0);
+            const lavId=ls.uuid||li;
             return`<tr style="background:rgba(204,153,255,.08);">
-              <td class="td-left"><span class="s-sku" onclick="copyVal('${ls.sku}',this)" style="display:inline-flex;font-size:10px;">${ls.sku}</span></td>
-              <td class="td-left" style="font-size:11px;font-weight:500;">${ls.prod} <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(204,153,255,.2);color:#cc99ff;border:1px solid rgba(204,153,255,.3);">LAV</span></td>
-              <td style="font-size:11px;color:var(--text3);">Lavarion</td>
+              <td class="td-left" style="font-size:11px;font-weight:500;">
+                <span id="lav-prod-${lavId}">${ls.prod}</span>
+                <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(204,153,255,.2);color:#cc99ff;border:1px solid rgba(204,153,255,.3);margin-left:4px;">LAV</span>
+              </td>
               <td><span class="s-asin" onclick="copyVal('${ls.asin}',this)" style="display:inline-flex;font-size:10px;">${ls.asin}</span></td>
-              <td style="color:var(--green);font-family:var(--mono);font-weight:700;">${ls.units||0}</td>
-              <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">£${rowVal.toFixed(2)}</td>
-
+              <td class="td-left"><span class="s-sku" onclick="copyVal('${ls.sku}',this)" style="display:inline-flex;font-size:10px;">${ls.sku}</span></td>
+              <td style="font-size:11px;color:var(--text3);">Lavarion</td>
+              <td style="color:var(--green);font-family:var(--mono);font-weight:700;">
+                <span id="lav-units-disp-${lavId}">${ls.units||0}</span>
+              </td>
+              <td style="font-family:var(--mono);color:var(--text2);">
+                <span id="lav-cog-disp-${lavId}">£${(ls.cost||0).toFixed(2)}</span>
+              </td>
+              <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">
+                <span id="lav-total-disp-${lavId}">£${rowVal.toFixed(2)}</span>
+              </td>
+              <td>
+                <button onclick="editLavShipLine('${lavId}')" style="padding:2px 6px;background:rgba(249,115,22,.1);border:1px solid #f97316;color:#f97316;border-radius:3px;font-size:9px;cursor:pointer;">Edit</button>
+              </td>
             </tr>`;
           }).join('')}
           </tbody>
           <tfoot><tr style="border-top:2px solid var(--accent);">
             <td colspan="4" class="td-left" style="font-size:11px;font-weight:700;color:var(--text2);padding:8px 14px;">TOTAL</td>
             <td style="color:var(--green);font-family:var(--mono);font-weight:900;">${fmt(s.units)}</td>
+            <td></td>
             <td style="color:var(--amber);font-family:var(--mono);font-weight:900;">£${s.value.toFixed(2)}</td>
             <td style="color:var(--purple);font-family:var(--mono);font-weight:900;">${s.boxes?s.boxes+' box'+(s.boxes!==1?'es':''):'—'}</td>
           </tr></tfoot>
@@ -3993,7 +4135,36 @@ async function clearEverything(){
   });
 }
 
-// ── SHIPMENT DATE FILTER ──────────────────────────────────────────────────────
+// ── SHIPMENT TYPE EDIT ────────────────────────────────────────────────────────
+function updateShipmentType(shipId,type){
+  // Update all OA rows with this shipId
+  rows.filter(r=>r.shipId===shipId).forEach(r=>{r.shipType=type;saveRow(r);});
+  toast(`Shipment type updated to ${type}`);
+}
+
+// ── LAVARION SHIPMENT LINE EDIT ───────────────────────────────────────────────
+let _editLavLineId=null;
+function editLavShipLine(uuid){
+  const ls=lavShipments.find(s=>s.uuid===uuid||(s.uuid||String(lavShipments.indexOf(s)))===String(uuid));
+  if(!ls)return;
+  _editLavLineId=uuid;
+  document.getElementById('editLavUnits').value=ls.units||0;
+  document.getElementById('editLavCog').value=ls.cost||0;
+  document.getElementById('editLavProd').textContent=ls.prod;
+  om('editLavLineModal');
+}
+function saveEditLavLine(){
+  const ls=lavShipments.find(s=>s.uuid===_editLavLineId||(s.uuid||String(lavShipments.indexOf(s)))===String(_editLavLineId));
+  if(!ls)return;
+  ls.units=parseInt(document.getElementById('editLavUnits').value)||0;
+  ls.cost=parseFloat(document.getElementById('editLavCog').value)||0;
+  // Save to Supabase
+  setSyncStatus('syncing');
+  sb.from('lavarion_shipments').update({units:ls.units,cost:ls.cost}).eq('id',ls.uuid).then(()=>setSyncStatus('synced'));
+  cm('editLavLineModal');
+  renderShipments();
+  toast('Lavarion line updated ✓');
+}
 let _shipLavOnly=false;
 let _shipDateFilter='mtd';
 function toggleShipLavFilter(){
@@ -4155,6 +4326,11 @@ setInterval(updateClock,30000);
           <option value="Oversize">Oversize</option>
         </select>
       </div>
+      <div class="fi" id="shipIdPartialRow" style="display:none;">
+        <label class="fl">Units to Send Now</label>
+        <input class="fi-in" type="number" id="shipIdPartialUnits" min="1" placeholder="Enter units">
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;">Leave blank to send all available units</div>
+      </div>
     </div>
     <div class="mf">
       <button class="btn-cancel" onclick="cm('shipIdModal')">Cancel</button>
@@ -4236,31 +4412,16 @@ setInterval(updateClock,30000);
 
 <!-- LAVARION ADD TO SHIPMENT MODAL -->
 <div class="overlay" id="lavShipModal">
-  <div class="modal" style="max-width:440px;">
-    <div class="mh"><div class="mh-title">Add Lavarion Units to Shipment</div><button class="mh-close" onclick="cm('lavShipModal')">✕</button></div>
+  <div class="modal" style="max-width:500px;">
+    <div class="mh"><div class="mh-title" id="lavShipModalTitle">Add Lavarion to Shipment</div><button class="mh-close" onclick="cm('lavShipModal')">✕</button></div>
     <div class="mb" style="padding:16px;">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:14px;">Select a Lavarion ASIN and confirm units + cost for this shipment.</div>
-      <div class="fi"><label class="fl">Lavarion ASIN</label>
-        <select class="fi-in" id="lavShip-asin" onchange="onLavShipSelect()">
-          <option value="">Select…</option>
-        </select>
-      </div>
-      <div id="lavShipDetails" style="display:none;">
-        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin:8px 0 12px;font-size:11px;">
-          <div id="lavShipProdName" style="font-weight:700;color:var(--text);margin-bottom:4px;"></div>
-          <div id="lavShipSku" style="color:var(--text3);font-family:var(--mono);font-size:10px;"></div>
-        </div>
-        <div class="fi"><label class="fl">Units to Send</label><input class="fi-in" type="number" id="lavShip-units" placeholder="0" min="1" oninput="updateLavShipTotal()"></div>
-        <div class="fi"><label class="fl">Cost of Goods per Unit (£) — for this shipment only</label><input class="fi-in" type="number" id="lavShip-cost" placeholder="0.00" step="0.01" oninput="updateLavShipTotal()"></div>
-        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-size:11px;color:var(--text3);">Total COG for shipment</div>
-          <div style="font-size:16px;font-weight:800;color:#ffaa33;font-family:var(--mono);" id="lavShipTotal">£0</div>
-        </div>
-      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Add one or more Lavarion ASINs to this shipment. Each line has its own units and COG.</div>
+      <div id="lavShipLines"></div>
+      <button onclick="addLavShipLine()" style="margin-top:8px;padding:5px 12px;background:rgba(204,153,255,.15);border:1px solid #cc99ff;color:#cc99ff;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">+ Add Another ASIN</button>
     </div>
     <div class="mf">
       <button class="btn-cancel" onclick="cm('lavShipModal')">Cancel</button>
-      <button class="btn-save" onclick="confirmLavShip()">Add to Shipment</button>
+      <button class="btn-save" onclick="confirmLavShipMulti()">Add to Shipment</button>
     </div>
   </div>
 </div>
@@ -4301,6 +4462,24 @@ setInterval(updateClock,30000);
     <div class="mf">
       <button class="btn-cancel" onclick="cm('newShipModal')">Cancel</button>
       <button class="btn-save" onclick="saveNewShipment()">Create Shipment</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT LAVARION LINE MODAL -->
+<div class="overlay" id="editLavLineModal">
+  <div class="modal" style="max-width:380px;">
+    <div class="mh"><div class="mh-title">Edit Lavarion Line</div><button class="mh-close" onclick="cm('editLavLineModal')">✕</button></div>
+    <div class="mb">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px;" id="editLavProd"></div>
+      <div class="fg">
+        <div class="fi"><label class="fl">Units Sent</label><input class="fi-in" type="number" id="editLavUnits" min="0"></div>
+        <div class="fi"><label class="fl">Cost per Unit (£)</label><input class="fi-in" type="number" id="editLavCog" step="0.01" min="0"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn-cancel" onclick="cm('editLavLineModal')">Cancel</button>
+      <button class="btn-save" onclick="saveEditLavLine()">Save Changes</button>
     </div>
   </div>
 </div>
