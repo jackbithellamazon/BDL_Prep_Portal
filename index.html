@@ -545,15 +545,18 @@ select.fi-in option{background:var(--bg2);}
   <!-- PREP PAGE -->
   <div class="page" id="page-prep">
     <div class="stats" id="prepStats"></div>
-    <div class="toolbar">
-      <div class="search-box">
+    <div class="toolbar" style="flex-direction:column;align-items:stretch;gap:6px;padding:8px 12px;">
+      <!-- Row 1: Search -->
+      <div class="search-box" style="width:100%;">
         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="13" y2="13"/></svg>
-        <input placeholder="Search SKU, ASIN, product, supplier…" id="prepSrch" oninput="filterPrep()">
+        <input placeholder="Search SKU, ASIN, product, supplier…" id="prepSrch" oninput="filterPrep()" autocomplete="off" name="prepSrch_nosave" style="width:100%;">
       </div>
+      <!-- Row 2: Controls + Bulk -->
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
       <select class="fsel" id="prepStF" onchange="filterPrep()">
         <option value="">All Statuses</option>
         <option>In-Transit</option><option>Delivered</option><option>In Warehouse</option>
-        <option>Sent to Amazon</option><option>Issue</option><option>Not Arrived</option><option>Returned</option>
+        <option>Part Sent</option><option>Sent to Amazon</option><option>Issue</option><option>Not Arrived</option><option>Returned</option>
       </select>
       <select class="fsel" id="prepSortF" onchange="sortTable(this.value)">
         <option value="">Sort by…</option>
@@ -564,8 +567,8 @@ select.fi-in option{background:var(--bg2);}
         <option value="expected">Expected Units</option>
       </select>
       <button class="btn-add" onclick="openAdd()">+ Add Row</button>
-      <button onclick="openImport()" style="padding:6px 12px;background:rgba(85,153,255,.15);color:#5599ff;border:1px solid #5599ff;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;">📥 Import from Sheet</button>
-      <div id="bulkActions" style="display:none;margin-left:auto;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:5px 10px;">
+      <button onclick="openImport()" style="padding:5px 12px;background:rgba(85,153,255,.15);color:#5599ff;border:1px solid #5599ff;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;">Import Sheet</button>
+      <div id="bulkActions" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:4px 10px;">
         <span style="font-size:11px;color:var(--accent);font-weight:800;" id="bulkCount">0 selected</span>
         <div style="width:1px;height:18px;background:var(--border2);"></div>
         <!-- Status change group -->
@@ -597,6 +600,7 @@ select.fi-in option{background:var(--bg2);}
         </div>
         <div style="width:1px;height:18px;background:var(--border2);"></div>
         <button onclick="clearBulkSelect()" style="padding:4px 8px;background:var(--bg3);color:var(--text3);border:1px solid var(--border2);border-radius:4px;cursor:pointer;font-size:11px;" title="Clear selection">✕ Clear</button>
+      </div>
       </div>
     </div>
     <div class="kb-hint">
@@ -1339,12 +1343,32 @@ function renderStats(){
   const sentMonth=unitsSentInRange(ms,me);
   const totalSent=allSentRows().reduce((a,r)=>a+(r.units||0),0);
   
-  document.getElementById('prepStats').innerHTML=`
-    <div class="stat"><div class="stat-label">In Transit</div><div class="stat-val sv-blue">${inTransitUnits}</div><div style="font-size:14px;font-weight:800;color:var(--blue);margin-top:4px;font-family:var(--mono);">£${inTransitValue.toFixed(0)}</div></div>
-    <div class="stat"><div class="stat-label">Total Sent</div><div class="stat-val sv-green">${totalSent}</div></div>
-    <div class="stat"><div class="stat-label">Sent Today</div><div class="stat-val sv-amber">${sentToday}</div><div style="font-size:14px;font-weight:800;color:var(--amber);margin-top:4px;font-family:var(--mono);">£${valueToday.toFixed(0)}</div></div>
-    <div class="stat"><div class="stat-label">This Week</div><div class="stat-val sv-white">${sentWeek}</div></div>
-    <div class="stat"><div class="stat-label">This Month</div><div class="stat-val sv-green">${sentMonth}</div></div>`;
+  const inTransitSkus=inTransitRows.length;
+  const inTransitAsins=new Set(inTransitRows.map(r=>r.asin)).size;
+  const sentWeekRows=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we);
+  const sentWeekUnits=sentWeekRows.reduce((a,r)=>a+(r.ship||0),0)+lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).reduce((a,s)=>a+(s.units||0),0);
+  const sentWeekSkus=sentWeekRows.length+lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).length;
+  const sentWeekAsins=new Set([...sentWeekRows.map(r=>r.asin),...lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).map(s=>s.asin)]).size;
+  const sentTodayUnits=rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).reduce((a,r)=>a+(r.ship||0),0)+lavShipments.filter(s=>s.date===todayStr).reduce((a,s)=>a+(s.units||0),0);
+  const sentTodaySkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).length+lavShipments.filter(s=>s.date===todayStr).length;
+
+  const mk=(label,val,sub,col)=>`<div class="stat" style="border-top:3px solid ${col};">
+    <div style="font-size:9px;font-weight:800;color:${col};text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">${label}</div>
+    <div style="font-size:26px;font-weight:900;font-family:var(--mono);color:${col};line-height:1;">${val}</div>
+    <div style="font-size:10px;color:#64748b;margin-top:3px;">${sub}</div>
+  </div>`;
+
+  const lavWeekUnits=lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).reduce((a,s)=>a+(s.units||0),0);
+  const lavMonthUnits=lavShipments.filter(s=>s.date&&new Date(s.date)>=ms&&new Date(s.date)<=me).reduce((a,s)=>a+(s.units||0),0);
+  const totalSentWeek=sentWeekUnits; // already includes Lavarion from above
+  const totalSentMonth=sentMonth+lavMonthUnits;
+
+  document.getElementById('prepStats').innerHTML=
+    mk('In Transit',inTransitUnits+' units',`${inTransitSkus} SKUs · ${inTransitAsins} ASINs · £${inTransitValue.toFixed(2)} COG`,'#38bdf8')+
+    mk('COG In Transit','£'+inTransitValue.toFixed(2),`stock value locked in transit`,'#fbbf24')+
+    mk('Sent Today',sentTodayUnits+' units',`${sentTodaySkus} SKU lines · £${valueToday.toFixed(2)} COG`,'#4ade80')+
+    mk('Sent This Week',sentWeekUnits+' units',`${sentWeekSkus} SKU lines · ${sentWeekAsins} ASINs`,'#a78bfa')+
+    mk('Sent This Month',totalSentMonth+' units',`units sent since 1st`,'#34d399');
 }
 
 // ── BUNDLE COLUMN VISIBILITY ──────────────────────────────────────────────────
@@ -1958,11 +1982,11 @@ function renderDashboard(){
   const{s:ws,e:we}=getWeekRange();
 
   // ── SENT CALCS ───────────────────────────────────────────────────────────────
-  function calcSentOA(isoDate){
+  function calcSentStock(isoDate){
     const sent=rows.filter(r=>r.sent==='Yes'&&r.sentDate===isoDate);
     return{units:sent.reduce((a,r)=>a+(r.ship||0),0),value:sent.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||0)),0),skus:sent.length};
   }
-  function calcSentOARange(start,end){
+  function calcSentStockRange(start,end){
     const sent=rows.filter(r=>{if(r.sent!=='Yes'||!r.sentDate)return false;const d=new Date(r.sentDate);return d>=start&&d<=end;});
     const shipIds=new Set(sent.filter(r=>r.shipId).map(r=>r.shipId));
     return{units:sent.reduce((a,r)=>a+(r.ship||0),0),value:sent.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||0)),0),skus:sent.length,shipments:shipIds.size};
@@ -1973,31 +1997,48 @@ function renderDashboard(){
     const sent=lavShipments.filter(ls=>ls.date&&ls.date>=s&&ls.date<=e);
     return{units:sent.reduce((a,s)=>a+(s.units||0),0),value:sent.reduce((a,s)=>a+((s.cost||0)*(s.units||0)),0)};
   }
+  // Shipment type breakdown — use cache, include Lavarion shipments
   function calcShipTypeRange(start,end){
-    const sent=rows.filter(r=>{if(r.sent!=='Yes'||!r.sentDate)return false;const d=new Date(r.sentDate);return d>=start&&d<=end;});
-    const std=sent.filter(r=>!r.shipType||r.shipType==='Standard').reduce((a,r)=>a+(r.ship||0),0);
-    const dg=sent.filter(r=>r.shipType==='DG').reduce((a,r)=>a+(r.ship||0),0);
-    const os=sent.filter(r=>r.shipType==='Oversize').reduce((a,r)=>a+(r.ship||0),0);
+    let std=0,dg=0,os=0;
+    // OA/stock rows
+    const sentShipIds=new Set(rows.filter(r=>{if(r.sent!=='Yes'||!r.sentDate)return false;const d=new Date(r.sentDate);return d>=start&&d<=end;}).filter(r=>r.shipId).map(r=>r.shipId));
+    sentShipIds.forEach(sid=>{
+      const type=_shipTypeCache[sid]||rows.find(r=>r.shipId===sid)?.shipType||'Standard';
+      const units=rows.filter(r=>r.shipId===sid&&r.sent==='Yes').reduce((a,r)=>a+(r.ship||0),0);
+      if(type==='DG')dg+=units;
+      else if(type==='Oversize')os+=units;
+      else std+=units;
+    });
+    // Lavarion shipments
+    const lavSentIds=new Set(lavShipments.filter(s=>{if(!s.date)return false;const d=new Date(s.date);return d>=start&&d<=end;}).filter(s=>s.shipId).map(s=>s.shipId));
+    lavSentIds.forEach(sid=>{
+      const type=_shipTypeCache[sid]||'Standard';
+      const units=lavShipments.filter(s=>s.shipId===sid).reduce((a,s)=>a+(s.units||0),0);
+      if(type==='DG')dg+=units;
+      else if(type==='Oversize')os+=units;
+      // Note: Lavarion units already counted in weekLav — only add to type breakdown
+      // We don't add to std here as Lavarion is its own category in the display
+    });
     return{std,dg,os};
   }
 
-  const todayOA=calcSentOA(todayStr);
-  const ydOA=calcSentOA(yesterdayStr);
-  const weekOA=calcSentOARange(ws,we);
+  const todayStock=calcSentStock(todayStr);
+  const ydStock=calcSentStock(yesterdayStr);
+  const weekStock=calcSentStockRange(ws,we);
   const weekLav=calcSentLavRange(ws,we);
   const weekTypes=calcShipTypeRange(ws,we);
   const todayLav=calcSentLavRange(todayStr,todayStr);
   const ydLav=calcSentLavRange(yesterdayStr,yesterdayStr);
 
-  const todayTotal={units:todayOA.units+todayLav.units,value:todayOA.value+todayLav.value};
-  const ydTotal={units:ydOA.units+ydLav.units,value:ydOA.value+ydLav.value};
-  const weekTotal={units:weekOA.units+weekLav.units,value:weekOA.value+weekLav.value};
+  const todayTotal={units:todayStock.units+todayLav.units,value:todayStock.value+todayLav.value};
+  const ydTotal={units:ydStock.units+ydLav.units,value:ydStock.value+ydLav.value};
+  const weekTotal={units:weekStock.units+weekLav.units,value:weekStock.value+weekLav.value};
 
   // Boxes
   function boxesForDate(isoDate){
-    const oaShipIds=new Set(rows.filter(r=>r.sentDate===isoDate&&r.shipId).map(r=>r.shipId));
+    const stockShipIds=new Set(rows.filter(r=>r.sentDate===isoDate&&r.shipId).map(r=>r.shipId));
     const lavShipIds=new Set(lavShipments.filter(s=>s.date===isoDate&&s.shipId).map(s=>s.shipId));
-    const allIds=new Set([...oaShipIds,...lavShipIds]);
+    const allIds=new Set([...stockShipIds,...lavShipIds]);
     return Array.from(allIds).reduce((t,sid)=>t+(shipBoxes[sid]||0),0);
   }
   function boxesForRange(start,end){return Object.entries(shipBoxes).reduce((t,[sid,boxes])=>{const r=rows.find(x=>x.shipId===sid&&x.sentDate);if(!r)return t;const d=new Date(r.sentDate);return d>=start&&d<=end?t+(boxes||0):t;},0);}
@@ -2071,9 +2112,9 @@ function renderDashboard(){
   const lastWe=new Date(we.getTime());lastWe.setDate(lastWe.getDate()-7);
   function localISOd(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
   const lastWss=localISOd(lastWs),lastWes=localISOd(lastWe);
-  const lwOA=calcSentOARange(lastWs,lastWe);
+  const lwStock=calcSentStockRange(lastWs,lastWe);
   const lwLav=calcSentLavRange(lastWss,lastWes);
-  const lwTotal={units:lwOA.units+lwLav.units,value:lwOA.value+lwLav.value};
+  const lwTotal={units:lwStock.units+lwLav.units,value:lwStock.value+lwLav.value};
   const lwBoxes=boxesForRange(lastWs,lastWe);
   const lwShipments=new Set(rows.filter(r=>r.sent==='Yes'&&r.sentDate&&r.sentDate>=lastWss&&r.sentDate<=lastWes&&r.shipId).map(r=>r.shipId)).size;
   const lwAsins=new Set(rows.filter(r=>r.sent==='Yes'&&r.sentDate&&r.sentDate>=lastWss&&r.sentDate<=lastWes).map(r=>r.asin)).size;
@@ -2087,268 +2128,217 @@ function renderDashboard(){
     const arrow=diff>0?'↑':diff<0?'↓':'→';
     return`<span style="color:${col};font-size:8px;font-weight:700;">${arrow}${pct}%</span>`;
   }
-  const trendArrow=todayTotal.units>ydTotal.units?'↑':todayTotal.units<ydTotal.units?'↓':'→';
-  const trendCol=todayTotal.units>ydTotal.units?'#55ff55':todayTotal.units<ydTotal.units?'#ff5555':'#ffaa33';
 
-  // ── KPI TILE HELPER ──────────────────────────────────────────────────────────
-  const tile=(title,heroNum,heroLabel,heroColor,subs,borderColor,badge)=>`
-    <div style="background:linear-gradient(135deg,${borderColor}22 0%,${borderColor}08 100%);border:1px solid ${borderColor}66;border-top:3px solid ${borderColor};border-radius:8px;padding:14px 16px;position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;">
-      <div style="font-size:9px;font-weight:800;color:${borderColor};text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;">${title}</div>
-      <div style="font-size:40px;font-weight:900;color:${heroColor};font-family:var(--mono);line-height:1;">${heroNum}</div>
-      <div style="font-size:11px;font-weight:600;color:${heroColor};margin-top:4px;">${heroLabel}</div>
-      <div style="width:100%;height:1px;background:${borderColor}33;margin:10px 0;"></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
-        ${subs.filter(Boolean).map(s=>`<div style="font-size:10px;color:var(--text2);background:${borderColor}18;padding:2px 8px;border-radius:10px;border:1px solid ${borderColor}22;">${s}</div>`).join('')}
+  // ── DASHBOARD CONSTANTS ──────────────────────────────────────────────────────
+  const GOLD='#fbbf24';
+  const COL={transit:'#38bdf8',today:'#4ade80',yday:'#fb923c',week:'#a78bfa',
+             sku:'#60a5fa',asin:'#c084fc',box:'#fb923c',ship:'#34d399',cog:'#fbbf24'};
+
+  // Centred KPI tile — hero units top, £ second, then stat pills
+  const kTile=(title,col,units,unitLabel,gbp,gbpLabel,pills,badge,badgeCol)=>`
+    <div style="background:var(--bg2);border:1px solid ${col}33;border-top:3px solid ${col};border-radius:8px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:0;">
+      <div style="font-size:8px;font-weight:800;color:${col};text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+        ${title}${badge?`<span style="font-size:14px;color:${badgeCol||col};">${badge}</span>`:''}
       </div>
-      ${badge?`<div style="position:absolute;top:10px;right:12px;font-size:20px;font-weight:900;color:${trendCol};">${badge}</div>`:''}
+      <div style="font-size:34px;font-weight:900;color:${col};font-family:var(--mono);line-height:1;">${units}</div>
+      <div style="font-size:9px;color:${col};opacity:.7;margin:2px 0 6px;">${unitLabel}</div>
+      <div style="font-size:16px;font-weight:800;color:${GOLD};font-family:var(--mono);margin-bottom:8px;">${gbp}</div>
+      <div style="font-size:8px;color:#64748b;margin-bottom:8px;">${gbpLabel}</div>
+      <div style="width:100%;display:flex;flex-direction:column;gap:0;">
+        ${pills}
+      </div>
     </div>`;
 
-  // Today ASINs
+  const pill=(label,val,col)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 8px;background:rgba(255,255,255,.03);border-radius:4px;margin-bottom:2px;">
+      <span style="font-size:9px;color:#64748b;">${label}</span>
+      <span style="font-size:10px;font-weight:700;font-family:var(--mono);color:${col};">${val}</span>
+    </div>`;
+
+  // ── Extra calcs ────────────────────────────────────────────────────────────
   const todayAsins=new Set(rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).map(r=>r.asin)).size;
-  const weekAsins=new Set(rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we).map(r=>r.asin)).size;
-  const weekSkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we).length;
+  const todaySkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).length+lavShipments.filter(s=>s.date===todayStr).length;
+  const weekAsins=new Set([
+    ...rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we).map(r=>r.asin),
+    ...lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).map(s=>s.asin)
+  ]).size;
+  const weekSkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we).length
+                +lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).length;
   const weekLavAsins=new Set(lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).map(s=>s.asin)).size;
+  const ydSkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate===yesterdayStr).length+lavShipments.filter(s=>s.date===yesterdayStr).length;
 
-  w.innerHTML=`<div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
+  // Yesterday vs day before
+  const db2=new Date();db2.setDate(db2.getDate()-2);
+  const db2s=`${db2.getFullYear()}-${String(db2.getMonth()+1).padStart(2,'0')}-${String(db2.getDate()).padStart(2,'0')}`;
+  const db2u=rows.filter(r=>r.sent==='Yes'&&r.sentDate===db2s).reduce((a,r)=>a+(r.ship||0),0)+lavShipments.filter(s=>s.date===db2s).reduce((a,s)=>a+(s.units||0),0);
+  const ydDiff=ydTotal.units-db2u;
+  const ydArrow=ydDiff>0?'↑':ydDiff<0?'↓':'→';
+  const ydACol=ydDiff>0?COL.today:ydDiff<0?'#f87171':'#64748b';
 
-    <!-- ROW 1: 4 KPI TILES -->
-    <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:10px;">
-      ${tile('In Transit',fmt(transit.units),'units in transit','#60a5fa',[`£${transit.value.toFixed(2)} in transit`,`${fmt(transit.skus)} SKUs`,`${fmt(transit.asins)} ASINs`],'#3b82f6','')}
-      ${tile('Sent Today',fmt(todayTotal.units),'units sent','#4ade80',[`£${todayTotal.value.toFixed(2)}`,`${fmt(todayOA.skus)} SKUs`,`${fmt(todayAsins)} ASINs`,`${fmt(todayBoxes)} boxes`],'#22c55e',trendArrow)}
-      ${tile('Yesterday',fmt(ydTotal.units),'units sent','#e879f9',[`£${ydTotal.value.toFixed(2)}`,`${fmt(ydOA.skus+lavShipments.filter(s=>s.date===yesterdayStr).length)} SKU lines`,`${fmt(ydBoxes)} boxes`],'#d946ef','')}
-      ${tile('This Week',fmt(weekTotal.units),'units sent','#fbbf24',[`£${weekTotal.value.toFixed(2)}`,`${fmt(weekShipments)} shipments`,`${fmt(weekSkus)} SKUs`,`${fmt(weekAsins)} ASINs`,`${weekLavAsins?fmt(weekLavAsins)+' LAV ASINs':''}`,`${fmt(weekBoxes)} boxes`],'#f59e0b','')}
+  // Today trend
+  const trendArrow=todayTotal.units>ydTotal.units?'↑':todayTotal.units<ydTotal.units?'↓':'→';
+  const trendCol=todayTotal.units>ydTotal.units?COL.today:todayTotal.units<ydTotal.units?'#f87171':'#64748b';
+  const todayDiff=Math.abs(todayTotal.units-ydTotal.units);
+
+  w.innerHTML=`<div style="padding:12px;display:flex;flex-direction:column;gap:10px;">
+
+    <!-- ROW 1: 4 equal KPI tiles -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+
+      ${kTile('In Transit',COL.transit,
+        fmt(transit.units),'units in transit',
+        '£'+transit.value.toFixed(2),'COG value in transit',
+        pill('SKUs',fmt(transit.skus),COL.sku)+pill('ASINs',fmt(transit.asins),COL.asin),
+        '','')
+      }
+
+      ${kTile('Sent Today',COL.today,
+        fmt(todayTotal.units),'units sent today',
+        '£'+todayTotal.value.toFixed(2),'COG value sent',
+        pill('SKUs',fmt(todaySkus),COL.sku)+pill('ASINs',fmt(todayAsins),COL.asin)+pill('Boxes',fmt(todayBoxes),COL.box)+pill('vs Yesterday',`${trendArrow} ${todayDiff} units`,trendCol)+pill('COG vs Yesterday','£'+(todayTotal.value-ydTotal.value>=0?'+':'')+((todayTotal.value-ydTotal.value).toFixed(2)),todayTotal.value>=ydTotal.value?COL.today:'#f87171'),
+        trendArrow,trendCol)
+      }
+
+      ${kTile('Yesterday',COL.yday,
+        fmt(ydTotal.units),'units sent',
+        '£'+ydTotal.value.toFixed(2),'COG value sent',
+        pill('SKUs',fmt(ydSkus),COL.sku)+pill('Boxes',fmt(ydBoxes),COL.box)+pill('vs Day Before',`${ydArrow} ${Math.abs(ydDiff)} units`,ydACol),
+        '','')
+      }
+
+      ${kTile('This Week',COL.week,
+        fmt(weekTotal.units),'units sent this week',
+        '£'+weekTotal.value.toFixed(2),'COG value sent',
+        pill('Shipments',fmt(weekShipments),COL.ship)+pill('SKUs',fmt(weekSkus),COL.sku)+pill('ASINs',fmt(weekAsins),COL.asin)+(weekLavAsins?pill('LAV ASINs',fmt(weekLavAsins),COL.asin):'')+pill('Boxes',fmt(weekBoxes),COL.box),
+        '','')
+      }
     </div>
 
-    <!-- ROW 2: OA vs LAV + SHIPMENT TYPES + WEEKLY ACTIVITY -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1.6fr;gap:10px;align-items:start;">
+    <!-- ROW 2: Equal 3-col tetris — weekly+stock | type+pipeline+claims+ops | stuck -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:start;">
 
-      <!-- OA vs Lavarion -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-        <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Stock vs Lavarion — This Week</div>
-        <table style="width:100%;min-width:unset;border:none;">
-          <thead><tr>
-            <th class="th-left" style="font-size:8px;padding:2px 4px;border:none;background:none;color:var(--text3);">Type</th>
-            <th style="font-size:8px;padding:2px 4px;border:none;background:none;color:var(--text3);">Units</th>
-            <th style="font-size:8px;padding:2px 4px;border:none;background:none;color:var(--text3);">Value</th>
-          </tr></thead>
-          <tbody>
-          ${[['Stock',weekOA.units,weekOA.value,'#5599ff'],['Lavarion',weekLav.units,weekLav.value,'#cc99ff'],['Total',weekTotal.units,weekTotal.value,'var(--text)']].map(([l,u,v,c])=>`
-            <tr style="${l==='Total'?'border-top:1px solid var(--border);':''}">
-              <td class="td-left" style="font-size:11px;color:${c};font-weight:${l==='Total'?'800':'600'};padding:3px 4px;border:none;">${l}</td>
-              <td style="font-size:11px;font-weight:700;font-family:var(--mono);color:${c};padding:3px 4px;border:none;">${fmt(u)}</td>
-              <td style="font-size:10px;color:var(--text3);font-family:var(--mono);padding:3px 4px;border:none;">£${v.toFixed(2)}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Shipment Types -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-        <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">By Shipment Type — This Week</div>
-        <table style="width:100%;min-width:unset;border:none;">
-          <thead><tr>
-            <th class="th-left" style="font-size:8px;padding:2px 4px;border:none;background:none;color:var(--text3);">Type</th>
-            <th style="font-size:8px;padding:2px 4px;border:none;background:none;color:var(--text3);">Units</th>
-            <th style="font-size:8px;padding:2px 4px;border:none;background:none;color:var(--text3);">%</th>
-          </tr></thead>
-          <tbody>
-          ${[['Standard',weekTypes.std,'#5599ff'],['DG',weekTypes.dg,'#ff5555'],['Oversize',weekTypes.os,'#ffaa33'],['Lavarion',weekLav.units,'#cc99ff']].map(([l,u,c])=>{
-            const pct=weekTotal.units?(u/weekTotal.units*100).toFixed(1):'0.0';
-            return`<tr>
-              <td class="td-left" style="font-size:11px;color:${c};font-weight:600;padding:3px 4px;border:none;">${l}</td>
-              <td style="font-size:11px;font-weight:700;font-family:var(--mono);color:${c};padding:3px 4px;border:none;">${fmt(u)}</td>
-              <td style="font-size:10px;color:var(--text3);font-family:var(--mono);padding:3px 4px;border:none;">${pct}%</td>
-            </tr>`;
+      <!-- Col 1: Weekly Activity + Stock vs Lavarion -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Weekly Activity</div>
+          <div style="display:grid;grid-template-columns:24px 1fr 44px 40px 36px 44px 32px;font-size:8px;color:#475569;font-weight:700;text-transform:uppercase;padding:0 2px 4px;border-bottom:1px solid var(--border);">
+            <span></span><span>Day</span><span style="text-align:right;">Units</span><span style="text-align:right;">SKUs</span><span style="text-align:right;">Ships</span><span style="text-align:right;">ASINs</span><span style="text-align:right;">Box</span>
+          </div>
+          ${weekDays.map(d=>{
+            const isT=d.isToday,isF=d.isFuture,isW=d.day==='Sat'||d.day==='Sun';
+            const dc=isF?'#334155':isT?COL.today:isW?'#334155':'#94a3b8';
+            const oa=rows.filter(r=>r.sent==='Yes'&&r.sentDate===d.ds);
+            const lv=lavShipments.filter(s=>s.date===d.ds);
+            const sk=oa.length+lv.length;
+            const as=new Set([...oa.map(r=>r.asin),...lv.map(s=>s.asin)]).size;
+            return`<div style="display:grid;grid-template-columns:24px 1fr 44px 40px 36px 44px 32px;padding:3px 2px;background:${isT?'rgba(74,222,128,.07)':'transparent'};border-radius:3px;align-items:center;${isW?'opacity:.3':''}">
+              <div style="font-size:7px;color:${isT?COL.today:'transparent'};font-weight:700;">NOW</div>
+              <div style="font-size:10px;font-weight:${isT?'800':'500'};color:${dc};">${d.day}</div>
+              <div style="font-size:10px;font-family:var(--mono);font-weight:700;color:${isF?'#1e293b':d.units>0?COL.today:'#334155'};text-align:right;">${isF?'—':d.units||'—'}</div>
+              <div style="font-size:10px;font-family:var(--mono);color:${isF?'#1e293b':sk>0?COL.sku:'#334155'};text-align:right;">${isF?'—':sk||'—'}</div>
+              <div style="font-size:10px;font-family:var(--mono);color:${isF?'#1e293b':d.ships>0?COL.ship:'#334155'};text-align:right;">${isF?'—':d.ships||'—'}</div>
+              <div style="font-size:10px;font-family:var(--mono);color:${isF?'#1e293b':as>0?COL.asin:'#334155'};text-align:right;">${isF?'—':as||'—'}</div>
+              <div style="font-size:10px;font-family:var(--mono);color:${isF?'#1e293b':d.boxes>0?COL.box:'#334155'};text-align:right;">${isF?'—':d.boxes||'—'}</div>
+            </div>`;
           }).join('')}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Weekly Activity -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-        <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Weekly Activity — Mon to Sun</div>
-        <div style="display:grid;grid-template-columns:28px 1fr 44px 40px 36px 44px 32px;gap:0;font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:0 2px 3px;border-bottom:1px solid var(--border);">
-          <span></span><span>Day</span><span style="text-align:right;">Units</span><span style="text-align:right;">SKUs</span><span style="text-align:right;">Ships</span><span style="text-align:right;">ASINs</span><span style="text-align:right;">Box</span>
-        </div>
-        ${weekDays.map(d=>{
-          const isToday=d.isToday;
-          const isFuture=d.isFuture;
-          const isWeekend=d.day==='Sat'||d.day==='Sun';
-          const col=isFuture?'var(--text3)':isToday?'#55ff55':isWeekend?'var(--text3)':'var(--text2)';
-          const bg=isToday?'rgba(85,255,85,.06)':'transparent';
-          const dayRows=rows.filter(r=>r.sent==='Yes'&&r.sentDate===d.ds);
-          const dayLavRows=lavShipments.filter(s=>s.date===d.ds);
-          const daySkus=dayRows.length+dayLavRows.length;
-          const dayAsins=new Set([...dayRows.map(r=>r.asin),...dayLavRows.map(s=>s.asin)]).size;
-          return`<div style="display:grid;grid-template-columns:28px 1fr 44px 40px 36px 44px 32px;gap:0;padding:3px 2px;background:${bg};border-radius:3px;align-items:center;${isWeekend?'opacity:.4':''}">
-            <div style="font-size:7px;color:${isToday?'#55ff55':'var(--text3)'};font-weight:700;">${isToday?'NOW':''}</div>
-            <div style="font-size:10px;font-weight:${isToday?'800':'500'};color:${col};">${d.day}</div>
-            <div style="font-size:10px;font-family:var(--mono);font-weight:700;color:${isFuture?'var(--text3)':d.units>0?'#55ff55':'var(--text3)'};text-align:right;">${isFuture?'—':d.units||'—'}</div>
-            <div style="font-size:10px;font-family:var(--mono);color:${isFuture?'var(--text3)':daySkus>0?'#5599ff':'var(--text3)'};text-align:right;">${isFuture?'—':daySkus||'—'}</div>
-            <div style="font-size:10px;font-family:var(--mono);color:${isFuture?'var(--text3)':d.ships>0?'#ffaa33':'var(--text3)'};text-align:right;">${isFuture?'—':d.ships||'—'}</div>
-            <div style="font-size:10px;font-family:var(--mono);color:${isFuture?'var(--text3)':dayAsins>0?'#cc99ff':'var(--text3)'};text-align:right;">${isFuture?'—':dayAsins||'—'}</div>
-            <div style="font-size:10px;font-family:var(--mono);color:var(--text3);text-align:right;">${isFuture?'—':d.boxes||'—'}</div>
-          </div>`;
-        }).join('')}
-        ${(()=>{
-          const activeDays=weekDays.filter(d=>!d.isFuture);
-          const daysWithShip=activeDays.filter(d=>d.ships>0).length;
-          const totUnits=activeDays.reduce((a,d)=>a+d.units,0);
-          const totShips=activeDays.reduce((a,d)=>a+d.ships,0);
-          const totBoxes=activeDays.reduce((a,d)=>a+d.boxes,0);
-          const sentDates=activeDays.map(d=>d.ds);
-          const allSentRowsW=rows.filter(r=>r.sent==='Yes'&&sentDates.includes(r.sentDate));
-          const allSentLavW=lavShipments.filter(s=>sentDates.includes(s.date));
-          const totSkus=allSentRowsW.length+allSentLavW.length;
-          const totAsins=new Set([...allSentRowsW.map(r=>r.asin),...allSentLavW.map(s=>s.asin)]).size;
-          const avgUps=totShips?(totUnits/totShips).toFixed(1):0;
-          const avgBps=totShips?(totBoxes/totShips).toFixed(1):0;
-          const avgSkuPs=totShips?(totSkus/totShips).toFixed(1):0;
-          const avgAsinPs=totShips?(totAsins/totShips).toFixed(1):0;
-          return`<div style="border-top:2px solid var(--border);margin-top:3px;padding-top:3px;">
-            <div style="display:grid;grid-template-columns:28px 1fr 44px 40px 36px 44px 32px;gap:0;padding:3px 2px;align-items:center;">
-              <div></div>
-              <div style="font-size:9px;font-weight:800;color:var(--accent);">TOTAL</div>
-              <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:#55ff55;text-align:right;">${fmt(totUnits)}</div>
-              <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:#5599ff;text-align:right;">${totSkus}</div>
-              <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:#ffaa33;text-align:right;">${totShips}</div>
-              <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:#cc99ff;text-align:right;">${totAsins}</div>
-              <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:var(--text2);text-align:right;">${totBoxes}</div>
-            </div>
-            <!-- vs Last Week -->
-            <div style="border-top:1px solid var(--border);margin-top:3px;padding-top:3px;">
-              ${lwTotal.units===0&&lwSkus===0?
-                `<div style="font-size:8px;color:var(--text3);text-align:center;padding:4px 0;">No last week data yet</div>`:
-                `<div style="font-size:8px;color:var(--text3);font-weight:700;margin-bottom:2px;">vs Last Week</div>
-              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px;">
-                ${[['Units',totUnits,lwTotal.units],['SKUs',totSkus,lwSkus],['Ships',totShips,lwShipments],['ASINs',totAsins,lwAsins],['Boxes',totBoxes,lwBoxes]].map(([l,c,p])=>`
-                  <div style="text-align:center;background:var(--bg3);border-radius:3px;padding:3px 2px;">
-                    <div style="font-size:7px;color:var(--text3);">${l}</div>
-                    <div style="font-size:10px;font-family:var(--mono);font-weight:700;color:var(--text2);">${fmt(c)}</div>
-                    <div>${vsLW(c,p)}</div>
-                  </div>`).join('')}
-              </div>`}
-            </div>
-          </div>`;
-        })()}
-      </div>
-    </div>
-
-    <!-- ROW 3: PIPELINE + CLAIMS -->
-    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:12px;">
-      <!-- Pipeline -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;">
-        <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Pipeline</div>
-        ${pipelineStages.map(s=>{
-          const stageRows=rows.filter(r=>r.status===s.status);
-          const units=stageRows.reduce((a,r)=>a+(r.exp||0),0);
-          const value=stageRows.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
-          const skus=stageRows.length;
-          const asins=new Set(stageRows.map(r=>r.asin)).size;
-          const totalUnits=rows.reduce((a,r)=>a+(r.exp||0),1);
-          const pct=Math.round(units/totalUnits*100);
-          const isEmpty=units===0;
-          return`<div style="margin-bottom:10px;${isEmpty?'opacity:.35':''}">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
-              <div style="font-size:11px;font-weight:700;color:${s.color};">${s.label}</div>
-              <div style="display:flex;gap:10px;align-items:center;">
-                <span style="font-size:9px;color:var(--text3);">${fmt(skus)} SKUs · ${fmt(asins)} ASINs</span>
-                <span style="font-size:11px;font-weight:800;color:${s.color};font-family:var(--mono);">${fmt(units)} units</span>
-                <span style="font-size:10px;color:var(--text3);font-family:var(--mono);">${fmtGBP(value)}</span>
-              </div>
-            </div>
-            <div style="height:5px;background:var(--bg);border-radius:3px;overflow:hidden;">
-              <div style="width:${pct}%;height:100%;background:${s.color};border-radius:3px;"></div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-
-      <!-- Claims & Issues -->
-      <div style="background:var(--bg2);border:1px solid ${totalAtRisk>0?'rgba(255,85,85,.4)':'var(--border)'};border-radius:8px;padding:14px;">
-        <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Claims & Issues</div>
-        <div style="font-size:28px;font-weight:900;color:${totalAtRisk>0?'#ff5555':'#55ff55'};font-family:var(--mono);line-height:1;text-align:center;">${fmtGBP(totalAtRisk)}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:4px;margin-bottom:12px;text-align:center;">total at risk</div>
-        ${[['Missing',missingUnits,missingVal,'#ff5555'],['Damaged',damagedUnits,damagedVal,'#ffaa33'],['Incorrect',incorrectUnits,0,'#5599ff']].map(([l,u,v,c])=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
-            <div style="font-size:10px;color:${c};font-weight:600;">${l}</div>
-            <div style="font-size:10px;font-family:var(--mono);color:var(--text2);">${fmt(u)} units${v?` · ${fmtGBP(v)}`:''}</div>
-          </div>`).join('')}
-        <div style="margin-top:8px;font-size:10px;color:var(--text3);">${fmt(openClaims)} open action${openClaims!==1?'s':''}</div>
-      </div>
-    </div>
-
-    <!-- ROW 4: OPERATIONS SUMMARY + STUCK -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-
-      <!-- Operations Summary -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;">
-        <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">Operations Summary</div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:2px 12px;">
           ${(()=>{
-            const activeRows=rows.filter(r=>r.status!=='Sent to Amazon');
-            const totalActiveUnits=activeRows.reduce((a,r)=>a+(r.exp||0),0);
-            const totalActiveValue=activeRows.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
-            const totalShipments=new Set(rows.filter(r=>r.shipId).map(r=>r.shipId)).size;
-            const weekShipCount=new Set(rows.filter(r=>r.sent==='Yes'&&r.sentDate&&(()=>{const d=new Date(r.sentDate);return d>=ws&&d<=we;})()&&r.shipId).map(r=>r.shipId)).size;
-            const totalBoxesAll=Object.values(shipBoxes).reduce((a,b)=>a+(b||0),0);
-            const uniqueASINs=new Set(rows.map(r=>r.asin)).size;
-            const items=[
-              ['Active SKU Lines',fmt(rows.length),'var(--text)'],
-              ['Active Unique ASINs',fmt(uniqueASINs),'var(--blue)'],
-              ['Expected Units In Transit',fmt(transit.units),'var(--blue)'],
-              ['Active Inventory Value',fmtGBP(totalActiveValue),'#ffaa33'],
-              ['Total Shipments Created This Week',fmt(weekShipCount),'var(--text2)'],
-              ['Total Box Loads',fmt(totalBoxesAll),'#cc99ff'],
-              ['Issue Rows',fmt(rows.filter(r=>r.status==='Issue').length),rows.filter(r=>r.status==='Issue').length>0?'#ff5555':'#55ff55'],
-              ['Open Actions',fmt(openClaims),openClaims>0?'#ff5555':'#55ff55'],
-            ];
-            return items.map(([l,v,c])=>`
-              <div style="font-size:11px;color:var(--text2);padding:3px 0;border-bottom:1px solid var(--border);align-self:center;">${l}</div>
-              <div style="font-size:13px;font-weight:800;font-family:var(--mono);color:${c};padding:3px 0;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;">${v}</div>
-            `).join('');
+            const act=weekDays.filter(d=>!d.isFuture);
+            const tU=act.reduce((a,d)=>a+d.units,0),tSh=act.reduce((a,d)=>a+d.ships,0),tBx=act.reduce((a,d)=>a+d.boxes,0);
+            const sd=act.map(d=>d.ds);
+            const aOA=rows.filter(r=>r.sent==='Yes'&&sd.includes(r.sentDate));
+            const aLV=lavShipments.filter(s=>sd.includes(s.date));
+            const tSk=aOA.length+aLV.length;
+            const tAs=new Set([...aOA.map(r=>r.asin),...aLV.map(s=>s.asin)]).size;
+            const lw=lwTotal.units>0||lwSkus>0;
+            return`<div style="border-top:2px solid var(--border);margin-top:3px;padding-top:3px;">
+              <div style="display:grid;grid-template-columns:24px 1fr 44px 40px 36px 44px 32px;padding:3px 2px;">
+                <div></div><div style="font-size:9px;font-weight:800;color:var(--accent);">TOTAL</div>
+                <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:${COL.today};text-align:right;">${fmt(tU)}</div>
+                <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:${COL.sku};text-align:right;">${tSk}</div>
+                <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:${COL.ship};text-align:right;">${tSh}</div>
+                <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:${COL.asin};text-align:right;">${tAs}</div>
+                <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:${COL.box};text-align:right;">${tBx}</div>
+              </div>
+              ${lw?`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-top:4px;">
+                ${[['Units',tU,lwTotal.units,COL.today],['SKUs',tSk,lwSkus,COL.sku],['Ships',tSh,lwShipments,COL.ship],['ASINs',tAs,lwAsins,COL.asin],['Boxes',tBx,lwBoxes,COL.box]].map(([l,cur,prv,col])=>{
+                  const dd=cur-prv,p=prv?Math.abs(Math.round(dd/prv*100)):0,ac=dd>0?COL.today:dd<0?'#f87171':'#64748b',ar=dd>0?'↑':dd<0?'↓':'→';
+                  return`<div style="background:var(--bg3);border-radius:3px;padding:3px;text-align:center;"><div style="font-size:7px;color:#475569;">${l}</div><div style="font-size:10px;font-family:var(--mono);font-weight:700;color:${col};">${fmt(cur)}</div><div style="font-size:8px;color:${ac};font-weight:700;">${ar}${p}%</div></div>`;
+                }).join('')}
+              </div>`:`<div style="font-size:8px;color:#334155;text-align:center;padding:4px 0;">No last week data yet</div>`}
+            </div>`;
           })()}
         </div>
+
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Stock vs Lavarion</div>
+          ${[['Stock',weekStock.units,weekStock.value,COL.sku],['Lavarion',weekLav.units,weekLav.value,COL.asin],['Total',weekTotal.units,weekTotal.value,'#e2e8f0']].map(([l,u,v,col])=>`
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+              <span style="font-size:11px;color:${col};font-weight:${l==='Total'?'800':'600'};">${l}</span>
+              <span style="font-size:11px;font-family:var(--mono);font-weight:800;color:${col};">${fmt(u)} <span style="font-size:9px;color:${GOLD};">£${v.toFixed(2)}</span></span>
+            </div>`).join('')}
+        </div>
       </div>
 
-      <!-- Stuck >20 Days -->
-      <div style="background:var(--bg2);border:1px solid ${stuckRows.length>0?'rgba(255,85,85,.4)':'var(--border)'};border-radius:8px;padding:14px;">
-        <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Stuck In Transit <span style="color:#ff5555;">&gt;20 Days</span></div>
-        ${stuckRows.length?`
-          <div style="display:flex;gap:16px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);">
-            <div style="text-align:center;">
-              <div style="font-size:24px;font-weight:900;font-family:var(--mono);color:#ff5555;">${fmt(stuckUnits)}</div>
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">units at risk</div>
-            </div>
-            <div style="text-align:center;">
-              <div style="font-size:24px;font-weight:900;font-family:var(--mono);color:#ffaa33;">${fmtGBP(stuckValue)}</div>
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">value at risk</div>
-            </div>
-          </div>
-          <div style="max-height:160px;overflow-y:auto;">
-            ${stuckRows.map(r=>{
-              const[dd,mm]=(r.date||'').split('/');
-              const yr=new Date().getFullYear();
-              const d=new Date(`${yr}-${(mm||'01').padStart(2,'0')}-${(dd||'01').padStart(2,'0')}`);
-              const days=Math.floor((new Date()-d)/864e5);
-              return`<div style="padding:5px 0;border-bottom:1px solid var(--border);">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <div style="font-size:9px;font-family:var(--mono);color:#ff5555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${r.sku}</div>
-                  <div style="font-size:9px;color:#ffaa33;font-weight:700;flex-shrink:0;">${days}d</div>
-                </div>
-                <div style="display:flex;justify-content:space-between;margin-top:1px;">
-                  <div style="font-size:9px;color:var(--text3);">${r.sup}</div>
-                  <div style="font-size:9px;color:var(--text2);font-family:var(--mono);">${fmt(r.exp||0)} units · £${(parseSKU(r.sku).cogs*(r.exp||0)).toFixed(2)}</div>
-                </div>
-              </div>`;
-            }).join('')}
-          </div>
-        `:`<div style="color:#55ff55;font-size:11px;padding:8px 0;text-align:center;">✓ Nothing stuck — all shipments on track</div>`}
+      <!-- Col 2: By Type + Pipeline + Claims + Ops -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">By Type — This Week</div>
+          ${[['Standard',weekTypes.std,COL.sku],['DG',weekTypes.dg,'#f87171'],['Oversize',weekTypes.os,COL.box],['Lavarion',weekLav.units,COL.asin]].map(([l,u,col])=>{
+            const pct=weekTotal.units?(u/weekTotal.units*100).toFixed(1):'0.0';
+            const bw=weekTotal.units?Math.round(u/weekTotal.units*100):0;
+            return`<div style="margin-bottom:6px;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:10px;color:${col};font-weight:600;">${l}</span><span style="font-size:10px;font-family:var(--mono);color:${col};font-weight:700;">${fmt(u)} <span style="opacity:.45;font-size:8px;">${pct}%</span></span></div><div style="height:3px;background:rgba(255,255,255,.05);border-radius:2px;"><div style="width:${bw}%;height:100%;background:${col};border-radius:2px;"></div></div></div>`;
+          }).join('')}
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Pipeline</div>
+          ${[['In-Transit',transit.units,COL.transit],['Delivered',rows.filter(r=>r.status==='Delivered').reduce((a,r)=>a+(r.exp||0),0),COL.today],['In Warehouse',rows.filter(r=>r.status==='In Warehouse').reduce((a,r)=>a+(r.exp||0),0),COL.asin],['Part Sent',rows.filter(r=>r.status==='Part Sent').reduce((a,r)=>a+(r.exp||0),0),COL.box],['Issue',rows.filter(r=>r.status==='Issue').reduce((a,r)=>a+(r.exp||0),0),'#f87171']].map(([l,u,col])=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+              <span style="font-size:10px;color:${col};font-weight:600;">${l}</span>
+              <span style="font-size:12px;font-weight:800;font-family:var(--mono);color:${u>0?col:'#1e293b'};">${u>0?fmt(u):'—'}</span>
+            </div>`).join('')}
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Operations</div>
+          ${(()=>{const uA=new Set(rows.map(r=>r.asin)).size;const bxA=Object.values(shipBoxes).reduce((a,b)=>a+(b||0),0);const iV=rows.filter(r=>r.status!=='Sent to Amazon').reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);return[['Active SKUs',fmt(rows.length),'#94a3b8'],['Active ASINs',fmt(uA),COL.asin],['Inventory COG','£'+iV.toFixed(2),GOLD],['Total Boxes',fmt(bxA),COL.box],['Issue Rows',fmt(rows.filter(r=>r.status==='Issue').length),rows.filter(r=>r.status==='Issue').length>0?'#f87171':COL.today],['Open Actions',fmt(openClaims),openClaims>0?'#f87171':COL.today]].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#475569;">${l}</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:${col};">${v}</span></div>`).join('');})()}
+        </div>
       </div>
+
+      <!-- Col 3: Claims + Stuck -->
+      <div style="display:flex;flex-direction:column;gap:8px;height:100%;align-self:stretch;">
+        <div style="background:var(--bg2);border:1px solid ${totalAtRisk>0?'rgba(248,113,113,.3)':'var(--border)'};border-radius:8px;padding:10px 12px;">
+          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Claims & Issues</div>
+          <div style="font-size:20px;font-weight:900;color:${totalAtRisk>0?'#f87171':COL.today};font-family:var(--mono);margin-bottom:1px;">£${totalAtRisk.toFixed(2)}</div>
+          <div style="font-size:8px;color:#475569;margin-bottom:6px;">total at risk · ${openClaims} open</div>
+          ${[['Missing',missingUnits,'#f87171'],['Damaged',damagedUnits,COL.box],['Incorrect',incorrectUnits,COL.sku]].map(([l,u,col])=>`
+            <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:${col};">${l}</span><span style="font-size:10px;font-family:var(--mono);color:${u>0?col:'#1e293b'};font-weight:700;">${u>0?fmt(u)+'u':'—'}</span></div>`).join('')}
+        </div>
+        <div style="background:var(--bg2);border:1px solid ${stuckRows.length>0?'rgba(248,113,113,.35)':'var(--border)'};border-radius:8px;padding:10px 12px;flex:1;min-height:0;">
+          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Stuck In Transit <span style="color:#f87171;">&gt;20 Days</span></div>
+          ${stuckRows.length?`
+          <div style="display:flex;gap:16px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07);">
+            <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#f87171;">${fmt(stuckUnits)}</div><div style="font-size:8px;color:#475569;text-transform:uppercase;">units at risk</div></div>
+            <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${GOLD};">£${stuckValue.toFixed(2)}</div><div style="font-size:8px;color:#475569;text-transform:uppercase;">value at risk</div></div>
+          </div>
+          <div style="max-height:320px;overflow-y:auto;">
+            ${stuckRows.map(r=>{const[dd,mm]=(r.date||'').split('/');const yr=new Date().getFullYear();const d=new Date(`${yr}-${(mm||'01').padStart(2,'0')}-${(dd||'01').padStart(2,'0')}`);const days=Math.floor((new Date()-d)/864e5);const cog=parseSKU(r.sku).cogs*(r.exp||0);return`<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;">
+                  <div style="font-size:10px;font-weight:600;color:#f87171;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:155px;" title="${r.prod||r.sku}">${r.prod||r.sku}</div>
+                  <div style="font-size:10px;color:${GOLD};font-weight:800;flex-shrink:0;margin-left:4px;">${days}d</div>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <div style="font-size:9px;color:#64748b;">${r.sup}</div>
+                  <div style="font-size:9px;font-family:var(--mono);color:#94a3b8;">${fmt(r.exp||0)} ${(r.exp||0)===1?'unit':'units'} · £${cog.toFixed(2)}</div>
+                </div>
+              </div>`;}).join('')}
+          </div>`:`<div style="color:${COL.today};font-size:11px;padding:4px 0;text-align:center;">✓ Nothing stuck</div>`}
+        </div>
+      </div>
+
     </div>
 
   </div>`;
 }
+
 // ── LAVARION ──────────────────────────────────────────────────────────────────
 let _lavNid=0;
 
@@ -2533,10 +2523,10 @@ function renderInsights(){
   function inRange(d){if(!d)return false;return d>=rs&&d<=re;}
 
   // OA sent in range
-  const oaSent=rows.filter(r=>r.sent==='Yes'&&inRange(r.sentDate));
-  const oaUnits=oaSent.reduce((a,r)=>a+(r.ship||0),0);
-  const oaValue=oaSent.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||0)),0);
-  const oaShipIds=new Set(oaSent.filter(r=>r.shipId).map(r=>r.shipId));
+  const stockSent=rows.filter(r=>r.sent==='Yes'&&inRange(r.sentDate));
+  const stockUnits=stockSent.reduce((a,r)=>a+(r.ship||0),0);
+  const stockValue=stockSent.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||0)),0);
+  const stockShipIds=new Set(stockSent.filter(r=>r.shipId).map(r=>r.shipId));
 
   // Lavarion sent in range
   const lavSent=lavShipments.filter(s=>inRange(s.date));
@@ -2544,17 +2534,32 @@ function renderInsights(){
   const lavValue=lavSent.reduce((a,s)=>a+((s.cost||0)*(s.units||0)),0);
   const lavShipIds=new Set(lavSent.map(s=>s.shipId));
 
-  const totalUnits=oaUnits+lavUnits;
-  const totalValue=oaValue+lavValue;
-  const allShipIds=new Set([...oaShipIds,...lavShipIds]);
+  const totalUnits=stockUnits+lavUnits;
+  const totalValue=stockValue+lavValue;
+  const allShipIds=new Set([...stockShipIds,...lavShipIds]);
   const totalBoxes=Object.entries(shipBoxes).reduce((t,[sid,b])=>allShipIds.has(sid)?t+(b||0):t,0);
   const avgUPS=allShipIds.size?Math.round(totalUnits/allShipIds.size):0;
   const avgBPS=allShipIds.size?(totalBoxes/allShipIds.size).toFixed(1):0;
 
   // Shipment type breakdown
-  const stdUnits=oaSent.filter(r=>!r.shipType||r.shipType==='Standard').reduce((a,r)=>a+(r.ship||0),0);
-  const dgUnits=oaSent.filter(r=>r.shipType==='DG').reduce((a,r)=>a+(r.ship||0),0);
-  const osUnits=oaSent.filter(r=>r.shipType==='Oversize').reduce((a,r)=>a+(r.ship||0),0);
+  // Shipment type breakdown using cache (accurate after type changes)
+  let stdUnits=0,dgUnits=0,osUnits=0;
+  const sentShipIds=new Set(stockSent.filter(r=>r.shipId).map(r=>r.shipId));
+  sentShipIds.forEach(sid=>{
+    const type=_shipTypeCache[sid]||'Standard';
+    const u=stockSent.filter(r=>r.shipId===sid).reduce((a,r)=>a+(r.ship||0),0);
+    if(type==='DG')dgUnits+=u;
+    else if(type==='Oversize')osUnits+=u;
+    else stdUnits+=u;
+  });
+  // Also count rows without shipId by their row's shipType
+  stockSent.filter(r=>!r.shipId).forEach(r=>{
+    const type=r.shipType||'Standard';
+    const u=r.ship||0;
+    if(type==='DG')dgUnits+=u;
+    else if(type==='Oversize')osUnits+=u;
+    else stdUnits+=u;
+  });
 
   // Pipeline
   const transitRows=rows.filter(r=>r.status==='In-Transit');
@@ -2563,7 +2568,7 @@ function renderInsights(){
 
   // Supplier analysis
   const supMap={};
-  oaSent.forEach(r=>{
+  stockSent.forEach(r=>{
     const s=r.sup||'Unknown';
     if(!supMap[s])supMap[s]={units:0,value:0,orders:new Set(),issues:0,issueVal:0,days:[]};
     supMap[s].units+=r.ship||0;
@@ -2665,10 +2670,10 @@ function renderInsights(){
       ${kpi('Boxes Sent',fmt(totalBoxes),'logged boxes','#cc99ff','#cc99ff')}
       ${kpi('Avg Units / Shipment',avgUPS||'—',avgBPS?`${avgBPS} avg boxes/ship`:'','#5599ff','#5599ff')}
     </div>
-    <!-- OA vs Lavarion -->
+    <!-- Stock vs Lavarion -->
     <div class="ig-row ig-4">
-      ${kpi('Stock Units',fmt(oaUnits),`£${oaValue.toFixed(2)}`,'#5599ff')}
-      ${kpi('Stock Shipments',fmt(oaShipIds.size),'FBA IDs','#5599ff')}
+      ${kpi('Stock Units',fmt(stockUnits),`£${stockValue.toFixed(2)}`,'#5599ff')}
+      ${kpi('Stock Shipments',fmt(stockShipIds.size),'FBA IDs','#5599ff')}
       ${kpi('Lavarion Units',fmt(lavUnits),`£${lavValue.toFixed(2)}`,'#cc99ff')}
       ${kpi('Lavarion Shipments',fmt(lavShipIds.size),'FBA IDs','#cc99ff')}
     </div>
@@ -3464,18 +3469,18 @@ function renderShipments(){
   // Group OA rows by shipId
   const shipMap={};
   rows.filter(r=>r.shipId).forEach(r=>{
-    if(!shipMap[r.shipId])shipMap[r.shipId]={id:r.shipId,date:r.sentDate||'',skus:[],lavSkus:[],units:0,value:0,boxes:shipBoxes[r.shipId]||0,type:r.shipType||'Standard',hasLav:false};
+    if(!shipMap[r.shipId])shipMap[r.shipId]={id:r.shipId,date:r.sentDate||'',skus:[],lavSkus:[],units:0,value:0,boxes:shipBoxes[r.shipId]||0,type:_shipTypeCache[r.shipId]||r.shipType||'Standard',hasLav:false};
     shipMap[r.shipId].skus.push(r);
     shipMap[r.shipId].units+=(r.ship||0);
     shipMap[r.shipId].value+=parseSKU(r.sku).cogs*(r.ship||0);
     if(r.sentDate&&r.sentDate>shipMap[r.shipId].date)shipMap[r.shipId].date=r.sentDate;
-    if(r.shipType)shipMap[r.shipId].type=r.shipType;
+    if(r.shipType&&!_shipTypeCache[r.shipId])shipMap[r.shipId].type=r.shipType;
   });
 
   // Add Lavarion shipments
   lavShipments.forEach(ls=>{
     if(!ls.shipId)return;
-    if(!shipMap[ls.shipId])shipMap[ls.shipId]={id:ls.shipId,date:ls.date||'',skus:[],lavSkus:[],units:0,value:0,boxes:shipBoxes[ls.shipId]||0,type:'Standard',hasLav:true};
+    if(!shipMap[ls.shipId])shipMap[ls.shipId]={id:ls.shipId,date:ls.date||'',skus:[],lavSkus:[],units:0,value:0,boxes:shipBoxes[ls.shipId]||0,type:_shipTypeCache[ls.shipId]||'Standard',hasLav:true};
     shipMap[ls.shipId].lavSkus.push(ls);
     shipMap[ls.shipId].units+=(ls.units||0);
     shipMap[ls.shipId].value+=(ls.cost||0)*(ls.units||0);
@@ -3529,7 +3534,7 @@ function renderShipments(){
         <span style="font-size:10px;color:var(--green);font-weight:700;">${fmt(s.units)} units</span>
         <span style="font-size:10px;color:var(--amber);font-weight:700;">£${s.value.toFixed(2)}</span>
         <!-- Editable shipment type -->
-        <select onclick="event.stopPropagation()" onchange="updateShipmentType('${s.id}',this.value);renderShipments();"
+        <select onclick="event.stopPropagation()" onchange="updateShipmentType('${s.id}',this.value);"
           style="padding:2px 6px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:${tc};font-size:9px;font-weight:700;cursor:pointer;">
           <option value="Standard" ${s.type==='Standard'?'selected':''}>Standard</option>
           <option value="DG" ${s.type==='DG'?'selected':''}>DG</option>
@@ -3868,7 +3873,9 @@ async function dbLoad(){
     claims=(claimsRes.data||[]).map(dbToClaim);
     // Rebuild shipBoxes from ship_boxes table
     shipBoxes={};
-    (boxesRes.data||[]).forEach(b=>{shipBoxes[b.ship_id]=b.boxes;});
+    (boxesRes.data||[]).forEach(b=>{shipBoxes[b.ship_id]=b.boxes;if(b.ship_type)_shipTypeCache[b.ship_id]=b.ship_type;});
+    // Also load ship_type from prep_rows — non-Standard types from rows populate cache if not already set
+    rows.forEach(r=>{if(r.shipId&&r.shipType&&r.shipType!=='Standard')if(!_shipTypeCache[r.shipId]||_shipTypeCache[r.shipId]==='Standard')_shipTypeCache[r.shipId]=r.shipType;});
     lavAsins=(lavAsinRes.data||[]).map(dbToLav);
     lavShipments=(lavShipRes.data||[]).map(dbToLavShip);
     setSyncStatus('synced');
@@ -4032,7 +4039,7 @@ async function deleteClaim_db(c){
   await sb.from('actions').delete().eq('id',c.uuid);
 }
 async function saveShipBoxes(shipId,boxes){
-  await sb.from('ship_boxes').upsert({ship_id:shipId,boxes},{onConflict:'ship_id'});
+  await sb.from('ship_boxes').upsert({ship_id:shipId,boxes,ship_type:_shipTypeCache[shipId]||'Standard'},{onConflict:'ship_id'});
 }
 async function saveLavAsin(a){
   setSyncStatus('syncing');
@@ -4136,10 +4143,25 @@ async function clearEverything(){
 }
 
 // ── SHIPMENT TYPE EDIT ────────────────────────────────────────────────────────
+// Cache for shipment types (persists across re-renders)
+const _shipTypeCache={};
+
 function updateShipmentType(shipId,type){
-  // Update all OA rows with this shipId
-  rows.filter(r=>r.shipId===shipId).forEach(r=>{r.shipType=type;saveRow(r);});
-  toast(`Shipment type updated to ${type}`);
+  toast('DEBUG: updateShipmentType called - '+shipId+' -> '+type);
+  console.log('[DG debug] updateShipmentType called:',shipId,type);
+  _shipTypeCache[shipId]=type;
+  // Update all rows with this shipId
+  const updated=rows.filter(r=>r.shipId===shipId);
+  updated.forEach(r=>{r.shipType=type;saveRow(r);});
+  // Save to ship_boxes so type persists for Lavarion-only shipments
+  const boxPayload={ship_id:shipId,boxes:shipBoxes[shipId]||0,ship_type:type};
+  console.log('[DG debug] saving ship_boxes:',boxPayload);
+  sb.from('ship_boxes').upsert(boxPayload,{onConflict:'ship_id'}).then(res=>{
+    if(res.error){console.error('[DG debug] ship_boxes save error:',res.error);}
+    else{console.log('[DG debug] ship_boxes saved ok, type=',type);}
+  });
+  toast('Shipment type updated to '+type);
+  renderShipments();
 }
 
 // ── LAVARION SHIPMENT LINE EDIT ───────────────────────────────────────────────
