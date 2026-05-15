@@ -35,28 +35,28 @@
 }
 
 html.light-mode{
-  --bg:#b8bdc3;
-  --bg2:#adb3ba;
-  --bg3:#a2a9b0;
-  --bg4:#979fa7;
-  --bg5:#8c959e;
-  --border:#b0b6bc;
-  --border2:#a0a7ae;
-  --accent:#c05c00;
-  --text:#0a0a0a;
-  --text2:#1a1a1a;
-  --text3:#404040;
-  --red:#b91c1c;
-  --green:#15803d;
+  --bg:#f0f2f4;
+  --bg2:#e4e8ec;
+  --bg3:#d8dde3;
+  --bg4:#ccd2d9;
+  --bg5:#c0c8d0;
+  --border:#c8cfd6;
+  --border2:#b8c0c8;
+  --accent:#d97706;
+  --text:#111827;
+  --text2:#1f2937;
+  --text3:#4b5563;
+  --red:#dc2626;
+  --green:#16a34a;
   --blue:#1d4ed8;
-  --amber:#b45309;
-  --purple:#6d28d9;
+  --amber:#d97706;
+  --purple:#7c3aed;
   --sent-bg:#dcfce7;
   --sent-bg-hover:#bbf7d0;
-  --sent-border:#22c55e;
+  --sent-border:#16a34a;
   --sent-text:#15803d;
   --sent-text2:#166534;
-  --mono:#111;
+  --mono:#111827;
 }
 
 /* SHIPMENT DATE FILTER BUTTONS */
@@ -65,101 +65,96 @@ html.light-mode{
 .sdBtn-active{background:rgba(245,158,11,.15)!important;border-color:var(--accent)!important;color:var(--accent)!important;}
 
 /* SUB & SAVE ROW */
-tbody tr.row-subsave{background:rgba(85,153,255,.1)!important;border-left:3px solid #5599ff!important;}
-tbody tr.row-subsave td{border-color:rgba(85,153,255,.25)!important;color:#aaccff!important;}
-tbody tr.row-subsave:hover{background:rgba(85,153,255,.18)!important;}
+html:not(.light-mode) tbody tr.row-subsave{background:rgba(85,153,255,.1)!important;border-left:3px solid #5599ff!important;}
+html:not(.light-mode) tbody tr.row-subsave td{border-color:rgba(85,153,255,.25)!important;color:#aaccff!important;}
+html:not(.light-mode) tbody tr.row-subsave:hover{background:rgba(85,153,255,.18)!important;}
 
 /* ── LIGHT MODE OVERRIDES ── */
-html.light-mode .sb{background:#2a2a28;}
-html.light-mode .sb-head{border-bottom-color:#3a3a38;}
-html.light-mode .sb-item{color:#aaa;}
-html.light-mode .sb-item:hover{background:#333330;color:#eee;}
-html.light-mode .sb-item.on{background:#3a3a38;color:#fff;}
-html.light-mode .sb-role{color:#888;}
-html.light-mode .sb-sec{color:#666;}
-html.light-mode .sb-name{color:#ddd;}
-html.light-mode .sb-foot{border-top-color:#3a3a38;}
-html.light-mode .sb-av{background:#3a3a38;color:#aaa;}
-html.light-mode .topbar{background:#c4c9ce;border-color:#b0b6bc;}
-html.light-mode .page-title{color:#0a0a0a!important;}
-html.light-mode .stats{background:#c4c9ce;border-color:#b0b6bc;}
-html.light-mode .stat{background:linear-gradient(135deg,#b8bec4,#c4c9ce);}
-html.light-mode .stat-label{color:#6b3800;}
-html.light-mode .stat-val{color:#0a0a0a;}
-html.light-mode thead tr{background:linear-gradient(90deg,#2a2a28,#3a3a38)!important;}
-html.light-mode th{color:#ffb84d!important;}
-html.light-mode tbody tr{color:#0a0a0a;}
-/* Light mode status row colours */
-html.light-mode tbody tr.row-sent{background:rgba(21,128,61,.15)!important;border-bottom:2px solid #15803d!important;}
-html.light-mode tbody tr.row-sent td{color:#14532d!important;}
-html.light-mode tbody tr.st-delivered{background:rgba(21,128,61,.1)!important;border-bottom:1px solid rgba(21,128,61,.4)!important;}
-html.light-mode tbody tr.st-delivered td{color:#14532d!important;}
-html.light-mode tbody tr.st-warehouse{background:rgba(109,40,217,.12)!important;border-bottom:2px solid rgba(109,40,217,.5)!important;}
-html.light-mode tbody tr.st-warehouse td{color:#4c1d95!important;}
-html.light-mode tbody tr.st-issue{background:rgba(220,38,38,.15)!important;border-left:3px solid #dc2626!important;border-bottom:2px solid #dc2626!important;}
-html.light-mode tbody tr.st-issue td{color:#7f1d1d!important;}
-html.light-mode tbody tr.row-stuck{background:rgba(220,38,38,.08)!important;border-left:2px solid rgba(220,38,38,.4)!important;}
-html.light-mode tbody tr.row-stuck td{color:#991b1b!important;}
-html.light-mode tbody tr.row-subsave{background:rgba(37,99,235,.1)!important;border-left:3px solid #2563eb!important;}
-html.light-mode tbody tr.row-subsave td{color:#1e3a8a!important;}
-html.light-mode tbody tr:nth-child(odd){background:#b2b8bf;}
-html.light-mode tbody tr:nth-child(even){background:#aab0b7;}
-html.light-mode tbody tr:hover{background:#a0a7af;}
-html.light-mode td{color:#0a0a0a!important;}
-html.light-mode .toolbar{background:#c4c9ce;border-color:#b0b6bc;}
-html.light-mode .search-box{background:#d8dce0;border-color:#a0a7ae;}
-html.light-mode .search-box input{color:#0a0a0a;}
-html.light-mode .search-box input::placeholder{color:#606060;}
-html.light-mode select.fsel{background:#d0d4d8;color:#0a0a0a;border-color:#a0a7ae;}
-html.light-mode .ci{color:#0a0a0a!important;background:transparent;}
-html.light-mode .ci:focus{background:#e0e4e8;border-color:#c05c00;}
-html.light-mode select.ci-sel{background:#c8cdd2;color:#0a0a0a!important;border-color:#a0a7ae;}
-html.light-mode .s-date{color:#0a0a0a!important;}
-html.light-mode .s-oid{color:#1a1a1a!important;}
-html.light-mode .s-sup{color:#2a2a2a!important;}
-html.light-mode .s-title{color:#0a0a0a!important;}
-html.light-mode .s-asin{background:rgba(0,0,0,.12);color:#1a1a1a!important;}
-html.light-mode .s-sku{background:rgba(0,0,0,.12);color:#1a1a1a!important;}
-html.light-mode .nt-zero{color:#404040!important;}
-html.light-mode .kb-hint{background:#b8bec4;border-color:#a0a7ae;color:#2a2a2a;}
-html.light-mode .kbd{background:#d0d4d8;border-color:#a0a7ae;color:#0a0a0a;}
-html.light-mode .ic{background:#c4c9ce;border-color:#b0b6bc;}
-html.light-mode .ic-title{color:#6b3800;}
-html.light-mode .ic-sub{color:#404040;}
-html.light-mode .ic-val{color:#0a0a0a;}
-html.light-mode .modal{background:#c8cdd2;border-color:#a0a7ae;}
-html.light-mode .mh{background:#b8bec4;border-color:#a0a7ae;}
-html.light-mode .mh-title{color:#0a0a0a;}
-html.light-mode .fi-in{background:#d0d4d8;border-color:#a0a7ae;color:#0a0a0a;}
-html.light-mode .fi-in:focus{border-color:#c05c00;}
-html.light-mode .fl{color:#1a1a1a;}
-html.light-mode .btn-cancel{background:#b8bec4;color:#1a1a1a;border-color:#a0a7ae;}
-html.light-mode .hgroup{background:#c4c9ce;border-color:#b0b6bc;}
-html.light-mode .hhead{background:#b8bec4;border-color:#a0a7ae;}
-html.light-mode .htitle{color:#0a0a0a;}
-html.light-mode .hmeta{color:#404040;}
-html.light-mode .hchev{color:#404040;}
-html.light-mode .hbody{background:#c4c9ce;}
-html.light-mode .empty{color:#404040;}
-html.light-mode .empty-t{color:#2a2a2a;}
-html.light-mode .row-focus{outline:2px solid #c05c00!important;}
-html.light-mode .cell-focused{background:rgba(192,92,0,.15)!important;}
+html.light-mode .sb{background:#1e2330;}
+html.light-mode .sb-head{border-bottom-color:#2d3344;}
+html.light-mode .sb-item{color:#94a3b8;}
+html.light-mode .sb-item:hover{background:#2d3344;color:#e2e8f0;}
+html.light-mode .sb-item.on{background:#2d3344;color:#fff;}
+html.light-mode .sb-role{color:#64748b;}
+html.light-mode .sb-sec{color:#475569;}
+html.light-mode .sb-name{color:#cbd5e1;}
+html.light-mode .sb-foot{border-top-color:#2d3344;}
+html.light-mode .sb-av{background:#2d3344;color:#94a3b8;}
+html.light-mode .topbar{background:#e8ecf0;border-color:#d1d9e0;}
+html.light-mode .page-title{color:#111827!important;}
+html.light-mode .stats{background:#e8ecf0;border-color:#d1d9e0;}
+html.light-mode .stat{background:#ffffff;border:1px solid #d1d9e0;border-top-width:3px;}
+html.light-mode .stat-label{color:#374151;}
+html.light-mode .stat-val{color:#111827;}
+html.light-mode thead tr{background:linear-gradient(90deg,#1e2330,#2d3344)!important;}
+html.light-mode th{color:#fbbf24!important;}
+html.light-mode tbody tr{color:#111827;}
+
+html.light-mode .toolbar{background:#e8ecf0;border-color:#d1d9e0;}
+html.light-mode .search-box{background:#ffffff;border-color:#d1d9e0;}
+html.light-mode .search-box input{color:#111827;}
+html.light-mode .search-box input::placeholder{color:#6b7280;}
+html.light-mode select.fsel{background:#ffffff;color:#111827;border-color:#d1d9e0;}
+html.light-mode .btn-add{background:#d97706;color:#fff;border-color:#d97706;}
+html.light-mode .s-date{color:#111827!important;}
+html.light-mode .s-oid{color:#1f2937!important;}
+html.light-mode .s-sup{color:#374151!important;}
+html.light-mode .s-title{color:#111827!important;}
+html.light-mode .s-asin{background:rgba(0,0,0,.08);color:#1e3a8a!important;}
+html.light-mode .s-sku{background:rgba(0,0,0,.08);color:#1e3a8a!important;}
+html.light-mode .nt-zero{color:#6b7280!important;}
+html.light-mode .kb-hint{background:#e8ecf0;border-color:#d1d9e0;color:#374151;}
+html.light-mode .kbd{background:#ffffff;border-color:#d1d9e0;color:#111827;box-shadow:0 1px 2px rgba(0,0,0,.1);}
+html.light-mode .ic{background:#ffffff;border-color:#d1d9e0;}
+html.light-mode .ic-title{color:#d97706;}
+html.light-mode .ic-sub{color:#4b5563;}
+html.light-mode .ic-val{color:#111827;}
+html.light-mode .modal{background:#f0f4f8;border-color:#d1d9e0;}
+html.light-mode .mh{background:#e8ecf0;border-color:#d1d9e0;}
+html.light-mode .mh-title{color:#111827;}
+html.light-mode .fi-in{background:#ffffff;border-color:#d1d9e0;color:#111827;}
+html.light-mode .fi-in:focus{border-color:#d97706;}
+html.light-mode .fl{color:#1f2937;}
+html.light-mode .btn-cancel{background:#e8ecf0;color:#1f2937;border-color:#d1d9e0;}
+html.light-mode .hgroup{background:#f0f4f8;border-color:#d1d9e0;}
+html.light-mode .hhead{background:#e8ecf0;border-color:#d1d9e0;}
+html.light-mode .htitle{color:#111827;}
+html.light-mode .hmeta{color:#4b5563;}
+html.light-mode .hchev{color:#6b7280;}
+html.light-mode .hbody{background:#f0f4f8;}
+html.light-mode .empty{color:#4b5563;}
+html.light-mode .empty-t{color:#374151;}
+html.light-mode .row-focus{outline:2px solid #d97706!important;}
+html.light-mode .cell-focused{background:rgba(217,119,6,.1)!important;}
 html.light-mode .nt-ok{background:#dcfce7;color:#15803d;}
 html.light-mode .nt-bad{background:#fee2e2;color:#b91c1c;}
-html.light-mode .brow .blabel{color:#1a1a1a;}
-html.light-mode .bval{color:#1a1a1a;}
-html.light-mode .btrack{background:#b0b6bc;}
-html.light-mode .trow-label{color:#2a2a2a;}
-html.light-mode .trow-val{color:#0a0a0a;}
-html.light-mode .audit-txt{color:#0a0a0a;}
-html.light-mode .audit-time{color:#404040;}
-html.light-mode .conf-title{color:#0a0a0a;}
-html.light-mode .conf-text{color:#2a2a2a;}
-html.light-mode .toast{background:#c8cdd2;color:#0a0a0a;border-color:#a0a7ae;}
-html.light-mode .user-chip{background:#b8bec4;border-color:#a0a7ae;}
-html.light-mode .user-chip-name{color:#0a0a0a;}
-html.light-mode ::-webkit-scrollbar-track{background:#c4c9ce;}
-html.light-mode ::-webkit-scrollbar-thumb{background:#a0a7ae;}
+html.light-mode .brow .blabel{color:#1f2937;}
+html.light-mode .bval{color:#1f2937;}
+html.light-mode .btrack{background:#d1d9e0;}
+html.light-mode .trow-label{color:#374151;}
+html.light-mode .trow-val{color:#111827;}
+html.light-mode .audit-txt{color:#111827;}
+html.light-mode .audit-time{color:#4b5563;}
+html.light-mode .conf-title{color:#111827;}
+html.light-mode .conf-text{color:#374151;}
+html.light-mode .toast{background:#1e2330;color:#f1f5f9;border-color:#2d3344;}
+html.light-mode .user-chip{background:#e8ecf0;border-color:#d1d9e0;}
+html.light-mode .user-chip-name{color:#111827;}
+html.light-mode ::-webkit-scrollbar-track{background:#e8ecf0;}
+html.light-mode ::-webkit-scrollbar-thumb{background:#b8c4cc;}
+html.light-mode .tbl-wrap{background:#f0f4f8;}
+/* Light mode dashboard colours — darker versions of the bright dark-mode colours */
+html.light-mode [style*="background:var(--bg2)"]{background:#ffffff!important;}
+html.light-mode [style*="background:var(--bg3)"]{background:#f0f4f8!important;}
+html.light-mode [style*="color:#64748b"]{color:#374151!important;}
+html.light-mode [style*="color:#475569"]{color:#374151!important;}
+html.light-mode [style*="color:#334155"]{color:#9ca3af!important;}
+html.light-mode [style*="color:#1e293b"]{color:#d1d9e0!important;}
+html.light-mode [style*="color:#94a3b8"]{color:#374151!important;}
+
+html.light-mode .ci{color:#111827!important;background:transparent;}
+html.light-mode .ci:focus{background:#fff;border-color:#d97706;}
+html.light-mode select.ci-sel{background:#ffffff!important;color:#111827!important;border-color:#d1d9e0!important;box-shadow:0 1px 2px rgba(0,0,0,.06);}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;height:100vh;overflow:hidden;display:flex;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;font-rendering:optimizeSpeed;text-rendering:geometricPrecision;}
 
 /* ── SIDEBAR ── */
@@ -218,6 +213,34 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .sv-red{color:var(--red);}
 .sv-white{color:var(--text);}
 
+/* Light mode status rows — left border shows status colour, bg very subtle, text always dark */
+html.light-mode body tbody tr:nth-child(odd){background:#f5f7fa;}
+html.light-mode body tbody tr:nth-child(even){background:#edf1f6;}
+html.light-mode body tbody tr:hover{background:#e4eaf2;}
+html.light-mode body td{color:#111827!important;}
+/* Buttons inside cells must not inherit td colour */
+html.light-mode [style*="btn-blue-text"]{color:var(--btn-blue-text)!important;}
+html.light-mode [style*="btn-green-text"]{color:var(--btn-green-text)!important;}
+html.light-mode [style*="btn-orange-text"]{color:var(--btn-orange-text)!important;}
+html.light-mode [style*="btn-red-text"]{color:var(--btn-red-text)!important;}
+html.light-mode [style*="btn-purple-text"]{color:var(--btn-purple-text)!important;}
+html.light-mode [style*="btn-amber-text"]{color:var(--btn-amber-text)!important;}
+html.light-mode [style*="btn-sf-text"]{color:var(--btn-sf-text)!important;}
+html.light-mode body tbody tr.row-sent{background:#bbf7d0!important;border-left:6px solid #16a34a!important;border-bottom:1px solid #86efac!important;}
+html.light-mode body tbody tr.row-sent td{color:#111827!important;}
+html.light-mode body tbody tr.st-delivered{background:#bbf7d0!important;border-left:5px solid #22c55e!important;}
+html.light-mode body tbody tr.st-delivered td{color:#111827!important;}
+html.light-mode body tbody tr.st-warehouse{background:#ddd6fe!important;border-left:5px solid #7c3aed!important;}
+html.light-mode body tbody tr.st-warehouse td{color:#111827!important;}
+html.light-mode body tbody tr.st-partsent{background:#fed7aa!important;border-left:5px solid #ea580c!important;}
+html.light-mode body tbody tr.st-partsent td{color:#111827!important;}
+html.light-mode body tbody tr.st-issue{background:#fecaca!important;border-left:6px solid #dc2626!important;border-bottom:1px solid #f87171!important;}
+html.light-mode body tbody tr.st-issue td{color:#111827!important;}
+html.light-mode body tbody tr.row-stuck{background:#fecaca!important;border-left:5px solid #ef4444!important;}
+html.light-mode body tbody tr.row-stuck td{color:#111827!important;}
+html.light-mode body tbody tr.row-subsave{background:#bfdbfe!important;border-left:5px solid #1d4ed8!important;}
+html.light-mode body tbody tr.row-subsave td{color:#111827!important;}
+/* Cell inputs always white/readable */
 /* ── TOOLBAR ── */
 .toolbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
 .search-box{display:flex;align-items:center;gap:7px;border:1px solid var(--border2);border-radius:6px;padding:5px 10px;background:var(--bg);flex:1;max-width:300px;transition:border-color .15s;}
@@ -258,21 +281,21 @@ tbody tr:nth-child(even){background:var(--bg3);}
 tbody tr:hover{background:var(--bg4);}
 
 /* ── SENT ROW — DEEP FOREST GREEN ── */
-tbody tr.row-sent{background:linear-gradient(90deg,#0a4a1a,#0d3818)!important;border-bottom:2px solid var(--green)!important;box-shadow:inset 0 0 20px rgba(85,255,85,.1);}
-tbody tr.row-sent:hover{background:linear-gradient(90deg,#0f6028,#124520)!important;border-bottom-color:var(--accent)!important;}
-tbody tr.row-sent td{border-color:var(--sent-border)!important;color:var(--sent-text)!important;}
-tbody tr.row-sent .s-title{color:#d1fae5!important;}
-tbody tr.row-sent .s-asin{color:#a7f3d0!important;}
-tbody tr.row-sent .s-sku{color:#6ee7b7!important;}
-tbody tr.row-sent .s-date{color:#d1fae5!important;}
-tbody tr.row-sent .s-sup{color:#6ee7b7!important;}
-tbody tr.row-sent .s-oid{color:#4ade80!important;}
-tbody tr.row-sent .ci{color:var(--sent-text)!important;}
-tbody tr.row-sent .ci-sel{background:rgba(20,83,45,.8)!important;color:var(--sent-text)!important;border-color:var(--sent-border)!important;}
-tbody tr.row-sent .nt-ok{background:rgba(34,197,94,.3)!important;color:#86efac!important;}
-tbody tr.row-sent .nt-bad{background:rgba(239,68,68,.25)!important;}
-tbody tr.row-sent .sas-btn{background:#166534!important;color:#86efac!important;}
-tbody tr.row-sent .st{opacity:.85;}
+html:not(.light-mode) tbody tr.row-sent{background:linear-gradient(90deg,#0a4a1a,#0d3818)!important;border-bottom:2px solid var(--green)!important;box-shadow:inset 0 0 20px rgba(85,255,85,.1);}
+html:not(.light-mode) tbody tr.row-sent:hover{background:linear-gradient(90deg,#0f6028,#124520)!important;border-bottom-color:var(--accent)!important;}
+html:not(.light-mode) tbody tr.row-sent td{border-color:var(--sent-border)!important;color:var(--sent-text)!important;}
+html:not(.light-mode) tbody tr.row-sent .s-title{color:#d1fae5!important;}
+html:not(.light-mode) tbody tr.row-sent .s-asin{color:#a7f3d0!important;}
+html:not(.light-mode) tbody tr.row-sent .s-sku{color:#6ee7b7!important;}
+html:not(.light-mode) tbody tr.row-sent .s-date{color:#d1fae5!important;}
+html:not(.light-mode) tbody tr.row-sent .s-sup{color:#6ee7b7!important;}
+html:not(.light-mode) tbody tr.row-sent .s-oid{color:#4ade80!important;}
+html:not(.light-mode) tbody tr.row-sent .ci{color:var(--sent-text)!important;}
+html:not(.light-mode) tbody tr.row-sent .ci-sel{background:rgba(20,83,45,.8)!important;color:var(--sent-text)!important;border-color:var(--sent-border)!important;}
+html:not(.light-mode) tbody tr.row-sent .nt-ok{background:rgba(34,197,94,.3)!important;color:#86efac!important;}
+html:not(.light-mode) tbody tr.row-sent .nt-bad{background:rgba(239,68,68,.25)!important;}
+html:not(.light-mode) tbody tr.row-sent .sas-btn{background:#166534!important;color:#86efac!important;}
+html:not(.light-mode) tbody tr.row-sent .st{opacity:.85;}
 
 /* PRIORITY */
 tbody tr.row-pri{border-left:2px solid var(--red);}
@@ -324,17 +347,17 @@ select.ci-sel option{background:var(--bg3);color:var(--text);font-weight:600;}
 /* ── STATUS ── */
 .st{display:inline-flex;align-items:center;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:700;font-family:var(--mono);white-space:nowrap;letter-spacing:.3px;}
 .st-transit{}
-tbody tr.st-warehouse{background:var(--purple-bg)!important;border-bottom:2px solid var(--purple)!important;}
-tbody tr.st-warehouse td{color:var(--purple)!important;}
-tbody tr.st-delivered{background:rgba(34,197,94,.07)!important;border-bottom:1px solid rgba(134,239,172,.3)!important;}
-tbody tr.st-delivered td{color:#a7f3d0!important;}
-tbody tr.st-sent{background:rgba(34,197,94,.25)!important;border-bottom:2px solid var(--green)!important;}
-tbody tr.st-sent td{color:#4ade80!important;}
-tbody tr.st-issue{background:rgba(255,0,0,.2)!important;border-bottom:3px solid #ff0000!important;border-left:3px solid #ff0000!important;}
-tbody tr.st-issue td{color:#ffaaaa!important;border-color:rgba(255,50,50,.5)!important;}
-tbody tr.st-partsent{background:rgba(255,112,67,.1)!important;border-left:3px solid #ff7043!important;}
-tbody tr.st-partsent td{color:#ffb39a!important;border-color:rgba(255,112,67,.25)!important;}
-tbody tr.st-partsent:hover{background:rgba(255,112,67,.18)!important;}
+html:not(.light-mode) tbody tr.st-warehouse{background:var(--purple-bg)!important;border-bottom:2px solid var(--purple)!important;}
+html:not(.light-mode) tbody tr.st-warehouse td{color:var(--purple)!important;}
+html:not(.light-mode) tbody tr.st-delivered{background:rgba(34,197,94,.07)!important;border-bottom:1px solid rgba(134,239,172,.3)!important;}
+html:not(.light-mode) tbody tr.st-delivered td{color:#a7f3d0!important;}
+html:not(.light-mode) tbody tr.st-sent{background:rgba(34,197,94,.25)!important;border-bottom:2px solid var(--green)!important;}
+html:not(.light-mode) tbody tr.st-sent td{color:#4ade80!important;}
+html:not(.light-mode) tbody tr.st-issue{background:rgba(255,0,0,.2)!important;border-bottom:3px solid #ff0000!important;border-left:3px solid #ff0000!important;}
+html:not(.light-mode) tbody tr.st-issue td{color:#ffaaaa!important;border-color:rgba(255,50,50,.5)!important;}
+html:not(.light-mode) tbody tr.st-partsent{background:rgba(255,112,67,.1)!important;border-left:3px solid #ff7043!important;}
+html:not(.light-mode) tbody tr.st-partsent td{color:#ffb39a!important;border-color:rgba(255,112,67,.25)!important;}
+html:not(.light-mode) tbody tr.st-partsent:hover{background:rgba(255,112,67,.18)!important;}
 tbody tr.st-returned{background:rgba(107,114,128,.15)!important;border-bottom:2px solid #d1d5db!important;}
 tbody tr.st-returned td{color:#d1d5db!important;}
 tbody tr.st-notarrived{background:rgba(245,158,11,.15)!important;border-bottom:2px solid #fcd34d!important;}
@@ -344,8 +367,8 @@ tbody tr.st-notarrived td{color:#fcd34d!important;}
 /* row-old removed — use row-stuck for 20+ day in-transit only */
 
 /* 20+ DAYS STUCK — not arrived, not in warehouse, not delivered — ACTION NEEDED */
-tbody tr.row-stuck{background:rgba(239,68,68,.1)!important;border-left:2px solid rgba(239,68,68,.5)!important;}
-tbody tr.row-stuck td{color:#fca5a5!important;border-color:rgba(239,68,68,.2)!important;}
+html:not(.light-mode) tbody tr.row-stuck{background:rgba(239,68,68,.1)!important;border-left:2px solid rgba(239,68,68,.5)!important;}
+html:not(.light-mode) tbody tr.row-stuck td{color:#fca5a5!important;border-color:rgba(239,68,68,.2)!important;}
 tbody tr.row-stuck:hover{background:rgba(239,68,68,.18)!important;}
 
 /* ── NUMBER TAGS ── */
@@ -457,6 +480,84 @@ select.fi-in option{background:var(--bg2);}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px;border:2px solid var(--bg);}
 ::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+
+/* Light mode buttons and interactive elements */
+html.light-mode .sas-btn{background:#1d4ed8!important;color:#fff!important;}
+html.light-mode .sas-btn:hover{background:#1e40af!important;}
+html.light-mode .btn-save{background:#16a34a!important;color:#fff!important;}
+html.light-mode .btn-cancel{background:#e8ecf0!important;color:#1f2937!important;border-color:#d1d9e0!important;}
+html.light-mode .hgroup .hhead{background:#e0e6ee!important;border-color:#c8d0da!important;}
+html.light-mode .sdBtn{background:#ffffff!important;color:#374151!important;border-color:#c8cfd6!important;}
+html.light-mode .sdBtn:hover{background:#e8ecf0!important;}
+html.light-mode .sdBtn-active{background:#fef3c7!important;border-color:#d97706!important;color:#92400e!important;}
+/* Ensure all select dropdowns in rows are fully opaque and readable */
+html.light-mode body select.ci-sel{background:#ffffff!important;color:#111827!important;border:1px solid #c8cfd6!important;box-shadow:0 1px 3px rgba(0,0,0,.12)!important;}
+html.light-mode body .ci{background:#ffffff!important;color:#111827!important;border-color:#c8cfd6!important;}
+/* Status dropdown in rows */
+html.light-mode body select[onchange*="handleStatus"]{background:#f0f4f8!important;color:#111827!important;font-weight:700!important;border:1px solid #c8cfd6!important;}
+/* Bulk bar on light mode */
+html.light-mode #bulkActions{background:rgba(217,119,6,.15)!important;border-color:#d97706!important;}
+/* Accordion headers */
+html.light-mode .hhead .hchev{color:#6b7280!important;}
+html.light-mode .hhead .htitle{color:#111827!important;}
+html.light-mode .hhead .hmeta{color:#4b5563!important;}
+/* Toast stays dark */
+html.light-mode .toast{background:#1e2330!important;color:#f1f5f9!important;}
+/* All translucent rgba buttons — make opaque and readable on light */
+html.light-mode button[style*="rgba(85,153,255"]{background:#dbeafe!important;color:#1d4ed8!important;border-color:#93c5fd!important;}
+html.light-mode button[style*="rgba(85,255,85"]{background:#dcfce7!important;color:#15803d!important;border-color:#86efac!important;}
+html.light-mode button[style*="rgba(249,115,22"]{background:#ffedd5!important;color:#c2410c!important;border-color:#fb923c!important;}
+html.light-mode button[style*="rgba(239,68,68"]{background:#fee2e2!important;color:#dc2626!important;border-color:#fca5a5!important;}
+html.light-mode button[style*="rgba(204,153,255"]{background:#f3e8ff!important;color:#7c3aed!important;border-color:#c4b5fd!important;}
+html.light-mode button[style*="rgba(245,158,11"]{background:#fef3c7!important;color:#92400e!important;border-color:#fcd34d!important;}
+html.light-mode button[style*="rgba(255,112,67"]{background:#ffedd5!important;color:#c2410c!important;border-color:#fb923c!important;}
+html.light-mode button[style*="rgba(30,58,138"]{background:#dbeafe!important;color:#1e3a8a!important;border-color:#93c5fd!important;}
+html.light-mode button[style*="rgba(34,197,94"]{background:#dcfce7!important;color:#15803d!important;border-color:#86efac!important;}
+/* Import Sheet button */
+
+/* View All Suppliers button */
+/* Edit buttons throughout */
+/* Arrived/Shipped row buttons */
+
+
+/* Settings clear buttons */
+/* Insight filter buttons */
+/* + Add Lavarion etc */
+/* Stamp ID button */
+
+
+
+/* Button classes — work in both dark and light mode */
+.btn-arrived{background:rgba(85,153,255,.15);border:1px solid #5599ff;color:#5599ff;}
+.btn-shipped{background:rgba(85,255,85,.12);border:1px solid #55ff55;color:#55ff55;}
+.btn-import{background:rgba(85,153,255,.15);border:1px solid #5599ff;color:#5599ff;}
+/* Light mode — fully opaque, readable */
+html.light-mode .btn-arrived{background:#1d4ed8!important;border-color:#1d4ed8!important;color:#ffffff!important;}
+html.light-mode .btn-shipped{background:#16a34a!important;border-color:#16a34a!important;color:#ffffff!important;}
+html.light-mode .btn-import{background:#1d4ed8!important;border-color:#1d4ed8!important;color:#ffffff!important;}
+
+.btn-edit{background:rgba(249,115,22,.1);border:1px solid #f97316;color:#f97316;}
+html.light-mode .btn-edit{background:#ea580c!important;border-color:#ea580c!important;color:#fff!important;}
+
+/* Button colour variables — change per mode */
+:root{
+  --btn-blue-bg:rgba(85,153,255,.15);--btn-blue-border:#5599ff;--btn-blue-text:#5599ff;
+  --btn-green-bg:rgba(85,255,85,.12);--btn-green-border:#55ff55;--btn-green-text:#55ff55;
+  --btn-orange-bg:rgba(249,115,22,.1);--btn-orange-border:#f97316;--btn-orange-text:#f97316;
+  --btn-red-bg:rgba(239,68,68,.15);--btn-red-border:#ef4444;--btn-red-text:#ef4444;
+  --btn-purple-bg:rgba(204,153,255,.15);--btn-purple-border:#cc99ff;--btn-purple-text:#cc99ff;
+  --btn-amber-bg:rgba(245,158,11,.15);--btn-amber-border:var(--accent);--btn-amber-text:var(--accent);
+  --btn-sf-bg:#1e3a8a;--btn-sf-border:#3b5fc0;--btn-sf-text:#93c5fd;
+}
+html.light-mode{
+  --btn-blue-bg:#1e3a8a;--btn-blue-border:#1e3a8a;--btn-blue-text:#ffffff;
+  --btn-green-bg:#14532d;--btn-green-border:#14532d;--btn-green-text:#ffffff;
+  --btn-orange-bg:#7c2d12;--btn-orange-border:#7c2d12;--btn-orange-text:#ffffff;
+  --btn-red-bg:#7f1d1d;--btn-red-border:#7f1d1d;--btn-red-text:#ffffff;
+  --btn-purple-bg:#3b0764;--btn-purple-border:#3b0764;--btn-purple-text:#ffffff;
+  --btn-amber-bg:#451a03;--btn-amber-border:#451a03;--btn-amber-text:#ffffff;
+  --btn-sf-bg:#1e3a8a;--btn-sf-border:#1e3a8a;--btn-sf-text:#ffffff;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
 </head>
@@ -567,7 +668,7 @@ select.fi-in option{background:var(--bg2);}
         <option value="expected">Expected Units</option>
       </select>
       <button class="btn-add" onclick="openAdd()">+ Add Row</button>
-      <button onclick="openImport()" style="padding:5px 12px;background:rgba(85,153,255,.15);color:#5599ff;border:1px solid #5599ff;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;">Import Sheet</button>
+      <button onclick="openImport()" style="padding:5px 12px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;">Import Sheet</button>
       <div id="bulkActions" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:4px 10px;">
         <span style="font-size:11px;color:var(--accent);font-weight:800;" id="bulkCount">0 selected</span>
         <div style="width:1px;height:18px;background:var(--border2);"></div>
@@ -585,8 +686,8 @@ select.fi-in option{background:var(--bg2);}
         <button onclick="doBulkAction()" style="padding:4px 10px;background:var(--accent);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:800;font-size:11px;">Set</button>
         <div style="width:1px;height:18px;background:var(--border2);"></div>
         <!-- Quick actions -->
-        <button onclick="doBulkAllArrived()" style="padding:4px 10px;background:rgba(85,153,255,.15);color:#5599ff;border:1px solid #5599ff;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;" title="Mark all received — sets Qty Received = Expected, status = In Warehouse">✈ All Arrived</button>
-        <button onclick="doBulkAllShipped()" style="padding:4px 10px;background:rgba(85,255,85,.12);color:#55ff55;border:1px solid #55ff55;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;" title="Mark all shipped — requires FBA ID">✓ All Shipped</button>
+        <button onclick="doBulkAllArrived()" style="padding:4px 10px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">✈ All Arrived</button>
+        <button onclick="doBulkAllShipped()" style="padding:4px 10px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">✓ All Shipped</button>
         <div style="width:1px;height:18px;background:var(--border2);"></div>
         <!-- Stamp FBA ID group -->
         <div style="display:flex;align-items:center;gap:4px;" title="Stamp a single FBA ID across all selected rows and mark as Sent to Amazon">
@@ -596,7 +697,7 @@ select.fi-in option{background:var(--bg2);}
             <option value="DG">DG</option>
             <option value="Oversize">OS</option>
           </select>
-          <button onclick="doBulkShipId()" style="padding:4px 10px;background:#1e3a8a;color:#93c5fd;border:1px solid #3b5fc0;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">Stamp ID</button>
+          <button onclick="doBulkShipId()" style="padding:4px 10px;background:var(--btn-sf-bg);color:var(--btn-sf-text);border:1px solid var(--btn-sf-border);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">Stamp ID</button>
         </div>
         <div style="width:1px;height:18px;background:var(--border2);"></div>
         <button onclick="clearBulkSelect()" style="padding:4px 8px;background:var(--bg3);color:var(--text3);border:1px solid var(--border2);border-radius:4px;cursor:pointer;font-size:11px;" title="Clear selection">✕ Clear</button>
@@ -727,28 +828,28 @@ select.fi-in option{background:var(--bg2);}
               <div style="font-size:12px;font-weight:600;color:var(--text);">Clear All Prep Rows</div>
               <div style="font-size:10px;color:var(--text3);">Removes all rows from the Prep Sheet</div>
             </div>
-            <button onclick="clearTable('prep_rows','prep rows')" style="padding:6px 14px;background:rgba(239,68,68,.15);border:1px solid #ef4444;color:#ef4444;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
+            <button onclick="clearTable('prep_rows','prep rows')" style="padding:6px 14px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);">
             <div>
               <div style="font-size:12px;font-weight:600;color:var(--text);">Clear All Actions</div>
               <div style="font-size:10px;color:var(--text3);">Removes all actions/claims</div>
             </div>
-            <button onclick="clearTable('actions','actions')" style="padding:6px 14px;background:rgba(239,68,68,.15);border:1px solid #ef4444;color:#ef4444;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
+            <button onclick="clearTable('actions','actions')" style="padding:6px 14px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);">
             <div>
               <div style="font-size:12px;font-weight:600;color:var(--text);">Clear Shipment Data</div>
               <div style="font-size:10px;color:var(--text3);">Removes all ship box counts</div>
             </div>
-            <button onclick="clearTable('ship_boxes','shipment box data')" style="padding:6px 14px;background:rgba(239,68,68,.15);border:1px solid #ef4444;color:#ef4444;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
+            <button onclick="clearTable('ship_boxes','shipment box data')" style="padding:6px 14px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);">
             <div>
               <div style="font-size:12px;font-weight:600;color:var(--text);">🗑️ Wipe Everything</div>
               <div style="font-size:10px;color:var(--text3);">Clears ALL data — use after trial to start fresh</div>
             </div>
-            <button onclick="clearEverything()" style="padding:6px 14px;background:rgba(239,68,68,.3);border:1px solid #ef4444;color:#fff;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Wipe All</button>
+            <button onclick="clearEverything()" style="padding:6px 14px;background:#dc2626;border:1px solid #dc2626;color:#fff;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Wipe All</button>
           </div>
         </div>
       </div>
@@ -1444,8 +1545,8 @@ function renderPrepRows(data){
         ${r.sheetRow?`<div style="color:var(--border2);font-size:8px;">${r.sheetRow}</div>`:''}
       </td>
       <td style="text-align:center;"><input type="checkbox" class="bulk-check" ${_selectedIds.has(r.id)?'checked':''} onchange="if(this.checked)_selectedIds.add(${r.id});else _selectedIds.delete(${r.id});updateBulkUI();"></td>
-      <td style="text-align:center;"><button onclick="doAllArrived(${r.id})" title="All Arrived — sets Qty Received = Expected Units, Status = In Warehouse. Can be overridden by editing Qty Received directly." style="background:rgba(85,153,255,.15);border:1px solid #5599ff;color:#5599ff;border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✈</button></td>
-      <td style="text-align:center;"><button onclick="doAllShipped(${r.id})" title="All Shipped — sets Shipped = Received, prompts for Shipment ID" style="background:rgba(85,255,85,.12);border:1px solid #55ff55;color:#55ff55;border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✓</button></td>
+      <td style="text-align:center;"><button onclick="doAllArrived(${r.id})" title="All Arrived — sets Qty Received = Expected Units, Status = In Warehouse. Can be overridden by editing Qty Received directly." style="background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✈</button></td>
+      <td style="text-align:center;"><button onclick="doAllShipped(${r.id})" title="All Shipped — sets Shipped = Received, prompts for Shipment ID" style="background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✓</button></td>
       <td><a class="sas-btn" href="${r.sas}" target="_blank" style="font-size:10px;padding:2px 5px;">SAS</a></td>
       <td class="td-left">
         <div class="stack-date" style="gap:1px;">
@@ -1497,7 +1598,7 @@ function renderPrepRows(data){
       </select></td>
       <td class="td-left"><input class="ci ci-note" type="text" value="${(r.notes||'').replace(/"/g,'&quot;')}" placeholder="—" onchange="uf(${r.id},'notes',this.value);" tabindex="-1" title="${(r.notes||'').replace(/"/g,'&quot;')}" style="min-width:150px;" onfocus="this.style.minWidth='280px';this.style.position='relative';this.style.zIndex='10';" onblur="this.style.minWidth='';this.style.position='';this.style.zIndex='';"></td>
       <td><div class="row-acts" style="opacity:1;">
-        <button class="ra" title="Edit row" onclick="openEdit(${r.id})" style="border-color:#f97316;color:#f97316;background:rgba(249,115,22,.1);font-size:10px;font-weight:700;width:auto;padding:0 6px;">Edit</button>
+        <button class="ra" title="Edit row" onclick="openEdit(${r.id})" style="background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:10px;font-weight:700;width:auto;padding:0 6px;cursor:pointer;">Edit</button>
         <button class="ra r" title="Raise Action" onclick="openClaim(${r.id})" style="font-size:9px;font-weight:700;width:auto;padding:0 5px;">⚑ Action</button>
         ${canComp?`<button class="ra g" title="Complete" onclick="openComp(${r.id})">✓</button>`:''}
       </div></td>
@@ -1854,7 +1955,7 @@ function renderClaims(){
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
               <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;background:${statusCol}22;color:${statusCol};border:1px solid ${statusCol}44;">${c.cst}</span>
               <span style="font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(255,85,85,.1);color:#ff9999;border:1px solid rgba(255,85,85,.2);">${c.issT}</span>
-              ${c.prepRowId?`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(85,153,255,.1);color:#5599ff;border:1px solid rgba(85,153,255,.2);">From Prep Sheet</span>`:''}
+              ${c.prepRowId?`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:var(--btn-blue-bg);color:var(--btn-blue-text);border:1px solid var(--btn-blue-border);">From Prep Sheet</span>`:''}
               <span style="font-size:10px;color:var(--text3);">${c.date||c.raisedAt||'—'}</span>
             </div>
             <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">${c.prod||c.sku||'—'}</div>
@@ -1894,11 +1995,11 @@ function renderClaims(){
               ${['Open','In Progress','Refunded','Resolved','Closed'].map(s=>`<option${c.cst===s?' selected':''}>${s}</option>`).join('')}
             </select>
             <div style="display:flex;gap:4px;">
-              <button onclick="openClaimLog(${c.id})" style="padding:4px 8px;background:rgba(85,153,255,.15);border:1px solid #5599ff;color:#5599ff;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">
+              <button onclick="openClaimLog(${c.id})" style="padding:4px 8px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">
                 📋 Log ${logCount>0?`(${logCount})`:''}
               </button>
-              <button onclick="openEditClaim(${c.id})" style="padding:4px 8px;background:rgba(249,115,22,.1);border:1px solid #f97316;color:#f97316;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;">Edit</button>
-              <button onclick="deleteClaim(${c.id})" style="padding:4px 8px;background:rgba(239,68,68,.1);border:1px solid #ef4444;color:#ef4444;border-radius:3px;font-size:10px;cursor:pointer;">✕</button>
+              <button onclick="openEditClaim(${c.id})" style="padding:4px 8px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;">Edit</button>
+              <button onclick="deleteClaim(${c.id})" style="padding:4px 8px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:10px;cursor:pointer;">✕</button>
             </div>
           </div>
         </div>
@@ -2371,8 +2472,8 @@ function renderLavarion(){
         <td class="td-left" style="font-size:10px;color:var(--text3);">${a.notes||'—'}</td>
         <td>
           <div style="display:flex;gap:4px;">
-            <button onclick="openEditLav('${a.id}')" style="padding:3px 8px;background:rgba(249,115,22,.1);border:1px solid #f97316;color:#f97316;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;">Edit</button>
-            <button onclick="deleteLav('${a.id}')" style="padding:3px 8px;background:rgba(239,68,68,.1);border:1px solid #ef4444;color:#ef4444;border-radius:3px;font-size:10px;cursor:pointer;">✕</button>
+            <button onclick="openEditLav('${a.id}')" style="padding:3px 8px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;">Edit</button>
+            <button onclick="deleteLav('${a.id}')" style="padding:3px 8px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:10px;cursor:pointer;">✕</button>
           </div>
         </td>
       </tr>`;
@@ -2640,7 +2741,7 @@ function renderInsights(){
 
   const filterBtns=[
     ['week','This Week'],['mtd','MTD'],['30d','30 Days'],['90d','90 Days'],['ytd','YTD'],['all','All Time'],['custom','Custom']
-  ].map(([v,l])=>`<button onclick="insightRange='${v}';renderInsights();" style="padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid ${insightRange===v?'var(--accent)':'var(--border)'};background:${insightRange===v?'rgba(245,158,11,.15)':'var(--bg2)'};color:${insightRange===v?'var(--accent)':'var(--text3)'};">${l}</button>`).join('');
+  ].map(([v,l])=>`<button onclick="insightRange='${v}';renderInsights();" style="padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid ${insightRange===v?'var(--accent)':'var(--border)'};background:${insightRange===v?'var(--btn-amber-bg)':'var(--bg2)'};color:${insightRange===v?'var(--btn-amber-text)':'var(--text3)'};">${l}</button>`).join('');
 
   const sectionHead=(t)=>`<div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;padding-bottom:6px;border-bottom:2px solid var(--border);margin-top:6px;">${t}</div>`;
   const kpi=(t,v,sub,c='var(--text)',borderC='')=>`<div class="ic" style="${borderC?`border-color:${borderC};border-top:3px solid ${borderC};`:''}">
@@ -2730,7 +2831,7 @@ function renderInsights(){
     <!-- SECTION 3: SUPPLIER ANALYSIS -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:6px;border-bottom:2px solid var(--border);margin-top:6px;">
       <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;">Supplier Analysis</div>
-      <button onclick="openAllSuppliersModal()" style="padding:6px 16px;background:rgba(245,158,11,.15);border:1px solid var(--accent);color:var(--accent);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.04em;">View All Suppliers ↗</button>
+      <button onclick="openAllSuppliersModal()" style="padding:6px 16px;background:var(--btn-amber-bg);border:1px solid var(--btn-amber-border);color:var(--btn-amber-text);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.04em;">View All Suppliers ↗</button>
     </div>
     <!-- Top 3 mini cards -->
     <div class="ig-row ig-3" style="margin-top:8px;">
@@ -3522,14 +3623,14 @@ function renderShipments(){
     const sfUrl=`https://app.sellerfuse.com/shipment-manager?search=${encodeURIComponent(s.id)}`;
     const skuCount=s.skus.length+(s.lavSkus||[]).length;
     const safeId=s.id.replace(/[^a-z0-9]/gi,'_');
-    const tc=s.type==='DG'?'#ff5555':s.type==='Oversize'?'#ffaa33':'#5599ff';
+    const tc=s.type==='DG'?'var(--red)':s.type==='Oversize'?'var(--amber)':'var(--blue)';
     return`<div class="hgroup" id="ship-${safeId}">
       <div class="hhead" onclick="this.parentElement.classList.toggle('open')" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <span class="hchev">▶</span>
         <span class="htitle" style="font-family:var(--mono);font-size:13px;font-weight:800;color:var(--accent);letter-spacing:.04em;">${s.id}</span>
         <span style="font-size:10px;color:var(--text3);">${dateDisp}</span>
         <span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:${tc}22;color:${tc};border:1px solid ${tc}44;">${s.type||'Standard'}</span>
-        ${s.hasLav?`<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:rgba(204,153,255,.2);color:#cc99ff;border:1px solid rgba(204,153,255,.3);">LAV</span>`:''}
+        ${s.hasLav?`<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);">LAV</span>`:''}
         <span style="font-size:10px;color:var(--blue);font-weight:700;">${skuCount} SKU${skuCount!==1?'s':''}</span>
         <span style="font-size:10px;color:var(--green);font-weight:700;">${fmt(s.units)} units</span>
         <span style="font-size:10px;color:var(--amber);font-weight:700;">£${s.value.toFixed(2)}</span>
@@ -3540,7 +3641,7 @@ function renderShipments(){
           <option value="DG" ${s.type==='DG'?'selected':''}>DG</option>
           <option value="Oversize" ${s.type==='Oversize'?'selected':''}>Oversize</option>
         </select>
-        <button onclick="event.stopPropagation();openLavShip('${s.id}')" style="padding:2px 8px;background:rgba(204,153,255,.15);border:1px solid #cc99ff;color:#cc99ff;border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Lavarion</button>
+        <button onclick="event.stopPropagation();openLavShip('${s.id}')" style="padding:2px 8px;background:var(--btn-purple-bg);border:1px solid var(--btn-purple-border);color:var(--btn-purple-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Lavarion</button>
         <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);" onclick="event.stopPropagation()">
           📦
           <input type="number" min="0" value="${s.boxes||''}" placeholder="0"
@@ -3548,7 +3649,7 @@ function renderShipments(){
             onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"
             onchange="shipBoxes['${s.id}']=+this.value;saveShipBoxes('${s.id}',+this.value);renderShipments();">
         </span>
-        <a href="${sfUrl}" target="_blank" onclick="event.stopPropagation()" style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#1e3a8a;color:#93c5fd;border-radius:4px;font-size:10px;font-weight:700;font-family:var(--mono);text-decoration:none;white-space:nowrap;">SF ↗</a>
+        <a href="${sfUrl}" target="_blank" onclick="event.stopPropagation()" style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:var(--btn-sf-bg);color:var(--btn-sf-text);border:1px solid var(--btn-sf-border);border-radius:4px;font-size:10px;font-weight:700;font-family:var(--mono);text-decoration:none;white-space:nowrap;">SF ↗</a>
       </div>
       <div class="hbody">
         <table style="min-width:unset;width:100%;">
@@ -3583,7 +3684,7 @@ function renderShipments(){
             return`<tr style="background:rgba(204,153,255,.08);">
               <td class="td-left" style="font-size:11px;font-weight:500;">
                 <span id="lav-prod-${lavId}">${ls.prod}</span>
-                <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(204,153,255,.2);color:#cc99ff;border:1px solid rgba(204,153,255,.3);margin-left:4px;">LAV</span>
+                <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);margin-left:4px;">LAV</span>
               </td>
               <td><span class="s-asin" onclick="copyVal('${ls.asin}',this)" style="display:inline-flex;font-size:10px;">${ls.asin}</span></td>
               <td class="td-left"><span class="s-sku" onclick="copyVal('${ls.sku}',this)" style="display:inline-flex;font-size:10px;">${ls.sku}</span></td>
@@ -3598,7 +3699,7 @@ function renderShipments(){
                 <span id="lav-total-disp-${lavId}">£${rowVal.toFixed(2)}</span>
               </td>
               <td>
-                <button onclick="editLavShipLine('${lavId}')" style="padding:2px 6px;background:rgba(249,115,22,.1);border:1px solid #f97316;color:#f97316;border-radius:3px;font-size:9px;cursor:pointer;">Edit</button>
+                <button onclick="editLavShipLine('${lavId}')" style="padding:2px 6px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:9px;cursor:pointer;">Edit</button>
               </td>
             </tr>`;
           }).join('')}
@@ -4257,7 +4358,7 @@ function addNsLavRow(){
     <div id="ns-lav-name-${idx}" style="font-size:10px;color:var(--text3);"></div>
     <input class="fi-in" type="number" id="ns-lav-units-${idx}" placeholder="Units" style="font-size:11px;">
     <input class="fi-in" type="number" id="ns-lav-cost-${idx}" placeholder="£COG" step="0.01" style="font-size:11px;">
-    <button onclick="document.getElementById('ns-lav-${idx}').remove()" style="background:rgba(239,68,68,.15);border:1px solid #ef4444;color:#ef4444;border-radius:4px;cursor:pointer;font-size:12px;padding:2px 6px;">✕</button>
+    <button onclick="document.getElementById('ns-lav-${idx}').remove()" style="background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;cursor:pointer;font-size:12px;padding:2px 6px;">✕</button>
   `;
   container.appendChild(row);
 }
@@ -4439,7 +4540,7 @@ setInterval(updateClock,30000);
     <div class="mb" style="padding:16px;">
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Add one or more Lavarion ASINs to this shipment. Each line has its own units and COG.</div>
       <div id="lavShipLines"></div>
-      <button onclick="addLavShipLine()" style="margin-top:8px;padding:5px 12px;background:rgba(204,153,255,.15);border:1px solid #cc99ff;color:#cc99ff;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">+ Add Another ASIN</button>
+      <button onclick="addLavShipLine()" style="margin-top:8px;padding:5px 12px;background:var(--btn-purple-bg);border:1px solid var(--btn-purple-border);color:var(--btn-purple-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">+ Add Another ASIN</button>
     </div>
     <div class="mf">
       <button class="btn-cancel" onclick="cm('lavShipModal')">Cancel</button>
@@ -4479,7 +4580,7 @@ setInterval(updateClock,30000);
       </div>
       <div style="margin-top:14px;font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px;">Lavarion Units</div>
       <div id="ns-lavRows"></div>
-      <button onclick="addNsLavRow()" style="margin-top:8px;padding:5px 12px;background:rgba(204,153,255,.15);border:1px solid #cc99ff;color:#cc99ff;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">+ Add Lavarion ASIN</button>
+      <button onclick="addNsLavRow()" style="margin-top:8px;padding:5px 12px;background:var(--btn-purple-bg);border:1px solid var(--btn-purple-border);color:var(--btn-purple-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">+ Add Lavarion ASIN</button>
     </div>
     <div class="mf">
       <button class="btn-cancel" onclick="cm('newShipModal')">Cancel</button>
