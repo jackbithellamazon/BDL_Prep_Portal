@@ -580,23 +580,23 @@ html.light-mode{
     <button class="sb-item on" onclick="goPage('prep',this)">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="12" height="12" rx="1"/><line x1="1" y1="5" x2="13" y2="5"/><line x1="5" y1="5" x2="5" y2="13"/></svg>
       <span>Prep Sheet</span>
-      <span class="sb-badge" id="stuckBadge" style="display:none;background:#ff3333;color:#fff;margin-left:auto;">0</span>
-    </button>
+          </button>
     <button class="sb-item" onclick="goPage('shipments',this)">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="12" height="8" rx="1"/><path d="M4 4V3a2 2 0 014 0v1"/><line x1="7" y1="7" x2="7" y2="10"/><line x1="5" y1="8.5" x2="9" y2="8.5"/></svg>
       <span>Shipments</span>
-      <span class="sb-badge" id="shipBadge" style="display:none;">0</span>
-    </button>
+          </button>
     <button class="sb-item" onclick="goPage('lavarion',this)">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="7,1 13,11 1,11"/><line x1="7" y1="5" x2="7" y2="8"/><circle cx="7" cy="9.5" r=".5" fill="currentColor"/></svg>
       <span>Lavarion ASINs</span>
     </button>
+    <button class="sb-item" onclick="goPage('returns',this)">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,4 1,1 13,1 13,4"/><polyline points="4,14 1,14 1,11"/><polyline points="10,14 13,14 13,11"/><path d="M7 1v13M1 7h5M8 7h5" stroke-width="1.2"/></svg>
+      <span>Returns</span>
+          </button>
     <button class="sb-item" onclick="goPage('claims',this)">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h10M2 7h7M2 11h5"/><circle cx="11" cy="10" r="2.5"/><line x1="12.8" y1="11.8" x2="14" y2="13"/></svg>
       <span>Actions</span>
-      <span class="sb-badge" id="claimBadge" style="margin-left:auto;">0</span>
-      <div class="sb-dot" id="claimDot" style="display:none;"></div>
-    </button>
+                </button>
     <div class="sb-sec" style="margin-top:6px;">Analytics</div>
     <button class="sb-item" onclick="goPage('insights',this)">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="8" width="3" height="5"/><rect x="5" y="5" width="3" height="8"/><rect x="9" y="2" width="3" height="11"/></svg>
@@ -792,6 +792,19 @@ html.light-mode{
       <button class="btn-add" onclick="openNewShipment()" style="margin-left:auto;white-space:nowrap;">+ New Shipment</button>
     </div>
     <div class="tbl-wrap" style="padding:12px;" id="shipList"></div>
+  </div>
+
+  <!-- RETURNS PAGE -->
+  <div class="page" id="page-returns">
+    <div class="toolbar">
+      <div class="search-box">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="13" y2="13"/></svg>
+        <input placeholder="Search SKU, ASIN, product…" id="returnSrch" oninput="renderReturns()" autocomplete="off">
+      </div>
+      <button onclick="openBulkAddReturns()" style="padding:5px 14px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;">⚡ Bulk Add SKUs</button>
+      <button class="btn-add" onclick="openAddReturn()">+ Add Single SKU</button>
+    </div>
+    <div class="tbl-wrap" style="padding:12px;" id="returnsList"></div>
   </div>
 
   <!-- LAVARION PAGE -->
@@ -1377,7 +1390,7 @@ function goPage(n,btn){
   btn.classList.add('on');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+n).classList.add('active');
-  const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'Lavarion ASINs',claims:'Actions',insights:'Insights',audit:'Audit Log',settings:'Settings'};
+  const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'Lavarion ASINs',returns:'Returns',claims:'Actions',insights:'Insights',audit:'Audit Log',settings:'Settings'};
   document.getElementById('pageTitle').textContent=t[n]||n;
   if(n==='dashboard')renderDashboard();
   if(n==='insights')renderInsights();
@@ -1385,6 +1398,7 @@ function goPage(n,btn){
   if(n==='claims')renderClaims();
   if(n==='shipments'){setShipDateFilter(_shipDateFilter);}
   if(n==='lavarion')renderLavarion();
+  if(n==='returns')renderReturns();
 }
 function cycleUser(){
   const i=USERS.findIndex(u=>u.id===cu.id);cu=USERS[(i+1)%USERS.length];
@@ -2416,7 +2430,7 @@ function renderDashboard(){
         <div style="background:var(--bg2);border:1px solid ${stuckRows.length>0?'rgba(248,113,113,.35)':'var(--border)'};border-radius:8px;padding:10px 12px;flex:1;min-height:0;">
           <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Stuck In Transit <span style="color:#f87171;">&gt;20 Days</span></div>
           ${stuckRows.length?`
-          <div style="display:flex;gap:16px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07);">
+          <div style="display:flex;gap:16px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07);justify-content:center;width:100%;">
             <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#f87171;">${fmt(stuckUnits)}</div><div style="font-size:8px;color:#475569;text-transform:uppercase;">units at risk</div></div>
             <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${GOLD};">£${stuckValue.toFixed(2)}</div><div style="font-size:8px;color:#475569;text-transform:uppercase;">value at risk</div></div>
           </div>
@@ -3610,8 +3624,7 @@ function renderShipments(){
   );
 
   // Badge
-  const badge=document.getElementById('shipBadge');
-  if(badge){badge.textContent=shipments.length;badge.style.display=shipments.length?'inline-flex':'none';}
+  
 
   if(!shipments.length){
     w.innerHTML=`<div class="empty"><div class="empty-ico">📦</div><div class="empty-t">No shipments found for this period</div></div>`;
@@ -3642,6 +3655,7 @@ function renderShipments(){
           <option value="Oversize" ${s.type==='Oversize'?'selected':''}>Oversize</option>
         </select>
         <button onclick="event.stopPropagation();openLavShip('${s.id}')" style="padding:2px 8px;background:var(--btn-purple-bg);border:1px solid var(--btn-purple-border);color:var(--btn-purple-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Lavarion</button>
+        <button onclick="event.stopPropagation();openRetShip('${s.id}')" style="padding:2px 8px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Returns</button>
         <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);" onclick="event.stopPropagation()">
           📦
           <input type="number" min="0" value="${s.boxes||''}" placeholder="0"
@@ -3962,9 +3976,11 @@ function setSyncStatus(status){
 async function dbLoad(){
   setSyncStatus('syncing');
   try{
-    const [rowsRes,claimsRes,lavAsinRes,lavShipRes,boxesRes]=await Promise.all([
+    const [rowsRes,claimsRes,retSkuRes,retShipRes,lavAsinRes,lavShipRes,boxesRes]=await Promise.all([
       sb.from('prep_rows').select('*').order('created_at',{ascending:true}),
       sb.from('actions').select('*').order('created_at',{ascending:false}),
+      sb.from('returns_skus').select('*').order('created_at',{ascending:true}),
+      sb.from('returns_shipments').select('*').order('created_at',{ascending:false}),
       sb.from('lavarion_asins').select('*').order('created_at',{ascending:true}),
       sb.from('lavarion_shipments').select('*').order('created_at',{ascending:false}),
       sb.from('ship_boxes').select('*'),
@@ -3972,10 +3988,10 @@ async function dbLoad(){
     if(rowsRes.error)throw rowsRes.error;
     rows=(rowsRes.data||[]).map(dbToRow);
     claims=(claimsRes.data||[]).map(dbToClaim);
-    // Rebuild shipBoxes from ship_boxes table
+    returnSkus=(retSkuRes.data||[]).map(d=>({uuid:d.id,sku:d.sku||'',asin:d.asin||'',prod:d.product_name||'',cog:d.cog||0,notes:d.notes||''}));
+    returnShipments=(retShipRes.data||[]).map(d=>({uuid:d.id,shipId:d.ship_id||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:d.date||''}));
     shipBoxes={};
     (boxesRes.data||[]).forEach(b=>{shipBoxes[b.ship_id]=b.boxes;if(b.ship_type)_shipTypeCache[b.ship_id]=b.ship_type;});
-    // Also load ship_type from prep_rows — non-Standard types from rows populate cache if not already set
     rows.forEach(r=>{if(r.shipId&&r.shipType&&r.shipType!=='Standard')if(!_shipTypeCache[r.shipId]||_shipTypeCache[r.shipId]==='Standard')_shipTypeCache[r.shipId]=r.shipType;});
     lavAsins=(lavAsinRes.data||[]).map(dbToLav);
     lavShipments=(lavShipRes.data||[]).map(dbToLavShip);
@@ -4243,7 +4259,242 @@ async function clearEverything(){
   });
 }
 
-// ── SHIPMENT TYPE EDIT ────────────────────────────────────────────────────────
+// ── RETURNS ───────────────────────────────────────────────────────────────────
+let returnSkus=[];
+let returnShipments=[];
+let _retEditId=null;
+let _retShipId=null;
+let _retLineCount=0;
+
+function renderReturns(){
+  const w=document.getElementById('returnsList');
+  const q=(document.getElementById('returnSrch')||{}).value?.toLowerCase()||'';
+  // Only show returns not yet attached to a shipment
+  const shippedSkus=new Set(returnShipments.map(s=>s.sku));
+  let data=returnSkus.filter(r=>!shippedSkus.has(r.sku)).filter(r=>!q||(r.sku+r.asin+r.prod).toLowerCase().includes(q));
+  
+  if(!data.length){
+    w.innerHTML=`<div class="empty"><div class="empty-ico">↩</div><div class="empty-t">${q?'No returns match your search':'No return SKUs yet — click "+ Add Return SKU" to add one'}</div></div>`;
+    return;
+  }
+  w.innerHTML=`<table id="returnsTable">
+    <thead><tr>
+      <th class="th-left">SKU</th>
+      <th class="th-left">Product</th>
+      <th>ASIN</th>
+      <th>COG/Unit</th>
+      <th>Notes</th>
+      <th>Shipments</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+    ${data.map(r=>{
+      const cog=parseSKU(r.sku).cogs||r.cog||0;
+      const shipCount=returnShipments.filter(s=>s.sku===r.sku).length;
+      const totalUnits=returnShipments.filter(s=>s.sku===r.sku).reduce((a,s)=>a+(s.units||0),0);
+      return`<tr>
+        <td class="td-left"><span class="s-sku" onclick="copyVal('${r.sku}',this)" style="display:inline-flex;font-size:10px;">${r.sku}</span></td>
+        <td class="td-left" style="font-size:11px;font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.prod}">${r.prod||'—'}</td>
+        <td><span class="s-asin" onclick="copyVal('${r.asin}',this)" style="display:inline-flex;font-size:10px;">${r.asin||'—'}</span></td>
+        <td style="font-family:var(--mono);color:var(--amber);">£${cog.toFixed(2)}</td>
+        <td style="font-size:10px;color:var(--text3);">${r.notes||'—'}</td>
+        <td style="font-size:10px;font-family:var(--mono);color:var(--text2);">${shipCount?`${shipCount} shipment${shipCount!==1?'s':''} · ${totalUnits} units`:'—'}</td>
+        <td style="display:flex;gap:4px;">
+          <button onclick="openEditReturn('${r.uuid}')" style="padding:2px 6px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:9px;cursor:pointer;">Edit</button>
+          <button onclick="deleteReturnSku('${r.uuid}')" style="padding:2px 6px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:9px;cursor:pointer;">✕</button>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+}
+
+function openBulkAddReturns(){
+  document.getElementById('bulkReturnInput').value='';
+  document.getElementById('bulkReturnPreview').textContent='';
+  om('bulkReturnModal');
+  setTimeout(()=>document.getElementById('bulkReturnInput').focus(),120);
+}
+
+async function saveBulkReturns(){
+  const raw=document.getElementById('bulkReturnInput').value;
+  const skus=raw.split('\n').map(s=>s.trim()).filter(s=>s.length>0);
+  if(!skus.length){toast('Paste at least one SKU','er');return;}
+  const preview=document.getElementById('bulkReturnPreview');
+  preview.textContent=`Adding ${skus.length} SKU${skus.length!==1?'s':''}…`;
+  let added=0;
+  for(const sku of skus){
+    // Skip duplicates already in returnSkus
+    if(returnSkus.find(r=>r.sku===sku))continue;
+    const cog=parseSKU(sku).cogs||0;
+    const match=rows.find(r=>r.sku===sku);
+    const obj={uuid:null,sku,asin:match?.asin||'',prod:match?.prod||'',cog,units:1,notes:''};
+    const res=await sb.from('returns_skus').insert({sku:obj.sku,asin:obj.asin,product_name:obj.prod,cog:obj.cog,units:obj.units,notes:obj.notes}).select().single();
+    if(res.data)obj.uuid=res.data.id;
+    returnSkus.push(obj);
+    added++;
+  }
+  cm('bulkReturnModal');
+  renderReturns();
+  toast(`✓ ${added} return SKU${added!==1?'s':''} added`);
+  logAudit('Bulk return SKUs added',`${added} SKUs`);
+}
+
+function openAddReturn(){
+  document.getElementById('returnModalTitle').textContent='Add Return SKU';
+  document.getElementById('ret-sku').value='';
+  document.getElementById('ret-asin').value='';
+  document.getElementById('ret-prod').value='';
+  document.getElementById('ret-cog').value='';
+  document.getElementById('ret-units').value='1';
+  document.getElementById('ret-notes').value='';
+  om('returnModal');
+  setTimeout(()=>document.getElementById('ret-sku').focus(),120);
+}
+
+function onRetSkuInput(){
+  const sku=document.getElementById('ret-sku').value;
+  const cog=parseSKU(sku).cogs;
+  const cogEl=document.getElementById('ret-cog');
+  if(cog>0&&cogEl)cogEl.value=cog.toFixed(2);
+  // Try to find product name from existing rows
+  const match=rows.find(r=>r.sku===sku);
+  const prodEl=document.getElementById('ret-prod');
+  const asinEl=document.getElementById('ret-asin');
+  if(match){
+    if(prodEl)prodEl.value=match.prod||'';
+    if(asinEl)asinEl.value=match.asin||'';
+  }
+}
+
+function openEditReturn(uuid){
+  const r=returnSkus.find(x=>x.uuid===uuid);if(!r)return;
+  _retEditId=uuid;
+  document.getElementById('returnModalTitle').textContent='Edit Return SKU';
+  document.getElementById('ret-sku').value=r.sku||'';
+  document.getElementById('ret-asin').value=r.asin||'';
+  document.getElementById('ret-prod').value=r.prod||'';
+  document.getElementById('ret-cog').value=r.cog||parseSKU(r.sku).cogs||'';
+  document.getElementById('ret-units').value=r.units||1;
+  document.getElementById('ret-notes').value=r.notes||'';
+  om('returnModal');
+}
+
+async function saveReturnSku(){
+  const sku=document.getElementById('ret-sku').value.trim();
+  if(!sku){toast('SKU is required','er');return;}
+  const cog=parseFloat(document.getElementById('ret-cog').value)||parseSKU(sku).cogs||0;
+  const units=parseInt(document.getElementById('ret-units').value)||1;
+  const obj={
+    uuid:_retEditId||null,
+    sku,
+    asin:document.getElementById('ret-asin')?.value?.trim()||'',
+    prod:document.getElementById('ret-prod')?.value?.trim()||'',
+    cog,units,
+    notes:document.getElementById('ret-notes').value.trim(),
+    shipped:false,
+  };
+  if(_retEditId){
+    const i=returnSkus.findIndex(x=>x.uuid===_retEditId);
+    if(i>=0)returnSkus[i]=obj;
+    await sb.from('returns_skus').update({sku:obj.sku,asin:obj.asin,product_name:obj.prod,cog:obj.cog,units:obj.units,notes:obj.notes}).eq('id',obj.uuid);
+  }else{
+    const res=await sb.from('returns_skus').insert({sku:obj.sku,asin:obj.asin,product_name:obj.prod,cog:obj.cog,units:obj.units,notes:obj.notes}).select().single();
+    if(res.data)obj.uuid=res.data.id;
+    returnSkus.push(obj);
+  }
+  cm('returnModal');renderReturns();
+  toast(`✓ Return SKU ${_retEditId?'updated':'added'}`);
+}
+
+async function deleteReturnSku(uuid){
+  showConfirm('Delete Return SKU?','This removes the SKU from your returns list.',async()=>{
+    returnSkus=returnSkus.filter(x=>x.uuid!==uuid);
+    await sb.from('returns_skus').delete().eq('id',uuid);
+    renderReturns();toast('Return SKU deleted');
+  });
+}
+
+// ── ADD RETURNS TO SHIPMENT ───────────────────────────────────────────────────
+function openRetShip(shipId){
+  _retShipId=shipId;
+  _retLineCount=0;
+  document.getElementById('retShipModalTitle').textContent='Add Returns to '+shipId;
+  document.getElementById('retShipLines').innerHTML='';
+  addRetShipLine();
+  om('retShipModal');
+}
+
+function addRetShipLine(){
+  const idx=_retLineCount++;
+  const container=document.getElementById('retShipLines');
+  const div=document.createElement('div');
+  div.id=`rsl-${idx}`;
+  div.style.cssText='background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px;';
+  div.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);">Return ${idx+1}</div>
+      ${idx>0?`<button onclick="document.getElementById('rsl-${idx}').remove()" style="background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;cursor:pointer;font-size:12px;padding:2px 6px;">✕</button>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 70px 80px;gap:8px;align-items:end;">
+      <div>
+        <div style="font-size:9px;color:var(--text3);margin-bottom:3px;">SKU</div>
+        <select class="fi-in" id="rsl-sku-${idx}" style="font-size:11px;" onchange="onRslSelect(${idx})">
+          <option value="">Select Return SKU…</option>
+          ${returnSkus.map(r=>`<option value="${r.sku}">${r.prod?r.prod+' — ':''} ${r.sku}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--text3);margin-bottom:3px;">Units</div>
+        <input class="fi-in" type="number" id="rsl-units-${idx}" min="1" placeholder="0" style="font-size:12px;">
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--text3);margin-bottom:3px;">COG/Unit £</div>
+        <input class="fi-in" type="number" id="rsl-cost-${idx}" min="0" step="0.01" placeholder="0.00" style="font-size:12px;">
+      </div>
+    </div>
+    <div id="rsl-info-${idx}" style="font-size:9px;color:var(--text3);margin-top:4px;"></div>
+  `;
+  container.appendChild(div);
+}
+
+function onRslSelect(idx){
+  const sku=document.getElementById(`rsl-sku-${idx}`)?.value;
+  const r=returnSkus.find(x=>x.sku===sku);
+  const info=document.getElementById(`rsl-info-${idx}`);
+  const costEl=document.getElementById(`rsl-cost-${idx}`);
+  const unitsEl=document.getElementById(`rsl-units-${idx}`);
+  if(r){
+    const cog=r.cog||parseSKU(r.sku).cogs||0;
+    if(costEl&&cog>0)costEl.value=cog.toFixed(2);
+    if(unitsEl&&r.units)unitsEl.value=r.units;
+    if(info)info.textContent=r.asin?`ASIN: ${r.asin}`:r.prod||'';
+  }
+}
+
+async function confirmRetShip(){
+  if(!_retShipId){toast('No shipment selected','er');return;}
+  const lines=[];
+  document.querySelectorAll('[id^="rsl-sku-"]').forEach(sel=>{
+    const idx=sel.id.split('-').pop();
+    const sku=sel.value;
+    const units=parseInt(document.getElementById(`rsl-units-${idx}`)?.value)||0;
+    const cost=parseFloat(document.getElementById(`rsl-cost-${idx}`)?.value)||0;
+    if(sku&&units>0){
+      const r=returnSkus.find(x=>x.sku===sku);
+      lines.push({shipId:_retShipId,sku,prod:r?.prod||sku,asin:r?.asin||'',units,cost,date:todayISO()});
+    }
+  });
+  if(!lines.length){toast('Add at least one SKU with units','er');return;}
+  for(const entry of lines){
+    returnShipments.push(entry);
+    const res=await sb.from('returns_shipments').insert({ship_id:entry.shipId,sku:entry.sku,product_name:entry.prod,units:entry.units,cost:entry.cost,date:entry.date}).select().single();
+    if(res.data)entry.uuid=res.data.id;
+  }
+  cm('retShipModal');renderShipments();
+  toast(`✓ ${lines.length} return${lines.length!==1?'s':''} added to ${_retShipId}`);
+  logAudit('Returns added to shipment',`${lines.length} SKUs → ${_retShipId}`);
+}
 // Cache for shipment types (persists across re-renders)
 const _shipTypeCache={};
 
@@ -4603,6 +4854,73 @@ setInterval(updateClock,30000);
     <div class="mf">
       <button class="btn-cancel" onclick="cm('editLavLineModal')">Cancel</button>
       <button class="btn-save" onclick="saveEditLavLine()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK ADD RETURNS MODAL -->
+<div class="overlay" id="bulkReturnModal">
+  <div class="modal" style="max-width:500px;">
+    <div class="mh"><div class="mh-title">Bulk Add Return SKUs</div><button class="mh-close" onclick="cm('bulkReturnModal')">✕</button></div>
+    <div class="mb" style="padding:16px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Paste one SKU per line. COG auto-fills from each SKU. All default to 1 unit — edit individually after if needed.</div>
+      <textarea id="bulkReturnInput" placeholder="Paste SKUs here, one per line:&#10;Amuk_139.99_1604_225_PS3_01&#10;Stan_22.95_0605_0_Jac1_02&#10;Amg_12.26_2204_19.99_Jac1_03"
+        style="width:100%;height:180px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:11px;padding:8px;resize:vertical;outline:none;box-sizing:border-box;"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      <div id="bulkReturnPreview" style="margin-top:8px;font-size:10px;color:var(--text3);"></div>
+    </div>
+    <div class="mf">
+      <button class="btn-cancel" onclick="cm('bulkReturnModal')">Cancel</button>
+      <button class="btn-save" onclick="saveBulkReturns()">Add All SKUs</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT RETURN SKU MODAL -->
+<div class="overlay" id="returnModal">
+  <div class="modal" style="max-width:440px;">
+    <div class="mh"><div class="mh-title" id="returnModalTitle">Add Return SKU</div><button class="mh-close" onclick="cm('returnModal')">✕</button></div>
+    <div class="mb">
+      <div class="fg">
+        <div class="fi">
+          <label class="fl">SKU</label>
+          <input class="fi-in" type="text" id="ret-sku" placeholder="Paste SKU — COG and product auto-fill" oninput="onRetSkuInput()">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="fi">
+            <label class="fl">COG per Unit (£)</label>
+            <input class="fi-in" type="number" id="ret-cog" placeholder="Auto from SKU" step="0.01">
+            <div style="font-size:10px;color:var(--text3);margin-top:2px;">Auto-parsed from SKU</div>
+          </div>
+          <div class="fi">
+            <label class="fl">Units</label>
+            <input class="fi-in" type="number" id="ret-units" value="1" min="1" placeholder="1">
+            <div style="font-size:10px;color:var(--text3);margin-top:2px;">Default: 1 unit</div>
+          </div>
+        </div>
+        <div class="fi"><label class="fl">Notes (optional)</label><input class="fi-in" type="text" id="ret-notes" placeholder="Condition, reason, etc."></div>
+        <div class="fi" style="display:none;"><input type="text" id="ret-asin"><input type="text" id="ret-prod"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn-cancel" onclick="cm('returnModal')">Cancel</button>
+      <button class="btn-save" onclick="saveReturnSku()">Save Return</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD RETURNS TO SHIPMENT MODAL -->
+<div class="overlay" id="retShipModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="mh"><div class="mh-title" id="retShipModalTitle">Add Returns to Shipment</div><button class="mh-close" onclick="cm('retShipModal')">✕</button></div>
+    <div class="mb" style="padding:16px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Select return SKUs and confirm units for this shipment. COG auto-fills from SKU.</div>
+      <div id="retShipLines"></div>
+      <button onclick="addRetShipLine()" style="margin-top:8px;padding:5px 12px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">+ Add Another SKU</button>
+    </div>
+    <div class="mf">
+      <button class="btn-cancel" onclick="cm('retShipModal')">Cancel</button>
+      <button class="btn-save" onclick="confirmRetShip()">Add to Shipment</button>
     </div>
   </div>
 </div>
