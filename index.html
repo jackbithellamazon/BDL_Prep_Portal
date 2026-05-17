@@ -824,6 +824,27 @@ html.light-mode{
     <div style="padding:24px;max-width:600px;">
       <div style="font-size:14px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:20px;">Settings</div>
 
+      <!-- Prep Fee Rates -->
+      <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px;">Implied Prep Fee Rates</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:14px;">Used to calculate implied prep costs on Dashboard, Insights, and Shipments. All prices ex. VAT (VAT added at 20%).</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tier 1 rate/unit</div><input type="number" step="0.01" id="pf-tier1p" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">First 1,000 units</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tier 2 rate/unit</div><input type="number" step="0.01" id="pf-tier2p" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">1,001–3,000 units</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tier 3 rate/unit</div><input type="number" step="0.01" id="pf-tier3p" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">3,001–5,000 units</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tier 4 rate/unit</div><input type="number" step="0.01" id="pf-tier4p" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">5,000+ units</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Box cost (£)</div><input type="number" step="0.01" id="pf-boxCost" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Per box (reusable)</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">DG box cost (£)</div><input type="number" step="0.01" id="pf-dgExtraPerBox" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Same as standard box (£1)</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Oversize rate/unit (£)</div><input type="number" step="0.01" id="pf-osCostPerUnit" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Flat per OS unit</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Bundle rate/unit (£)</div><input type="number" step="0.01" id="pf-bundleCostPerUnit" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Per bundled unit</div></div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+          <button onclick="saveSettingsPrepFees()" style="padding:6px 16px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Save Rates</button>
+          <button onclick="resetPrepFees()" style="padding:6px 14px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Reset to Defaults</button>
+          <span id="prepFeeSaved" style="font-size:10px;color:var(--green);display:none;">✓ Saved</span>
+        </div>
+      </div>
+
       <!-- Import -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;">
         <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">Purchase Sheet Import</div>
@@ -1398,6 +1419,12 @@ function goPage(n,btn){
   if(n==='claims')renderClaims();
   if(n==='shipments'){setShipDateFilter(_shipDateFilter);}
   if(n==='lavarion')renderLavarion();
+  if(n==='settings'){
+    ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit'].forEach(k=>{
+      const el=document.getElementById('pf-'+k);
+      if(el)el.value=prepFees[k]||0;
+    });
+  }
   if(n==='returns')renderReturns();
 }
 function cycleUser(){
@@ -2265,13 +2292,62 @@ function renderDashboard(){
     </div>`;
 
   const pill=(label,val,col)=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 8px;background:rgba(255,255,255,.03);border-radius:4px;margin-bottom:2px;">
-      <span style="font-size:9px;color:#64748b;">${label}</span>
-      <span style="font-size:10px;font-weight:700;font-family:var(--mono);color:${col};">${val}</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 8px;background:rgba(255,255,255,.04);border-radius:4px;margin-bottom:2px;">
+      <span style="font-size:10px;color:#94a3b8;font-weight:500;">${label}</span>
+      <span style="font-size:12px;font-weight:700;font-family:var(--mono);color:${col};">${val}</span>
     </div>`;
 
-  // ── Extra calcs ────────────────────────────────────────────────────────────
-  const todayAsins=new Set(rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).map(r=>r.asin)).size;
+  loadPrepFees();
+
+  // ── PREP COST (MTD) ───────────────────────────────────────────────────────
+  const{s:ms,e:me}=getMonthRange();
+  function localISOm(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+  const mss=localISOm(ms),mes=localISOm(me);
+  const mtdSentRows=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&r.sentDate>=mss&&r.sentDate<=mes);
+  const mtdSentLav=lavShipments.filter(s=>s.date&&s.date>=mss&&s.date<=mes);
+  const mtdShipIds=new Set([...mtdSentRows.filter(r=>r.shipId).map(r=>r.shipId),...mtdSentLav.filter(s=>s.shipId).map(s=>s.shipId)]);
+  const mtdBoxMap=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>mtdShipIds.has(sid)));
+  const prepCost=calcImpliedPrepCost(mtdSentRows,mtdSentLav,mtdBoxMap);
+
+  // Per-shipment costs this week
+  function calcShipmentPrepCost(shipId){
+    const sRows=rows.filter(r=>r.sent==='Yes'&&r.shipId===shipId);
+    const sLav=lavShipments.filter(s=>s.shipId===shipId);
+    const sBoxMap=shipBoxes[shipId]?{[shipId]:shipBoxes[shipId]}:{};
+    return calcImpliedPrepCost(sRows,sLav,sBoxMap);
+  }
+
+  // Per-day costs this week
+  const dayPrepCosts={};
+  weekDays.filter(d=>!d.isFuture&&d.units>0).forEach(d=>{
+    const dRows=rows.filter(r=>r.sent==='Yes'&&r.sentDate===d.ds);
+    const dLav=lavShipments.filter(s=>s.date===d.ds);
+    const dShipIds=new Set([...dRows.filter(r=>r.shipId).map(r=>r.shipId),...dLav.filter(s=>s.shipId).map(s=>s.shipId)]);
+    const dBoxMap=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>dShipIds.has(sid)));
+    dayPrepCosts[d.ds]=calcImpliedPrepCost(dRows,dLav,dBoxMap);
+  });
+
+  // Per-tile prep costs
+  const mkTilePC=(sentDate,yd)=>{
+    const r=rows.filter(x=>x.sent==='Yes'&&x.sentDate===sentDate);
+    const l=lavShipments.filter(x=>x.date===sentDate);
+    const ids=new Set([...r.filter(x=>x.shipId).map(x=>x.shipId),...l.filter(x=>x.shipId).map(x=>x.shipId)]);
+    return calcImpliedPrepCost(r,l,Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>ids.has(sid))));
+  };
+  const todayPC=mkTilePC(todayStr);
+  const ydPC=mkTilePC(yesterdayStr);
+  const weekShipIdSet=new Set([...rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we&&r.shipId).map(r=>r.shipId),...lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we&&s.shipId).map(s=>s.shipId)]);
+  const weekPC=calcImpliedPrepCost(rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we),lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we),Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>weekShipIdSet.has(sid))));
+
+  // MTD totals
+  const mtdSentRowsFull=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&r.sentDate>=mss&&r.sentDate<=mes);
+  const mtdSentLavFull=lavShipments.filter(s=>s.date&&s.date>=mss&&s.date<=mes);
+  const mtdUnits=mtdSentRowsFull.reduce((a,r)=>a+(r.ship||0),0)+mtdSentLavFull.reduce((a,s)=>a+(s.units||0),0);
+  const mtdCOG=mtdSentRowsFull.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||0)),0)+mtdSentLavFull.reduce((a,s)=>a+(s.cost||0)*(s.units||0),0);
+  const mtdShipCount=new Set([...mtdSentRowsFull.filter(r=>r.shipId).map(r=>r.shipId),...mtdSentLavFull.filter(s=>s.shipId).map(s=>s.shipId)]).size;
+  const mtdSkus=mtdSentRowsFull.length+mtdSentLavFull.length;
+  const mtdAsins=new Set([...mtdSentRowsFull.map(r=>r.asin),...mtdSentLavFull.map(s=>s.asin)]).size;
+  const mtdBoxesCount=Array.from(new Set([...mtdSentRowsFull.filter(r=>r.shipId).map(r=>r.shipId),...mtdSentLavFull.filter(s=>s.shipId).map(s=>s.shipId)])).reduce((a,sid)=>a+(shipBoxes[sid]||0),0);
   const todaySkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).length+lavShipments.filter(s=>s.date===todayStr).length;
   const weekAsins=new Set([
     ...rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we).map(r=>r.asin),
@@ -2280,6 +2356,7 @@ function renderDashboard(){
   const weekSkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we).length
                 +lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).length;
   const weekLavAsins=new Set(lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).map(s=>s.asin)).size;
+  const todayAsins=new Set(rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).map(r=>r.asin)).size;
   const ydSkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate===yesterdayStr).length+lavShipments.filter(s=>s.date===yesterdayStr).length;
 
   // Yesterday vs day before
@@ -2297,8 +2374,8 @@ function renderDashboard(){
 
   w.innerHTML=`<div style="padding:12px;display:flex;flex-direction:column;gap:10px;">
 
-    <!-- ROW 1: 4 equal KPI tiles -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+    <!-- ROW 1: 5 KPI tiles -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
 
       ${kTile('In Transit',COL.transit,
         fmt(transit.units),'units in transit',
@@ -2310,21 +2387,28 @@ function renderDashboard(){
       ${kTile('Sent Today',COL.today,
         fmt(todayTotal.units),'units sent today',
         '£'+todayTotal.value.toFixed(2),'COG value sent',
-        pill('SKUs',fmt(todaySkus),COL.sku)+pill('ASINs',fmt(todayAsins),COL.asin)+pill('Boxes',fmt(todayBoxes),COL.box)+pill('vs Yesterday',`${trendArrow} ${todayDiff} units`,trendCol)+pill('COG vs Yesterday','£'+(todayTotal.value-ydTotal.value>=0?'+':'')+((todayTotal.value-ydTotal.value).toFixed(2)),todayTotal.value>=ydTotal.value?COL.today:'#f87171'),
+        pill('SKUs',fmt(todaySkus),COL.sku)+pill('ASINs',fmt(todayAsins),COL.asin)+pill('Boxes',fmt(todayBoxes),COL.box)+pill('vs Yesterday',`${trendArrow} ${todayDiff} units`,trendCol)+pill('COG vs Yesterday','£'+(todayTotal.value-ydTotal.value>=0?'+':'')+((todayTotal.value-ydTotal.value).toFixed(2)),todayTotal.value>=ydTotal.value?COL.today:'#f87171')+(todayPC.totalUnits>0?pill('Prep cost','£'+todayPC.withVat.toFixed(2),GOLD):''),
         trendArrow,trendCol)
       }
 
       ${kTile('Yesterday',COL.yday,
         fmt(ydTotal.units),'units sent',
         '£'+ydTotal.value.toFixed(2),'COG value sent',
-        pill('SKUs',fmt(ydSkus),COL.sku)+pill('Boxes',fmt(ydBoxes),COL.box)+pill('vs Day Before',`${ydArrow} ${Math.abs(ydDiff)} units`,ydACol),
+        pill('SKUs',fmt(ydSkus),COL.sku)+pill('Boxes',fmt(ydBoxes),COL.box)+pill('vs Day Before',`${ydArrow} ${Math.abs(ydDiff)} units`,ydACol)+(ydPC.totalUnits>0?pill('Prep cost','£'+ydPC.withVat.toFixed(2),GOLD):''),
         '','')
       }
 
       ${kTile('This Week',COL.week,
         fmt(weekTotal.units),'units sent this week',
         '£'+weekTotal.value.toFixed(2),'COG value sent',
-        pill('Shipments',fmt(weekShipments),COL.ship)+pill('SKUs',fmt(weekSkus),COL.sku)+pill('ASINs',fmt(weekAsins),COL.asin)+(weekLavAsins?pill('LAV ASINs',fmt(weekLavAsins),COL.asin):'')+pill('Boxes',fmt(weekBoxes),COL.box),
+        pill('Shipments',fmt(weekShipments),COL.ship)+pill('SKUs',fmt(weekSkus),COL.sku)+pill('ASINs',fmt(weekAsins),COL.asin)+(weekLavAsins?pill('LAV ASINs',fmt(weekLavAsins),COL.asin):'')+pill('Boxes',fmt(weekBoxes),COL.box)+(weekPC.totalUnits>0?pill('Prep cost','£'+weekPC.withVat.toFixed(2),GOLD):''),
+        '','')
+      }
+
+      ${kTile('This Month',`#06b6d4`,
+        fmt(mtdUnits),'units sent this month',
+        '£'+mtdCOG.toFixed(2),'COG value sent',
+        pill('Shipments',fmt(mtdShipCount),COL.ship)+pill('SKUs',fmt(mtdSkus),COL.sku)+pill('ASINs',fmt(mtdAsins),COL.asin)+pill('Boxes',fmt(mtdBoxesCount),COL.box)+(prepCost.totalUnits>0?pill('Prep cost','£'+prepCost.withVat.toFixed(2),GOLD):''),
         '','')
       }
     </div>
@@ -2392,6 +2476,77 @@ function renderDashboard(){
               <span style="font-size:11px;font-family:var(--mono);font-weight:800;color:${col};">${fmt(u)} <span style="font-size:9px;color:${GOLD};">£${v.toFixed(2)}</span></span>
             </div>`).join('')}
         </div>
+
+        <!-- Implied Prep Cost MTD -->
+        <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Implied Prep Cost — MTD</div>
+          <div style="font-size:28px;font-weight:900;color:${GOLD};font-family:var(--mono);line-height:1;">£${prepCost.withVat.toFixed(2)}</div>
+          <div style="font-size:10px;color:#cbd5e1;margin-bottom:10px;">inc. VAT · £${prepCost.subtotal.toFixed(2)} ex. VAT</div>
+
+          <!-- Tiered rate breakdown -->
+          <div style="font-size:8px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Unit rate breakdown (tiered, ex. VAT)</div>
+          ${(()=>{
+            let rem=prepCost.totalUnits,html='';
+            const tiers=[
+              [prepFees.tier1Units,prepFees.tier1p,'1–'+prepFees.tier1Units],
+              [prepFees.tier2Units-prepFees.tier1Units,prepFees.tier2p,(prepFees.tier1Units+1)+'–'+prepFees.tier2Units],
+              [prepFees.tier3Units-prepFees.tier2Units,prepFees.tier3p,(prepFees.tier2Units+1)+'–'+prepFees.tier3Units],
+              [Infinity,prepFees.tier4p,(prepFees.tier3Units+1)+'+'],
+            ];
+            for(const[max,rate,range] of tiers){
+              if(rem<=0)break;
+              const used=Math.min(rem,max);
+              const cost=used*rate;
+              const rateStr=rate<1?(rate*100).toFixed(0)+'p':('£'+rate.toFixed(2));
+              html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+                <span style="font-size:10px;color:#cbd5e1;">${fmt(used)} units × ${rateStr} <span style="font-size:8px;color:#64748b;">(tier ${range})</span></span>
+                <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">£${cost.toFixed(2)}</span>
+              </div>`;
+              rem-=used;
+            }
+            return html;
+          })()}
+
+          <!-- Extras -->
+          ${(prepCost.osCost>0||prepCost.bundleCost>0||prepCost.boxCostTotal>0||prepCost.dgExtra>0)?`
+          <div style="font-size:8px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px;">Extras (ex. VAT)</div>`:''}
+          ${[
+            ...(prepCost.osCost>0?[[prepCost.osUnits+' OS units × £'+prepFees.osCostPerUnit+'/unit','£'+prepCost.osCost.toFixed(2),'#fb923c']]:[]),
+            ...(prepCost.bundleCost>0?[[prepCost.bundleUnits+' bundle units × £'+prepFees.bundleCostPerUnit+'/unit','£'+prepCost.bundleCost.toFixed(2),'#34d399']]:[]),
+            [prepCost.stdBoxes+' std boxes × £'+prepFees.boxCost+'/box','£'+prepCost.boxCostTotal.toFixed(2),'#60a5fa'],
+            ...(prepCost.dgExtra>0?[[prepCost.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox+'/box (DG rate)','£'+prepCost.dgExtra.toFixed(2),'#f87171']]:[]),
+          ].map(([l,v,col])=>`
+            <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+              <span style="font-size:10px;color:#cbd5e1;">${l}</span>
+              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span>
+            </div>`).join('')}
+
+          <!-- Subtotal + VAT + Total -->
+          <div style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.1);">
+            <div style="display:flex;justify-content:space-between;padding:2px 0;">
+              <span style="font-size:10px;color:#94a3b8;">Subtotal ex. VAT</span>
+              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#94a3b8;">£${prepCost.subtotal.toFixed(2)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+              <span style="font-size:10px;color:#94a3b8;">VAT 20%</span>
+              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#94a3b8;">£${(prepCost.withVat-prepCost.subtotal).toFixed(2)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;margin-top:2px;">
+              <span style="font-size:11px;font-weight:800;color:#fbbf24;">Total inc. VAT</span>
+              <span style="font-size:14px;font-weight:900;font-family:var(--mono);color:#fbbf24;">£${prepCost.withVat.toFixed(2)}</span>
+            </div>
+          </div>
+
+          ${(()=>{
+            const activeDays=Object.keys(dayPrepCosts).length;
+            const todayCost=dayPrepCosts[todayStr];
+            if(!activeDays)return'';
+            return`<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);">
+              ${todayCost&&todayCost.totalUnits>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:9px;color:#cbd5e1;">Today's cost inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">£${todayCost.withVat.toFixed(2)}</span></div>`:''}
+              <div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:9px;color:#cbd5e1;">Cost per prep day inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">£${(prepCost.withVat/activeDays).toFixed(2)}</span></div>
+            </div>`;
+          })()}
+        </div>
       </div>
 
       <!-- Col 2: By Type + Pipeline + Claims + Ops -->
@@ -2416,6 +2571,7 @@ function renderDashboard(){
           <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Operations</div>
           ${(()=>{const uA=new Set(rows.map(r=>r.asin)).size;const bxA=Object.values(shipBoxes).reduce((a,b)=>a+(b||0),0);const iV=rows.filter(r=>r.status!=='Sent to Amazon').reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);return[['Active SKUs',fmt(rows.length),'#94a3b8'],['Active ASINs',fmt(uA),COL.asin],['Inventory COG','£'+iV.toFixed(2),GOLD],['Total Boxes',fmt(bxA),COL.box],['Issue Rows',fmt(rows.filter(r=>r.status==='Issue').length),rows.filter(r=>r.status==='Issue').length>0?'#f87171':COL.today],['Open Actions',fmt(openClaims),openClaims>0?'#f87171':COL.today]].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#475569;">${l}</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:${col};">${v}</span></div>`).join('');})()}
         </div>
+
       </div>
 
       <!-- Col 3: Claims + Stuck -->
@@ -2987,9 +3143,126 @@ function renderInsights(){
     </div>
     `:''}
 
+  <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:14px 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;">Implied Prep Cost</div>
+      <button onclick="openPrepHistory()" style="padding:4px 12px;background:var(--btn-amber-bg);border:1px solid var(--btn-amber-border);color:var(--btn-amber-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">History ↗</button>
+    </div>
+    ${(()=>{
+      const pc=calcImpliedPrepCost(stockSent,lavSent,Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>stockShipIds.has(sid)||new Set(lavSent.filter(s=>s.shipId).map(s=>s.shipId)).has(sid))));
+      const prepDays=new Set([...stockSent.map(r=>r.sentDate),...lavSent.map(s=>s.date)]).size;
+      const prepShips=new Set([...stockSent.filter(r=>r.shipId).map(r=>r.shipId),...lavSent.filter(s=>s.shipId).map(s=>s.shipId)]).size;
+      return`
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+        ${[['Total inc. VAT','£'+pc.withVat.toFixed(2),'#fbbf24'],['Per prep day',prepDays>0?'£'+(pc.withVat/prepDays).toFixed(2):'—','#60a5fa'],['Per shipment',prepShips>0?'£'+(pc.withVat/prepShips).toFixed(2):'—','#34d399']].map(([l,v,col])=>`<div style="background:var(--bg3);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:18px;font-weight:900;font-family:var(--mono);color:${col};">${v}</div><div style="font-size:8px;color:#94a3b8;margin-top:2px;">${l}</div></div>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          ${[
+            [fmt(pc.totalUnits)+' units × tiered rate','£'+pc.baseCost.toFixed(2),'#fbbf24'],
+            ...(pc.osCost>0?[[pc.osUnits+' OS units × £'+prepFees.osCostPerUnit,'£'+pc.osCost.toFixed(2),'#fb923c']]:[]),
+            ...(pc.bundleCost>0?[[pc.bundleUnits+' bundle units × £'+prepFees.bundleCostPerUnit,'£'+pc.bundleCost.toFixed(2),'#34d399']]:[]),
+            [pc.totalBoxes+' boxes × £'+prepFees.boxCost,'£'+pc.boxCostTotal.toFixed(2),'#60a5fa'],
+            ...(pc.dgExtra>0?[[pc.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox,'£'+pc.dgExtra.toFixed(2),'#f87171']]:[]),
+            ['VAT 20%','£'+(pc.withVat-pc.subtotal).toFixed(2),'#94a3b8'],
+            ['Total inc. VAT','£'+pc.withVat.toFixed(2),'#fbbf24'],
+          ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${l}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
+        </div>
+        <div>
+          <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Cost by prep day</div>
+          ${[...new Set([...stockSent.map(r=>r.sentDate),...lavSent.map(s=>s.date)])].filter(Boolean).sort().reverse().slice(0,8).map(ds=>{const dR=stockSent.filter(r=>r.sentDate===ds);const dL=lavSent.filter(s=>s.date===ds);const dIds=new Set([...dR.filter(r=>r.shipId).map(r=>r.shipId),...dL.filter(s=>s.shipId).map(s=>s.shipId)]);const dB=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>dIds.has(sid)));const dc=calcImpliedPrepCost(dR,dL,dB);return`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${ds}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">£${dc.withVat.toFixed(2)}</span></div>`;}).join('')}
+        </div>
+      </div>`;
+    })()}
+  </div>
+
   </div>`;
 }
 
+function openPrepHistory(){
+  om('prepHistoryModal');
+  const body=document.getElementById('prepHistoryBody');
+  // Build month-by-month data from all sent rows
+  const monthMap={};
+  const addToMonth=(ds,units,shipId,isLav)=>{
+    if(!ds)return;
+    const[y,m]=ds.split('-');
+    const key=`${y}-${m}`;
+    if(!monthMap[key])monthMap[key]={label:new Date(+y,+m-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'}),rows:[],lavRows:[],shipIds:new Set()};
+    if(shipId)monthMap[key].shipIds.add(shipId);
+  };
+  rows.filter(r=>r.sent==='Yes'&&r.sentDate).forEach(r=>{
+    const[y,m]=r.sentDate.split('-');
+    const key=`${y}-${m}`;
+    if(!monthMap[key])monthMap[key]={label:new Date(+y,+m-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'}),rows:[],lavRows:[],shipIds:new Set()};
+    monthMap[key].rows.push(r);
+    if(r.shipId)monthMap[key].shipIds.add(r.shipId);
+  });
+  lavShipments.filter(s=>s.date).forEach(s=>{
+    const[y,m]=s.date.split('-');
+    const key=`${y}-${m}`;
+    if(!monthMap[key])monthMap[key]={label:new Date(+y,+m-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'}),rows:[],lavRows:[],shipIds:new Set()};
+    monthMap[key].lavRows.push(s);
+    if(s.shipId)monthMap[key].shipIds.add(s.shipId);
+  });
+  const months=Object.keys(monthMap).sort().reverse();
+  if(!months.length){body.innerHTML='<div style="color:var(--text3);text-align:center;padding:20px;">No shipped data yet.</div>';return;}
+  body.innerHTML=`
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr style="border-bottom:2px solid var(--border);">
+        <th style="text-align:left;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Month</th>
+        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Units</th>
+        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Ships</th>
+        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Boxes</th>
+        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Ex. VAT</th>
+        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Inc. VAT</th>
+        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Per Day</th>
+        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Per Ship</th>
+      </tr></thead>
+      <tbody>
+        ${months.map(key=>{
+          const md=monthMap[key];
+          const mBoxMap=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));
+          const pc=calcImpliedPrepCost(md.rows,md.lavRows,mBoxMap);
+          const prepDays=new Set([...md.rows.map(r=>r.sentDate),...md.lavRows.map(s=>s.date)]).size;
+          const ships=md.shipIds.size;
+          return`<tr style="border-bottom:1px solid rgba(255,255,255,.05);">
+            <td style="padding:6px 8px;font-size:11px;color:var(--text2);font-weight:600;">${md.label}</td>
+            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#94a3b8;text-align:right;">${fmt(pc.totalUnits)}</td>
+            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#60a5fa;text-align:right;">${ships}</td>
+            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#fb923c;text-align:right;">${pc.totalBoxes}</td>
+            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#94a3b8;text-align:right;">£${pc.subtotal.toFixed(2)}</td>
+            <td style="padding:6px 8px;font-size:12px;font-family:var(--mono);font-weight:800;color:#fbbf24;text-align:right;">£${pc.withVat.toFixed(2)}</td>
+            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#60a5fa;text-align:right;">${prepDays>0?'£'+(pc.withVat/prepDays).toFixed(2):'—'}</td>
+            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#34d399;text-align:right;">${ships>0?'£'+(pc.withVat/ships).toFixed(2):'—'}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+function saveSettingsPrepFees(){
+  ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit'].forEach(k=>{
+    const el=document.getElementById('pf-'+k);
+    if(el)prepFees[k]=parseFloat(el.value)||0;
+  });
+  savePrepFees();
+  const saved=document.getElementById('prepFeeSaved');
+  if(saved){saved.style.display='inline';setTimeout(()=>saved.style.display='none',2000);}
+  toast('✓ Prep fee rates saved');
+}
+function resetPrepFees(){
+  showConfirm('Reset prep fees?','This resets all rates to the Source 2 Store defaults.',()=>{
+    prepFees={...PREP_FEE_DEFAULTS};
+    savePrepFees();
+    ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit'].forEach(k=>{
+      const el=document.getElementById('pf-'+k);
+      if(el)el.value=prepFees[k];
+    });
+    toast('Prep fees reset to defaults');
+  });
+}
+function updatePrepFeePreview(){}
 function openAllSuppliersModal(){
   // Reuse the supplier modal with a full table of all suppliers
   document.getElementById('supplierModalTitle').textContent='All Supplier Analysis';
@@ -3631,7 +3904,33 @@ function renderShipments(){
     return;
   }
 
-  w.innerHTML=shipments.map(s=>{
+  // ── SUMMARY BAR ──────────────────────────────────────────────────────────────
+  const sumUnits=shipments.reduce((a,s)=>a+s.units,0);
+  const sumCOG=shipments.reduce((a,s)=>a+s.value,0);
+  const sumBoxes=shipments.reduce((a,s)=>a+s.boxes,0);
+  const sumSkus=shipments.reduce((a,s)=>a+s.skus.length+s.lavSkus.length,0);
+  const sumAsins=new Set([...shipments.flatMap(s=>s.skus.map(r=>r.asin)),...shipments.flatMap(s=>s.lavSkus.map(l=>l.asin))]).size;
+  const sumPrep=shipments.reduce((a,s)=>{
+    const pc=calcImpliedPrepCost(s.skus.filter(r=>r.sent==='Yes'),s.lavSkus,shipBoxes[s.id]?{[s.id]:shipBoxes[s.id]}:{});
+    return a+pc.withVat;
+  },0);
+
+  const sc=(label,val,col)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 6px;border-right:1px solid rgba(255,255,255,.06);">
+    <div style="font-size:15px;font-weight:900;font-family:var(--mono);color:${col};">${val}</div>
+    <div style="font-size:8px;color:#64748b;margin-top:2px;text-transform:uppercase;letter-spacing:.06em;">${label}</div>
+  </div>`;
+
+  const summaryBar=`<div style="display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;">
+    ${sc('Shipments',fmt(shipments.length),'#60a5fa')}
+    ${sc('Units',fmt(sumUnits),'#4ade80')}
+    ${sc('SKU Lines',fmt(sumSkus),'#60a5fa')}
+    ${sc('ASINs',fmt(sumAsins),'#c084fc')}
+    ${sc('COG','£'+sumCOG.toFixed(2),'#fbbf24')}
+    ${sc('Boxes',fmt(sumBoxes),'#fb923c')}
+    ${sc('Prep Cost inc. VAT','£'+sumPrep.toFixed(2),'#fbbf24')}
+  </div>`;
+
+  w.innerHTML=summaryBar+shipments.map(s=>{
     const dateDisp=s.date?new Date(s.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
     const sfUrl=`https://app.sellerfuse.com/shipment-manager?search=${encodeURIComponent(s.id)}`;
     const skuCount=s.skus.length+(s.lavSkus||[]).length;
@@ -3666,6 +3965,29 @@ function renderShipments(){
         <a href="${sfUrl}" target="_blank" onclick="event.stopPropagation()" style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:var(--btn-sf-bg);color:var(--btn-sf-text);border:1px solid var(--btn-sf-border);border-radius:4px;font-size:10px;font-weight:700;font-family:var(--mono);text-decoration:none;white-space:nowrap;">SF ↗</a>
       </div>
       <div class="hbody">
+        ${(()=>{
+          const sc=calcImpliedPrepCost(
+            rows.filter(r=>r.shipId===s.id&&r.sent==='Yes'),
+            lavShipments.filter(ls=>ls.shipId===s.id),
+            shipBoxes[s.id]?{[s.id]:shipBoxes[s.id]}:{}
+          );
+          if(!sc.totalUnits)return'';
+          return`<div style="display:flex;gap:12px;align-items:center;padding:6px 10px;background:rgba(251,191,36,.06);border-bottom:1px solid rgba(251,191,36,.15);flex-wrap:wrap;">
+            <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;">Implied Prep Cost</div>
+            <div style="font-family:var(--mono);font-size:13px;font-weight:900;color:#fbbf24;">£${sc.withVat.toFixed(2)} <span style="font-size:9px;font-weight:500;color:#64748b;">inc. VAT</span></div>
+            <div style="font-size:9px;color:#64748b;">£${sc.subtotal.toFixed(2)} ex. VAT</div>
+            <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;">
+              ${[
+                [sc.totalUnits+' units','#94a3b8'],
+                ['Base £'+sc.baseCost.toFixed(2),'#fbbf24'],
+                ...(sc.osCost>0?[['OS +£'+sc.osCost.toFixed(2),'#fb923c']]:[]),
+                ...(sc.bundleCost>0?[['Bundle +£'+sc.bundleCost.toFixed(2),'#34d399']]:[]),
+                ...(sc.boxCostTotal>0?[['Boxes £'+sc.boxCostTotal.toFixed(2),'#60a5fa']]:[]),
+                ...(sc.dgExtra>0?[['DG +£'+sc.dgExtra.toFixed(2),'#f87171']]:[]),
+              ].map(([l,c])=>`<span style="font-size:9px;color:${c};font-weight:600;">${l}</span>`).join('')}
+            </div>
+          </div>`;
+        })()}
         <table style="min-width:unset;width:100%;">
           <thead style="position:static;"><tr>
             <th class="th-left">Product</th>
@@ -3730,7 +4052,6 @@ function renderShipments(){
     </div>`;
   }).join('');
 }
-
 
 
 // ── PURCHASE SHEET IMPORT ─────────────────────────────────────────────────────
@@ -3980,7 +4301,7 @@ async function dbLoad(){
       sb.from('prep_rows').select('*').order('created_at',{ascending:true}),
       sb.from('actions').select('*').order('created_at',{ascending:false}),
       sb.from('returns_skus').select('*').order('created_at',{ascending:true}),
-      sb.from('returns_shipments').select('*').order('created_at',{ascending:false}),
+      sb.from('returns_shipments').select('*').order('created_at',{ascending:false}).then(r=>r).catch(()=>({data:[]})),
       sb.from('lavarion_asins').select('*').order('created_at',{ascending:true}),
       sb.from('lavarion_shipments').select('*').order('created_at',{ascending:false}),
       sb.from('ship_boxes').select('*'),
@@ -3989,7 +4310,7 @@ async function dbLoad(){
     rows=(rowsRes.data||[]).map(dbToRow);
     claims=(claimsRes.data||[]).map(dbToClaim);
     returnSkus=(retSkuRes.data||[]).map(d=>({uuid:d.id,sku:d.sku||'',asin:d.asin||'',prod:d.product_name||'',cog:d.cog||0,notes:d.notes||''}));
-    returnShipments=(retShipRes.data||[]).map(d=>({uuid:d.id,shipId:d.ship_id||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:d.date||''}));
+    returnShipments=(retShipRes&&retShipRes.data||[]).map(d=>({uuid:d.id,shipId:d.ship_id||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:d.date||''}));
     shipBoxes={};
     (boxesRes.data||[]).forEach(b=>{shipBoxes[b.ship_id]=b.boxes;if(b.ship_type)_shipTypeCache[b.ship_id]=b.ship_type;});
     rows.forEach(r=>{if(r.shipId&&r.shipType&&r.shipType!=='Standard')if(!_shipTypeCache[r.shipId]||_shipTypeCache[r.shipId]==='Standard')_shipTypeCache[r.shipId]=r.shipType;});
@@ -4498,9 +4819,53 @@ async function confirmRetShip(){
 // Cache for shipment types (persists across re-renders)
 const _shipTypeCache={};
 
+// ── PREP COST CALCULATOR ──────────────────────────────────────────────────────
+const PREP_FEE_DEFAULTS={
+  tier1Units:1000,tier1p:0.50,
+  tier2Units:3000,tier2p:0.45,
+  tier3Units:5000,tier3p:0.35,
+  tier4p:0.30,
+  boxCost:1.00,
+  dgExtraPerBox:2.50,
+  osCostPerUnit:1.50,
+  bundleCostPerUnit:0.60,
+  vatRate:1.20,
+};
+let prepFees={...PREP_FEE_DEFAULTS};
+function loadPrepFees(){try{const s=localStorage.getItem('prepFees');if(s)prepFees={...PREP_FEE_DEFAULTS,...JSON.parse(s)};}catch(e){}}
+function savePrepFees(){localStorage.setItem('prepFees',JSON.stringify(prepFees));}
+function calcTieredRate(units){
+  let cost=0,rem=units;
+  const tiers=[{max:prepFees.tier1Units,r:prepFees.tier1p},{max:prepFees.tier2Units-prepFees.tier1Units,r:prepFees.tier2p},{max:prepFees.tier3Units-prepFees.tier2Units,r:prepFees.tier3p},{max:Infinity,r:prepFees.tier4p}];
+  for(const t of tiers){if(rem<=0)break;const u=Math.min(rem,t.max);cost+=u*t.r;rem-=u;}
+  return cost;
+}
+function calcImpliedPrepCost(sentRows,sentLavRows,boxMap){
+  // Standard/DG/Lavarion → tiered rate pool
+  // Oversize → £1.50 flat per unit
+  // Bundle → 60p flat per unit
+  // Standard boxes → £1.00, DG boxes → £2.50 (full rate, not £1+extra)
+  const stdUnits=sentRows.filter(r=>(!r.shipType||r.shipType==='Standard')&&r.inBundle!=='Yes').reduce((a,r)=>a+(r.ship||0),0);
+  const osUnits=sentRows.filter(r=>r.shipType==='Oversize').reduce((a,r)=>a+(r.ship||0),0);
+  const dgUnits=sentRows.filter(r=>r.shipType==='DG').reduce((a,r)=>a+(r.ship||0),0);
+  const bundleUnits=sentRows.filter(r=>r.inBundle==='Yes').reduce((a,r)=>a+(r.ship||0),0);
+  const lavUnits=sentLavRows.reduce((a,s)=>a+(s.units||0),0);
+  const tieredUnits=stdUnits+dgUnits+lavUnits;
+  const baseCost=calcTieredRate(tieredUnits);
+  const osCost=osUnits*prepFees.osCostPerUnit;
+  const bundleCost=bundleUnits*prepFees.bundleCostPerUnit;
+  const dgBoxes=Object.entries(boxMap).filter(([sid])=>(_shipTypeCache[sid]||'Standard')==='DG').reduce((a,[,b])=>a+(b||0),0);
+  const stdBoxes=Object.values(boxMap).reduce((a,b)=>a+(b||0),0)-dgBoxes;
+  const boxCostTotal=(stdBoxes+dgBoxes)*prepFees.boxCost;
+  const totalBoxes=stdBoxes+dgBoxes;
+  const totalUnits=stdUnits+osUnits+dgUnits+bundleUnits+lavUnits;
+  const subtotal=baseCost+osCost+bundleCost+boxCostTotal;
+  return{totalUnits,stdUnits,osUnits,dgUnits,bundleUnits,lavUnits,tieredUnits,
+    baseCost,osCost,bundleCost,boxCostTotal,dgBoxes,stdBoxes,totalBoxes,
+    subtotal,withVat:subtotal*prepFees.vatRate};
+}
+
 function updateShipmentType(shipId,type){
-  toast('DEBUG: updateShipmentType called - '+shipId+' -> '+type);
-  console.log('[DG debug] updateShipmentType called:',shipId,type);
   _shipTypeCache[shipId]=type;
   // Update all rows with this shipId
   const updated=rows.filter(r=>r.shipId===shipId);
@@ -4922,6 +5287,14 @@ setInterval(updateClock,30000);
       <button class="btn-cancel" onclick="cm('retShipModal')">Cancel</button>
       <button class="btn-save" onclick="confirmRetShip()">Add to Shipment</button>
     </div>
+  </div>
+</div>
+
+<!-- PREP COST HISTORY MODAL -->
+<div class="overlay" id="prepHistoryModal">
+  <div class="modal" style="max-width:640px;max-height:80vh;overflow-y:auto;">
+    <div class="mh"><div class="mh-title">Prep Cost History — Month by Month</div><button class="mh-close" onclick="cm('prepHistoryModal')">✕</button></div>
+    <div class="mb" style="padding:16px;" id="prepHistoryBody"></div>
   </div>
 </div>
 
