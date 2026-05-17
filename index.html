@@ -2379,36 +2379,36 @@ function renderDashboard(){
 
       ${kTile('In Transit',COL.transit,
         fmt(transit.units),'units in transit',
-        '£'+transit.value.toFixed(2),'COG value in transit',
+        fmtGBP2(transit.value),'COG value in transit',
         pill('SKUs',fmt(transit.skus),COL.sku)+pill('ASINs',fmt(transit.asins),COL.asin),
         '','')
       }
 
       ${kTile('Sent Today',COL.today,
         fmt(todayTotal.units),'units sent today',
-        '£'+todayTotal.value.toFixed(2),'COG value sent',
-        pill('SKUs',fmt(todaySkus),COL.sku)+pill('ASINs',fmt(todayAsins),COL.asin)+pill('Boxes',fmt(todayBoxes),COL.box)+pill('vs Yesterday',`${trendArrow} ${todayDiff} units`,trendCol)+pill('COG vs Yesterday','£'+(todayTotal.value-ydTotal.value>=0?'+':'')+((todayTotal.value-ydTotal.value).toFixed(2)),todayTotal.value>=ydTotal.value?COL.today:'#f87171')+(todayPC.totalUnits>0?pill('Prep cost','£'+todayPC.withVat.toFixed(2),GOLD):''),
+        fmtGBP2(todayTotal.value),'COG value sent',
+        pill('SKUs',fmt(todaySkus),COL.sku)+pill('ASINs',fmt(todayAsins),COL.asin)+pill('Boxes',fmt(todayBoxes),COL.box)+pill('vs Yesterday',`${trendArrow} ${todayDiff} units`,trendCol)+pill('COG vs Yesterday',(todayTotal.value-ydTotal.value>=0?'+':'')+fmtGBP2(todayTotal.value-ydTotal.value),todayTotal.value>=ydTotal.value?COL.today:'#f87171')+(todayPC.totalUnits>0?pill('Prep cost',fmtGBP2(todayPC.withVat),GOLD):''),
         trendArrow,trendCol)
       }
 
       ${kTile('Yesterday',COL.yday,
         fmt(ydTotal.units),'units sent',
-        '£'+ydTotal.value.toFixed(2),'COG value sent',
-        pill('SKUs',fmt(ydSkus),COL.sku)+pill('Boxes',fmt(ydBoxes),COL.box)+pill('vs Day Before',`${ydArrow} ${Math.abs(ydDiff)} units`,ydACol)+(ydPC.totalUnits>0?pill('Prep cost','£'+ydPC.withVat.toFixed(2),GOLD):''),
+        fmtGBP2(ydTotal.value),'COG value sent',
+        pill('SKUs',fmt(ydSkus),COL.sku)+pill('Boxes',fmt(ydBoxes),COL.box)+pill('vs Day Before',`${ydArrow} ${Math.abs(ydDiff)} units`,ydACol)+(ydPC.totalUnits>0?pill('Prep cost',fmtGBP2(ydPC.withVat),GOLD):''),
         '','')
       }
 
       ${kTile('This Week',COL.week,
         fmt(weekTotal.units),'units sent this week',
-        '£'+weekTotal.value.toFixed(2),'COG value sent',
-        pill('Shipments',fmt(weekShipments),COL.ship)+pill('SKUs',fmt(weekSkus),COL.sku)+pill('ASINs',fmt(weekAsins),COL.asin)+(weekLavAsins?pill('LAV ASINs',fmt(weekLavAsins),COL.asin):'')+pill('Boxes',fmt(weekBoxes),COL.box)+(weekPC.totalUnits>0?pill('Prep cost','£'+weekPC.withVat.toFixed(2),GOLD):''),
+        fmtGBP2(weekTotal.value),'COG value sent',
+        pill('Shipments',fmt(weekShipments),COL.ship)+pill('SKUs',fmt(weekSkus),COL.sku)+pill('ASINs',fmt(weekAsins),COL.asin)+(weekLavAsins?pill('Lavarion Units',fmt(weekLav.units),COL.asin):'')+pill('Boxes',fmt(weekBoxes),COL.box)+(weekPC.totalUnits>0?pill('Prep cost',fmtGBP2(weekPC.withVat),GOLD):''),
         '','')
       }
 
       ${kTile('This Month',`#06b6d4`,
         fmt(mtdUnits),'units sent this month',
-        '£'+mtdCOG.toFixed(2),'COG value sent',
-        pill('Shipments',fmt(mtdShipCount),COL.ship)+pill('SKUs',fmt(mtdSkus),COL.sku)+pill('ASINs',fmt(mtdAsins),COL.asin)+pill('Boxes',fmt(mtdBoxesCount),COL.box)+(prepCost.totalUnits>0?pill('Prep cost','£'+prepCost.withVat.toFixed(2),GOLD):''),
+        fmtGBP2(mtdCOG),'COG value sent',
+        pill('Shipments',fmt(mtdShipCount),COL.ship)+pill('SKUs',fmt(mtdSkus),COL.sku)+pill('ASINs',fmt(mtdAsins),COL.asin)+pill('Shipments',fmt(mtdShipCount),COL.ship)+pill('SKUs',fmt(mtdSkus),COL.sku)+pill('Boxes',fmt(mtdBoxesCount),COL.box)+pill('Prep Days',fmt(new Set([...mtdSentRowsFull.map(r=>r.sentDate),...mtdSentLavFull.map(s=>s.date)]).size),'#34d399')+(prepCost.totalUnits>0?pill('Prep cost',fmtGBP2(prepCost.withVat),GOLD):''),
         '','')
       }
     </div>
@@ -2556,7 +2556,7 @@ function renderDashboard(){
           ${[['Standard',weekTypes.std,COL.sku],['DG',weekTypes.dg,'#f87171'],['Oversize',weekTypes.os,COL.box],['Lavarion',weekLav.units,COL.asin]].map(([l,u,col])=>{
             const pct=weekTotal.units?(u/weekTotal.units*100).toFixed(1):'0.0';
             const bw=weekTotal.units?Math.round(u/weekTotal.units*100):0;
-            return`<div style="margin-bottom:6px;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:10px;color:${col};font-weight:600;">${l}</span><span style="font-size:10px;font-family:var(--mono);color:${col};font-weight:700;">${fmt(u)} <span style="opacity:.45;font-size:8px;">${pct}%</span></span></div><div style="height:3px;background:rgba(255,255,255,.05);border-radius:2px;"><div style="width:${bw}%;height:100%;background:${col};border-radius:2px;"></div></div></div>`;
+            return`<div style="margin-bottom:6px;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:10px;color:${col};font-weight:600;">${l}</span><span style="font-size:10px;font-family:var(--mono);color:${col};font-weight:700;">${fmt(u)} <span style="opacity:.45;font-size:8px;">${pct}%</span></span></div><div style="height:8px;background:rgba(255,255,255,.08);border-radius:4px;position:relative;"><div style="width:${bw}%;height:100%;background:${col};border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;"><span style="font-size:7px;font-weight:800;color:rgba(0,0,0,.6);">${bw>15?pct+'%':''}</span></div></div></div>`;
           }).join('')}
         </div>
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
@@ -2568,8 +2568,24 @@ function renderDashboard(){
             </div>`).join('')}
         </div>
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Operations</div>
-          ${(()=>{const uA=new Set(rows.map(r=>r.asin)).size;const bxA=Object.values(shipBoxes).reduce((a,b)=>a+(b||0),0);const iV=rows.filter(r=>r.status!=='Sent to Amazon').reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);return[['Active SKUs',fmt(rows.length),'#94a3b8'],['Active ASINs',fmt(uA),COL.asin],['Inventory COG','£'+iV.toFixed(2),GOLD],['Total Boxes',fmt(bxA),COL.box],['Issue Rows',fmt(rows.filter(r=>r.status==='Issue').length),rows.filter(r=>r.status==='Issue').length>0?'#f87171':COL.today],['Open Actions',fmt(openClaims),openClaims>0?'#f87171':COL.today]].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#475569;">${l}</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:${col};">${v}</span></div>`).join('');})()}
+          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Active Inventory</div>
+          ${(()=>{
+            const inTR=rows.filter(r=>['In-Transit','Delivered','In Warehouse','Part Sent'].includes(r.status));
+            const inTU=inTR.reduce((a,r)=>a+(r.exp||0),0);
+            const inTC=inTR.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
+            const issR=rows.filter(r=>r.status==='Issue');
+            const issU=issR.reduce((a,r)=>a+(r.exp||0),0);
+            const issC=issR.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
+            const actA=new Set(inTR.map(r=>r.asin)).size;
+            return[
+              ['Units In Transit',fmt(inTU),COL.transit],
+              ['ASINs In Transit',fmt(actA),COL.asin],
+              ['COG In Transit',fmtGBP2(inTC),GOLD],
+              ['Issue Units',fmt(issU),issU>0?'#f87171':COL.today],
+              ['Issue COG at Risk',fmtGBP2(issC),issU>0?'#f87171':GOLD],
+              ['Open Actions',fmt(openClaims),openClaims>0?'#f87171':COL.today],
+            ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${l}</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:${col};">${v}</span></div>`).join('');
+          })()}
         </div>
 
       </div>
@@ -5021,6 +5037,13 @@ async function saveNewShipment(){
   toast(`✓ Shipment ${shipId} created with ${lavRows.length} Lavarion ASIN${lavRows.length!==1?'s':''}`);
   logAudit('New Shipment created',shipId);
 }
+
+// ── AUTO MIDNIGHT REFRESH ─────────────────────────────────────────────────────
+let _lastDay=new Date().getDate();
+setInterval(()=>{
+  const d=new Date().getDate();
+  if(d!==_lastDay){_lastDay=d;renderDashboard();renderPrep();renderShipments();toast('Day changed — dashboard updated');}
+},60000); // check every minute
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 setSyncStatus('syncing');
