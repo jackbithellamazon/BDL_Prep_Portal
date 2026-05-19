@@ -659,6 +659,7 @@ html.light-mode{
         <option>In-Transit</option><option>Delivered</option><option>In Warehouse</option>
         <option>Part Sent</option><option>Sent to Amazon</option><option>Issue</option><option>Not Arrived</option><option>Returned</option>
       </select>
+      <button id="showIssuesBtn" onclick="toggleIssuesFilter()" style="padding:5px 10px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⚑ Issues</button>
       <select class="fsel" id="prepSortF" onchange="sortTable(this.value)">
         <option value="">Sort by…</option>
         <option value="date">Date</option>
@@ -1673,11 +1674,16 @@ function filterPrep(){
   const scrollTop=wrap?wrap.scrollTop:0;
   const q=document.getElementById('prepSrch').value.toLowerCase();
   const st=document.getElementById('prepStF').value;
-  if(!q&&!st){renderPrepRows(rows);}
+  if(!q&&!st&&!_issuesFilterActive){renderPrepRows(rows);}
   else{
     const filtered=rows.filter(r=>{
+      const rid=r.uuid||String(r.id);
+      if(_issuesFilterActive){
+        const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
+        if(!hasIssue)return false;
+      }
       if(st){
-        const hasIssueFlag=claims.some(cl=>cl.prepRowId===r.id&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
+        const hasIssueFlag=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
         const matchesStatus=r.status===st;
         const matchesIssueFilter=st==='Issue'&&hasIssueFlag;
         if(!matchesStatus&&!matchesIssueFilter)return false;
@@ -1702,10 +1708,15 @@ function renderPrep(){
   // Re-apply active filter instead of showing all rows
   const q=(document.getElementById('prepSrch')||{}).value?.toLowerCase()||'';
   const st=(document.getElementById('prepStF')||{}).value||'';
-  if(q||st){
+  if(q||st||_issuesFilterActive){
     const filtered=rows.filter(r=>{
+      const rid=r.uuid||String(r.id);
+      if(_issuesFilterActive){
+        const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
+        if(!hasIssue)return false;
+      }
       if(st){
-        const hasIssueFlag=claims.some(cl=>cl.prepRowId===r.id&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
+        const hasIssueFlag=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
         const matchesStatus=r.status===st;
         const matchesIssueFilter=st==='Issue'&&hasIssueFlag;
         if(!matchesStatus&&!matchesIssueFilter)return false;
@@ -2229,7 +2240,8 @@ function editClaimNote(id){
 }
 function updateCB(){
   const n=claims.filter(c=>c.cst!=='Resolved').length;
-  document.getElementById('claimBadge').textContent=n;
+  const badge=document.getElementById('claimBadge');
+  if(badge)badge.textContent=n;
   const dot=document.getElementById('claimDot');
   if(dot)dot.style.display=n>0?'block':'none';
   // Stuck rows badge on Prep Sheet
@@ -3767,6 +3779,18 @@ function updateDiffCell(id,rcvd,exp){
 }
 
 // ── STATUS CHANGE HANDLER ─────────────────────────────────────────────────────
+let _issuesFilterActive=false;
+function toggleIssuesFilter(){
+  _issuesFilterActive=!_issuesFilterActive;
+  const btn=document.getElementById('showIssuesBtn');
+  if(btn){
+    btn.style.background=_issuesFilterActive?'rgba(248,113,113,.35)':'rgba(248,113,113,.15)';
+    btn.style.borderColor=_issuesFilterActive?'#f87171':'rgba(248,113,113,.4)';
+    btn.textContent=_issuesFilterActive?'⚑ Issues ✓':'⚑ Issues';
+  }
+  filterPrep();
+}
+
 function handleStatusChange(id,sel){
   const val=sel.value;
   const r=rows.find(x=>x.id===id);if(!r)return;
@@ -4478,17 +4502,20 @@ const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 // ── SYNC STATUS ───────────────────────────────────────────────────────────────
 function setSyncStatus(status){
   const dot=document.getElementById('syncDot');
+  if(!dot)return;
+  if(dot.dataset.status===status)return;
+  dot.dataset.status=status;
   const txt=document.getElementById('syncText');
   const ind=document.getElementById('syncIndicator');
-  if(!dot)return;
   const styles={
     synced:{bg:'rgba(85,255,85,.1)',border:'rgba(85,255,85,.3)',color:'#55ff55',dot:'#55ff55',text:'Synced'},
     syncing:{bg:'rgba(255,170,51,.1)',border:'rgba(255,170,51,.3)',color:'#ffaa33',dot:'#ffaa33',text:'Syncing…'},
     error:{bg:'rgba(255,85,85,.1)',border:'rgba(255,85,85,.3)',color:'#ff5555',dot:'#ff5555',text:'Offline'},
   };
   const s=styles[status]||styles.synced;
-  ind.style.background=s.bg;ind.style.borderColor=s.border;ind.style.color=s.color;
-  dot.style.background=s.dot;txt.textContent=s.text;
+  if(ind){ind.style.background=s.bg;ind.style.borderColor=s.border;ind.style.color=s.color;}
+  if(dot)dot.style.background=s.dot;
+  if(txt)txt.textContent=s.text;
 }
 
 // ── DB HELPERS ────────────────────────────────────────────────────────────────
