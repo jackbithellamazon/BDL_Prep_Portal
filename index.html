@@ -688,6 +688,7 @@ html.light-mode{
         <!-- Quick actions -->
         <button onclick="doBulkAllArrived()" style="padding:4px 10px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">✈ All Arrived</button>
         <button onclick="doBulkAllShipped()" style="padding:4px 10px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">✓ All Shipped</button>
+        <button onclick="doBulkArchive()" style="padding:4px 10px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">🗑 Archive Sent</button>
         <div style="width:1px;height:18px;background:var(--border2);"></div>
         <!-- Stamp FBA ID group -->
         <div style="display:flex;align-items:center;gap:4px;" title="Stamp a single FBA ID across all selected rows and mark as Sent to Amazon">
@@ -992,7 +993,7 @@ html.light-mode{
       <div class="fi"><label class="fl">Expected Delivery</label><input class="fi-in" type="date" id="f-expectedDelivery"></div>
       <div class="fi"><label class="fl">Sheet Row # <span style="font-size:9px;color:var(--text3);">(optional)</span></label><input class="fi-in" type="number" id="f-sheetRow" placeholder="e.g. 2334"></div>
     </div></div>
-    <div class="mf"><button class="btn-cancel" onclick="cm('addModal')">Cancel</button><button class="btn-save" onclick="saveRowForm()">Save Row</button></div>
+    <div class="mf" style="justify-content:space-between;"><button id="deleteEditBtn" onclick="deleteEditRow()" style="display:none;padding:6px 14px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Delete Row</button><div style="display:flex;gap:8px;"><button class="btn-cancel" onclick="cm('addModal')">Cancel</button><button class="btn-save" onclick="saveRowForm()">Save Row</button></div></div>
   </div>
 </div>
 
@@ -1065,7 +1066,7 @@ html.light-mode{
       <div class="fi"><label class="fl">Cost per Unit (£)</label><input class="fi-in" type="number" id="cl-cost" placeholder="0.00" step="0.01"></div>
       <div class="fi"><label class="fl">Status</label>
         <select class="fi-in" id="cl-cst">
-          <option>Open</option><option>In Progress</option><option>Refunded</option><option>Resolved</option><option>Closed</option>
+          <option>Open</option><option>Chasing</option><option>Resolved</option>
         </select>
       </div>
       <div class="fi full"><label class="fl">Issue Description / Notes</label><textarea class="fi-in" id="cl-notes" placeholder="Describe the issue…" style="height:70px;"></textarea></div>
@@ -1506,9 +1507,9 @@ function renderStats(){
   const totalSentMonth=sentMonth+lavMonthUnits;
 
   document.getElementById('prepStats').innerHTML=
-    mk('In Transit',inTransitUnits+' units',`${inTransitSkus} SKUs · ${inTransitAsins} ASINs · £${inTransitValue.toFixed(2)} COG`,'#38bdf8')+
-    mk('COG In Transit','£'+inTransitValue.toFixed(2),`stock value locked in transit`,'#fbbf24')+
-    mk('Sent Today',sentTodayUnits+' units',`${sentTodaySkus} SKU lines · £${valueToday.toFixed(2)} COG`,'#4ade80')+
+    mk('In Transit',inTransitUnits+' units',`${inTransitSkus} SKUs · ${inTransitAsins} ASINs · ${fmtGBP2(inTransitValue)} COG`,'#38bdf8')+
+    mk('COG In Transit',fmtGBP2(inTransitValue),`stock value locked in transit`,'#fbbf24')+
+    mk('Sent Today',sentTodayUnits+' units',`${sentTodaySkus} SKU lines · ${fmtGBP2(valueToday)} COG`,'#4ade80')+
     mk('Sent This Week',sentWeekUnits+' units',`${sentWeekSkus} SKU lines · ${sentWeekAsins} ASINs`,'#a78bfa')+
     mk('Sent This Month',totalSentMonth+' units',`units sent since 1st`,'#34d399');
 }
@@ -1565,7 +1566,9 @@ function renderPrepRows(data){
     const isSubSave=r.subSave==='Yes';
     const isStuck=daysSinceCreate>20&&r.status==='In-Transit'&&expectedPassed&&!isSubSave;
     const isSubSaveInTransit=isSubSave&&r.status==='In-Transit';
+    const hasIssue=r.issueType&&r.issueType!=='—'&&r.issueType!=='';
     const statusClass=
+      hasIssue?'st-issue':
       r.status==='Sent to Amazon'?'row-sent':
       r.status==='Part Sent'?'st-partsent':
       r.status==='In Warehouse'?'st-warehouse':
@@ -1588,7 +1591,7 @@ function renderPrepRows(data){
       <td style="text-align:center;"><input type="checkbox" class="bulk-check" ${_selectedIds.has(r.id)?'checked':''} onchange="if(this.checked)_selectedIds.add(${r.id});else _selectedIds.delete(${r.id});updateBulkUI();"></td>
       <td style="text-align:center;"><button onclick="doAllArrived(${r.id})" title="All Arrived — sets Qty Received = Expected Units, Status = In Warehouse. Can be overridden by editing Qty Received directly." style="background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✈</button></td>
       <td style="text-align:center;"><button onclick="doAllShipped(${r.id})" title="All Shipped — sets Shipped = Received, prompts for Shipment ID" style="background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✓</button></td>
-      <td><a class="sas-btn" href="${r.sas}" target="_blank" style="font-size:10px;padding:2px 5px;">SAS</a></td>
+      <td style="position:relative;"><a class="sas-btn" href="${r.sas}" target="_blank" style="font-size:10px;padding:2px 5px;">SAS</a>${r.issueType&&r.issueType!=='—'?`<span data-issue="1" style="color:#f87171;font-size:10px;font-weight:900;margin-left:3px;cursor:default;" title="Issue: ${r.issueType}${r.issueQty?' ('+r.issueQty+'u)':''  }">⚑</span>`:''}</td>
       <td class="td-left">
         <div class="stack-date" style="gap:1px;">
           <div class="s-date" style="font-size:12px;">${r.date}</div>
@@ -1619,15 +1622,11 @@ function renderPrepRows(data){
         ${['In-Transit','Delivered','In Warehouse','Part Sent','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
       </select></td>
       <td><input class="ci ci-num" type="number" value="${r.rcvd}" oninput="uf(${r.id},'rcvd',+this.value);updateDiffCell(${r.id},+this.value,${r.exp||0});debounce('rp',renderPrep);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
-      <td>${diffEl}</td>
-      <td>
-        <select class="ci-sel" onchange="uf(${r.id},'issueType',this.value);renderPrep();" tabindex="-1" style="width:55px;">
-          <option${r.issueType===''?' selected':''}>—</option>
-          <option${r.issueType==='Missing'?' selected':''}>Missing</option>
-          <option${r.issueType==='Damaged'?' selected':''}>Damaged</option>
-          <option${r.issueType==='Incorrect'?' selected':''}>Incorrect</option>
-        </select>
-        <input class="ci ci-num" type="number" value="${r.issueQty||''}" onchange="uf(${r.id},'issueQty',+this.value);debounce('rp',renderPrep);" placeholder="—" tabindex="-1" style="width:32px;">
+      <td id="diff-${r.id}">${diffEl}</td>
+      <td style="text-align:center;">
+        <button onclick="openIssueModal(${r.id})" id="ib-${r.id}"
+          style="padding:3px 8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#94a3b8;border-radius:4px;font-size:11px;font-weight:800;cursor:pointer;min-width:32px;"
+          title="Raise an issue">⚑</button>
       </td>
       <td><input class="ci ci-num" type="number" value="${r.ship}" oninput="uf(${r.id},'ship',+this.value);debounce('rp',renderPrep);" tabindex="-1"></td>
       <td><select class="ci-sel" onchange="uf(${r.id},'sent',this.value);if(this.value==='Yes'){uf(${r.id},'sentDate','${todayStr}');}else{uf(${r.id},'sentDate','');}renderPrep();logAudit('Sent AMZ',this.value);" tabindex="-1">
@@ -1640,7 +1639,8 @@ function renderPrepRows(data){
       <td class="td-left"><input class="ci ci-note" type="text" value="${(r.notes||'').replace(/"/g,'&quot;')}" placeholder="—" onchange="uf(${r.id},'notes',this.value);" tabindex="-1" title="${(r.notes||'').replace(/"/g,'&quot;')}" style="min-width:150px;" onfocus="this.style.minWidth='280px';this.style.position='relative';this.style.zIndex='10';" onblur="this.style.minWidth='';this.style.position='';this.style.zIndex='';"></td>
       <td><div class="row-acts" style="opacity:1;">
         <button class="ra" title="Edit row" onclick="openEdit(${r.id})" style="background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:10px;font-weight:700;width:auto;padding:0 6px;cursor:pointer;">Edit</button>
-        <button class="ra r" title="Raise Action" onclick="openClaim(${r.id})" style="font-size:9px;font-weight:700;width:auto;padding:0 5px;">⚑ Action</button>
+        ${isSent?`<button class="ra" title="Undo Send — revert to In Warehouse" onclick="undoSentToAmazon(${r.id})" style="background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:9px;font-weight:700;width:auto;padding:0 5px;cursor:pointer;">↺ Undo</button>`:''}
+        ${hasIssue?`<button class="ra" title="Move to Actions — removes from prep sheet" onclick="moveToActions(${r.id})" style="background:rgba(248,113,113,.2);border:1px solid #f87171;color:#f87171;border-radius:3px;font-size:9px;font-weight:700;width:auto;padding:0 5px;cursor:pointer;">→ Actions</button>`:''}
         ${canComp?`<button class="ra g" title="Complete" onclick="openComp(${r.id})">✓</button>`:''}
       </div></td>
       <td style="text-align:center;">${isSent?`<input type="checkbox" onchange="if(this.checked){const r=rows.find(x=>x.id===${r.id});deleteRow(r);rows.splice(rows.findIndex(x=>x.id===${r.id}),1);renderPrep();toast('Row archived');}" title="Archive & remove from sheet">`:'<span style="color:var(--text3);">—</span>'}</td>
@@ -1648,13 +1648,23 @@ function renderPrepRows(data){
   }).join('');
 
   updateBundleCols(data);
+  // Apply issue badges for any rows with issueType already set
+  // Re-render issue badges based on claims
+  data.forEach(r=>{
+    const rowIssues=claims.filter(cl=>cl.prepRowId===r.id&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
+    if(rowIssues.length>0)updateIssueFlag(r.id,true,rowIssues);
+    else updateIssueFlag(r.id,false,[]);
+  });
 }
 
 function deferClearNav(){}
 
 function uf(id,field,val){
   const r=rows.find(x=>x.id===id);
-  if(r){r[field]=val;logAudit('Updated '+field,r.sku);}
+  if(!r)return;
+  r[field]=val;
+  r._srch=null;
+  debounce('save_'+id,()=>{saveRow(r);},400);
 }
 
 function filterPrep(){
@@ -1666,7 +1676,12 @@ function filterPrep(){
   if(!q&&!st){renderPrepRows(rows);}
   else{
     const filtered=rows.filter(r=>{
-      if(st&&r.status!==st)return false;
+      if(st){
+        const hasIssueFlag=claims.some(cl=>cl.prepRowId===r.id&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
+        const matchesStatus=r.status===st;
+        const matchesIssueFilter=st==='Issue'&&hasIssueFlag;
+        if(!matchesStatus&&!matchesIssueFilter)return false;
+      }
       if(q){
         if(!r._srch)r._srch=(r.sku+'|'+r.asin+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+r.date).toLowerCase();
         if(!r._srch.includes(q))return false;
@@ -1689,7 +1704,12 @@ function renderPrep(){
   const st=(document.getElementById('prepStF')||{}).value||'';
   if(q||st){
     const filtered=rows.filter(r=>{
-      if(st&&r.status!==st)return false;
+      if(st){
+        const hasIssueFlag=claims.some(cl=>cl.prepRowId===r.id&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
+        const matchesStatus=r.status===st;
+        const matchesIssueFilter=st==='Issue'&&hasIssueFlag;
+        if(!matchesStatus&&!matchesIssueFilter)return false;
+      }
       if(q){
         if(!r._srch)r._srch=(r.sku+'|'+r.asin+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+r.date).toLowerCase();
         if(!r._srch.includes(q))return false;
@@ -1761,6 +1781,83 @@ function clearForm(){
   document.getElementById('f-dg').value='';
   tbq();
 }
+async function moveToActions(id){
+  const r=rows.find(x=>x.id===id);
+  if(!r)return;
+  const rowIssues=claims.filter(c=>c.prepRowId===id&&c.cst!=='Resolved');
+  if(!rowIssues.length){
+    toast('No open issues on this row to move','er');
+    return;
+  }
+  showConfirm('Move to Actions?',
+    `This will move "${r.sku}" to the Actions page and remove it from the active prep sheet. The VA will handle the issue there.`,
+    async()=>{
+      // Save each issue to Supabase first
+      let allSaved=true;
+      for(const cl of rowIssues){
+        if(!cl.uuid){
+          const res=await sb.from('actions').insert(claimToDb(cl)).select().single();
+          if(res.error){
+            console.error('Failed to save issue:',res.error);
+            allSaved=false;
+            toast('Failed to save issue to Actions: '+res.error.message,'er');
+            break;
+          }
+          if(res.data){cl.uuid=res.data.id;cl.id=res.data.id;}
+        }
+      }
+      if(!allSaved){
+        toast('Could not move to Actions — check connection','er');
+        return;
+      }
+      // Only delete row after confirmed save
+      await deleteRow(r);
+      rows=rows.filter(x=>x.id!==id);
+      renderPrep();
+      renderClaims();
+      toast('✓ Moved to Actions');
+      logAudit('Moved to Actions',r.sku);
+    }
+  );
+}
+
+async function doBulkArchive(){
+  const sel=getSelected();
+  if(!sel.length){toast('No rows selected','er');return;}
+  const sentRows=sel.filter(r=>r.status==='Sent to Amazon');
+  const notSent=sel.length-sentRows.length;
+  if(!sentRows.length){toast('None of the selected rows are Sent to Amazon','er');return;}
+  const msg=`Archive ${sentRows.length} Sent to Amazon row${sentRows.length!==1?'s':''}?${notSent>0?' ('+notSent+' non-sent rows will be skipped)':''}`;
+  showConfirm('Archive rows?',msg,async()=>{
+    for(const r of sentRows){
+      await deleteRow(r);
+      rows=rows.filter(x=>x.id!==r.id);
+    }
+    clearBulkSelect();
+    renderPrep();
+    toast(`✓ ${sentRows.length} row${sentRows.length!==1?'s':''} archived`);
+    logAudit('Bulk archive',sentRows.length+' rows');
+  });
+}
+
+function deleteEditRow(){
+  if(!editId){toast('No row selected','er');return;}
+  const r=rows.find(x=>x.id===editId);
+  if(!r){toast('Row not found','er');return;}
+  showConfirm('Delete this row?',
+    `Permanently delete "${r.sku}" from the prep sheet. This cannot be undone.`,
+    async()=>{
+      await deleteRow(r);
+      rows=rows.filter(x=>x.id!==editId);
+      editId=null;
+      cm('addModal');
+      renderPrep();
+      toast('Row deleted');
+      logAudit('Row deleted',r.sku);
+    }
+  );
+}
+
 function saveRowForm(){
   const dv=document.getElementById('f-date').value;
   let df='';if(dv){const p=dv.split('-');df=`${p[2].padStart(2,'0')}/${p[1].padStart(2,'0')}`;}
@@ -1843,6 +1940,12 @@ function doClaim(){
     log:[{t:getNowUK(),msg:'Action raised from Prep Sheet'+(initNote?` — ${initNote}`:'')}],
   });
   logAudit('Action raised',r.sku);
+  // Flag the prep row with issue type so it shows the red badge
+  if(!r.issueType||r.issueType==='—'){
+    r.issueType=it==='Missing'?'Missing':it==='Damaged'?'Damaged':'Incorrect';
+    r.issueQty=dif||1;
+    saveRow(r);
+  }
   cm('claimModal');
   const newClaim=claims[0];
   saveClaim(newClaim);
@@ -1986,7 +2089,7 @@ function renderClaims(){
 
     <!-- Claims list -->
     ${d.map(c=>{
-      const statusCol=c.cst==='Open'?'#ff5555':c.cst==='In Progress'?'#ffaa33':c.cst==='Refunded'?'#55ff55':c.cst==='Resolved'?'#5599ff':'var(--text3)';
+      const statusCol=c.cst==='Open'?'#f87171':c.cst==='Chasing'?'#fb923c':c.cst==='Resolved'?'#4ade80':'var(--text3)';
       const logCount=(c.log||[]).length;
       return`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -2033,14 +2136,14 @@ function renderClaims(){
           <!-- Right: actions -->
           <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
             <select class="ci-sel" onchange="updateClaimSt(${c.id},this.value)" style="font-size:11px;padding:4px 8px;">
-              ${['Open','In Progress','Refunded','Resolved','Closed'].map(s=>`<option${c.cst===s?' selected':''}>${s}</option>`).join('')}
+              ${['Open','Chasing','Resolved'].map(s=>`<option${c.cst===s?' selected':''}>${s}</option>`).join('')}
             </select>
             <div style="display:flex;gap:4px;">
+              ${c.cst!=='Resolved'?`<button onclick="resolveIssue(${c.id})" style="padding:4px 10px;background:rgba(74,222,128,.15);border:1px solid #4ade80;color:#4ade80;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;">✓ Resolve</button>`:''}
               <button onclick="openClaimLog(${c.id})" style="padding:4px 8px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">
                 📋 Log ${logCount>0?`(${logCount})`:''}
               </button>
-              <button onclick="openEditClaim(${c.id})" style="padding:4px 8px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;">Edit</button>
-              <button onclick="deleteClaim(${c.id})" style="padding:4px 8px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:10px;cursor:pointer;">✕</button>
+              <button onclick="removeIssue(${c.id})" style="padding:4px 8px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:10px;cursor:pointer;" title="Remove issue — clears from prep row too">✕</button>
             </div>
           </div>
         </div>
@@ -2054,6 +2157,37 @@ function renderClaims(){
     }).join('')}`;
 }
 function filterClaims(){renderClaims();}
+async function resolveIssue(id){
+  const c=claims.find(x=>x.id===id);
+  if(!c)return;
+  c.cst='Resolved';
+  await saveClaim(c);
+  // Clear issue flag on prep row if no more open issues
+  if(c.prepRowId){
+    const r=rows.find(x=>x.id===c.prepRowId);
+    const stillOpen=claims.filter(cl=>cl.prepRowId===c.prepRowId&&cl.cst!=='Resolved'&&cl.uuid!==c.uuid);
+    if(r&&!stillOpen.length){r.issueType='';r.issueQty=0;await saveRow(r);}
+  }
+  renderClaims();renderPrep();
+  toast('✓ Issue resolved');
+}
+
+async function removeIssue(id){
+  const c=claims.find(x=>x.id===id);
+  if(!c)return;
+  showConfirm('Remove this issue?','This will delete the issue from the Actions page and clear the red flag on the prep row.',async()=>{
+    await deleteClaim_db(c);
+    claims=claims.filter(x=>x.id!==id);
+    if(c.prepRowId){
+      const r=rows.find(x=>x.id===c.prepRowId);
+      const stillOpen=claims.filter(cl=>cl.prepRowId===c.prepRowId&&cl.cst!=='Resolved');
+      if(r&&!stillOpen.length){r.issueType='';r.issueQty=0;await saveRow(r);}
+    }
+    renderClaims();renderPrep();
+    toast('Issue removed');
+  });
+}
+
 function updateClaimSt(id,v){
   const c=claims.find(x=>x.id===id);
   if(c){
@@ -2203,13 +2337,27 @@ function renderDashboard(){
   ];
 
   // ── CLAIMS ───────────────────────────────────────────────────────────────────
-  const missingUnits=rows.filter(r=>r.issueType==='Missing').reduce((a,r)=>a+(r.issueQty||0),0);
-  const damagedUnits=rows.filter(r=>r.issueType==='Damaged').reduce((a,r)=>a+(r.issueQty||0),0);
-  const incorrectUnits=rows.filter(r=>r.issueType==='Incorrect').reduce((a,r)=>a+(r.issueQty||0),0);
-  const missingVal=rows.filter(r=>r.issueType==='Missing').reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.issueQty||0)),0);
-  const damagedVal=rows.filter(r=>r.issueType==='Damaged').reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.issueQty||0)),0);
-  const totalAtRisk=missingVal+damagedVal;
-  const openClaims=claims.filter(c=>c.cst!=='Resolved'&&c.cst!=='Closed').length;
+  const openClaimsList=claims.filter(c=>c.cst!=='Resolved'&&c.cst!=='Closed');
+  const chasingClaimsList=claims.filter(c=>c.cst==='Chasing');
+  const resolvedClaimsList=claims.filter(c=>c.cst==='Resolved'||c.cst==='Closed');
+  const openClaims=openClaimsList.length;
+  const missingClaims=openClaimsList.filter(c=>c.issT==='Missing');
+  const damagedClaims=openClaimsList.filter(c=>c.issT==='Damaged');
+  const incorrectClaims=openClaimsList.filter(c=>c.issT==='Incorrect');
+  const missingUnits=missingClaims.reduce((a,c)=>a+(c.dif||0),0);
+  const damagedUnits=damagedClaims.reduce((a,c)=>a+(c.dif||0),0);
+  const incorrectUnits=incorrectClaims.reduce((a,c)=>a+(c.dif||0),0);
+  const totalIssueUnits=missingUnits+damagedUnits+incorrectUnits;
+  const missingVal=missingClaims.reduce((a,c)=>a+(c.claimValue||0),0);
+  const damagedVal=damagedClaims.reduce((a,c)=>a+(c.claimValue||0),0);
+  const incorrectVal=incorrectClaims.reduce((a,c)=>a+(c.claimValue||0),0);
+  const totalAtRisk=missingVal+damagedVal+incorrectVal;
+  const resolvedVal=resolvedClaimsList.reduce((a,c)=>a+(c.claimValue||0),0);
+  const resolvedUnits=resolvedClaimsList.reduce((a,c)=>a+(c.dif||0),0);
+  // Unique counts
+  const affectedSkus=new Set(openClaimsList.map(c=>c.sku).filter(Boolean)).size;
+  const affectedSuppliers=new Set(openClaimsList.map(c=>c.sup).filter(Boolean)).size;
+  const resolvedSuppliers=new Set(resolvedClaimsList.map(c=>c.sup).filter(Boolean)).size;
 
   // ── STUCK ────────────────────────────────────────────────────────────────────
   const stuckRows=rows.filter(r=>{
@@ -2473,15 +2621,15 @@ function renderDashboard(){
           ${[['Stock',weekStock.units,weekStock.value,COL.sku],['Lavarion',weekLav.units,weekLav.value,COL.asin],['Total',weekTotal.units,weekTotal.value,'#e2e8f0']].map(([l,u,v,col])=>`
             <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);">
               <span style="font-size:11px;color:${col};font-weight:${l==='Total'?'800':'600'};">${l}</span>
-              <span style="font-size:11px;font-family:var(--mono);font-weight:800;color:${col};">${fmt(u)} <span style="font-size:9px;color:${GOLD};">£${v.toFixed(2)}</span></span>
+              <span style="font-size:11px;font-family:var(--mono);font-weight:800;color:${col};">${fmt(u)} <span style="font-size:9px;color:${GOLD};">${fmtGBP2(v)}</span></span>
             </div>`).join('')}
         </div>
 
         <!-- Implied Prep Cost MTD -->
         <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:12px 14px;">
           <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Implied Prep Cost — MTD</div>
-          <div style="font-size:28px;font-weight:900;color:${GOLD};font-family:var(--mono);line-height:1;">£${prepCost.withVat.toFixed(2)}</div>
-          <div style="font-size:10px;color:#cbd5e1;margin-bottom:10px;">inc. VAT · £${prepCost.subtotal.toFixed(2)} ex. VAT</div>
+          <div style="font-size:28px;font-weight:900;color:${GOLD};font-family:var(--mono);line-height:1;">${fmtGBP2(prepCost.withVat)}</div>
+          <div style="font-size:10px;color:#cbd5e1;margin-bottom:10px;">inc. VAT · ${fmtGBP2(prepCost.subtotal)} ex. VAT</div>
 
           <!-- Tiered rate breakdown -->
           <div style="font-size:8px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Unit rate breakdown (tiered, ex. VAT)</div>
@@ -2497,10 +2645,10 @@ function renderDashboard(){
               if(rem<=0)break;
               const used=Math.min(rem,max);
               const cost=used*rate;
-              const rateStr=rate<1?(rate*100).toFixed(0)+'p':('£'+rate.toFixed(2));
+              const rateStr=rate<1?(rate*100).toFixed(0)+'p':(fmtGBP2(rate));
               html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
                 <span style="font-size:10px;color:#cbd5e1;">${fmt(used)} units × ${rateStr} <span style="font-size:8px;color:#64748b;">(tier ${range})</span></span>
-                <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">£${cost.toFixed(2)}</span>
+                <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(cost)}</span>
               </div>`;
               rem-=used;
             }
@@ -2511,10 +2659,10 @@ function renderDashboard(){
           ${(prepCost.osCost>0||prepCost.bundleCost>0||prepCost.boxCostTotal>0||prepCost.dgExtra>0)?`
           <div style="font-size:8px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px;">Extras (ex. VAT)</div>`:''}
           ${[
-            ...(prepCost.osCost>0?[[prepCost.osUnits+' OS units × £'+prepFees.osCostPerUnit+'/unit','£'+prepCost.osCost.toFixed(2),'#fb923c']]:[]),
-            ...(prepCost.bundleCost>0?[[prepCost.bundleUnits+' bundle units × £'+prepFees.bundleCostPerUnit+'/unit','£'+prepCost.bundleCost.toFixed(2),'#34d399']]:[]),
-            [prepCost.stdBoxes+' std boxes × £'+prepFees.boxCost+'/box','£'+prepCost.boxCostTotal.toFixed(2),'#60a5fa'],
-            ...(prepCost.dgExtra>0?[[prepCost.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox+'/box (DG rate)','£'+prepCost.dgExtra.toFixed(2),'#f87171']]:[]),
+            ...(prepCost.osCost>0?[[prepCost.osUnits+' OS units × £'+prepFees.osCostPerUnit+'/unit',fmtGBP2(prepCost.osCost),'#fb923c']]:[]),
+            ...(prepCost.bundleCost>0?[[prepCost.bundleUnits+' bundle units × £'+prepFees.bundleCostPerUnit+'/unit',fmtGBP2(prepCost.bundleCost),'#34d399']]:[]),
+            [prepCost.stdBoxes+' std boxes × £'+prepFees.boxCost+'/box',fmtGBP2(prepCost.boxCostTotal),'#60a5fa'],
+            ...(prepCost.dgExtra>0?[[prepCost.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox+'/box (DG rate)',fmtGBP2(prepCost.dgExtra),'#f87171']]:[]),
           ].map(([l,v,col])=>`
             <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
               <span style="font-size:10px;color:#cbd5e1;">${l}</span>
@@ -2525,15 +2673,15 @@ function renderDashboard(){
           <div style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.1);">
             <div style="display:flex;justify-content:space-between;padding:2px 0;">
               <span style="font-size:10px;color:#94a3b8;">Subtotal ex. VAT</span>
-              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#94a3b8;">£${prepCost.subtotal.toFixed(2)}</span>
+              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#94a3b8;">${fmtGBP2(prepCost.subtotal)}</span>
             </div>
             <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.08);">
               <span style="font-size:10px;color:#94a3b8;">VAT 20%</span>
-              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#94a3b8;">£${(prepCost.withVat-prepCost.subtotal).toFixed(2)}</span>
+              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#94a3b8;">${fmtGBP2((prepCost.withVat-prepCost.subtotal))}</span>
             </div>
             <div style="display:flex;justify-content:space-between;padding:4px 0;margin-top:2px;">
               <span style="font-size:11px;font-weight:800;color:#fbbf24;">Total inc. VAT</span>
-              <span style="font-size:14px;font-weight:900;font-family:var(--mono);color:#fbbf24;">£${prepCost.withVat.toFixed(2)}</span>
+              <span style="font-size:14px;font-weight:900;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(prepCost.withVat)}</span>
             </div>
           </div>
 
@@ -2542,8 +2690,8 @@ function renderDashboard(){
             const todayCost=dayPrepCosts[todayStr];
             if(!activeDays)return'';
             return`<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);">
-              ${todayCost&&todayCost.totalUnits>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:9px;color:#cbd5e1;">Today's cost inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">£${todayCost.withVat.toFixed(2)}</span></div>`:''}
-              <div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:9px;color:#cbd5e1;">Cost per prep day inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">£${(prepCost.withVat/activeDays).toFixed(2)}</span></div>
+              ${todayCost&&todayCost.totalUnits>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:9px;color:#cbd5e1;">Today's cost inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(todayCost.withVat)}</span></div>`:''}
+              <div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:9px;color:#cbd5e1;">Cost per prep day inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2((prepCost.withVat/activeDays))}</span></div>
             </div>`;
           })()}
         </div>
@@ -2592,19 +2740,57 @@ function renderDashboard(){
 
       <!-- Col 3: Claims + Stuck -->
       <div style="display:flex;flex-direction:column;gap:8px;height:100%;align-self:stretch;">
-        <div style="background:var(--bg2);border:1px solid ${totalAtRisk>0?'rgba(248,113,113,.3)':'var(--border)'};border-radius:8px;padding:10px 12px;">
-          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Claims & Issues</div>
-          <div style="font-size:20px;font-weight:900;color:${totalAtRisk>0?'#f87171':COL.today};font-family:var(--mono);margin-bottom:1px;">£${totalAtRisk.toFixed(2)}</div>
-          <div style="font-size:8px;color:#475569;margin-bottom:6px;">total at risk · ${openClaims} open</div>
-          ${[['Missing',missingUnits,'#f87171'],['Damaged',damagedUnits,COL.box],['Incorrect',incorrectUnits,COL.sku]].map(([l,u,col])=>`
-            <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:${col};">${l}</span><span style="font-size:10px;font-family:var(--mono);color:${u>0?col:'#1e293b'};font-weight:700;">${u>0?fmt(u)+'u':'—'}</span></div>`).join('')}
+        <div style="background:var(--bg2);border:1px solid ${totalAtRisk>0?'rgba(248,113,113,.35)':'var(--border)'};border-radius:8px;padding:10px 12px;">
+          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Claims & Issues</div>
+          ${openClaims===0&&resolvedClaimsList.length===0?`<div style="color:${COL.today};font-size:11px;padding:4px 0;">✓ No issues — all clear</div>`:`
+
+          <!-- Open issues hero -->
+          ${openClaims>0?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+            <div style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);border-radius:6px;padding:7px;text-align:center;">
+              <div style="font-size:20px;font-weight:900;font-family:var(--mono);color:#f87171;">${fmt(openClaims)}</div>
+              <div style="font-size:8px;color:#94a3b8;">open issue${openClaims!==1?'s':''}</div>
+            </div>
+            <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:6px;padding:7px;text-align:center;">
+              <div style="font-size:20px;font-weight:900;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(totalAtRisk)}</div>
+              <div style="font-size:8px;color:#94a3b8;">at risk</div>
+            </div>
+          </div>
+          <!-- By type -->
+          <div style="margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06);">
+            ${[['Missing',missingClaims.length,missingUnits,missingVal,'#f87171'],['Damaged',damagedClaims.length,damagedUnits,damagedVal,'#fb923c'],['Incorrect',incorrectClaims.length,incorrectUnits,incorrectVal,'#60a5fa']].filter(([,cnt])=>cnt>0).map(([l,cnt,u,val,col])=>`
+            <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+              <div><span style="font-size:9px;font-weight:800;color:${col};">${l}</span><span style="font-size:8px;color:#64748b;margin-left:4px;">${cnt} claim${cnt!==1?'s':''}</span></div>
+              <div style="text-align:right;"><span style="font-size:10px;font-weight:700;color:${col};font-family:var(--mono);">${fmt(u)}u</span><span style="font-size:9px;color:#fbbf24;font-family:var(--mono);margin-left:4px;">${fmtGBP2(val)}</span></div>
+            </div>`).join('')}
+          </div>
+          <!-- Open stats -->
+          ${[
+            ['Chasing',fmt(chasingClaimsList.length),chasingClaimsList.length>0?'#fb923c':'#64748b'],
+            ['SKUs affected',fmt(affectedSkus),'#c084fc'],
+            ['Suppliers affected',fmt(affectedSuppliers),'#60a5fa'],
+            ['Units affected',fmt(totalIssueUnits),'#f87171'],
+          ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:9px;color:#64748b;">${l}</span><span style="font-size:10px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
+          `:''}
+
+          <!-- Resolved/done stats -->
+          ${resolvedClaimsList.length>0?`
+          <div style="margin-top:${openClaims>0?'8px':'0'};padding-top:${openClaims>0?'8px':'0'};${openClaims>0?'border-top:1px solid rgba(255,255,255,.08);':''}">
+            <div style="font-size:8px;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">✓ Resolved</div>
+            ${[
+              ['Issues resolved',fmt(resolvedClaimsList.length),'#4ade80'],
+              ['Units recovered',fmt(resolvedUnits),'#4ade80'],
+              ['Value recovered',fmtGBP2(resolvedVal),'#fbbf24'],
+              ['Suppliers resolved',fmt(resolvedSuppliers),'#60a5fa'],
+            ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:9px;color:#64748b;">${l}</span><span style="font-size:10px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
+          </div>`:''}
+          `}
         </div>
         <div style="background:var(--bg2);border:1px solid ${stuckRows.length>0?'rgba(248,113,113,.35)':'var(--border)'};border-radius:8px;padding:10px 12px;flex:1;min-height:0;">
           <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Stuck In Transit <span style="color:#f87171;">&gt;20 Days</span></div>
           ${stuckRows.length?`
           <div style="display:flex;gap:16px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07);justify-content:center;width:100%;">
             <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#f87171;">${fmt(stuckUnits)}</div><div style="font-size:8px;color:#475569;text-transform:uppercase;">units at risk</div></div>
-            <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${GOLD};">£${stuckValue.toFixed(2)}</div><div style="font-size:8px;color:#475569;text-transform:uppercase;">value at risk</div></div>
+            <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${GOLD};">${fmtGBP2(stuckValue)}</div><div style="font-size:8px;color:#475569;text-transform:uppercase;">value at risk</div></div>
           </div>
           <div style="max-height:320px;overflow-y:auto;">
             ${stuckRows.map(r=>{const[dd,mm]=(r.date||'').split('/');const yr=new Date().getFullYear();const d=new Date(`${yr}-${(mm||'01').padStart(2,'0')}-${(dd||'01').padStart(2,'0')}`);const days=Math.floor((new Date()-d)/864e5);const cog=parseSKU(r.sku).cogs*(r.exp||0);return`<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
@@ -2614,7 +2800,7 @@ function renderDashboard(){
                 </div>
                 <div style="display:flex;justify-content:space-between;">
                   <div style="font-size:9px;color:#64748b;">${r.sup}</div>
-                  <div style="font-size:9px;font-family:var(--mono);color:#94a3b8;">${fmt(r.exp||0)} ${(r.exp||0)===1?'unit':'units'} · £${cog.toFixed(2)}</div>
+                  <div style="font-size:9px;font-family:var(--mono);color:#94a3b8;">${fmt(r.exp||0)} ${(r.exp||0)===1?'unit':'units'} · ${fmtGBP2(cog)}</div>
                 </div>
               </div>`;}).join('')}
           </div>`:`<div style="color:${COL.today};font-size:11px;padding:4px 0;text-align:center;">✓ Nothing stuck</div>`}
@@ -2952,16 +3138,16 @@ function renderInsights(){
     <!-- SECTION 1: SHIPMENTS -->
     ${sectionHead('Shipments — '+rlabel)}
     <div class="ig-row ig-4">
-      ${kpi('Total Units Sent',fmt(totalUnits),`£${totalValue.toFixed(2)}`,'#55ff55','#55ff55')}
+      ${kpi('Total Units Sent',fmt(totalUnits),`${fmtGBP2(totalValue)}`,'#55ff55','#55ff55')}
       ${kpi('Shipments',fmt(allShipIds.size),'FBA shipments','#ffaa33','#ffaa33')}
       ${kpi('Boxes Sent',fmt(totalBoxes),'logged boxes','#cc99ff','#cc99ff')}
       ${kpi('Avg Units / Shipment',avgUPS||'—',avgBPS?`${avgBPS} avg boxes/ship`:'','#5599ff','#5599ff')}
     </div>
     <!-- Stock vs Lavarion -->
     <div class="ig-row ig-4">
-      ${kpi('Stock Units',fmt(stockUnits),`£${stockValue.toFixed(2)}`,'#5599ff')}
+      ${kpi('Stock Units',fmt(stockUnits),`${fmtGBP2(stockValue)}`,'#5599ff')}
       ${kpi('Stock Shipments',fmt(stockShipIds.size),'FBA IDs','#5599ff')}
-      ${kpi('Lavarion Units',fmt(lavUnits),`£${lavValue.toFixed(2)}`,'#cc99ff')}
+      ${kpi('Lavarion Units',fmt(lavUnits),`${fmtGBP2(lavValue)}`,'#cc99ff')}
       ${kpi('Lavarion Shipments',fmt(lavShipIds.size),'FBA IDs','#cc99ff')}
     </div>
     <!-- Shipment type breakdown -->
@@ -2989,7 +3175,7 @@ function renderInsights(){
     <!-- SECTION 2: STOCK & PIPELINE -->
     ${sectionHead('Stock & Pipeline')}
     <div class="ig-row ig-4">
-      ${kpi('In Transit (units)',fmt(transitUnits),`£${transitValue.toFixed(2)} locked`,'#5599ff','#5599ff')}
+      ${kpi('In Transit (units)',fmt(transitUnits),`${fmtGBP2(transitValue)} locked`,'#5599ff','#5599ff')}
       ${kpi('In Transit (SKUs)',fmt(transitRows.length),new Set(transitRows.map(r=>r.asin)).size+' unique ASINs','#5599ff')}
       ${kpi('In Warehouse',fmt(rows.filter(r=>r.status==='In Warehouse').reduce((a,r)=>a+(r.exp||0),0)),rows.filter(r=>r.status==='In Warehouse').length+' SKU lines','#cc99ff')}
       ${kpi('Active SKU Lines',fmt(rows.length),new Set(rows.map(r=>r.asin)).size+' unique ASINs','#ffaa33')}
@@ -3027,7 +3213,7 @@ function renderInsights(){
         return`<div class="ic" style="cursor:pointer;border-top:3px solid var(--accent);" onclick="openSupplierModal('${s.replace(/'/g,"\\'")}')">
           <div class="ic-title">${s}</div>
           <div class="ic-val" style="color:#55ff55;font-size:22px;">${fmt(v.units)}</div>
-          <div class="ic-sub">units sent · £${v.value.toFixed(2)}</div>
+          <div class="ic-sub">units sent · ${fmtGBP2(v.value)}</div>
           <div style="display:flex;gap:8px;margin-top:6px;justify-content:center;">
             <span style="font-size:9px;color:var(--text3);">£${avgCog}/unit</span>
             ${avgDays!=='—'?`<span style="font-size:9px;color:var(--text3);">${avgDays}d avg transit</span>`:''}
@@ -3071,10 +3257,10 @@ function renderInsights(){
     <!-- SECTION 4: CLAIMS & ISSUES -->
     ${sectionHead('Claims & Issues')}
     <div class="ig-row ig-4">
-      ${kpi('Missing Units',fmt(missingUnits),`£${missingVal.toFixed(2)} at risk`,missingUnits>0?'#ff5555':'#55ff55',missingUnits>0?'#ff5555':'')}
-      ${kpi('Damaged Units',fmt(damagedUnits),`£${damagedVal.toFixed(2)} at risk`,damagedUnits>0?'#ff5555':'#55ff55',damagedUnits>0?'#ff5555':'')}
+      ${kpi('Missing Units',fmt(missingUnits),`${fmtGBP2(missingVal)} at risk`,missingUnits>0?'#ff5555':'#55ff55',missingUnits>0?'#ff5555':'')}
+      ${kpi('Damaged Units',fmt(damagedUnits),`${fmtGBP2(damagedVal)} at risk`,damagedUnits>0?'#ff5555':'#55ff55',damagedUnits>0?'#ff5555':'')}
       ${kpi('Incorrect Units',fmt(incorrectUnits),'wrong items received',incorrectUnits>0?'#ffaa33':'#55ff55')}
-      ${kpi('Total At Risk',`£${totalAtRisk.toFixed(2)}`,openClaims.length+' open · '+resolvedClaims.length+' resolved',totalAtRisk>0?'#ff5555':'#55ff55',totalAtRisk>0?'#ff5555':'')}
+      ${kpi('Total At Risk',`${fmtGBP2(totalAtRisk)}`,openClaims.length+' open · '+resolvedClaims.length+' resolved',totalAtRisk>0?'#ff5555':'#55ff55',totalAtRisk>0?'#ff5555':'')}
     </div>
     <!-- Full claims list -->
     ${claims.length?`
@@ -3110,8 +3296,8 @@ function renderInsights(){
     ${sectionHead('Lavarion ASINs')}
     <div class="ig-row ig-3">
       ${kpi('Lavarion ASINs',fmt(lavAsins.length),'active products','#cc99ff')}
-      ${kpi('Units Sent ('+rlabel+')',fmt(lavUnits),`£${lavValue.toFixed(2)}`,'#cc99ff')}
-      ${kpi('Total Sent All Time',fmt(lavTotalSent),`£${lavTotalVal.toFixed(2)}`,'#55ff55')}
+      ${kpi('Units Sent ('+rlabel+')',fmt(lavUnits),`${fmtGBP2(lavValue)}`,'#cc99ff')}
+      ${kpi('Total Sent All Time',fmt(lavTotalSent),`${fmtGBP2(lavTotalVal)}`,'#55ff55')}
     </div>
     <div class="ig-row ig-2">
       <div class="ic" style="align-items:stretch;text-align:left;">
@@ -3129,8 +3315,8 @@ function renderInsights(){
               <td style="font-size:10px;font-family:var(--mono);color:var(--text3);padding:3px 6px;border-color:var(--border);">${s.date||'—'}</td>
               <td class="td-left" style="font-size:10px;padding:3px 6px;border-color:var(--border);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.prod}">${s.prod}</td>
               <td style="font-family:var(--mono);font-weight:700;color:#55ff55;padding:3px 6px;border-color:var(--border);">${s.units}</td>
-              <td style="font-family:var(--mono);color:var(--text3);padding:3px 6px;border-color:var(--border);">£${(s.cost||0).toFixed(2)}</td>
-              <td style="font-family:var(--mono);font-weight:700;color:#ffaa33;padding:3px 6px;border-color:var(--border);">£${((s.cost||0)*(s.units||0)).toFixed(2)}</td>
+              <td style="font-family:var(--mono);color:var(--text3);padding:3px 6px;border-color:var(--border);">${fmtGBP2((s.cost||0))}</td>
+              <td style="font-family:var(--mono);font-weight:700;color:#ffaa33;padding:3px 6px;border-color:var(--border);">${fmtGBP2(((s.cost||0)*(s.units||0)))}</td>
             </tr>`).join('')}
           </tbody>
         </table>`:`<div style="color:var(--text3);font-size:11px;padding:8px 0;text-align:center;">No Lavarion shipments yet</div>`}
@@ -3150,7 +3336,7 @@ function renderInsights(){
             <div class="brow">
               <div class="blabel" style="width:80px;">${e.id}</div>
               <div class="btrack"><div class="bfill" style="width:${Math.round(e.val/mx*100)}%;background:#cc99ff;"></div></div>
-              <div class="bval">£${e.val.toFixed(2)}</div>
+              <div class="bval">${fmtGBP2(e.val)}</div>
             </div>
             <div style="font-size:9px;color:var(--text3);margin-bottom:6px;margin-top:-3px;padding-left:88px;">${e.date||''} · ${fmt(e.units)} units · avg £${e.units?(e.val/e.units).toFixed(2):'0.00'}/unit</div>`).join('')
           :`<div style="color:var(--text3);font-size:11px;padding:8px 0;text-align:center;">No data</div>`;
@@ -3170,23 +3356,23 @@ function renderInsights(){
       const prepShips=new Set([...stockSent.filter(r=>r.shipId).map(r=>r.shipId),...lavSent.filter(s=>s.shipId).map(s=>s.shipId)]).size;
       return`
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
-        ${[['Total inc. VAT','£'+pc.withVat.toFixed(2),'#fbbf24'],['Per prep day',prepDays>0?'£'+(pc.withVat/prepDays).toFixed(2):'—','#60a5fa'],['Per shipment',prepShips>0?'£'+(pc.withVat/prepShips).toFixed(2):'—','#34d399']].map(([l,v,col])=>`<div style="background:var(--bg3);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:18px;font-weight:900;font-family:var(--mono);color:${col};">${v}</div><div style="font-size:8px;color:#94a3b8;margin-top:2px;">${l}</div></div>`).join('')}
+        ${[['Total inc. VAT',fmtGBP2(pc.withVat),'#fbbf24'],['Per prep day',prepDays>0?'£'+(pc.withVat/prepDays).toFixed(2):'—','#60a5fa'],['Per shipment',prepShips>0?'£'+(pc.withVat/prepShips).toFixed(2):'—','#34d399']].map(([l,v,col])=>`<div style="background:var(--bg3);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:18px;font-weight:900;font-family:var(--mono);color:${col};">${v}</div><div style="font-size:8px;color:#94a3b8;margin-top:2px;">${l}</div></div>`).join('')}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>
           ${[
-            [fmt(pc.totalUnits)+' units × tiered rate','£'+pc.baseCost.toFixed(2),'#fbbf24'],
-            ...(pc.osCost>0?[[pc.osUnits+' OS units × £'+prepFees.osCostPerUnit,'£'+pc.osCost.toFixed(2),'#fb923c']]:[]),
-            ...(pc.bundleCost>0?[[pc.bundleUnits+' bundle units × £'+prepFees.bundleCostPerUnit,'£'+pc.bundleCost.toFixed(2),'#34d399']]:[]),
-            [pc.totalBoxes+' boxes × £'+prepFees.boxCost,'£'+pc.boxCostTotal.toFixed(2),'#60a5fa'],
-            ...(pc.dgExtra>0?[[pc.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox,'£'+pc.dgExtra.toFixed(2),'#f87171']]:[]),
+            [fmt(pc.totalUnits)+' units × tiered rate',fmtGBP2(pc.baseCost),'#fbbf24'],
+            ...(pc.osCost>0?[[pc.osUnits+' OS units × £'+prepFees.osCostPerUnit,fmtGBP2(pc.osCost),'#fb923c']]:[]),
+            ...(pc.bundleCost>0?[[pc.bundleUnits+' bundle units × £'+prepFees.bundleCostPerUnit,fmtGBP2(pc.bundleCost),'#34d399']]:[]),
+            [pc.totalBoxes+' boxes × £'+prepFees.boxCost,fmtGBP2(pc.boxCostTotal),'#60a5fa'],
+            ...(pc.dgExtra>0?[[pc.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox,fmtGBP2(pc.dgExtra),'#f87171']]:[]),
             ['VAT 20%','£'+(pc.withVat-pc.subtotal).toFixed(2),'#94a3b8'],
-            ['Total inc. VAT','£'+pc.withVat.toFixed(2),'#fbbf24'],
+            ['Total inc. VAT',fmtGBP2(pc.withVat),'#fbbf24'],
           ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${l}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
         </div>
         <div>
           <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Cost by prep day</div>
-          ${[...new Set([...stockSent.map(r=>r.sentDate),...lavSent.map(s=>s.date)])].filter(Boolean).sort().reverse().slice(0,8).map(ds=>{const dR=stockSent.filter(r=>r.sentDate===ds);const dL=lavSent.filter(s=>s.date===ds);const dIds=new Set([...dR.filter(r=>r.shipId).map(r=>r.shipId),...dL.filter(s=>s.shipId).map(s=>s.shipId)]);const dB=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>dIds.has(sid)));const dc=calcImpliedPrepCost(dR,dL,dB);return`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${ds}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">£${dc.withVat.toFixed(2)}</span></div>`;}).join('')}
+          ${[...new Set([...stockSent.map(r=>r.sentDate),...lavSent.map(s=>s.date)])].filter(Boolean).sort().reverse().slice(0,8).map(ds=>{const dR=stockSent.filter(r=>r.sentDate===ds);const dL=lavSent.filter(s=>s.date===ds);const dIds=new Set([...dR.filter(r=>r.shipId).map(r=>r.shipId),...dL.filter(s=>s.shipId).map(s=>s.shipId)]);const dB=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>dIds.has(sid)));const dc=calcImpliedPrepCost(dR,dL,dB);return`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${ds}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(dc.withVat)}</span></div>`;}).join('')}
         </div>
       </div>`;
     })()}
@@ -3247,8 +3433,8 @@ function openPrepHistory(){
             <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#94a3b8;text-align:right;">${fmt(pc.totalUnits)}</td>
             <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#60a5fa;text-align:right;">${ships}</td>
             <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#fb923c;text-align:right;">${pc.totalBoxes}</td>
-            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#94a3b8;text-align:right;">£${pc.subtotal.toFixed(2)}</td>
-            <td style="padding:6px 8px;font-size:12px;font-family:var(--mono);font-weight:800;color:#fbbf24;text-align:right;">£${pc.withVat.toFixed(2)}</td>
+            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#94a3b8;text-align:right;">${fmtGBP2(pc.subtotal)}</td>
+            <td style="padding:6px 8px;font-size:12px;font-family:var(--mono);font-weight:800;color:#fbbf24;text-align:right;">${fmtGBP2(pc.withVat)}</td>
             <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#60a5fa;text-align:right;">${prepDays>0?'£'+(pc.withVat/prepDays).toFixed(2):'—'}</td>
             <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#34d399;text-align:right;">${ships>0?'£'+(pc.withVat/ships).toFixed(2):'—'}</td>
           </tr>`;
@@ -3313,11 +3499,11 @@ function openAllSuppliersModal(){
         return`<tr onclick="openSupplierModal('${s.replace(/'/g,"\\'")}');cm('supplierModal');setTimeout(()=>openSupplierModal('${s.replace(/'/g,"\\'")}'),50);" style="cursor:pointer;" onmouseover="this.style.background='rgba(245,158,11,.05)'" onmouseout="this.style.background=''">
           <td class="td-left" style="font-weight:600;">${s} <span style="font-size:9px;color:var(--accent);">↗</span></td>
           <td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(v.units)}</td>
-          <td style="font-family:var(--mono);font-weight:700;color:#ffaa33;">£${v.value.toFixed(2)}</td>
+          <td style="font-family:var(--mono);font-weight:700;color:#ffaa33;">${fmtGBP2(v.value)}</td>
           <td style="font-family:var(--mono);">£${avgCog}</td>
           <td style="font-family:var(--mono);color:${avgDays>10?'#ffaa33':avgDays!=='—'?'#55ff55':'var(--text3)'};">${avgDays!=='—'?avgDays+'d':avgDays}</td>
           <td style="font-family:var(--mono);color:${v.issues>0?'#ff5555':'#55ff55'};">${fmt(v.issues)}</td>
-          <td style="font-family:var(--mono);color:${v.issueVal>0?'#ff5555':'var(--text3)'};">${v.issueVal>0?'£'+v.issueVal.toFixed(2):'—'}</td>
+          <td style="font-family:var(--mono);color:${v.issueVal>0?'#ff5555':'var(--text3)'};">${v.issueVal>0?fmtGBP2(v.issueVal):'—'}</td>
           <td style="font-family:var(--mono);color:${parseFloat(issueRate)>5?'#ff5555':parseFloat(issueRate)>0?'#ffaa33':'#55ff55'};">${issueRate}</td>
         </tr>`;
       }).join('')}
@@ -3464,8 +3650,8 @@ function openSupplierModal(sup){
           <td style="font-family:var(--mono);font-size:10px;">${r.exp||0}</td>
           <td style="font-family:var(--mono);font-size:10px;color:${r.rcvd>0?'#55ff55':'var(--text3)'};">${r.rcvd||0}</td>
           <td style="font-family:var(--mono);font-size:10px;color:${r.ship>0?'#55ff55':'var(--text3)'};">${r.ship||0}</td>
-          <td style="font-family:var(--mono);font-size:10px;">£${cog.toFixed(2)}</td>
-          <td style="font-family:var(--mono);font-size:10px;color:#ffaa33;">£${totalCog.toFixed(2)}</td>
+          <td style="font-family:var(--mono);font-size:10px;">${fmtGBP2(cog)}</td>
+          <td style="font-family:var(--mono);font-size:10px;color:#ffaa33;">${fmtGBP2(totalCog)}</td>
           <td style="font-family:var(--mono);font-size:10px;color:var(--text3);">${daysT}</td>
         </tr>`;
       }).join('')}
@@ -3572,16 +3758,12 @@ function sortTable(field){
 
 // Update diff cell instantly without full re-render
 function updateDiffCell(id,rcvd,exp){
-  const tr=document.getElementById('row-'+id);if(!tr)return;
-  const tds=getVisibleTds(tr);
-  const rcvdIdx=tds.findIndex(td=>td.querySelector('input[oninput*="rcvd"]'));
-  if(rcvdIdx<0)return;
-  const diffTd=tds[rcvdIdx+1];if(!diffTd)return;
+  const td=document.getElementById('diff-'+id);if(!td)return;
   const diff=exp-rcvd;
-  if(rcvd===0){diffTd.innerHTML='<span class="nt-zero">—</span>';return;}
-  if(diff===0)diffTd.innerHTML='<span class="nt nt-ok">✓</span>';
-  else if(diff>0)diffTd.innerHTML=`<span class="nt nt-bad">-${diff}</span>`;
-  else diffTd.innerHTML=`<span class="nt nt-ok">+${Math.abs(diff)}</span>`;
+  if(rcvd===0){td.innerHTML='<span class="nt-zero">—</span>';return;}
+  if(diff===0)td.innerHTML='<span class="nt nt-ok">✓</span>';
+  else if(diff>0)td.innerHTML=`<span class="nt nt-bad">-${diff}</span>`;
+  else td.innerHTML=`<span class="nt nt-ok">+${Math.abs(diff)}</span>`;
 }
 
 // ── STATUS CHANGE HANDLER ─────────────────────────────────────────────────────
@@ -3941,9 +4123,9 @@ function renderShipments(){
     ${sc('Units',fmt(sumUnits),'#4ade80')}
     ${sc('SKU Lines',fmt(sumSkus),'#60a5fa')}
     ${sc('ASINs',fmt(sumAsins),'#c084fc')}
-    ${sc('COG','£'+sumCOG.toFixed(2),'#fbbf24')}
+    ${sc('COG',fmtGBP2(sumCOG),'#fbbf24')}
     ${sc('Boxes',fmt(sumBoxes),'#fb923c')}
-    ${sc('Prep Cost inc. VAT','£'+sumPrep.toFixed(2),'#fbbf24')}
+    ${sc('Prep Cost inc. VAT',fmtGBP2(sumPrep),'#fbbf24')}
   </div>`;
 
   w.innerHTML=summaryBar+shipments.map(s=>{
@@ -3961,7 +4143,7 @@ function renderShipments(){
         ${s.hasLav?`<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);">LAV</span>`:''}
         <span style="font-size:10px;color:var(--blue);font-weight:700;">${skuCount} SKU${skuCount!==1?'s':''}</span>
         <span style="font-size:10px;color:var(--green);font-weight:700;">${fmt(s.units)} units</span>
-        <span style="font-size:10px;color:var(--amber);font-weight:700;">£${s.value.toFixed(2)}</span>
+        <span style="font-size:10px;color:var(--amber);font-weight:700;">${fmtGBP2(s.value)}</span>
         <!-- Editable shipment type -->
         <select onclick="event.stopPropagation()" onchange="updateShipmentType('${s.id}',this.value);"
           style="padding:2px 6px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:${tc};font-size:9px;font-weight:700;cursor:pointer;">
@@ -3990,8 +4172,8 @@ function renderShipments(){
           if(!sc.totalUnits)return'';
           return`<div style="display:flex;gap:12px;align-items:center;padding:6px 10px;background:rgba(251,191,36,.06);border-bottom:1px solid rgba(251,191,36,.15);flex-wrap:wrap;">
             <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;">Implied Prep Cost</div>
-            <div style="font-family:var(--mono);font-size:13px;font-weight:900;color:#fbbf24;">£${sc.withVat.toFixed(2)} <span style="font-size:9px;font-weight:500;color:#64748b;">inc. VAT</span></div>
-            <div style="font-size:9px;color:#64748b;">£${sc.subtotal.toFixed(2)} ex. VAT</div>
+            <div style="font-family:var(--mono);font-size:13px;font-weight:900;color:#fbbf24;">${fmtGBP2(sc.withVat)} <span style="font-size:9px;font-weight:500;color:#64748b;">inc. VAT</span></div>
+            <div style="font-size:9px;color:#64748b;">${fmtGBP2(sc.subtotal)} ex. VAT</div>
             <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;">
               ${[
                 [sc.totalUnits+' units','#94a3b8'],
@@ -4025,8 +4207,8 @@ function renderShipments(){
               <td class="td-left"><span class="s-sku" onclick="copyVal('${r.sku}',this)" style="display:inline-flex;font-size:10px;">${r.sku}</span></td>
               <td style="font-size:11px;">${r.sup}</td>
               <td style="color:var(--green);font-family:var(--mono);font-weight:700;">${r.ship||0}</td>
-              <td style="font-family:var(--mono);color:var(--text2);">£${cogs.toFixed(2)}</td>
-              <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">£${rowVal.toFixed(2)}</td>
+              <td style="font-family:var(--mono);color:var(--text2);">${fmtGBP2(cogs)}</td>
+              <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">${fmtGBP2(rowVal)}</td>
               <td></td>
             </tr>`;
           }).join('')}
@@ -4045,10 +4227,10 @@ function renderShipments(){
                 <span id="lav-units-disp-${lavId}">${ls.units||0}</span>
               </td>
               <td style="font-family:var(--mono);color:var(--text2);">
-                <span id="lav-cog-disp-${lavId}">£${(ls.cost||0).toFixed(2)}</span>
+                <span id="lav-cog-disp-${lavId}">${fmtGBP2((ls.cost||0))}</span>
               </td>
               <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">
-                <span id="lav-total-disp-${lavId}">£${rowVal.toFixed(2)}</span>
+                <span id="lav-total-disp-${lavId}">${fmtGBP2(rowVal)}</span>
               </td>
               <td>
                 <button onclick="editLavShipLine('${lavId}')" style="padding:2px 6px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:9px;cursor:pointer;">Edit</button>
@@ -4060,7 +4242,7 @@ function renderShipments(){
             <td colspan="4" class="td-left" style="font-size:11px;font-weight:700;color:var(--text2);padding:8px 14px;">TOTAL</td>
             <td style="color:var(--green);font-family:var(--mono);font-weight:900;">${fmt(s.units)}</td>
             <td></td>
-            <td style="color:var(--amber);font-family:var(--mono);font-weight:900;">£${s.value.toFixed(2)}</td>
+            <td style="color:var(--amber);font-family:var(--mono);font-weight:900;">${fmtGBP2(s.value)}</td>
             <td style="color:var(--purple);font-family:var(--mono);font-weight:900;">${s.boxes?s.boxes+' box'+(s.boxes!==1?'es':''):'—'}</td>
           </tr></tfoot>
         </table>
@@ -4313,11 +4495,9 @@ function setSyncStatus(status){
 async function dbLoad(){
   setSyncStatus('syncing');
   try{
-    const [rowsRes,claimsRes,retSkuRes,retShipRes,lavAsinRes,lavShipRes,boxesRes]=await Promise.all([
+    const [rowsRes,claimsRes,lavAsinRes,lavShipRes,boxesRes]=await Promise.all([
       sb.from('prep_rows').select('*').order('created_at',{ascending:true}),
       sb.from('actions').select('*').order('created_at',{ascending:false}),
-      sb.from('returns_skus').select('*').order('created_at',{ascending:true}),
-      sb.from('returns_shipments').select('*').order('created_at',{ascending:false}).then(r=>r).catch(()=>({data:[]})),
       sb.from('lavarion_asins').select('*').order('created_at',{ascending:true}),
       sb.from('lavarion_shipments').select('*').order('created_at',{ascending:false}),
       sb.from('ship_boxes').select('*'),
@@ -4325,8 +4505,15 @@ async function dbLoad(){
     if(rowsRes.error)throw rowsRes.error;
     rows=(rowsRes.data||[]).map(dbToRow);
     claims=(claimsRes.data||[]).map(dbToClaim);
-    returnSkus=(retSkuRes.data||[]).map(d=>({uuid:d.id,sku:d.sku||'',asin:d.asin||'',prod:d.product_name||'',cog:d.cog||0,notes:d.notes||''}));
-    returnShipments=(retShipRes&&retShipRes.data||[]).map(d=>({uuid:d.id,shipId:d.ship_id||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:d.date||''}));
+    // Returns tables — load separately, graceful if not yet created in Supabase
+    try{
+      const [retSkuRes,retShipRes]=await Promise.all([
+        sb.from('returns_skus').select('*').order('created_at',{ascending:true}),
+        sb.from('returns_shipments').select('*').order('created_at',{ascending:false}),
+      ]);
+      returnSkus=(retSkuRes.data||[]).map(d=>({uuid:d.id,sku:d.sku||'',asin:d.asin||'',prod:d.product_name||'',cog:d.cog||0,units:d.units||1,notes:d.notes||''}));
+      returnShipments=(retShipRes.data||[]).map(d=>({uuid:d.id,shipId:d.ship_id||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:d.date||''}));
+    }catch(e){console.warn('Returns tables not yet created — run SQL to enable Returns tab');}
     shipBoxes={};
     (boxesRes.data||[]).forEach(b=>{shipBoxes[b.ship_id]=b.boxes;if(b.ship_type)_shipTypeCache[b.ship_id]=b.ship_type;});
     rows.forEach(r=>{if(r.shipId&&r.shipType&&r.shipType!=='Standard')if(!_shipTypeCache[r.shipId]||_shipTypeCache[r.shipId]==='Standard')_shipTypeCache[r.shipId]=r.shipType;});
@@ -4465,7 +4652,12 @@ async function saveRow(r){
     res=await sb.from('prep_rows').insert(data).select().single();
     if(res.data)r.uuid=res.data.id;
   }
-  if(res.error){console.error('Save row error:',res.error);setSyncStatus('error');return false;}
+  if(res.error){
+    console.error('Save row error:',res.error.message,res.error.details,JSON.stringify(rowToDb(r)));
+    setSyncStatus('error');
+    toast('Save failed: '+res.error.message,'er');
+    return false;
+  }
   setSyncStatus('synced');return true;
 }
 async function deleteRow(r){
@@ -4559,13 +4751,153 @@ function setupRealtime(){
 }
 
 // ── PATCH UF() TO ALSO SAVE TO SUPABASE ──────────────────────────────────────
-const _origUf=uf;
-function uf(id,field,val){
-  _origUf(id,field,val);
-  const r=rows.find(x=>x.id===id);
-  if(r){r._dirty=true;r._srch=null;debounce('save_'+id,()=>{saveRow(r);r._dirty=false;},300);}
+// uf now handles saving directly above
+
+
+// ── ISSUE WORKFLOW ─────────────────────────────────────────────────────────────
+let _issueRowId=null;
+let _issueLineCount=0;
+
+function openIssueModal(rowId){
+  _issueRowId=rowId;
+  _issueLineCount=0;
+  const r=rows.find(x=>x.id===rowId);
+  if(!r)return;
+  document.getElementById('issueModalTitle').textContent='Raise Issue — '+r.sku;
+  document.getElementById('issueModalInfo').innerHTML=
+    `<strong>${r.prod||r.sku}</strong><br>`+
+    `<span style="color:var(--text3);">${r.sup} · Expected: ${r.exp} · Received: ${r.rcvd}</span>`;
+  // Show existing open issues
+  const existing=claims.filter(cl=>cl.prepRowId===rowId&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
+  document.getElementById('issueLines').innerHTML='';
+  if(existing.length){
+    existing.forEach(cl=>addIssueLine(cl));
+  } else {
+    addIssueLine();
+  }
+  om('issueModal');
 }
 
+function addIssueLine(existing=null){
+  const idx=_issueLineCount++;
+  const div=document.createElement('div');
+  div.id=`il-${idx}`;
+  div.style.cssText='display:grid;grid-template-columns:1fr 70px 28px;gap:6px;align-items:center;background:var(--bg3);border-radius:6px;padding:8px 10px;';
+  div.innerHTML=`
+    <select class="fi-in" id="il-type-${idx}" style="font-size:12px;">
+      <option value="">— Select type —</option>
+      <option value="Missing"${existing?.issT==='Missing'?' selected':''}>Missing</option>
+      <option value="Damaged"${existing?.issT==='Damaged'?' selected':''}>Damaged</option>
+      <option value="Incorrect"${existing?.issT==='Incorrect'?' selected':''}>Incorrect</option>
+    </select>
+    <div style="position:relative;">
+      <input type="number" id="il-qty-${idx}" class="fi-in" min="1" value="${existing?.dif||''}" placeholder="Qty" style="font-size:12px;padding-right:24px;">
+      <span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--text3);">units</span>
+    </div>
+    <button onclick="document.getElementById('il-${idx}').remove()" style="background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;cursor:pointer;font-size:12px;padding:2px 6px;height:32px;"${_issueLineCount===1&&!existing?' disabled':''}>✕</button>
+    ${existing?`<input type="hidden" id="il-uuid-${idx}" value="${existing.uuid||''}"><input type="hidden" id="il-cst-${idx}" value="${existing.cst||'Open'}">`:``}
+  `;
+  document.getElementById('issueLines').appendChild(div);
+}
+
+async function saveIssueModal(){
+  const r=rows.find(x=>x.id===_issueRowId);
+  if(!r){toast('Row not found','er');return;}
+  const lines=[];
+  let i=0;
+  while(document.getElementById(`il-type-${i}`)!==null||i<_issueLineCount){
+    const typeEl=document.getElementById(`il-type-${i}`);
+    const qtyEl=document.getElementById(`il-qty-${i}`);
+    if(typeEl&&qtyEl){
+      const t=typeEl.value;const q=parseInt(qtyEl.value)||0;
+      if(t&&q>0)lines.push({type:t,qty:q,uuid:document.getElementById(`il-uuid-${i}`)?.value||null,cst:document.getElementById(`il-cst-${i}`)?.value||'Open'});
+    }
+    i++;
+    if(i>20)break;
+  }
+  if(!lines.length){toast('Add at least one issue type and quantity','er');return;}
+  // Remove old open claims for this row
+  const oldClaims=claims.filter(cl=>cl.prepRowId===_issueRowId&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
+  for(const oc of oldClaims){
+    if(!lines.find(l=>l.uuid===oc.uuid)){
+      await sb.from('actions').delete().eq('id',oc.uuid);
+      claims=claims.filter(c=>c.uuid!==oc.uuid);
+    }
+  }
+  // Save each issue line as a claim
+  for(const line of lines){
+    const cog=parseSKU(r.sku).cogs||0;
+    if(line.uuid){
+      // Update existing
+      const cl=claims.find(c=>c.uuid===line.uuid);
+      if(cl){cl.issT=line.type;cl.dif=line.qty;cl.claimValue=cog*line.qty;await saveClaim(cl);}
+    } else {
+      // Create new
+      const newCl={id:Date.now()+Math.random(),uuid:null,prepRowId:r.uuid||r.id,
+        date:r.date,raisedAt:todayISO(),sup:r.sup,oid:r.oid,prod:r.prod,sku:r.sku,asin:r.asin,
+        issT:line.type,exp:r.exp,rec:r.rcvd,dif:line.qty,cost:cog,claimValue:cog*line.qty,
+        cst:'Open',notes:'',log:[]};
+      const res=await sb.from('actions').insert(claimToDb(newCl)).select().single();
+      if(res.data){newCl.uuid=res.data.id;newCl.id=res.data.id;}
+      claims.push(newCl);
+    }
+  }
+  // Update prep row issueType/issueQty from first issue line
+  r.issueType=lines[0].type;
+  r.issueQty=lines.reduce((a,l)=>a+l.qty,0);
+  await saveRow(r);
+  cm('issueModal');
+  renderPrep();
+  renderClaims();
+  toast(`✓ ${lines.length} issue${lines.length!==1?'s':''} raised`);
+  logAudit('Issue raised',r.sku+' — '+lines.map(l=>l.type+' '+l.qty+'u').join(', '));
+}
+
+function updateIssueFlag(id,hasIssue,issueList){
+  const btn=document.getElementById('ib-'+id);
+  if(!btn)return;
+  if(hasIssue&&issueList&&issueList.length){
+    const total=issueList.reduce((a,c)=>a+(c.dif||0),0);
+    btn.style.background='rgba(248,113,113,.25)';
+    btn.style.borderColor='#f87171';
+    btn.style.color='#f87171';
+    btn.innerHTML=`⚑ ${issueList.length} <span style="font-size:8px;">(${total}u)</span>`;
+    btn.title=issueList.map(c=>c.issT+' ('+c.dif+'u)').join(', ');
+    // Also mark the row red
+    const tr=document.getElementById('row-'+id);
+    if(tr){tr.classList.add('st-issue');}
+  } else {
+    btn.style.background='rgba(255,255,255,.08)';
+    btn.style.borderColor='rgba(255,255,255,.25)';
+    btn.style.color='#94a3b8';
+    btn.innerHTML='⚑';
+    btn.title='Raise an issue';
+    const tr=document.getElementById('row-'+id);
+    if(tr){tr.classList.remove('st-issue');}
+  }
+}
+
+function undoSentToAmazon(id){
+  const r=rows.find(x=>x.id===id);
+  if(!r)return;
+  showConfirm('Undo Send to Amazon?',
+    `This will revert "${r.sku}" back to "In Warehouse". The shipment ID and sent date will be cleared.`,
+    ()=>{
+      r.status='In Warehouse';
+      r.sent='No';
+      r.sentDate='';
+      r.sentAt='';
+      r.ship=0;
+      r.shipId='';
+      r.allShipIds=[];
+      r._dirty=true;
+      saveRow(r);
+      logAudit('Undo Send to Amazon',r.sku);
+      renderPrep();
+      toast('✓ Reverted to In Warehouse');
+    }
+  );
+}
 // ── SETTINGS: CLEAR DATA ──────────────────────────────────────────────────────
 async function clearTable(table,label){
   showConfirm(`Clear all ${label}?`,`This permanently deletes all ${label} from Supabase. Cannot be undone.`,async()=>{
@@ -4633,7 +4965,7 @@ function renderReturns(){
         <td class="td-left"><span class="s-sku" onclick="copyVal('${r.sku}',this)" style="display:inline-flex;font-size:10px;">${r.sku}</span></td>
         <td class="td-left" style="font-size:11px;font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.prod}">${r.prod||'—'}</td>
         <td><span class="s-asin" onclick="copyVal('${r.asin}',this)" style="display:inline-flex;font-size:10px;">${r.asin||'—'}</span></td>
-        <td style="font-family:var(--mono);color:var(--amber);">£${cog.toFixed(2)}</td>
+        <td style="font-family:var(--mono);color:var(--amber);">${fmtGBP2(cog)}</td>
         <td style="font-size:10px;color:var(--text3);">${r.notes||'—'}</td>
         <td style="font-size:10px;font-family:var(--mono);color:var(--text2);">${shipCount?`${shipCount} shipment${shipCount!==1?'s':''} · ${totalUnits} units`:'—'}</td>
         <td style="display:flex;gap:4px;">
@@ -5198,7 +5530,7 @@ setInterval(updateClock,30000);
     </div>
     <div class="mf cx">
       <button class="btn-cancel" onclick="cm('confirmModal')">Cancel</button>
-      <button class="btn-danger" id="confirmOkBtn" onclick="confirmOk()">Delete</button>
+      <button class="btn-danger" id="confirmOkBtn" onclick="confirmOk()">Confirm</button>
     </div>
   </div>
 </div>
@@ -5260,6 +5592,22 @@ setInterval(updateClock,30000);
     <div class="mf">
       <button class="btn-cancel" onclick="cm('bulkReturnModal')">Cancel</button>
       <button class="btn-save" onclick="saveBulkReturns()">Add All SKUs</button>
+    </div>
+  </div>
+</div>
+
+<!-- ISSUE MODAL -->
+<div class="overlay" id="issueModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="mh"><div class="mh-title" id="issueModalTitle">Raise Issue</div><button class="mh-close" onclick="cm('issueModal')">✕</button></div>
+    <div class="mb" style="padding:16px;">
+      <div id="issueModalInfo" style="background:var(--bg3);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:11px;color:var(--text2);"></div>
+      <div id="issueLines" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <button onclick="addIssueLine()" style="margin-top:10px;padding:5px 12px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">+ Add Another Issue</button>
+    </div>
+    <div class="mf">
+      <button class="btn-cancel" onclick="cm('issueModal')">Cancel</button>
+      <button class="btn-save" onclick="saveIssueModal()">Raise Issue(s)</button>
     </div>
   </div>
 </div>
