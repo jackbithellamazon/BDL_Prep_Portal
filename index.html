@@ -3865,15 +3865,14 @@ function handleStatusChange(id,sel){
   }else if((r.status==='Sent to Amazon'||r.status==='Part Sent')&&val!=='Sent to Amazon'&&val!=='Part Sent'){
     r._dirty=true;
     r.status=val;r.sent='No';r.sentDate='';r.ship=0;r.shipId='';r.allShipIds=[];
+    // Reverting to a "not here / not counted" state clears the received count
+    // too, so the row is fully back to its pre-arrival state (and drops out of
+    // the physical shipment because shipId is now blank).
+    if(val==='In-Transit'||val==='Not Arrived'){r.rcvd=0;}
     debounce(saveKey,()=>{saveRow(r);},300);
     logAudit(`Status reverted: ${val}`,r.sku);
-    const tr=document.getElementById('row-'+domKey);
-    if(tr){
-      tr.className='';
-      const nc=val==='In Warehouse'?'st-warehouse':val==='Delivered'?'st-delivered':val==='Issue'?'st-issue':'';
-      if(nc)tr.classList.add(nc);
-      sel.value=val;
-    } else { renderPrep(); }
+    renderPrep(); // full re-render: shipment grouping + qty cells must refresh
+    return;
   }else{
     r._dirty=true;
     r.status=val;
@@ -4970,6 +4969,12 @@ function openIssueModal(rowId){
   document.getElementById('issueLines').innerHTML='';
   if(existing.length){
     existing.forEach(cl=>addIssueLine(cl));
+  } else if(r.issueType&&r.issueType!=='—'&&r.issueType!==''){
+    // Orphaned flag: the prep row records an issue (shows the red flag/hover)
+    // but no matching claim exists — typically left over from when the
+    // actions insert was failing. Pre-fill from the row so it's visible and
+    // re-saving recreates the missing record (instead of opening blank).
+    addIssueLine({issT:r.issueType,dif:r.issueQty||1});
   } else {
     addIssueLine();
   }
