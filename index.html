@@ -736,7 +736,7 @@ html.light-mode{
           <th style="width:70px;">Issues<br>(Type/Qty)</th>
           <th style="width:44px;">Shipped<br>Qty</th>
           <th style="width:52px;">Sent to<br>Amazon</th>
-          <th style="width:90px;">Shipment<br>ID</th>
+          <th style="width:100px;white-space:normal;">Shipment ID</th>
           <th style="width:52px;">Reimburse<br>Chase</th>
           <th class="th-left" style="min-width:110px;">Packing Notes</th>
           <th style="width:52px;">Edit</th>
@@ -757,10 +757,8 @@ html.light-mode{
       <select class="fsel" id="claimStF" onchange="filterClaims()">
         <option value="">All Statuses</option>
         <option>Open</option>
-        <option>In Progress</option>
-        <option>Refunded</option>
+        <option>Chasing</option>
         <option>Resolved</option>
-        <option>Closed</option>
       </select>
       <button class="btn-add" onclick="openAddClaim()">+ Raise Action</button>
     </div>
@@ -1523,7 +1521,7 @@ function updateBundleCols(data){
 }
 
 function updateBun(id,val){
-  const r=rows.find(x=>x.id===id);if(!r)return;
+  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));if(!r)return;
   const tr=document.getElementById('row-'+id);if(!tr)return;
   const tds=tr.querySelectorAll('td.col-bundle');
   if(val==='Yes'){
@@ -1633,7 +1631,12 @@ function renderPrepRows(data){
       <td><select class="ci-sel" onchange="uf(${r.id},'sent',this.value);if(this.value==='Yes'){uf(${r.id},'sentDate','${todayStr}');}else{uf(${r.id},'sentDate','');}renderPrep();logAudit('Sent AMZ',this.value);" tabindex="-1">
         <option${r.sent==='No'?' selected':''}>No</option><option${r.sent==='Yes'?' selected':''}>Yes</option>
       </select></td>
-      <td><input class="ci ci-num" type="text" value="${r.shipId||''}" placeholder="—" onchange="uf(${r.id},'shipId',this.value);logAudit('Shipment ID',this.value);" tabindex="-1" style="font-family:var(--mono);font-weight:700;"></td>
+      <td style="padding:4px;">
+        <div style="font-family:var(--mono);font-size:10px;font-weight:700;word-break:break-all;white-space:normal;line-height:1.4;cursor:pointer;min-height:18px;color:${r.shipId?'var(--text)':'var(--text3)'}" 
+          onclick="editShipIdInline(${r.id},this)" 
+          title="Click to edit">${r.shipId||'—'}</div>
+        <input type="hidden" id="shipid-${r.id}" value="${r.shipId||''}">
+      </td>
       <td><select class="ci-sel" onchange="uf(${r.id},'reimb',this.value);" tabindex="-1">
         <option${r.reimb==='No'?' selected':''}>No</option><option${r.reimb==='Yes'?' selected':''}>Yes</option>
       </select></td>
@@ -1661,11 +1664,12 @@ function renderPrepRows(data){
 function deferClearNav(){}
 
 function uf(id,field,val){
-  const r=rows.find(x=>x.id===id);
+  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
   if(!r)return;
   r[field]=val;
+  r._dirty=true;
   r._srch=null;
-  debounce('save_'+id,()=>{saveRow(r);},400);
+  debounce('save_'+id,()=>{saveRow(r);r._dirty=false;},300);
 }
 
 function filterPrep(){
@@ -1747,7 +1751,7 @@ function openAdd(){
   om('addModal');
 }
 function openEdit(id){
-  const r=rows.find(x=>x.id===id);if(!r)return;
+  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));if(!r)return;
   editId=id;document.getElementById('addTitle').textContent='Edit Row';
   clearForm();
   // populate date
@@ -1793,7 +1797,7 @@ function clearForm(){
   tbq();
 }
 async function moveToActions(id){
-  const r=rows.find(x=>x.id===id);
+  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
   if(!r)return;
   const rowIssues=claims.filter(c=>c.prepRowId===id&&c.cst!=='Resolved');
   if(!rowIssues.length){
@@ -1853,7 +1857,7 @@ async function doBulkArchive(){
 
 function deleteEditRow(){
   if(!editId){toast('No row selected','er');return;}
-  const r=rows.find(x=>x.id===editId);
+  const r=rows.find(x=>String(x.id)===String(editId)||x.uuid===String(editId));
   if(!r){toast('Row not found','er');return;}
   showConfirm('Delete this row?',
     `Permanently delete "${r.sku}" from the prep sheet. This cannot be undone.`,
@@ -1873,7 +1877,7 @@ function saveRowForm(){
   const dv=document.getElementById('f-date').value;
   let df='';if(dv){const p=dv.split('-');df=`${p[2].padStart(2,'0')}/${p[1].padStart(2,'0')}`;}
   const sentVal=document.getElementById('f-sent').value;
-  const existing=editId?rows.find(x=>x.id===editId):null;
+  const existing=editId?rows.find(x=>String(x.id)===String(editId)||x.uuid===String(editId)):null;
   const r={
     uuid:existing?.uuid||undefined,
     id:editId||++nid,date:df,
@@ -1915,14 +1919,14 @@ function saveRowForm(){
   if(editId){const i=rows.findIndex(x=>x.id===editId);if(i>=0)rows[i]=r;else{toast('Row not found','er');return;}}
   else rows.push(r);
   editId=null;
-  saveRow(r);
+  r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});
   cm('addModal');renderPrep();toast(wasEdit?'Row updated ✓':'Row added ✓');
 }
 
 // ── COMPLETE / CLAIM ──────────────────────────────────────────────────────────
 function openComp(id){pendComp=id;om('compModal');}
 function doComplete(){
-  const r=rows.find(x=>x.id===pendComp);if(!r)return;
+  const r=rows.find(x=>String(x.id)===String(pendComp)||x.uuid===String(pendComp));if(!r)return;
   completed.unshift({id:r.id,ds:r.date,dsISO:r.sentDate||todayISO(),oid:r.oid,sup:r.sup,sku:r.sku,asin:r.asin,prod:r.prod,exp:r.exp,shi:r.ship,bun:r.bun,notes:r.notes});
   rows=rows.filter(x=>x.id!==pendComp);
   logAudit('Marked Complete',r.sku);
@@ -1930,7 +1934,7 @@ function doComplete(){
 }
 function openClaim(id){pendClaim=id;document.getElementById('claimInitNote').value='';om('claimModal');}
 function doClaim(){
-  const r=rows.find(x=>x.id===pendClaim);if(!r)return;
+  const r=rows.find(x=>String(x.id)===String(pendClaim)||x.uuid===String(pendClaim));if(!r)return;
   const it=document.getElementById('claimType').value;
   const initNote=document.getElementById('claimInitNote').value.trim();
   const cost=parseSKU(r.sku).cogs;
@@ -1955,7 +1959,7 @@ function doClaim(){
   if(!r.issueType||r.issueType==='—'){
     r.issueType=it==='Missing'?'Missing':it==='Damaged'?'Damaged':'Incorrect';
     r.issueQty=dif||1;
-    saveRow(r);
+    r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});
   }
   cm('claimModal');
   const newClaim=claims[0];
@@ -2073,28 +2077,34 @@ function renderClaims(){
   }
 
   // Summary bar
-  const totalVal=d.reduce((a,c)=>a+(c.claimValue||0),0);
+  const totalVal=d.filter(c=>c.cst!=='Resolved').reduce((a,c)=>a+(c.claimValue||0),0);
   const openCount=d.filter(c=>c.cst==='Open').length;
-  const inProgCount=d.filter(c=>c.cst==='In Progress').length;
+  const chasingCount=d.filter(c=>c.cst==='Chasing').length;
+  const resolvedCount=d.filter(c=>c.cst==='Resolved').length;
+  const totalUnitsAffected=d.filter(c=>c.cst!=='Resolved').reduce((a,c)=>a+(c.dif||0),0);
 
   el.innerHTML=`
     <!-- Summary -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Total Actions</div>
-        <div style="font-size:24px;font-weight:900;font-family:var(--mono);color:var(--text);">${d.length}</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Total</div>
+        <div style="font-size:22px;font-weight:900;font-family:var(--mono);color:var(--text);">${d.length}</div>
       </div>
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Open</div>
-        <div style="font-size:24px;font-weight:900;font-family:var(--mono);color:${openCount>0?'#ff5555':'#55ff55'};">${openCount}</div>
+      <div style="background:var(--bg2);border:1px solid rgba(248,113,113,.3);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Open</div>
+        <div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${openCount>0?'#f87171':'#4ade80'};">${openCount}</div>
       </div>
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">In Progress</div>
-        <div style="font-size:24px;font-weight:900;font-family:var(--mono);color:${inProgCount>0?'#ffaa33':'var(--text3)'};">${inProgCount}</div>
+      <div style="background:var(--bg2);border:1px solid rgba(251,146,60,.3);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Chasing</div>
+        <div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${chasingCount>0?'#fb923c':'var(--text3)'};">${chasingCount}</div>
       </div>
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Value Outstanding</div>
-        <div style="font-size:24px;font-weight:900;font-family:var(--mono);color:#ffaa33;">${fmtGBP(totalVal)}</div>
+      <div style="background:var(--bg2);border:1px solid rgba(74,222,128,.3);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Resolved</div>
+        <div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#4ade80;">${resolvedCount}</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Value at Risk</div>
+        <div style="font-size:18px;font-weight:900;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(totalVal)}</div>
       </div>
     </div>
 
@@ -2135,8 +2145,8 @@ function renderClaims(){
               <div style="font-size:20px;font-weight:900;font-family:var(--mono);color:var(--text);">${c.rec||0}</div>
             </div>
             <div style="text-align:center;">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Missing</div>
-              <div style="font-size:20px;font-weight:900;font-family:var(--mono);color:#ff5555;">${c.dif||0}</div>
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">${c.issT||'Affected'}</div>
+              <div style="font-size:20px;font-weight:900;font-family:var(--mono);color:#f87171;">${c.dif||0} units</div>
             </div>
             <div style="text-align:center;">
               <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Claim Value</div>
@@ -3793,7 +3803,8 @@ function toggleIssuesFilter(){
 
 function handleStatusChange(id,sel){
   const val=sel.value;
-  const r=rows.find(x=>x.id===id);if(!r)return;
+  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
+  if(!r)return;
   if(val==='Sent to Amazon'||val==='Part Sent'){
     sel.value=r.status;
     const isPartial=val==='Part Sent';
@@ -3816,18 +3827,48 @@ function handleStatusChange(id,sel){
           r.ship=maxUnits;
           if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
         }
-        saveRow(r);logAudit(isPartial?'Part Sent':'Sent to Amazon',`${r.sku} → ${shipId} (${sendQty}u)`);
+        r._dirty=true;
+        saveRow(r).then(()=>{r._dirty=false;});
+        logAudit(isPartial?'Part Sent':'Sent to Amazon',`${r.sku} → ${shipId} (${sendQty}u)`);
         renderPrep();
       },
       isPartial,maxUnits
     );
   }else if((r.status==='Sent to Amazon'||r.status==='Part Sent')&&val!=='Sent to Amazon'&&val!=='Part Sent'){
+    r._dirty=true;
     r.status=val;r.sent='No';r.sentDate='';r.ship=0;r.shipId='';r.allShipIds=[];
-    saveRow(r);logAudit(`Status reverted: ${val}`,r.sku);renderPrep();
+    debounce('save_'+id,()=>{saveRow(r);r._dirty=false;},300);
+    logAudit(`Status reverted: ${val}`,r.sku);
+    const tr=document.getElementById('row-'+id);
+    if(tr){
+      tr.className='';
+      const nc=val==='In Warehouse'?'st-warehouse':val==='Delivered'?'st-delivered':val==='Issue'?'st-issue':'';
+      if(nc)tr.classList.add(nc);
+      sel.value=val;
+    } else { renderPrep(); }
   }else{
+    r._dirty=true;
     r.status=val;
     if(val==='In Warehouse'&&(!r.rcvd||r.rcvd===0))r.rcvd=r.exp||0;
-    r._dirty=true;saveRow(r);logAudit('Status',val);renderPrep();
+    debounce('save_'+id,()=>{saveRow(r);r._dirty=false;},300);
+    logAudit('Status',val);
+    // Update row class in-place without full re-render
+    const tr=document.getElementById('row-'+id);
+    if(tr){
+      const hasIssue=claims.some(cl=>(cl.prepRowId===(r.uuid||String(r.id))||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
+      const newClass=hasIssue?'st-issue':
+        val==='Sent to Amazon'?'row-sent':
+        val==='Part Sent'?'st-partsent':
+        val==='In Warehouse'?'st-warehouse':
+        val==='Delivered'?'st-delivered':
+        val==='Issue'?'st-issue':'';
+      tr.className='';
+      if(newClass)tr.classList.add(newClass);
+      // Update the select to show new value
+      sel.value=val;
+    } else {
+      renderPrep();
+    }
   }
 }
 
@@ -3840,7 +3881,7 @@ function flushPending(){
     }
   });
   // Force save any dirty rows
-  rows.forEach(r=>{if(r._dirty){saveRow(r);r._dirty=false;}});
+  rows.forEach(r=>{if(r._dirty){r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});r._dirty=false;}});
 }
 
 function getFilteredRows(){
@@ -3909,7 +3950,7 @@ function doBulkAction(){
   }
   const selected=getSelectedRows();
   selected.forEach(id=>{
-    const r=rows.find(x=>x.id===id);
+    const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
     if(r){
       r.status=action;
       if(action==='In Warehouse'){
@@ -3919,7 +3960,7 @@ function doBulkAction(){
       if(action==='In Warehouse'&&r.sent==='Yes'){
         r.sent='No';r.sentDate='';r.ship=0;r.shipId='';
       }
-      saveRow(r);logAudit('Bulk Status Update',r.sku);
+      r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('Bulk Status Update',r.sku);
     }
   });
   clearBulkSelect();renderPrep();
@@ -3975,12 +4016,12 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // ── PER-ROW: ALL ARRIVED ──────────────────────────────────────────────────────
 function doAllArrived(id){
-  const r=rows.find(x=>x.id===id);if(!r)return;
+  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));if(!r)return;
   // Toggle: if already all arrived, undo it
   if(r.rcvd===r.exp&&r.status==='In Warehouse'){
     showConfirm('Undo All Arrived?','Resets Qty Received to 0 and Status back to In-Transit.',()=>{
       r.rcvd=0;r.status='In-Transit';
-      saveRow(r);logAudit('Undo All Arrived',r.sku);renderPrep();toast('All Arrived undone — '+r.sku.split('_')[0]);
+      r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('Undo All Arrived',r.sku);renderPrep();toast('All Arrived undone — '+r.sku.split('_')[0]);
     });
   }else{
     showConfirm(
@@ -3988,7 +4029,7 @@ function doAllArrived(id){
       `Sets Qty Received to ${r.exp} and Status to In Warehouse. Click again to undo.`,
       ()=>{
         r.rcvd=r.exp||0;r.status='In Warehouse';r.issueType='';r.issueQty=0;
-        saveRow(r);logAudit('All Arrived',r.sku);renderPrep();toast('All arrived ✈ — '+r.sku.split('_')[0]);
+        r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('All Arrived',r.sku);renderPrep();toast('All arrived ✈ — '+r.sku.split('_')[0]);
       }
     );
   }
@@ -3996,16 +4037,16 @@ function doAllArrived(id){
 
 // ── PER-ROW: ALL SHIPPED ──────────────────────────────────────────────────────
 function doAllShipped(id){
-  const r=rows.find(x=>x.id===id);if(!r)return;
+  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));if(!r)return;
   if(r.shipId){
     r.ship=r.rcvd||r.exp||0;r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
-    saveRow(r);logAudit('All Shipped',`${r.sku} → ${r.shipId}`);
+    r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('All Shipped',`${r.sku} → ${r.shipId}`);
     renderPrep();toast('All shipped ✓ — '+r.sku.split('_')[0]);
   }else{
     showShipIdModal('All Shipped — Enter Shipment ID','No Shipment ID on this row yet. Enter the FBA ID to confirm.',r.shipType||'Standard',(shipId,type)=>{
       r.ship=r.rcvd||r.exp||0;r.shipId=shipId;r.shipType=type;
       r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
-      saveRow(r);logAudit('All Shipped',`${r.sku} → ${shipId}`);
+      r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('All Shipped',`${r.sku} → ${shipId}`);
       renderPrep();toast('All shipped ✓ — '+r.sku.split('_')[0]);
     });
   }
@@ -4016,8 +4057,8 @@ function doBulkAllArrived(){
   const selected=getSelectedRows();
   if(!selected.length){toast('No rows selected','er');return;}
   selected.forEach(id=>{
-    const r=rows.find(x=>x.id===id);
-    if(r){r.rcvd=r.exp||0;r.status='In Warehouse';r.issueType='';r.issueQty=0;saveRow(r);logAudit('Bulk All Arrived',r.sku);}
+    const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
+    if(r){r.rcvd=r.exp||0;r.status='In Warehouse';r.issueType='';r.issueQty=0;r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('Bulk All Arrived',r.sku);}
   });
   clearBulkSelect();renderPrep();
   toast(`✈ All Arrived — ${selected.length} row${selected.length!==1?'s':''} set to In Warehouse`);
@@ -4033,11 +4074,11 @@ function doBulkAllShipped(){
     'Standard',
     (shipId,type)=>{
       selected.forEach(id=>{
-        const r=rows.find(x=>x.id===id);
+        const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
         if(r){
           r.ship=r.rcvd||r.exp||0;r.shipId=shipId;r.shipType=type;
           r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
-          saveRow(r);logAudit('Bulk All Shipped',`${r.sku} → ${shipId} (${type})`);
+          r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('Bulk All Shipped',`${r.sku} → ${shipId} (${type})`);
         }
       });
       if(shipBoxes)shipBoxes[shipId]=shipBoxes[shipId]||0;
@@ -4055,14 +4096,14 @@ function doBulkShipId(){
   const selected=getSelectedRows();
   if(!selected.length){toast('No rows selected','er');return;}
   selected.forEach(id=>{
-    const r=rows.find(x=>x.id===id);
+    const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
     if(r){
       r.shipId=shipId;r.shipType=shipType;
       r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
       // Auto-fill ship qty from rcvd (or exp if rcvd not set)
       r.ship=r.rcvd||r.exp||0;
       if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
-      saveRow(r);logAudit('Bulk Shipment ID',`${r.sku} → ${shipId} (${shipType})`);
+      r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('Bulk Shipment ID',`${r.sku} → ${shipId} (${shipType})`);
     }
   });
   clearBulkSelect();renderPrep();
@@ -4531,6 +4572,14 @@ async function dbLoad(){
     ]);
     if(rowsRes.error)throw rowsRes.error;
     rows=(rowsRes.data||[]).map(dbToRow);
+    // Bump the local-id counter past every id already in the DB. Without this,
+    // nid stays at 0 on each load and ++nid produces 1,2,3… which collide with
+    // existing rows' local_ids — causing the wrong row (e.g. a stray Philips
+    // row) to be selected/stamped/duplicated. (Fixes phantom shipment rows.)
+    {
+      const maxId=rows.reduce((m,r)=>{const n=parseInt(r.id);return(Number.isFinite(n)&&n>m)?n:m;},0);
+      if(maxId>nid)nid=maxId;
+    }
     claims=(claimsRes.data||[]).map(dbToClaim);
     // Returns tables — load separately, graceful if not yet created in Supabase
     try{
@@ -4547,11 +4596,19 @@ async function dbLoad(){
     lavAsins=(lavAsinRes.data||[]).map(dbToLav);
     lavShipments=(lavShipRes.data||[]).map(dbToLavShip);
     setSyncStatus('synced');
+    // Clear any previous error state
     renderPrep();renderDashboard();updateCB();
   }catch(err){
     console.error('Load error:',err);
-    setSyncStatus('error');
-    toast('Could not load data — check connection','er');
+    // Only show offline if it's a real network error, not a schema issue
+    const isNetworkErr=err.message&&(err.message.includes('fetch')||err.message.includes('network')||err.message.includes('Failed to fetch'));
+    if(isNetworkErr){
+      setSyncStatus('error');
+      toast('Could not connect to database','er');
+    } else {
+      setSyncStatus('error');
+      toast('Load error: '+err.message,'er');
+    }
   }
 }
 
@@ -4651,6 +4708,10 @@ function claimToDb(c){
 }
 function dbToClaim(d){
   let log=[];try{log=JSON.parse(d.contact_log||'[]');}catch(e){}
+  // Map old statuses to new ones
+  const statusMap={'In Progress':'Chasing','Refunded':'Resolved','Closed':'Resolved','Refund Required':'Chasing'};
+  const rawStatus=d.status||'Open';
+  const mappedStatus=statusMap[rawStatus]||rawStatus;
   return{
     uuid:d.id,id:d.local_id||d.id,prepRowId:d.prep_row_id,
     date:d.date_ddmm||'',raisedAt:d.raised_at||'',
@@ -4658,7 +4719,7 @@ function dbToClaim(d){
     sku:d.sku||'',asin:d.asin||'',issT:d.issue_type||'',
     exp:d.expected_qty||0,rec:d.received_qty||0,dif:d.difference||0,
     cost:d.cost_per_unit||0,claimValue:d.claim_value||0,
-    cst:d.status||'Open',notes:d.notes||'',log,
+    cst:mappedStatus,notes:d.notes||'',log,
   };
 }
 function dbToLav(d){
@@ -4680,11 +4741,17 @@ async function saveRow(r){
     if(res.data)r.uuid=res.data.id;
   }
   if(res.error){
-    console.error('Save row error:',res.error.message,res.error.details,JSON.stringify(rowToDb(r)));
+    console.error('Save row error:',res.error.message,res.error.details);
+    r._dirty=false;
     setSyncStatus('error');
     toast('Save failed: '+res.error.message,'er');
     return false;
   }
+  // Keep _dirty TRUE briefly so Supabase's realtime echo of THIS write
+  // (which can arrive a few hundred ms after the update commits) doesn't
+  // overwrite our fresh local value and snap the status back. Clear it on a
+  // short delay instead of immediately. (Fixes status reverting after ~1s.)
+  setTimeout(()=>{r._dirty=false;},1500);
   setSyncStatus('synced');return true;
 }
 async function deleteRow(r){
@@ -4738,13 +4805,33 @@ function setupRealtime(){
   sb.channel('prep_rows').on('postgres_changes',{event:'*',schema:'public',table:'prep_rows'},payload=>{
     if(payload.eventType==='INSERT'){
       const r=dbToRow(payload.new);
-      if(!rows.find(x=>x.uuid===r.uuid))rows.push(r);
+      // Dedupe on uuid AND local_id: a row we just created locally may still
+      // be mid-insert (no uuid yet), so a uuid-only check would let the echo
+      // push a duplicate. Match either key.
+      const exists=rows.find(x=>(r.uuid&&x.uuid===r.uuid)||(r.id!=null&&String(x.id)===String(r.id)));
+      if(exists){
+        // Backfill the uuid onto our local row if it was still pending.
+        if(!exists.uuid&&r.uuid)exists.uuid=r.uuid;
+      }else{
+        rows.push(r);
+        const n=parseInt(r.id);if(Number.isFinite(n)&&n>nid)nid=n;
+      }
     }else if(payload.eventType==='UPDATE'){
       const i=rows.findIndex(x=>x.uuid===payload.new.id);
       if(i>=0){
-        // Don't overwrite if we have a pending local save for this row
+        // Ignore the realtime echo of our own in-flight write.
         if(rows[i]._dirty)return;
-        rows[i]=dbToRow(payload.new);
+        const incoming=dbToRow(payload.new);
+        // If nothing actually changed, don't repaint — a stale/no-op echo
+        // arriving mid-edit would otherwise rebuild the table and reset the
+        // status dropdown the user just changed.
+        if(rows[i].status===incoming.status
+           &&rows[i].rcvd===incoming.rcvd
+           &&rows[i].ship===incoming.ship
+           &&rows[i].sent===incoming.sent
+           &&rows[i].notes===incoming.notes)return;
+        incoming._dirty=rows[i]._dirty;  // preserve edit flag across rehydrate
+        rows[i]=incoming;
       }
     }else if(payload.eventType==='DELETE'){
       rows=rows.filter(x=>x.uuid!==payload.old.id);
@@ -4778,7 +4865,6 @@ function setupRealtime(){
 }
 
 // ── PATCH UF() TO ALSO SAVE TO SUPABASE ──────────────────────────────────────
-// uf now handles saving directly above
 
 
 // ── ISSUE WORKFLOW ─────────────────────────────────────────────────────────────
@@ -4788,7 +4874,7 @@ let _issueLineCount=0;
 function openIssueModal(rowId){
   _issueRowId=rowId;
   _issueLineCount=0;
-  const r=rows.find(x=>x.id===rowId);
+  const r=rows.find(x=>String(x.id)===String(rowId)||x.uuid===String(rowId));
   if(!r)return;
   document.getElementById('issueModalTitle').textContent='Raise Issue — '+r.sku;
   document.getElementById('issueModalInfo').innerHTML=
@@ -4828,7 +4914,7 @@ function addIssueLine(existing=null){
 }
 
 async function saveIssueModal(){
-  const r=rows.find(x=>x.id===_issueRowId);
+  const r=rows.find(x=>String(x.id)===String(_issueRowId)||x.uuid===String(_issueRowId));
   if(!r){toast('Row not found','er');return;}
   const lines=[];
   let i=0;
@@ -4880,6 +4966,29 @@ async function saveIssueModal(){
   logAudit('Issue raised',r.sku+' — '+lines.map(l=>l.type+' '+l.qty+'u').join(', '));
 }
 
+
+function editShipIdInline(id,el){
+  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));if(!r)return;
+  const current=r.shipId||'';
+  const input=document.createElement('input');
+  input.type='text';input.value=current;
+  input.style.cssText='font-family:var(--mono);font-size:10px;font-weight:700;width:90px;background:var(--bg3);border:1px solid var(--accent);border-radius:3px;color:var(--text);padding:2px 4px;';
+  el.replaceWith(input);
+  input.focus();input.select();
+  function done(){
+    const val=input.value.trim();
+    r.shipId=val;
+    uf(id,'shipId',val);
+    const newEl=document.createElement('div');
+    newEl.style.cssText='font-family:var(--mono);font-size:10px;font-weight:700;word-break:break-all;white-space:normal;line-height:1.4;cursor:pointer;min-height:18px;color:'+(val?'var(--text)':'var(--text3)');
+    newEl.onclick=()=>editShipIdInline(id,newEl);
+    newEl.title='Click to edit';
+    newEl.textContent=val||'—';
+    input.replaceWith(newEl);
+  }
+  input.onblur=done;
+  input.onkeydown=e=>{if(e.key==='Enter')done();if(e.key==='Escape'){input.value=current;done();}};
+}
 function updateIssueFlag(id,hasIssue,issueList){
   const btn=document.getElementById('ib-'+id);
   if(!btn)return;
@@ -4905,7 +5014,7 @@ function updateIssueFlag(id,hasIssue,issueList){
 }
 
 function undoSentToAmazon(id){
-  const r=rows.find(x=>x.id===id);
+  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
   if(!r)return;
   showConfirm('Undo Send to Amazon?',
     `This will revert "${r.sku}" back to "In Warehouse". The shipment ID and sent date will be cleared.`,
@@ -5244,7 +5353,7 @@ function updateShipmentType(shipId,type){
   _shipTypeCache[shipId]=type;
   // Update all rows with this shipId
   const updated=rows.filter(r=>r.shipId===shipId);
-  updated.forEach(r=>{r.shipType=type;saveRow(r);});
+  updated.forEach(r=>{r.shipType=type;r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});});
   // Save to ship_boxes so type persists for Lavarion-only shipments
   const boxPayload={ship_id:shipId,boxes:shipBoxes[shipId]||0,ship_type:type};
   console.log('[DG debug] saving ship_boxes:',boxPayload);
