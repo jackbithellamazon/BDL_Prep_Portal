@@ -1617,7 +1617,7 @@ function renderPrepRows(data){
       </select></td>
       <td class="col-bundle">${r.bun==='Yes'?`<input class="ci ci-num" type="text" value="${r.bqty||''}" placeholder="—" onchange="uf(${r.id},'bqty',this.value);" tabindex="-1">`:`<span style="color:var(--text3);">—</span>`}</td>
       <td><input class="ci ci-num" type="number" value="${r.exp}" oninput="uf(${r.id},'exp',+this.value);debounce('rp',renderPrep);" tabindex="-1"></td>
-      <td><select class="ci-sel" onchange="handleStatusChange(${r.id},this);" tabindex="-1">
+      <td><select class="ci-sel" onchange="handleStatusChange('${r.uuid||r.id}',this);" tabindex="-1">
         ${['In-Transit','Delivered','In Warehouse','Part Sent','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
       </select></td>
       <td><input class="ci ci-num" type="number" value="${r.rcvd}" oninput="uf(${r.id},'rcvd',+this.value);updateDiffCell(${r.id},+this.value,${r.exp||0});debounce('rp',renderPrep);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
@@ -1669,7 +1669,7 @@ function uf(id,field,val){
   r[field]=val;
   r._dirty=true;
   r._srch=null;
-  debounce('save_'+id,()=>{saveRow(r);r._dirty=false;},300);
+  debounce('save_'+id,()=>{saveRow(r);},300);
 }
 
 function filterPrep(){
@@ -1919,7 +1919,7 @@ function saveRowForm(){
   if(editId){const i=rows.findIndex(x=>x.id===editId);if(i>=0)rows[i]=r;else{toast('Row not found','er');return;}}
   else rows.push(r);
   editId=null;
-  r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});
+  r._dirty=true;saveRow(r);
   cm('addModal');renderPrep();toast(wasEdit?'Row updated ✓':'Row added ✓');
 }
 
@@ -1959,7 +1959,7 @@ function doClaim(){
   if(!r.issueType||r.issueType==='—'){
     r.issueType=it==='Missing'?'Missing':it==='Damaged'?'Damaged':'Incorrect';
     r.issueQty=dif||1;
-    r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});
+    r._dirty=true;saveRow(r);
   }
   cm('claimModal');
   const newClaim=claims[0];
@@ -3803,8 +3803,14 @@ function toggleIssuesFilter(){
 
 function handleStatusChange(id,sel){
   const val=sel.value;
-  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
   if(!r)return;
+  // Use the row's actual local id for DOM element / debounce keys (the <tr>
+  // element id is row-<localId>), while the row itself was resolved via the
+  // unique uuid passed in — this prevents local-id collisions from saving the
+  // wrong row.
+  const domKey=r.id;
+  const saveKey='save_'+(r.uuid||r.id);
   if(val==='Sent to Amazon'||val==='Part Sent'){
     sel.value=r.status;
     const isPartial=val==='Part Sent';
@@ -3828,7 +3834,7 @@ function handleStatusChange(id,sel){
           if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
         }
         r._dirty=true;
-        saveRow(r).then(()=>{r._dirty=false;});
+        saveRow(r);
         logAudit(isPartial?'Part Sent':'Sent to Amazon',`${r.sku} → ${shipId} (${sendQty}u)`);
         renderPrep();
       },
@@ -3837,9 +3843,9 @@ function handleStatusChange(id,sel){
   }else if((r.status==='Sent to Amazon'||r.status==='Part Sent')&&val!=='Sent to Amazon'&&val!=='Part Sent'){
     r._dirty=true;
     r.status=val;r.sent='No';r.sentDate='';r.ship=0;r.shipId='';r.allShipIds=[];
-    debounce('save_'+id,()=>{saveRow(r);r._dirty=false;},300);
+    debounce(saveKey,()=>{saveRow(r);},300);
     logAudit(`Status reverted: ${val}`,r.sku);
-    const tr=document.getElementById('row-'+id);
+    const tr=document.getElementById('row-'+domKey);
     if(tr){
       tr.className='';
       const nc=val==='In Warehouse'?'st-warehouse':val==='Delivered'?'st-delivered':val==='Issue'?'st-issue':'';
@@ -3850,10 +3856,10 @@ function handleStatusChange(id,sel){
     r._dirty=true;
     r.status=val;
     if(val==='In Warehouse'&&(!r.rcvd||r.rcvd===0))r.rcvd=r.exp||0;
-    debounce('save_'+id,()=>{saveRow(r);r._dirty=false;},300);
+    debounce(saveKey,()=>{saveRow(r);},300);
     logAudit('Status',val);
     // Update row class in-place without full re-render
-    const tr=document.getElementById('row-'+id);
+    const tr=document.getElementById('row-'+domKey);
     if(tr){
       const hasIssue=claims.some(cl=>(cl.prepRowId===(r.uuid||String(r.id))||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
       const newClass=hasIssue?'st-issue':
@@ -3881,7 +3887,7 @@ function flushPending(){
     }
   });
   // Force save any dirty rows
-  rows.forEach(r=>{if(r._dirty){r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});r._dirty=false;}});
+  rows.forEach(r=>{if(r._dirty){r._dirty=true;saveRow(r);}});
 }
 
 function getFilteredRows(){
@@ -3960,7 +3966,7 @@ function doBulkAction(){
       if(action==='In Warehouse'&&r.sent==='Yes'){
         r.sent='No';r.sentDate='';r.ship=0;r.shipId='';
       }
-      r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('Bulk Status Update',r.sku);
+      r._dirty=true;saveRow(r);logAudit('Bulk Status Update',r.sku);
     }
   });
   clearBulkSelect();renderPrep();
@@ -4021,7 +4027,7 @@ function doAllArrived(id){
   if(r.rcvd===r.exp&&r.status==='In Warehouse'){
     showConfirm('Undo All Arrived?','Resets Qty Received to 0 and Status back to In-Transit.',()=>{
       r.rcvd=0;r.status='In-Transit';
-      r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('Undo All Arrived',r.sku);renderPrep();toast('All Arrived undone — '+r.sku.split('_')[0]);
+      r._dirty=true;saveRow(r);logAudit('Undo All Arrived',r.sku);renderPrep();toast('All Arrived undone — '+r.sku.split('_')[0]);
     });
   }else{
     showConfirm(
@@ -4029,7 +4035,7 @@ function doAllArrived(id){
       `Sets Qty Received to ${r.exp} and Status to In Warehouse. Click again to undo.`,
       ()=>{
         r.rcvd=r.exp||0;r.status='In Warehouse';r.issueType='';r.issueQty=0;
-        r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('All Arrived',r.sku);renderPrep();toast('All arrived ✈ — '+r.sku.split('_')[0]);
+        r._dirty=true;saveRow(r);logAudit('All Arrived',r.sku);renderPrep();toast('All arrived ✈ — '+r.sku.split('_')[0]);
       }
     );
   }
@@ -4040,13 +4046,13 @@ function doAllShipped(id){
   const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));if(!r)return;
   if(r.shipId){
     r.ship=r.rcvd||r.exp||0;r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
-    r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('All Shipped',`${r.sku} → ${r.shipId}`);
+    r._dirty=true;saveRow(r);logAudit('All Shipped',`${r.sku} → ${r.shipId}`);
     renderPrep();toast('All shipped ✓ — '+r.sku.split('_')[0]);
   }else{
     showShipIdModal('All Shipped — Enter Shipment ID','No Shipment ID on this row yet. Enter the FBA ID to confirm.',r.shipType||'Standard',(shipId,type)=>{
       r.ship=r.rcvd||r.exp||0;r.shipId=shipId;r.shipType=type;
       r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
-      r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('All Shipped',`${r.sku} → ${shipId}`);
+      r._dirty=true;saveRow(r);logAudit('All Shipped',`${r.sku} → ${shipId}`);
       renderPrep();toast('All shipped ✓ — '+r.sku.split('_')[0]);
     });
   }
@@ -4058,7 +4064,7 @@ function doBulkAllArrived(){
   if(!selected.length){toast('No rows selected','er');return;}
   selected.forEach(id=>{
     const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
-    if(r){r.rcvd=r.exp||0;r.status='In Warehouse';r.issueType='';r.issueQty=0;r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('Bulk All Arrived',r.sku);}
+    if(r){r.rcvd=r.exp||0;r.status='In Warehouse';r.issueType='';r.issueQty=0;r._dirty=true;saveRow(r);logAudit('Bulk All Arrived',r.sku);}
   });
   clearBulkSelect();renderPrep();
   toast(`✈ All Arrived — ${selected.length} row${selected.length!==1?'s':''} set to In Warehouse`);
@@ -4078,7 +4084,7 @@ function doBulkAllShipped(){
         if(r){
           r.ship=r.rcvd||r.exp||0;r.shipId=shipId;r.shipType=type;
           r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
-          r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('Bulk All Shipped',`${r.sku} → ${shipId} (${type})`);
+          r._dirty=true;saveRow(r);logAudit('Bulk All Shipped',`${r.sku} → ${shipId} (${type})`);
         }
       });
       if(shipBoxes)shipBoxes[shipId]=shipBoxes[shipId]||0;
@@ -4103,7 +4109,7 @@ function doBulkShipId(){
       // Auto-fill ship qty from rcvd (or exp if rcvd not set)
       r.ship=r.rcvd||r.exp||0;
       if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
-      r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});logAudit('Bulk Shipment ID',`${r.sku} → ${shipId} (${shipType})`);
+      r._dirty=true;saveRow(r);logAudit('Bulk Shipment ID',`${r.sku} → ${shipId} (${shipType})`);
     }
   });
   clearBulkSelect();renderPrep();
@@ -4735,7 +4741,19 @@ async function saveRow(r){
   const data=rowToDb(r);
   let res;
   if(r.uuid){
-    res=await sb.from('prep_rows').update(data).eq('id',r.uuid);
+    // Ask for the updated rows back so we can tell if it actually matched
+    // anything. Supabase .update() does NOT error when it matches zero rows —
+    // it silently succeeds — so a stale/missing uuid would "save" but write
+    // nothing, and the value reverts on refresh. Verify the match count.
+    res=await sb.from('prep_rows').update(data).eq('id',r.uuid).select();
+    if(!res.error&&(!res.data||res.data.length===0)){
+      // The uuid didn't match any DB row. Insert a fresh one and adopt its id
+      // so future saves update correctly.
+      console.warn('saveRow: uuid matched 0 rows, re-inserting',r.uuid,r.sku);
+      const ins=await sb.from('prep_rows').insert(rowToDb({...r,uuid:undefined})).select().single();
+      if(!ins.error&&ins.data)r.uuid=ins.data.id;
+      res=ins;
+    }
   }else{
     res=await sb.from('prep_rows').insert(data).select().single();
     if(res.data)r.uuid=res.data.id;
@@ -5353,7 +5371,7 @@ function updateShipmentType(shipId,type){
   _shipTypeCache[shipId]=type;
   // Update all rows with this shipId
   const updated=rows.filter(r=>r.shipId===shipId);
-  updated.forEach(r=>{r.shipType=type;r._dirty=true;saveRow(r).then(()=>{r._dirty=false;});});
+  updated.forEach(r=>{r.shipType=type;r._dirty=true;saveRow(r);});
   // Save to ship_boxes so type persists for Lavarion-only shipments
   const boxPayload={ship_id:shipId,boxes:shipBoxes[shipId]||0,ship_type:type};
   console.log('[DG debug] saving ship_boxes:',boxPayload);
