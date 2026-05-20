@@ -1358,10 +1358,10 @@ document.addEventListener('keydown',e=>{
       _navigating=true;
       setFocus(Math.min(focusRow+1,trs.length-1),focusCol);
     }else if(chk){
-      // Toggle checkbox and update _selectedIds
+      // Toggle checkbox and update _selectedIds (keyed by uuid via data-rk)
       chk.checked=!chk.checked;
-      const id=parseInt(trs[focusRow].dataset.id);
-      if(chk.checked)_selectedIds.add(id);else _selectedIds.delete(id);
+      const rk=chk.getAttribute('data-rk')||String(parseInt(trs[focusRow].dataset.id));
+      if(chk.checked)_selectedIds.add(rk);else _selectedIds.delete(rk);
       updateBulkUI();
     }else if(sel){
       // Always open select first — even if cell also has a number input
@@ -1521,7 +1521,7 @@ function updateBundleCols(data){
 }
 
 function updateBun(id,val){
-  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));if(!r)return;
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));if(!r)return;
   const tr=document.getElementById('row-'+id);if(!tr)return;
   const tds=tr.querySelectorAll('td.col-bundle');
   if(val==='Yes'){
@@ -1539,6 +1539,18 @@ const SC={'In-Transit':'','In Warehouse':'st-warehouse','Delivered':'st-delivere
 
 // ── PREP TABLE ────────────────────────────────────────────────────────────────
 function renderPrepRows(data){
+  // Never destroy a cell the user is actively editing. If focus is inside the
+  // prep table, defer the rebuild until they blur. This is the universal guard
+  // against a background save/echo/re-render wiping a half-typed value.
+  const ae=document.activeElement;
+  if(ae&&ae.closest&&ae.closest('#prepBody')&&(ae.tagName==='INPUT'||ae.tagName==='SELECT'||ae.tagName==='TEXTAREA')){
+    _pendingPrepRender=true;
+    if(!ae._deferBound){
+      ae._deferBound=true;
+      ae.addEventListener('blur',()=>{if(_pendingPrepRender){_pendingPrepRender=false;renderPrep();}},{once:true});
+    }
+    return;
+  }
   // Clear stale DOM refs
   _prevFocusTr=null;_prevFocusTd=null;
   const b=document.getElementById('prepBody');
@@ -1587,9 +1599,9 @@ function renderPrepRows(data){
         <div>${data.indexOf(r)+1}</div>
         ${r.sheetRow?`<div style="color:var(--border2);font-size:8px;">${r.sheetRow}</div>`:''}
       </td>
-      <td style="text-align:center;"><input type="checkbox" class="bulk-check" ${_selectedIds.has(r.id)?'checked':''} onchange="if(this.checked)_selectedIds.add(${r.id});else _selectedIds.delete(${r.id});updateBulkUI();"></td>
-      <td style="text-align:center;"><button onclick="doAllArrived(${r.id})" title="All Arrived — sets Qty Received = Expected Units, Status = In Warehouse. Can be overridden by editing Qty Received directly." style="background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✈</button></td>
-      <td style="text-align:center;"><button onclick="doAllShipped(${r.id})" title="All Shipped — sets Shipped = Received, prompts for Shipment ID" style="background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✓</button></td>
+      <td style="text-align:center;"><input type="checkbox" class="bulk-check" data-rk="${r.uuid||r.id}" ${_selectedIds.has(r.uuid||r.id)?'checked':''} onchange="if(this.checked)_selectedIds.add('${r.uuid||r.id}');else _selectedIds.delete('${r.uuid||r.id}');updateBulkUI();"></td>
+      <td style="text-align:center;"><button onclick="doAllArrived('${r.uuid||r.id}')" title="All Arrived — sets Qty Received = Expected Units, Status = In Warehouse. Can be overridden by editing Qty Received directly." style="background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✈</button></td>
+      <td style="text-align:center;"><button onclick="doAllShipped('${r.uuid||r.id}')" title="All Shipped — sets Shipped = Received, prompts for Shipment ID" style="background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:3px;width:18px;height:18px;font-size:9px;cursor:pointer;padding:0;line-height:1;">✓</button></td>
       <td style="position:relative;"><a class="sas-btn" href="${r.sas}" target="_blank" style="font-size:10px;padding:2px 5px;">SAS</a>${r.issueType&&r.issueType!=='—'?`<span data-issue="1" style="color:#f87171;font-size:10px;font-weight:900;margin-left:3px;cursor:default;" title="Issue: ${r.issueType}${r.issueQty?' ('+r.issueQty+'u)':''  }">⚑</span>`:''}</td>
       <td class="td-left">
         <div class="stack-date" style="gap:1px;">
@@ -1607,47 +1619,47 @@ function renderPrepRows(data){
           <div class="s-sku" onclick="copyVal('${r.sku}',this)">${cpIco()}${r.sku}</div>
         </div>
       </td>
-      <td><select class="ci-sel" onchange="uf(${r.id},'dg',this.value);" tabindex="-1" style="width:44px;font-size:10px;padding:2px 3px;">
+      <td><select class="ci-sel" onchange="uf('${r.uuid||r.id}','dg',this.value);" tabindex="-1" style="width:44px;font-size:10px;padding:2px 3px;">
         <option${r.dg===''?' selected':''}>—</option>
         <option${r.dg==='Yes'?' selected':''}>Yes</option>
         <option${r.dg==='No'?' selected':''}>No</option>
       </select></td>
-      <td><select class="ci-sel" onchange="uf(${r.id},'bun',this.value);updateBun(${r.id},this.value);" tabindex="-1">
+      <td><select class="ci-sel" onchange="uf('${r.uuid||r.id}','bun',this.value);updateBun('${r.uuid||r.id}',this.value);" tabindex="-1">
         <option${r.bun==='No'?' selected':''}>No</option><option${r.bun==='Yes'?' selected':''}>Yes</option>
       </select></td>
-      <td class="col-bundle">${r.bun==='Yes'?`<input class="ci ci-num" type="text" value="${r.bqty||''}" placeholder="—" onchange="uf(${r.id},'bqty',this.value);" tabindex="-1">`:`<span style="color:var(--text3);">—</span>`}</td>
-      <td><input class="ci ci-num" type="number" value="${r.exp}" oninput="uf(${r.id},'exp',+this.value);debounce('rp',renderPrep);" tabindex="-1"></td>
+      <td class="col-bundle">${r.bun==='Yes'?`<input class="ci ci-num" type="text" value="${r.bqty||''}" placeholder="—" onchange="uf('${r.uuid||r.id}','bqty',this.value);" tabindex="-1">`:`<span style="color:var(--text3);">—</span>`}</td>
+      <td><input class="ci ci-num" type="number" value="${r.exp}" onchange="uf('${r.uuid||r.id}','exp',+this.value);debounce('stats',renderStats);" tabindex="-1"></td>
       <td><select class="ci-sel" onchange="handleStatusChange('${r.uuid||r.id}',this);" tabindex="-1">
         ${['In-Transit','Delivered','In Warehouse','Part Sent','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
       </select></td>
-      <td><input class="ci ci-num" type="number" value="${r.rcvd}" oninput="uf(${r.id},'rcvd',+this.value);updateDiffCell(${r.id},+this.value,${r.exp||0});debounce('rp',renderPrep);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
+      <td><input class="ci ci-num" type="number" value="${r.rcvd}" onchange="uf('${r.uuid||r.id}','rcvd',+this.value);updateDiffCell(${r.id},+this.value,${r.exp||0});debounce('stats',renderStats);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
       <td id="diff-${r.id}">${diffEl}</td>
       <td style="text-align:center;">
-        <button onclick="openIssueModal(${r.id})" id="ib-${r.id}"
+        <button onclick="openIssueModal('${r.uuid||r.id}')" id="ib-${r.id}"
           style="padding:3px 8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#94a3b8;border-radius:4px;font-size:11px;font-weight:800;cursor:pointer;min-width:32px;"
           title="Raise an issue">⚑</button>
       </td>
-      <td><input class="ci ci-num" type="number" value="${r.ship}" oninput="uf(${r.id},'ship',+this.value);debounce('rp',renderPrep);" tabindex="-1"></td>
-      <td><select class="ci-sel" onchange="uf(${r.id},'sent',this.value);if(this.value==='Yes'){uf(${r.id},'sentDate','${todayStr}');}else{uf(${r.id},'sentDate','');}renderPrep();logAudit('Sent AMZ',this.value);" tabindex="-1">
+      <td><input class="ci ci-num" type="number" value="${r.ship}" onchange="uf('${r.uuid||r.id}','ship',+this.value);debounce('stats',renderStats);" tabindex="-1"></td>
+      <td><select class="ci-sel" onchange="uf('${r.uuid||r.id}','sent',this.value);if(this.value==='Yes'){uf('${r.uuid||r.id}','sentDate','${todayStr}');}else{uf('${r.uuid||r.id}','sentDate','');}renderPrep();logAudit('Sent AMZ',this.value);" tabindex="-1">
         <option${r.sent==='No'?' selected':''}>No</option><option${r.sent==='Yes'?' selected':''}>Yes</option>
       </select></td>
       <td style="padding:4px;">
         <div style="font-family:var(--mono);font-size:10px;font-weight:700;word-break:break-all;white-space:normal;line-height:1.4;cursor:pointer;min-height:18px;color:${r.shipId?'var(--text)':'var(--text3)'}" 
-          onclick="editShipIdInline(${r.id},this)" 
-          title="Click to edit">${r.shipId||'—'}</div>
+          onclick="editShipIdInline('${r.uuid||r.id}',this)" 
+          title="Click to edit">${r.shipId||'—'}${(r.allShipIds&&r.allShipIds.length>1)?`<div style="margin-top:2px;font-size:8px;font-weight:600;color:var(--text3);">+${r.allShipIds.length-1} more: ${r.allShipIds.filter(s=>s!==r.shipId).join(', ')}</div>`:''}</div>
         <input type="hidden" id="shipid-${r.id}" value="${r.shipId||''}">
       </td>
-      <td><select class="ci-sel" onchange="uf(${r.id},'reimb',this.value);" tabindex="-1">
+      <td><select class="ci-sel" onchange="uf('${r.uuid||r.id}','reimb',this.value);" tabindex="-1">
         <option${r.reimb==='No'?' selected':''}>No</option><option${r.reimb==='Yes'?' selected':''}>Yes</option>
       </select></td>
-      <td class="td-left"><input class="ci ci-note" type="text" value="${(r.notes||'').replace(/"/g,'&quot;')}" placeholder="—" onchange="uf(${r.id},'notes',this.value);" tabindex="-1" title="${(r.notes||'').replace(/"/g,'&quot;')}" style="min-width:150px;" onfocus="this.style.minWidth='280px';this.style.position='relative';this.style.zIndex='10';" onblur="this.style.minWidth='';this.style.position='';this.style.zIndex='';"></td>
+      <td class="td-left"><input class="ci ci-note" type="text" value="${(r.notes||'').replace(/"/g,'&quot;')}" placeholder="—" onchange="uf('${r.uuid||r.id}','notes',this.value);" tabindex="-1" title="${(r.notes||'').replace(/"/g,'&quot;')}" style="min-width:150px;" onfocus="this.style.minWidth='280px';this.style.position='relative';this.style.zIndex='10';" onblur="this.style.minWidth='';this.style.position='';this.style.zIndex='';"></td>
       <td><div class="row-acts" style="opacity:1;">
-        <button class="ra" title="Edit row" onclick="openEdit(${r.id})" style="background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:10px;font-weight:700;width:auto;padding:0 6px;cursor:pointer;">Edit</button>
-        ${isSent?`<button class="ra" title="Undo Send — revert to In Warehouse" onclick="undoSentToAmazon(${r.id})" style="background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:9px;font-weight:700;width:auto;padding:0 5px;cursor:pointer;">↺ Undo</button>`:''}
-        ${hasIssue?`<button class="ra" title="Move to Actions — removes from prep sheet" onclick="moveToActions(${r.id})" style="background:rgba(248,113,113,.2);border:1px solid #f87171;color:#f87171;border-radius:3px;font-size:9px;font-weight:700;width:auto;padding:0 5px;cursor:pointer;">→ Actions</button>`:''}
-        ${canComp?`<button class="ra g" title="Complete" onclick="openComp(${r.id})">✓</button>`:''}
+        <button class="ra" title="Edit row" onclick="openEdit('${r.uuid||r.id}')" style="background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:10px;font-weight:700;width:auto;padding:0 6px;cursor:pointer;">Edit</button>
+        ${isSent?`<button class="ra" title="Undo Send — revert to In Warehouse" onclick="undoSentToAmazon('${r.uuid||r.id}')" style="background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:9px;font-weight:700;width:auto;padding:0 5px;cursor:pointer;">↺ Undo</button>`:''}
+        ${hasIssue?`<button class="ra" title="Move to Actions — removes from prep sheet" onclick="moveToActions('${r.uuid||r.id}')" style="background:rgba(248,113,113,.2);border:1px solid #f87171;color:#f87171;border-radius:3px;font-size:9px;font-weight:700;width:auto;padding:0 5px;cursor:pointer;">→ Actions</button>`:''}
+        ${canComp?`<button class="ra g" title="Complete" onclick="openComp('${r.uuid||r.id}')">✓</button>`:''}
       </div></td>
-      <td style="text-align:center;">${isSent?`<input type="checkbox" onchange="if(this.checked){const r=rows.find(x=>x.id===${r.id});deleteRow(r);rows.splice(rows.findIndex(x=>x.id===${r.id}),1);renderPrep();toast('Row archived');}" title="Archive & remove from sheet">`:'<span style="color:var(--text3);">—</span>'}</td>
+      <td style="text-align:center;">${isSent?`<input type="checkbox" onchange="if(this.checked){const r=rows.find(x=>x.uuid==='${r.uuid||''}'||String(x.id)==='${r.id}');deleteRow(r);rows.splice(rows.findIndex(x=>x.uuid==='${r.uuid||''}'||String(x.id)==='${r.id}'),1);renderPrep();toast('Row archived');}" title="Archive & remove from sheet">`:'<span style="color:var(--text3);">—</span>'}</td>
     </tr>`;
   }).join('');
 
@@ -1655,7 +1667,7 @@ function renderPrepRows(data){
   // Apply issue badges for any rows with issueType already set
   // Re-render issue badges based on claims
   data.forEach(r=>{
-    const rowIssues=claims.filter(cl=>cl.prepRowId===r.id&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
+    const rowIssues=claims.filter(cl=>(cl.prepRowId===(r.uuid||r.id)||cl.prepRowId===r.id||cl.prepRowId===r.uuid)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
     if(rowIssues.length>0)updateIssueFlag(r.id,true,rowIssues);
     else updateIssueFlag(r.id,false,[]);
   });
@@ -1664,7 +1676,7 @@ function renderPrepRows(data){
 function deferClearNav(){}
 
 function uf(id,field,val){
-  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
   if(!r)return;
   r[field]=val;
   r._dirty=true;
@@ -1751,7 +1763,7 @@ function openAdd(){
   om('addModal');
 }
 function openEdit(id){
-  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));if(!r)return;
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));if(!r)return;
   editId=id;document.getElementById('addTitle').textContent='Edit Row';
   clearForm();
   // populate date
@@ -1797,7 +1809,7 @@ function clearForm(){
   tbq();
 }
 async function moveToActions(id){
-  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
   if(!r)return;
   const rowIssues=claims.filter(c=>c.prepRowId===id&&c.cst!=='Resolved');
   if(!rowIssues.length){
@@ -1880,7 +1892,7 @@ function saveRowForm(){
   const existing=editId?rows.find(x=>String(x.id)===String(editId)||x.uuid===String(editId)):null;
   const r={
     uuid:existing?.uuid||undefined,
-    id:editId||++nid,date:df,
+    id:existing?existing.id:++nid,date:df,
     oid:document.getElementById('f-oid').value,
     sup:document.getElementById('f-sup').value,
     acct:(document.getElementById('f-acct')||{}).value||'',
@@ -1916,7 +1928,7 @@ function saveRowForm(){
   };
   if(!r.sku||!r.sup){toast('SKU and Supplier required','er');return;}
   const wasEdit=!!editId;
-  if(editId){const i=rows.findIndex(x=>x.id===editId);if(i>=0)rows[i]=r;else{toast('Row not found','er');return;}}
+  if(editId){const i=rows.findIndex(x=>(r.uuid&&x.uuid===r.uuid)||String(x.id)===String(editId)||x.uuid===String(editId));if(i>=0)rows[i]=r;else{toast('Row not found','er');return;}}
   else rows.push(r);
   editId=null;
   r._dirty=true;saveRow(r);
@@ -1926,26 +1938,26 @@ function saveRowForm(){
 // ── COMPLETE / CLAIM ──────────────────────────────────────────────────────────
 function openComp(id){pendComp=id;om('compModal');}
 function doComplete(){
-  const r=rows.find(x=>String(x.id)===String(pendComp)||x.uuid===String(pendComp));if(!r)return;
+  const r=rows.find(x=>x.uuid===String(pendComp)||String(x.id)===String(pendComp));if(!r)return;
   completed.unshift({id:r.id,ds:r.date,dsISO:r.sentDate||todayISO(),oid:r.oid,sup:r.sup,sku:r.sku,asin:r.asin,prod:r.prod,exp:r.exp,shi:r.ship,bun:r.bun,notes:r.notes});
-  rows=rows.filter(x=>x.id!==pendComp);
+  rows=rows.filter(x=>x.uuid!==pendComp&&String(x.id)!==String(pendComp));
   logAudit('Marked Complete',r.sku);
   cm('compModal');renderPrep();toast('Row archived ✓');
 }
 function openClaim(id){pendClaim=id;document.getElementById('claimInitNote').value='';om('claimModal');}
 function doClaim(){
-  const r=rows.find(x=>String(x.id)===String(pendClaim)||x.uuid===String(pendClaim));if(!r)return;
+  const r=rows.find(x=>x.uuid===String(pendClaim)||String(x.id)===String(pendClaim));if(!r)return;
   const it=document.getElementById('claimType').value;
   const initNote=document.getElementById('claimInitNote').value.trim();
   const cost=parseSKU(r.sku).cogs;
   const dif=Math.max(0,(r.exp||0)-(r.rcvd||0));
-  // Check not already raised
-  if(claims.find(c=>c.prepRowId===r.id&&c.cst!=='Resolved'&&c.cst!=='Closed')){
+  // Check not already raised (match by uuid or local id)
+  if(claims.find(c=>(c.prepRowId===(r.uuid||r.id)||c.prepRowId===r.id||c.prepRowId===r.uuid)&&c.cst!=='Resolved'&&c.cst!=='Closed')){
     toast('Action already raised for this row','er');cm('claimModal');return;
   }
   claims.unshift({
     id:Date.now(),
-    prepRowId:r.id, // link back to prep row — row stays on prep sheet
+    prepRowId:r.uuid||r.id, // link back to prep row by unique uuid
     date:r.date,raisedAt:todayISO(),
     sku:r.sku,asin:r.asin,
     sup:r.sup,oid:r.oid||'',prod:r.prod||'',
@@ -2185,7 +2197,7 @@ async function resolveIssue(id){
   await saveClaim(c);
   // Clear issue flag on prep row if no more open issues
   if(c.prepRowId){
-    const r=rows.find(x=>x.id===c.prepRowId);
+    const r=rows.find(x=>x.uuid===c.prepRowId||String(x.id)===String(c.prepRowId));
     const stillOpen=claims.filter(cl=>cl.prepRowId===c.prepRowId&&cl.cst!=='Resolved'&&cl.uuid!==c.uuid);
     if(r&&!stillOpen.length){r.issueType='';r.issueQty=0;await saveRow(r);}
   }
@@ -2200,7 +2212,7 @@ async function removeIssue(id){
     await deleteClaim_db(c);
     claims=claims.filter(x=>x.id!==id);
     if(c.prepRowId){
-      const r=rows.find(x=>x.id===c.prepRowId);
+      const r=rows.find(x=>x.uuid===c.prepRowId||String(x.id)===String(c.prepRowId));
       const stillOpen=claims.filter(cl=>cl.prepRowId===c.prepRowId&&cl.cst!=='Resolved');
       if(r&&!stillOpen.length){r.issueType='';r.issueQty=0;await saveRow(r);}
     }
@@ -3801,10 +3813,20 @@ function toggleIssuesFilter(){
   filterPrep();
 }
 
+// Units actually sendable to Amazon = what we have (received, or expected if
+// not yet counted) minus any units flagged as an issue (damaged/missing/
+// incorrect). e.g. expected 30, 4 damaged → 26 sendable. Floored at 0.
+function sendableQty(r){
+  const base=(r.rcvd&&r.rcvd>0)?r.rcvd:(r.exp||0);
+  const issues=r.issueQty||0;
+  return Math.max(0,base-issues);
+}
+
 function handleStatusChange(id,sel){
   const val=sel.value;
   const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
   if(!r)return;
+  const prevStatus=r.status;
   // Use the row's actual local id for DOM element / debounce keys (the <tr>
   // element id is row-<localId>), while the row itself was resolved via the
   // unique uuid passed in — this prevents local-id collisions from saving the
@@ -3814,10 +3836,10 @@ function handleStatusChange(id,sel){
   if(val==='Sent to Amazon'||val==='Part Sent'){
     sel.value=r.status;
     const isPartial=val==='Part Sent';
-    const maxUnits=r.rcvd||r.exp||0;
+    const maxUnits=sendableQty(r);
     showShipIdModal(
       isPartial?'Partial Send — Enter Shipment ID':'Shipment ID Required',
-      isPartial?`Sending partial units (${maxUnits} available). Enter FBA ID.`:'Enter the FBA Shipment ID.',
+      isPartial?`Sending partial units (${maxUnits} available${r.issueQty?`, ${r.issueQty} held for issue`:''}). Enter FBA ID.`:`Enter the FBA Shipment ID.${r.issueQty?` (${maxUnits} sendable — ${r.issueQty} held for issue)`:''}`,
       r.shipType||'Standard',
       (shipId,type,partialUnits)=>{
         const sendQty=(isPartial&&partialUnits)?partialUnits:maxUnits;
@@ -3856,6 +3878,16 @@ function handleStatusChange(id,sel){
     r._dirty=true;
     r.status=val;
     if(val==='In Warehouse'&&(!r.rcvd||r.rcvd===0))r.rcvd=r.exp||0;
+    // Reverse an accidental "In Warehouse"/All-Arrived: if we're leaving
+    // In Warehouse for a status that means "not counted in yet" and the
+    // received qty was auto-filled to expected, clear it back to 0.
+    if(prevStatus==='In Warehouse'&&(val==='Delivered'||val==='In-Transit'||val==='Not Arrived')&&r.rcvd===r.exp&&r.exp>0){
+      r.rcvd=0;
+      debounce(saveKey,()=>{saveRow(r);},300);
+      logAudit('Status',val+' (received reset)');
+      renderPrep();
+      return;
+    }
     debounce(saveKey,()=>{saveRow(r);},300);
     logAudit('Status',val);
     // Update row class in-place without full re-render
@@ -3934,14 +3966,14 @@ function updateBulkUI(){
 }
 function toggleSelectAll(checked){
   if(checked){
-    getFilteredRows().forEach(r=>_selectedIds.add(r.id));
+    getFilteredRows().forEach(r=>_selectedIds.add(r.uuid||r.id));
   }else{
     _selectedIds.clear();
   }
   // Update visible checkboxes
   document.querySelectorAll('.bulk-check').forEach(c=>{
-    const id=parseInt(c.closest('tr').dataset.id);
-    c.checked=_selectedIds.has(id);
+    const rk=c.getAttribute('data-rk');
+    c.checked=_selectedIds.has(rk);
   });
   updateBulkUI();
 }
@@ -3956,7 +3988,7 @@ function doBulkAction(){
   }
   const selected=getSelectedRows();
   selected.forEach(id=>{
-    const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
+    const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
     if(r){
       r.status=action;
       if(action==='In Warehouse'){
@@ -3983,10 +4015,17 @@ function clearBulkSelect(){
 
 // ── SHIPMENT ID MODAL ─────────────────────────────────────────────────────────
 let _shipIdCallback=null;
+let _pendingPrepRender=false;
 function showShipIdModal(title,desc,defaultType,callback,isPartial,maxUnits){
   document.getElementById('shipIdModalTitle').textContent=title;
   document.getElementById('shipIdModalDesc').textContent=desc;
-  document.getElementById('shipIdModalInput').value='';
+  const inp=document.getElementById('shipIdModalInput');
+  inp.value='';
+  inp.style.borderColor='';                       // clear any prior red error border
+  inp.placeholder='e.g. FBA15LPFRNPN';
+  inp.oninput=function(){this.value=this.value.toUpperCase();}; // restore uppercasing
+  const typeFi=document.getElementById('shipIdModalType').closest('.fi');
+  if(typeFi)typeFi.style.display='';              // restore type field (editClaimNote hides it)
   document.getElementById('shipIdModalType').value=defaultType||'Standard';
   // Show/hide partial units field
   const partialRow=document.getElementById('shipIdPartialRow');
@@ -4003,11 +4042,19 @@ function confirmShipIdModal(){
   const id=document.getElementById('shipIdModalInput').value.trim().toUpperCase();
   const type=document.getElementById('shipIdModalType').value;
   if(!id){document.getElementById('shipIdModalInput').style.borderColor='var(--red)';return;}
+  // Detect partial mode from the partial row's actual visibility (robust —
+  // the old .closest('[style*="flex"]') check could miss/throw, which made the
+  // confirm silently no-op on the first click and only work on a retry).
+  const partialRow=document.getElementById('shipIdPartialRow');
   const partialInp=document.getElementById('shipIdPartialUnits');
-  const partialUnits=partialInp&&partialInp.closest('[style*="flex"]')?parseInt(partialInp.value)||null:null;
-  cm('shipIdModal');
-  if(_shipIdCallback)_shipIdCallback(id,type,partialUnits);
+  const isPartialMode=partialRow&&partialRow.style.display!=='none';
+  const partialUnits=(isPartialMode&&partialInp)?(parseInt(partialInp.value)||null):null;
+  // Capture the callback locally BEFORE clearing/closing so nothing can race
+  // it to null between close and invocation.
+  const cb=_shipIdCallback;
   _shipIdCallback=null;
+  cm('shipIdModal');
+  if(cb)cb(id,type,partialUnits);
 }
 // Allow Enter key inside modal input to confirm — deferred so DOM is ready
 document.addEventListener('DOMContentLoaded',()=>{
@@ -4022,7 +4069,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // ── PER-ROW: ALL ARRIVED ──────────────────────────────────────────────────────
 function doAllArrived(id){
-  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));if(!r)return;
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));if(!r)return;
   // Toggle: if already all arrived, undo it
   if(r.rcvd===r.exp&&r.status==='In Warehouse'){
     showConfirm('Undo All Arrived?','Resets Qty Received to 0 and Status back to In-Transit.',()=>{
@@ -4043,14 +4090,17 @@ function doAllArrived(id){
 
 // ── PER-ROW: ALL SHIPPED ──────────────────────────────────────────────────────
 function doAllShipped(id){
-  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));if(!r)return;
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));if(!r)return;
+  const addShipId=(sid)=>{const p=r.allShipIds||[];if(sid&&!p.includes(sid))p.push(sid);r.allShipIds=p;};
   if(r.shipId){
-    r.ship=r.rcvd||r.exp||0;r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
+    addShipId(r.shipId);
+    r.ship=sendableQty(r);r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
     r._dirty=true;saveRow(r);logAudit('All Shipped',`${r.sku} → ${r.shipId}`);
     renderPrep();toast('All shipped ✓ — '+r.sku.split('_')[0]);
   }else{
     showShipIdModal('All Shipped — Enter Shipment ID','No Shipment ID on this row yet. Enter the FBA ID to confirm.',r.shipType||'Standard',(shipId,type)=>{
-      r.ship=r.rcvd||r.exp||0;r.shipId=shipId;r.shipType=type;
+      addShipId(shipId);
+      r.ship=sendableQty(r);r.shipId=shipId;r.shipType=type;
       r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
       r._dirty=true;saveRow(r);logAudit('All Shipped',`${r.sku} → ${shipId}`);
       renderPrep();toast('All shipped ✓ — '+r.sku.split('_')[0]);
@@ -4063,7 +4113,7 @@ function doBulkAllArrived(){
   const selected=getSelectedRows();
   if(!selected.length){toast('No rows selected','er');return;}
   selected.forEach(id=>{
-    const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
+    const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
     if(r){r.rcvd=r.exp||0;r.status='In Warehouse';r.issueType='';r.issueQty=0;r._dirty=true;saveRow(r);logAudit('Bulk All Arrived',r.sku);}
   });
   clearBulkSelect();renderPrep();
@@ -4080,9 +4130,9 @@ function doBulkAllShipped(){
     'Standard',
     (shipId,type)=>{
       selected.forEach(id=>{
-        const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
+        const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
         if(r){
-          r.ship=r.rcvd||r.exp||0;r.shipId=shipId;r.shipType=type;
+          r.ship=sendableQty(r);r.shipId=shipId;r.shipType=type;
           r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
           r._dirty=true;saveRow(r);logAudit('Bulk All Shipped',`${r.sku} → ${shipId} (${type})`);
         }
@@ -4102,12 +4152,15 @@ function doBulkShipId(){
   const selected=getSelectedRows();
   if(!selected.length){toast('No rows selected','er');return;}
   selected.forEach(id=>{
-    const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
+    const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
     if(r){
+      const prevIds=r.allShipIds||[];
+      if(!prevIds.includes(shipId))prevIds.push(shipId);
+      r.allShipIds=prevIds;
       r.shipId=shipId;r.shipType=shipType;
       r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
       // Auto-fill ship qty from rcvd (or exp if rcvd not set)
-      r.ship=r.rcvd||r.exp||0;
+      r.ship=sendableQty(r);
       if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
       r._dirty=true;saveRow(r);logAudit('Bulk Shipment ID',`${r.sku} → ${shipId} (${shipType})`);
     }
@@ -4642,6 +4695,7 @@ function rowToDb(r){
     issue_qty:r.issueQty||0,
     shipped_qty:r.ship||0,
     ship_id:r.shipId||'',
+    all_ship_ids:JSON.stringify(r.allShipIds||[]),
     ship_type:r.shipType||'Standard',
     sent:r.sent||'No',
     sent_date:r.sentDate||null,
@@ -4677,6 +4731,7 @@ function dbToRow(d){
     issueQty:d.issue_qty||0,
     ship:d.shipped_qty||0,
     shipId:d.ship_id||'',
+    allShipIds:(()=>{try{const a=JSON.parse(d.all_ship_ids||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}})(),
     shipType:d.ship_type||'Standard',
     sent:d.sent||'No',
     sentDate:d.sent_date||'',
@@ -4854,7 +4909,18 @@ function setupRealtime(){
     }else if(payload.eventType==='DELETE'){
       rows=rows.filter(x=>x.uuid!==payload.old.id);
     }
-    renderPrep();renderDashboard();updateCB();
+    // If the user is actively editing a cell in the prep table, rebuilding it
+    // now would destroy their input mid-type. Defer the prep re-render until
+    // they click away; still update dashboard/claim badges immediately.
+    const ae=document.activeElement;
+    const editingPrep=ae&&ae.closest&&ae.closest('#page-prep')&&(ae.tagName==='INPUT'||ae.tagName==='SELECT'||ae.tagName==='TEXTAREA');
+    if(editingPrep){
+      _pendingPrepRender=true;
+      ae.addEventListener('blur',()=>{if(_pendingPrepRender){_pendingPrepRender=false;renderPrep();}},{once:true});
+    }else{
+      renderPrep();
+    }
+    renderDashboard();updateCB();
   }).subscribe();
 
   sb.channel('actions').on('postgres_changes',{event:'*',schema:'public',table:'actions'},payload=>{
@@ -4898,8 +4964,9 @@ function openIssueModal(rowId){
   document.getElementById('issueModalInfo').innerHTML=
     `<strong>${r.prod||r.sku}</strong><br>`+
     `<span style="color:var(--text3);">${r.sup} · Expected: ${r.exp} · Received: ${r.rcvd}</span>`;
-  // Show existing open issues
-  const existing=claims.filter(cl=>cl.prepRowId===rowId&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
+  // Show existing open issues (match by uuid or local id for backward compat)
+  const rk=r.uuid||r.id;
+  const existing=claims.filter(cl=>(cl.prepRowId===rk||cl.prepRowId===r.id||cl.prepRowId===r.uuid)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
   document.getElementById('issueLines').innerHTML='';
   if(existing.length){
     existing.forEach(cl=>addIssueLine(cl));
@@ -4947,8 +5014,8 @@ async function saveIssueModal(){
     if(i>20)break;
   }
   if(!lines.length){toast('Add at least one issue type and quantity','er');return;}
-  // Remove old open claims for this row
-  const oldClaims=claims.filter(cl=>cl.prepRowId===_issueRowId&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
+  // Remove old open claims for this row (match by uuid or local id)
+  const oldClaims=claims.filter(cl=>(cl.prepRowId===(r.uuid||r.id)||cl.prepRowId===r.id||cl.prepRowId===r.uuid)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
   for(const oc of oldClaims){
     if(!lines.find(l=>l.uuid===oc.uuid)){
       await sb.from('actions').delete().eq('id',oc.uuid);
@@ -4986,7 +5053,7 @@ async function saveIssueModal(){
 
 
 function editShipIdInline(id,el){
-  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));if(!r)return;
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));if(!r)return;
   const current=r.shipId||'';
   const input=document.createElement('input');
   input.type='text';input.value=current;
@@ -5032,7 +5099,7 @@ function updateIssueFlag(id,hasIssue,issueList){
 }
 
 function undoSentToAmazon(id){
-  const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
   if(!r)return;
   showConfirm('Undo Send to Amazon?',
     `This will revert "${r.sku}" back to "In Warehouse". The shipment ID and sent date will be cleared.`,
