@@ -5031,11 +5031,17 @@ async function saveIssueModal(){
       if(cl){cl.issT=line.type;cl.dif=line.qty;cl.claimValue=cog*line.qty;await saveClaim(cl);}
     } else {
       // Create new
-      const newCl={id:Date.now()+Math.random(),uuid:null,prepRowId:r.uuid||r.id,
+      const newCl={id:Date.now(),uuid:null,prepRowId:r.uuid||r.id,
         date:r.date,raisedAt:todayISO(),sup:r.sup,oid:r.oid,prod:r.prod,sku:r.sku,asin:r.asin,
         issT:line.type,exp:r.exp,rec:r.rcvd,dif:line.qty,cost:cog,claimValue:cog*line.qty,
         cst:'Open',notes:'',log:[]};
       const res=await sb.from('actions').insert(claimToDb(newCl)).select().single();
+      if(res.error){
+        console.error('Issue insert error:',res.error.message,res.error.details,res.error.hint);
+        toast('Issue save failed: '+res.error.message,'er');
+        setSyncStatus('error');
+        return;
+      }
       if(res.data){newCl.uuid=res.data.id;newCl.id=res.data.id;}
       claims.push(newCl);
     }
