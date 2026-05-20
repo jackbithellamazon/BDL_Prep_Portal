@@ -963,6 +963,7 @@ html.light-mode{
           <option value="Missing">Missing</option>
           <option value="Damaged">Damaged</option>
           <option value="Incorrect">Incorrect</option>
+          <option value="Gated">Gated</option>
         </select>
       </div>
       <div class="fi"><label class="fl">Issue Qty</label><input class="fi-in" type="number" id="f-issueQty" placeholder="0"></div>
@@ -1760,11 +1761,13 @@ function tbq(){document.getElementById('bqG').style.display=document.getElementB
 function openAdd(){
   editId=null;document.getElementById('addTitle').textContent='Add New Row';
   clearForm();document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
+  const db=document.getElementById('deleteEditBtn');if(db)db.style.display='none';
   om('addModal');
 }
 function openEdit(id){
   const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));if(!r)return;
   editId=id;document.getElementById('addTitle').textContent='Edit Row';
+  const db=document.getElementById('deleteEditBtn');if(db)db.style.display='';
   clearForm();
   // populate date
   if(r.date){const[dd,mm]=r.date.split('/');document.getElementById('f-date').value=`2026-${(mm||'01').padStart(2,'0')}-${(dd||'01').padStart(2,'0')}`;}  
@@ -1875,7 +1878,7 @@ function deleteEditRow(){
     `Permanently delete "${r.sku}" from the prep sheet. This cannot be undone.`,
     async()=>{
       await deleteRow(r);
-      rows=rows.filter(x=>x.id!==editId);
+      rows=rows.filter(x=>!((r.uuid&&x.uuid===r.uuid)||String(x.id)===String(editId)||x.uuid===String(editId)));
       editId=null;
       cm('addModal');
       renderPrep();
@@ -4093,12 +4096,14 @@ function doAllShipped(id){
   const addShipId=(sid)=>{const p=r.allShipIds||[];if(sid&&!p.includes(sid))p.push(sid);r.allShipIds=p;};
   if(r.shipId){
     addShipId(r.shipId);
+    if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;       // assume all arrived unless told otherwise
     r.ship=sendableQty(r);r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
     r._dirty=true;saveRow(r);logAudit('All Shipped',`${r.sku} → ${r.shipId}`);
     renderPrep();toast('All shipped ✓ — '+r.sku.split('_')[0]);
   }else{
     showShipIdModal('All Shipped — Enter Shipment ID','No Shipment ID on this row yet. Enter the FBA ID to confirm.',r.shipType||'Standard',(shipId,type)=>{
       addShipId(shipId);
+      if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;       // assume all arrived unless told otherwise
       r.ship=sendableQty(r);r.shipId=shipId;r.shipType=type;
       r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
       r._dirty=true;saveRow(r);logAudit('All Shipped',`${r.sku} → ${shipId}`);
@@ -4992,6 +4997,7 @@ function addIssueLine(existing=null){
       <option value="Missing"${existing?.issT==='Missing'?' selected':''}>Missing</option>
       <option value="Damaged"${existing?.issT==='Damaged'?' selected':''}>Damaged</option>
       <option value="Incorrect"${existing?.issT==='Incorrect'?' selected':''}>Incorrect</option>
+      <option value="Gated"${existing?.issT==='Gated'?' selected':''}>Gated</option>
     </select>
     <div style="position:relative;">
       <input type="number" id="il-qty-${idx}" class="fi-in" min="1" value="${existing?.dif||''}" placeholder="Qty" style="font-size:12px;padding-right:24px;">
@@ -5060,6 +5066,30 @@ async function saveIssueModal(){
   renderClaims();
   toast(`✓ ${lines.length} issue${lines.length!==1?'s':''} raised`);
   logAudit('Issue raised',r.sku+' — '+lines.map(l=>l.type+' '+l.qty+'u').join(', '));
+}
+
+async function clearAllIssues(){
+  const r=rows.find(x=>x.uuid===String(_issueRowId)||String(x.id)===String(_issueRowId));
+  if(!r){toast('Row not found','er');return;}
+  showConfirm('Clear all issues on this SKU?',
+    `Removes the issue flag and any issue records for "${r.sku}". Use this if an issue was raised by mistake. This cannot be undone.`,
+    async()=>{
+      // Delete every claim linked to this row (by uuid or local id)
+      const rk=r.uuid||r.id;
+      const toRemove=claims.filter(cl=>cl.prepRowId===rk||cl.prepRowId===r.id||cl.prepRowId===r.uuid);
+      for(const cl of toRemove){
+        if(cl.uuid){try{await sb.from('actions').delete().eq('id',cl.uuid);}catch(e){console.error('delete claim',e);}}
+      }
+      claims=claims.filter(cl=>!(cl.prepRowId===rk||cl.prepRowId===r.id||cl.prepRowId===r.uuid));
+      // Clear the prep-row flag
+      r.issueType='';r.issueQty=0;r._dirty=true;
+      await saveRow(r);
+      cm('issueModal');
+      renderPrep();renderClaims();updateCB();
+      toast('Issues cleared ✓');
+      logAudit('Issues cleared',r.sku);
+    }
+  );
 }
 
 
@@ -5231,6 +5261,7 @@ async function saveBulkReturns(){
     const match=rows.find(r=>r.sku===sku);
     const obj={uuid:null,sku,asin:match?.asin||'',prod:match?.prod||'',cog,units:1,notes:''};
     const res=await sb.from('returns_skus').insert({sku:obj.sku,asin:obj.asin,product_name:obj.prod,cog:obj.cog,units:obj.units,notes:obj.notes}).select().single();
+    if(res.error){console.error('Bulk return SKU insert error:',res.error);toast('Save failed for '+sku+': '+res.error.message,'er');continue;}
     if(res.data)obj.uuid=res.data.id;
     returnSkus.push(obj);
     added++;
@@ -5242,6 +5273,7 @@ async function saveBulkReturns(){
 }
 
 function openAddReturn(){
+  _retEditId=null;
   document.getElementById('returnModalTitle').textContent='Add Return SKU';
   document.getElementById('ret-sku').value='';
   document.getElementById('ret-asin').value='';
@@ -5298,14 +5330,18 @@ async function saveReturnSku(){
   if(_retEditId){
     const i=returnSkus.findIndex(x=>x.uuid===_retEditId);
     if(i>=0)returnSkus[i]=obj;
-    await sb.from('returns_skus').update({sku:obj.sku,asin:obj.asin,product_name:obj.prod,cog:obj.cog,units:obj.units,notes:obj.notes}).eq('id',obj.uuid);
+    const upd=await sb.from('returns_skus').update({sku:obj.sku,asin:obj.asin,product_name:obj.prod,cog:obj.cog,units:obj.units,notes:obj.notes}).eq('id',obj.uuid);
+    if(upd.error){console.error('Return SKU update error:',upd.error);toast('Save failed: '+upd.error.message,'er');return;}
   }else{
     const res=await sb.from('returns_skus').insert({sku:obj.sku,asin:obj.asin,product_name:obj.prod,cog:obj.cog,units:obj.units,notes:obj.notes}).select().single();
+    if(res.error){console.error('Return SKU insert error:',res.error);toast('Save failed: '+res.error.message,'er');return;}
     if(res.data)obj.uuid=res.data.id;
     returnSkus.push(obj);
   }
+  const wasEdit=!!_retEditId;
+  _retEditId=null;
   cm('returnModal');renderReturns();
-  toast(`✓ Return SKU ${_retEditId?'updated':'added'}`);
+  toast(`✓ Return SKU ${wasEdit?'updated':'added'}`);
 }
 
 async function deleteReturnSku(uuid){
@@ -5837,9 +5873,12 @@ setInterval(updateClock,30000);
       <div id="issueLines" style="display:flex;flex-direction:column;gap:8px;"></div>
       <button onclick="addIssueLine()" style="margin-top:10px;padding:5px 12px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">+ Add Another Issue</button>
     </div>
-    <div class="mf">
-      <button class="btn-cancel" onclick="cm('issueModal')">Cancel</button>
-      <button class="btn-save" onclick="saveIssueModal()">Raise Issue(s)</button>
+    <div class="mf" style="justify-content:space-between;">
+      <button id="clearIssuesBtn" onclick="clearAllIssues()" style="padding:6px 14px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Clear All Issues</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-cancel" onclick="cm('issueModal')">Cancel</button>
+        <button class="btn-save" onclick="saveIssueModal()">Raise Issue(s)</button>
+      </div>
     </div>
   </div>
 </div>
