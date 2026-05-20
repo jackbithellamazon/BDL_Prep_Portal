@@ -756,6 +756,7 @@ html.light-mode{
       </div>
       <select class="fsel" id="claimStF" onchange="filterClaims()">
         <option value="">All Statuses</option>
+        <option>Issue</option>
         <option>Open</option>
         <option>Chasing</option>
         <option>Resolved</option>
@@ -1046,6 +1047,7 @@ html.light-mode{
       <div class="fi"><label class="fl">Date Raised</label><input class="fi-in" type="date" id="cl-date"></div>
       <div class="fi"><label class="fl">Supplier / Retailer</label><input class="fi-in" type="text" id="cl-sup" placeholder="e.g. Currys, Argos, Amazon UK"></div>
       <div class="fi"><label class="fl">Order ID</label><input class="fi-in" type="text" id="cl-oid" placeholder="Order reference"></div>
+      <div class="fi"><label class="fl">Account (from Purchase Sheet col L)</label><input class="fi-in" type="text" id="cl-acct" placeholder="e.g. BDL Main, Biz 01"></div>
       <div class="fi"><label class="fl">Product Name</label><input class="fi-in" type="text" id="cl-prod" placeholder="Product description"></div>
       <div class="fi"><label class="fl">SKU</label><input class="fi-in" type="text" id="cl-sku" placeholder="SKU"></div>
       <div class="fi"><label class="fl">ASIN</label><input class="fi-in" type="text" id="cl-asin" placeholder="B0XXXXXXXXX"></div>
@@ -1070,6 +1072,8 @@ html.light-mode{
         </select>
       </div>
       <div class="fi full"><label class="fl">Issue Description / Notes</label><textarea class="fi-in" id="cl-notes" placeholder="Describe the issue…" style="height:70px;"></textarea></div>
+      <div class="fi"><label class="fl">Refund / Credit Received (£)</label><input class="fi-in" type="number" id="cl-refund" placeholder="0.00" step="0.01"></div>
+      <div class="fi"><label class="fl">Chasing Since (date)</label><input class="fi-in" type="date" id="cl-chasing"></div>
     </div></div>
     <div class="mf">
       <button class="btn-cancel" onclick="cm('addClaimModal')">Cancel</button>
@@ -1461,8 +1465,10 @@ function getMonthRange(){
 }
 function allSentRows(){
   return[
-    ...rows.filter(r=>r.sent==='Yes'&&r.sentDate).map(r=>({...r,isoDate:r.sentDate,units:r.ship||0})),
-    ...completed.map(r=>({...r,isoDate:r.dsISO,units:r.shi||0}))
+    ...rows.filter(r=>(r.sent==='Yes'||r.status==='Part Sent')&&r.sentDate).map(r=>({...r,isoDate:r.sentDate,units:r.ship||0})),
+    ...completed.map(r=>({...r,isoDate:r.dsISO,units:r.shi||0})),
+    ...lavShipments.filter(s=>s.date).map(s=>({isoDate:s.date,units:s.units||0,sku:s.sku||'',asin:s.asin||''})),
+    ...returnShipments.filter(s=>s.date).map(s=>({isoDate:s.date,units:s.units||0,sku:s.sku||''}))
   ];
 }
 function unitsSentInRange(s,e){
@@ -1492,7 +1498,7 @@ function renderStats(){
   const sentWeekUnits=sentWeekRows.reduce((a,r)=>a+(r.ship||0),0)+lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).reduce((a,s)=>a+(s.units||0),0);
   const sentWeekSkus=sentWeekRows.length+lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).length;
   const sentWeekAsins=new Set([...sentWeekRows.map(r=>r.asin),...lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).map(s=>s.asin)]).size;
-  const sentTodayUnits=rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).reduce((a,r)=>a+(r.ship||0),0)+lavShipments.filter(s=>s.date===todayStr).reduce((a,s)=>a+(s.units||0),0);
+  const sentTodayUnits=allSentRows().filter(r=>r.isoDate===todayStr).reduce((a,r)=>a+(r.units||0),0);
   const sentTodaySkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).length+lavShipments.filter(s=>s.date===todayStr).length;
 
   const mk=(label,val,sub,col)=>`<div class="stat" style="border-top:3px solid ${col};">
@@ -1963,10 +1969,10 @@ function doClaim(){
     prepRowId:r.uuid||r.id, // link back to prep row by unique uuid
     date:r.date,raisedAt:todayISO(),
     sku:r.sku,asin:r.asin,
-    sup:r.sup,oid:r.oid||'',prod:r.prod||'',
+    sup:r.sup,oid:r.oid||'',prod:r.prod||'',acct:r.acct||'',
     issT:it,exp:r.exp,rec:r.rcvd,dif,
     cost,claimValue:cost*dif,
-    cst:'Open',notes:initNote,
+    cst:'Issue',notes:initNote,
     log:[{t:getNowUK(),msg:'Action raised from Prep Sheet'+(initNote?` — ${initNote}`:'')}],
   });
   logAudit('Action raised',r.sku);
@@ -1988,6 +1994,9 @@ let claimEditId=null;
 let _claimLogId=null;
 
 function openAddClaim(){
+  document.getElementById('cl-refund').value='';
+  document.getElementById('cl-chasing').value='';
+  if(document.getElementById('cl-acct'))document.getElementById('cl-acct').value='';
   claimEditId=null;
   document.getElementById('addClaimTitle').textContent='Raise Action';
   document.getElementById('cl-date').value=todayISO();
@@ -2000,12 +2009,13 @@ function openAddClaim(){
   om('addClaimModal');
 }
 function openEditClaim(id){
-  const c=claims.find(x=>x.id===id);if(!c)return;
+  const c=claims.find(x=>String(x.id)===String(id));if(!c)return;
   claimEditId=id;
   document.getElementById('addClaimTitle').textContent='Edit Action';
   document.getElementById('cl-date').value=c.raisedAt||todayISO();
   document.getElementById('cl-sup').value=c.sup||'';
   document.getElementById('cl-oid').value=c.oid||'';
+  if(document.getElementById('cl-acct'))document.getElementById('cl-acct').value=c.acct||'';
   document.getElementById('cl-prod').value=c.prod||'';
   document.getElementById('cl-sku').value=c.sku||'';
   document.getElementById('cl-asin').value=c.asin||'';
@@ -2015,6 +2025,8 @@ function openEditClaim(id){
   document.getElementById('cl-cost').value=c.cost||'';
   document.getElementById('cl-cst').value=c.cst||'Open';
   document.getElementById('cl-notes').value=c.notes||'';
+  document.getElementById('cl-refund').value=c.refund||'';
+  document.getElementById('cl-chasing').value=c.chasingDate||'';
   om('addClaimModal');
 }
 function saveClaimForm(){
@@ -2035,9 +2047,12 @@ function saveClaimForm(){
     exp,rec,dif,cost,claimValue:cost*dif,
     cst:document.getElementById('cl-cst').value,
     notes:document.getElementById('cl-notes').value.trim(),
+    refund:parseFloat(document.getElementById('cl-refund').value)||0,
+    chasingDate:document.getElementById('cl-chasing').value||'',
+    acct:(document.getElementById('cl-acct')||{}).value?.trim()||'',
     log:claimEditId?(claims.find(x=>x.id===claimEditId)||{}).log||[]:[{t:getNowUK(),msg:'Claim created'}],
   };
-  if(claimEditId){const i=claims.findIndex(x=>x.id===claimEditId);if(i>=0)claims[i]=obj;}
+  if(claimEditId){const i=claims.findIndex(x=>String(x.id)===String(claimEditId));if(i>=0)claims[i]=obj;}
   else claims.unshift(obj);
   saveClaim(obj);
   cm('addClaimModal');renderClaims();updateCB();
@@ -2047,6 +2062,7 @@ function saveClaimForm(){
 
 function openClaimLog(id){
   _claimLogId=id;
+  id=String(id);
   const c=claims.find(x=>x.id===id);if(!c)return;
   document.getElementById('claimLogTitle').textContent=`Contact Log — ${c.sup}`;
   document.getElementById('claimLogInput').value='';
@@ -2065,7 +2081,7 @@ function renderClaimLog(c){
 function addClaimLog(){
   const msg=document.getElementById('claimLogInput').value.trim();
   if(!msg)return;
-  const c=claims.find(x=>x.id===_claimLogId);if(!c)return;
+  const c=claims.find(x=>String(x.id)===String(_claimLogId));if(!c)return;
   if(!c.log)c.log=[];
   c.log.push({t:getNowUK(),msg});
   saveClaim(c);
@@ -2083,9 +2099,7 @@ function renderClaims(){
     (!q||(r.sku+r.asin+r.sup+r.prod+r.oid).toLowerCase().includes(q))&&
     (!sf||r.cst===sf)
   );
-
   updateCB();
-
   if(!d.length){
     el.innerHTML=`<div class="empty"><div class="empty-ico">✅</div><div class="empty-t">${q||sf?'No actions match your search':'No open actions — raise one from the Prep Sheet or use the button above'}</div></div>`;
     return;
@@ -2096,105 +2110,188 @@ function renderClaims(){
   const openCount=d.filter(c=>c.cst==='Open').length;
   const chasingCount=d.filter(c=>c.cst==='Chasing').length;
   const resolvedCount=d.filter(c=>c.cst==='Resolved').length;
-  const totalUnitsAffected=d.filter(c=>c.cst!=='Resolved').reduce((a,c)=>a+(c.dif||0),0);
+  const totalUnits=d.filter(c=>c.cst!=='Resolved').reduce((a,c)=>a+(c.dif||0),0);
+
+  const issueCount=d.filter(c=>c.cst==='Issue').length;
+  const openOnlyCount=d.filter(c=>c.cst==='Open').length;
+
+  const tile=(label,val,col,sub)=>`<div style="background:${col}14;border:3px solid ${col}88;border-radius:8px;padding:12px 14px;flex:1;min-width:90px;">
+    <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-weight:700;">${label}</div>
+    <div style="font-size:26px;font-weight:900;font-family:var(--mono);color:${col};line-height:1;">${val}</div>
+    ${sub?`<div style="font-size:9px;color:#94a3b8;margin-top:4px;font-weight:600;">${sub}</div>`:''}
+  </div>`;
 
   el.innerHTML=`
-    <!-- Summary -->
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;">
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
-        <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Total</div>
-        <div style="font-size:22px;font-weight:900;font-family:var(--mono);color:var(--text);">${d.length}</div>
-      </div>
-      <div style="background:var(--bg2);border:1px solid rgba(248,113,113,.3);border-radius:8px;padding:10px;text-align:center;">
-        <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Open</div>
-        <div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${openCount>0?'#f87171':'#4ade80'};">${openCount}</div>
-      </div>
-      <div style="background:var(--bg2);border:1px solid rgba(251,146,60,.3);border-radius:8px;padding:10px;text-align:center;">
-        <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Chasing</div>
-        <div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${chasingCount>0?'#fb923c':'var(--text3)'};">${chasingCount}</div>
-      </div>
-      <div style="background:var(--bg2);border:1px solid rgba(74,222,128,.3);border-radius:8px;padding:10px;text-align:center;">
-        <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Resolved</div>
-        <div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#4ade80;">${resolvedCount}</div>
-      </div>
-      <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:10px;text-align:center;">
-        <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Value at Risk</div>
-        <div style="font-size:18px;font-weight:900;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(totalVal)}</div>
-      </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      ${tile('Issue',issueCount,'#ff6b6b',issueCount>0?'Raised — not yet contacted':'')}
+      ${tile('Open',openOnlyCount,'#f97316',openOnlyCount>0?'Contacted once':'')}
+      ${tile('Chasing',chasingCount,'#fbbf24',chasingCount>0?'Awaiting reply':'')}
+      ${tile('Resolved',resolvedCount,'#4ade80',resolvedCount>0?'Done':'All clear')}
+      ${tile('Value at Risk',fmtGBP2(totalVal),'#fbbf24',totalUnits+' units affected')}
     </div>
 
-    <!-- Claims list -->
     ${d.map(c=>{
-      const statusCol=c.cst==='Open'?'#f87171':c.cst==='Chasing'?'#fb923c':c.cst==='Resolved'?'#4ade80':'var(--text3)';
-      const logCount=(c.log||[]).length;
-      return`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      const skuParsed=parseSKU(c.sku);
+      const statusCol=c.cst==='Issue'?'#ff6b6b':c.cst==='Open'?'#f97316':c.cst==='Chasing'?'#fbbf24':c.cst==='Resolved'?'#4ade80':'#64748b';
+      const borderCol=c.cst==='Issue'?'#ff6b6b':c.cst==='Open'?'#f97316':c.cst==='Chasing'?'#fbbf24':c.cst==='Resolved'?'#4ade80':'var(--border)';
+      const allLog=c.log||[];
+      // Split log into status changes vs contact entries
+      const statusLog=allLog.filter(e=>(e.msg||'').startsWith('Status changed'));
+      const contactLog=allLog.filter(e=>!(e.msg||'').startsWith('Status changed')&&!(e.msg||'').startsWith('Action raised')&&!(e.msg||'').startsWith('Claim created'));
+      const isHighValue=(c.claimValue||0)>=50;
+      const account=c.acct||'';
+      const cogUnit=c.cost||skuParsed.cogs||0;
+      const daysOpen=c.raisedAt?(()=>{const d=new Date(c.raisedAt),now=new Date();return Math.floor((now-d)/864e5);})()||0:0;
+      return`<div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid ${borderCol};border-radius:8px;margin-bottom:14px;overflow:hidden;">
 
-          <!-- Left: core info -->
-          <div style="flex:1;min-width:200px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
-              <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;background:${statusCol}22;color:${statusCol};border:1px solid ${statusCol}44;">${c.cst}</span>
-              <span style="font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(255,85,85,.1);color:#ff9999;border:1px solid rgba(255,85,85,.2);">${c.issT}</span>
-              ${c.prepRowId?`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:var(--btn-blue-bg);color:var(--btn-blue-text);border:1px solid var(--btn-blue-border);">From Prep Sheet</span>`:''}
-              <span style="font-size:10px;color:var(--text3);">${c.date||c.raisedAt||'—'}</span>
-            </div>
-            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">${c.prod||c.sku||'—'}</div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
-              <span style="font-size:11px;color:var(--accent);font-weight:700;">${c.sup}</span>
-              ${c.oid?`<span style="font-size:10px;color:var(--text3);">Order: ${c.oid}</span>`:''}
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <span class="s-sku" onclick="copyVal('${c.sku}',this)" style="display:inline-flex;font-size:9px;">${c.sku}</span>
-              ${c.asin?`<span class="s-asin" onclick="copyVal('${c.asin}',this)" style="display:inline-flex;font-size:9px;">${c.asin}</span>`:''}
-            </div>
+        <!-- ── TOP STRIP: status badges + meta ─────────────────────────────── -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:${statusCol}0d;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:11px;font-weight:900;padding:4px 12px;border-radius:4px;background:${statusCol};color:#0f172a;letter-spacing:.04em;">${c.cst.toUpperCase()}</span>
+            <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;background:rgba(255,255,255,.08);color:#e2e8f0;">${c.issT||'Issue'}</span>
+            ${isHighValue?`<span style="font-size:9px;font-weight:800;padding:3px 8px;border-radius:4px;background:#fbbf2422;color:#fbbf24;border:1px solid #fbbf2444;">⚡ HIGH VALUE</span>`:''}
+            ${c.prepRowId?`<span style="font-size:9px;padding:3px 8px;border-radius:4px;background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.25);">⬆ From Prep Sheet</span>`:''}
           </div>
-
-          <!-- Middle: quantities -->
-          <div style="display:flex;gap:16px;align-items:center;">
-            <div style="text-align:center;">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Expected</div>
-              <div style="font-size:20px;font-weight:900;font-family:var(--mono);color:var(--blue);">${c.exp||0}</div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="text-align:right;">
+              <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:1px;">Raised</div>
+              <div style="font-size:11px;font-weight:700;color:#cbd5e1;">${c.date||c.raisedAt||'—'}${daysOpen>0?` <span style="color:#94a3b8;">(${daysOpen}d ago)</span>`:''}</div>
             </div>
-            <div style="text-align:center;">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Received</div>
-              <div style="font-size:20px;font-weight:900;font-family:var(--mono);color:var(--text);">${c.rec||0}</div>
-            </div>
-            <div style="text-align:center;">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">${c.issT||'Affected'}</div>
-              <div style="font-size:20px;font-weight:900;font-family:var(--mono);color:#f87171;">${c.dif||0} units</div>
-            </div>
-            <div style="text-align:center;">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Claim Value</div>
-              <div style="font-size:16px;font-weight:900;font-family:var(--mono);color:#ffaa33;">${fmtGBP(c.claimValue||0)}</div>
-            </div>
-          </div>
-
-          <!-- Right: actions -->
-          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
-            <select class="ci-sel" onchange="updateClaimSt(${c.id},this.value)" style="font-size:11px;padding:4px 8px;">
-              ${['Open','Chasing','Resolved'].map(s=>`<option${c.cst===s?' selected':''}>${s}</option>`).join('')}
-            </select>
-            <div style="display:flex;gap:4px;">
-              ${c.cst!=='Resolved'?`<button onclick="resolveIssue(${c.id})" style="padding:4px 10px;background:rgba(74,222,128,.15);border:1px solid #4ade80;color:#4ade80;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;">✓ Resolve</button>`:''}
-              <button onclick="openClaimLog(${c.id})" style="padding:4px 8px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">
-                📋 Log ${logCount>0?`(${logCount})`:''}
-              </button>
-              <button onclick="removeIssue(${c.id})" style="padding:4px 8px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:10px;cursor:pointer;" title="Remove issue — clears from prep row too">✕</button>
+            <div style="text-align:right;">
+              <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:1px;">Claim Value</div>
+              <div style="font-size:16px;font-weight:900;font-family:var(--mono);color:${(c.claimValue||0)>0?'#fbbf24':'#475569'};">${fmtGBP2(c.claimValue||0)}</div>
             </div>
           </div>
         </div>
 
-        <!-- Notes -->
-        ${c.notes?`<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text2);">📝 ${c.notes}</div>`:''}
+        <!-- ── MAIN BODY ───────────────────────────────────────────────────── -->
+        <div style="display:grid;grid-template-columns:1fr 220px;min-height:0;">
 
-        <!-- Latest log entry -->
-        ${c.log&&c.log.length?`<div style="margin-top:6px;font-size:10px;color:var(--text3);">Latest: ${c.log[c.log.length-1].msg} <span style="color:var(--border2);">· ${c.log[c.log.length-1].t}</span></div>`:''}
+          <!-- LEFT: all the product + order detail -->
+          <div style="padding:12px 14px;border-right:1px solid var(--border);">
+
+            <!-- Product name -->
+            <div style="font-size:13px;font-weight:800;color:#f1f5f9;margin-bottom:10px;line-height:1.3;">${c.prod||c.sku||'—'}</div>
+
+            <!-- Order info row -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid rgba(255,255,255,.06);">
+              ${c.sup?`<div>
+                <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;font-weight:700;">Supplier</div>
+                <div style="font-size:12px;font-weight:800;color:#38bdf8;">${c.sup}</div>
+              </div>`:'<div></div>'}
+              ${c.oid?`<div>
+                <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;font-weight:700;">Order ID</div>
+                <div style="font-size:12px;font-weight:700;color:#e2e8f0;font-family:var(--mono);">${c.oid}</div>
+              </div>`:'<div></div>'}
+              ${account?`<div>
+                <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;font-weight:700;">Purchase Acct</div>
+                <div style="font-size:12px;font-weight:800;color:#c084fc;">${account}</div>
+              </div>`:'<div></div>'}
+              <div>
+                <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;font-weight:700;">COG / Unit</div>
+                <div style="font-size:12px;font-weight:800;color:#fbbf24;font-family:var(--mono);">${fmtGBP2(cogUnit)}</div>
+              </div>
+            </div>
+
+            <!-- SKU + ASIN chips -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+              <span class="s-sku" onclick="copyVal('${c.sku}',this)" style="display:inline-flex;font-size:9px;">${c.sku||'—'}</span>
+              ${c.asin?`<span class="s-asin" onclick="copyVal('${c.asin}',this)" style="display:inline-flex;font-size:9px;">${c.asin}</span>`:''}
+            </div>
+
+            <!-- Units bar -->
+            <div style="display:flex;align-items:stretch;gap:0;border:1px solid rgba(255,255,255,.08);border-radius:6px;overflow:hidden;margin-bottom:8px;">
+              <div style="flex:1;padding:7px 8px;background:rgba(96,165,250,.08);text-align:center;border-right:1px solid rgba(255,255,255,.06);">
+                <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-weight:700;">Expected</div>
+                <div style="font-size:24px;font-weight:900;font-family:var(--mono);color:#60a5fa;line-height:1;">${c.exp||0}</div>
+              </div>
+              <div style="display:flex;align-items:center;padding:0 10px;color:#334155;font-size:18px;">→</div>
+              <div style="flex:1;padding:7px 8px;background:rgba(255,255,255,.04);text-align:center;border-right:1px solid rgba(255,255,255,.06);">
+                <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-weight:700;">Received</div>
+                <div style="font-size:24px;font-weight:900;font-family:var(--mono);color:#e2e8f0;line-height:1;">${c.rec||0}</div>
+              </div>
+              <div style="display:flex;align-items:center;padding:0 10px;color:#334155;font-size:18px;">→</div>
+              <div style="flex:1;padding:7px 8px;background:rgba(248,113,113,.08);text-align:center;border-right:1px solid rgba(255,255,255,.06);">
+                <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-weight:700;">${c.issT||'Affected'}</div>
+                <div style="font-size:24px;font-weight:900;font-family:var(--mono);color:#f87171;line-height:1;">${c.dif||0}</div>
+              </div>
+              <div style="flex:1.2;padding:7px 10px;background:rgba(251,191,36,.07);text-align:center;">
+                <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-weight:700;">£ at Risk</div>
+                <div style="font-size:18px;font-weight:900;font-family:var(--mono);color:#fbbf24;line-height:1;">${fmtGBP2((c.dif||0)*(cogUnit||0))}</div>
+              </div>
+            </div>
+
+            <!-- Notes -->
+            ${c.notes?`<div style="padding:10px 12px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.18);border-radius:6px;margin-bottom:12px;">
+              <div style="font-size:8px;font-weight:800;color:#fbbf24;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">📝 Notes</div>
+              <div style="font-size:12px;color:#e2e8f0;line-height:1.5;">${c.notes}</div>
+            </div>`:''}
+
+            <!-- Contact Log section -->
+            <div style="border:1px solid rgba(255,255,255,.07);border-radius:6px;overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,.04);border-bottom:${contactLog.length>0?'1px solid rgba(255,255,255,.07)':'none'};">
+                <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;">📋 Contact Log <span style="color:#475569;font-weight:600;">(${contactLog.length} entr${contactLog.length===1?'y':'ies'})</span></div>
+                <button onclick="openClaimLog('${c.id}')" style="font-size:9px;padding:3px 8px;background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);color:#60a5fa;border-radius:4px;cursor:pointer;font-weight:700;">+ Add Entry</button>
+              </div>
+              ${contactLog.length>0?`<div style="padding:8px 12px;display:flex;flex-direction:column;gap:6px;">
+                ${contactLog.slice().reverse().map(e=>`<div style="display:flex;gap:12px;align-items:flex-start;padding:6px 8px;background:rgba(255,255,255,.03);border-radius:4px;border-left:2px solid #3b82f6;">
+                  <span style="font-size:10px;color:#60a5fa;white-space:nowrap;font-family:var(--mono);font-weight:700;padding-top:1px;">${e.t||''}</span>
+                  <span style="font-size:12px;color:#e2e8f0;flex:1;line-height:1.4;">${e.msg||''}</span>
+                </div>`).join('')}
+              </div>`:`<div style="padding:12px;text-align:center;font-size:11px;color:#475569;">No contact entries yet — add one when you've contacted the supplier</div>`}
+            </div>
+
+          </div>
+
+          <!-- RIGHT: action panel -->
+          <div style="padding:10px;display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.01);">
+
+            <!-- Status control -->
+            <div style="padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;">
+              <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Status</div>
+              <select class="ci-sel" onchange="updateClaimSt('${c.id}',this.value)" style="font-size:12px;padding:7px 10px;width:100%;font-weight:700;border-radius:5px;background:${statusCol}22;color:${statusCol};border:1px solid ${statusCol}55;">
+                ${['Issue','Open','Chasing','Resolved'].map(s=>`<option${c.cst===s?' selected':''}>${s}</option>`).join('')}
+              </select>
+              <!-- Status history pills -->
+              ${statusLog.length>0?`<div style="margin-top:8px;display:flex;flex-direction:column;gap:3px;">
+                <div style="font-size:8px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Status History</div>
+                ${statusLog.slice().reverse().slice(0,4).map(e=>`<div style="display:flex;gap:6px;align-items:center;">
+                  <span style="font-size:9px;color:#94a3b8;font-family:var(--mono);white-space:nowrap;font-weight:600;">${e.t||''}</span>
+                  <span style="font-size:11px;color:#cbd5e1;">${(e.msg||'').replace('Status changed to: ','→ ')}</span>
+                </div>`).join('')}
+              </div>`:''}
+            </div>
+
+            <!-- Action buttons -->
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              ${c.cst!=='Resolved'?`<button onclick="resolveIssue('${c.id}')" style="padding:7px 10px;background:rgba(74,222,128,.15);border:1px solid #4ade8066;color:#4ade80;border-radius:5px;font-size:11px;font-weight:800;cursor:pointer;text-align:center;">✓ Mark Resolved</button>`:''}
+              <button onclick="openEditAction('${c.id}')" style="padding:7px 10px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.3);color:#60a5fa;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">✏️ Edit Details</button>
+              <button onclick="removeIssue('${c.id}')" style="padding:7px 10px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:#f87171;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">🗑 Delete</button>
+            </div>
+
+            <!-- Quick stats -->
+            <div style="padding:8px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:6px;margin-top:auto;">
+              <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:6px;">Summary</div>
+              ${[
+                ['Issue type',c.issT||'—','#e2e8f0'],
+                ['Units affected',String(c.dif||0),'#f87171'],
+                ['COG/unit',fmtGBP2(cogUnit),'#fbbf24'],
+                ['Total at risk',fmtGBP2((c.dif||0)*(cogUnit||0)),'#fbbf24'],
+                ['Contact entries',String(contactLog.length),'#60a5fa'],
+              ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+                <span style="font-size:10px;color:#94a3b8;">${l}</span>
+                <span style="font-size:11px;font-weight:700;color:${col};font-family:var(--mono);">${v}</span>
+              </div>`).join('')}
+            </div>
+
+          </div>
+        </div>
       </div>`;
     }).join('')}`;
 }
 function filterClaims(){renderClaims();}
 async function resolveIssue(id){
-  const c=claims.find(x=>x.id===id);
+  const c=claims.find(x=>String(x.id)===String(id));
   if(!c)return;
   c.cst='Resolved';
   await saveClaim(c);
@@ -2209,7 +2306,7 @@ async function resolveIssue(id){
 }
 
 async function removeIssue(id){
-  const c=claims.find(x=>x.id===id);
+  const c=claims.find(x=>String(x.id)===String(id));
   if(!c)return;
   showConfirm('Remove this issue?','This will delete the issue from the Actions page and clear the red flag on the prep row.',async()=>{
     await deleteClaim_db(c);
@@ -2224,8 +2321,9 @@ async function removeIssue(id){
   });
 }
 
+function openEditAction(id){const c=claims.find(x=>String(x.id)===String(id));if(!c)return;openEditClaim(c.id);}
 function updateClaimSt(id,v){
-  const c=claims.find(x=>x.id===id);
+  const c=claims.find(x=>String(x.id)===String(id));
   if(c){
     c.cst=v;
     if(!c.log)c.log=[];
@@ -2296,19 +2394,27 @@ function renderDashboard(){
 
   // ── SENT CALCS ───────────────────────────────────────────────────────────────
   function calcSentStock(isoDate){
-    const sent=rows.filter(r=>r.sent==='Yes'&&r.sentDate===isoDate);
-    return{units:sent.reduce((a,r)=>a+(r.ship||0),0),value:sent.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||0)),0),skus:sent.length};
+    const sent=allSentRows().filter(r=>r.isoDate===isoDate);
+    const stockOnly=[...rows.filter(r=>r.sent==='Yes'&&r.sentDate===isoDate),...completed.filter(r=>r.dsISO===isoDate)];
+    return{units:sent.reduce((a,r)=>a+(r.units||r.ship||r.shi||0),0),value:stockOnly.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||r.shi||0)),0),skus:stockOnly.length};
   }
   function calcSentStockRange(start,end){
-    const sent=rows.filter(r=>{if(r.sent!=='Yes'||!r.sentDate)return false;const d=new Date(r.sentDate);return d>=start&&d<=end;});
-    const shipIds=new Set(sent.filter(r=>r.shipId).map(r=>r.shipId));
-    return{units:sent.reduce((a,r)=>a+(r.ship||0),0),value:sent.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||0)),0),skus:sent.length,shipments:shipIds.size};
+    const sent=allSentRows().filter(r=>{const d=r.isoDate?new Date(r.isoDate):null;return d&&d>=start&&d<=end;});
+    const stockOnly=[...rows.filter(r=>{if(r.sent!=='Yes'||!r.sentDate)return false;const d=new Date(r.sentDate);return d>=start&&d<=end;}),...completed.filter(r=>{if(!r.dsISO)return false;const d=new Date(r.dsISO);return d>=start&&d<=end;})];
+    const shipIds=new Set(stockOnly.filter(r=>r.shipId).map(r=>r.shipId));
+    return{units:sent.reduce((a,r)=>a+(r.units||r.ship||r.shi||0),0),value:stockOnly.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||r.shi||0)),0),skus:stockOnly.length,shipments:shipIds.size};
   }
   function calcSentLavRange(start,end){
     const s=typeof start==='string'?start:start.toISOString().split('T')[0];
     const e=typeof end==='string'?end:end.toISOString().split('T')[0];
     const sent=lavShipments.filter(ls=>ls.date&&ls.date>=s&&ls.date<=e);
     return{units:sent.reduce((a,s)=>a+(s.units||0),0),value:sent.reduce((a,s)=>a+((s.cost||0)*(s.units||0)),0)};
+  }
+  function calcSentReturnRange(start,end){
+    const s=typeof start==='string'?start:start.toISOString().split('T')[0];
+    const e=typeof end==='string'?end:end.toISOString().split('T')[0];
+    const sent=returnShipments.filter(rs=>rs.date&&rs.date>=s&&rs.date<=e);
+    return{units:sent.reduce((a,r)=>a+(r.units||0),0),value:0};
   }
   // Shipment type breakdown — use cache, include Lavarion shipments
   function calcShipTypeRange(start,end){
@@ -2341,11 +2447,15 @@ function renderDashboard(){
   const weekLav=calcSentLavRange(ws,we);
   const weekTypes=calcShipTypeRange(ws,we);
   const todayLav=calcSentLavRange(todayStr,todayStr);
+
+  const todayRet=calcSentReturnRange(todayStr,todayStr);
+  const ydRet=calcSentReturnRange(yesterdayStr,yesterdayStr);
+  const weekRet=calcSentReturnRange(ws,we);
   const ydLav=calcSentLavRange(yesterdayStr,yesterdayStr);
 
-  const todayTotal={units:todayStock.units+todayLav.units,value:todayStock.value+todayLav.value};
-  const ydTotal={units:ydStock.units+ydLav.units,value:ydStock.value+ydLav.value};
-  const weekTotal={units:weekStock.units+weekLav.units,value:weekStock.value+weekLav.value};
+  const todayTotal={units:todayStock.units,value:todayStock.value+todayLav.value};
+  const ydTotal={units:ydStock.units,value:ydStock.value+ydLav.value};
+  const weekTotal={units:weekStock.units,value:weekStock.value+weekLav.value};
 
   // Boxes
   function boxesForDate(isoDate){
@@ -2374,7 +2484,8 @@ function renderDashboard(){
   ];
 
   // ── CLAIMS ───────────────────────────────────────────────────────────────────
-  const openClaimsList=claims.filter(c=>c.cst!=='Resolved'&&c.cst!=='Closed');
+  const openClaimsList=claims.filter(c=>c.cst!=='Resolved'&&c.cst!=='Closed');  // includes Issue, Open, Chasing
+  const issuedClaimsList=claims.filter(c=>c.cst==='Issue');
   const chasingClaimsList=claims.filter(c=>c.cst==='Chasing');
   const resolvedClaimsList=claims.filter(c=>c.cst==='Resolved'||c.cst==='Closed');
   const openClaims=openClaimsList.length;
@@ -2777,57 +2888,82 @@ function renderDashboard(){
 
       <!-- Col 3: Claims + Stuck -->
       <div style="display:flex;flex-direction:column;gap:8px;height:100%;align-self:stretch;">
-        <div style="background:var(--bg2);border:1px solid ${totalAtRisk>0?'rgba(248,113,113,.35)':'var(--border)'};border-radius:8px;padding:10px 12px;">
-          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Claims & Issues</div>
-          ${openClaims===0&&resolvedClaimsList.length===0?`<div style="color:${COL.today};font-size:11px;padding:4px 0;">✓ No issues — all clear</div>`:`
-
-          <!-- Open issues hero -->
-          ${openClaims>0?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
-            <div style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);border-radius:6px;padding:7px;text-align:center;">
-              <div style="font-size:20px;font-weight:900;font-family:var(--mono);color:#f87171;">${fmt(openClaims)}</div>
-              <div style="font-size:8px;color:#94a3b8;">open issue${openClaims!==1?'s':''}</div>
-            </div>
-            <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:6px;padding:7px;text-align:center;">
-              <div style="font-size:20px;font-weight:900;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(totalAtRisk)}</div>
-              <div style="font-size:8px;color:#94a3b8;">at risk</div>
-            </div>
+        <div style="background:var(--bg2);border:1px solid ${totalAtRisk>0?'rgba(248,113,113,.3)':'var(--border)'};border-radius:8px;padding:10px 12px;">
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:10px;font-weight:800;color:#e2e8f0;text-transform:uppercase;letter-spacing:.1em;">⚑ Claims & Issues</div>
+            ${totalAtRisk>0?`<div style="font-size:14px;font-weight:900;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(totalAtRisk)}</div>`:''}
           </div>
-          <!-- By type -->
-          <div style="margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06);">
-            ${[['Missing',missingClaims.length,missingUnits,missingVal,'#f87171'],['Damaged',damagedClaims.length,damagedUnits,damagedVal,'#fb923c'],['Incorrect',incorrectClaims.length,incorrectUnits,incorrectVal,'#60a5fa']].filter(([,cnt])=>cnt>0).map(([l,cnt,u,val,col])=>`
-            <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);">
-              <div><span style="font-size:9px;font-weight:800;color:${col};">${l}</span><span style="font-size:8px;color:#64748b;margin-left:4px;">${cnt} claim${cnt!==1?'s':''}</span></div>
-              <div style="text-align:right;"><span style="font-size:10px;font-weight:700;color:${col};font-family:var(--mono);">${fmt(u)}u</span><span style="font-size:9px;color:#fbbf24;font-family:var(--mono);margin-left:4px;">${fmtGBP2(val)}</span></div>
+
+          ${openClaims===0&&resolvedClaimsList.length===0?`<div style="color:#4ade80;font-size:12px;font-weight:700;padding:6px 0;">✓ All clear — no open issues</div>`:`
+
+          <!-- Status breakdown hero row -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px;">
+            ${[
+              ['Issue',issuedClaimsList.length,'#ff6b6b'],
+              ['Open',openClaimsList.filter(c=>c.cst==='Open').length,'#f97316'],
+              ['Chasing',chasingClaimsList.length,'#fbbf24'],
+              ['Resolved',resolvedClaimsList.length,'#4ade80'],
+            ].map(([l,n,col])=>`<div style="background:${col}18;border:2px solid ${col}55;border-radius:6px;padding:6px 4px;text-align:center;">
+              <div style="font-size:18px;font-weight:900;font-family:var(--mono);color:${col};line-height:1;">${n}</div>
+              <div style="font-size:8px;color:#94a3b8;margin-top:2px;font-weight:600;">${l}</div>
             </div>`).join('')}
           </div>
-          <!-- Open stats -->
-          ${[
-            ['Chasing',fmt(chasingClaimsList.length),chasingClaimsList.length>0?'#fb923c':'#64748b'],
-            ['SKUs affected',fmt(affectedSkus),'#c084fc'],
-            ['Suppliers affected',fmt(affectedSuppliers),'#60a5fa'],
-            ['Units affected',fmt(totalIssueUnits),'#f87171'],
-          ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:9px;color:#64748b;">${l}</span><span style="font-size:10px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
-          `:''}
 
-          <!-- Resolved/done stats -->
-          ${resolvedClaimsList.length>0?`
-          <div style="margin-top:${openClaims>0?'8px':'0'};padding-top:${openClaims>0?'8px':'0'};${openClaims>0?'border-top:1px solid rgba(255,255,255,.08);':''}">
-            <div style="font-size:8px;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">✓ Resolved</div>
+          <!-- By issue type -->
+          ${(missingClaims.length+damagedClaims.length+incorrectClaims.length)>0?`
+          <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08);">
+            <div style="font-size:8px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;">By Type</div>
+            ${[['Missing',missingClaims.length,missingUnits,missingVal,'#f87171'],['Damaged',damagedClaims.length,damagedUnits,damagedVal,'#fb923c'],['Incorrect',incorrectClaims.length,incorrectUnits,incorrectVal,'#60a5fa']].filter(([,cnt])=>cnt>0).map(([l,cnt,u,val,col])=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;margin-bottom:3px;background:${col}10;border-radius:4px;border-left:3px solid ${col};">
+              <div>
+                <span style="font-size:10px;font-weight:800;color:${col};">${l}</span>
+                <span style="font-size:9px;color:#94a3b8;margin-left:5px;">${cnt} claim${cnt!==1?'s':''}</span>
+              </div>
+              <div style="text-align:right;">
+                <span style="font-size:11px;font-weight:700;color:#e2e8f0;font-family:var(--mono);">${fmt(u)} units</span>
+                <span style="font-size:10px;color:#fbbf24;font-family:var(--mono);margin-left:6px;font-weight:700;">${fmtGBP2(val)}</span>
+              </div>
+            </div>`).join('')}
+          </div>`:``}
+
+          <!-- Stats grid -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-bottom:${resolvedClaimsList.length>0?'8px':'0'};">
             ${[
-              ['Issues resolved',fmt(resolvedClaimsList.length),'#4ade80'],
-              ['Units recovered',fmt(resolvedUnits),'#4ade80'],
-              ['Value recovered',fmtGBP2(resolvedVal),'#fbbf24'],
-              ['Suppliers resolved',fmt(resolvedSuppliers),'#60a5fa'],
-            ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:9px;color:#64748b;">${l}</span><span style="font-size:10px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
-          </div>`:''}
+              ['SKUs affected',fmt(affectedSkus),'#c084fc'],
+              ['Suppliers',fmt(affectedSuppliers),'#60a5fa'],
+              ['Units at risk',fmt(totalIssueUnits),'#f87171'],
+              ['£ at risk',fmtGBP2(totalAtRisk),'#fbbf24'],
+            ].map(([l,v,col])=>`<div style="padding:4px 0;">
+              <div style="font-size:8px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px;">${l}</div>
+              <div style="font-size:13px;font-weight:900;font-family:var(--mono);color:${col};">${v}</div>
+            </div>`).join('')}
+          </div>
+
+          <!-- Resolved -->
+          ${resolvedClaimsList.length>0?`
+          <div style="padding-top:8px;border-top:1px solid rgba(255,255,255,.08);">
+            <div style="font-size:8px;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;">✓ Resolved</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;">
+              ${[
+                ['Claims closed',fmt(resolvedClaimsList.length),'#4ade80'],
+                ['Suppliers resolved',fmt(resolvedSuppliers),'#60a5fa'],
+                ['Units recovered',fmt(resolvedUnits),'#4ade80'],
+                ['Value recovered',fmtGBP2(resolvedVal),'#fbbf24'],
+              ].map(([l,v,col])=>`<div style="padding:3px 0;">
+                <div style="font-size:8px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px;">${l}</div>
+                <div style="font-size:13px;font-weight:900;font-family:var(--mono);color:${col};">${v}</div>
+              </div>`).join('')}
+            </div>
+          </div>`:``}
           `}
         </div>
         <div style="background:var(--bg2);border:1px solid ${stuckRows.length>0?'rgba(248,113,113,.35)':'var(--border)'};border-radius:8px;padding:10px 12px;flex:1;min-height:0;">
           <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Stuck In Transit <span style="color:#f87171;">&gt;20 Days</span></div>
           ${stuckRows.length?`
           <div style="display:flex;gap:16px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07);justify-content:center;width:100%;">
-            <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#f87171;">${fmt(stuckUnits)}</div><div style="font-size:8px;color:#475569;text-transform:uppercase;">units at risk</div></div>
-            <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${GOLD};">${fmtGBP2(stuckValue)}</div><div style="font-size:8px;color:#475569;text-transform:uppercase;">value at risk</div></div>
+            <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#f87171;">${fmt(stuckUnits)}</div><div style="font-size:8px;color:#94a3b8;text-transform:uppercase;font-weight:600;">units at risk</div></div>
+            <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${GOLD};">${fmtGBP2(stuckValue)}</div><div style="font-size:8px;color:#94a3b8;text-transform:uppercase;font-weight:600;">value at risk</div></div>
           </div>
           <div style="max-height:320px;overflow-y:auto;">
             ${stuckRows.map(r=>{const[dd,mm]=(r.date||'').split('/');const yr=new Date().getFullYear();const d=new Date(`${yr}-${(mm||'01').padStart(2,'0')}-${(dd||'01').padStart(2,'0')}`);const days=Math.floor((new Date()-d)/864e5);const cog=parseSKU(r.sku).cogs*(r.exp||0);return`<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
@@ -4182,7 +4318,7 @@ function renderShipments(){
 
   // Group OA rows by shipId
   const shipMap={};
-  rows.filter(r=>r.shipId).forEach(r=>{
+  rows.filter(r=>r.shipId&&(r.sent==='Yes'||r.status==='Part Sent')).forEach(r=>{
     if(!shipMap[r.shipId])shipMap[r.shipId]={id:r.shipId,date:r.sentDate||'',skus:[],lavSkus:[],units:0,value:0,boxes:shipBoxes[r.shipId]||0,type:_shipTypeCache[r.shipId]||r.shipType||'Standard',hasLav:false};
     shipMap[r.shipId].skus.push(r);
     shipMap[r.shipId].units+=(r.ship||0);
@@ -4505,6 +4641,7 @@ function processImportRows(parsed){
       <td style="padding:5px 8px;font-family:var(--mono);font-weight:700;color:var(--blue);">${qty}</td>
       <td style="padding:5px 8px;font-family:var(--mono);font-weight:700;color:var(--amber);">£${cost}</td>
       <td style="padding:5px 8px;font-size:10px;color:${dg==='Yes'?'var(--red)':'var(--text3)'};">${dg||'—'}</td>
+      <td style="padding:5px 8px;font-size:10px;font-weight:700;color:#c084fc;">${row['Account']||'—'}</td>
     </tr>`;
   }).join('');
 
@@ -4651,7 +4788,7 @@ async function dbLoad(){
         sb.from('returns_shipments').select('*').order('created_at',{ascending:false}),
       ]);
       returnSkus=(retSkuRes.data||[]).map(d=>({uuid:d.id,sku:d.sku||'',asin:d.asin||'',prod:d.product_name||'',cog:d.cog||0,units:d.units||1,notes:d.notes||''}));
-      returnShipments=(retShipRes.data||[]).map(d=>({uuid:d.id,shipId:d.ship_id||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:d.date||''}));
+      returnShipments=(retShipRes.data||[]).map(d=>({uuid:d.id,shipId:d.ship_id||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:(d.date||'').slice(0,10)}));
     }catch(e){console.warn('Returns tables not yet created — run SQL to enable Returns tab');}
     shipBoxes={};
     (boxesRes.data||[]).forEach(b=>{shipBoxes[b.ship_id]=b.boxes;if(b.ship_type)_shipTypeCache[b.ship_id]=b.ship_type;});
@@ -4768,6 +4905,7 @@ function claimToDb(c){
     claim_value:c.claimValue||0,
     status:c.cst||'Open',
     notes:c.notes||'',
+    account:c.acct||'',
     contact_log:JSON.stringify(c.log||[]),
   };
 }
@@ -4784,7 +4922,7 @@ function dbToClaim(d){
     sku:d.sku||'',asin:d.asin||'',issT:d.issue_type||'',
     exp:d.expected_qty||0,rec:d.received_qty||0,dif:d.difference||0,
     cost:d.cost_per_unit||0,claimValue:d.claim_value||0,
-    cst:mappedStatus,notes:d.notes||'',log,
+    cst:mappedStatus,notes:d.notes||'',acct:d.account||'',log,
   };
 }
 function dbToLav(d){
@@ -5739,6 +5877,7 @@ setInterval(updateClock,30000);
                 <th style="padding:6px 8px;">Qty</th>
                 <th style="padding:6px 8px;">Cost</th>
                 <th style="padding:6px 8px;">DG</th>
+                <th style="padding:6px 8px;color:#c084fc;">Account</th>
               </tr>
             </thead>
             <tbody id="importPreviewBody"></tbody>
