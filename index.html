@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v1.9.0</title>
+<title>BDL PrepHub v1.9.2</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -863,7 +863,7 @@ html.light-mode{
   </div>
 
   <!-- SETTINGS PAGE -->
-  <div class="page" id="page-settings">
+  <div class="page" id="page-settings" style="overflow-y:auto;">
     <div style="padding:24px;max-width:600px;">
       <div style="font-size:14px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:20px;">Settings</div>
 
@@ -888,11 +888,69 @@ html.light-mode{
         </div>
       </div>
 
-      <!-- Import -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">Purchase Sheet Import</div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">The Google Sheet URL used for CSV imports. This is informational only — use the Import button on the Prep Sheet to import data.</div>
-        <div style="font-size:11px;color:var(--text3);">Sheet: <span style="color:var(--accent);font-family:var(--mono);font-size:10px;">Q2 AMZ - OA (Added To Home Prep Portal = Yes)</span></div>
+      <!-- Sheet Sync -->
+      <div style="background:var(--bg2);border:1px solid rgba(96,165,250,.3);border-radius:8px;padding:16px;margin-bottom:14px;" id="sheetSyncCard">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div style="font-size:12px;font-weight:700;color:var(--accent);">Sheet Sync — Google Sheet → Prep Portal</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span id="syncStatusBadge" style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(100,116,139,.2);color:var(--text3);">OFF</span>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;">
+              <div id="syncToggleWrap" onclick="toggleSheetSync()" style="width:36px;height:20px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);position:relative;cursor:pointer;transition:background .2s;">
+                <div id="syncToggleKnob" style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--text3);transition:transform .2s;"></div>
+              </div>
+              <span style="font-size:10px;color:var(--text3);" id="syncToggleLabel">Disabled</span>
+            </label>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:14px;line-height:1.6;">
+          When enabled, the app checks the Google Sheet every few minutes and automatically adds any rows where <strong style="color:var(--accent);">Added To Home Prep Portal = Yes</strong> to the portal. Read-only — the sheet is never modified. Swap the trial sheet → real sheet by updating the URL below.
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Google Sheet URL <span style="font-weight:400;color:var(--text3);">(share link — Anyone with link → Viewer)</span></div>
+            <input id="ss-url" type="url" placeholder="https://docs.google.com/spreadsheets/d/…"
+              style="width:100%;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;font-family:var(--mono);"
+              oninput="sheetSyncDirty()">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tab name</div>
+              <input id="ss-tab" type="text" placeholder="Sheet1"
+                style="width:100%;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;font-family:var(--mono);"
+                oninput="sheetSyncDirty()">
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Check every</div>
+              <select id="ss-interval" style="width:100%;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;" onchange="sheetSyncDirty()">
+                <option value="60">1 minute</option>
+                <option value="120" selected>2 minutes</option>
+                <option value="300">5 minutes</option>
+                <option value="600">10 minutes</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Trigger column header <span style="font-weight:400;color:var(--text3);">(exact text in row 1)</span></div>
+            <input id="ss-col" type="text" placeholder="Added To Home Prep Portal"
+              style="width:100%;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;font-family:var(--mono);"
+              oninput="sheetSyncDirty()">
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button onclick="saveSheetSyncSettings()" style="padding:6px 16px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Save Settings</button>
+          <button onclick="runSheetSync(true)" style="padding:6px 16px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">⟳ Sync Now</button>
+          <span id="sheetSyncSaved" style="font-size:10px;color:var(--green);display:none;">✓ Saved</span>
+        </div>
+
+        <div style="margin-top:10px;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);font-size:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span id="sheetSyncLastRun" style="color:var(--text3);">Never synced</span>
+            <span id="sheetSyncNext" style="color:var(--text3);"></span>
+          </div>
+          <div id="sheetSyncLog" style="color:var(--text2);margin-top:4px;"></div>
+        </div>
       </div>
 
       <!-- Data management -->
@@ -938,7 +996,12 @@ html.light-mode{
           One-time setup — run both lines in your Supabase SQL editor. <code style="font-family:var(--mono);color:var(--accent);">ship_segments</code> lets a single SKU split across multiple shipments (8→FBA1, 2→FBA2) without merging. <code style="font-family:var(--mono);color:var(--accent);">archived</code> powers <b>Archive Sent</b>: archiving now <b>hides</b> rows from the prep sheet but <b>keeps them</b> on the Shipments page and in your stats. The app works without these, but archived/split state won't survive a refresh until the columns exist.
         </div>
         <pre id="migrationSql" style="background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:10px;color:var(--text2);overflow-x:auto;white-space:pre;line-height:1.5;margin-bottom:8px;">ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS ship_segments text DEFAULT '[]';
-ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;</pre>
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS sheet_sync_id text;
+CREATE UNIQUE INDEX IF NOT EXISTS prep_rows_sheet_sync_id_key ON prep_rows (sheet_sync_id) WHERE sheet_sync_id IS NOT NULL;
+CREATE TABLE IF NOT EXISTS app_settings (key text primary key, value text);
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK (true);</pre>
         <button onclick="copyMigrationSql(this)" style="padding:6px 14px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">⎘ Copy SQL</button>
       </div>
 
@@ -946,7 +1009,7 @@ ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;</
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;">
         <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v1.9.0</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v1.9.2</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -1504,6 +1567,7 @@ function goPage(n,btn){
       const el=document.getElementById('pf-'+k);
       if(el)el.value=prepFees[k]||0;
     });
+    loadSheetSyncUI();
   }
   if(n==='returns')renderReturns();
 }
@@ -5118,7 +5182,299 @@ function confirmImport(){
   toast(`✓ ${imported} row${imported!==1?'s':''} imported from Purchase Sheet`);
 }
 
-// ── SUPABASE ──────────────────────────────────────────────────────────────────
+// ── SHEET SYNC ENGINE ─────────────────────────────────────────────────────────
+// Polls a Google Sheet (CSV export), finds rows where the trigger column = "Yes",
+// and silently inserts genuinely-new rows into Supabase. Read-only — the sheet
+// is never modified. Dedupe is by sheet_sync_id (SKU+OrderID composite) stored
+// on the prep_rows record, enforced at DB level so simultaneous clients can't
+// double-insert the same row.
+//
+// Config is stored in localStorage (app config, not user data) so it survives
+// refreshes and is shared across tabs on the same machine.
+//
+// Architecture:
+//   • The browser polls the Sheet CSV export URL directly.
+//   • A "leader" tab election (BroadcastChannel) ensures only ONE tab polls at
+//     a time, preventing races when multiple people have the portal open.
+//   • All browsers receive the new rows via Supabase realtime (already wired).
+
+// Config lives in Supabase `app_settings` so ALL browsers (yours, VA's,
+// anyone on the team) share the same settings — change the sheet URL once
+// in Settings and every client + the Edge Function picks it up immediately.
+// Falls back to localStorage for the toggle/interval (UI preferences only).
+
+const SS_KEY='prephub_sheet_sync';
+let _ssConfig={url:'',tab:'',col:'Added To Home Prep Portal',interval:120,enabled:false};
+let _ssTimer=null;
+let _ssLeader=false;
+let _ssBC=null;
+
+// ── CONFIG PERSISTENCE (Supabase for shared config, localStorage for UI prefs)
+async function loadSheetSyncConfig(){
+  // Load UI prefs from localStorage first (instant, no network).
+  try{const s=localStorage.getItem(SS_KEY);if(s){const p=JSON.parse(s);_ssConfig.interval=p.interval||120;_ssConfig.enabled=p.enabled||false;}}catch(e){}
+  // Load shared config (sheet URL, tab, trigger col) from Supabase app_settings.
+  try{
+    const{data}=await sb.from('app_settings').select('value').eq('key','sheet_sync').maybeSingle();
+    if(data?.value){
+      const cfg=typeof data.value==='string'?JSON.parse(data.value):data.value;
+      _ssConfig.url=cfg.url||'';
+      _ssConfig.tab=cfg.tab||'';
+      _ssConfig.col=cfg.col||'Added To Home Prep Portal';
+    }
+  }catch(e){console.warn('app_settings not yet created — run Settings → Database migration');}
+}
+async function saveSheetSyncConfig(){
+  // Save UI prefs locally.
+  try{localStorage.setItem(SS_KEY,JSON.stringify({interval:_ssConfig.interval,enabled:_ssConfig.enabled}));}catch(e){}
+  // Save shared config to Supabase so all browsers + Edge Function see the change.
+  try{
+    await sb.from('app_settings').upsert({key:'sheet_sync',value:JSON.stringify({url:_ssConfig.url,tab:_ssConfig.tab,col:_ssConfig.col})},{onConflict:'key'});
+  }catch(e){console.warn('Could not save sheet sync config to Supabase:',e);}
+}
+
+// ── SETTINGS UI ───────────────────────────────────────────────────────────────
+function sheetSyncDirty(){
+  const btn=document.getElementById('sheetSyncSaved');if(btn)btn.style.display='none';
+}
+async function loadSheetSyncUI(){
+  await loadSheetSyncConfig();
+  const u=document.getElementById('ss-url');const t=document.getElementById('ss-tab');
+  const c=document.getElementById('ss-col');const i=document.getElementById('ss-interval');
+  if(u)u.value=_ssConfig.url||'';
+  if(t)t.value=_ssConfig.tab||'';
+  if(c)c.value=_ssConfig.col||'Added To Home Prep Portal';
+  if(i)i.value=String(_ssConfig.interval||120);
+  updateSheetSyncToggleUI();
+}
+async function saveSheetSyncSettings(){
+  const u=(document.getElementById('ss-url')||{}).value?.trim()||'';
+  const t=(document.getElementById('ss-tab')||{}).value?.trim()||'';
+  const c=(document.getElementById('ss-col')||{}).value?.trim()||'Added To Home Prep Portal';
+  const i=parseInt((document.getElementById('ss-interval')||{}).value||'120')||120;
+  _ssConfig={..._ssConfig,url:u,tab:t,col:c,interval:i};
+  await saveSheetSyncConfig();
+  restartSheetSyncTimer();
+  const saved=document.getElementById('sheetSyncSaved');
+  if(saved){saved.style.display='inline';setTimeout(()=>saved.style.display='none',2000);}
+  toast('Sheet sync settings saved — all browsers updated');
+}
+async function toggleSheetSync(){
+  _ssConfig.enabled=!_ssConfig.enabled;
+  await saveSheetSyncConfig();
+  updateSheetSyncToggleUI();
+  if(_ssConfig.enabled){restartSheetSyncTimer();runSheetSync(false);}
+  else{clearTimeout(_ssTimer);_ssTimer=null;setSheetSyncLog('Sync disabled');}
+}
+function updateSheetSyncToggleUI(){
+  const wrap=document.getElementById('syncToggleWrap');
+  const knob=document.getElementById('syncToggleKnob');
+  const label=document.getElementById('syncToggleLabel');
+  const badge=document.getElementById('syncStatusBadge');
+  const on=_ssConfig.enabled;
+  if(wrap)wrap.style.background=on?'rgba(34,197,94,.4)':'var(--bg3)';
+  if(knob)knob.style.transform=on?'translateX(16px)':'translateX(0)';
+  if(knob)knob.style.background=on?'#22c55e':'var(--text3)';
+  if(label)label.textContent=on?'Enabled':'Disabled';
+  if(label)label.style.color=on?'#22c55e':'var(--text3)';
+  if(badge){badge.textContent=on?'LIVE':'OFF';badge.style.background=on?'rgba(34,197,94,.2)':'rgba(100,116,139,.2)';badge.style.color=on?'#22c55e':'var(--text3)';}
+}
+function setSheetSyncLog(msg,isErr){
+  const el=document.getElementById('sheetSyncLog');
+  if(el){el.textContent=msg;el.style.color=isErr?'var(--red)':'var(--text2)';}
+}
+function setSheetSyncStatus(lastRun,next){
+  const lr=document.getElementById('sheetSyncLastRun');
+  const nx=document.getElementById('sheetSyncNext');
+  if(lr&&lastRun)lr.textContent='Last sync: '+lastRun;
+  if(nx&&next)nx.textContent='Next: '+next;
+}
+
+// ── LEADER ELECTION ───────────────────────────────────────────────────────────
+// Only one browser tab should write to Supabase at a time. We use a
+// BroadcastChannel so tabs coordinate without any extra infra.
+function initSheetSyncLeader(){
+  if(!window.BroadcastChannel){{_ssLeader=true;return;}} // fallback: always lead
+  if(_ssBC)return;
+  _ssBC=new BroadcastChannel('prephub_sync_leader');
+  // Announce ourselves and claim leadership
+  _ssLeader=true;
+  _ssBC.postMessage({type:'claim'});
+  _ssBC.onmessage=e=>{
+    if(e.data?.type==='claim'){
+      // Another tab just opened and claimed leadership. Yield if we're newer
+      // (simpler: just yield — the latest tab to load leads).
+      _ssLeader=false;
+    }
+    if(e.data?.type==='synced'){
+      // Another tab just ran the sync — update our UI without polling again.
+      setSheetSyncStatus(e.data.lastRun,'in ~'+Math.round(_ssConfig.interval/60)+'min');
+      setSheetSyncLog(e.data.log||'');
+    }
+  };
+  // Re-claim if we're the only tab left (detected via visibilitychange).
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'&&!_ssLeader){
+      _ssLeader=true;_ssBC.postMessage({type:'claim'});
+    }
+  });
+}
+
+// ── TIMER ─────────────────────────────────────────────────────────────────────
+function restartSheetSyncTimer(){
+  clearTimeout(_ssTimer);_ssTimer=null;
+  if(!_ssConfig.enabled)return;
+  const ms=(_ssConfig.interval||120)*1000;
+  _ssTimer=setTimeout(()=>runSheetSync(false),ms);
+  const d=new Date(Date.now()+ms);
+  setSheetSyncStatus(null,d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'));
+}
+
+// ── CORE SYNC ─────────────────────────────────────────────────────────────────
+async function runSheetSync(manual){
+  if(!_ssConfig.enabled&&!manual){return;}
+  if(!_ssLeader&&!manual){return;} // only leader polls
+  const{url,tab,col}=_ssConfig;
+  if(!url){if(manual)toast('Enter a Sheet URL in Settings → Sheet Sync','er');return;}
+
+  // Extract sheet ID from URL.
+  let sheetId='';
+  const m=url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if(m)sheetId=m[1];
+  if(!sheetId){if(manual)toast('Invalid Sheet URL — paste the full share link','er');return;}
+
+  // Fetch via Edge Function to avoid CORS block.
+  // The Edge Function fetches Google Sheets server-side and returns CSV.
+  setSheetSyncLog('Checking sheet…');
+  let csv;
+  try{
+    const efUrl=`${SUPA_URL}/functions/v1/sheet-sync?sheetId=${encodeURIComponent(sheetId)}&tab=${encodeURIComponent(tab||'')}`;
+    const res=await fetch(efUrl,{cache:'no-store',headers:{'Authorization':`Bearer ${SUPA_KEY}`}});
+    if(!res.ok)throw new Error(`Edge Function error: ${res.status} ${res.statusText}`);
+    const json=await res.json();
+    if(json.error)throw new Error(json.error);
+    csv=json.csv;
+    if(!csv)throw new Error('No CSV returned from Edge Function');
+  }catch(e){
+    const msg='Could not fetch sheet: '+e.message;
+    setSheetSyncLog(msg,true);
+    if(manual)toast(msg,'er');
+    restartSheetSyncTimer();
+    return;
+  }
+
+  // Parse CSV → array of {header:value} objects.
+  let parsed;
+  try{parsed=parseCSV(csv);}catch(e){setSheetSyncLog('CSV parse error: '+e.message,true);restartSheetSyncTimer();return;}
+  if(!parsed.length){setSheetSyncLog('Sheet appears empty');restartSheetSyncTimer();return;}
+
+  // Find trigger column by header name (not position).
+  const triggerCol=col||'Added To Home Prep Portal';
+
+  // Build set of existing sync IDs so we never duplicate.
+  // sheet_sync_id is stored as "sku|oid" on each prep_row.
+  const existingSyncIds=new Set(rows.filter(r=>r.sheetSyncId).map(r=>r.sheetSyncId));
+  const existingSkus=new Set(rows.map(r=>(r.sku||'').toLowerCase()));
+
+  const toAdd=[];
+  const toDeactivate=[]; // rows that were Yes → No
+
+  parsed.forEach(row=>{
+    const trigger=(row[triggerCol]||'').trim().toLowerCase();
+    const sku=(row['SKU']||'').trim();
+    if(!sku)return;
+
+    const oid=(row['Order Id']||row['Order ID']||'').trim();
+    const syncId=sku+'|'+(oid||'nooid');
+
+    if(trigger==='yes'){
+      // Already in portal → skip (Supabase realtime keeps it live).
+      if(existingSyncIds.has(syncId)||existingSkus.has(sku.toLowerCase()))return;
+      toAdd.push({row,syncId});
+    }else if(trigger==='no'||trigger==='n/a'||trigger===''){
+      // Was Yes, now No → soft-remove (hide from active portal).
+      const existing=rows.find(r=>r.sheetSyncId===syncId||r.sku.toLowerCase()===sku.toLowerCase());
+      if(existing&&existing.status!=='Sent to Amazon'&&!existing.archived){
+        toDeactivate.push(existing);
+      }
+    }
+  });
+
+  let added=0,deactivated=0;
+
+  // INSERT new rows.
+  for(const{row,syncId}of toAdd){
+    const sku=(row['SKU']||'').trim();
+    const dateRaw=(row['Date']||'').trim();
+    const dateParts=dateRaw.split('/');
+    const dateFormatted=dateParts.length>=2?`${dateParts[0].padStart(2,'0')}/${dateParts[1].padStart(2,'0')}`:'';
+    const qty=parseInt(row['Total units **']||row['Quantity Bought']||row['Quanity Bought *']||row['Quanity Bought']||0)||0;
+    const newRow={
+      id:++nid,
+      sheetSyncId:syncId,
+      date:dateFormatted,
+      oid:(row['Order Id']||row['Order ID']||'').trim(),
+      sup:(row['Bought From']||'').trim(),
+      acct:(row['Account']||'').trim(),
+      prod:(row['Name']||'').trim(),
+      asin:(row['Asin']||row['ASIN']||'').trim(),
+      sku,
+      dg:(row['DG']||'').trim(),
+      sas:`https://sas.selleramp.com/sas/lookup?SasLookup%5Bsearch_term%5D=${encodeURIComponent((row['Asin']||row['ASIN']||'').trim())}`,
+      exp:qty,aqty:qty,
+      bun:(row['In a Bundle?']||'No').trim(),
+      bqty:(row['How Many In a Bundle?']||'').trim(),
+      subSave:(row['S&S (AC)']||row['SAS (AC)']||'No').trim()==='Yes'?'Yes':'No',
+      rcvd:0,issueType:'',issueQty:0,
+      status:'In-Transit',ship:0,shipId:'',sent:'No',sentDate:'',
+      reimb:'No',notes:(row['VA Note']||row['Notes']||'').trim(),
+      pri:'No',archived:false,shipSegments:[],allShipIds:[],
+      createdISO:todayISO(),createdAt:getNowUK(),
+      importedFrom:'Sheet Sync',sheetRow:'',
+    };
+    rows.push(newRow);
+    const ok=await saveRow(newRow);
+    if(ok)added++;
+    logAudit('Sheet Sync — added',sku);
+  }
+
+  // SOFT-REMOVE rows changed back to No (not sent, not already archived).
+  for(const r of toDeactivate){
+    r.archived=true;r._dirty=true;
+    await saveRow(r);
+    deactivated++;
+    logAudit('Sheet Sync — removed (No)',r.sku);
+  }
+
+  if(added>0||deactivated>0)renderPrep();
+
+  const now=new Date();
+  const nowStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  const logMsg=added>0||deactivated>0
+    ?`${added} added${deactivated>0?`, ${deactivated} removed`:''}`
+    :`Up to date — no changes`;
+  setSheetSyncLog(logMsg);
+  setSheetSyncStatus(nowStr,null);
+  if(manual&&(added>0||deactivated>0))toast(`Sheet sync: ${logMsg}`);
+  if(manual&&added===0&&deactivated===0)toast('Sheet is up to date — no new rows');
+
+  // Broadcast result to other tabs so they update their UI.
+  if(_ssBC)_ssBC.postMessage({type:'synced',lastRun:nowStr,log:logMsg});
+
+  restartSheetSyncTimer();
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+// Called once after app data loads (so rows[] is populated for deduplication).
+function bootSheetSync(){
+  loadSheetSyncUI();
+  initSheetSyncLeader();
+  if(_ssConfig.enabled){
+    restartSheetSyncTimer();
+    // Run immediately on boot so new rows appear as soon as the app opens.
+    setTimeout(()=>runSheetSync(false),2000);
+  }
+}
 const SUPA_URL='https://vsekpaibspetreadkxyi.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzZWtwYWlic3BldHJlYWRreHlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDE0NzcsImV4cCI6MjA5NDI3NzQ3N30.DVDI1nsBTyDbRPJDw_fcc7oohmH94erM07626xC4MtY';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
@@ -5181,6 +5537,8 @@ async function dbLoad(){
     setSyncStatus('synced');
     // Clear any previous error state
     renderPrep();renderDashboard();updateCB();
+    // Boot sheet sync AFTER rows are loaded so dedupe works on first poll.
+    bootSheetSync();
   }catch(err){
     console.error('Load error:',err);
     // Only show offline if it's a real network error, not a schema issue
@@ -5230,6 +5588,7 @@ function rowToDb(r){
     notes:r.notes||'',
     expected_delivery:r.expectedDelivery||null,
     imported_from:r.importedFrom||'',
+    sheet_sync_id:r.sheetSyncId||null,
     sheet_row:r.sheetRow||null,
   };
 }
@@ -5277,6 +5636,7 @@ function dbToRow(d){
     notes:d.notes||'',
     expectedDelivery:d.expected_delivery||'',
     importedFrom:d.imported_from||'',
+    sheetSyncId:d.sheet_sync_id||'',
     sheetRow:d.sheet_row||'',
     createdISO:d.created_at?d.created_at.split('T')[0]:'',
   };
