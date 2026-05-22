@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v1.7.8</title>
+<title>BDL PrepHub v1.9.0</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -652,6 +652,17 @@ html.light-mode{
 <div class="main">
   <div class="topbar">
     <div class="page-title" id="pageTitle">Dashboard</div>
+    <div style="flex:1;display:flex;justify-content:center;position:relative;max-width:420px;margin:0 auto;">
+      <div style="position:relative;width:100%;max-width:340px;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text3);pointer-events:none;">⌕</span>
+        <input id="globalSrch" autocomplete="off" placeholder="Search any SKU or ASIN…"
+          oninput="runGlobalSearch(this.value)" onfocus="runGlobalSearch(this.value)"
+          onkeydown="if(event.key==='Escape'){this.value='';closeGlobalSearch();this.blur();}"
+          style="width:100%;height:30px;background:var(--bg3);border:1px solid var(--border);border-radius:15px;color:var(--text);font-size:11px;padding:0 12px 0 28px;outline:none;transition:border-color .15s,background .15s;"
+          onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div id="globalSrchResults" style="display:none;position:absolute;top:36px;left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.45);max-height:60vh;overflow-y:auto;z-index:300;padding:6px;"></div>
+      </div>
+    </div>
     <div class="topbar-controls">
       <div style="display:flex;gap:4px;">
         <div id="ukClock" style="font-size:11px;font-weight:700;font-family:var(--mono);color:var(--text2);padding:4px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;">--.--, --:--</div>
@@ -935,7 +946,7 @@ ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;</
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;">
         <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v1.7.8</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v1.9.0</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -1496,6 +1507,77 @@ function goPage(n,btn){
   }
   if(n==='returns')renderReturns();
 }
+// ── GLOBAL SEARCH ─────────────────────────────────────────────────────────────
+// Find a SKU or ASIN anywhere in the app and jump to where it lives.
+function navToPage(page){
+  const btn=document.querySelector(`.sb-item[onclick*="goPage('${page}'"]`);
+  if(btn)goPage(page,btn);
+}
+function closeGlobalSearch(){
+  const box=document.getElementById('globalSrchResults');
+  if(box){box.style.display='none';box.innerHTML='';}
+}
+document.addEventListener('click',e=>{
+  const wrap=document.getElementById('globalSrch');
+  const box=document.getElementById('globalSrchResults');
+  if(!wrap||!box)return;
+  if(e.target!==wrap&&!box.contains(e.target))closeGlobalSearch();
+});
+function gsJump(page,term){
+  navToPage(page);
+  const map={prep:'prepSrch',shipments:'shipSrch',returns:'returnSrch',lavarion:'lavSrch',claims:'claimSrch'};
+  const inputId=map[page];
+  setTimeout(()=>{
+    const inp=document.getElementById(inputId);
+    if(inp){inp.value=term;inp.dispatchEvent(new Event('input'));}
+  },60);
+  closeGlobalSearch();
+  const g=document.getElementById('globalSrch');if(g)g.value='';
+}
+function runGlobalSearch(qRaw){
+  const q=(qRaw||'').trim().toLowerCase();
+  const box=document.getElementById('globalSrchResults');
+  if(!box)return;
+  if(q.length<2){box.style.display='none';box.innerHTML='';return;}
+  const hits=[];
+  const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const match=r=>((r.sku||'')+' '+(r.asin||'')+' '+(r.prod||'')).toLowerCase().includes(q);
+  // Prep rows + their shipment segments.
+  rows.forEach(r=>{
+    if(!match(r))return;
+    const term=r.sku||r.asin;
+    const segs=(typeof normaliseSegments==='function')?normaliseSegments(r):[];
+    if(segs.length){
+      segs.forEach(sg=>hits.push({page:'shipments',term,where:`Shipment ${sg.shipId}`,detail:`${sg.units} unit${sg.units!==1?'s':''} · ${r.sku}`,kind:'ship'}));
+      if(r.status!=='Sent to Amazon'||r.archived)hits.push({page:'prep',term,where:r.archived?'Prep Sheet (Archived)':'Prep Sheet',detail:`${r.status} · ${r.prod||r.sku}`,kind:'prep'});
+    }else{
+      hits.push({page:'prep',term,where:r.archived?'Prep Sheet (Archived)':'Prep Sheet',detail:`${r.status} · ${r.prod||r.sku}`,kind:'prep'});
+    }
+  });
+  (returnSkus||[]).forEach(r=>{if(match(r))hits.push({page:'returns',term:r.sku||r.asin,where:'Returns',detail:`${r.units||1} unit${(r.units||1)!==1?'s':''} · ${r.prod||r.sku}`,kind:'return'});});
+  (returnShipments||[]).forEach(rs=>{if(match(rs))hits.push({page:'shipments',term:rs.sku,where:`Shipment ${rs.shipId}`,detail:`Return · ${rs.units||0} unit${(rs.units||0)!==1?'s':''}`,kind:'ship'});});
+  (lavAsins||[]).forEach(l=>{if(match(l))hits.push({page:'lavarion',term:l.sku||l.asin,where:'Lavarion',detail:`${l.prod||l.sku||l.asin}`,kind:'lav'});});
+  (lavShipments||[]).forEach(ls=>{if(match(ls))hits.push({page:'shipments',term:ls.sku||ls.asin,where:`Shipment ${ls.shipId}`,detail:`Lavarion · ${ls.units||0} unit${(ls.units||0)!==1?'s':''}`,kind:'ship'});});
+  (claims||[]).forEach(c=>{if(match(c))hits.push({page:'claims',term:c.sku||c.asin,where:'Actions',detail:`${c.status||''} · ${c.prod||c.sku}`,kind:'claim'});});
+  if(!hits.length){
+    box.style.display='block';
+    box.innerHTML=`<div style="padding:14px;text-align:center;color:var(--text3);font-size:11px;">No matches for "${esc(qRaw)}"</div>`;
+    return;
+  }
+  const seen=new Set();const uniq=hits.filter(h=>{const k=h.page+'|'+h.where+'|'+h.detail;if(seen.has(k))return false;seen.add(k);return true;});
+  const colors={ship:'var(--amber)',prep:'var(--green)',return:'var(--blue)',lav:'#c084fc',claim:'var(--red)'};
+  box.style.display='block';
+  box.innerHTML=`<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:4px 8px 6px;">${uniq.length} result${uniq.length!==1?'s':''}</div>`+
+    uniq.slice(0,40).map(h=>`
+      <div onclick="gsJump('${h.page}','${esc(h.term).replace(/'/g,"\\'")}')" style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;cursor:pointer;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
+        <span style="width:7px;height:7px;border-radius:50%;background:${colors[h.kind]||'var(--text3)'};flex-shrink:0;"></span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(h.where)}</div>
+          <div style="font-size:9.5px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(h.detail)}</div>
+        </div>
+        <span style="font-size:13px;color:var(--text3);flex-shrink:0;">→</span>
+      </div>`).join('');
+}
 function cycleUser(){
   const i=USERS.findIndex(u=>u.id===cu.id);cu=USERS[(i+1)%USERS.length];
   document.getElementById('sbAv').textContent=cu.init;
@@ -1801,7 +1883,7 @@ function renderPrepRows(data){
       <td style="text-align:center;">${
         r.archived
           ?`<button onclick="(async()=>{const r=rows.find(x=>x.uuid==='${r.uuid||''}'||String(x.id)==='${r.id}');if(r){await unarchiveRow(r);renderPrep();renderShipments&&renderShipments();renderDashboard&&renderDashboard();toast('Row unarchived');}})()" title="Unarchive — bring back to the active prep sheet" style="padding:2px 6px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">↺ Unarchive</button>`
-          :(isSent?`<input type="checkbox" onchange="if(this.checked){const r=rows.find(x=>x.uuid==='${r.uuid||''}'||String(x.id)==='${r.id}');if(r){archiveRow(r);renderPrep();renderShipments&&renderShipments();renderDashboard&&renderDashboard();toast('Row archived — kept on Shipments page');}}" title="Archive (hide from sheet, keep on Shipments page)">`:'<span style="color:var(--text3);">—</span>')
+          :(isSent?`<input type="checkbox" onchange="if(this.checked){archiveRowUI('${r.uuid||r.id}');}" title="Archive (hide from sheet, keep on Shipments page)">`:'<span style="color:var(--text3);">—</span>')
       }</td>
     </tr>`;
   }).join('');
@@ -2056,8 +2138,19 @@ async function doBulkArchive(){
       if(res.error){setSyncStatus('error');toast('Archive save failed: '+res.error.message,'er');return;}
     }
     setSyncStatus('synced');
-    toast(`✓ ${sentRows.length} row${sentRows.length!==1?'s':''} archived`);
     logAudit('Bulk archive',sentRows.length+' rows');
+    toastUndo(`${sentRows.length} row${sentRows.length!==1?'s':''} archived`,async()=>{
+      setSyncStatus('syncing');
+      sentRows.forEach(r=>{r.archived=false;});
+      renderPrep();renderShipments&&renderShipments();renderDashboard&&renderDashboard();
+      const undoIds=sentRows.filter(r=>r.uuid).map(r=>r.uuid);
+      if(undoIds.length&&!_missingCols.has('archived')){
+        const res=await sb.from('prep_rows').update({archived:false}).in('id',undoIds);
+        if(res.error){setSyncStatus('error');toast('Undo save failed','er');return;}
+      }
+      setSyncStatus('synced');
+      toast(`Archive undone — ${sentRows.length} row${sentRows.length!==1?'s':''} back`);
+    });
   });
 }
 
@@ -3383,136 +3476,139 @@ function getInsightRange(){
 function renderInsights(){
   const w=document.getElementById('insightsWrap');
   const{s:rs,e:re,label:rlabel}=getInsightRange();
+  const inRange=d=>{if(!d)return false;return d>=rs&&d<=re;};
+  const inRangeISO=iso=>{if(!iso)return false;const d=new Date(iso);return d>=rs&&d<=re;};
 
-  // ── HELPERS ──────────────────────────────────────────────────────────────────
-  function inRange(d){if(!d)return false;return d>=rs&&d<=re;}
+  // ── UNIFIED SENT DATA LAYER ────────────────────────────────────────────────
+  // One row per shipment allocation, segment-aware, with OA + Lavarion + Returns
+  // all treated as sent volume. Every section aggregates from this.
+  // line = {kind, units, value, sup, acct, type, shipId, date, sku, asin, prod}
+  const lines=[];
+  rows.filter(r=>r.sent==='Yes'||r.status==='Part Sent').forEach(r=>{
+    const cogs=parseSKU(r.sku).cogs;
+    const segs=normaliseSegments(r);
+    if(segs.length){
+      segs.forEach(sg=>{ if(!inRange(sg.date||r.sentDate))return;
+        lines.push({kind:'oa',units:sg.units||0,value:cogs*(sg.units||0),sup:r.sup||'Unknown',acct:r.acct||'—',
+          type:_shipTypeCache[sg.shipId]||sg.type||r.shipType||'Standard',shipId:sg.shipId,date:sg.date||r.sentDate,sku:r.sku,asin:r.asin,prod:r.prod}); });
+    }else if(inRange(r.sentDate)){
+      lines.push({kind:'oa',units:r.ship||0,value:cogs*(r.ship||0),sup:r.sup||'Unknown',acct:r.acct||'—',
+        type:r.shipType||'Standard',shipId:r.shipId,date:r.sentDate,sku:r.sku,asin:r.asin,prod:r.prod});
+    }
+  });
+  lavShipments.filter(s=>inRange(s.date)).forEach(s=>lines.push({kind:'lav',units:s.units||0,value:(s.cost||0)*(s.units||0),
+    sup:'Lavarion',acct:'Lavarion',type:_shipTypeCache[s.shipId]||'Standard',shipId:s.shipId,date:s.date,sku:s.sku,asin:s.asin,prod:s.prod}));
+  returnShipments.filter(s=>inRange(s.date)).forEach(s=>lines.push({kind:'return',units:s.units||0,value:(s.cost||0)*(s.units||0),
+    sup:'Return',acct:'Returns',type:_shipTypeCache[s.shipId]||'Standard',shipId:s.shipId,date:s.date,sku:s.sku,asin:s.asin,prod:s.prod}));
 
-  // OA sent in range
-  const stockSent=rows.filter(r=>r.sent==='Yes'&&inRange(r.sentDate));
-  const stockUnits=stockSent.reduce((a,r)=>a+(r.ship||0),0);
-  const stockValue=stockSent.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||0)),0);
-  const stockShipIds=new Set(stockSent.filter(r=>r.shipId).map(r=>r.shipId));
+  const sum=(arr,f)=>arr.reduce((a,x)=>a+(f(x)||0),0);
+  const byKind=k=>lines.filter(l=>l.kind===k);
+  const oaLines=byKind('oa'),lavLines=byKind('lav'),retLines=byKind('return');
 
-  // Lavarion sent in range
-  const lavSent=lavShipments.filter(s=>inRange(s.date));
-  const lavUnits=lavSent.reduce((a,s)=>a+(s.units||0),0);
-  const lavValue=lavSent.reduce((a,s)=>a+((s.cost||0)*(s.units||0)),0);
-  const lavShipIds=new Set(lavSent.map(s=>s.shipId));
-
-  const totalUnits=stockUnits+lavUnits;
-  const totalValue=stockValue+lavValue;
-  const allShipIds=new Set([...stockShipIds,...lavShipIds]);
+  const totalUnits=sum(lines,l=>l.units);
+  const totalValue=sum(lines,l=>l.value);
+  const allShipIds=new Set(lines.filter(l=>l.shipId).map(l=>l.shipId));
   const totalBoxes=Object.entries(shipBoxes).reduce((t,[sid,b])=>allShipIds.has(sid)?t+(b||0):t,0);
   const avgUPS=allShipIds.size?Math.round(totalUnits/allShipIds.size):0;
   const avgBPS=allShipIds.size?(totalBoxes/allShipIds.size).toFixed(1):0;
+  const avgCogUnit=totalUnits?(totalValue/totalUnits):0;
 
-  // Shipment type breakdown
-  // Shipment type breakdown using cache (accurate after type changes)
+  const stockUnits=sum(oaLines,l=>l.units),stockValue=sum(oaLines,l=>l.value);
+  const lavUnits=sum(lavLines,l=>l.units),lavValue=sum(lavLines,l=>l.value);
+  const retUnits=sum(retLines,l=>l.units),retValue=sum(retLines,l=>l.value);
+  const stockShipIds=new Set(oaLines.filter(l=>l.shipId).map(l=>l.shipId));
+  const lavShipIds=new Set(lavLines.filter(l=>l.shipId).map(l=>l.shipId));
+  const retShipIds=new Set(retLines.filter(l=>l.shipId).map(l=>l.shipId));
+
+  // Type breakdown (OA only — lav/returns shown separately)
   let stdUnits=0,dgUnits=0,osUnits=0;
-  const sentShipIds=new Set(stockSent.filter(r=>r.shipId).map(r=>r.shipId));
-  sentShipIds.forEach(sid=>{
-    const type=_shipTypeCache[sid]||'Standard';
-    const u=stockSent.filter(r=>r.shipId===sid).reduce((a,r)=>a+(r.ship||0),0);
-    if(type==='DG')dgUnits+=u;
-    else if(type==='Oversize')osUnits+=u;
-    else stdUnits+=u;
-  });
-  // Also count rows without shipId by their row's shipType
-  stockSent.filter(r=>!r.shipId).forEach(r=>{
-    const type=r.shipType||'Standard';
-    const u=r.ship||0;
-    if(type==='DG')dgUnits+=u;
-    else if(type==='Oversize')osUnits+=u;
-    else stdUnits+=u;
-  });
+  oaLines.forEach(l=>{ if(l.type==='DG')dgUnits+=l.units; else if(l.type==='Oversize')osUnits+=l.units; else stdUnits+=l.units; });
 
-  // Pipeline
-  const transitRows=rows.filter(r=>r.status==='In-Transit');
-  const transitUnits=transitRows.reduce((a,r)=>a+(r.exp||0),0);
-  const transitValue=transitRows.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
+  // Pipeline (not range-bound — current state)
+  const pipe=st=>{const rr=rows.filter(r=>r.status===st);return{u:rr.reduce((a,r)=>a+(r.exp||0),0),v:rr.reduce((a,r)=>a+parseSKU(r.sku).cogs*(r.exp||0),0),n:rr.length};};
+  const transit=pipe('In-Transit'),warehouse=pipe('In Warehouse'),delivered=pipe('Delivered');
 
-  // Supplier analysis
+  // ── SUPPLIER ANALYSIS (segment-based) ──────────────────────────────────────
   const supMap={};
-  stockSent.forEach(r=>{
-    const s=r.sup||'Unknown';
-    if(!supMap[s])supMap[s]={units:0,value:0,orders:new Set(),issues:0,issueVal:0,days:[]};
-    supMap[s].units+=r.ship||0;
-    supMap[s].value+=parseSKU(r.sku).cogs*(r.ship||0);
-    if(r.oid)supMap[s].orders.add(r.oid);
-  });
-  // Add issue data per supplier
-  rows.filter(r=>r.issueQty>0).forEach(r=>{
-    const s=r.sup||'Unknown';
-    if(!supMap[s])supMap[s]={units:0,value:0,orders:new Set(),issues:0,issueVal:0,days:[]};
-    supMap[s].issues+=r.issueQty||0;
-    supMap[s].issueVal+=parseSKU(r.sku).cogs*(r.issueQty||0);
-  });
-  // Avg days in transit per supplier
-  rows.filter(r=>r.sentDate&&r.date).forEach(r=>{
-    const[dd,mm]=(r.date||'').split('/');
-    if(!dd||!mm)return;
-    const ordered=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
-    const sent=new Date(r.sentDate);
-    const days=Math.round((sent-ordered)/(864e5));
-    if(days>=0&&days<200){
-      const s=r.sup||'Unknown';
-      if(!supMap[s])supMap[s]={units:0,value:0,orders:new Set(),issues:0,issueVal:0,days:[]};
-      supMap[s].days.push(days);
-    }
-  });
-  const supEntries=Object.entries(supMap).sort((a,b)=>b[1].value-a[1].value);
-  const supMax=Math.max(...supEntries.map(e=>e[1].value),1);
+  const ensureSup=s=>{if(!supMap[s])supMap[s]={units:0,value:0,orders:new Set(),issues:0,issueVal:0,days:[],claims:0,claimVal:0};return supMap[s];};
+  oaLines.forEach(l=>{const m=ensureSup(l.sup);m.units+=l.units;m.value+=l.value;});
+  rows.filter(r=>r.issueQty>0).forEach(r=>{const m=ensureSup(r.sup||'Unknown');m.issues+=r.issueQty||0;m.issueVal+=parseSKU(r.sku).cogs*(r.issueQty||0);if(r.oid)m.orders.add(r.oid);});
+  rows.filter(r=>r.sentDate&&r.date).forEach(r=>{const[dd,mm]=(r.date||'').split('/');if(!dd||!mm)return;const ordered=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);const sent=new Date(r.sentDate);const days=Math.round((sent-ordered)/864e5);if(days>=0&&days<200)ensureSup(r.sup||'Unknown').days.push(days);});
+  claims.forEach(c=>{const m=ensureSup(c.sup||'Unknown');m.claims++;m.claimVal+=c.claimValue||0;});
+  const supEntries=Object.entries(supMap).filter(([s])=>s!=='Lavarion'&&s!=='Return').sort((a,b)=>b[1].value-a[1].value);
 
-  // Claims
-  const missingUnits=rows.filter(r=>r.issueType==='Missing').reduce((a,r)=>a+(r.issueQty||0),0);
-  const damagedUnits=rows.filter(r=>r.issueType==='Damaged').reduce((a,r)=>a+(r.issueQty||0),0);
-  const incorrectUnits=rows.filter(r=>r.issueType==='Incorrect').reduce((a,r)=>a+(r.issueQty||0),0);
-  const missingVal=rows.filter(r=>r.issueType==='Missing').reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.issueQty||0)),0);
-  const damagedVal=rows.filter(r=>r.issueType==='Damaged').reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.issueQty||0)),0);
-  const totalAtRisk=missingVal+damagedVal;
-  const openClaims=claims.filter(c=>c.cst!=='Resolved'&&c.cst!=='Closed');
-  const inProgClaims=claims.filter(c=>c.cst==='In Progress');
-  const resolvedClaims=claims.filter(c=>c.cst==='Resolved'||c.cst==='Refunded');
+  // ── ACCOUNT ANALYSIS (new) ─────────────────────────────────────────────────
+  const acctMap={};
+  const ensureAcct=a=>{if(!acctMap[a])acctMap[a]={units:0,value:0,ships:new Set(),issues:0,issueVal:0};return acctMap[a];};
+  lines.forEach(l=>{const m=ensureAcct(l.acct||'—');m.units+=l.units;m.value+=l.value;if(l.shipId)m.ships.add(l.shipId);});
+  rows.filter(r=>r.issueQty>0).forEach(r=>{const m=ensureAcct(r.acct||'—');m.issues+=r.issueQty||0;m.issueVal+=parseSKU(r.sku).cogs*(r.issueQty||0);});
+  const acctEntries=Object.entries(acctMap).sort((a,b)=>b[1].value-a[1].value);
+  const acctMaxU=Math.max(...acctEntries.map(e=>e[1].units),1);
 
-  // Weekly trend (last 8 weeks)
+  // ── CLAIMS (from claims array, correct statuses) ───────────────────────────
+  const cStatus=c=>c.cst||'Open';
+  const openClaims=claims.filter(c=>cStatus(c)!=='Resolved');
+  const resolvedClaims=claims.filter(c=>cStatus(c)==='Resolved');
+  const byIssue=t=>claims.filter(c=>(c.issT||'').toLowerCase()===t);
+  const missingC=byIssue('missing'),damagedC=byIssue('damaged'),incorrectC=byIssue('incorrect');
+  const missingUnits=sum(missingC,c=>c.dif||0),damagedUnits=sum(damagedC,c=>c.dif||0),incorrectUnits=sum(incorrectC,c=>c.dif||0);
+  const missingVal=sum(missingC,c=>c.claimValue||0),damagedVal=sum(damagedC,c=>c.claimValue||0);
+  const totalAtRisk=sum(openClaims,c=>c.claimValue||0);
+  const recovered=sum(resolvedClaims,c=>c.claimValue||0);
+
+  // ── WEEKLY TREND (units + value, all-in) ───────────────────────────────────
   const weekTrend=[];
   for(let i=7;i>=0;i--){
     const base=new Date();base.setDate(base.getDate()-i*7);
     const dow=base.getDay()||7;
     const ws2=new Date(base);ws2.setDate(base.getDate()-dow+1);ws2.setHours(0,0,0,0);
     const we2=new Date(ws2);we2.setDate(ws2.getDate()+6);
-    const wss=`${ws2.getFullYear()}-${String(ws2.getMonth()+1).padStart(2,'0')}-${String(ws2.getDate()).padStart(2,'0')}`;
-    const wes=`${we2.getFullYear()}-${String(we2.getMonth()+1).padStart(2,'0')}-${String(we2.getDate()).padStart(2,'0')}`;
-    const u=rows.filter(r=>r.sent==='Yes'&&r.sentDate>=wss&&r.sentDate<=wes).reduce((a,r)=>a+(r.ship||0),0)
-             +lavShipments.filter(s=>s.date&&s.date>=wss&&s.date<=wes).reduce((a,s)=>a+(s.units||0),0);
-    const d=ws2.getDate();const m=ws2.getMonth()+1;
-    weekTrend.push({lbl:`${d} ${['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]}`,u});
+    const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const wss=iso(ws2),wes=iso(we2);
+    const inW=d=>d&&d>=wss&&d<=wes;
+    let u=0,v=0;
+    rows.filter(r=>r.sent==='Yes'||r.status==='Part Sent').forEach(r=>{const cogs=parseSKU(r.sku).cogs;normaliseSegments(r).forEach(sg=>{if(inW(sg.date||r.sentDate)){u+=sg.units||0;v+=cogs*(sg.units||0);}});});
+    lavShipments.forEach(s=>{if(inW(s.date)){u+=s.units||0;v+=(s.cost||0)*(s.units||0);}});
+    returnShipments.forEach(s=>{if(inW(s.date)){u+=s.units||0;v+=(s.cost||0)*(s.units||0);}});
+    const m=ws2.getMonth()+1;
+    weekTrend.push({lbl:`${ws2.getDate()} ${['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]}`,u,v});
   }
-  const weekMax=Math.max(...weekTrend.map(w=>w.u),1);
+  const weekMaxU=Math.max(...weekTrend.map(x=>x.u),1);
+  const weekMaxV=Math.max(...weekTrend.map(x=>x.v),1);
 
-  // Claims per supplier
-  const claimsBySupplier={};
-  claims.forEach(c=>{
-    const s=c.sup||'Unknown';
-    if(!claimsBySupplier[s])claimsBySupplier[s]={count:0,val:0};
-    claimsBySupplier[s].count++;
-    claimsBySupplier[s].val+=c.claimValue||0;
+  // ── MONTHLY HISTORY (permanent) ────────────────────────────────────────────
+  const monthMap={};
+  const addMonth=(date,u,v,pc)=>{if(!date)return;const k=date.slice(0,7);if(!monthMap[k])monthMap[k]={units:0,value:0,prep:0};monthMap[k].units+=u;monthMap[k].value+=v;};
+  rows.filter(r=>r.sent==='Yes'||r.status==='Part Sent').forEach(r=>{const cogs=parseSKU(r.sku).cogs;normaliseSegments(r).forEach(sg=>{const d=sg.date||r.sentDate;if(d)addMonth(d,sg.units||0,cogs*(sg.units||0));});});
+  lavShipments.forEach(s=>{if(s.date)addMonth(s.date,s.units||0,(s.cost||0)*(s.units||0));});
+  returnShipments.forEach(s=>{if(s.date)addMonth(s.date,s.units||0,(s.cost||0)*(s.units||0));});
+  // Prep cost per month
+  Object.keys(monthMap).forEach(k=>{
+    const mRows=rows.filter(r=>(r.sent==='Yes'||r.status==='Part Sent')&&normaliseSegments(r).some(sg=>(sg.date||r.sentDate||'').slice(0,7)===k)).map(r=>{const segU=normaliseSegments(r).filter(sg=>(sg.date||r.sentDate||'').slice(0,7)===k).reduce((a,sg)=>a+(sg.units||0),0);return{...r,_segUnits:segU};});
+    const mLav=lavShipments.filter(s=>(s.date||'').slice(0,7)===k);
+    const mIds=new Set([...mRows.filter(r=>r.shipId).map(r=>r.shipId),...mLav.filter(s=>s.shipId).map(s=>s.shipId)]);
+    const mBoxes=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>mIds.has(sid)));
+    monthMap[k].prep=calcImpliedPrepCost(mRows,mLav,mBoxes).withVat;
   });
+  const monthEntries=Object.entries(monthMap).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,12);
 
-  // Lavarion
-  const lavTotalSent=lavShipments.reduce((a,s)=>a+(s.units||0),0);
-  const lavTotalVal=lavShipments.reduce((a,s)=>a+((s.cost||0)*(s.units||0)),0);
+  // ── PREP COST (range) ──────────────────────────────────────────────────────
+  const oaForPrep=(()=>{const map={};oaLines.forEach(l=>{const key=l.sku+'|'+l.shipId;if(!map[key])map[key]={sku:l.sku,shipType:l.type,shipId:l.shipId,inBundle:'No',_segUnits:0,ship:0};map[key]._segUnits+=l.units;});
+    // attach inBundle from source rows
+    return Object.values(map).map(o=>{const src=rows.find(r=>r.sku===o.sku);return{...o,inBundle:src?src.inBundle:'No'};});})();
+  const prepBoxes=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>stockShipIds.has(sid)||lavShipIds.has(sid)));
+  const pc=calcImpliedPrepCost(oaForPrep,lavLines.map(l=>({...l,cost:l.units?l.value/l.units:0})),prepBoxes);
+  const prepDays=new Set(lines.map(l=>l.date)).size;
+  const prepShips=allShipIds.size;
+  const prepTotal=pc.withVat;
+  const efficiency=prepTotal>0?(totalValue/prepTotal):0;
 
-  const filterBtns=[
-    ['week','This Week'],['mtd','MTD'],['30d','30 Days'],['90d','90 Days'],['ytd','YTD'],['all','All Time'],['custom','Custom']
-  ].map(([v,l])=>`<button onclick="insightRange='${v}';renderInsights();" style="padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid ${insightRange===v?'var(--accent)':'var(--border)'};background:${insightRange===v?'var(--btn-amber-bg)':'var(--bg2)'};color:${insightRange===v?'var(--btn-amber-text)':'var(--text3)'};">${l}</button>`).join('');
-
-  const sectionHead=(t)=>`<div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;padding-bottom:6px;border-bottom:2px solid var(--border);margin-top:6px;">${t}</div>`;
-  const kpi=(t,v,sub,c='var(--text)',borderC='')=>`<div class="ic" style="${borderC?`border-color:${borderC};border-top:3px solid ${borderC};`:''}">
-    <div class="ic-title">${t}</div>
-    <div class="ic-val" style="color:${c};">${v}</div>
-    <div class="ic-sub">${sub||''}</div>
-  </div>`;
+  // ── UI HELPERS ─────────────────────────────────────────────────────────────
+  const filterBtns=[['week','This Week'],['mtd','MTD'],['30d','30 Days'],['90d','90 Days'],['ytd','YTD'],['all','All Time'],['custom','Custom']]
+    .map(([v,l])=>`<button onclick="insightRange='${v}';renderInsights();" style="padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid ${insightRange===v?'var(--accent)':'var(--border)'};background:${insightRange===v?'var(--btn-amber-bg)':'var(--bg2)'};color:${insightRange===v?'var(--btn-amber-text)':'var(--text3)'};">${l}</button>`).join('');
+  const sectionHead=t=>`<div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;padding-bottom:6px;border-bottom:2px solid var(--border);margin-top:6px;">${t}</div>`;
+  const kpi=(t,v,sub,c='var(--text)',borderC='')=>`<div class="ic" style="${borderC?`border-color:${borderC};border-top:3px solid ${borderC};`:''}"><div class="ic-title">${t}</div><div class="ic-val" style="color:${c};">${v}</div><div class="ic-sub">${sub||''}</div></div>`;
+  const bar=(label,val,max,col,valText,lblW=80)=>`<div class="brow"><div class="blabel" style="width:${lblW}px;font-size:9px;">${label}</div><div class="btrack"><div class="bfill" style="width:${Math.round((val/max)*100)}%;background:${col};"></div></div><div class="bval" style="font-size:9px;">${valText}</div></div>`;
 
   w.innerHTML=`<div style="padding:14px;display:flex;flex-direction:column;gap:14px;">
 
@@ -3527,248 +3623,161 @@ function renderInsights(){
       <span style="font-size:11px;color:var(--accent);font-weight:700;margin-left:4px;">${rlabel}</span>
     </div>
 
-    <!-- SECTION 1: SHIPMENTS -->
-    ${sectionHead('Shipments — '+rlabel)}
+    <!-- HEADLINE -->
+    ${sectionHead('Overview — '+rlabel)}
     <div class="ig-row ig-4">
-      ${kpi('Total Units Sent',fmt(totalUnits),`${fmtGBP2(totalValue)}`,'#55ff55','#55ff55')}
-      ${kpi('Shipments',fmt(allShipIds.size),'FBA shipments','#ffaa33','#ffaa33')}
-      ${kpi('Boxes Sent',fmt(totalBoxes),'logged boxes','#cc99ff','#cc99ff')}
-      ${kpi('Avg Units / Shipment',avgUPS||'—',avgBPS?`${avgBPS} avg boxes/ship`:'','#5599ff','#5599ff')}
+      ${kpi('Total Units Sent',fmt(totalUnits),`Stock ${fmt(stockUnits)} · Lav ${fmt(lavUnits)} · Ret ${fmt(retUnits)}`,'#55ff55','#55ff55')}
+      ${kpi('Total COG Value',fmtGBP2(totalValue),`avg £${avgCogUnit.toFixed(2)}/unit`,'#ffaa33','#ffaa33')}
+      ${kpi('Shipments',fmt(allShipIds.size),`${fmt(totalBoxes)} boxes · ${avgUPS} units/ship`,'#5599ff','#5599ff')}
+      ${kpi('Prep Cost (inc VAT)',fmtGBP2(prepTotal),`COG:Prep ratio ${efficiency?efficiency.toFixed(0)+'×':'—'}`,'#cc99ff','#cc99ff')}
     </div>
-    <!-- Stock vs Lavarion -->
-    <div class="ig-row ig-4">
-      ${kpi('Stock Units',fmt(stockUnits),`${fmtGBP2(stockValue)}`,'#5599ff')}
-      ${kpi('Stock Shipments',fmt(stockShipIds.size),'FBA IDs','#5599ff')}
-      ${kpi('Lavarion Units',fmt(lavUnits),`${fmtGBP2(lavValue)}`,'#cc99ff')}
-      ${kpi('Lavarion Shipments',fmt(lavShipIds.size),'FBA IDs','#cc99ff')}
+
+    <!-- TREND -->
+    <div class="ig-row ig-2">
+      <div class="ic" style="align-items:stretch;text-align:left;">
+        <div class="ic-title" style="text-align:left;">Weekly Units Sent — Last 8 Weeks</div>
+        ${weekTrend.map(x=>bar(x.lbl,x.u,weekMaxU,'#55ff55',fmt(x.u),52)).join('')}
+      </div>
+      <div class="ic" style="align-items:stretch;text-align:left;">
+        <div class="ic-title" style="text-align:left;">Weekly COG Value — Last 8 Weeks</div>
+        ${weekTrend.map(x=>bar(x.lbl,x.v,weekMaxV,'#ffaa33',fmtGBP(x.v),52)).join('')}
+      </div>
     </div>
-    <!-- Shipment type breakdown -->
+
+    <!-- COMPOSITION -->
+    <div class="ig-row ig-2">
+      <div class="ic" style="align-items:stretch;text-align:left;">
+        <div class="ic-title" style="text-align:left;">Volume Composition (units)</div>
+        ${[['Stock',stockUnits,'#5599ff'],['Lavarion',lavUnits,'#cc99ff'],['Returns',retUnits,'#60d5ff']].map(([l,u,c])=>bar(l,u,totalUnits||1,c,`${fmt(u)} · ${Math.round(u/(totalUnits||1)*100)}%`,70)).join('')}
+      </div>
+      <div class="ic" style="align-items:stretch;text-align:left;">
+        <div class="ic-title" style="text-align:left;">Stock Type Breakdown (units)</div>
+        ${[['Standard',stdUnits,'#5599ff'],['DG',dgUnits,'#ff5555'],['Oversize',osUnits,'#ffaa33']].map(([l,u,c])=>bar(l,u,stockUnits||1,c,`${fmt(u)} · ${Math.round(u/(stockUnits||1)*100)}%`,70)).join('')}
+      </div>
+    </div>
+
+    <!-- STOCK & PIPELINE -->
+    ${sectionHead('Stock & Pipeline (current)')}
     <div class="ig-row ig-3">
-      ${kpi('Standard Units',fmt(stdUnits),'units sent','#5599ff')}
-      ${kpi('DG Units',fmt(dgUnits),'units sent','#ff5555')}
-      ${kpi('Oversize Units',fmt(osUnits),'units sent','#ffaa33')}
+      ${kpi('In Transit',fmt(transit.u),`${fmtGBP2(transit.v)} · ${transit.n} SKUs`,'#5599ff','#5599ff')}
+      ${kpi('In Warehouse',fmt(warehouse.u),`${fmtGBP2(warehouse.v)} · ${warehouse.n} SKUs`,'#cc99ff','#cc99ff')}
+      ${kpi('Delivered (awaiting)',fmt(delivered.u),`${fmtGBP2(delivered.v)} · ${delivered.n} SKUs`,'#86efac','#86efac')}
     </div>
-    <!-- Weekly trend -->
     <div class="ig-row ig-2">
-      <div class="ic">
-        <div class="ic-title">Weekly Units Sent — Last 8 Weeks</div>
-        ${weekTrend.map(w=>`<div class="brow"><div class="blabel" style="width:52px;font-size:9px;">${w.lbl}</div><div class="btrack"><div class="bfill" style="width:${Math.round(w.u/weekMax*100)}%;background:#55ff55;"></div></div><div class="bval">${fmt(w.u)}</div></div>`).join('')}
+      <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Pipeline by Units</div>
+        ${(()=>{const stg=[['In-Transit','#5599ff'],['Delivered','#86efac'],['In Warehouse','#cc99ff'],['Issue','#ff5555'],['Not Arrived','#ffaa33']];const mx=Math.max(...stg.map(([st])=>pipe(st).u),1);return stg.map(([st,c])=>bar(st,pipe(st).u,mx,c,fmt(pipe(st).u))).join('');})()}
       </div>
-      <div class="ic">
-        <div class="ic-title">Shipment Type Breakdown</div>
-        ${[['Standard',stdUnits,'#5599ff'],['DG',dgUnits,'#ff5555'],['Oversize',osUnits,'#ffaa33'],['Lavarion',lavUnits,'#cc99ff']].map(([l,u,c])=>{
-          const tot=totalUnits||1;
-          const pct=Math.round(u/tot*100);
-          return`<div class="brow"><div class="blabel" style="width:60px;">${l}</div><div class="btrack"><div class="bfill" style="width:${pct}%;background:${c};"></div></div><div class="bval" style="color:${c};">${fmt(u)} <span style="opacity:.6;font-size:9px;">${pct}%</span></div></div>`;
-        }).join('')}
+      <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Pipeline by Value</div>
+        ${(()=>{const stg=[['In-Transit','#5599ff'],['In Warehouse','#cc99ff'],['Delivered','#86efac'],['Issue','#ff5555']];const mx=Math.max(...stg.map(([st])=>pipe(st).v),1);return stg.map(([st,c])=>bar(st,pipe(st).v,mx,c,fmtGBP(pipe(st).v))).join('');})()}
       </div>
     </div>
 
-    <!-- SECTION 2: STOCK & PIPELINE -->
-    ${sectionHead('Stock & Pipeline')}
-    <div class="ig-row ig-4">
-      ${kpi('In Transit (units)',fmt(transitUnits),`${fmtGBP2(transitValue)} locked`,'#5599ff','#5599ff')}
-      ${kpi('In Transit (SKUs)',fmt(transitRows.length),new Set(transitRows.map(r=>r.asin)).size+' unique ASINs','#5599ff')}
-      ${kpi('In Warehouse',fmt(rows.filter(r=>r.status==='In Warehouse').reduce((a,r)=>a+(r.exp||0),0)),rows.filter(r=>r.status==='In Warehouse').length+' SKU lines','#cc99ff')}
-      ${kpi('Active SKU Lines',fmt(rows.length),new Set(rows.map(r=>r.asin)).size+' unique ASINs','#ffaa33')}
-    </div>
-    <div class="ig-row ig-2">
-      <div class="ic">
-        <div class="ic-title">Pipeline by Units</div>
-        ${[['In-Transit','#5599ff'],['Delivered','#86efac'],['In Warehouse','#cc99ff'],['Issue','#ff5555'],['Not Arrived','#ffaa33']].map(([st,col])=>{
-          const u=rows.filter(r=>r.status===st).reduce((a,r)=>a+(r.exp||0),0);
-          const tot=rows.reduce((a,r)=>a+(r.exp||0),1);
-          return`<div class="brow"><div class="blabel" style="width:80px;font-size:9px;">${st}</div><div class="btrack"><div class="bfill" style="width:${Math.round(u/tot*100)}%;background:${col};"></div></div><div class="bval">${fmt(u)}</div></div>`;
-        }).join('')}
-      </div>
-      <div class="ic">
-        <div class="ic-title">Pipeline by Value</div>
-        ${(()=>{
-          const stages=[['In-Transit','#5599ff'],['In Warehouse','#cc99ff'],['Delivered','#86efac'],['Issue','#ff5555']];
-          const vals=stages.map(([st])=>rows.filter(r=>r.status===st).reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0));
-          const mx=Math.max(...vals,1);
-          return stages.map(([st,col],i)=>`<div class="brow"><div class="blabel" style="width:80px;font-size:9px;">${st}</div><div class="btrack"><div class="bfill" style="width:${Math.round(vals[i]/mx*100)}%;background:${col};"></div></div><div class="bval" style="font-size:9px;">${fmtGBP(vals[i])}</div></div>`).join('');
-        })()}
-      </div>
-    </div>
-
-    <!-- SECTION 3: SUPPLIER ANALYSIS -->
+    <!-- SUPPLIER ANALYSIS -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:6px;border-bottom:2px solid var(--border);margin-top:6px;">
       <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;">Supplier Analysis</div>
       <button onclick="openAllSuppliersModal()" style="padding:6px 16px;background:var(--btn-amber-bg);border:1px solid var(--btn-amber-border);color:var(--btn-amber-text);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.04em;">View All Suppliers ↗</button>
     </div>
-    <!-- Top 3 mini cards -->
     <div class="ig-row ig-3" style="margin-top:8px;">
-      ${supEntries.slice(0,3).map(([s,v])=>{
-        const avgCog=v.units?((v.value/v.units).toFixed(2)):'—';
-        const avgDays=v.days.length?Math.round(v.days.reduce((a,b)=>a+b,0)/v.days.length):'—';
-        return`<div class="ic" style="cursor:pointer;border-top:3px solid var(--accent);" onclick="openSupplierModal('${s.replace(/'/g,"\\'")}')">
-          <div class="ic-title">${s}</div>
-          <div class="ic-val" style="color:#55ff55;font-size:22px;">${fmt(v.units)}</div>
-          <div class="ic-sub">units sent · ${fmtGBP2(v.value)}</div>
-          <div style="display:flex;gap:8px;margin-top:6px;justify-content:center;">
-            <span style="font-size:9px;color:var(--text3);">£${avgCog}/unit</span>
-            ${avgDays!=='—'?`<span style="font-size:9px;color:var(--text3);">${avgDays}d avg transit</span>`:''}
-            ${v.issues>0?`<span style="font-size:9px;color:#ff5555;">${v.issues} issues</span>`:''}
-          </div>
-        </div>`;
-      }).join('')}
+      ${supEntries.slice(0,3).map(([s,v])=>{const avgCog=v.units?(v.value/v.units).toFixed(2):'—';const avgDays=v.days.length?Math.round(v.days.reduce((a,b)=>a+b,0)/v.days.length):'—';return`<div class="ic" style="cursor:pointer;border-top:3px solid var(--accent);" onclick="openSupplierModal('${s.replace(/'/g,"\\'")}')"><div class="ic-title">${s}</div><div class="ic-val" style="color:#55ff55;font-size:22px;">${fmt(v.units)}</div><div class="ic-sub">units · ${fmtGBP2(v.value)}</div><div style="display:flex;gap:8px;margin-top:6px;justify-content:center;flex-wrap:wrap;"><span style="font-size:9px;color:var(--text3);">£${avgCog}/u</span>${avgDays!=='—'?`<span style="font-size:9px;color:var(--text3);">${avgDays}d transit</span>`:''}${v.issues>0?`<span style="font-size:9px;color:#ff5555;">${v.issues} issues</span>`:''}</div></div>`;}).join('')}
     </div>
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-      <table style="min-width:unset;width:100%;">
-        <thead style="position:static;"><tr>
-          <th class="th-left">Supplier</th>
-          <th>Units Sent</th>
-          <th>COG Value</th>
-          <th>Avg COG/Unit</th>
-          <th>Avg Days Transit</th>
-          <th>Issues</th>
-          <th>Issue Value</th>
-          <th>Issue Rate</th>
-        </tr></thead>
-        <tbody>
-        ${supEntries.length?supEntries.map(([s,v])=>{
-          const avgCog=v.units?((v.value/v.units).toFixed(2)):'—';
-          const avgDays=v.days.length?Math.round(v.days.reduce((a,b)=>a+b,0)/v.days.length):'—';
-          const issueRate=v.units?(v.issues/v.units*100).toFixed(1)+'%':'—';
-          return`<tr onclick="openSupplierModal('${s.replace(/'/g,"\\'")}')" style="cursor:pointer;" onmouseover="this.style.background='rgba(245,158,11,.05)'" onmouseout="this.style.background=''">
-            <td class="td-left" style="font-weight:600;">${s} <span style="font-size:9px;color:var(--accent);opacity:.7;">↗</span></td>
-            <td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(v.units)}</td>
-            <td style="font-family:var(--mono);font-weight:700;color:#ffaa33;">${fmtGBP(v.value)}</td>
-            <td style="font-family:var(--mono);">£${avgCog}</td>
-            <td style="font-family:var(--mono);color:${avgDays>10?'#ffaa33':avgDays!=='—'?'#55ff55':'var(--text3)'};">${avgDays!=='—'?avgDays+'d':avgDays}</td>
-            <td style="font-family:var(--mono);color:${v.issues>0?'#ff5555':'#55ff55'};">${fmt(v.issues)}</td>
-            <td style="font-family:var(--mono);color:${v.issueVal>0?'#ff5555':'var(--text3)'};">${v.issueVal>0?fmtGBP(v.issueVal):'—'}</td>
-            <td style="font-family:var(--mono);color:${parseFloat(issueRate)>5?'#ff5555':parseFloat(issueRate)>0?'#ffaa33':'#55ff55'};">${issueRate}</td>
-          </tr>`;
-        }).join(''):`<tr><td colspan="8"><div style="padding:16px;color:var(--text3);text-align:center;">No sent data for this period</div></td></tr>`}
-        </tbody>
-      </table>
+      <table style="min-width:unset;width:100%;"><thead style="position:static;"><tr>
+        <th class="th-left">Supplier</th><th>Units</th><th>COG Value</th><th>Avg COG/U</th><th>Avg Transit</th><th>Issues</th><th>Issue Value</th><th>Issue Rate</th>
+      </tr></thead><tbody>
+      ${supEntries.length?supEntries.map(([s,v])=>{const avgCog=v.units?(v.value/v.units).toFixed(2):'—';const avgDays=v.days.length?Math.round(v.days.reduce((a,b)=>a+b,0)/v.days.length):'—';const ir=v.units?(v.issues/v.units*100).toFixed(1)+'%':'—';return`<tr onclick="openSupplierModal('${s.replace(/'/g,"\\'")}')" style="cursor:pointer;" onmouseover="this.style.background='rgba(245,158,11,.05)'" onmouseout="this.style.background=''"><td class="td-left" style="font-weight:600;">${s} <span style="font-size:9px;color:var(--accent);opacity:.7;">↗</span></td><td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(v.units)}</td><td style="font-family:var(--mono);font-weight:700;color:#ffaa33;">${fmtGBP(v.value)}</td><td style="font-family:var(--mono);">£${avgCog}</td><td style="font-family:var(--mono);color:${avgDays>10?'#ffaa33':avgDays!=='—'?'#55ff55':'var(--text3)'};">${avgDays!=='—'?avgDays+'d':'—'}</td><td style="font-family:var(--mono);color:${v.issues>0?'#ff5555':'#55ff55'};">${fmt(v.issues)}</td><td style="font-family:var(--mono);color:${v.issueVal>0?'#ff5555':'var(--text3)'};">${v.issueVal>0?fmtGBP(v.issueVal):'—'}</td><td style="font-family:var(--mono);color:${parseFloat(ir)>5?'#ff5555':parseFloat(ir)>0?'#ffaa33':'#55ff55'};">${ir}</td></tr>`;}).join(''):`<tr><td colspan="8"><div style="padding:16px;color:var(--text3);text-align:center;">No sent data for this period</div></td></tr>`}
+      </tbody></table>
     </div>
 
-    <!-- SECTION 4: CLAIMS & ISSUES -->
+    <!-- ACCOUNT ANALYSIS (new) -->
+    ${sectionHead('Account Analysis')}
+    <div class="ig-row ig-2">
+      <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Units Sent by Account</div>
+        ${acctEntries.length?acctEntries.map(([a,v])=>bar(a,v.units,acctMaxU,'#60a5fa',`${fmt(v.units)} · ${fmtGBP(v.value)}`,90)).join(''):`<div style="color:var(--text3);font-size:11px;padding:8px;text-align:center;">No account data</div>`}
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+        <table style="min-width:unset;width:100%;"><thead style="position:static;"><tr><th class="th-left">Account</th><th>Units</th><th>COG Value</th><th>Shipments</th><th>Issues</th></tr></thead><tbody>
+        ${acctEntries.length?acctEntries.map(([a,v])=>`<tr><td class="td-left" style="font-weight:600;">${a}</td><td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(v.units)}</td><td style="font-family:var(--mono);color:#ffaa33;">${fmtGBP(v.value)}</td><td style="font-family:var(--mono);color:var(--text2);">${v.ships.size}</td><td style="font-family:var(--mono);color:${v.issues>0?'#ff5555':'var(--text3)'};">${v.issues||'—'}</td></tr>`).join(''):`<tr><td colspan="5"><div style="padding:16px;color:var(--text3);text-align:center;">No account data</div></td></tr>`}
+        </tbody></table>
+      </div>
+    </div>
+
+    <!-- CLAIMS & ISSUES (from claims array) -->
     ${sectionHead('Claims & Issues')}
     <div class="ig-row ig-4">
-      ${kpi('Missing Units',fmt(missingUnits),`${fmtGBP2(missingVal)} at risk`,missingUnits>0?'#ff5555':'#55ff55',missingUnits>0?'#ff5555':'')}
-      ${kpi('Damaged Units',fmt(damagedUnits),`${fmtGBP2(damagedVal)} at risk`,damagedUnits>0?'#ff5555':'#55ff55',damagedUnits>0?'#ff5555':'')}
-      ${kpi('Incorrect Units',fmt(incorrectUnits),'wrong items received',incorrectUnits>0?'#ffaa33':'#55ff55')}
-      ${kpi('Total At Risk',`${fmtGBP2(totalAtRisk)}`,openClaims.length+' open · '+resolvedClaims.length+' resolved',totalAtRisk>0?'#ff5555':'#55ff55',totalAtRisk>0?'#ff5555':'')}
+      ${kpi('Missing',fmt(missingUnits),`${fmtGBP2(missingVal)} · ${missingC.length} claim${missingC.length!==1?'s':''}`,missingUnits>0?'#ff5555':'#55ff55',missingUnits>0?'#ff5555':'')}
+      ${kpi('Damaged',fmt(damagedUnits),`${fmtGBP2(damagedVal)} · ${damagedC.length} claim${damagedC.length!==1?'s':''}`,damagedUnits>0?'#ff5555':'#55ff55',damagedUnits>0?'#ff5555':'')}
+      ${kpi('Open £ At Risk',fmtGBP2(totalAtRisk),`${openClaims.length} open claim${openClaims.length!==1?'s':''}`,totalAtRisk>0?'#ff5555':'#55ff55',totalAtRisk>0?'#ff5555':'')}
+      ${kpi('Recovered',fmtGBP2(recovered),`${resolvedClaims.length} resolved`,'#55ff55','#55ff55')}
     </div>
-    <!-- Full claims list -->
-    ${claims.length?`
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-      <div style="padding:10px 14px;font-size:10px;font-weight:800;color:var(--accent);border-bottom:1px solid var(--border);">All Actions & Claims</div>
-      <table style="min-width:unset;width:100%;">
-        <thead style="position:static;"><tr>
-          <th>Raised</th><th class="th-left">Supplier</th><th class="th-left">SKU</th>
-          <th>Type</th><th>Units</th><th>Value</th><th>Status</th><th>Days Open</th>
-        </tr></thead>
-        <tbody>
-        ${[...claims].sort((a,b)=>(b.raisedAt||'').localeCompare(a.raisedAt||'')).map(c=>{
-          const daysOpen=c.raisedAt?Math.floor((new Date()-new Date(c.raisedAt))/864e5):0;
-          const isOpen=c.cst!=='Resolved'&&c.cst!=='Closed'&&c.cst!=='Refunded';
-          const statusCol=c.cst==='Open'?'#ff5555':c.cst==='In Progress'?'#ffaa33':'#55ff55';
-          return`<tr>
-            <td style="font-size:10px;">${c.raisedAt||c.date||'—'}</td>
-            <td class="td-left" style="font-weight:600;">${c.sup}</td>
-            <td class="td-left" style="font-size:10px;font-family:var(--mono);">${(c.sku||'').substring(0,25)}</td>
-            <td style="font-size:10px;color:#ff9999;">${c.issT}</td>
-            <td style="font-family:var(--mono);color:#ff5555;">${c.dif||0}</td>
-            <td style="font-family:var(--mono);color:#ffaa33;">${fmtGBP(c.claimValue||0)}</td>
-            <td style="font-size:10px;font-weight:700;color:${statusCol};">${c.cst}</td>
-            <td style="font-family:var(--mono);color:${isOpen&&daysOpen>14?'#ff5555':isOpen?'#ffaa33':'var(--text3)'};">${isOpen?daysOpen+'d':'—'}</td>
-          </tr>`;
-        }).join('')}
-        </tbody>
-      </table>
+    ${claims.length?`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <div style="padding:10px 14px;font-size:10px;font-weight:800;color:var(--accent);border-bottom:1px solid var(--border);">All Actions &amp; Claims (${claims.length})</div>
+      <table style="min-width:unset;width:100%;"><thead style="position:static;"><tr>
+        <th>Raised</th><th class="th-left">Supplier</th><th class="th-left">Account</th><th class="th-left">SKU</th><th>Type</th><th>Units</th><th>Value</th><th>Status</th><th>Days Open</th>
+      </tr></thead><tbody>
+      ${[...claims].sort((a,b)=>(b.raisedAt||'').localeCompare(a.raisedAt||'')).map(c=>{const daysOpen=c.raisedAt?Math.floor((new Date()-new Date(c.raisedAt))/864e5):0;const st=cStatus(c);const isOpen=st!=='Resolved';const statusCol=st==='Issue'?'#ff5555':st==='Open'?'#f97316':st==='Chasing'?'#fbbf24':'#4ade80';return`<tr><td style="font-size:10px;">${(c.raisedAt||c.date||'—').toString().slice(0,10)}</td><td class="td-left" style="font-weight:600;">${c.sup||'—'}</td><td class="td-left" style="font-size:10px;color:var(--text2);">${c.acct||'—'}</td><td class="td-left" style="font-size:10px;font-family:var(--mono);">${(c.sku||'').substring(0,22)}</td><td style="font-size:10px;color:#ff9999;">${c.issT||'—'}</td><td style="font-family:var(--mono);color:#ff5555;">${c.dif||0}</td><td style="font-family:var(--mono);color:#ffaa33;">${fmtGBP(c.claimValue||0)}</td><td style="font-size:10px;font-weight:700;color:${statusCol};">${st}</td><td style="font-family:var(--mono);color:${isOpen&&daysOpen>14?'#ff5555':isOpen?'#ffaa33':'var(--text3)'};">${isOpen?daysOpen+'d':'—'}</td></tr>`;}).join('')}
+      </tbody></table>
     </div>`:`<div style="color:var(--text3);font-size:11px;padding:8px 0;">No claims or actions raised yet</div>`}
 
-    <!-- SECTION 5: LAVARION -->
-    ${lavAsins.length?`
-    ${sectionHead('Lavarion ASINs')}
-    <div class="ig-row ig-3">
-      ${kpi('Lavarion ASINs',fmt(lavAsins.length),'active products','#cc99ff')}
-      ${kpi('Units Sent ('+rlabel+')',fmt(lavUnits),`${fmtGBP2(lavValue)}`,'#cc99ff')}
-      ${kpi('Total Sent All Time',fmt(lavTotalSent),`${fmtGBP2(lavTotalVal)}`,'#55ff55')}
+    <!-- LAVARION DEEP DIVE -->
+    ${sectionHead('Lavarion Deep-Dive')}
+    <div class="ig-row ig-4">
+      ${kpi('Lavarion Units ('+rlabel+')',fmt(lavUnits),fmtGBP2(lavValue),'#cc99ff','#cc99ff')}
+      ${kpi('Lavarion Shipments',fmt(lavShipIds.size),'FBA IDs','#cc99ff')}
+      ${kpi('Active ASINs',fmt(lavAsins.length),'products on file','#cc99ff')}
+      ${kpi('All-Time Lavarion',fmt(lavShipments.reduce((a,s)=>a+(s.units||0),0)),fmtGBP2(lavShipments.reduce((a,s)=>a+((s.cost||0)*(s.units||0)),0)),'#55ff55','#55ff55')}
     </div>
     <div class="ig-row ig-2">
-      <div class="ic" style="align-items:stretch;text-align:left;">
-        <div class="ic-title" style="text-align:left;">Lavarion Shipment History (last 10)</div>
-        ${lavShipments.length?`<table style="width:100%;min-width:unset;border:none;">
-          <thead style="position:static;"><tr>
-            <th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);text-align:left;">Date</th>
-            <th class="th-left" style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">Product</th>
-            <th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">Units</th>
-            <th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">COG</th>
-            <th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">Total</th>
-          </tr></thead>
-          <tbody>${[...lavShipments].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,10).map(s=>`
-            <tr>
-              <td style="font-size:10px;font-family:var(--mono);color:var(--text3);padding:3px 6px;border-color:var(--border);">${s.date||'—'}</td>
-              <td class="td-left" style="font-size:10px;padding:3px 6px;border-color:var(--border);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.prod}">${s.prod}</td>
-              <td style="font-family:var(--mono);font-weight:700;color:#55ff55;padding:3px 6px;border-color:var(--border);">${s.units}</td>
-              <td style="font-family:var(--mono);color:var(--text3);padding:3px 6px;border-color:var(--border);">${fmtGBP2((s.cost||0))}</td>
-              <td style="font-family:var(--mono);font-weight:700;color:#ffaa33;padding:3px 6px;border-color:var(--border);">${fmtGBP2(((s.cost||0)*(s.units||0)))}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>`:`<div style="color:var(--text3);font-size:11px;padding:8px 0;text-align:center;">No Lavarion shipments yet</div>`}
+      <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Lavarion Shipments (last 10)</div>
+        ${lavShipments.length?`<table style="width:100%;min-width:unset;border:none;"><thead style="position:static;"><tr><th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);text-align:left;">Date</th><th class="th-left" style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">Product</th><th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">Units</th><th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">Total</th></tr></thead><tbody>${[...lavShipments].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,10).map(s=>`<tr><td style="font-size:10px;font-family:var(--mono);color:var(--text3);padding:3px 6px;border-color:var(--border);">${s.date||'—'}</td><td class="td-left" style="font-size:10px;padding:3px 6px;border-color:var(--border);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.prod}">${s.prod}</td><td style="font-family:var(--mono);font-weight:700;color:#55ff55;padding:3px 6px;border-color:var(--border);">${s.units}</td><td style="font-family:var(--mono);font-weight:700;color:#ffaa33;padding:3px 6px;border-color:var(--border);">${fmtGBP2((s.cost||0)*(s.units||0))}</td></tr>`).join('')}</tbody></table>`:`<div style="color:var(--text3);font-size:11px;padding:8px 0;text-align:center;">No Lavarion shipments yet</div>`}
       </div>
-      <div class="ic" style="align-items:stretch;text-align:left;">
-        <div class="ic-title" style="text-align:left;">COG per Shipment Trend</div>
-        ${(()=>{
-          const grouped={};
-          lavShipments.forEach(s=>{
-            if(!grouped[s.shipId])grouped[s.shipId]={id:s.shipId,date:s.date,val:0,units:0};
-            grouped[s.shipId].val+=(s.cost||0)*(s.units||0);
-            grouped[s.shipId].units+=s.units||0;
-          });
-          const entries=Object.values(grouped).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-          const mx=Math.max(...entries.map(e=>e.val),1);
-          return entries.length?entries.map(e=>`
-            <div class="brow">
-              <div class="blabel" style="width:80px;">${e.id}</div>
-              <div class="btrack"><div class="bfill" style="width:${Math.round(e.val/mx*100)}%;background:#cc99ff;"></div></div>
-              <div class="bval">${fmtGBP2(e.val)}</div>
-            </div>
-            <div style="font-size:9px;color:var(--text3);margin-bottom:6px;margin-top:-3px;padding-left:88px;">${e.date||''} · ${fmt(e.units)} units · avg £${e.units?(e.val/e.units).toFixed(2):'0.00'}/unit</div>`).join('')
-          :`<div style="color:var(--text3);font-size:11px;padding:8px 0;text-align:center;">No data</div>`;
-        })()}
+      <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Top Lavarion ASINs (all-time units)</div>
+        ${(()=>{const g={};lavShipments.forEach(s=>{const k=s.asin||s.sku||s.prod||'?';if(!g[k])g[k]={u:0,v:0,prod:s.prod||k};g[k].u+=s.units||0;g[k].v+=(s.cost||0)*(s.units||0);});const e=Object.values(g).sort((a,b)=>b.u-a.u).slice(0,8);const mx=Math.max(...e.map(x=>x.u),1);return e.length?e.map(x=>bar((x.prod||'').slice(0,16),x.u,mx,'#cc99ff',`${fmt(x.u)} · ${fmtGBP(x.v)}`,100)).join(''):`<div style="color:var(--text3);font-size:11px;padding:8px;text-align:center;">No data</div>`;})()}
       </div>
     </div>
-    `:''}
 
-  <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:14px 16px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;">Implied Prep Cost</div>
-      <button onclick="openPrepHistory()" style="padding:4px 12px;background:var(--btn-amber-bg);border:1px solid var(--btn-amber-border);color:var(--btn-amber-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">History ↗</button>
+    <!-- RETURNS DEEP DIVE (new) -->
+    ${sectionHead('Returns Deep-Dive')}
+    <div class="ig-row ig-3">
+      ${kpi('Return Units ('+rlabel+')',fmt(retUnits),fmtGBP2(retValue),'#60d5ff','#60d5ff')}
+      ${kpi('Return Shipments',fmt(retShipIds.size),'FBA IDs with returns','#60d5ff')}
+      ${kpi('All-Time Returns',fmt(returnShipments.reduce((a,s)=>a+(s.units||0),0)),`${returnSkus.length} on active list`,'#55ff55','#55ff55')}
     </div>
-    ${(()=>{
-      const pc=calcImpliedPrepCost(stockSent,lavSent,Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>stockShipIds.has(sid)||new Set(lavSent.filter(s=>s.shipId).map(s=>s.shipId)).has(sid))));
-      const prepDays=new Set([...stockSent.map(r=>r.sentDate),...lavSent.map(s=>s.date)]).size;
-      const prepShips=new Set([...stockSent.filter(r=>r.shipId).map(r=>r.shipId),...lavSent.filter(s=>s.shipId).map(s=>s.shipId)]).size;
-      return`
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
-        ${[['Total inc. VAT',fmtGBP2(pc.withVat),'#fbbf24'],['Per prep day',prepDays>0?'£'+(pc.withVat/prepDays).toFixed(2):'—','#60a5fa'],['Per shipment',prepShips>0?'£'+(pc.withVat/prepShips).toFixed(2):'—','#34d399']].map(([l,v,col])=>`<div style="background:var(--bg3);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:18px;font-weight:900;font-family:var(--mono);color:${col};">${v}</div><div style="font-size:8px;color:#94a3b8;margin-top:2px;">${l}</div></div>`).join('')}
+    <div class="ig-row ig-2">
+      <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Returns Attached to Shipments (last 10)</div>
+        ${returnShipments.length?`<table style="width:100%;min-width:unset;border:none;"><thead style="position:static;"><tr><th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);text-align:left;">Date</th><th class="th-left" style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">SKU</th><th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">Shipment</th><th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">Units</th></tr></thead><tbody>${[...returnShipments].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,10).map(s=>`<tr><td style="font-size:10px;font-family:var(--mono);color:var(--text3);padding:3px 6px;border-color:var(--border);">${s.date||'—'}</td><td class="td-left" style="font-size:10px;font-family:var(--mono);padding:3px 6px;border-color:var(--border);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.sku}">${s.sku}</td><td style="font-size:10px;font-family:var(--mono);color:var(--accent);padding:3px 6px;border-color:var(--border);">${s.shipId}</td><td style="font-family:var(--mono);font-weight:700;color:#60d5ff;padding:3px 6px;border-color:var(--border);">${s.units}</td></tr>`).join('')}</tbody></table>`:`<div style="color:var(--text3);font-size:11px;padding:8px 0;text-align:center;">No returns attached to shipments yet</div>`}
+      </div>
+      <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Top Returned SKUs (all-time units)</div>
+        ${(()=>{const g={};returnShipments.forEach(s=>{const k=s.sku||'?';if(!g[k])g[k]={u:0};g[k].u+=s.units||0;});const e=Object.entries(g).sort((a,b)=>b[1].u-a[1].u).slice(0,8);const mx=Math.max(...e.map(x=>x[1].u),1);return e.length?e.map(([k,x])=>bar(k.slice(0,18),x.u,mx,'#60d5ff',fmt(x.u),110)).join(''):`<div style="color:var(--text3);font-size:11px;padding:8px;text-align:center;">No returns data</div>`;})()}
+      </div>
+    </div>
+
+    <!-- PREP COST -->
+    <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;">Implied Prep Cost — ${rlabel}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;">
+        ${[['Total inc. VAT',fmtGBP2(prepTotal),'#fbbf24'],['Per prep day',prepDays>0?'£'+(prepTotal/prepDays).toFixed(2):'—','#60a5fa'],['Per shipment',prepShips>0?'£'+(prepTotal/prepShips).toFixed(2):'—','#34d399'],['COG : Prep ratio',efficiency?efficiency.toFixed(1)+'×':'—','#cc99ff']].map(([l,v,col])=>`<div style="background:var(--bg3);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:18px;font-weight:900;font-family:var(--mono);color:${col};">${v}</div><div style="font-size:8px;color:#94a3b8;margin-top:2px;">${l}</div></div>`).join('')}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>
-          ${[
-            [fmt(pc.totalUnits)+' units × tiered rate',fmtGBP2(pc.baseCost),'#fbbf24'],
-            ...(pc.osCost>0?[[pc.osUnits+' OS units × £'+prepFees.osCostPerUnit,fmtGBP2(pc.osCost),'#fb923c']]:[]),
-            ...(pc.bundleCost>0?[[pc.bundleUnits+' bundle units × £'+prepFees.bundleCostPerUnit,fmtGBP2(pc.bundleCost),'#34d399']]:[]),
-            [pc.totalBoxes+' boxes × £'+prepFees.boxCost,fmtGBP2(pc.boxCostTotal),'#60a5fa'],
-            ...(pc.dgExtra>0?[[pc.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox,fmtGBP2(pc.dgExtra),'#f87171']]:[]),
-            ['VAT 20%','£'+(pc.withVat-pc.subtotal).toFixed(2),'#94a3b8'],
-            ['Total inc. VAT',fmtGBP2(pc.withVat),'#fbbf24'],
-          ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${l}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
+          <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Cost breakdown</div>
+          ${[[fmt(pc.totalUnits)+' units × tiered rate',fmtGBP2(pc.baseCost),'#fbbf24'],...(pc.osCost>0?[[pc.osUnits+' OS × £'+prepFees.osCostPerUnit,fmtGBP2(pc.osCost),'#fb923c']]:[]),...(pc.bundleCost>0?[[pc.bundleUnits+' bundle × £'+prepFees.bundleCostPerUnit,fmtGBP2(pc.bundleCost),'#34d399']]:[]),[pc.totalBoxes+' boxes × £'+prepFees.boxCost,fmtGBP2(pc.boxCostTotal),'#60a5fa'],...(pc.dgExtra>0?[[pc.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox,fmtGBP2(pc.dgExtra),'#f87171']]:[]),['VAT 20%','£'+(pc.withVat-pc.subtotal).toFixed(2),'#94a3b8'],['Total inc. VAT',fmtGBP2(pc.withVat),'#fbbf24']].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${l}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
         </div>
         <div>
-          <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Cost by prep day</div>
-          ${[...new Set([...stockSent.map(r=>r.sentDate),...lavSent.map(s=>s.date)])].filter(Boolean).sort().reverse().slice(0,8).map(ds=>{const dR=stockSent.filter(r=>r.sentDate===ds);const dL=lavSent.filter(s=>s.date===ds);const dIds=new Set([...dR.filter(r=>r.shipId).map(r=>r.shipId),...dL.filter(s=>s.shipId).map(s=>s.shipId)]);const dB=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>dIds.has(sid)));const dc=calcImpliedPrepCost(dR,dL,dB);return`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${ds}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(dc.withVat)}</span></div>`;}).join('')}
+          <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Cost by prep day (recent)</div>
+          ${[...new Set(lines.map(l=>l.date))].filter(Boolean).sort().reverse().slice(0,8).map(ds=>{const dR=oaForPrep.filter(o=>oaLines.some(l=>l.date===ds&&l.sku===o.sku&&l.shipId===o.shipId));const dRb=oaLines.filter(l=>l.date===ds).reduce((m,l)=>{const key=l.sku+'|'+l.shipId;if(!m[key])m[key]={sku:l.sku,shipType:l.type,shipId:l.shipId,inBundle:(rows.find(r=>r.sku===l.sku)||{}).inBundle||'No',_segUnits:0};m[key]._segUnits+=l.units;return m;},{});const dRows=Object.values(dRb);const dL=lavLines.filter(l=>l.date===ds).map(l=>({...l,cost:l.units?l.value/l.units:0}));const dIds=new Set([...dRows.filter(r=>r.shipId).map(r=>r.shipId),...dL.filter(s=>s.shipId).map(s=>s.shipId)]);const dB=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>dIds.has(sid)));const dc=calcImpliedPrepCost(dRows,dL,dB);return`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${ds}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(dc.withVat)}</span></div>`;}).join('')}
         </div>
-      </div>`;
-    })()}
-  </div>
+      </div>
+    </div>
+
+    <!-- MONTHLY HISTORY (permanent) -->
+    ${sectionHead('Monthly History (all-in)')}
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <table style="min-width:unset;width:100%;"><thead style="position:static;"><tr><th class="th-left">Month</th><th>Units Sent</th><th>COG Value</th><th>Prep Cost</th><th>COG : Prep</th></tr></thead><tbody>
+      ${monthEntries.length?monthEntries.map(([k,v])=>{const[y,m]=k.split('-');const lbl=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m]+' '+y;const ratio=v.prep>0?(v.value/v.prep).toFixed(1)+'×':'—';return`<tr><td class="td-left" style="font-weight:600;">${lbl}</td><td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(v.units)}</td><td style="font-family:var(--mono);color:#ffaa33;">${fmtGBP(v.value)}</td><td style="font-family:var(--mono);color:#cc99ff;">${fmtGBP2(v.prep)}</td><td style="font-family:var(--mono);color:var(--text2);">${ratio}</td></tr>`;}).join(''):`<tr><td colspan="5"><div style="padding:16px;color:var(--text3);text-align:center;">No history yet</div></td></tr>`}
+      </tbody></table>
+    </div>
 
   </div>`;
 }
@@ -4073,6 +4082,24 @@ function toast(msg,type='ok'){
   const t=document.createElement('div');
   t.className=`toast ${type}`;t.textContent=msg;
   c.appendChild(t);setTimeout(()=>t.remove(),3000);
+}
+// Toast with an Undo button. Stays ~7s; clicking Undo runs onUndo() once and
+// dismisses. Used after reversible-but-destructive actions (archive, remove
+// shipment) so a misclick is a one-tap recovery.
+function toastUndo(msg,onUndo,seconds=7){
+  const c=document.getElementById('toasts');
+  const t=document.createElement('div');
+  t.className='toast';t.style.gap='10px';
+  const span=document.createElement('span');span.textContent=msg;
+  const btn=document.createElement('button');
+  btn.textContent='Undo';
+  btn.style.cssText='background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:10px;font-weight:800;padding:2px 9px;cursor:pointer;flex-shrink:0;';
+  let done=false;
+  const close=()=>{if(t.parentElement)t.remove();};
+  btn.onclick=()=>{if(done)return;done=true;close();try{onUndo&&onUndo();}catch(e){console.error('Undo failed',e);toast('Undo failed','er');}};
+  t.appendChild(span);t.appendChild(btn);
+  c.appendChild(t);
+  setTimeout(close,seconds*1000);
 }
 
 // ── THEME TOGGLE ──────────────────────────────────────────────────────────────
@@ -4685,7 +4712,8 @@ function renderShipments(){
   if(q)shipments=shipments.filter(s=>
     s.id.toLowerCase().includes(q)||
     s.skus.some(r=>(r.sku+r.asin+r.prod+r.sup).toLowerCase().includes(q))||
-    s.lavSkus.some(ls=>(ls.sku+ls.asin+ls.prod).toLowerCase().includes(q))
+    s.lavSkus.some(ls=>((ls.sku||'')+(ls.asin||'')+(ls.prod||'')).toLowerCase().includes(q))||
+    (s.retSkus||[]).some(rs=>((rs.sku||'')+(rs.asin||'')+(rs.prod||'')).toLowerCase().includes(q))
   );
 
   // Badge
@@ -5393,6 +5421,19 @@ async function unarchiveRow(r){
   if(!r)return false;
   r.archived=false;r._dirty=true;
   return await saveRow(r);
+}
+// Archive a single row from the prep sheet, with a one-tap Undo.
+async function archiveRowUI(id){
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
+  if(!r)return;
+  await archiveRow(r);
+  renderPrep();renderShipments&&renderShipments();renderDashboard&&renderDashboard();
+  const label=(r.prod||r.sku||'Row').slice(0,28);
+  toastUndo(`Archived ${label} — kept on Shipments`,async()=>{
+    await unarchiveRow(r);
+    renderPrep();renderShipments&&renderShipments();renderDashboard&&renderDashboard();
+    toast('Archive undone');
+  });
 }
 async function saveClaim(c){
   setSyncStatus('syncing');
