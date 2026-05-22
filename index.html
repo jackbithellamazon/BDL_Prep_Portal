@@ -5374,7 +5374,7 @@ async function runSheetSync(manual){
   // DEBUG: log what we actually got from the sheet
   const _dbgHeaders=parsed.length?Object.keys(parsed[0]):[];
   const _dbgTriggerFound=_dbgHeaders.includes(triggerCol);
-  const _dbgYesRows=parsed.filter(r=>(r[triggerCol]||'').trim().toLowerCase()==='yes');
+  const _dbgYesRows=parsed.filter(r=>(r[triggerCol]||r['Added To Home Prep Portal']||r['Added To Home Sheet']||r['Added to Home Sheet']||r['Added To Prep Portal']||'').trim().toLowerCase()==='yes');
   const _dbgSampleVals=parsed.slice(0,5).map(r=>JSON.stringify(r[triggerCol]));
   console.log('[SheetSync] rows:',parsed.length,'headers:',_dbgHeaders,'triggerCol:',triggerCol,'found:',_dbgTriggerFound,'yes rows:',_dbgYesRows.length);
   console.log('[SheetSync] sample values in trigger col (first 5 rows):',_dbgSampleVals);
@@ -5397,7 +5397,9 @@ async function runSheetSync(manual){
     const oid=(row['Order Id']||row['Order ID']||'').trim();
     const syncId=sku+'|'+(oid||'nooid');
 
-    if(trigger==='yes'){
+    // Check all possible column name variants (sheet may use any of these)
+    const triggerVal=(row[triggerCol]||row['Added To Home Prep Portal']||row['Added To Home Sheet']||row['Added to Home Sheet']||row['Added To Prep Portal']||'').trim().toLowerCase();
+    if(triggerVal==='yes'){
       // Already in portal → skip (Supabase realtime keeps it live).
       if(existingSyncIds.has(syncId)||existingSkus.has(sku.toLowerCase())){console.log('[SheetSync] skip duplicate:',sku);return;}
       toAdd.push({row,syncId});
