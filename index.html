@@ -5354,6 +5354,7 @@ async function runSheetSync(manual){
     const res=await fetch(efUrl,{cache:'no-store',headers:{'Authorization':`Bearer ${SUPA_KEY}`}});
     if(!res.ok)throw new Error(`Edge Function error: ${res.status} ${res.statusText}`);
     const json=await res.json();
+    console.log('[SheetSync] edge function debug:',json.debug);
     if(json.error)throw new Error(json.error);
     csv=json.csv;
     if(!csv)throw new Error('No CSV returned from Edge Function');
