@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v1.9.2</title>
+<title>BDL PrepHub v1.9.3</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -712,6 +712,7 @@ html.light-mode{
       </select>
       <button class="btn-add" onclick="openAdd()">+ Add Row</button>
       <button onclick="openImport()" style="padding:5px 12px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;">Import Sheet</button>
+      <button onclick="runSheetSync(true)" id="prepSyncBtn" style="padding:5px 12px;background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.4);color:#60a5fa;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;">⟳ Sync Now</button>
       <div id="bulkActions" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:4px 10px;">
         <span style="font-size:11px;color:var(--accent);font-weight:800;" id="bulkCount">0 selected</span>
         <div style="width:1px;height:18px;background:var(--border2);"></div>
@@ -890,7 +891,7 @@ html.light-mode{
 
       <!-- Sheet Sync -->
       <div style="background:var(--bg2);border:1px solid rgba(96,165,250,.3);border-radius:8px;padding:16px;margin-bottom:14px;" id="sheetSyncCard">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div style="font-size:12px;font-weight:700;color:var(--accent);">Sheet Sync — Google Sheet → Prep Portal</div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span id="syncStatusBadge" style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(100,116,139,.2);color:var(--text3);">OFF</span>
@@ -902,43 +903,47 @@ html.light-mode{
             </label>
           </div>
         </div>
-        <div style="font-size:10px;color:var(--text3);margin-bottom:14px;line-height:1.6;">
-          When enabled, the app checks the Google Sheet every few minutes and automatically adds any rows where <strong style="color:var(--accent);">Added To Home Prep Portal = Yes</strong> to the portal. Read-only — the sheet is never modified. Swap the trial sheet → real sheet by updating the URL below.
-        </div>
 
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div>
-            <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Google Sheet URL <span style="font-weight:400;color:var(--text3);">(share link — Anyone with link → Viewer)</span></div>
-            <input id="ss-url" type="url" placeholder="https://docs.google.com/spreadsheets/d/…"
-              style="width:100%;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;font-family:var(--mono);"
-              oninput="sheetSyncDirty()">
+        <!-- Sync Health Panel -->
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:14px;">
+          <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;">Sync Health</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px;margin-bottom:10px;">
+            <div style="color:var(--text3);">Status</div><div id="shHealthStatus" style="font-weight:600;">—</div>
+            <div style="color:var(--text3);">Last sync</div><div id="shHealthLast" style="color:var(--text);font-family:var(--mono);">Never</div>
+            <div style="color:var(--text3);">Next sync</div><div id="shHealthNext" style="color:var(--text);font-family:var(--mono);">—</div>
+            <div style="color:var(--text3);">Active sources</div><div id="shHealthSources" style="color:var(--text);">—</div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div>
-              <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tab name</div>
-              <input id="ss-tab" type="text" placeholder="Sheet1"
-                style="width:100%;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;font-family:var(--mono);"
-                oninput="sheetSyncDirty()">
+          <div style="border-top:1px solid var(--border);padding-top:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <div style="font-size:10px;font-weight:700;color:var(--text2);">Sync Log</div>
+              <button onclick="_syncHistory.length=0;saveSyncHistory();updateSyncHealthUI();toast('Sync log cleared')" style="padding:2px 8px;background:var(--bg4);border:1px solid var(--border2);color:var(--text3);border-radius:4px;font-size:9px;cursor:pointer;">Clear</button>
             </div>
-            <div>
-              <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Check every</div>
-              <select id="ss-interval" style="width:100%;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;" onchange="sheetSyncDirty()">
-                <option value="60">1 minute</option>
-                <option value="120" selected>2 minutes</option>
-                <option value="300">5 minutes</option>
-                <option value="600">10 minutes</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Trigger column header <span style="font-weight:400;color:var(--text3);">(exact text in row 1)</span></div>
-            <input id="ss-col" type="text" placeholder="Added To Home Prep Portal"
-              style="width:100%;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;font-family:var(--mono);"
-              oninput="sheetSyncDirty()">
+            <div id="shHealthHistory" style="font-size:10px;color:var(--text3);line-height:1.9;max-height:200px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px;">No sync history yet — run a sync to see logs here</div>
           </div>
         </div>
 
-        <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <!-- Sheet Sources -->
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:10px;font-weight:700;color:var(--text2);">Sheet Sources</div>
+            <button onclick="addSyncSource()" style="padding:3px 10px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">+ Add Source</button>
+          </div>
+          <div id="syncSourcesList" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Check every</div>
+            <select id="ss-interval" style="width:100%;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;" onchange="sheetSyncDirty()">
+              <option value="60">1 minute</option>
+              <option value="120" selected>2 minutes</option>
+              <option value="300">5 minutes</option>
+              <option value="600">10 minutes</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <button onclick="saveSheetSyncSettings()" style="padding:6px 16px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Save Settings</button>
           <button onclick="runSheetSync(true)" style="padding:6px 16px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">⟳ Sync Now</button>
           <span id="sheetSyncSaved" style="font-size:10px;color:var(--green);display:none;">✓ Saved</span>
@@ -1009,7 +1014,7 @@ CREATE POLICY IF NOT EXISTS "app_settings_all" ON app_settings FOR ALL USING (tr
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;">
         <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v1.9.2</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v1.9.3</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -1568,6 +1573,7 @@ function goPage(n,btn){
       if(el)el.value=prepFees[k]||0;
     });
     loadSheetSyncUI();
+    Promise.all([loadSyncSources(),loadSyncHistory()]).then(updateSyncHealthUI);
   }
   if(n==='returns')renderReturns();
 }
@@ -1737,7 +1743,7 @@ function sentRollup(start,end){
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
 function renderStats(){
-  const inTransitRows=rows.filter(r=>r.status==='In-Transit');
+  const inTransitRows=rows.filter(r=>r.status==='In-Transit'&&!r.archived);
   const inTransitUnits=inTransitRows.reduce((a,r)=>a+(r.exp||0),0);
   const inTransitValue=inTransitRows.reduce((a,r)=>{const sku=parseSKU(r.sku);return a+(sku.cogs*(r.exp||0));},0);
   
@@ -5204,7 +5210,7 @@ function confirmImport(){
 // Falls back to localStorage for the toggle/interval (UI preferences only).
 
 const SS_KEY='prephub_sheet_sync';
-let _ssConfig={url:'',tab:'',col:'Added To Home Prep Portal',interval:120,enabled:false};
+let _ssConfig={url:'',tab:'',col:'Added To Prep Portal',interval:120,enabled:false};
 let _ssTimer=null;
 let _ssLeader=false;
 let _ssBC=null;
@@ -5220,7 +5226,7 @@ async function loadSheetSyncConfig(){
       const cfg=typeof data.value==='string'?JSON.parse(data.value):data.value;
       _ssConfig.url=cfg.url||'';
       _ssConfig.tab=cfg.tab||'';
-      _ssConfig.col=cfg.col||'Added To Home Prep Portal';
+      _ssConfig.col=cfg.col||'Added To Prep Portal';
     }
   }catch(e){console.warn('app_settings not yet created — run Settings → Database migration');}
 }
@@ -5239,22 +5245,18 @@ function sheetSyncDirty(){
 }
 async function loadSheetSyncUI(){
   await loadSheetSyncConfig();
-  const u=document.getElementById('ss-url');const t=document.getElementById('ss-tab');
-  const c=document.getElementById('ss-col');const i=document.getElementById('ss-interval');
-  if(u)u.value=_ssConfig.url||'';
-  if(t)t.value=_ssConfig.tab||'';
-  if(c)c.value=_ssConfig.col||'Added To Home Prep Portal';
+  const i=document.getElementById('ss-interval');
   if(i)i.value=String(_ssConfig.interval||120);
   updateSheetSyncToggleUI();
+  updateSyncHealthUI();
 }
 async function saveSheetSyncSettings(){
-  const u=(document.getElementById('ss-url')||{}).value?.trim()||'';
-  const t=(document.getElementById('ss-tab')||{}).value?.trim()||'';
-  const c=(document.getElementById('ss-col')||{}).value?.trim()||'Added To Home Prep Portal';
   const i=parseInt((document.getElementById('ss-interval')||{}).value||'120')||120;
-  _ssConfig={..._ssConfig,url:u,tab:t,col:c,interval:i};
+  _ssConfig={..._ssConfig,interval:i};
   await saveSheetSyncConfig();
+  await saveSyncSources();
   restartSheetSyncTimer();
+  updateSyncHealthUI();
   const saved=document.getElementById('sheetSyncSaved');
   if(saved){saved.style.display='inline';setTimeout(()=>saved.style.display='none',2000);}
   toast('Sheet sync settings saved — all browsers updated');
@@ -5327,14 +5329,24 @@ function restartSheetSyncTimer(){
   const ms=(_ssConfig.interval||120)*1000;
   _ssTimer=setTimeout(()=>runSheetSync(false),ms);
   const d=new Date(Date.now()+ms);
-  setSheetSyncStatus(null,d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'));
+  const nextStr=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+  setSheetSyncStatus(null,nextStr);
+  updateSyncHealthUI(); // keep health panel in sync
 }
 
 // ── CORE SYNC ─────────────────────────────────────────────────────────────────
 async function runSheetSync(manual){
   if(!_ssConfig.enabled&&!manual){return;}
   if(!_ssLeader&&!manual){return;} // only leader polls
-  const{url,tab,col}=_ssConfig;
+  // Run all active sources
+  const activeSources=_ssSources.filter(s=>s.active&&s.url);
+  if(!activeSources.length&&!_ssConfig.url){if(manual)toast('No sync sources configured — add one in Settings','er');return;}
+  // Fall back to legacy single config if no sources defined yet
+  const sources=activeSources.length?activeSources:[{url:_ssConfig.url,tab:_ssConfig.tab,col:_ssConfig.col||'Added To Prep Portal',label:'Primary'}];
+  let totalAdded=0,totalUpdated=0,totalDeactivated=0,totalReactivated=0,totalErrors=0;
+  for(const src of sources){
+    const{url,tab,col}=src;
+    const srcLabel=src.label||(src.tab?src.tab+' tab':'Sheet');
   if(!url){if(manual)toast('Enter a Sheet URL in Settings → Sheet Sync','er');return;}
 
   // Extract sheet ID from URL.
@@ -5349,8 +5361,6 @@ async function runSheetSync(manual){
   let csv;
   try{
     const efUrl=`${SUPA_URL}/functions/v1/sheet-sync?sheetId=${encodeURIComponent(sheetId)}&tab=${encodeURIComponent(tab||'')}`;
-  console.log('[SheetSync] calling URL:',efUrl);
-  console.log('[SheetSync] config url:',url,'tab:',tab,'col:',col);
     const res=await fetch(efUrl,{cache:'no-store',headers:{'Authorization':`Bearer ${SUPA_KEY}`}});
     if(!res.ok)throw new Error(`Edge Function error: ${res.status} ${res.statusText}`);
     const json=await res.json();
@@ -5361,132 +5371,305 @@ async function runSheetSync(manual){
   }catch(e){
     const msg='Could not fetch sheet: '+e.message;
     setSheetSyncLog(msg,true);
+    addSyncHistory((src.label||src.tab||'Source')+': '+msg,false);
     if(manual)toast(msg,'er');
-    restartSheetSyncTimer();
-    return;
+    totalErrors++;
+    continue; // try next source
   }
 
-  // Parse CSV → array of {header:value} objects.
+  // Parse CSV
   let parsed;
-  try{parsed=parseCSV(csv);}catch(e){setSheetSyncLog('CSV parse error: '+e.message,true);restartSheetSyncTimer();return;}
-  if(!parsed.length){setSheetSyncLog('Sheet appears empty');restartSheetSyncTimer();return;}
+  try{parsed=parseCSV(csv);}catch(e){
+    const msg='['+srcLabel+'] CSV parse error: '+e.message;
+    setSheetSyncLog(msg,true);addSyncHistory(msg,false);totalErrors++;continue;
+  }
+  if(!parsed.length){
+    const msg='['+srcLabel+'] Sheet appears empty';
+    setSheetSyncLog(msg,true);addSyncHistory(msg,false);totalErrors++;continue;
+  }
 
-  // Find trigger column by header name (not position).
-  const triggerCol=col||'Added To Home Prep Portal';
+  // Find trigger column
+  const triggerCol=col||'Added To Prep Portal';
+  const headers=parsed.length?Object.keys(parsed[0]).filter(k=>k!=='_csvLine'):[];
+  const triggerFound=headers.includes(triggerCol);
+  if(!triggerFound){
+    const msg=`[${srcLabel}] ⚠ Trigger column "${triggerCol}" not found in sheet. Headers: ${headers.slice(0,6).join(', ')}${headers.length>6?'…':''}`;
+    setSheetSyncLog(msg,true);addSyncHistory(msg,false);totalErrors++;continue;
+  }
 
-  // DEBUG: log what we actually got from the sheet
-  const _dbgHeaders=parsed.length?Object.keys(parsed[0]):[];
-  const _dbgTriggerFound=_dbgHeaders.includes(triggerCol);
-  const _dbgYesRows=parsed.filter(r=>(r[triggerCol]||r['Added To Home Prep Portal']||r['Added To Home Sheet']||r['Added to Home Sheet']||r['Added To Prep Portal']||'').trim().toLowerCase()==='yes');
-  const _dbgSampleVals=parsed.slice(0,5).map(r=>JSON.stringify(r[triggerCol]));
-  console.log('[SheetSync] rows:',parsed.length,'headers:',_dbgHeaders,'triggerCol:',triggerCol,'found:',_dbgTriggerFound,'yes rows:',_dbgYesRows.length);
-  console.log('[SheetSync] sample values in trigger col (first 5 rows):',_dbgSampleVals);
-  setSheetSyncLog('Sheet: '+parsed.length+' rows | trigger col "'+triggerCol+'" '+(_dbgTriggerFound?'OK':'NOT FOUND')+' | '+_dbgYesRows.length+' Yes rows');
-  if(manual)toast('Sheet: '+parsed.length+' rows, '+_dbgYesRows.length+' Yes, trigger col '+(_dbgTriggerFound?'found ✓':'NOT FOUND — got: '+_dbgHeaders.slice(0,3).join(', ')),'in');
-
-  // Build set of existing sync IDs so we never duplicate.
-  // sheet_sync_id is stored as "sku|oid" on each prep_row.
-  const existingSyncIds=new Set(rows.filter(r=>r.sheetSyncId).map(r=>r.sheetSyncId));
-  const existingSkus=new Set(rows.map(r=>(r.sku||'').toLowerCase()));
-
-  const toAdd=[];
-  const toDeactivate=[]; // rows that were Yes → No
-
-  parsed.forEach(row=>{
-    const trigger=(row[triggerCol]||'').trim().toLowerCase();
-    const sku=(row['SKU']||'').trim();
-    if(!sku)return;
-
-    const oid=(row['Order Id']||row['Order ID']||'').trim();
-    const syncId=sku+'|'+(oid||'nooid');
-
-    // Check all possible column name variants (sheet may use any of these)
-    const triggerVal=(row[triggerCol]||row['Added To Home Prep Portal']||row['Added To Home Sheet']||row['Added to Home Sheet']||row['Added To Prep Portal']||'').trim().toLowerCase();
-    if(triggerVal==='yes'){
-      // Already in portal → skip (Supabase realtime keeps it live).
-      if(existingSyncIds.has(syncId)||existingSkus.has(sku.toLowerCase())){console.log('[SheetSync] skip duplicate:',sku);return;}
-      toAdd.push({row,syncId});
-    }else if(trigger==='no'||trigger==='n/a'||trigger===''){
-      // Was Yes, now No → soft-remove (hide from active portal).
-      const existing=rows.find(r=>r.sheetSyncId===syncId||r.sku.toLowerCase()===sku.toLowerCase());
-      if(existing&&existing.status!=='Sent to Amazon'&&!existing.archived){
-        toDeactivate.push(existing);
-      }
-    }
-  });
-
-  let added=0,deactivated=0;
-
-  // INSERT new rows.
-  for(const{row,syncId}of toAdd){
+  const getTrigger=row=>(row[triggerCol]||row['Added To Home Prep Portal']||row['Added To Prep Portal']||'').trim().toLowerCase();
+  const mkSyncId=(sku,oid)=>oid?sku+'|'+oid:sku+'|nooid';
+  const sheetFields=row=>{
     const sku=(row['SKU']||'').trim();
     const dateRaw=(row['Date']||'').trim();
     const dateParts=dateRaw.split('/');
     const dateFormatted=dateParts.length>=2?`${dateParts[0].padStart(2,'0')}/${dateParts[1].padStart(2,'0')}`:'';
     const qty=parseInt(row['Total units **']||row['Quantity Bought']||row['Quanity Bought *']||row['Quanity Bought']||0)||0;
-    const newRow={
-      id:++nid,
-      sheetSyncId:syncId,
-      date:dateFormatted,
-      oid:(row['Order Id']||row['Order ID']||'').trim(),
-      sup:(row['Bought From']||'').trim(),
-      acct:(row['Account']||'').trim(),
-      prod:(row['Name']||'').trim(),
-      asin:(row['Asin']||row['ASIN']||'').trim(),
-      sku,
-      dg:(row['DG']||'').trim(),
-      sas:`https://sas.selleramp.com/sas/lookup?SasLookup%5Bsearch_term%5D=${encodeURIComponent((row['Asin']||row['ASIN']||'').trim())}`,
-      exp:qty,aqty:qty,
-      bun:(row['In a Bundle?']||'No').trim(),
-      bqty:(row['How Many In a Bundle?']||'').trim(),
-      subSave:(row['S&S (AC)']||row['SAS (AC)']||'No').trim()==='Yes'?'Yes':'No',
-      rcvd:0,issueType:'',issueQty:0,
-      status:'In-Transit',ship:0,shipId:'',sent:'No',sentDate:'',
-      reimb:'No',notes:(row['VA Note']||row['Notes']||'').trim(),
-      pri:'No',archived:false,shipSegments:[],allShipIds:[],
-      createdISO:todayISO(),createdAt:getNowUK(),
-      importedFrom:'Sheet Sync',sheetRow:'',
-    };
+    const asin=(row['Asin']||row['ASIN']||'').trim();
+    return{sku,date:dateFormatted,oid:(row['Order Id']||row['Order ID']||'').trim(),sup:(row['Bought From']||'').trim(),acct:(row['Account']||'').trim(),prod:(row['Name']||'').trim(),asin,dg:(row['DG']||'').trim(),sas:`https://sas.selleramp.com/sas/lookup?SasLookup%5Bsearch_term%5D=${encodeURIComponent(asin)}`,exp:qty,aqty:qty,bun:(row['In a Bundle?']||'No').trim(),bqty:(row['How Many In a Bundle?']||'').trim(),subSave:(row['S&S (AC)']||row['SAS (AC)']||'No').trim()==='Yes'?'Yes':'No',notes:(row['VA Note']||row['Notes']||'').trim()};
+  };
+
+  const allRowsBySyncId=new Map();
+  const allRowsBySku=new Map();
+  rows.forEach(r=>{if(r.sheetSyncId)allRowsBySyncId.set(r.sheetSyncId,r);allRowsBySku.set((r.sku||'').toLowerCase(),r);});
+
+  const toAdd=[],toUpdate=[],toDeactivate=[],toReactivate=[];
+  const skuWarnings=[]; // track rows with issues
+
+  parsed.forEach(row=>{
+    const sku=(row['SKU']||'').trim();
+    if(!sku)return;
+    // Warn if SKU has no qty
+    const qty=parseInt(row['Total units **']||row['Quantity Bought']||row['Quanity Bought *']||row['Quanity Bought']||0)||0;
+    if(qty===0&&getTrigger(row)==='yes')skuWarnings.push('No qty: '+sku);
+    const oid=(row['Order Id']||row['Order ID']||'').trim();
+    const syncId=mkSyncId(sku,oid);
+    const trigger=getTrigger(row);
+    const fields=sheetFields(row);
+    const existing=allRowsBySyncId.get(syncId)||allRowsBySku.get(sku.toLowerCase());
+    if(trigger==='yes'){
+      if(!existing)toAdd.push({fields,syncId});
+      else if(existing.archived)toReactivate.push({existing,fields,syncId});
+      else toUpdate.push({existing,fields,syncId});
+    }else if(trigger==='no'||trigger==='n/a'||trigger===''){
+      if(existing&&!existing.archived&&existing.status!=='Sent to Amazon')toDeactivate.push(existing);
+    }
+  });
+
+  let added=0,updated=0,deactivated=0,reactivated=0;
+  const saveErrors=[];
+
+  // ADD
+  for(const{fields,syncId}of toAdd){
+    const newRow={id:++nid,sheetSyncId:syncId,...fields,rcvd:0,issueType:'',issueQty:0,status:'In-Transit',ship:0,shipId:'',sent:'No',sentDate:'',reimb:'No',pri:'No',archived:false,shipSegments:[],allShipIds:[],createdISO:todayISO(),createdAt:getNowUK(),importedFrom:'Sheet Sync',sheetRow:''};
     rows.push(newRow);
-    const ok=await saveRow(newRow);
-    if(ok)added++;
-    logAudit('Sheet Sync — added',sku);
+    try{const ok=await saveRow(newRow);if(ok){added++;logAudit('Sheet Sync — added',fields.sku);}else{saveErrors.push('Save failed: '+fields.sku);rows.pop();}}
+    catch(e){saveErrors.push('Save error: '+fields.sku+' — '+e.message);rows.pop();}
   }
 
-  // SOFT-REMOVE rows changed back to No (not sent, not already archived).
+  // UPDATE
+  for(const{existing,fields,syncId}of toUpdate){
+    let changed=false;
+    const sheetOnly=['sku','date','oid','sup','acct','prod','asin','dg','sas','exp','aqty','bun','bqty','subSave','notes'];
+    sheetOnly.forEach(k=>{if(fields[k]!==undefined&&existing[k]!==fields[k]){existing[k]=fields[k];changed=true;}});
+    if(syncId!==existing.sheetSyncId){existing.sheetSyncId=syncId;changed=true;}
+    if(changed){
+      existing._dirty=true;
+      try{const ok=await saveRow(existing);if(ok){updated++;logAudit('Sheet Sync — updated',existing.sku);}else saveErrors.push('Update failed: '+existing.sku);}
+      catch(e){saveErrors.push('Update error: '+existing.sku+' — '+e.message);}
+    }
+  }
+
+  // REACTIVATE
+  for(const{existing,fields,syncId}of toReactivate){
+    Object.assign(existing,fields);
+    existing.sheetSyncId=syncId;existing.archived=false;existing.status='In-Transit';existing._dirty=true;
+    try{await saveRow(existing);reactivated++;logAudit('Sheet Sync — reactivated',existing.sku);}
+    catch(e){saveErrors.push('Reactivate error: '+existing.sku+' — '+e.message);}
+  }
+
+  // DEACTIVATE
   for(const r of toDeactivate){
     r.archived=true;r._dirty=true;
-    await saveRow(r);
-    deactivated++;
-    logAudit('Sheet Sync — removed (No)',r.sku);
+    try{await saveRow(r);deactivated++;logAudit('Sheet Sync — removed (No)',r.sku);}
+    catch(e){saveErrors.push('Archive error: '+r.sku+' — '+e.message);}
   }
 
-  if(added>0||deactivated>0)renderPrep();
+  // Per-source log entry with full detail
+  const srcParts=[];
+  if(added>0)srcParts.push(added+' added');
+  if(updated>0)srcParts.push(updated+' updated');
+  if(reactivated>0)srcParts.push(reactivated+' reactivated');
+  if(deactivated>0)srcParts.push(deactivated+' removed');
+  if(saveErrors.length)srcParts.push(saveErrors.length+' save error(s)');
+  if(skuWarnings.length)srcParts.push(skuWarnings.length+' warning(s)');
+  const srcMsg=`[${srcLabel}] `+(srcParts.length?srcParts.join(', '):'up to date');
+  const srcOk=saveErrors.length===0;
+  addSyncHistory(srcMsg,srcOk);
+  // Log individual errors
+  saveErrors.forEach(e=>addSyncHistory('└ '+e,false));
+  skuWarnings.slice(0,5).forEach(w=>addSyncHistory('└ ⚠ '+w,false));
 
+  totalAdded+=added;totalUpdated+=updated;totalDeactivated+=deactivated;totalReactivated+=reactivated;
+  if(saveErrors.length)totalErrors+=saveErrors.length;
+  } // end sources loop
+
+  if(totalAdded>0||totalUpdated>0||totalDeactivated>0||totalReactivated>0)renderPrep();
   const now=new Date();
   const nowStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
-  const logMsg=added>0||deactivated>0
-    ?`${added} added${deactivated>0?`, ${deactivated} removed`:''}`
-    :`Up to date — no changes`;
-  setSheetSyncLog(logMsg);
+  const anyChange=totalAdded>0||totalUpdated>0||totalDeactivated>0||totalReactivated>0;
+  const logParts=[];
+  if(totalAdded>0)logParts.push(totalAdded+' added');
+  if(totalUpdated>0)logParts.push(totalUpdated+' updated');
+  if(totalReactivated>0)logParts.push(totalReactivated+' reactivated');
+  if(totalDeactivated>0)logParts.push(totalDeactivated+' removed');
+  if(totalErrors>0)logParts.push(totalErrors+' error(s)');
+  const logMsg=logParts.length?logParts.join(', '):'Up to date — no changes';
+  setSheetSyncLog(totalErrors>0?logMsg+' ⚠':logMsg,totalErrors>0);
   setSheetSyncStatus(nowStr,null);
-  if(manual&&(added>0||deactivated>0))toast(`Sheet sync: ${logMsg}`);
-  if(manual&&added===0&&deactivated===0)toast('Sheet is up to date — no new rows');
-
-  // Broadcast result to other tabs so they update their UI.
+  if(manual&&(anyChange||totalErrors>0))toast((totalErrors>0?'⚠ ':'')+'Sheet sync: '+logMsg,totalErrors>0?'er':null);
+  if(manual&&!anyChange&&!totalErrors)toast('Sheet is up to date — no new rows');
   if(_ssBC)_ssBC.postMessage({type:'synced',lastRun:nowStr,log:logMsg});
-
   restartSheetSyncTimer();
 }
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
+// ── MULTI-SOURCE MANAGEMENT ────────────────────────────────────────────────────────────────────
+// Sources: [{id, label, url, tab, col, active}]
+let _ssSources=[];
+
+async function loadSyncSources(){
+  try{
+    const{data}=await sb.from('app_settings').select('value').eq('key','sync_sources').maybeSingle();
+    if(data?.value)_ssSources=JSON.parse(data.value);
+  }catch(e){}
+  // Migrate legacy single-source config into sources array
+  if(!_ssSources.length&&_ssConfig.url){
+    _ssSources=[{id:'src_1',label:'Primary Sheet',url:_ssConfig.url,tab:_ssConfig.tab||'',col:_ssConfig.col||'Added To Prep Portal',active:true}];
+    await saveSyncSources();
+  }
+  renderSyncSourcesList();
+  updateSyncHealthUI();
+}
+
+async function saveSyncSources(){
+  try{await sb.from('app_settings').upsert({key:'sync_sources',value:JSON.stringify(_ssSources)},{onConflict:'key'});}catch(e){}
+  const first=_ssSources.find(s=>s.active);
+  if(first){_ssConfig.url=first.url;_ssConfig.tab=first.tab;_ssConfig.col=first.col||'Added To Prep Portal';}
+}
+
+function renderSyncSourcesList(){
+  const el=document.getElementById('syncSourcesList');
+  if(!el)return;
+  if(!_ssSources.length){el.innerHTML='<div style="font-size:10px;color:var(--text3);padding:8px 0;">No sources configured — click + Add Source</div>';return;}
+  el.innerHTML=_ssSources.map((src,i)=>`
+    <div style="background:var(--bg3);border:1px solid ${src.active?'rgba(96,165,250,.4)':'var(--border)'};border-radius:6px;padding:10px 12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <input value="${esc(src.label)}" onchange="_ssSources[${i}].label=this.value;sheetSyncDirty()"
+          style="font-size:11px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;flex:1;cursor:text;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:9px;padding:2px 6px;border-radius:10px;background:${src.active?'rgba(96,165,250,.2)':'rgba(100,116,139,.15)'};color:${src.active?'#60a5fa':'var(--text3)'};">${src.active?'ACTIVE':'OFF'}</span>
+          <button onclick="toggleSyncSource(${i})" style="padding:2px 8px;background:var(--bg4);border:1px solid var(--border2);color:var(--text2);border-radius:4px;font-size:10px;cursor:pointer;">${src.active?'Disable':'Enable'}</button>
+          <button onclick="removeSyncSource(${i})" style="padding:2px 6px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:10px;cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div>
+          <div style="font-size:9px;color:var(--text3);margin-bottom:2px;">Sheet URL</div>
+          <input value="${esc(src.url)}" onchange="_ssSources[${i}].url=this.value;sheetSyncDirty()" placeholder="https://docs.google.com/spreadsheets/d/…"
+            style="width:100%;padding:5px 8px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:10px;font-family:var(--mono);">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div>
+            <div style="font-size:9px;color:var(--text3);margin-bottom:2px;">Tab name</div>
+            <input value="${esc(src.tab)}" onchange="_ssSources[${i}].tab=this.value;sheetSyncDirty()" placeholder="Sheet1"
+              style="width:100%;padding:5px 8px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:10px;font-family:var(--mono);">
+          </div>
+          <div>
+            <div style="font-size:9px;color:var(--text3);margin-bottom:2px;">Trigger column</div>
+            <input value="${esc(src.col||'Added To Prep Portal')}" onchange="_ssSources[${i}].col=this.value;sheetSyncDirty()" placeholder="Added To Prep Portal"
+              style="width:100%;padding:5px 8px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:10px;font-family:var(--mono);">
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addSyncSource(){
+  const id='src_'+Date.now();
+  _ssSources.push({id,label:'New Source',url:'',tab:'',col:'Added To Prep Portal',active:true});
+  renderSyncSourcesList();sheetSyncDirty();
+}
+function removeSyncSource(i){
+  if(!confirm('Remove this sync source?'))return;
+  _ssSources.splice(i,1);renderSyncSourcesList();sheetSyncDirty();
+}
+function toggleSyncSource(i){
+  _ssSources[i].active=!_ssSources[i].active;
+  renderSyncSourcesList();sheetSyncDirty();
+}
+
+// ── SYNC HISTORY & HEALTH ────────────────────────────────────────────────────────────────────
+const _syncHistory=[];
+let _syncHealthTimer=null;
+
+// FIX 3: Persist history to Supabase so it survives refresh
+async function saveSyncHistory(){
+  try{await sb.from('app_settings').upsert({key:'sync_history',value:JSON.stringify(_syncHistory.slice(0,20))},{onConflict:'key'});}catch(e){}
+}
+async function loadSyncHistory(){
+  try{
+    const{data}=await sb.from('app_settings').select('value').eq('key','sync_history').maybeSingle();
+    if(data?.value){
+      const h=JSON.parse(data.value);
+      _syncHistory.length=0;
+      h.forEach(x=>_syncHistory.push(x));
+    }
+  }catch(e){}
+}
+
+function addSyncHistory(msg,ok=true){
+  const now=new Date();
+  const t=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  _syncHistory.unshift({t,msg,ok});
+  if(_syncHistory.length>20)_syncHistory.pop();
+  saveSyncHistory(); // FIX 3: persist to Supabase
+  updateSyncHealthUI();
+}
+
+// FIX 1: Calculate next sync time directly from interval, not from DOM element
+function getNextSyncStr(){
+  if(!_ssConfig.enabled||!_ssTimer)return 'Off';
+  const ms=(_ssConfig.interval||120)*1000;
+  const d=new Date(Date.now()+ms);
+  return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+}
+
+function updateSyncHealthUI(){
+  // FIX 2: Read sources directly — always up to date
+  const active=_ssSources.filter(s=>s.active&&s.url);
+  const get=id=>document.getElementById(id);
+  // Status
+  get('shHealthStatus').innerHTML=_ssConfig.enabled
+    ?'<span style="color:#55ff55;">● Live</span>'
+    :'<span style="color:var(--text3);">○ Off</span>';
+  // Last sync
+  const lastEntry=_syncHistory.find(h=>h.ok);
+  get('shHealthLast').textContent=lastEntry?lastEntry.t:'Never';
+  // FIX 1: Next sync from interval calc
+  get('shHealthNext').textContent=_ssConfig.enabled&&_ssTimer?getNextSyncStr():'—';
+  // FIX 2: Sources from _ssSources directly
+  get('shHealthSources').textContent=active.length
+    ?active.map(s=>s.label||(s.tab?s.tab+' tab':'Sheet')).join(', ')
+    :'None configured';
+  // FIX 4: Show errors in history with count
+  const errCount=_syncHistory.filter(h=>!h.ok).length;
+  if(get('shHealthHistory')){
+    get('shHealthHistory').innerHTML=_syncHistory.length
+      ?_syncHistory.map(h=>`<div style="display:flex;gap:6px;align-items:baseline;"><span style="color:var(--text3);font-family:var(--mono);flex-shrink:0;">${h.t}</span><span style="color:${h.ok?'var(--text2)':'#f87171'}">${h.ok?'':'⚠ '}${h.msg}</span></div>`).join('')
+      :'No history yet';
+    if(errCount>0){
+      get('shHealthHistory').insertAdjacentHTML('afterbegin',
+        `<div style="color:#f87171;font-size:9px;font-weight:700;margin-bottom:6px;">${errCount} error${errCount>1?'s':''} in last 20 syncs</div>`);
+    }
+  }
+}
+
+// FIX 5: Poll health UI every 30s so Next Sync time stays accurate on settings page
+function startHealthUITimer(){
+  if(_syncHealthTimer)clearInterval(_syncHealthTimer);
+  _syncHealthTimer=setInterval(updateSyncHealthUI,30000);
+}
+
 // Called once after app data loads (so rows[] is populated for deduplication).
 function bootSheetSync(){
   loadSheetSyncUI();
+  Promise.all([loadSyncSources(),loadSyncHistory()]).then(updateSyncHealthUI);
+  startHealthUITimer(); // FIX 5: keep health UI ticking
   initSheetSyncLeader();
   if(_ssConfig.enabled){
     restartSheetSyncTimer();
-    // Run immediately on boot so new rows appear as soon as the app opens.
     setTimeout(()=>runSheetSync(false),2000);
   }
 }
@@ -6927,7 +7110,7 @@ setInterval(updateClock,30000);
       <div id="importStep1">
         <div style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.6;">
           Export your Purchase Sheet as CSV (File → Download → CSV), then upload it here.<br>
-          Only rows where <strong style="color:var(--accent);">Added To Home Prep Portal = Yes</strong> will be imported.<br>
+          Only rows where <strong style="color:var(--accent);">Added To Prep Portal = Yes</strong> will be imported.<br>
           Already-imported SKUs are skipped automatically.
         </div>
         <label style="display:inline-flex;align-items:center;gap:10px;padding:10px 18px;background:var(--accent);color:#000;border-radius:4px;cursor:pointer;font-weight:800;font-size:12px;">
