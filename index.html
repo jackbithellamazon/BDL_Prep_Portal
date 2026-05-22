@@ -5375,7 +5375,9 @@ async function runSheetSync(manual){
   const _dbgHeaders=parsed.length?Object.keys(parsed[0]):[];
   const _dbgTriggerFound=_dbgHeaders.includes(triggerCol);
   const _dbgYesRows=parsed.filter(r=>(r[triggerCol]||'').trim().toLowerCase()==='yes');
+  const _dbgSampleVals=parsed.slice(0,5).map(r=>JSON.stringify(r[triggerCol]));
   console.log('[SheetSync] rows:',parsed.length,'headers:',_dbgHeaders,'triggerCol:',triggerCol,'found:',_dbgTriggerFound,'yes rows:',_dbgYesRows.length);
+  console.log('[SheetSync] sample values in trigger col (first 5 rows):',_dbgSampleVals);
   setSheetSyncLog('Sheet: '+parsed.length+' rows | trigger col "'+triggerCol+'" '+(_dbgTriggerFound?'OK':'NOT FOUND')+' | '+_dbgYesRows.length+' Yes rows');
   if(manual)toast('Sheet: '+parsed.length+' rows, '+_dbgYesRows.length+' Yes, trigger col '+(_dbgTriggerFound?'found ✓':'NOT FOUND — got: '+_dbgHeaders.slice(0,3).join(', ')),'in');
 
