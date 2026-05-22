@@ -5349,6 +5349,8 @@ async function runSheetSync(manual){
   let csv;
   try{
     const efUrl=`${SUPA_URL}/functions/v1/sheet-sync?sheetId=${encodeURIComponent(sheetId)}&tab=${encodeURIComponent(tab||'')}`;
+  console.log('[SheetSync] calling URL:',efUrl);
+  console.log('[SheetSync] config url:',url,'tab:',tab,'col:',col);
     const res=await fetch(efUrl,{cache:'no-store',headers:{'Authorization':`Bearer ${SUPA_KEY}`}});
     if(!res.ok)throw new Error(`Edge Function error: ${res.status} ${res.statusText}`);
     const json=await res.json();
