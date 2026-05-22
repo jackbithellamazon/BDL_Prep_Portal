@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v1.7.0</title>
+<title>BDL PrepHub v1.7.8</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -151,6 +151,31 @@ html.light-mode [style*="color:#475569"]{color:#374151!important;}
 html.light-mode [style*="color:#334155"]{color:#9ca3af!important;}
 html.light-mode [style*="color:#1e293b"]{color:#d1d9e0!important;}
 html.light-mode [style*="color:#94a3b8"]{color:#374151!important;}
+html.light-mode [style*="color:#cbd5e1"]{color:#1f2937!important;}
+html.light-mode [style*="color:#e2e8f0"]{color:#111827!important;}
+html.light-mode [style*="color:#f1f5f9"]{color:#111827!important;}
+html.light-mode [style*="background:rgba(255,255,255,.03)"]{background:#f8fafc!important;}
+html.light-mode [style*="background:rgba(255,255,255,.04)"]{background:#f1f5f9!important;}
+html.light-mode [style*="background:rgba(255,255,255,.06)"]{background:#e8ecf0!important;}
+html.light-mode [style*="background:rgba(255,255,255,.08)"]{background:#e2e8f0!important;}
+html.light-mode [style*="border:1px solid rgba(255,255,255,.06)"]{border-color:#d1d9e0!important;}
+html.light-mode [style*="border:1px solid rgba(255,255,255,.07)"]{border-color:#d1d9e0!important;}
+html.light-mode [style*="border:1px solid rgba(255,255,255,.08)"]{border-color:#d1d9e0!important;}
+html.light-mode [style*="border-top:3px solid"]{filter:brightness(.8);}
+html.light-mode [style*="color:#60a5fa"]{color:#1d4ed8!important;}
+html.light-mode [style*="color:#38bdf8"]{color:#0284c7!important;}
+html.light-mode [style*="color:#c084fc"]{color:#7c3aed!important;}
+html.light-mode [style*="color:#4ade80"]{color:#15803d!important;}
+html.light-mode [style*="color:#f87171"]{color:#b91c1c!important;}
+html.light-mode [style*="color:#fb923c"]{color:#c2410c!important;}
+html.light-mode [style*="color:#ff6b6b"]{color:#b91c1c!important;}
+html.light-mode [style*="color:#fbbf24"]{color:#b45309!important;}
+html.light-mode [style*="background:rgba(96,165,250"]{background:rgba(29,78,216,.1)!important;}
+html.light-mode [style*="background:rgba(248,113,113"]{background:rgba(185,28,28,.08)!important;}
+html.light-mode [style*="background:rgba(74,222,128"]{background:rgba(21,128,61,.08)!important;}
+html.light-mode [style*="background:rgba(251,191,36"]{background:rgba(180,83,9,.08)!important;}
+html.light-mode [style*="background:rgba(255,107,107"]{background:rgba(185,28,28,.08)!important;}
+html.light-mode [style*="background:rgba(249,115,22"]{background:rgba(194,65,12,.08)!important;}
 
 html.light-mode .ci{color:#111827!important;background:transparent;}
 html.light-mode .ci:focus{background:#fff;border-color:#d97706;}
@@ -169,15 +194,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .sb-tog:hover{color:#aaa;}
 .sb-tog svg{width:13px;height:13px;}
 .sb-nav{flex:1;width:100%;padding:8px 0;display:flex;flex-direction:column;gap:1px;overflow:hidden;}
-.sb-sec{font-size:9px;color:#333;padding:8px 0 2px 12px;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;display:none;}
+.sb-sec{font-size:9px;color:#666;padding:8px 0 2px 12px;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;display:none;}
 .sb.open .sb-sec{display:block;}
-.sb-item{width:100%;display:flex;align-items:center;gap:9px;padding:7px;justify-content:center;cursor:pointer;border:none;background:none;color:#555;border-left:2px solid transparent;white-space:nowrap;transition:all .15s;position:relative;}
+.sb-item{width:100%;display:flex;align-items:center;gap:10px;padding:9px 7px;justify-content:center;cursor:pointer;border:none;background:none;color:#888;border-left:3px solid transparent;white-space:nowrap;transition:all .15s;position:relative;}
 .sb.open .sb-item{justify-content:flex-start;padding:7px 12px;}
-.sb-item:hover{background:#1a1a18;color:#aaa;}
-.sb-item.on{background:#1e1e1c;color:#fff;border-left-color:var(--accent);}
-.sb-item svg{width:14px;height:14px;flex-shrink:0;}
-.sb-item span{display:none;font-size:11px;}
-.sb.open .sb-item span{display:block;}
+.sb-item:hover{background:#1a1a18;color:#ccc;}
+.sb-item.on{background:#1e1e1c;color:#fff;border-left-color:var(--accent);border-left-width:3px;}
+.sb-item svg{width:17px;height:17px;flex-shrink:0;}
+.sb-item span{display:none;font-size:13px;font-weight:600;}
+.sb.open .sb-item span{display:block;font-size:13px;font-weight:600;}
 .sb-badge{background:#ef4444;color:#fff;font-size:8px;font-weight:600;padding:1px 4px;border-radius:6px;margin-left:auto;display:none;}
 .sb.open .sb-badge{display:inline-flex;}
 .sb-dot{position:absolute;top:5px;right:5px;width:6px;height:6px;background:#ef4444;border-radius:50%;border:1.5px solid #111110;}
@@ -387,6 +412,11 @@ tbody tr:hover .row-acts{opacity:1;}
 /* ── MODAL ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(3px);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;}
 .overlay.open{display:flex;}
+/* The confirm dialog can be triggered from inside another modal — keep it on
+   top so it never ends up hidden behind that modal (which looked like a stuck
+   black screen until you pressed Cancel). It also slightly dims any overlay
+   beneath it rather than doubling the backdrop. */
+#confirmModal{z-index:150;background:rgba(0,0,0,.55);}
 .modal{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;animation:mIn .18s ease;}
 @keyframes mIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
 .mh{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);}
@@ -423,7 +453,7 @@ select.fi-in option{background:var(--bg2);}
 .hgroup{margin-bottom:8px;}
 .hhead{display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;cursor:pointer;user-select:none;}
 .hhead:hover{background:var(--bg3);}
-.hchev{transition:transform .2s;color:var(--text3);font-size:10px;}
+.hchev{transition:transform .2s;color:#e2e8f0;font-size:22px;font-weight:900;line-height:1;flex-shrink:0;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border-radius:5px;border:1px solid rgba(255,255,255,.12);}
 .hgroup.open .hchev{transform:rotate(90deg);}
 .htitle{font-weight:600;font-size:12px;flex:1;color:var(--text);}
 .hmeta{font-size:10px;color:var(--text3);}
@@ -660,6 +690,7 @@ html.light-mode{
         <option>Part Sent</option><option>Sent to Amazon</option><option>Issue</option><option>Not Arrived</option><option>Returned</option>
       </select>
       <button id="showIssuesBtn" onclick="toggleIssuesFilter()" style="padding:5px 10px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⚑ Issues</button>
+      <button id="showArchivedBtn" onclick="toggleArchivedView()" title="Show or hide archived (sent &amp; cleared) rows" style="padding:5px 10px;background:var(--bg2);border:1px solid rgba(96,165,250,.4);color:var(--text3);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Show Archived</button>
       <select class="fsel" id="prepSortF" onchange="sortTable(this.value)">
         <option value="">Sort by…</option>
         <option value="date">Date</option>
@@ -889,11 +920,22 @@ html.light-mode{
         </div>
       </div>
 
+      <!-- Database migration: enables part-send tracking + safe archiving -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">Database Migration — Required Columns</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:10px;line-height:1.5;">
+          One-time setup — run both lines in your Supabase SQL editor. <code style="font-family:var(--mono);color:var(--accent);">ship_segments</code> lets a single SKU split across multiple shipments (8→FBA1, 2→FBA2) without merging. <code style="font-family:var(--mono);color:var(--accent);">archived</code> powers <b>Archive Sent</b>: archiving now <b>hides</b> rows from the prep sheet but <b>keeps them</b> on the Shipments page and in your stats. The app works without these, but archived/split state won't survive a refresh until the columns exist.
+        </div>
+        <pre id="migrationSql" style="background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:10px;color:var(--text2);overflow-x:auto;white-space:pre;line-height:1.5;margin-bottom:8px;">ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS ship_segments text DEFAULT '[]';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;</pre>
+        <button onclick="copyMigrationSql(this)" style="padding:6px 14px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">⎘ Copy SQL</button>
+      </div>
+
       <!-- App info -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;">
         <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v1.7.1</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v1.7.8</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -928,10 +970,12 @@ html.light-mode{
       <div class="fi"><label class="fl">Date of Order</label><input class="fi-in" type="date" id="f-date"></div>
       <div class="fi"><label class="fl">Order ID</label><input class="fi-in" type="text" id="f-oid" placeholder="202-XXXXXXX-XXXXXXX"></div>
       <div class="fi"><label class="fl">Supplier</label>
-        <select class="fi-in" id="f-sup"><option value="">Select…</option>
+        <input class="fi-in" id="f-sup" list="sup-list" placeholder="Type or select supplier…" autocomplete="off">
+        <datalist id="sup-list">
           <option>Amazon UK</option><option>Amazon France</option><option>Amazon Germany</option>
-          <option>Amazon Italy</option><option>Amazon Spain</option><option>Other</option>
-        </select>
+          <option>Amazon Italy</option><option>Amazon Spain</option><option>iHerb</option>
+          <option>Superdrug</option><option>Mifarma</option><option>Boots</option><option>Other</option>
+        </datalist>
       </div>
       <div class="fi"><label class="fl">Account</label><input class="fi-in" type="text" id="f-acct" placeholder="e.g. Biz 01, BDL Account"></div>
       <div class="fi"><label class="fl">Product Name</label><input class="fi-in" type="text" id="f-prod" placeholder="Full product title"></div>
@@ -1157,6 +1201,28 @@ let rows=[];
 
 
 
+// Build a sortable key from a "DD/MM" (or "D/M") arrival date. Pads both parts
+// and infers a year so dates line up correctly even when zero-padding is
+// inconsistent (e.g. "20/5" vs "20/05") and around year boundaries. Returns a
+// "YYYYMMDD" string; blank dates sort last.
+function dateSortKey(dmy){
+  if(!dmy)return '99999999';
+  const parts=String(dmy).trim().split('/');
+  if(parts.length<2)return '99999999';
+  const d=parseInt(parts[0],10),m=parseInt(parts[1],10);
+  if(!(d>=1&&d<=31)||!(m>=1&&m<=12))return '99999999';
+  // Year: prefer an explicit 3rd part, else infer. Arrival dates cluster around
+  // "now"; if the day/month is more than ~1 month into the future, it's last year.
+  let y;
+  if(parts[2]){y=parseInt(parts[2],10);if(y<100)y+=2000;}
+  else{
+    const now=new Date();y=now.getFullYear();
+    const cand=new Date(y,m-1,d);
+    const monthAhead=new Date();monthAhead.setMonth(monthAhead.getMonth()+1);
+    if(cand>monthAhead)y-=1;
+  }
+  return String(y).padStart(4,'0')+String(m).padStart(2,'0')+String(d).padStart(2,'0');
+}
 // Sort rows — respects current sortBy field, defaults to date ascending
 function sortRows(){
   const field=sortBy.field||'date';
@@ -1168,8 +1234,7 @@ function sortRows(){
     if(aSent!==bSent)return aSent-bSent;
     let av,bv;
     if(field==='date'){
-      av=a.date?a.date.split('/').reverse().join(''):'';
-      bv=b.date?b.date.split('/').reverse().join(''):'';
+      av=dateSortKey(a.date);bv=dateSortKey(b.date);
     }else if(field==='supplier'){
       av=(a.sup||'').toLowerCase();bv=(b.sup||'').toLowerCase();
     }else if(field==='status'){
@@ -1181,8 +1246,7 @@ function sortRows(){
     }else if(field==='expected'){
       av=a.exp||0;bv=b.exp||0;
     }else{
-      av=a.date?a.date.split('/').reverse().join(''):'';
-      bv=b.date?b.date.split('/').reverse().join(''):'';
+      av=dateSortKey(a.date);bv=dateSortKey(b.date);
     }
     if(av<bv)return asc?-1:1;
     if(av>bv)return asc?1:-1;
@@ -1446,11 +1510,31 @@ function cycleUser(){
 function copyVal(text,el){
   if(!text||text==='—')return;
   navigator.clipboard.writeText(text).then(()=>{
-    const orig=el.textContent;el.style.color='#22c55e';el.textContent='✓';
-    setTimeout(()=>{el.textContent=orig;el.style.color='';},1200);
+    const orig=el.textContent;const origCol=el.style.color||'';el.style.color='#22c55e';el.textContent='✓ copied';
+    setTimeout(()=>{el.textContent=orig;el.style.color=origCol;},1200);
+  }).catch(()=>{});
+}
+// Copy a shipment ID. Keeps the ID text in place (so the row doesn't reflow) and
+// flashes a small green tick after it, instead of replacing the whole title.
+function copyShipId(id,el){
+  if(!id)return;
+  navigator.clipboard.writeText(id).then(()=>{
+    const oc=el.style.color||'';const obg=el.style.background||'';
+    el.style.color='#22c55e';el.style.background='rgba(34,197,94,.15)';
+    const tick=document.createElement('span');
+    tick.textContent=' ✓';tick.style.cssText='color:#22c55e;font-size:10px;';
+    el.insertAdjacentElement('afterend',tick);
+    setTimeout(()=>{el.style.color=oc;el.style.background=obg;tick.remove();},1100);
   }).catch(()=>{});
 }
 function cpIco(){return`<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" class="copy-ico"><rect x="1" y="3" width="7" height="7" rx="1"/><path d="M3 3V2a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1H8"/></svg>`;}
+function copyMigrationSql(btn){
+  const sql=(document.getElementById('migrationSql')||{}).textContent||'';
+  navigator.clipboard.writeText(sql.trim()).then(()=>{
+    const orig=btn.textContent;btn.textContent='✓ Copied';
+    setTimeout(()=>{btn.textContent=orig;},1400);
+  }).catch(()=>{toast('Copy failed — select the text manually','er');});
+}
 
 // ── DATE HELPERS ──────────────────────────────────────────────────────────────
 function getWeekRange(){
@@ -1464,15 +1548,45 @@ function getMonthRange(){
   return{s:new Date(n.getFullYear(),n.getMonth(),1),e:new Date(n.getFullYear(),n.getMonth()+1,0,23,59,59,999)};
 }
 function allSentRows(){
-  return[
-    ...rows.filter(r=>(r.sent==='Yes'||r.status==='Part Sent')&&r.sentDate).map(r=>({...r,isoDate:r.sentDate,units:r.ship||0})),
-    ...completed.map(r=>({...r,isoDate:r.dsISO,units:r.shi||0})),
-    ...lavShipments.filter(s=>s.date).map(s=>({isoDate:s.date,units:s.units||0,sku:s.sku||'',asin:s.asin||''})),
-    ...returnShipments.filter(s=>s.date).map(s=>({isoDate:s.date,units:s.units||0,sku:s.sku||''}))
-  ];
+  const out=[];
+  // Expand each sent / part-sent row into its shipment segments so units land
+  // on the date each shipment actually went out (an 8u shipment yesterday and a
+  // 2u shipment today are counted on their own days, not lumped on the latest).
+  // Every entry carries a unified `cogValue` and `kind` so the prep sheet,
+  // dashboard and shipments page all compute the same totals.
+  rows.filter(r=>(r.sent==='Yes'||r.status==='Part Sent')).forEach(r=>{
+    const cogs=parseSKU(r.sku).cogs;
+    const segs=normaliseSegments(r);
+    if(segs.length){
+      segs.forEach(seg=>out.push({...r,isoDate:seg.date||r.sentDate||'',units:seg.units||0,shipId:seg.shipId,_segUnits:seg.units||0,cogValue:cogs*(seg.units||0),kind:'oa'}));
+    }else if(r.sentDate){
+      out.push({...r,isoDate:r.sentDate,units:r.ship||0,cogValue:cogs*(r.ship||0),kind:'oa'});
+    }
+  });
+  completed.forEach(r=>out.push({...r,isoDate:r.dsISO,units:r.shi||0,cogValue:parseSKU(r.sku).cogs*(r.shi||0),kind:'completed'}));
+  lavShipments.filter(s=>s.date).forEach(s=>out.push({isoDate:s.date,units:s.units||0,sku:s.sku||'',asin:s.asin||'',shipId:s.shipId||'',cogValue:(s.cost||0)*(s.units||0),kind:'lav'}));
+  returnShipments.filter(s=>s.date).forEach(s=>out.push({isoDate:s.date,units:s.units||0,sku:s.sku||'',asin:s.asin||'',shipId:s.shipId||'',cogValue:0,kind:'return'}));
+  return out;
 }
 function unitsSentInRange(s,e){
   return allSentRows().filter(r=>{const d=r.isoDate?new Date(r.isoDate):null;return d&&d>=s&&d<=e;}).reduce((a,r)=>a+(r.units||0),0);
+}
+// Canonical "what was sent" rollup for a date range (inclusive). Includes OA
+// stock, completed rows, Lavarion AND Returns added via the Shipments page, so
+// the prep sheet, dashboard and shipments page all agree. Accepts Date objects
+// or YYYY-MM-DD strings.
+function sentRollup(start,end){
+  const toD=v=>typeof v==='string'?new Date(v+'T00:00:00'):v;
+  const s=toD(start),e=toD(end);
+  const inRange=allSentRows().filter(r=>{const d=r.isoDate?new Date(r.isoDate):null;return d&&d>=s&&d<=e;});
+  return{
+    units:inRange.reduce((a,r)=>a+(r.units||0),0),
+    value:inRange.reduce((a,r)=>a+(r.cogValue||0),0),
+    skus:inRange.length,                                   // SKU lines (incl. lav + returns)
+    asins:new Set(inRange.map(r=>r.asin).filter(Boolean)).size,
+    shipments:new Set(inRange.map(r=>r.shipId).filter(Boolean)).size,
+    rows:inRange,
+  };
 }
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
@@ -1482,24 +1596,26 @@ function renderStats(){
   const inTransitValue=inTransitRows.reduce((a,r)=>{const sku=parseSKU(r.sku);return a+(sku.cogs*(r.exp||0));},0);
   
   const todayStr=todayISO();
-  const sentToday=allSentRows().filter(r=>r.isoDate===todayStr).reduce((a,r)=>a+(r.units||0),0);
-  const valueTodayRows=rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr);
-  const valueToday=valueTodayRows.reduce((a,r)=>{const sku=parseSKU(r.sku);return a+(sku.cogs*(r.ship||0));},0);
-  
+  // Canonical rollup — includes OA, Lavarion and Returns so it matches the
+  // dashboard and shipments page exactly.
+  const todayRoll=sentRollup(todayStr,todayStr);
+  const sentToday=todayRoll.units;
+  const valueToday=todayRoll.value;
+
   const{s:ws,e:we}=getWeekRange();
   const{s:ms,e:me}=getMonthRange();
-  const sentWeek=unitsSentInRange(ws,we);
+  const weekRoll=sentRollup(ws,we);
+  const sentWeek=weekRoll.units;
   const sentMonth=unitsSentInRange(ms,me);
   const totalSent=allSentRows().reduce((a,r)=>a+(r.units||0),0);
   
   const inTransitSkus=inTransitRows.length;
   const inTransitAsins=new Set(inTransitRows.map(r=>r.asin)).size;
-  const sentWeekRows=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we);
-  const sentWeekUnits=sentWeekRows.reduce((a,r)=>a+(r.ship||0),0)+lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).reduce((a,s)=>a+(s.units||0),0);
-  const sentWeekSkus=sentWeekRows.length+lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).length;
-  const sentWeekAsins=new Set([...sentWeekRows.map(r=>r.asin),...lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).map(s=>s.asin)]).size;
-  const sentTodayUnits=allSentRows().filter(r=>r.isoDate===todayStr).reduce((a,r)=>a+(r.units||0),0);
-  const sentTodaySkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).length+lavShipments.filter(s=>s.date===todayStr).length;
+  const sentWeekUnits=weekRoll.units;
+  const sentWeekSkus=weekRoll.skus;
+  const sentWeekAsins=weekRoll.asins;
+  const sentTodayUnits=todayRoll.units;
+  const sentTodaySkus=todayRoll.skus;
 
   const mk=(label,val,sub,col)=>`<div class="stat" style="border-top:3px solid ${col};">
     <div style="font-size:9px;font-weight:800;color:${col};text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">${label}</div>
@@ -1509,8 +1625,8 @@ function renderStats(){
 
   const lavWeekUnits=lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).reduce((a,s)=>a+(s.units||0),0);
   const lavMonthUnits=lavShipments.filter(s=>s.date&&new Date(s.date)>=ms&&new Date(s.date)<=me).reduce((a,s)=>a+(s.units||0),0);
-  const totalSentWeek=sentWeekUnits; // already includes Lavarion from above
-  const totalSentMonth=sentMonth+lavMonthUnits;
+  const totalSentWeek=sentWeekUnits;   // allSentRows already includes Lavarion
+  const totalSentMonth=sentMonth;      // sentMonth (unitsSentInRange) already includes Lavarion
 
   document.getElementById('prepStats').innerHTML=
     mk('In Transit',inTransitUnits+' units',`${inTransitSkus} SKUs · ${inTransitAsins} ASINs · ${fmtGBP2(inTransitValue)} COG`,'#38bdf8')+
@@ -1565,7 +1681,7 @@ function renderPrepRows(data){
   const todayStr=todayISO();
   b.innerHTML=data.map(r=>{
     const diff=(r.exp||0)-(r.rcvd||0);
-    const diffEl=r.rcvd>0?(diff===0?`<span class="nt nt-ok">✓</span>`:diff>0?`<span class="nt nt-bad">-${diff}</span>`:`<span class="nt nt-ok">+${Math.abs(diff)}</span>`):`<span class="nt-zero">—</span>`;
+    const diffEl=r.rcvd>0?(diff===0?`<span class="nt nt-ok" style="font-family:Arial,sans-serif;">✓</span>`:diff>0?`<span class="nt nt-bad">-${diff}</span>`:`<span class="nt nt-ok">+${Math.abs(diff)}</span>`):`<span class="nt-zero">—</span>`;
     const isSent=r.status==='Sent to Amazon';
     const canComp=isSent&&diff===0;
     // Age calculation: prefer createdAt, fall back to row date field (DD/MM)
@@ -1598,10 +1714,11 @@ function renderPrepRows(data){
       isStuck?'row-stuck':
       isSubSaveInTransit?'row-subsave':
       statusClass,
-      r.pri==='Yes'?'row-pri':''
+      r.pri==='Yes'?'row-pri':'',
+      r.archived?'row-archived':''
     ].filter(Boolean).join(' ');
     const rcvdColor=r.rcvd>0&&r.rcvd>=r.exp?'var(--green)':r.rcvd>0?'var(--amber)':'';
-    return `<tr class="${rowCls}" id="row-${r.id}" data-id="${r.id}">
+    return `<tr class="${rowCls}" id="row-${r.id}" data-id="${r.id}" style="${r.archived?'opacity:.55;':''}">
       <td style="text-align:center;font-size:9px;color:var(--text3);font-family:var(--mono);user-select:none;line-height:1.3;">
         <div>${data.indexOf(r)+1}</div>
         ${r.sheetRow?`<div style="color:var(--border2);font-size:8px;">${r.sheetRow}</div>`:''}
@@ -1651,9 +1768,24 @@ function renderPrepRows(data){
         <option${r.sent==='No'?' selected':''}>No</option><option${r.sent==='Yes'?' selected':''}>Yes</option>
       </select></td>
       <td style="padding:4px;">
-        <div style="font-family:var(--mono);font-size:10px;font-weight:700;word-break:break-all;white-space:normal;line-height:1.4;cursor:pointer;min-height:18px;color:${r.shipId?'var(--text)':'var(--text3)'}" 
-          onclick="editShipIdInline('${r.uuid||r.id}',this)" 
-          title="Click to edit">${r.shipId||'—'}${(r.allShipIds&&r.allShipIds.length>1)?`<div style="margin-top:2px;font-size:8px;font-weight:600;color:var(--text3);">+${r.allShipIds.length-1} more: ${r.allShipIds.filter(s=>s!==r.shipId).join(', ')}</div>`:''}</div>
+        ${(()=>{
+          const segs=normaliseSegments(r);
+          const unitWord=n=>n===1?'unit':'units';
+          if(segs.length>1){
+            // Split across shipments: stack each ID on its own line, bold, with
+            // a clear unit count. Not inline-editable (use the green tick / undo).
+            return `<div style="display:flex;flex-direction:column;gap:3px;">${
+              segs.map(s=>`<div style="font-family:var(--mono);font-size:10px;line-height:1.3;">
+                <span style="font-weight:800;color:var(--text);">${s.shipId}</span>
+                <span style="color:var(--text2);font-weight:600;"> — ${s.units} ${unitWord(s.units)}</span>
+              </div>`).join('')
+            }</div>`;
+          }
+          // Single shipment (or none): editable primary ID.
+          return `<div style="font-family:var(--mono);font-size:10px;font-weight:700;word-break:break-all;white-space:normal;line-height:1.4;cursor:pointer;min-height:18px;color:${r.shipId?'var(--text)':'var(--text3)'}"
+            onclick="editShipIdInline('${r.uuid||r.id}',this)"
+            title="Click to edit">${r.shipId||'—'}</div>`;
+        })()}
         <input type="hidden" id="shipid-${r.id}" value="${r.shipId||''}">
       </td>
       <td><select class="ci-sel" onchange="uf('${r.uuid||r.id}','reimb',this.value);" tabindex="-1">
@@ -1666,7 +1798,11 @@ function renderPrepRows(data){
         ${hasIssue?`<button class="ra" title="Move to Actions — removes from prep sheet" onclick="moveToActions('${r.uuid||r.id}')" style="background:rgba(248,113,113,.2);border:1px solid #f87171;color:#f87171;border-radius:3px;font-size:9px;font-weight:700;width:auto;padding:0 5px;cursor:pointer;">→ Actions</button>`:''}
         ${canComp?`<button class="ra g" title="Complete" onclick="openComp('${r.uuid||r.id}')">✓</button>`:''}
       </div></td>
-      <td style="text-align:center;">${isSent?`<input type="checkbox" onchange="if(this.checked){const r=rows.find(x=>x.uuid==='${r.uuid||''}'||String(x.id)==='${r.id}');deleteRow(r);rows.splice(rows.findIndex(x=>x.uuid==='${r.uuid||''}'||String(x.id)==='${r.id}'),1);renderPrep();toast('Row archived');}" title="Archive & remove from sheet">`:'<span style="color:var(--text3);">—</span>'}</td>
+      <td style="text-align:center;">${
+        r.archived
+          ?`<button onclick="(async()=>{const r=rows.find(x=>x.uuid==='${r.uuid||''}'||String(x.id)==='${r.id}');if(r){await unarchiveRow(r);renderPrep();renderShipments&&renderShipments();renderDashboard&&renderDashboard();toast('Row unarchived');}})()" title="Unarchive — bring back to the active prep sheet" style="padding:2px 6px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">↺ Unarchive</button>`
+          :(isSent?`<input type="checkbox" onchange="if(this.checked){const r=rows.find(x=>x.uuid==='${r.uuid||''}'||String(x.id)==='${r.id}');if(r){archiveRow(r);renderPrep();renderShipments&&renderShipments();renderDashboard&&renderDashboard();toast('Row archived — kept on Shipments page');}}" title="Archive (hide from sheet, keep on Shipments page)">`:'<span style="color:var(--text3);">—</span>')
+      }</td>
     </tr>`;
   }).join('');
 
@@ -1686,6 +1822,22 @@ function uf(id,field,val){
   const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
   if(!r)return;
   r[field]=val;
+  // Keep shipment segments coherent for SIMPLE rows (one shipment). For rows
+  // split across multiple shipments we leave segments as the source of truth —
+  // edit the split via the green tick / undo instead of these inline cells.
+  if(field==='ship'||field==='shipId'){
+    const segs=normaliseSegments(r);
+    if(segs.length<=1){
+      if(field==='ship'){
+        if((val||0)>0){r.shipSegments=[{shipId:r.shipId||'',units:val,date:r.sentDate||todayISO(),type:r.shipType||'Standard'}];}
+        else{r.shipSegments=[];}
+      }else if(field==='shipId'){
+        if(segs.length===1){segs[0].shipId=val;r.shipSegments=segs;}
+        else if((r.ship||0)>0){r.shipSegments=[{shipId:val,units:r.ship,date:r.sentDate||todayISO(),type:r.shipType||'Standard'}];}
+        r.allShipIds=val?[val]:[];
+      }
+    }
+  }
   r._dirty=true;
   r._srch=null;
   debounce('save_'+id,()=>{saveRow(r);},300);
@@ -1697,9 +1849,11 @@ function filterPrep(){
   const scrollTop=wrap?wrap.scrollTop:0;
   const q=document.getElementById('prepSrch').value.toLowerCase();
   const st=document.getElementById('prepStF').value;
-  if(!q&&!st&&!_issuesFilterActive){renderPrepRows(rows);}
+  // _showArchived ON = show ONLY archived rows; OFF = show only active rows.
+  const baseRows=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
+  if(!q&&!st&&!_issuesFilterActive){renderPrepRows(baseRows);}
   else{
-    const filtered=rows.filter(r=>{
+    const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
       if(_issuesFilterActive){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
@@ -1725,14 +1879,19 @@ function filterPrep(){
 function renderPrep(){
   sortRows();
   renderStats();
+  updateArchivedBtn();
   // Preserve scroll position
   const wrap=document.querySelector('#page-prep .tbl-wrap');
   const scrollTop=wrap?wrap.scrollTop:0;
   // Re-apply active filter instead of showing all rows
   const q=(document.getElementById('prepSrch')||{}).value?.toLowerCase()||'';
   const st=(document.getElementById('prepStF')||{}).value||'';
+  // Archived rows are hidden from the active prep sheet (but kept in `rows` so
+  // the shipments page and stats still see them). _showArchived flips to an
+  // archived-ONLY view rather than mixing archived in with active rows.
+  const baseRows=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
   if(q||st||_issuesFilterActive){
-    const filtered=rows.filter(r=>{
+    const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
       if(_issuesFilterActive){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
@@ -1752,7 +1911,7 @@ function renderPrep(){
     });
     renderPrepRows(filtered);
   }else{
-    renderPrepRows(rows);
+    renderPrepRows(baseRows);
   }
   // Restore scroll position
   if(wrap)wrap.scrollTop=scrollTop;
@@ -1846,31 +2005,57 @@ async function moveToActions(id){
         toast('Could not move to Actions — check connection','er');
         return;
       }
-      // Only delete row after confirmed save
-      await deleteRow(r);
-      rows=rows.filter(x=>x.id!==id);
+      // Only archive the row after the issue is confirmed saved to Actions.
+      // Soft-archive (not delete) so any shipment history on the row is kept.
+      await archiveRow(r);
       renderPrep();
       renderClaims();
+      renderShipments&&renderShipments();
       toast('✓ Moved to Actions');
       logAudit('Moved to Actions',r.sku);
     }
   );
 }
 
+function selectAllSent(){
+  // Check all rows that are Sent to Amazon
+  document.querySelectorAll('.row-cb').forEach(cb=>{
+    const id=cb.dataset.id;
+    const r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
+    cb.checked=!!(r&&r.status==='Sent to Amazon');
+  });
+  updateBulkBar();
+}
 async function doBulkArchive(){
-  const sel=getSelected();
-  if(!sel.length){toast('No rows selected','er');return;}
-  const sentRows=sel.filter(r=>r.status==='Sent to Amazon');
-  const notSent=sel.length-sentRows.length;
+  const selIds=getSelectedRows(); // returns array of IDs
+  if(!selIds.length){toast('No rows selected','er');return;}
+  // Resolve IDs to actual row objects
+  const selRows=selIds.map(id=>rows.find(x=>String(x.id)===String(id)||x.uuid===String(id))).filter(Boolean);
+  const sentRows=selRows.filter(r=>r.status==='Sent to Amazon');
+  const notSent=selRows.length-sentRows.length;
   if(!sentRows.length){toast('None of the selected rows are Sent to Amazon','er');return;}
-  const msg=`Archive ${sentRows.length} Sent to Amazon row${sentRows.length!==1?'s':''}?${notSent>0?' ('+notSent+' non-sent rows will be skipped)':''}`;
+  const msg=`Archive ${sentRows.length} Sent to Amazon row${sentRows.length!==1?'s':''}?${notSent>0?' ('+notSent+' non-sent rows skipped)':''}\n\nThis clears them off the prep sheet for good. They stay permanently on the Shipments page under their Shipment ID. (If you ever attached one by mistake, "Show Archived" can restore it — but you shouldn't normally need to.)`;
   showConfirm('Archive rows?',msg,async()=>{
-    for(const r of sentRows){
-      await deleteRow(r);
-      rows=rows.filter(x=>x.id!==r.id);
-    }
+    setSyncStatus('syncing');
+    // Mark archived locally first so the UI updates instantly (fixes the slow
+    // "clearing rows" lag — no per-row await before re-render).
+    const ids=[];
+    sentRows.forEach(r=>{r.archived=true;if(r.uuid)ids.push(r.uuid);});
     clearBulkSelect();
-    renderPrep();
+    renderPrep();renderShipments&&renderShipments();renderDashboard&&renderDashboard();
+    // Persist in a single batched update instead of N round-trips.
+    if(ids.length){
+      let res=await sb.from('prep_rows').update({archived:true}).in('id',ids);
+      if(res.error&&_missingColInErr(res.error)==='archived'){
+        _missingCols.add('archived');
+        if(!_missingColWarned){_missingColWarned=true;toast('Add the "archived" column — see Settings → Database','er');}
+        // Fall back to per-row saveRow which strips the missing column (keeps
+        // them archived in memory; persists once the column exists).
+        res={error:null};
+      }
+      if(res.error){setSyncStatus('error');toast('Archive save failed: '+res.error.message,'er');return;}
+    }
+    setSyncStatus('synced');
     toast(`✓ ${sentRows.length} row${sentRows.length!==1?'s':''} archived`);
     logAudit('Bulk archive',sentRows.length+' rows');
   });
@@ -1934,8 +2119,31 @@ function saveRowForm(){
     createdISO:existing?.createdISO||todayISO(),
     importedFrom:existing?.importedFrom||'',
     shipType:existing?.shipType||'',
+    // Carry the shipment-split data across the edit so it isn't wiped.
+    shipSegments:existing?.shipSegments?existing.shipSegments.slice():[],
+    allShipIds:existing?.allShipIds?existing.allShipIds.slice():[],
   };
   if(!r.sku||!r.sup){toast('SKU and Supplier required','er');return;}
+  // Reconcile segments with any manual ship/shipId changes made in the form.
+  (function reconcileSegs(){
+    const segs=normaliseSegments(r);
+    if(segs.length<=1){
+      // Simple row: rebuild a single segment from the (possibly edited) fields.
+      if((r.ship||0)>0&&r.shipId){
+        r.shipSegments=[{shipId:r.shipId,units:r.ship,date:r.sentDate||todayISO(),type:r.shipType||'Standard'}];
+        r.allShipIds=[r.shipId];
+      }else{
+        r.shipSegments=[];r.allShipIds=r.shipId?[r.shipId]:[];
+      }
+    }else{
+      // Split row: keep the split as-is, but if the form's total ship differs,
+      // trust the segments (source of truth) and snap ship back to their sum.
+      r.ship=segs.reduce((a,s)=>a+(s.units||0),0);
+      r.shipSegments=segs;
+      r.allShipIds=[...new Set(segs.map(s=>s.shipId))];
+      if(!segs.some(s=>s.shipId===r.shipId))r.shipId=segs[segs.length-1].shipId;
+    }
+  })();
   const wasEdit=!!editId;
   if(editId){const i=rows.findIndex(x=>(r.uuid&&x.uuid===r.uuid)||String(x.id)===String(editId)||x.uuid===String(editId));if(i>=0)rows[i]=r;else{toast('Row not found','er');return;}}
   else rows.push(r);
@@ -1948,10 +2156,15 @@ function saveRowForm(){
 function openComp(id){pendComp=id;om('compModal');}
 function doComplete(){
   const r=rows.find(x=>x.uuid===String(pendComp)||String(x.id)===String(pendComp));if(!r)return;
-  completed.unshift({id:r.id,ds:r.date,dsISO:r.sentDate||todayISO(),oid:r.oid,sup:r.sup,sku:r.sku,asin:r.asin,prod:r.prod,exp:r.exp,shi:r.ship,bun:r.bun,notes:r.notes});
-  rows=rows.filter(x=>x.uuid!==pendComp&&String(x.id)!==String(pendComp));
+  // Soft-archive: hide from the active prep sheet but keep the row in the DB so
+  // it stays on the Shipments page and survives a refresh. (Previously this only
+  // removed the row from memory, so it vanished from shipments and reappeared on
+  // reload — and was never persisted.)
+  r.archived=true;r._dirty=true;
+  archiveRow(r);
   logAudit('Marked Complete',r.sku);
-  cm('compModal');renderPrep();toast('Row archived ✓');
+  cm('compModal');renderPrep();renderShipments&&renderShipments();renderDashboard&&renderDashboard();
+  toast('Row completed & archived ✓ — kept on Shipments page');
 }
 function openClaim(id){pendClaim=id;document.getElementById('claimInitNote').value='';om('claimModal');}
 function doClaim(){
@@ -2005,7 +2218,7 @@ function openAddClaim(){
   document.getElementById('cl-rec').value='';
   document.getElementById('cl-cost').value='';
   document.getElementById('cl-issT').value='Missing Items';
-  document.getElementById('cl-cst').value='Open';
+  document.getElementById('cl-cst').value='Issue';
   om('addClaimModal');
 }
 function openEditClaim(id){
@@ -2174,7 +2387,7 @@ function renderClaims(){
             <div style="font-size:13px;font-weight:800;color:#f1f5f9;margin-bottom:10px;line-height:1.3;">${c.prod||c.sku||'—'}</div>
 
             <!-- Order info row -->
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid rgba(255,255,255,.06);">
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid rgba(255,255,255,.06);">
               ${c.sup?`<div>
                 <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;font-weight:700;">Supplier</div>
                 <div style="font-size:12px;font-weight:800;color:#38bdf8;">${c.sup}</div>
@@ -2183,13 +2396,17 @@ function renderClaims(){
                 <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;font-weight:700;">Order ID</div>
                 <div style="font-size:12px;font-weight:700;color:#e2e8f0;font-family:var(--mono);">${c.oid}</div>
               </div>`:'<div></div>'}
-              ${account?`<div>
-                <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;font-weight:700;">Purchase Acct</div>
-                <div style="font-size:12px;font-weight:800;color:#c084fc;">${account}</div>
-              </div>`:'<div></div>'}
+              <div>
+                <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;font-weight:700;">Account</div>
+                <div style="font-size:12px;font-weight:800;color:#c084fc;">${account||'<span style=\"color:#475569;font-size:10px;\">—</span>'}</div>
+              </div>
               <div>
                 <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;font-weight:700;">COG / Unit</div>
                 <div style="font-size:12px;font-weight:800;color:#fbbf24;font-family:var(--mono);">${fmtGBP2(cogUnit)}</div>
+              </div>
+              <div>
+                <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;font-weight:700;">Issue Type</div>
+                <div style="font-size:12px;font-weight:800;color:#f87171;">${c.issT||'—'}</div>
               </div>
             </div>
 
@@ -2453,9 +2670,15 @@ function renderDashboard(){
   const weekRet=calcSentReturnRange(ws,we);
   const ydLav=calcSentLavRange(yesterdayStr,yesterdayStr);
 
-  const todayTotal={units:todayStock.units,value:todayStock.value+todayLav.value};
-  const ydTotal={units:ydStock.units,value:ydStock.value+ydLav.value};
-  const weekTotal={units:weekStock.units,value:weekStock.value+weekLav.value};
+  // Canonical rollups (OA + Lavarion + Returns) keep the dashboard tile in step
+  // with the prep sheet and shipments page.
+  const todayRoll=sentRollup(todayStr,todayStr);
+  const ydRoll=sentRollup(yesterdayStr,yesterdayStr);
+  const weekRoll=sentRollup(ws,we);
+
+  const todayTotal={units:todayRoll.units,value:todayRoll.value};
+  const ydTotal={units:ydRoll.units,value:ydRoll.value};
+  const weekTotal={units:weekRoll.units,value:weekRoll.value};
 
   // Boxes
   function boxesForDate(isoDate){
@@ -2644,16 +2867,12 @@ function renderDashboard(){
   const mtdSkus=mtdSentRowsFull.length+mtdSentLavFull.length;
   const mtdAsins=new Set([...mtdSentRowsFull.map(r=>r.asin),...mtdSentLavFull.map(s=>s.asin)]).size;
   const mtdBoxesCount=Array.from(new Set([...mtdSentRowsFull.filter(r=>r.shipId).map(r=>r.shipId),...mtdSentLavFull.filter(s=>s.shipId).map(s=>s.shipId)])).reduce((a,sid)=>a+(shipBoxes[sid]||0),0);
-  const todaySkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).length+lavShipments.filter(s=>s.date===todayStr).length;
-  const weekAsins=new Set([
-    ...rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we).map(r=>r.asin),
-    ...lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).map(s=>s.asin)
-  ]).size;
-  const weekSkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we).length
-                +lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).length;
+  const todaySkus=todayRoll.skus;
+  const weekAsins=weekRoll.asins;
+  const weekSkus=weekRoll.skus;
   const weekLavAsins=new Set(lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).map(s=>s.asin)).size;
-  const todayAsins=new Set(rows.filter(r=>r.sent==='Yes'&&r.sentDate===todayStr).map(r=>r.asin)).size;
-  const ydSkus=rows.filter(r=>r.sent==='Yes'&&r.sentDate===yesterdayStr).length+lavShipments.filter(s=>s.date===yesterdayStr).length;
+  const todayAsins=todayRoll.asins;
+  const ydSkus=ydRoll.skus;
 
   // Yesterday vs day before
   const db2=new Date();db2.setDate(db2.getDate()-2);
@@ -3889,26 +4108,10 @@ function sortTable(field){
 
   if(sortBy.field===field){sortBy.asc=!sortBy.asc;}else{sortBy.field=field;sortBy.asc=true;}
 
-  rows.sort((a,b)=>{
-    let av,bv;
-    if(field==='date'){
-      av=a.date?a.date.split('/').reverse().join(''):'';
-      bv=b.date?b.date.split('/').reverse().join(''):'';
-    }else if(field==='supplier'){
-      av=(a.sup||'').toLowerCase();bv=(b.sup||'').toLowerCase();
-    }else if(field==='status'){
-      const order=['Issue','Not Arrived','In Warehouse','Delivered','In-Transit','Prepping','Boxed','Returned','Sent to Amazon'];
-      av=order.indexOf(a.status);bv=order.indexOf(b.status);
-      if(av<0)av=99;if(bv<0)bv=99;
-    }else if(field==='received'){
-      av=a.rcvd||0;bv=b.rcvd||0;
-    }else if(field==='expected'){
-      av=a.exp||0;bv=b.exp||0;
-    }
-    if(av<bv)return sortBy.asc?-1:1;
-    if(av>bv)return sortBy.asc?1:-1;
-    return 0;
-  });
+  // Delegate to the single source of truth so date handling (and the
+  // "Sent to Amazon at bottom" rule) stay consistent. Fixes the DD/MM sort bug
+  // where unpadded dates like "20/5" jumped above "21/05".
+  sortRows();
 
   // Update dropdown arrow indicator
   const dd=document.getElementById('prepSortF');
@@ -3934,13 +4137,32 @@ function updateDiffCell(id,rcvd,exp){
   const td=document.getElementById('diff-'+id);if(!td)return;
   const diff=exp-rcvd;
   if(rcvd===0){td.innerHTML='<span class="nt-zero">—</span>';return;}
-  if(diff===0)td.innerHTML='<span class="nt nt-ok">✓</span>';
+  if(diff===0)td.innerHTML='<span class="nt nt-ok" style="font-family:Arial,sans-serif;">✓</span>';
   else if(diff>0)td.innerHTML=`<span class="nt nt-bad">-${diff}</span>`;
   else td.innerHTML=`<span class="nt nt-ok">+${Math.abs(diff)}</span>`;
 }
 
 // ── STATUS CHANGE HANDLER ─────────────────────────────────────────────────────
 let _issuesFilterActive=false;
+// When true, the prep sheet also shows archived rows (otherwise they're hidden
+// from the active sheet but still kept on the shipments page + in stats).
+let _showArchived=false;
+function toggleArchivedView(){
+  _showArchived=!_showArchived;
+  updateArchivedBtn();
+  renderPrep();
+  const n=rows.filter(r=>r.archived).length;
+  toast(_showArchived?`Showing ${n} archived row${n!==1?'s':''} only`:'Back to active prep sheet');
+}
+// Keep the Show/Hide Archived button label + count in sync.
+function updateArchivedBtn(){
+  const btn=document.getElementById('showArchivedBtn');
+  if(!btn)return;
+  const n=rows.filter(r=>r.archived).length;
+  btn.style.background=_showArchived?'rgba(96,165,250,.35)':'var(--bg2)';
+  btn.style.color=_showArchived?'#fff':'var(--text3)';
+  btn.textContent=_showArchived?'← Active Sheet':`Show Archived${n?` (${n})`:''}`;
+}
 function toggleIssuesFilter(){
   _issuesFilterActive=!_issuesFilterActive;
   const btn=document.getElementById('showIssuesBtn');
@@ -3961,11 +4183,63 @@ function sendableQty(r){
   return Math.max(0,base-issues);
 }
 
+// ── SHIPMENT SEGMENTS ─────────────────────────────────────────────────────────
+// A "segment" records that N units of this row went into a specific FBA
+// shipment on a specific date: {shipId, units, date, type}. This is what lets a
+// single SKU row be split across multiple shipments (8u → FBA1 yesterday, 2u →
+// FBA2 today) instead of collapsing everything under one shipId.
+//
+// normaliseSegments returns a clean array for a row. If the row has no explicit
+// segments yet (old data, or a row sent before this feature existed) it
+// synthesises a single segment from the legacy shipId/ship fields so nothing in
+// the shipments view changes for existing rows.
+function normaliseSegments(r){
+  let segs=Array.isArray(r.shipSegments)?r.shipSegments.filter(s=>s&&s.shipId&&(s.units||0)>0):[];
+  if(!segs.length&&r.shipId&&(r.ship||0)>0){
+    segs=[{shipId:r.shipId,units:r.ship||0,date:r.sentDate||'',type:r.shipType||'Standard'}];
+  }
+  return segs;
+}
+
+// Total units already committed to shipments for a row.
+function segmentsSentTotal(r){
+  return normaliseSegments(r).reduce((a,s)=>a+(s.units||0),0);
+}
+
+// Units of this row NOT yet attached to any shipment — what's still in the
+// warehouse and available to send in a fresh shipment.
+function remainingToShip(r){
+  return Math.max(0,sendableQty(r)-segmentsSentTotal(r));
+}
+
+// Add (or merge) a segment onto a row and keep legacy fields coherent.
+// The row's primary shipId/ship/allShipIds are kept in sync so older code paths
+// and the prep-sheet display continue to work, while shipSegments stays the
+// authoritative breakdown for the shipments page.
+function addSegment(r,shipId,units,type){
+  if(!shipId||!(units>0))return;
+  const segs=normaliseSegments(r).slice();
+  const existing=segs.find(s=>s.shipId===shipId&&(s.date||'')===todayISO());
+  if(existing){existing.units+=units;if(type)existing.type=type;}
+  else segs.push({shipId,units,date:todayISO(),type:type||r.shipType||'Standard'});
+  r.shipSegments=segs;
+  // Keep legacy mirrors in sync.
+  const ids=r.allShipIds||[];
+  if(!ids.includes(shipId))ids.push(shipId);
+  r.allShipIds=ids;
+  r.shipId=shipId;                       // primary = most recent
+  if(type)r.shipType=type;
+  r.ship=segmentsSentTotal(r);           // legacy cumulative total
+}
+
 function handleStatusChange(id,sel){
   const val=sel.value;
   const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
   if(!r)return;
   const prevStatus=r.status;
+  // If someone changes the status of an archived row, it's back in the active
+  // workflow — un-archive it so it reappears on the prep sheet.
+  if(r.archived){r.archived=false;}
   // Use the row's actual local id for DOM element / debounce keys (the <tr>
   // element id is row-<localId>), while the row itself was resolved via the
   // unique uuid passed in — this prevents local-id collisions from saving the
@@ -3975,35 +4249,45 @@ function handleStatusChange(id,sel){
   if(val==='Sent to Amazon'||val==='Part Sent'){
     sel.value=r.status;
     const isPartial=val==='Part Sent';
-    const maxUnits=sendableQty(r);
+    // Only the units NOT already attached to a shipment can be sent now. This
+    // matters when a row is already Part Sent — we must not re-offer units that
+    // already went out in an earlier shipment.
+    const maxUnits=remainingToShip(r);
+    if(maxUnits<=0){
+      toast('All available units are already in a shipment','er');
+      sel.value=r.status;
+      return;
+    }
+    const alreadyOut=segmentsSentTotal(r);
     showShipIdModal(
       isPartial?'Partial Send — Enter Shipment ID':'Shipment ID Required',
-      isPartial?`Sending partial units (${maxUnits} available${r.issueQty?`, ${r.issueQty} held for issue`:''}). Enter FBA ID.`:`Enter the FBA Shipment ID.${r.issueQty?` (${maxUnits} sendable — ${r.issueQty} held for issue)`:''}`,
+      isPartial
+        ?`Sending partial units (${maxUnits} available to send${alreadyOut?`, ${alreadyOut} already shipped`:''}${r.issueQty?`, ${r.issueQty} held for issue`:''}). Enter the FBA ID for THIS shipment.`
+        :`Enter the FBA Shipment ID for these ${maxUnits} units.${alreadyOut?` (${alreadyOut} already shipped separately)`:''}${r.issueQty?` (${r.issueQty} held for issue)`:''}`,
       r.shipType||'Standard',
       (shipId,type,partialUnits)=>{
-        const sendQty=(isPartial&&partialUnits)?partialUnits:maxUnits;
-        const prevIds=r.allShipIds||[];
-        if(!prevIds.includes(shipId))prevIds.push(shipId);
-        r.allShipIds=prevIds;
-        r.shipId=shipId;r.shipType=type;r.sentDate=todayISO();r.sentAt=getNowUK();
-        if(isPartial&&sendQty<maxUnits){
+        const sendQty=(isPartial&&partialUnits)?Math.min(partialUnits,maxUnits):maxUnits;
+        if(!(sendQty>0)){toast('Enter a quantity greater than 0','er');return;}
+        // Record this shipment as its own segment — never merge into a prior one.
+        addSegment(r,shipId,sendQty,type);
+        r.sentDate=todayISO();r.sentAt=getNowUK();
+        // Fully sent only when nothing is left to ship.
+        if(remainingToShip(r)>0){
           r.status='Part Sent';r.sent='No';
-          r.ship=(r.ship||0)+sendQty;
         }else{
           r.status='Sent to Amazon';r.sent='Yes';
-          r.ship=maxUnits;
           if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
         }
         r._dirty=true;
         saveRow(r);
-        logAudit(isPartial?'Part Sent':'Sent to Amazon',`${r.sku} → ${shipId} (${sendQty}u)`);
+        logAudit(r.status==='Part Sent'?'Part Sent':'Sent to Amazon',`${r.sku} → ${shipId} (${sendQty}u)`);
         renderPrep();
       },
       isPartial,maxUnits
     );
   }else if((r.status==='Sent to Amazon'||r.status==='Part Sent')&&val!=='Sent to Amazon'&&val!=='Part Sent'){
     r._dirty=true;
-    r.status=val;r.sent='No';r.sentDate='';r.ship=0;r.shipId='';r.allShipIds=[];
+    r.status=val;r.sent='No';r.sentDate='';r.ship=0;r.shipId='';r.allShipIds=[];r.shipSegments=[];
     // Reverting to a "not here / not counted" state clears the received count
     // too, so the row is fully back to its pre-arrival state (and drops out of
     // the physical shipment because shipId is now blank).
@@ -4229,23 +4513,48 @@ function doAllArrived(id){
 // ── PER-ROW: ALL SHIPPED ──────────────────────────────────────────────────────
 function doAllShipped(id){
   const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));if(!r)return;
-  const addShipId=(sid)=>{const p=r.allShipIds||[];if(sid&&!p.includes(sid))p.push(sid);r.allShipIds=p;};
-  if(r.shipId){
-    addShipId(r.shipId);
-    if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;       // assume all arrived unless told otherwise
-    r.ship=sendableQty(r);r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
-    r._dirty=true;saveRow(r);logAudit('All Shipped',`${r.sku} → ${r.shipId}`);
-    renderPrep();toast('All shipped ✓ — '+r.sku.split('_')[0]);
-  }else{
-    showShipIdModal('All Shipped — Enter Shipment ID','No Shipment ID on this row yet. Enter the FBA ID to confirm.',r.shipType||'Standard',(shipId,type)=>{
-      addShipId(shipId);
-      if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;       // assume all arrived unless told otherwise
-      r.ship=sendableQty(r);r.shipId=shipId;r.shipType=type;
-      r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
-      r._dirty=true;saveRow(r);logAudit('All Shipped',`${r.sku} → ${shipId}`);
-      renderPrep();toast('All shipped ✓ — '+r.sku.split('_')[0]);
-    });
+  if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;          // assume all arrived unless told otherwise
+  const remaining=remainingToShip(r);
+  const alreadyOut=segmentsSentTotal(r);
+  // Nothing left to ship — already fully accounted for across its shipments.
+  if(remaining<=0&&alreadyOut>0){
+    if(r.status!=='Sent to Amazon'){r.status='Sent to Amazon';r.sent='Yes';r._dirty=true;saveRow(r);renderPrep();}
+    toast('Already fully shipped — '+r.sku.split('_')[0]);
+    return;
   }
+  const finalise=(shipId,type)=>{
+    addSegment(r,shipId,remaining>0?remaining:sendableQty(r),type);
+    r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
+    r._dirty=true;saveRow(r);
+    logAudit('All Shipped',`${r.sku} → ${shipId} (${remaining>0?remaining:sendableQty(r)}u)`);
+    renderPrep();toast('All shipped ✓ — '+r.sku.split('_')[0]);
+  };
+  // PART-SENT ROW: the remaining units are going out in a SEPARATE shipment, so
+  // we must ask for a NEW Shipment ID rather than silently reusing the original
+  // one (which would wrongly merge yesterday's units into today's shipment).
+  if(alreadyOut>0&&remaining>0){
+    const prior=normaliseSegments(r).map(s=>`${s.shipId} (${s.units}u)`).join(', ');
+    showShipIdModal(
+      'Ship Remaining Units — New Shipment ID',
+      `${alreadyOut} unit${alreadyOut!==1?'s':''} already shipped under: ${prior}. Enter a NEW FBA ID for the remaining ${remaining} unit${remaining!==1?'s':''}.`,
+      r.shipType||'Standard',
+      (shipId,type)=>{
+        if(normaliseSegments(r).some(s=>s.shipId===shipId)){
+          // Same ID re-used: warn but allow — merges into that shipment's segment.
+          showConfirm('Reuse the same Shipment ID?',
+            `${shipId} already holds units from this SKU. Sending the remaining ${remaining} unit${remaining!==1?'s':''} to it will combine them under one shipment. Use a different ID to keep them separate.`,
+            ()=>finalise(shipId,type));
+          return;
+        }
+        finalise(shipId,type);
+      }
+    );
+    return;
+  }
+  // FRESH ROW (no shipment yet): send everything under one new ID.
+  showShipIdModal('All Shipped — Enter Shipment ID','No Shipment ID on this row yet. Enter the FBA ID to confirm.',r.shipType||'Standard',(shipId,type)=>{
+    finalise(shipId,type);
+  });
 }
 
 // ── BULK: ALL ARRIVED ─────────────────────────────────────────────────────────
@@ -4272,7 +4581,9 @@ function doBulkAllShipped(){
       selected.forEach(id=>{
         const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
         if(r){
-          r.ship=sendableQty(r);r.shipId=shipId;r.shipType=type;
+          if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
+          const remain=remainingToShip(r);
+          if(remain>0)addSegment(r,shipId,remain,type);
           r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
           r._dirty=true;saveRow(r);logAudit('Bulk All Shipped',`${r.sku} → ${shipId} (${type})`);
         }
@@ -4294,14 +4605,14 @@ function doBulkShipId(){
   selected.forEach(id=>{
     const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
     if(r){
-      const prevIds=r.allShipIds||[];
-      if(!prevIds.includes(shipId))prevIds.push(shipId);
-      r.allShipIds=prevIds;
-      r.shipId=shipId;r.shipType=shipType;
-      r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
-      // Auto-fill ship qty from rcvd (or exp if rcvd not set)
-      r.ship=sendableQty(r);
       if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
+      r.shipType=shipType;
+      const remain=remainingToShip(r);
+      if(remain>0)addSegment(r,shipId,remain,shipType);
+      else{ // already fully allocated — just (re)stamp the primary id/type
+        const ids=r.allShipIds||[];if(!ids.includes(shipId))ids.push(shipId);r.allShipIds=ids;r.shipId=shipId;
+      }
+      r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
       r._dirty=true;saveRow(r);logAudit('Bulk Shipment ID',`${r.sku} → ${shipId} (${shipType})`);
     }
   });
@@ -4316,26 +4627,45 @@ function renderShipments(){
   const typeF=(document.getElementById('shipTypeF')||{}).value||'';
   const{s:dateFrom,e:dateTo}=getShipDateRange();
 
-  // Group OA rows by shipId
+  // Group OA rows by shipment SEGMENT. A single SKU row can be split across
+  // several FBA shipments (e.g. 8u → FBA1, 2u → FBA2); each segment is placed
+  // under its own shipment so units are never merged under one ID.
   const shipMap={};
-  rows.filter(r=>r.shipId&&(r.sent==='Yes'||r.status==='Part Sent')).forEach(r=>{
-    if(!shipMap[r.shipId])shipMap[r.shipId]={id:r.shipId,date:r.sentDate||'',skus:[],lavSkus:[],units:0,value:0,boxes:shipBoxes[r.shipId]||0,type:_shipTypeCache[r.shipId]||r.shipType||'Standard',hasLav:false};
-    shipMap[r.shipId].skus.push(r);
-    shipMap[r.shipId].units+=(r.ship||0);
-    shipMap[r.shipId].value+=parseSKU(r.sku).cogs*(r.ship||0);
-    if(r.sentDate&&r.sentDate>shipMap[r.shipId].date)shipMap[r.shipId].date=r.sentDate;
-    if(r.shipType&&!_shipTypeCache[r.shipId])shipMap[r.shipId].type=r.shipType;
+  rows.filter(r=>(r.sent==='Yes'||r.status==='Part Sent')&&normaliseSegments(r).length).forEach(r=>{
+    normaliseSegments(r).forEach(seg=>{
+      const sid=seg.shipId;if(!sid)return;
+      const segDate=seg.date||r.sentDate||'';
+      const segType=_shipTypeCache[sid]||seg.type||r.shipType||'Standard';
+      if(!shipMap[sid])shipMap[sid]={id:sid,date:segDate,skus:[],lavSkus:[],retSkus:[],units:0,value:0,boxes:shipBoxes[sid]||0,type:segType,hasLav:false};
+      // Per-segment view of the row so the table shows this shipment's units only.
+      shipMap[sid].skus.push({...r,_segUnits:seg.units||0,shipId:sid});
+      shipMap[sid].units+=(seg.units||0);
+      shipMap[sid].value+=parseSKU(r.sku).cogs*(seg.units||0);
+      if(segDate&&segDate>shipMap[sid].date)shipMap[sid].date=segDate;
+      if(seg.type&&!_shipTypeCache[sid])shipMap[sid].type=seg.type;
+    });
   });
 
   // Add Lavarion shipments
   lavShipments.forEach(ls=>{
     if(!ls.shipId)return;
-    if(!shipMap[ls.shipId])shipMap[ls.shipId]={id:ls.shipId,date:ls.date||'',skus:[],lavSkus:[],units:0,value:0,boxes:shipBoxes[ls.shipId]||0,type:_shipTypeCache[ls.shipId]||'Standard',hasLav:true};
+    if(!shipMap[ls.shipId])shipMap[ls.shipId]={id:ls.shipId,date:ls.date||'',skus:[],lavSkus:[],retSkus:[],units:0,value:0,boxes:shipBoxes[ls.shipId]||0,type:_shipTypeCache[ls.shipId]||'Standard',hasLav:true};
     shipMap[ls.shipId].lavSkus.push(ls);
     shipMap[ls.shipId].units+=(ls.units||0);
     shipMap[ls.shipId].value+=(ls.cost||0)*(ls.units||0);
     shipMap[ls.shipId].hasLav=true;
     if(ls.date&&ls.date>shipMap[ls.shipId].date)shipMap[ls.shipId].date=ls.date;
+  });
+
+  // Add Return shipments
+  returnShipments.forEach(rs=>{
+    if(!rs.shipId)return;
+    if(!shipMap[rs.shipId])shipMap[rs.shipId]={id:rs.shipId,date:rs.date||'',skus:[],lavSkus:[],retSkus:[],units:0,value:0,boxes:shipBoxes[rs.shipId]||0,type:_shipTypeCache[rs.shipId]||'Standard',hasLav:false};
+    if(!shipMap[rs.shipId].retSkus)shipMap[rs.shipId].retSkus=[];
+    shipMap[rs.shipId].retSkus.push(rs);
+    shipMap[rs.shipId].units+=(rs.units||0);
+    // Return COG is intentionally NOT added to the shipment's outbound COG total
+    // (returns are stock coming back, tracked for reference, not new value sent).
   });
 
   let shipments=Object.values(shipMap).sort((a,b)=>a.date.localeCompare(b.date));
@@ -4370,10 +4700,16 @@ function renderShipments(){
   const sumUnits=shipments.reduce((a,s)=>a+s.units,0);
   const sumCOG=shipments.reduce((a,s)=>a+s.value,0);
   const sumBoxes=shipments.reduce((a,s)=>a+s.boxes,0);
-  const sumSkus=shipments.reduce((a,s)=>a+s.skus.length+s.lavSkus.length,0);
-  const sumAsins=new Set([...shipments.flatMap(s=>s.skus.map(r=>r.asin)),...shipments.flatMap(s=>s.lavSkus.map(l=>l.asin))]).size;
+  // SKU lines and ASINs include OA + Lavarion + Returns so this bar matches the
+  // dashboard / prep-sheet "Sent" rollups.
+  const sumSkus=shipments.reduce((a,s)=>a+s.skus.length+s.lavSkus.length+(s.retSkus||[]).length,0);
+  const sumAsins=new Set([
+    ...shipments.flatMap(s=>s.skus.map(r=>r.asin)),
+    ...shipments.flatMap(s=>s.lavSkus.map(l=>l.asin)),
+    ...shipments.flatMap(s=>(s.retSkus||[]).map(r=>r.asin))
+  ].filter(Boolean)).size;
   const sumPrep=shipments.reduce((a,s)=>{
-    const pc=calcImpliedPrepCost(s.skus.filter(r=>r.sent==='Yes'),s.lavSkus,shipBoxes[s.id]?{[s.id]:shipBoxes[s.id]}:{});
+    const pc=calcImpliedPrepCost(s.skus,s.lavSkus,shipBoxes[s.id]?{[s.id]:shipBoxes[s.id]}:{});
     return a+pc.withVat;
   },0);
 
@@ -4395,13 +4731,16 @@ function renderShipments(){
   w.innerHTML=summaryBar+shipments.map(s=>{
     const dateDisp=s.date?new Date(s.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
     const sfUrl=`https://app.sellerfuse.com/shipment-manager?search=${encodeURIComponent(s.id)}`;
-    const skuCount=s.skus.length+(s.lavSkus||[]).length;
+    const skuCount=s.skus.length+(s.lavSkus||[]).length+(s.retSkus||[]).length;
     const safeId=s.id.replace(/[^a-z0-9]/gi,'_');
     const tc=s.type==='DG'?'var(--red)':s.type==='Oversize'?'var(--amber)':'var(--blue)';
     return`<div class="hgroup" id="ship-${safeId}">
-      <div class="hhead" onclick="this.parentElement.classList.toggle('open')" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span class="hchev">▶</span>
-        <span class="htitle" style="font-family:var(--mono);font-size:13px;font-weight:800;color:var(--accent);letter-spacing:.04em;">${s.id}</span>
+      <div class="hhead" onclick="this.parentElement.classList.toggle('open')" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer;">
+        <span class="hchev" style="font-size:20px;font-weight:900;line-height:1;">›</span>
+        <span class="htitle" style="font-family:var(--mono);font-size:13px;font-weight:800;letter-spacing:.04em;display:inline-flex;align-items:center;gap:4px;">
+          <span onclick="event.stopPropagation();copyShipId('${s.id}',this)" title="Click to copy this Shipment ID" style="color:var(--accent);cursor:copy;padding:1px 2px;border-radius:3px;">${s.id}</span>
+          <span onclick="event.stopPropagation();copyShipId('${s.id}',this.previousElementSibling)" title="Copy Shipment ID" style="font-size:9px;opacity:.45;font-family:sans-serif;cursor:copy;">⎘</span>
+        </span>
         <span style="font-size:10px;color:var(--text3);">${dateDisp}</span>
         <span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:${tc}22;color:${tc};border:1px solid ${tc}44;">${s.type||'Standard'}</span>
         ${s.hasLav?`<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);">LAV</span>`:''}
@@ -4417,6 +4756,7 @@ function renderShipments(){
         </select>
         <button onclick="event.stopPropagation();openLavShip('${s.id}')" style="padding:2px 8px;background:var(--btn-purple-bg);border:1px solid var(--btn-purple-border);color:var(--btn-purple-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Lavarion</button>
         <button onclick="event.stopPropagation();openRetShip('${s.id}')" style="padding:2px 8px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Returns</button>
+        <button onclick="event.stopPropagation();openEditShipment('${s.id.replace(/'/g,"\\'")}')" title="Rename this Shipment ID or remove it if added by mistake" style="padding:2px 8px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">✎ Edit / Delete</button>
         <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);" onclick="event.stopPropagation()">
           📦
           <input type="number" min="0" value="${s.boxes||''}" placeholder="0"
@@ -4429,7 +4769,7 @@ function renderShipments(){
       <div class="hbody">
         ${(()=>{
           const sc=calcImpliedPrepCost(
-            rows.filter(r=>r.shipId===s.id&&r.sent==='Yes'),
+            s.skus,
             lavShipments.filter(ls=>ls.shipId===s.id),
             shipBoxes[s.id]?{[s.id]:shipBoxes[s.id]}:{}
           );
@@ -4464,13 +4804,18 @@ function renderShipments(){
           <tbody>
           ${s.skus.map(r=>{
             const cogs=parseSKU(r.sku).cogs;
-            const rowVal=cogs*(r.ship||0);
+            // _segUnits is this shipment's slice of the row; fall back to ship.
+            const segUnits=(r._segUnits!=null)?r._segUnits:(r.ship||0);
+            const rowVal=cogs*segUnits;
+            // If this SKU is split across more than one shipment, note it.
+            const splitNote=(Array.isArray(r.shipSegments)&&r.shipSegments.filter(x=>x&&x.shipId&&(x.units||0)>0).length>1)
+              ?`<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:8px;background:rgba(255,170,51,.15);color:var(--amber);border:1px solid rgba(255,170,51,.35);margin-left:5px;" title="This SKU is split across multiple shipments">SPLIT</span>`:'';
             return`<tr>
-              <td class="td-left" style="font-size:11px;font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.prod}">${r.prod}</td>
+              <td class="td-left" style="font-size:11px;font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.prod}">${r.prod}${splitNote}</td>
               <td><span class="s-asin" onclick="copyVal('${r.asin}',this)" style="display:inline-flex;font-size:10px;">${r.asin}</span></td>
               <td class="td-left"><span class="s-sku" onclick="copyVal('${r.sku}',this)" style="display:inline-flex;font-size:10px;">${r.sku}</span></td>
               <td style="font-size:11px;">${r.sup}</td>
-              <td style="color:var(--green);font-family:var(--mono);font-weight:700;">${r.ship||0}</td>
+              <td style="color:var(--green);font-family:var(--mono);font-weight:700;">${segUnits}</td>
               <td style="font-family:var(--mono);color:var(--text2);">${fmtGBP2(cogs)}</td>
               <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">${fmtGBP2(rowVal)}</td>
               <td></td>
@@ -4501,6 +4846,16 @@ function renderShipments(){
               </td>
             </tr>`;
           }).join('')}
+          ${(s.retSkus||[]).map(rs=>`<tr style="background:rgba(96,165,250,.06);">
+              <td class="td-left" style="font-size:11px;font-weight:500;">${rs.prod||rs.sku} <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3);margin-left:4px;">RETURN</span></td>
+              <td><span onclick="copyVal('${rs.asin||''}',this)" style="display:inline-flex;font-size:10px;">${rs.asin||'—'}</span></td>
+              <td class="td-left"><span onclick="copyVal('${rs.sku}',this)" style="display:inline-flex;font-size:10px;">${rs.sku}</span></td>
+              <td style="font-size:11px;color:var(--text3);">Return</td>
+              <td style="color:#60a5fa;font-family:var(--mono);font-weight:700;">${rs.units||0}</td>
+              <td style="font-family:var(--mono);color:var(--text2);">${fmtGBP2(rs.cost||0)}</td>
+              <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">${fmtGBP2((rs.cost||0)*(rs.units||0))}</td>
+              <td></td>
+            </tr>`).join('')}
           </tbody>
           <tfoot><tr style="border-top:2px solid var(--accent);">
             <td colspan="4" class="td-left" style="font-size:11px;font-weight:700;color:var(--text2);padding:8px 14px;">TOTAL</td>
@@ -4817,6 +5172,7 @@ function rowToDb(r){
   return{
     id:r.uuid||undefined,
     local_id:r.id,
+    archived:r.archived===true,
     date_ddmm:r.date,
     order_id:r.oid||'',
     supplier:r.sup||'',
@@ -4837,6 +5193,7 @@ function rowToDb(r){
     shipped_qty:r.ship||0,
     ship_id:r.shipId||'',
     all_ship_ids:JSON.stringify(r.allShipIds||[]),
+    ship_segments:JSON.stringify(r.shipSegments||[]),
     ship_type:r.shipType||'Standard',
     sent:r.sent||'No',
     sent_date:r.sentDate||null,
@@ -4852,6 +5209,11 @@ function dbToRow(d){
   return{
     uuid:d.id,
     id:d.local_id||d.id,
+    // Soft-archive flag. Archived rows are HIDDEN from the active prep sheet but
+    // KEPT in the database and still shown on the shipments page + counted in
+    // stats, so archiving never destroys shipment history. (Replaces the old
+    // behaviour where "Archive" hard-deleted the row.)
+    archived:d.archived===true||d.archived==='true',
     date:d.date_ddmm||'',
     oid:d.order_id||'',
     sup:d.supplier||'',
@@ -4873,6 +5235,12 @@ function dbToRow(d){
     ship:d.shipped_qty||0,
     shipId:d.ship_id||'',
     allShipIds:(()=>{try{const a=JSON.parse(d.all_ship_ids||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}})(),
+    // Per-shipment unit allocation. Source of truth for how a row's units are
+    // split across multiple FBA shipments (e.g. 8u → FBA1, 2u → FBA2). Stored
+    // as JSON in the ship_segments column. Falls back to [] when the column
+    // doesn't exist yet or is empty — normaliseSegments() then rebuilds a single
+    // segment from the legacy shipId/ship fields so old rows render unchanged.
+    shipSegments:(()=>{try{const a=JSON.parse(d.ship_segments||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}})(),
     shipType:d.ship_type||'Standard',
     sent:d.sent||'No',
     sentDate:d.sent_date||'',
@@ -4933,26 +5301,63 @@ function dbToLavShip(d){
 }
 
 // ── SAVE HELPERS ──────────────────────────────────────────────────────────────
+// Optional columns that may not exist in the Supabase schema yet. If a write
+// fails because one is missing, we flag it, strip it, and retry — so the app
+// keeps working before the user runs the migration SQL (Settings → Database).
+const _missingCols=new Set();
+let _missingColWarned=false;
+function _missingColInErr(err){
+  if(!err)return null;
+  const m=((err.message||'')+' '+(err.details||'')+' '+(err.hint||'')).toLowerCase();
+  for(const col of ['ship_segments','archived']){if(m.includes(col))return col;}
+  return null;
+}
+// Back-compat alias used elsewhere.
+function _isMissingShipSegmentsErr(err){return _missingColInErr(err)==='ship_segments';}
 async function saveRow(r){
   setSyncStatus('syncing');
-  const data=rowToDb(r);
+  const buildData=()=>{
+    const d=rowToDb(r);
+    _missingCols.forEach(c=>delete d[c]);
+    return d;
+  };
+  // Run a write; if it fails because an optional column doesn't exist yet, flag
+  // that column and retry without it (retry up to twice for two missing cols).
+  const runWrite=async(makeReq)=>{
+    let out=await makeReq(buildData());
+    let guard=0;
+    while(out.error&&guard<3){
+      const col=_missingColInErr(out.error);
+      if(!col||_missingCols.has(col))break;
+      _missingCols.add(col);
+      if(!_missingColWarned){
+        _missingColWarned=true;
+        toast('A quick DB update is needed — see Settings → Database','er');
+        console.warn('[PrepHub] Missing column "'+col+'". Run the migration in Settings → Database.');
+      }
+      out=await makeReq(buildData());
+      guard++;
+    }
+    return out;
+  };
   let res;
   if(r.uuid){
     // Ask for the updated rows back so we can tell if it actually matched
     // anything. Supabase .update() does NOT error when it matches zero rows —
     // it silently succeeds — so a stale/missing uuid would "save" but write
     // nothing, and the value reverts on refresh. Verify the match count.
-    res=await sb.from('prep_rows').update(data).eq('id',r.uuid).select();
+    res=await runWrite(data=>sb.from('prep_rows').update(data).eq('id',r.uuid).select());
     if(!res.error&&(!res.data||res.data.length===0)){
       // The uuid didn't match any DB row. Insert a fresh one and adopt its id
       // so future saves update correctly.
       console.warn('saveRow: uuid matched 0 rows, re-inserting',r.uuid,r.sku);
-      const ins=await sb.from('prep_rows').insert(rowToDb({...r,uuid:undefined})).select().single();
+      const r2={...r,uuid:undefined};
+      const ins=await runWrite(()=>{const d=rowToDb(r2);_missingCols.forEach(c=>delete d[c]);return sb.from('prep_rows').insert(d).select().single();});
       if(!ins.error&&ins.data)r.uuid=ins.data.id;
       res=ins;
     }
   }else{
-    res=await sb.from('prep_rows').insert(data).select().single();
+    res=await runWrite(data=>sb.from('prep_rows').insert(data).select().single());
     if(res.data)r.uuid=res.data.id;
   }
   if(res.error){
@@ -4975,6 +5380,19 @@ async function deleteRow(r){
   const res=await sb.from('prep_rows').delete().eq('id',r.uuid);
   if(res.error){setSyncStatus('error');return;}
   setSyncStatus('synced');
+}
+// Soft-archive: hide from the active prep sheet but KEEP the row in the database
+// so its shipment history survives. This replaces the old behaviour where
+// archiving hard-deleted the row (which wiped shipments off the Shipments page).
+async function archiveRow(r){
+  if(!r)return false;
+  r.archived=true;r._dirty=true;
+  return await saveRow(r);
+}
+async function unarchiveRow(r){
+  if(!r)return false;
+  r.archived=false;r._dirty=true;
+  return await saveRow(r);
 }
 async function saveClaim(c){
   setSyncStatus('syncing');
@@ -5044,7 +5462,8 @@ function setupRealtime(){
            &&rows[i].rcvd===incoming.rcvd
            &&rows[i].ship===incoming.ship
            &&rows[i].sent===incoming.sent
-           &&rows[i].notes===incoming.notes)return;
+           &&rows[i].notes===incoming.notes
+           &&JSON.stringify(rows[i].shipSegments||[])===JSON.stringify(incoming.shipSegments||[]))return;
         incoming._dirty=rows[i]._dirty;  // preserve edit flag across rehydrate
         rows[i]=incoming;
       }
@@ -5066,9 +5485,17 @@ function setupRealtime(){
   }).subscribe();
 
   sb.channel('actions').on('postgres_changes',{event:'*',schema:'public',table:'actions'},payload=>{
+
     if(payload.eventType==='INSERT'){
       const c=dbToClaim(payload.new);
-      if(!claims.find(x=>x.uuid===c.uuid))claims.unshift(c);
+      // Dedup: match by uuid, or by local_id (the Date.now() id set before Supabase confirms)
+      const loc=claims.find(x=>
+        (c.uuid && x.uuid===c.uuid) ||
+        (payload.new.local_id && (String(x.id)===String(payload.new.local_id)||String(x.uuid)===String(payload.new.local_id)))
+      );
+      if(loc){if(!loc.uuid)loc.uuid=c.uuid;if(!loc.id||loc.id===loc.uuid)loc.id=c.uuid;}
+      else{claims.unshift(c);}
+
     }else if(payload.eventType==='UPDATE'){
       const i=claims.findIndex(x=>x.uuid===payload.new.id);
       if(i>=0)claims[i]=dbToClaim(payload.new);
@@ -5240,15 +5667,26 @@ function editShipIdInline(id,el){
   el.replaceWith(input);
   input.focus();input.select();
   function done(){
-    const val=input.value.trim();
+    const val=input.value.trim().toUpperCase();
+    const oldId=r.shipId||'';
     r.shipId=val;
+    // If this row has exactly one shipment segment, rename it to match so the
+    // shipments page moves the units to the new ID rather than orphaning them.
+    const segs=normaliseSegments(r);
+    if(segs.length===1){
+      segs[0].shipId=val;
+      r.shipSegments=segs;
+      r.allShipIds=val?[val]:[];
+    }else if(segs.length>1&&oldId){
+      // Multi-segment: rename only the segment that matched the old primary ID.
+      let touched=false;
+      segs.forEach(s=>{if(s.shipId===oldId&&!touched){s.shipId=val;touched=true;}});
+      r.shipSegments=segs;
+      r.allShipIds=[...new Set(segs.map(s=>s.shipId))];
+    }
     uf(id,'shipId',val);
-    const newEl=document.createElement('div');
-    newEl.style.cssText='font-family:var(--mono);font-size:10px;font-weight:700;word-break:break-all;white-space:normal;line-height:1.4;cursor:pointer;min-height:18px;color:'+(val?'var(--text)':'var(--text3)');
-    newEl.onclick=()=>editShipIdInline(id,newEl);
-    newEl.title='Click to edit';
-    newEl.textContent=val||'—';
-    input.replaceWith(newEl);
+    saveRow(r);
+    renderPrep(); // refresh the segment breakdown line + shipments grouping
   }
   input.onblur=done;
   input.onkeydown=e=>{if(e.key==='Enter')done();if(e.key==='Escape'){input.value=current;done();}};
@@ -5280,6 +5718,28 @@ function updateIssueFlag(id,hasIssue,issueList){
 function undoSentToAmazon(id){
   const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
   if(!r)return;
+  const segs=normaliseSegments(r);
+  // Split SKU: peel off only the most recent shipment so earlier ones stay
+  // intact. (e.g. undo today's 2u FBA2 send but keep yesterday's 8u FBA1.)
+  if(segs.length>1){
+    const last=segs[segs.length-1];
+    showConfirm('Undo last shipment?',
+      `Removes "${r.sku}" from ${last.shipId} (${last.units}u) and re-opens those units. Earlier shipments stay attached.`,
+      ()=>{
+        const remaining=segs.slice(0,-1);
+        r.shipSegments=remaining;
+        r.allShipIds=[...new Set(remaining.map(s=>s.shipId))];
+        r.shipId=remaining.length?remaining[remaining.length-1].shipId:'';
+        r.ship=remaining.reduce((a,s)=>a+(s.units||0),0);
+        r.status='Part Sent';r.sent='No';
+        r._dirty=true;
+        saveRow(r);
+        logAudit('Undo last shipment',`${r.sku} ✕ ${last.shipId} (${last.units}u)`);
+        renderPrep();
+        toast(`✓ Removed from ${last.shipId} — ${r.sku.split('_')[0]}`);
+      });
+    return;
+  }
   showConfirm('Undo Send to Amazon?',
     `This will revert "${r.sku}" back to "In Warehouse". The shipment ID and sent date will be cleared.`,
     ()=>{
@@ -5290,6 +5750,7 @@ function undoSentToAmazon(id){
       r.ship=0;
       r.shipId='';
       r.allShipIds=[];
+      r.shipSegments=[];
       r._dirty=true;
       saveRow(r);
       logAudit('Undo Send to Amazon',r.sku);
@@ -5338,9 +5799,8 @@ let _retLineCount=0;
 function renderReturns(){
   const w=document.getElementById('returnsList');
   const q=(document.getElementById('returnSrch')||{}).value?.toLowerCase()||'';
-  // Only show returns not yet attached to a shipment
-  const shippedSkus=new Set(returnShipments.map(s=>s.sku));
-  let data=returnSkus.filter(r=>!shippedSkus.has(r.sku)).filter(r=>!q||(r.sku+r.asin+r.prod).toLowerCase().includes(q));
+  // Show ALL return SKUs — mark shipped ones with a badge but don't hide them
+  let data=returnSkus.filter(r=>!q||(r.sku+r.asin+r.prod).toLowerCase().includes(q));
   
   if(!data.length){
     w.innerHTML=`<div class="empty"><div class="empty-ico">↩</div><div class="empty-t">${q?'No returns match your search':'No return SKUs yet — click "+ Add Return SKU" to add one'}</div></div>`;
@@ -5359,18 +5819,26 @@ function renderReturns(){
     <tbody>
     ${data.map(r=>{
       const cog=parseSKU(r.sku).cogs||r.cog||0;
-      const shipCount=returnShipments.filter(s=>s.sku===r.sku).length;
-      const totalUnits=returnShipments.filter(s=>s.sku===r.sku).reduce((a,s)=>a+(s.units||0),0);
-      return`<tr>
-        <td class="td-left"><span class="s-sku" onclick="copyVal('${r.sku}',this)" style="display:inline-flex;font-size:10px;">${r.sku}</span></td>
+      const myShipments=returnShipments.filter(s=>s.sku===r.sku);
+      const shipCount=myShipments.length;
+      const totalUnits=myShipments.reduce((a,s)=>a+(s.units||0),0);
+      const shipIds=[...new Set(myShipments.map(s=>s.shipId))];
+      const isShipped=shipCount>0;
+      return`<tr style="${isShipped?'opacity:.75;':''}">
+        <td class="td-left">
+          <span class="s-sku" onclick="copyVal('${r.sku}',this)" style="display:inline-flex;font-size:10px;">${r.sku}</span>
+          ${isShipped?`<span style="font-size:8px;font-weight:800;padding:1px 5px;border-radius:3px;background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.3);margin-left:4px;">IN SHIPMENT</span>`:''}
+        </td>
         <td class="td-left" style="font-size:11px;font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.prod}">${r.prod||'—'}</td>
         <td><span class="s-asin" onclick="copyVal('${r.asin}',this)" style="display:inline-flex;font-size:10px;">${r.asin||'—'}</span></td>
         <td style="font-family:var(--mono);color:var(--amber);">${fmtGBP2(cog)}</td>
-        <td style="font-size:10px;color:var(--text3);">${r.notes||'—'}</td>
-        <td style="font-size:10px;font-family:var(--mono);color:var(--text2);">${shipCount?`${shipCount} shipment${shipCount!==1?'s':''} · ${totalUnits} units`:'—'}</td>
+        <td style="font-size:11px;color:var(--text2);">${r.notes||'—'}</td>
+        <td style="font-size:10px;font-family:var(--mono);color:var(--text2);">${isShipped?`${shipCount} shipment${shipCount!==1?'s':''} · ${totalUnits} ${totalUnits===1?'unit':'units'} · ${shipIds.join(', ')}`:'—'}</td>
         <td style="display:flex;gap:4px;">
           <button onclick="openEditReturn('${r.uuid}')" style="padding:2px 6px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:9px;cursor:pointer;">Edit</button>
-          <button onclick="deleteReturnSku('${r.uuid}')" style="padding:2px 6px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:9px;cursor:pointer;">✕</button>
+          ${isShipped
+            ?`<button onclick="deleteReturnSku('${r.uuid}',true)" title="Remove from this active list. It stays permanently under its shipment(s) on the Shipments page." style="padding:2px 6px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;font-size:9px;cursor:pointer;white-space:nowrap;">✓ Done — remove</button>`
+            :`<button onclick="deleteReturnSku('${r.uuid}',false)" title="Delete this return SKU" style="padding:2px 6px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:9px;cursor:pointer;">✕</button>`}
         </td>
       </tr>`;
     }).join('')}
@@ -5393,8 +5861,9 @@ async function saveBulkReturns(){
   preview.textContent=`Adding ${skus.length} SKU${skus.length!==1?'s':''}…`;
   let added=0;
   for(const sku of skus){
-    // Skip duplicates already in returnSkus
-    if(returnSkus.find(r=>r.sku===sku))continue;
+
+    // Skip only if confirmed saved in Supabase (has uuid) — ignore stale local-only entries
+    if(returnSkus.find(r=>r.sku===sku&&r.uuid))continue;
     const cog=parseSKU(sku).cogs||0;
     const match=rows.find(r=>r.sku===sku);
     const obj={uuid:null,sku,asin:match?.asin||'',prod:match?.prod||'',cog,units:1,notes:''};
@@ -5482,11 +5951,23 @@ async function saveReturnSku(){
   toast(`✓ Return SKU ${wasEdit?'updated':'added'}`);
 }
 
-async function deleteReturnSku(uuid){
-  showConfirm('Delete Return SKU?','This removes the SKU from your returns list.',async()=>{
+async function deleteReturnSku(uuid,isShipped){
+  const r=returnSkus.find(x=>x.uuid===uuid);
+  const sku=r?r.sku:'';
+  // IMPORTANT: this only deletes from returns_skus (the active list). The
+  // returns_shipments rows stay untouched, so the SKU remains visible forever
+  // under its shipment(s) on the Shipments page for research/reference.
+  const title=isShipped?'Remove from active returns?':'Delete Return SKU?';
+  const msg=isShipped
+    ?`"${sku}" stays permanently attached to its shipment(s) on the Shipments page — this just clears it from your active returns list.`
+    :'This removes the SKU from your returns list. It has not been attached to any shipment.';
+  showConfirm(title,msg,async()=>{
     returnSkus=returnSkus.filter(x=>x.uuid!==uuid);
-    await sb.from('returns_skus').delete().eq('id',uuid);
-    renderReturns();toast('Return SKU deleted');
+    renderReturns();
+    const res=await sb.from('returns_skus').delete().eq('id',uuid);
+    if(res.error){toast('Remove failed: '+res.error.message,'er');return;}
+    logAudit(isShipped?'Return removed from active list':'Return SKU deleted',sku);
+    toast(isShipped?'✓ Removed from active list (kept in shipment)':'Return SKU deleted');
   });
 }
 
@@ -5494,10 +5975,62 @@ async function deleteReturnSku(uuid){
 function openRetShip(shipId){
   _retShipId=shipId;
   _retLineCount=0;
-  document.getElementById('retShipModalTitle').textContent='Add Returns to '+shipId;
+  document.getElementById('retShipModalTitle').textContent='Returns on '+shipId;
   document.getElementById('retShipLines').innerHTML='';
+  renderRetShipExisting();
   addRetShipLine();
   om('retShipModal');
+}
+
+// List returns already attached to the current shipment, with edit + remove.
+function renderRetShipExisting(){
+  const box=document.getElementById('retShipExisting');
+  if(!box)return;
+  const mine=returnShipments.filter(rs=>rs.shipId===_retShipId);
+  if(!mine.length){box.innerHTML='';return;}
+  box.innerHTML=`
+    <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Already on this shipment</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
+      ${mine.map(rs=>`
+        <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${rs.sku}</div>
+            <div style="font-size:9px;color:var(--text2);">${rs.prod||''}</div>
+          </div>
+          <input type="number" min="1" value="${rs.units||1}" id="ret-existing-units-${rs.uuid}" style="width:64px;padding:3px 6px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;font-family:var(--mono);text-align:center;">
+          <button onclick="saveRetShipLine('${rs.uuid}')" title="Save units" style="padding:3px 8px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">Save</button>
+          <button onclick="deleteRetShipLine('${rs.uuid}')" title="Remove this return from the shipment" style="padding:3px 8px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">Remove</button>
+        </div>`).join('')}
+    </div>`;
+}
+
+// Update the units on an already-attached return.
+async function saveRetShipLine(uuid){
+  const rs=returnShipments.find(x=>x.uuid===uuid);if(!rs)return;
+  const inp=document.getElementById('ret-existing-units-'+uuid);
+  const units=parseInt(inp?.value)||0;
+  if(units<=0){toast('Units must be greater than 0','er');return;}
+  rs.units=units;
+  const res=await sb.from('returns_shipments').update({units}).eq('id',uuid);
+  if(res.error){toast('Update failed: '+res.error.message,'er');return;}
+  renderRetShipExisting();renderShipments();renderReturns();renderDashboard();
+  toast('✓ Units updated');
+  logAudit('Return units updated',`${rs.sku} → ${rs.shipId} (${units})`);
+}
+
+// Detach a return from THIS shipment (deletes the returns_shipments row only).
+async function deleteRetShipLine(uuid){
+  const rs=returnShipments.find(x=>x.uuid===uuid);if(!rs)return;
+  showConfirm('Remove from shipment?',
+    `Detaches "${rs.sku}" (${rs.units} ${rs.units===1?'unit':'units'}) from ${rs.shipId}. The return SKU stays on your Returns page.`,
+    async()=>{
+      returnShipments=returnShipments.filter(x=>x.uuid!==uuid);
+      const res=await sb.from('returns_shipments').delete().eq('id',uuid);
+      if(res.error){toast('Remove failed: '+res.error.message,'er');return;}
+      renderRetShipExisting();renderShipments();renderReturns();renderDashboard();
+      toast('✓ Return removed from shipment');
+      logAudit('Return detached from shipment',`${rs.sku} ✕ ${rs.shipId}`);
+    });
 }
 
 function addRetShipLine(){
@@ -5549,6 +6082,7 @@ function onRslSelect(idx){
 
 async function confirmRetShip(){
   if(!_retShipId){toast('No shipment selected','er');return;}
+  if(!returnSkus.length){toast('No return SKUs set up — add them on the Returns page first','er');return;}
   const lines=[];
   document.querySelectorAll('[id^="rsl-sku-"]').forEach(sel=>{
     const idx=sel.id.split('-').pop();
@@ -5560,15 +6094,19 @@ async function confirmRetShip(){
       lines.push({shipId:_retShipId,sku,prod:r?.prod||sku,asin:r?.asin||'',units,cost,date:todayISO()});
     }
   });
-  if(!lines.length){toast('Add at least one SKU with units','er');return;}
+  if(!lines.length){toast('Select a SKU and enter units > 0','er');return;}
+  let saved=0;
   for(const entry of lines){
-    returnShipments.push(entry);
     const res=await sb.from('returns_shipments').insert({ship_id:entry.shipId,sku:entry.sku,product_name:entry.prod,units:entry.units,cost:entry.cost,date:entry.date}).select().single();
+    if(res.error){console.error('Return shipment insert error:',res.error);toast('Save failed: '+res.error.message,'er');continue;}
     if(res.data)entry.uuid=res.data.id;
+    returnShipments.push(entry);
+    saved++;
   }
-  cm('retShipModal');renderShipments();
-  toast(`✓ ${lines.length} return${lines.length!==1?'s':''} added to ${_retShipId}`);
-  logAudit('Returns added to shipment',`${lines.length} SKUs → ${_retShipId}`);
+  if(!saved){return;}
+  cm('retShipModal');renderShipments();renderReturns();renderDashboard();
+  toast(`✓ ${saved} return${saved!==1?'s':''} added to ${_retShipId}`);
+  logAudit('Returns added to shipment',`${saved} SKUs → ${_retShipId}`);
 }
 // Cache for shipment types (persists across re-renders)
 const _shipTypeCache={};
@@ -5599,10 +6137,13 @@ function calcImpliedPrepCost(sentRows,sentLavRows,boxMap){
   // Oversize → £1.50 flat per unit
   // Bundle → 60p flat per unit
   // Standard boxes → £1.00, DG boxes → £2.50 (full rate, not £1+extra)
-  const stdUnits=sentRows.filter(r=>(!r.shipType||r.shipType==='Standard')&&r.inBundle!=='Yes').reduce((a,r)=>a+(r.ship||0),0);
-  const osUnits=sentRows.filter(r=>r.shipType==='Oversize').reduce((a,r)=>a+(r.ship||0),0);
-  const dgUnits=sentRows.filter(r=>r.shipType==='DG').reduce((a,r)=>a+(r.ship||0),0);
-  const bundleUnits=sentRows.filter(r=>r.inBundle==='Yes').reduce((a,r)=>a+(r.ship||0),0);
+  // When a row carries _segUnits it represents one shipment's slice of a
+  // split SKU — use that instead of the row's full ship count.
+  const u=r=>(r._segUnits!=null)?r._segUnits:(r.ship||0);
+  const stdUnits=sentRows.filter(r=>(!r.shipType||r.shipType==='Standard')&&r.inBundle!=='Yes').reduce((a,r)=>a+u(r),0);
+  const osUnits=sentRows.filter(r=>r.shipType==='Oversize').reduce((a,r)=>a+u(r),0);
+  const dgUnits=sentRows.filter(r=>r.shipType==='DG').reduce((a,r)=>a+u(r),0);
+  const bundleUnits=sentRows.filter(r=>r.inBundle==='Yes').reduce((a,r)=>a+u(r),0);
   const lavUnits=sentLavRows.reduce((a,s)=>a+(s.units||0),0);
   const tieredUnits=stdUnits+dgUnits+lavUnits;
   const baseCost=calcTieredRate(tieredUnits);
@@ -5621,23 +6162,141 @@ function calcImpliedPrepCost(sentRows,sentLavRows,boxMap){
 
 function updateShipmentType(shipId,type){
   _shipTypeCache[shipId]=type;
-  // Update all rows with this shipId
-  const updated=rows.filter(r=>r.shipId===shipId);
-  updated.forEach(r=>{r.shipType=type;r._dirty=true;saveRow(r);});
+  // Update any row that has a segment in this shipment (matches split rows too,
+  // where the row's primary shipId may be a different shipment).
+  rows.forEach(r=>{
+    const segs=normaliseSegments(r);
+    const hit=segs.find(s=>s.shipId===shipId);
+    if(!hit)return;
+    hit.type=type;
+    r.shipSegments=segs;
+    if(r.shipId===shipId)r.shipType=type; // primary segment → mirror onto row
+    r._dirty=true;saveRow(r);
+  });
   // Save to ship_boxes so type persists for Lavarion-only shipments
   const boxPayload={ship_id:shipId,boxes:shipBoxes[shipId]||0,ship_type:type};
-  console.log('[DG debug] saving ship_boxes:',boxPayload);
   sb.from('ship_boxes').upsert(boxPayload,{onConflict:'ship_id'}).then(res=>{
-    if(res.error){console.error('[DG debug] ship_boxes save error:',res.error);}
-    else{console.log('[DG debug] ship_boxes saved ok, type=',type);}
+    if(res.error){console.error('ship_boxes save error:',res.error);}
   });
   toast('Shipment type updated to '+type);
   renderShipments();
 }
 
+// ── EDIT / DELETE A WHOLE SHIPMENT ────────────────────────────────────────────
+let _editShipId=null;
+// Gather everything attached to a shipment ID: OA rows (via segments), Lavarion
+// lines and Return lines.
+function shipmentContents(shipId){
+  const oaRows=rows.filter(r=>normaliseSegments(r).some(sg=>sg.shipId===shipId));
+  const lav=lavShipments.filter(ls=>ls.shipId===shipId);
+  const ret=returnShipments.filter(rs=>rs.shipId===shipId);
+  const oaUnits=oaRows.reduce((a,r)=>a+normaliseSegments(r).filter(sg=>sg.shipId===shipId).reduce((x,sg)=>x+(sg.units||0),0),0);
+  const lavUnits=lav.reduce((a,l)=>a+(l.units||0),0);
+  const retUnits=ret.reduce((a,r)=>a+(r.units||0),0);
+  return{oaRows,lav,ret,oaUnits,lavUnits,retUnits};
+}
+
+function openEditShipment(shipId){
+  _editShipId=shipId;
+  const c=shipmentContents(shipId);
+  document.getElementById('editShipModalTitle').textContent='Edit Shipment — '+shipId;
+  document.getElementById('editShipNewId').value=shipId;
+  document.getElementById('editShipSummary').innerHTML=
+    `<b style="color:var(--text);">${shipId}</b> currently holds: `+
+    [c.oaRows.length?`${c.oaRows.length} SKU line${c.oaRows.length!==1?'s':''} (${c.oaUnits} unit${c.oaUnits!==1?'s':''})`:'',
+     c.lav.length?`${c.lav.length} Lavarion line${c.lav.length!==1?'s':''} (${c.lavUnits} unit${c.lavUnits!==1?'s':''})`:'',
+     c.ret.length?`${c.ret.length} Return${c.ret.length!==1?'s':''} (${c.retUnits} unit${c.retUnits!==1?'s':''})`:''
+    ].filter(Boolean).join(' · ')||'nothing.';
+  document.getElementById('editShipDeleteDesc').innerHTML=
+    `Sent SKUs go back to the prep sheet as <b>In Warehouse</b> (their Sent status &amp; Shipment ID are cleared — nothing is deleted, so you can re-send them). Any Lavarion lines and Returns on this shipment are detached. Use this only if the whole shipment was created by mistake.`;
+  om('editShipModal');
+}
+
+async function saveShipmentRename(){
+  const oldId=_editShipId;
+  const newId=(document.getElementById('editShipNewId').value||'').trim().toUpperCase();
+  if(!oldId)return;
+  if(!newId){toast('Enter a new Shipment ID','er');return;}
+  if(newId===oldId){toast('That is already the ID','er');cm('editShipModal');return;}
+  const c=shipmentContents(oldId);
+  setSyncStatus('syncing');
+  // OA rows: rename the matching segment + legacy mirrors.
+  for(const r of c.oaRows){
+    const segs=normaliseSegments(r);
+    segs.forEach(sg=>{if(sg.shipId===oldId)sg.shipId=newId;});
+    r.shipSegments=segs;
+    r.allShipIds=[...new Set(segs.map(sg=>sg.shipId))];
+    if(r.shipId===oldId)r.shipId=newId;
+    r._dirty=true;await saveRow(r);
+  }
+  // Lavarion lines.
+  for(const ls of c.lav){
+    ls.shipId=newId;
+    if(ls.uuid)await sb.from('lavarion_shipments').update({ship_id:newId}).eq('id',ls.uuid);
+  }
+  // Returns.
+  for(const rs of c.ret){
+    rs.shipId=newId;
+    if(rs.uuid)await sb.from('returns_shipments').update({ship_id:newId}).eq('id',rs.uuid);
+  }
+  // Carry box count + type cache across to the new ID.
+  if(shipBoxes[oldId]!=null){shipBoxes[newId]=shipBoxes[oldId];delete shipBoxes[oldId];saveShipBoxes(newId,shipBoxes[newId]);}
+  if(_shipTypeCache[oldId]){_shipTypeCache[newId]=_shipTypeCache[oldId];delete _shipTypeCache[oldId];}
+  setSyncStatus('synced');
+  cm('editShipModal');
+  renderShipments();renderPrep();renderDashboard();
+  toast(`✓ Renamed ${oldId} → ${newId}`);
+  logAudit('Shipment renamed',`${oldId} → ${newId}`);
+}
+
+async function deleteShipment(){
+  const shipId=_editShipId;if(!shipId)return;
+  const c=shipmentContents(shipId);
+  // Close the Edit Shipment modal FIRST so the confirm dialog isn't stacked on
+  // top of it (two overlays = doubled-up dimmer / black screen).
+  cm('editShipModal');
+  showConfirm('Remove this shipment?',
+    `Removes "${shipId}". Sent SKUs go back to the prep sheet as In Warehouse so you can re-send them (nothing is deleted). ${c.lav.length+c.ret.length>0?`${c.lav.length} Lavarion line(s) and ${c.ret.length} return(s) on it are detached.`:''}`,
+    async()=>{
+      setSyncStatus('syncing');
+      // OA rows: remove this shipment's segment; if it was the row's only
+      // shipment, revert the row to In Warehouse (un-sent) keeping its data.
+      for(const r of c.oaRows){
+        const segs=normaliseSegments(r).filter(sg=>sg.shipId!==shipId);
+        r.shipSegments=segs;
+        r.allShipIds=[...new Set(segs.map(sg=>sg.shipId))];
+        if(segs.length){
+          r.shipId=segs[segs.length-1].shipId;
+          r.ship=segs.reduce((a,sg)=>a+(sg.units||0),0);
+          r.status='Part Sent';r.sent='No';
+        }else{
+          r.shipId='';r.ship=0;r.status='In Warehouse';r.sent='No';r.sentDate='';
+        }
+        // Coming back into the active workflow → make sure it's visible on the
+        // prep sheet, not stuck behind "Show Archived".
+        r.archived=false;
+        r._dirty=true;await saveRow(r);
+      }
+      // Detach Lavarion lines.
+      for(const ls of c.lav){if(ls.uuid)await sb.from('lavarion_shipments').delete().eq('id',ls.uuid);}
+      lavShipments=lavShipments.filter(ls=>ls.shipId!==shipId);
+      // Detach Returns (the return SKU itself stays on the Returns page).
+      for(const rs of c.ret){if(rs.uuid)await sb.from('returns_shipments').delete().eq('id',rs.uuid);}
+      returnShipments=returnShipments.filter(rs=>rs.shipId!==shipId);
+      // Clear box count.
+      if(shipBoxes[shipId]!=null){delete shipBoxes[shipId];sb.from('ship_boxes').delete().eq('ship_id',shipId);}
+      delete _shipTypeCache[shipId];
+      setSyncStatus('synced');
+      renderShipments();renderPrep();renderDashboard();
+      toast(`✓ Shipment ${shipId} removed`);
+      logAudit('Shipment removed',shipId);
+    });
+}
+
 // ── LAVARION SHIPMENT LINE EDIT ───────────────────────────────────────────────
 let _editLavLineId=null;
 function editLavShipLine(uuid){
+
   const ls=lavShipments.find(s=>s.uuid===uuid||(s.uuid||String(lavShipments.indexOf(s)))===String(uuid));
   if(!ls)return;
   _editLavLineId=uuid;
@@ -6056,10 +6715,37 @@ setInterval(updateClock,30000);
 </div>
 
 <!-- ADD RETURNS TO SHIPMENT MODAL -->
+<!-- EDIT / DELETE SHIPMENT MODAL -->
+<div class="overlay" id="editShipModal">
+  <div class="modal" style="max-width:540px;">
+    <div class="mh"><div class="mh-title" id="editShipModalTitle">Edit Shipment</div><button class="mh-close" onclick="cm('editShipModal')">✕</button></div>
+    <div class="mb" style="padding:16px;">
+      <div id="editShipSummary" style="font-size:11px;color:var(--text2);margin-bottom:14px;line-height:1.6;"></div>
+
+      <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Rename Shipment ID</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.5;">Fixes a mistyped FBA ID across every SKU, Lavarion line and Return on this shipment at once.</div>
+      <div style="display:flex;gap:8px;margin-bottom:18px;">
+        <input id="editShipNewId" type="text" style="flex:1;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:12px;font-family:var(--mono);font-weight:700;" placeholder="New Shipment ID">
+        <button onclick="saveShipmentRename()" style="padding:7px 14px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Rename</button>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:14px;">
+        <div style="font-size:10px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Remove Shipment</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:10px;line-height:1.5;" id="editShipDeleteDesc"></div>
+        <button onclick="deleteShipment()" style="padding:7px 14px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">Remove this Shipment</button>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn-cancel" onclick="cm('editShipModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="retShipModal">
   <div class="modal" style="max-width:520px;">
     <div class="mh"><div class="mh-title" id="retShipModalTitle">Add Returns to Shipment</div><button class="mh-close" onclick="cm('retShipModal')">✕</button></div>
     <div class="mb" style="padding:16px;">
+      <div id="retShipExisting"></div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Select return SKUs and confirm units for this shipment. COG auto-fills from SKU.</div>
       <div id="retShipLines"></div>
       <button onclick="addRetShipLine()" style="margin-top:8px;padding:5px 12px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">+ Add Another SKU</button>
