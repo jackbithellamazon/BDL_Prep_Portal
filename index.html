@@ -5371,6 +5371,14 @@ async function runSheetSync(manual){
   // Find trigger column by header name (not position).
   const triggerCol=col||'Added To Home Prep Portal';
 
+  // DEBUG: log what we actually got from the sheet
+  const _dbgHeaders=parsed.length?Object.keys(parsed[0]):[];
+  const _dbgTriggerFound=_dbgHeaders.includes(triggerCol);
+  const _dbgYesRows=parsed.filter(r=>(r[triggerCol]||'').trim().toLowerCase()==='yes');
+  console.log('[SheetSync] rows:',parsed.length,'headers:',_dbgHeaders,'triggerCol:',triggerCol,'found:',_dbgTriggerFound,'yes rows:',_dbgYesRows.length);
+  setSheetSyncLog('Sheet: '+parsed.length+' rows | trigger col "'+triggerCol+'" '+(_dbgTriggerFound?'OK':'NOT FOUND')+' | '+_dbgYesRows.length+' Yes rows');
+  if(manual)toast('Sheet: '+parsed.length+' rows, '+_dbgYesRows.length+' Yes, trigger col '+(_dbgTriggerFound?'found ✓':'NOT FOUND — got: '+_dbgHeaders.slice(0,3).join(', ')),'in');
+
   // Build set of existing sync IDs so we never duplicate.
   // sheet_sync_id is stored as "sku|oid" on each prep_row.
   const existingSyncIds=new Set(rows.filter(r=>r.sheetSyncId).map(r=>r.sheetSyncId));
@@ -5389,7 +5397,7 @@ async function runSheetSync(manual){
 
     if(trigger==='yes'){
       // Already in portal → skip (Supabase realtime keeps it live).
-      if(existingSyncIds.has(syncId)||existingSkus.has(sku.toLowerCase()))return;
+      if(existingSyncIds.has(syncId)||existingSkus.has(sku.toLowerCase())){console.log('[SheetSync] skip duplicate:',sku);return;}
       toAdd.push({row,syncId});
     }else if(trigger==='no'||trigger==='n/a'||trigger===''){
       // Was Yes, now No → soft-remove (hide from active portal).
