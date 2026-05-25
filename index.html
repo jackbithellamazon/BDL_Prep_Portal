@@ -701,6 +701,7 @@ html.light-mode{
         <option>Part Sent</option><option>Sent to Amazon</option><option>Issue</option><option>Not Arrived</option><option>Returned</option>
       </select>
       <button id="showIssuesBtn" onclick="toggleIssuesFilter()" style="padding:5px 10px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⚑ Issues</button>
+      <button id="showLateBtn" onclick="toggleLateFilter()" style="padding:5px 10px;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.4);color:#fb923c;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⏱ Late</button>
       <button id="showArchivedBtn" onclick="toggleArchivedView()" title="Show rows that were sent to Amazon and archived" style="padding:5px 10px;background:var(--bg2);border:1px solid rgba(96,165,250,.4);color:var(--text3);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Show Archived</button>
       <select class="fsel" id="prepSortF" onchange="sortTable(this.value)">
         <option value="">Sort by…</option>
@@ -781,6 +782,8 @@ html.light-mode{
           <th style="width:100px;white-space:normal;">Shipment ID</th>
           <th style="width:52px;">Reimburse<br>Chase</th>
           <th class="th-left" style="min-width:110px;">Packing Notes</th>
+          <th class="th-left" style="min-width:110px;">VA Note</th>
+          <th style="min-width:160px;">Transit Action</th>
           <th style="width:52px;">Edit</th>
           <th style="width:32px;" title="Archive row">✓</th>
         </tr></thead>
@@ -1112,7 +1115,7 @@ CREATE POLICY IF NOT EXISTS "app_settings_all" ON app_settings FOR ALL USING (tr
         <input class="fi-in" type="text" id="f-shipId" placeholder="e.g., SHP-001234">
       </div>
       <div class="fi full"><label class="fl">Packing Notes</label><textarea class="fi-in" id="f-notes" placeholder="Any notes…"></textarea></div>
-      <div class="fi full"><label class="fl">VA Notes</label><textarea class="fi-in" id="f-vaNotes" placeholder="VA notes (rare, for late items)…"></textarea></div>
+      <div class="fi full"><label class="fl">VA Notes</label><textarea class="fi-in" id="f-vaNotes" placeholder="Supplier follow-up, tracking, delays, escalations…"></textarea></div>
       <div class="fi"><label class="fl">Expected Delivery</label><input class="fi-in" type="date" id="f-expectedDelivery"></div>
       <div class="fi"><label class="fl">Sheet Row # <span style="font-size:9px;color:var(--text3);">(optional)</span></label><input class="fi-in" type="number" id="f-sheetRow" placeholder="e.g. 2334"></div>
     </div></div>
@@ -1850,6 +1853,12 @@ function renderPrepRows(data){
     const safeStatuses=['Delivered','In Warehouse','Sent to Amazon','Part Sent'];
     const isSubSave=r.subSave==='Yes';
     const isStuck=daysSinceCreate>20&&r.status==='In-Transit'&&expectedPassed&&!isSubSave;
+    // Auto-flag late rows if not already actioned — set directly, debounced save
+    if(isStuck&&!r.transitAction){
+      r.transitAction='Late — Needs Chasing';
+      r._dirty=true;
+      debounce('autoflag_'+r.id,()=>saveRow(r),2000);
+    }
     const isSubSaveInTransit=isSubSave&&r.status==='In-Transit';
     const hasIssue=r.issueType&&r.issueType!=='—'&&r.issueType!=='';
     const statusClass=
@@ -1943,6 +1952,18 @@ function renderPrepRows(data){
         <option${r.reimb==='No'?' selected':''}>No</option><option${r.reimb==='Yes'?' selected':''}>Yes</option>
       </select></td>
       <td class="td-left"><input class="ci ci-note" type="text" value="${(r.notes||'').replace(/"/g,'&quot;')}" placeholder="—" onchange="uf('${r.uuid||r.id}','notes',this.value);" tabindex="-1" title="${(r.notes||'').replace(/"/g,'&quot;')}" style="min-width:150px;" onfocus="this.style.minWidth='280px';this.style.position='relative';this.style.zIndex='10';" onblur="this.style.minWidth='';this.style.position='';this.style.zIndex='';"></td>
+      <td class="td-left"><input class="ci ci-note" type="text" value="${(r.vaNote||'').replace(/"/g,'&quot;')}" placeholder="—" onchange="uf('${r.uuid||r.id}','vaNote',this.value);" tabindex="-1" title="${(r.vaNote||'').replace(/"/g,'&quot;')}" style="min-width:150px;" onfocus="this.style.minWidth='280px';this.style.position='relative';this.style.zIndex='10';" onblur="this.style.minWidth='';this.style.position='';this.style.zIndex='';"></td>
+      <td style="text-align:center;min-width:160px;">
+        <select class="ci" onchange="uf('${r.uuid||r.id}','transitAction',this.value);" style="font-size:10px;padding:2px 6px;background:${{'Urgent — Chase Now':'rgba(239,68,68,.2)','Late — Needs Chasing':'rgba(239,68,68,.15)','Delayed':'rgba(251,146,60,.15)','Chasing Supplier':'rgba(251,146,60,.12)','Awaiting Update':'rgba(251,146,60,.1)','On Its Way':'rgba(34,197,94,.08)'}[r.transitAction]||'var(--bg3)'};color:${{'Urgent — Chase Now':'#f87171','Late — Needs Chasing':'#f87171','Delayed':'#fb923c','Chasing Supplier':'#fb923c','Awaiting Update':'#fbbf24','On Its Way':'var(--green)'}[r.transitAction]||'var(--text2)'};border:1px solid ${{'Urgent — Chase Now':'rgba(239,68,68,.4)','Late — Needs Chasing':'rgba(239,68,68,.3)','Delayed':'rgba(251,146,60,.35)','Chasing Supplier':'rgba(251,146,60,.3)','Awaiting Update':'rgba(251,191,36,.3)','On Its Way':'rgba(34,197,94,.3)'}[r.transitAction]||'var(--border2)'};border-radius:3px;width:100%;cursor:pointer;font-weight:${r.transitAction?'600':'400'};" tabindex="-1">
+          <option value="" ${!r.transitAction?'selected':''}>—</option>
+          <option value="On Its Way" ${r.transitAction==='On Its Way'?'selected':''}>On Its Way</option>
+          <option value="Delayed" ${r.transitAction==='Delayed'?'selected':''}>Delayed</option>
+          <option value="Awaiting Update" ${r.transitAction==='Awaiting Update'?'selected':''}>Awaiting Update</option>
+          <option value="Chasing Supplier" ${r.transitAction==='Chasing Supplier'?'selected':''}>Chasing Supplier</option>
+          <option value="Late — Needs Chasing" ${r.transitAction==='Late — Needs Chasing'?'selected':''}>Late — Needs Chasing</option>
+          <option value="Urgent — Chase Now" ${r.transitAction==='Urgent — Chase Now'?'selected':''}>Urgent — Chase Now</option>
+        </select>
+      </td>
       <td><div class="row-acts" style="opacity:1;">
         <button class="ra" title="Edit row" onclick="openEdit('${r.uuid||r.id}')" style="background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:10px;font-weight:700;width:auto;padding:0 6px;cursor:pointer;">Edit</button>
         ${isSent?`<button class="ra" title="Undo Send — revert to In Warehouse" onclick="undoSentToAmazon('${r.uuid||r.id}')" style="background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:9px;font-weight:700;width:auto;padding:0 5px;cursor:pointer;">↺ Undo</button>`:''}
@@ -1996,19 +2017,36 @@ function uf(id,field,val){
 
 function filterPrep(){
   flushPending();
+  // Reset late filter when a status filter is applied — they conflict
+  const _stVal=(document.getElementById('prepStF')||{}).value||'';
+  if(_stVal&&_lateFilterActive){_lateFilterActive=false;const lb=document.getElementById('showLateBtn');if(lb){lb.textContent='⏱ Late';lb.style.background='rgba(251,146,60,.15)';lb.style.borderColor='rgba(251,146,60,.4)';}}  
   const wrap=document.querySelector('#page-prep .tbl-wrap');
   const scrollTop=wrap?wrap.scrollTop:0;
   const q=document.getElementById('prepSrch').value.toLowerCase();
   const st=document.getElementById('prepStF').value;
   // _showArchived ON = show ONLY archived rows; OFF = show only active rows.
   const baseRows=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
-  if(!q&&!st&&!_issuesFilterActive){renderPrepRows(baseRows);}
+  if(!q&&!st&&!_issuesFilterActive&&!_lateFilterActive){renderPrepRows(baseRows);}
   else{
     const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
       if(_issuesFilterActive){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
         if(!hasIssue)return false;
+      }
+      if(_lateFilterActive){
+        if(r.status!=='In-Transit')return false;
+        const[dd,mm]=(r.date||'').split('/');
+        if(!dd||!mm)return false;
+        const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+        if(Math.floor((new Date()-d)/864e5)<=20)return false;
+      }
+      if(_lateFilterActive){
+        if(r.status!=='In-Transit')return false;
+        const[dd,mm]=(r.date||'').split('/');
+        if(!dd||!mm)return false;
+        const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+        if(Math.floor((new Date()-d)/864e5)<=20)return false;
       }
       if(st){
         const hasIssueFlag=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
@@ -2017,7 +2055,7 @@ function filterPrep(){
         if(!matchesStatus&&!matchesIssueFilter)return false;
       }
       if(q){
-        if(!r._srch)r._srch=(r.sku+'|'+r.asin+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+r.date).toLowerCase();
+        if(!r._srch)r._srch=(r.sku+'|'+r.asin+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+r.date+'|'+(r.notes||'')+'|'+(r.vaNote||'')+'|'+(r.transitAction||'')).toLowerCase();
         if(!r._srch.includes(q))return false;
       }
       return true;
@@ -2041,12 +2079,26 @@ function renderPrep(){
   // the shipments page and stats still see them). _showArchived flips to an
   // archived-ONLY view rather than mixing archived in with active rows.
   const baseRows=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
-  if(q||st||_issuesFilterActive){
+  if(q||st||_issuesFilterActive||_lateFilterActive){
     const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
       if(_issuesFilterActive){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
         if(!hasIssue)return false;
+      }
+      if(_lateFilterActive){
+        if(r.status!=='In-Transit')return false;
+        const[dd,mm]=(r.date||'').split('/');
+        if(!dd||!mm)return false;
+        const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+        if(Math.floor((new Date()-d)/864e5)<=20)return false;
+      }
+      if(_lateFilterActive){
+        if(r.status!=='In-Transit')return false;
+        const[dd,mm]=(r.date||'').split('/');
+        if(!dd||!mm)return false;
+        const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+        if(Math.floor((new Date()-d)/864e5)<=20)return false;
       }
       if(st){
         const hasIssueFlag=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
@@ -2110,7 +2162,7 @@ function openEdit(id){
   document.getElementById('f-reimb').value=r.reimb||'No';
   document.getElementById('f-pri').value=r.pri||'No';
   document.getElementById('f-notes').value=r.notes||'';
-  const vaN=document.getElementById('f-vaNotes');if(vaN)vaN.value=r.vaNotes||'';
+  const vaN=document.getElementById('f-vaNotes');if(vaN)vaN.value=r.vaNote||'';
   const exD=document.getElementById('f-expectedDelivery');if(exD)exD.value=r.expectedDelivery||'';
   const srEl=document.getElementById('f-sheetRow');if(srEl)srEl.value=r.sheetRow||'';
   const pS=document.getElementById('f-prepStatus');if(pS)pS.value=r.prepStatus||'Pending';
@@ -2272,7 +2324,7 @@ function saveRowForm(){
     reimb:document.getElementById('f-reimb').value,
     pri:document.getElementById('f-pri').value,
     notes:document.getElementById('f-notes').value,
-    vaNotes:(document.getElementById('f-vaNotes')||{}).value||'',
+    vaNote:(document.getElementById('f-vaNotes')||{}).value||'',
     expectedDelivery:(document.getElementById('f-expectedDelivery')||{}).value||'',
     sheetRow:(document.getElementById('f-sheetRow')||{}).value||'',
     prepStatus:(document.getElementById('f-prepStatus')||{}).value||'Pending',
@@ -4243,6 +4295,7 @@ let _issuesFilterActive=false;
 // When true, the prep sheet also shows archived rows (otherwise they're hidden
 // from the active sheet but still kept on the shipments page + in stats).
 let _showArchived=false;
+let _lateFilterActive=false;
 function toggleArchivedView(){
   _showArchived=!_showArchived;
   updateArchivedBtn();
@@ -4268,6 +4321,21 @@ function toggleIssuesFilter(){
     btn.textContent=_issuesFilterActive?'⚑ Issues ✓':'⚑ Issues';
   }
   filterPrep();
+}
+function toggleLateFilter(){
+  _lateFilterActive=!_lateFilterActive;
+  if(_lateFilterActive&&_issuesFilterActive){
+    _issuesFilterActive=false;
+    const ib=document.getElementById('showIssuesBtn');
+    if(ib){ib.textContent='⚑ Issues';ib.style.background='rgba(248,113,113,.15)';ib.style.borderColor='rgba(248,113,113,.4)';}
+  }
+  const btn=document.getElementById('showLateBtn');
+  if(btn){
+    btn.textContent=_lateFilterActive?'⏱ Late ✓':'⏱ Late';
+    btn.style.background=_lateFilterActive?'rgba(251,146,60,.35)':'rgba(251,146,60,.15)';
+    btn.style.borderColor=_lateFilterActive?'#fb923c':'rgba(251,146,60,.4)';
+  }
+  renderPrep();
 }
 
 // Units actually sendable to Amazon = what we have (received, or expected if
@@ -5161,7 +5229,7 @@ function confirmImport(){
       sent:'No',
       sentDate:'',
       reimb:'No',
-      notes:(row['Notes']||'').trim(),
+      notes:'', // packing notes are portal-only — never imported from sheet
       pri:'No',
       prepStatus:'Pending',
       createdISO:todayISO(),
@@ -5421,7 +5489,7 @@ async function runSheetSync(manual){
     const dateFormatted=dateParts.length>=2?`${dateParts[0].padStart(2,'0')}/${dateParts[1].padStart(2,'0')}`:'';
     const qty=parseInt(row['Total units **']||row['Quantity Bought']||row['Quanity Bought *']||row['Quanity Bought']||0)||0;
     const asin=(row['Asin']||row['ASIN']||'').trim();
-    return{sku,date:dateFormatted,oid:(row['Order Id']||row['Order ID']||'').trim(),sup:(row['Bought From']||'').trim(),acct:(row['Account']||'').trim(),prod:(row['Name']||'').trim(),asin,dg:(row['DG']||'').trim(),sas:`https://sas.selleramp.com/sas/lookup?SasLookup%5Bsearch_term%5D=${encodeURIComponent(asin)}`,exp:qty,aqty:qty,bun:(row['In a Bundle?']||'No').trim(),bqty:(row['How Many In a Bundle?']||'').trim(),subSave:(row['S&S (AC)']||row['SAS (AC)']||'No').trim()==='Yes'?'Yes':'No',notes:(row['VA Note']||row['Notes']||'').trim()};
+    return{sku,date:dateFormatted,oid:(row['Order Id']||row['Order ID']||'').trim(),sup:(row['Bought From']||'').trim(),acct:(row['Account']||'').trim(),prod:(row['Name']||'').trim(),asin,dg:(row['DG']||'').trim(),sas:`https://sas.selleramp.com/sas/lookup?SasLookup%5Bsearch_term%5D=${encodeURIComponent(asin)}`,exp:qty,aqty:qty,bun:(row['In a Bundle?']||'No').trim(),bqty:(row['How Many In a Bundle?']||'').trim(),subSave:(row['S&S (AC)']||row['SAS (AC)']||'No').trim()==='Yes'?'Yes':'No',vaNoteSheet:(row['VA Note']||'').trim()}; // notes NOT mapped — portal packing notes are owned by prep team
   };
 
   const allRowsBySyncId=new Map();
@@ -5456,7 +5524,7 @@ async function runSheetSync(manual){
 
   // ADD
   for(const{fields,syncId}of toAdd){
-    const newRow={id:++nid,sheetSyncId:syncId,...fields,rcvd:0,issueType:'',issueQty:0,status:'In-Transit',ship:0,shipId:'',sent:'No',sentDate:'',reimb:'No',pri:'No',archived:false,shipSegments:[],allShipIds:[],createdISO:todayISO(),createdAt:getNowUK(),importedFrom:'Sheet Sync',sheetRow:''};
+    const newRow={id:++nid,sheetSyncId:syncId,...fields,notes:'',rcvd:0,issueType:'',issueQty:0,status:'In-Transit',ship:0,shipId:'',sent:'No',sentDate:'',reimb:'No',pri:'No',archived:false,shipSegments:[],allShipIds:[],createdISO:todayISO(),createdAt:getNowUK(),importedFrom:'Sheet Sync',sheetRow:''};
     rows.push(newRow);
     try{const ok=await saveRow(newRow);if(ok){added++;logAudit('Sheet Sync — added',fields.sku);}else{saveErrors.push('Save failed: '+fields.sku);rows.pop();}}
     catch(e){saveErrors.push('Save error: '+fields.sku+' — '+e.message);rows.pop();}
@@ -5465,7 +5533,7 @@ async function runSheetSync(manual){
   // UPDATE
   for(const{existing,fields,syncId}of toUpdate){
     let changed=false;
-    const sheetOnly=['sku','date','oid','sup','acct','prod','asin','dg','sas','exp','aqty','bun','bqty','subSave','notes'];
+    const sheetOnly=['sku','date','oid','sup','acct','prod','asin','dg','sas','exp','aqty','bun','bqty','subSave','vaNoteSheet'];
     sheetOnly.forEach(k=>{if(fields[k]!==undefined&&existing[k]!==fields[k]){existing[k]=fields[k];changed=true;}});
     if(syncId!==existing.sheetSyncId){existing.sheetSyncId=syncId;changed=true;}
     if(changed){
@@ -5563,9 +5631,17 @@ async function loadSyncSources(){
 }
 
 async function saveSyncSources(){
-  try{await sb.from('app_settings').upsert({key:'sync_sources',value:JSON.stringify(_ssSources)},{onConflict:'key'});}catch(e){}
+  try{
+    const res=await sb.from('app_settings').upsert({key:'sync_sources',value:JSON.stringify(_ssSources)},{onConflict:'key'});
+    if(res.error)throw res.error;
+  }catch(e){
+    console.error('[SyncSources] save failed:',e);
+    toast('Failed to save sync sources: '+e.message,'er');
+    return false;
+  }
   const first=_ssSources.find(s=>s.active);
   if(first){_ssConfig.url=first.url;_ssConfig.tab=first.tab;_ssConfig.col=first.col||'Added To Prep Portal';}
+  return true;
 }
 
 function renderSyncSourcesList(){
@@ -5575,29 +5651,29 @@ function renderSyncSourcesList(){
   el.innerHTML=_ssSources.map((src,i)=>`
     <div style="background:var(--bg3);border:1px solid ${src.active?'rgba(96,165,250,.4)':'var(--border)'};border-radius:6px;padding:10px 12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <input value="${esc(src.label)}" onchange="_ssSources[${i}].label=this.value;sheetSyncDirty()"
+        <input value="${esc(src.label)}" onchange="setSyncSourceField('${src.id}','label',this.value)"
           style="font-size:11px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;flex:1;cursor:text;">
         <div style="display:flex;align-items:center;gap:6px;">
           <span style="font-size:9px;padding:2px 6px;border-radius:10px;background:${src.active?'rgba(96,165,250,.2)':'rgba(100,116,139,.15)'};color:${src.active?'#60a5fa':'var(--text3)'};">${src.active?'ACTIVE':'OFF'}</span>
-          <button onclick="toggleSyncSource(${i})" style="padding:2px 8px;background:var(--bg4);border:1px solid var(--border2);color:var(--text2);border-radius:4px;font-size:10px;cursor:pointer;">${src.active?'Disable':'Enable'}</button>
-          <button onclick="removeSyncSource(${i})" style="padding:2px 6px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:10px;cursor:pointer;">✕</button>
+          <button onclick="toggleSyncSource('${src.id}')" style="padding:2px 8px;background:var(--bg4);border:1px solid var(--border2);color:var(--text2);border-radius:4px;font-size:10px;cursor:pointer;">${src.active?'Disable':'Enable'}</button>
+          <button onclick="removeSyncSource('${src.id}')" style="padding:2px 6px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:10px;cursor:pointer;">✕</button>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <div>
           <div style="font-size:9px;color:var(--text3);margin-bottom:2px;">Sheet URL</div>
-          <input value="${esc(src.url)}" onchange="_ssSources[${i}].url=this.value;sheetSyncDirty()" placeholder="https://docs.google.com/spreadsheets/d/…"
+          <input value="${esc(src.url)}" onchange="setSyncSourceField('${src.id}','url',this.value)" placeholder="https://docs.google.com/spreadsheets/d/…"
             style="width:100%;padding:5px 8px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:10px;font-family:var(--mono);">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
           <div>
             <div style="font-size:9px;color:var(--text3);margin-bottom:2px;">Tab name</div>
-            <input value="${esc(src.tab)}" onchange="_ssSources[${i}].tab=this.value;sheetSyncDirty()" placeholder="Sheet1"
+            <input value="${esc(src.tab)}" onchange="setSyncSourceField('${src.id}','tab',this.value)" placeholder="Sheet1"
               style="width:100%;padding:5px 8px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:10px;font-family:var(--mono);">
           </div>
           <div>
             <div style="font-size:9px;color:var(--text3);margin-bottom:2px;">Trigger column</div>
-            <input value="${esc(src.col||'Added To Prep Portal')}" onchange="_ssSources[${i}].col=this.value;sheetSyncDirty()" placeholder="Added To Prep Portal"
+            <input value="${esc(src.col||'Added To Prep Portal')}" onchange="setSyncSourceField('${src.id}','col',this.value)" placeholder="Added To Prep Portal"
               style="width:100%;padding:5px 8px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:10px;font-family:var(--mono);">
           </div>
         </div>
@@ -5611,13 +5687,18 @@ function addSyncSource(){
   _ssSources.push({id,label:'New Source',url:'',tab:'',col:'Added To Prep Portal',active:true});
   renderSyncSourcesList();sheetSyncDirty();
 }
-function removeSyncSource(i){
+function removeSyncSource(id){
   if(!confirm('Remove this sync source?'))return;
-  _ssSources.splice(i,1);renderSyncSourcesList();sheetSyncDirty();
+  const idx=_ssSources.findIndex(x=>x.id===id);
+  if(idx>-1){_ssSources.splice(idx,1);renderSyncSourcesList();sheetSyncDirty();}
 }
-function toggleSyncSource(i){
-  _ssSources[i].active=!_ssSources[i].active;
-  renderSyncSourcesList();sheetSyncDirty();
+function setSyncSourceField(id,field,val){
+  const s=_ssSources.find(x=>x.id===id);
+  if(s){s[field]=val;sheetSyncDirty();}
+}
+function toggleSyncSource(id){
+  const s=_ssSources.find(x=>x.id===id);
+  if(s){s.active=!s.active;renderSyncSourcesList();sheetSyncDirty();}
 }
 
 // ── SYNC HISTORY & HEALTH ────────────────────────────────────────────────────────────────────
@@ -5820,7 +5901,7 @@ function rowToDb(r){
     sent_date:r.sentDate||null,
     reimburse:r.reimb||'No',
     priority:r.pri||'No',
-    notes:r.notes||'',
+    notes:r.notes||'',va_note:r.vaNote||'',transit_action:r.transitAction||'',
     expected_delivery:r.expectedDelivery||null,
     imported_from:r.importedFrom||'',
     sheet_sync_id:r.sheetSyncId||null,
@@ -5869,6 +5950,8 @@ function dbToRow(d){
     reimb:d.reimburse||'No',
     pri:d.priority||'No',
     notes:d.notes||'',
+    vaNote:d.va_note||'',
+    transitAction:d.transit_action||'',
     expectedDelivery:d.expected_delivery||'',
     importedFrom:d.imported_from||'',
     sheetSyncId:d.sheet_sync_id||'',
