@@ -1708,7 +1708,9 @@ function allSentRows(){
   // 2u shipment today are counted on their own days, not lumped on the latest).
   // Every entry carries a unified `cogValue` and `kind` so the prep sheet,
   // dashboard and shipments page all compute the same totals.
-  rows.filter(r=>(r.sent==='Yes'||r.status==='Part Sent')).forEach(r=>{
+  // Include ALL rows (active + archived) so sent-today counts don't drop to 0
+  // after archiving.
+  rows.filter(r=>(r.sent==='Yes'||r.status==='Part Sent'||r.status==='Sent to Amazon')).forEach(r=>{
     const cogs=parseSKU(r.sku).cogs;
     const segs=normaliseSegments(r);
     if(segs.length){
@@ -1730,7 +1732,7 @@ function unitsSentInRange(s,e){
 // the prep sheet, dashboard and shipments page all agree. Accepts Date objects
 // or YYYY-MM-DD strings.
 function sentRollup(start,end){
-  const toD=v=>typeof v==='string'?new Date(v+'T00:00:00'):v;
+  const toD=v=>typeof v==='string'?new Date(v+'T00:00:00.000Z'):v; // UTC midnight avoids BST offset issues
   const s=toD(start),e=toD(end);
   const inRange=allSentRows().filter(r=>{const d=r.isoDate?new Date(r.isoDate):null;return d&&d>=s&&d<=e;});
   return{
