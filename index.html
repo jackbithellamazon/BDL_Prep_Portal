@@ -6184,6 +6184,10 @@ function setupRealtime(){
            &&rows[i].notes===incoming.notes
            &&JSON.stringify(rows[i].shipSegments||[])===JSON.stringify(incoming.shipSegments||[]))return;
         incoming._dirty=rows[i]._dirty;  // preserve edit flag across rehydrate
+        // Preserve portal-owned fields — never let a realtime echo overwrite them
+        incoming.notes=rows[i].notes;
+        incoming.vaNote=rows[i].vaNote;
+        incoming.transitAction=rows[i].transitAction||incoming.transitAction;
         rows[i]=incoming;
       }
     }else if(payload.eventType==='DELETE'){
