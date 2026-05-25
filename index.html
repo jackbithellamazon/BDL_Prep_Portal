@@ -701,7 +701,7 @@ html.light-mode{
         <option>Part Sent</option><option>Sent to Amazon</option><option>Issue</option><option>Not Arrived</option><option>Returned</option>
       </select>
       <button id="showIssuesBtn" onclick="toggleIssuesFilter()" style="padding:5px 10px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⚑ Issues</button>
-      <button id="showArchivedBtn" onclick="toggleArchivedView()" title="Show or hide archived (sent &amp; cleared) rows" style="padding:5px 10px;background:var(--bg2);border:1px solid rgba(96,165,250,.4);color:var(--text3);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Show Archived</button>
+      <button id="showArchivedBtn" onclick="toggleArchivedView()" title="Show rows that were sent to Amazon and archived" style="padding:5px 10px;background:var(--bg2);border:1px solid rgba(96,165,250,.4);color:var(--text3);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Show Archived</button>
       <select class="fsel" id="prepSortF" onchange="sortTable(this.value)">
         <option value="">Sort by…</option>
         <option value="date">Date</option>
@@ -711,8 +711,7 @@ html.light-mode{
         <option value="expected">Expected Units</option>
       </select>
       <button class="btn-add" onclick="openAdd()">+ Add Row</button>
-      <button onclick="openImport()" style="padding:5px 12px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;">Import Sheet</button>
-      <button onclick="runSheetSync(true)" id="prepSyncBtn" style="padding:5px 12px;background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.4);color:#60a5fa;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;">⟳ Sync Now</button>
+      <button onclick="triggerManualSync()" id="prepSyncBtn" style="padding:5px 14px;background:rgba(96,165,250,.18);border:1px solid rgba(96,165,250,.5);color:#60a5fa;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:background .15s;"><span id="prepSyncIcon" style="display:inline-block;transition:transform .4s;">⟳</span><span id="prepSyncLabel">Sync Now</span></button>
       <div id="bulkActions" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:4px 10px;">
         <span style="font-size:11px;color:var(--accent);font-weight:800;" id="bulkCount">0 selected</span>
         <div style="width:1px;height:18px;background:var(--border2);"></div>
@@ -4249,13 +4248,13 @@ function toggleArchivedView(){
   updateArchivedBtn();
   renderPrep();
   const n=rows.filter(r=>r.archived).length;
-  toast(_showArchived?`Showing ${n} archived row${n!==1?'s':''} only`:'Back to active prep sheet');
+  toast(_showArchived?`Showing ${n} archived row${n!==1?'s':''} (sent to Amazon)`:'Back to active prep sheet');
 }
 // Keep the Show/Hide Archived button label + count in sync.
 function updateArchivedBtn(){
   const btn=document.getElementById('showArchivedBtn');
   if(!btn)return;
-  const n=rows.filter(r=>r.archived).length;
+  const n=rows.filter(r=>r.archived).length; // only shipped rows get archived now
   btn.style.background=_showArchived?'rgba(96,165,250,.35)':'var(--bg2)';
   btn.style.color=_showArchived?'#fff':'var(--text3)';
   btn.textContent=_showArchived?'← Active Sheet':`Show Archived${n?` (${n})`:''}`;
@@ -5335,6 +5334,22 @@ function restartSheetSyncTimer(){
 }
 
 // ── CORE SYNC ─────────────────────────────────────────────────────────────────
+async function triggerManualSync(){
+  const btn=document.getElementById('prepSyncBtn');
+  const icon=document.getElementById('prepSyncIcon');
+  const label=document.getElementById('prepSyncLabel');
+  if(btn){btn.disabled=true;btn.style.opacity='.6';btn.style.cursor='not-allowed';}
+  if(label)label.textContent='Syncing…';
+  // Spin the icon
+  let _spinAngle=0;
+  const spinTimer=setInterval(()=>{_spinAngle+=30;if(icon)icon.style.transform=`rotate(${_spinAngle}deg)`;},50);
+  try{await runSheetSync(true);}finally{
+    clearInterval(spinTimer);
+    if(icon){icon.style.transform='rotate(0deg)';}
+    if(label)label.textContent='Sync Now';
+    if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';}
+  }
+}
 async function runSheetSync(manual){
   if(!_ssConfig.enabled&&!manual){return;}
   if(!_ssLeader&&!manual){return;} // only leader polls
@@ -5468,11 +5483,23 @@ async function runSheetSync(manual){
     catch(e){saveErrors.push('Reactivate error: '+existing.sku+' — '+e.message);}
   }
 
-  // DEACTIVATE
+  // DEACTIVATE — delete if never shipped, archive if has shipment ID
   for(const r of toDeactivate){
-    r.archived=true;r._dirty=true;
-    try{await saveRow(r);deactivated++;logAudit('Sheet Sync — removed (No)',r.sku);}
-    catch(e){saveErrors.push('Archive error: '+r.sku+' — '+e.message);}
+    const hasShipment=r.shipId||r.allShipIds?.length||(r.shipSegments||[]).length;
+    try{
+      if(hasShipment){
+        // Has shipment data — archive it (keep on Shipments page)
+        r.archived=true;r._dirty=true;
+        await saveRow(r);
+        logAudit('Sheet Sync — archived (has shipment)',r.sku);
+      }else{
+        // Never shipped — fully delete from Supabase, no trace in Show Archived
+        if(r.uuid){await sb.from('prep_rows').delete().eq('id',r.uuid);}
+        rows.splice(rows.indexOf(r),1);
+        logAudit('Sheet Sync — deleted (no shipment)',r.sku);
+      }
+      deactivated++;
+    }catch(e){saveErrors.push('Remove error: '+r.sku+' — '+e.message);}
   }
 
   // Per-source log entry with full detail
@@ -5485,7 +5512,7 @@ async function runSheetSync(manual){
   if(skuWarnings.length)srcParts.push(skuWarnings.length+' warning(s)');
   const srcMsg=`[${srcLabel}] `+(srcParts.length?srcParts.join(', '):'up to date');
   const srcOk=saveErrors.length===0;
-  addSyncHistory(srcMsg,srcOk);
+  addSyncHistory(srcMsg,srcOk,true); // skip if nothing changed
   // Log individual errors
   saveErrors.forEach(e=>addSyncHistory('└ '+e,false));
   skuWarnings.slice(0,5).forEach(w=>addSyncHistory('└ ⚠ '+w,false));
@@ -5514,6 +5541,9 @@ async function runSheetSync(manual){
 }
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
+// ── HTML ESCAPE HELPER ───────────────────────────────────────────────────────
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
 // ── MULTI-SOURCE MANAGEMENT ────────────────────────────────────────────────────────────────────
 // Sources: [{id, label, url, tab, col, active}]
 let _ssSources=[];
@@ -5596,7 +5626,7 @@ let _syncHealthTimer=null;
 
 // FIX 3: Persist history to Supabase so it survives refresh
 async function saveSyncHistory(){
-  try{await sb.from('app_settings').upsert({key:'sync_history',value:JSON.stringify(_syncHistory.slice(0,20))},{onConflict:'key'});}catch(e){}
+  try{await sb.from('app_settings').upsert({key:'sync_history',value:JSON.stringify(_syncHistory.slice(0,200))},{onConflict:'key'});}catch(e){}
 }
 async function loadSyncHistory(){
   try{
@@ -5609,12 +5639,19 @@ async function loadSyncHistory(){
   }catch(e){}
 }
 
-function addSyncHistory(msg,ok=true){
+function addSyncHistory(msg,ok=true,skipIfNoChange=false){
+  // Skip "up to date" entries unless there was an error — keeps log clean
+  if(skipIfNoChange&&ok&&msg.toLowerCase().includes('up to date'))return;
   const now=new Date();
+  const iso=now.toISOString();
   const t=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
-  _syncHistory.unshift({t,msg,ok});
-  if(_syncHistory.length>20)_syncHistory.pop();
-  saveSyncHistory(); // FIX 3: persist to Supabase
+  // Prune entries older than 7 days before adding new one
+  const cutoff=Date.now()-7*24*60*60*1000;
+  while(_syncHistory.length&&new Date(_syncHistory[_syncHistory.length-1].iso||0).getTime()<cutoff){
+    _syncHistory.pop();
+  }
+  _syncHistory.unshift({t,iso,msg,ok});
+  saveSyncHistory();
   updateSyncHealthUI();
 }
 
@@ -6380,9 +6417,14 @@ async function clearEverything(){
       sb.from('ship_boxes').delete().neq('id','00000000-0000-0000-0000-000000000000'),
       sb.from('lavarion_asins').delete().neq('id','00000000-0000-0000-0000-000000000000'),
       sb.from('lavarion_shipments').delete().neq('id','00000000-0000-0000-0000-000000000000'),
+      sb.from('audit_log').delete().neq('id','00000000-0000-0000-0000-000000000000').catch(()=>{}),
     ]);
+    // Also clear sync history from app_settings
+    await sb.from('app_settings').delete().eq('key','sync_history').catch(()=>{});
+    _syncHistory.length=0;
     rows=[];claims=[];shipBoxes={};lavAsins=[];lavShipments=[];
     renderPrep();renderDashboard();renderClaims();updateCB();
+    updateSyncHealthUI();
     setSyncStatus('synced');
     toast('✓ All data wiped — fresh start');
   });
