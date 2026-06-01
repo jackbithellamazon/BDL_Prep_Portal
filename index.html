@@ -1880,8 +1880,27 @@ function renderPrepRows(data){
       r.archived?'row-archived':''
     ].filter(Boolean).join(' ');
     const rcvdColor=r.rcvd>0&&r.rcvd>=r.exp?'var(--green)':r.rcvd>0?'var(--amber)':'';
-    return `<tr class="${rowCls}" id="row-${r.id}" data-id="${r.id}" style="${r.archived?'opacity:.55;':''}">
-      <td style="text-align:center;font-size:9px;color:var(--text3);font-family:var(--mono);user-select:none;line-height:1.3;">
+    // Build tooltip explaining why this row is coloured
+    const rowTooltip=
+      isStuck?`⏱ Late — ${daysSinceCreate} days in transit (threshold: 20 days)`:
+      isSubSaveInTransit?'🔄 Subscribe & Save — expected delivery window applies':
+      hasIssue?`⚑ Issue: ${r.issueType}${r.issueQty?' ('+r.issueQty+' units)':''}`:
+      r.status==='Sent to Amazon'?'✓ Sent to Amazon':
+      r.status==='Part Sent'?'↗ Part Sent — some units still in warehouse':
+      r.status==='In Warehouse'?'📦 In Warehouse — ready to prep':
+      r.status==='Delivered'?'✅ Delivered':
+      r.pri==='Yes'?'⭐ Priority row':'';
+    const rowBorder=
+      isStuck?'border-left:4px solid #ef4444!important;':
+      isSubSaveInTransit?'border-left:4px solid #5599ff!important;':
+      hasIssue?'border-left:4px solid #f87171!important;':
+      r.status==='In Warehouse'?'border-left:4px solid #a78bfa!important;':
+      r.status==='Part Sent'?'border-left:4px solid #fb923c!important;':
+      r.status==='Delivered'?'border-left:4px solid #34d399!important;':
+      '';
+    return `<tr class="${rowCls}" id="row-${r.id}" data-id="${r.id}" style="${r.archived?'opacity:.55;':''}${rowBorder}">
+      <td style="text-align:center;font-size:9px;color:var(--text3);font-family:var(--mono);user-select:none;line-height:1.3;position:relative;" ${rowTooltip?`data-tip="${rowTooltip.replace(/"/g,'&quot;')}"`:''}
+        onmouseenter="showRowTip(event,this)" onmouseleave="hideRowTip()">
         <div>${data.indexOf(r)+1}</div>
         ${r.sheetRow?`<div style="color:var(--border2);font-size:8px;">${r.sheetRow}</div>`:''}
       </td>
@@ -3915,66 +3934,298 @@ function renderInsights(){
   </div>`;
 }
 
+// ── INSIGHTS ENGINE ───────────────────────────────────────────────────────────
+let _insTab='all';
+
 function openPrepHistory(){
   om('prepHistoryModal');
-  const body=document.getElementById('prepHistoryBody');
-  // Build month-by-month data from all sent rows
-  const monthMap={};
-  const addToMonth=(ds,units,shipId,isLav)=>{
-    if(!ds)return;
-    const[y,m]=ds.split('-');
-    const key=`${y}-${m}`;
-    if(!monthMap[key])monthMap[key]={label:new Date(+y,+m-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'}),rows:[],lavRows:[],shipIds:new Set()};
-    if(shipId)monthMap[key].shipIds.add(shipId);
+  switchInsTab('all');
+  // Keyboard nav for insights modal
+  document.getElementById('prepHistoryModal')._kbHandler=function(e){
+    if(!document.getElementById('prepHistoryModal').classList.contains('active'))return;
+    const tabs=['week','mtd','lastmonth','30d','90d','ytd','all','custom','monthly'];
+    const cur=tabs.indexOf(_insTab);
+    if(e.key==='ArrowLeft'&&cur>0){switchInsTab(tabs[cur-1]);e.preventDefault();}
+    else if(e.key==='ArrowRight'&&cur<tabs.length-1){switchInsTab(tabs[cur+1]);e.preventDefault();}
+    else if(e.key==='Escape'){cm('prepHistoryModal');}
+    else{
+      const num=parseInt(e.key);
+      if(num>=1&&num<=tabs.length){switchInsTab(tabs[num-1]);e.preventDefault();}
+    }
   };
-  rows.filter(r=>r.sent==='Yes'&&r.sentDate).forEach(r=>{
+  document.addEventListener('keydown',document.getElementById('prepHistoryModal')._kbHandler);
+}
+
+function switchInsTab(tab){
+  _insTab=tab;
+  const tabs=['week','mtd','lastmonth','30d','90d','ytd','all','custom','monthly'];
+  tabs.forEach(t=>{
+    const btn=document.getElementById('insModalTab-'+t);
+    if(btn){
+      btn.style.background=t===tab?'var(--accent)':'var(--bg3)';
+      btn.style.color=t===tab?'#000':'var(--text3)';
+      btn.style.borderColor=t===tab?'var(--accent)':'var(--border2)';
+    }
+  });
+  // Show/hide custom date fields
+  const customDates=document.getElementById('insModalCustomDates');
+  if(customDates)customDates.style.display=tab==='custom'?'flex':'none';
+  renderInsightsTab(tab);
+}
+
+function buildMonthMap(filterFn){
+  const map={};
+  const addRow=(key,label,r)=>{
+    if(!map[key])map[key]={label,rows:[],lavRows:[],shipIds:new Set()};
+    map[key].rows.push(r);
+    if(r.shipId)map[key].shipIds.add(r.shipId);
+  };
+  const addLav=(key,label,s)=>{
+    if(!map[key])map[key]={label,rows:[],lavRows:[],shipIds:new Set()};
+    map[key].lavRows.push(s);
+    if(s.shipId)map[key].shipIds.add(s.shipId);
+  };
+  rows.filter(r=>r.sent==='Yes'&&r.sentDate&&(!filterFn||filterFn(r.sentDate))).forEach(r=>{
     const[y,m]=r.sentDate.split('-');
-    const key=`${y}-${m}`;
-    if(!monthMap[key])monthMap[key]={label:new Date(+y,+m-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'}),rows:[],lavRows:[],shipIds:new Set()};
-    monthMap[key].rows.push(r);
-    if(r.shipId)monthMap[key].shipIds.add(r.shipId);
+    const key=y+'-'+m;
+    addRow(key,new Date(+y,+m-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'}),r);
   });
-  lavShipments.filter(s=>s.date).forEach(s=>{
+  lavShipments.filter(s=>s.date&&(!filterFn||filterFn(s.date))).forEach(s=>{
     const[y,m]=s.date.split('-');
-    const key=`${y}-${m}`;
-    if(!monthMap[key])monthMap[key]={label:new Date(+y,+m-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'}),rows:[],lavRows:[],shipIds:new Set()};
-    monthMap[key].lavRows.push(s);
-    if(s.shipId)monthMap[key].shipIds.add(s.shipId);
+    const key=y+'-'+m;
+    addLav(key,new Date(+y,+m-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'}),s);
   });
-  const months=Object.keys(monthMap).sort().reverse();
-  if(!months.length){body.innerHTML='<div style="color:var(--text3);text-align:center;padding:20px;">No shipped data yet.</div>';return;}
-  body.innerHTML=`
-    <table style="width:100%;border-collapse:collapse;">
-      <thead><tr style="border-bottom:2px solid var(--border);">
-        <th style="text-align:left;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Month</th>
-        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Units</th>
-        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Ships</th>
-        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Boxes</th>
-        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Ex. VAT</th>
-        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Inc. VAT</th>
-        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Per Day</th>
-        <th style="text-align:right;padding:6px 8px;font-size:9px;color:var(--accent);text-transform:uppercase;">Per Ship</th>
-      </tr></thead>
-      <tbody>
-        ${months.map(key=>{
-          const md=monthMap[key];
-          const mBoxMap=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));
-          const pc=calcImpliedPrepCost(md.rows,md.lavRows,mBoxMap);
-          const prepDays=new Set([...md.rows.map(r=>r.sentDate),...md.lavRows.map(s=>s.date)]).size;
-          const ships=md.shipIds.size;
-          return`<tr style="border-bottom:1px solid rgba(255,255,255,.05);">
-            <td style="padding:6px 8px;font-size:11px;color:var(--text2);font-weight:600;">${md.label}</td>
-            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#94a3b8;text-align:right;">${fmt(pc.totalUnits)}</td>
-            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#60a5fa;text-align:right;">${ships}</td>
-            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#fb923c;text-align:right;">${pc.totalBoxes}</td>
-            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#94a3b8;text-align:right;">${fmtGBP2(pc.subtotal)}</td>
-            <td style="padding:6px 8px;font-size:12px;font-family:var(--mono);font-weight:800;color:#fbbf24;text-align:right;">${fmtGBP2(pc.withVat)}</td>
-            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#60a5fa;text-align:right;">${prepDays>0?'£'+(pc.withVat/prepDays).toFixed(2):'—'}</td>
-            <td style="padding:6px 8px;font-size:11px;font-family:var(--mono);color:#34d399;text-align:right;">${ships>0?'£'+(pc.withVat/ships).toFixed(2):'—'}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>`;
+  return map;
+}
+
+function calcInsMetrics(sentRowsArr,lavArr,boxMap){
+  const pc=calcImpliedPrepCost(sentRowsArr,lavArr,boxMap||{});
+  const skus=new Set(sentRowsArr.map(r=>r.sku)).size;
+  const asins=new Set(sentRowsArr.map(r=>r.asin).filter(Boolean)).size;
+  const cog=sentRowsArr.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||0)),0);
+  const lavCog=lavArr.reduce((a,s)=>a+((s.cost||0)*(s.units||0)),0);
+  const ships=new Set([...sentRowsArr.map(r=>r.shipId),...lavArr.map(s=>s.shipId)].filter(Boolean)).size;
+  return{...pc,skus,asins,cog:cog+lavCog,ships};
+}
+
+function kpiCard(label,value,sub,col){
+  return`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 16px;flex:1;min-width:120px;">
+    <div style="font-size:9px;font-weight:700;color:${col||'var(--accent)'};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${label}</div>
+    <div style="font-size:20px;font-weight:800;color:var(--text);font-family:var(--mono);">${value}</div>
+    ${sub?`<div style="font-size:10px;color:var(--text3);margin-top:3px;">${sub}</div>`:''}
+  </div>`;
+}
+
+function insBarChart(monthData,valueKey,label,col){
+  if(!monthData.length)return'';
+  const max=Math.max(...monthData.map(d=>d[valueKey]||0),1);
+  return`<div style="margin-top:16px;">
+    <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">${label} — Monthly Trend</div>
+    <div style="display:flex;align-items:flex-end;gap:6px;height:80px;padding:0 2px;">
+      ${monthData.slice().reverse().map(d=>{
+        const h=Math.round(((d[valueKey]||0)/max)*72);
+        return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;" title="${d.label}: ${d[valueKey]}">
+          <div style="width:100%;background:${col||'var(--accent)'};border-radius:2px 2px 0 0;height:${h}px;min-height:2px;opacity:.8;transition:opacity .2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.8"></div>
+          <div style="font-size:8px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;">${d.shortLabel}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+function renderInsightsTab(tab){
+  const body=document.getElementById('prepHistoryBody');
+
+  if(tab==='monthly'){renderInsMonthly(body);return;}
+
+  // Use existing insightRange system — temporarily set insightRange to match tab
+  const prevRange=insightRange;
+  const tabToRange={week:'week',mtd:'mtd',lastmonth:'lastmonth','30d':'30d','90d':'90d',ytd:'ytd',all:'all',custom:'custom'};
+
+  // lastmonth not in insightRange system — handle manually
+  if(tab==='lastmonth'){
+    const now=new Date();
+    const lastM=now.getMonth()===0?12:now.getMonth();
+    const lastMY=now.getMonth()===0?now.getFullYear()-1:now.getFullYear();
+    const lastMStr=String(lastM).padStart(2,'0');
+    const lastMYStr=String(lastMY);
+    const filter=d=>d&&d>=`${lastMYStr}-${lastMStr}-01`&&d<=`${lastMYStr}-${lastMStr}-31`;
+    const map=buildMonthMap(filter);
+    const allRows=Object.values(map).flatMap(m=>m.rows);
+    const allLav=Object.values(map).flatMap(m=>m.lavRows);
+    const allShipIds=new Set(Object.values(map).flatMap(m=>[...m.shipIds]));
+    const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>allShipIds.has(sid)));
+    renderInsPanel(body,allRows,allLav,bm,'Last Month',false);
+    return;
+  }
+
+  // For custom — read from modal date inputs
+  let rs,re,label;
+  if(tab==='custom'){
+    rs=document.getElementById('insModalFrom')?.value||todayISO();
+    re=document.getElementById('insModalTo')?.value||todayISO();
+    label=`${rs} → ${re}`;
+  }else{
+    insightRange=tabToRange[tab]||'all';
+    const range=getInsightRange();
+    rs=range.s;re=range.e;label=range.label;
+    insightRange=prevRange;
+  }
+
+  const filter=d=>d&&d>=rs&&d<=re;
+  const map=buildMonthMap(filter);
+  const allRows=Object.values(map).flatMap(m=>m.rows);
+  const allLav=Object.values(map).flatMap(m=>m.lavRows);
+  const allShipIds=new Set(Object.values(map).flatMap(m=>[...m.shipIds]));
+  const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>allShipIds.has(sid)));
+  const showChart=tab==='all'||tab==='ytd'||tab==='90d'||tab==='custom';
+  renderInsPanel(body,allRows,allLav,bm,label,showChart);
+}
+
+function renderInsPanel(body,allRows,allLav,boxMap,label,showChart){
+  if(!allRows.length&&!allLav.length){
+    body.innerHTML=`<div style="color:var(--text3);text-align:center;padding:40px;">No data for ${label.toLowerCase()}.</div>`;
+    return;
+  }
+  const met=calcInsMetrics(allRows,allLav,boxMap);
+  const cogPerUnit=met.totalUnits>0?(met.cog/met.totalUnits):0;
+  const prepPct=met.cog>0?((met.withVat/met.cog)*100):0;
+
+  // ── KPI CARDS ──────────────────────────────────────────────────────────────
+  const kpis=`
+    <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:14px;">${label}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:20px;">
+      ${kpiCard('Units Sent',fmt(met.totalUnits),'units shipped','#60a5fa')}
+      ${kpiCard('COG','£'+fmtGBP2(met.cog),'cost of goods','#f59e0b')}
+      ${kpiCard('SKU Lines',met.skus,'unique SKUs','#a78bfa')}
+      ${kpiCard('ASINs',met.asins,'unique ASINs','#34d399')}
+      ${kpiCard('Shipments',met.ships,'FBA shipments','#60a5fa')}
+      ${kpiCard('Boxes',met.totalBoxes,'total boxes','#fb923c')}
+      <div onclick="showInsPrepBreakdown()" style="cursor:pointer;" title="Click to see full breakdown">
+        ${kpiCard('Prep Cost ▸','£'+fmtGBP2(met.withVat),'inc. VAT · click for detail','#fbbf24')}
+      </div>
+      ${kpiCard('COG / Unit','£'+cogPerUnit.toFixed(2),'avg cost per unit','#94a3b8')}
+      ${kpiCard('Prep %',prepPct.toFixed(1)+'%','prep as % of COG','#f472b6')}
+    </div>`;
+
+  // ── BAR CHARTS ─────────────────────────────────────────────────────────────
+  let chart='';
+  if(showChart){
+    const allMap=buildMonthMap(null);
+    const chartData=Object.entries(allMap).sort(([a],[b])=>a.localeCompare(b)).map(([key,md])=>{
+      const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));
+      const mc=calcInsMetrics(md.rows,md.lavRows,bm);
+      const[my,mm]=key.split('-');
+      return{label:md.label,shortLabel:new Date(+my,+mm-1,1).toLocaleString('en-GB',{month:'short'})+' '+my.slice(2),units:mc.totalUnits,cog:mc.cog,prep:mc.withVat};
+    });
+    if(chartData.length>1){
+      chart=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+        <div>${insBarChart(chartData,'units','Units Sent','#60a5fa')}</div>
+        <div>${insBarChart(chartData,'cog','COG Value','#f59e0b')}</div>
+      </div>`;
+    }
+  }
+
+  // ── SUPPLIERS + ASINS ──────────────────────────────────────────────────────
+  const supMap={};
+  allRows.forEach(r=>{
+    const s=r.sup||'Unknown';
+    if(!supMap[s])supMap[s]={sup:s,units:0,cog:0,skus:new Set(),orders:new Set()};
+    supMap[s].units+=r.ship||0;
+    supMap[s].cog+=parseSKU(r.sku).cogs*(r.ship||0);
+    supMap[s].skus.add(r.sku);
+    if(r.oid)supMap[s].orders.add(r.oid);
+  });
+  const topSups=Object.values(supMap).sort((a,b)=>b.units-a.units).slice(0,6);
+
+  const asinMap={};
+  allRows.forEach(r=>{
+    if(!r.asin)return;
+    if(!asinMap[r.asin])asinMap[r.asin]={asin:r.asin,prod:r.prod,units:0,cog:0,skus:new Set()};
+    asinMap[r.asin].units+=r.ship||0;
+    asinMap[r.asin].cog+=parseSKU(r.sku).cogs*(r.ship||0);
+    asinMap[r.asin].skus.add(r.sku);
+  });
+  const topAsins=Object.values(asinMap).sort((a,b)=>b.units-a.units).slice(0,8);
+
+  // ── TOP SKUS ───────────────────────────────────────────────────────────────
+  const skuMap={};
+  allRows.forEach(r=>{
+    if(!skuMap[r.sku])skuMap[r.sku]={sku:r.sku,prod:r.prod,asin:r.asin,units:0,cog:0};
+    skuMap[r.sku].units+=r.ship||0;
+    skuMap[r.sku].cog+=parseSKU(r.sku).cogs*(r.ship||0);
+  });
+  const topSkus=Object.values(skuMap).sort((a,b)=>b.units-a.units).slice(0,10);
+  const maxUnits=topSkus[0]?.units||1;
+
+  const tables=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Top Suppliers</div>
+        ${topSups.map(s=>`
+          <div style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+              <span style="font-size:11px;font-weight:600;color:var(--text2);">${s.sup}</span>
+              <span style="font-size:11px;font-family:var(--mono);color:#60a5fa;font-weight:700;">${fmt(s.units)} u</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:10px;color:var(--text3);">${s.skus.size} SKUs · ${s.orders.size} orders</span>
+              <span style="font-size:10px;font-family:var(--mono);color:#f59e0b;">£${fmtGBP2(s.cog)}</span>
+            </div>
+            <div style="height:3px;background:var(--bg);border-radius:2px;">
+              <div style="height:100%;width:${Math.round((s.units/(topSups[0]?.units||1))*100)}%;background:#60a5fa;border-radius:2px;"></div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Top ASINs</div>
+        ${topAsins.map(a=>`
+          <div style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+              <span style="font-size:10px;font-family:var(--mono);color:var(--accent);">${a.asin}</span>
+              <span style="font-size:11px;font-family:var(--mono);color:#34d399;font-weight:700;">${fmt(a.units)} u</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;">${a.prod||'—'}</span>
+              <span style="font-size:10px;font-family:var(--mono);color:#f59e0b;">£${fmtGBP2(a.cog)}</span>
+            </div>
+            <div style="height:3px;background:var(--bg);border-radius:2px;">
+              <div style="height:100%;width:${Math.round((a.units/(topAsins[0]?.units||1))*100)}%;background:#34d399;border-radius:2px;"></div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;">
+      <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Top SKUs by Units</div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="border-bottom:1px solid var(--border);">
+          <th style="text-align:left;padding:4px 6px;font-size:9px;color:var(--accent);">SKU</th>
+          <th style="text-align:left;padding:4px 6px;font-size:9px;color:var(--accent);">Product</th>
+          <th style="text-align:right;padding:4px 6px;font-size:9px;color:var(--accent);">Units</th>
+          <th style="text-align:right;padding:4px 6px;font-size:9px;color:var(--accent);">COG</th>
+          <th style="text-align:right;padding:4px 6px;font-size:9px;color:var(--accent);">COG/u</th>
+          <th style="padding:4px 6px;min-width:80px;"></th>
+        </tr></thead>
+        <tbody>${topSkus.map(s=>`<tr style="border-bottom:1px solid rgba(255,255,255,.04);">
+          <td style="padding:5px 6px;font-size:10px;font-family:var(--mono);color:var(--text2);">${s.sku}</td>
+          <td style="padding:5px 6px;font-size:10px;color:var(--text3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.prod||'—'}</td>
+          <td style="padding:5px 6px;font-size:11px;font-family:var(--mono);font-weight:700;color:#60a5fa;text-align:right;">${fmt(s.units)}</td>
+          <td style="padding:5px 6px;font-size:10px;font-family:var(--mono);color:#f59e0b;text-align:right;">£${fmtGBP2(s.cog)}</td>
+          <td style="padding:5px 6px;font-size:10px;font-family:var(--mono);color:#94a3b8;text-align:right;">£${s.units>0?(s.cog/s.units).toFixed(2):'—'}</td>
+          <td style="padding:5px 6px;">
+            <div style="height:4px;background:var(--bg);border-radius:2px;">
+              <div style="height:100%;width:${Math.round((s.units/maxUnits)*100)}%;background:#60a5fa;border-radius:2px;"></div>
+            </div>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+
+  body.innerHTML=kpis+chart+tables;
+}
+function toggleInsMonth(key){
+  const el=document.getElementById('ins-expand-'+key);
+  if(el)el.style.display=el.style.display==='none'?'table-row':'none';
 }
 
 function saveSettingsPrepFees(){
@@ -4206,7 +4457,10 @@ function renderAudit(){
 
 // ── MODALS ────────────────────────────────────────────────────────────────────
 function om(id){document.getElementById(id).classList.add('open');}
-function cm(id){document.getElementById(id).classList.remove('open');}
+function cm(id){
+  // Clean up insights keyboard handler if closing that modal
+  const m=document.getElementById('prepHistoryModal');
+  if(m&&m._kbHandler){document.removeEventListener('keydown',m._kbHandler);m._kbHandler=null;}document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)cm(o.id);}));
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
@@ -4660,6 +4914,24 @@ function confirmShipIdModal(){
   if(cb)cb(id,type,partialUnits);
 }
 // Allow Enter key inside modal input to confirm — deferred so DOM is ready
+// ── ROW TOOLTIP ──────────────────────────────────────────────────────────────
+function showRowTip(e,el){
+  const tip=el.getAttribute('data-tip');
+  if(!tip)return;
+  let div=document.getElementById('_rowTip');
+  if(!div){div=document.createElement('div');div.id='_rowTip';
+    div.style.cssText='position:fixed;z-index:9999;background:#1e293b;border:1px solid rgba(96,165,250,.4);color:#e2e8f0;font-size:11px;padding:5px 10px;border-radius:5px;pointer-events:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.4);';
+    document.body.appendChild(div);}
+  div.textContent=tip;
+  div.style.display='block';
+  const x=e.clientX+12,y=e.clientY-32;
+  div.style.left=Math.min(x,window.innerWidth-div.offsetWidth-8)+'px';
+  div.style.top=Math.max(y,4)+'px';
+}
+function hideRowTip(){
+  const div=document.getElementById('_rowTip');
+  if(div)div.style.display='none';
+}
 document.addEventListener('DOMContentLoaded',()=>{
   const inp=document.getElementById('shipIdModalInput');
   if(inp){
@@ -7544,9 +7816,30 @@ setInterval(updateClock,30000);
 
 <!-- PREP COST HISTORY MODAL -->
 <div class="overlay" id="prepHistoryModal">
-  <div class="modal" style="max-width:640px;max-height:80vh;overflow-y:auto;">
-    <div class="mh"><div class="mh-title">Prep Cost History — Month by Month</div><button class="mh-close" onclick="cm('prepHistoryModal')">✕</button></div>
-    <div class="mb" style="padding:16px;" id="prepHistoryBody"></div>
+  <div class="modal" style="max-width:900px;max-height:92vh;display:flex;flex-direction:column;">
+    <div class="mh">
+      <div class="mh-title">📊 Insights</div>
+      <button class="mh-close" onclick="cm('prepHistoryModal')">✕</button>
+    </div>
+    <!-- Range selector — static HTML, styled by switchInsTab() -->
+    <div style="display:flex;flex-wrap:wrap;gap:4px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;align-items:center;">
+      <button id="insModalTab-week"      onclick="switchInsTab('week')"      style="padding:5px 12px;font-size:11px;font-weight:700;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text3);cursor:pointer;white-space:nowrap;">This Week</button>
+      <button id="insModalTab-mtd"       onclick="switchInsTab('mtd')"       style="padding:5px 12px;font-size:11px;font-weight:700;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text3);cursor:pointer;white-space:nowrap;">MTD</button>
+      <button id="insModalTab-lastmonth" onclick="switchInsTab('lastmonth')" style="padding:5px 12px;font-size:11px;font-weight:700;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text3);cursor:pointer;white-space:nowrap;">Last Month</button>
+      <button id="insModalTab-30d"       onclick="switchInsTab('30d')"       style="padding:5px 12px;font-size:11px;font-weight:700;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text3);cursor:pointer;white-space:nowrap;">30 Days</button>
+      <button id="insModalTab-90d"       onclick="switchInsTab('90d')"       style="padding:5px 12px;font-size:11px;font-weight:700;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text3);cursor:pointer;white-space:nowrap;">90 Days</button>
+      <button id="insModalTab-ytd"       onclick="switchInsTab('ytd')"       style="padding:5px 12px;font-size:11px;font-weight:700;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text3);cursor:pointer;white-space:nowrap;">YTD</button>
+      <button id="insModalTab-all"       onclick="switchInsTab('all')"       style="padding:5px 12px;font-size:11px;font-weight:700;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text3);cursor:pointer;white-space:nowrap;">All Time</button>
+      <button id="insModalTab-custom"    onclick="switchInsTab('custom')"    style="padding:5px 12px;font-size:11px;font-weight:700;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text3);cursor:pointer;white-space:nowrap;">Custom</button>
+      <button id="insModalTab-monthly"   onclick="switchInsTab('monthly')"   style="padding:5px 12px;font-size:11px;font-weight:700;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text3);cursor:pointer;white-space:nowrap;">Month by Month</button>
+      <div id="insModalCustomDates" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;">
+        <input type="date" id="insModalFrom" style="padding:4px 8px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;">
+        <span style="color:var(--text3);font-size:11px;">→</span>
+        <input type="date" id="insModalTo" style="padding:4px 8px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;">
+        <button onclick="switchInsTab('custom')" style="padding:4px 12px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Apply</button>
+      </div>
+    </div>
+    <div class="mb" style="padding:16px;overflow-y:auto;flex:1;" id="prepHistoryBody"></div>
   </div>
 </div>
 
