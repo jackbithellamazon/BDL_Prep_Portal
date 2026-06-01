@@ -5528,6 +5528,7 @@ async function runSheetSync(manual){
     const existing=allRowsBySyncId.get(syncId)||allRowsBySku.get(sku.toLowerCase());
     if(trigger==='yes'){
       if(!existing)toAdd.push({fields,syncId});
+      else if(existing.sent==='Yes'||existing.status==='Sent to Amazon'){}  // already sent — never touch
       else if(existing.archived)toReactivate.push({existing,fields,syncId});
       else toUpdate.push({existing,fields,syncId});
     }else if(trigger==='no'||trigger==='n/a'||trigger===''){
