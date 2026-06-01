@@ -2003,11 +2003,11 @@ function uf(id,field,val){
     const segs=normaliseSegments(r);
     if(segs.length<=1){
       if(field==='ship'){
-        if((val||0)>0){r.shipSegments=[{shipId:r.shipId||'',units:val,date:r.sentDate||todayISO(),type:r.shipType||'Standard'}];}
+        if((val||0)>0){const _existSeg=(r.shipSegments||[]).find(s=>s.shipId===(r.shipId||''));r.shipSegments=[{shipId:r.shipId||'',units:val,date:_existSeg?.date||r.sentDate||todayISO(),type:r.shipType||'Standard'}];}
         else{r.shipSegments=[];}
       }else if(field==='shipId'){
         if(segs.length===1){segs[0].shipId=val;r.shipSegments=segs;}
-        else if((r.ship||0)>0){r.shipSegments=[{shipId:val,units:r.ship,date:r.sentDate||todayISO(),type:r.shipType||'Standard'}];}
+        else if((r.ship||0)>0){const _existSeg2=(r.shipSegments||[]).find(s=>s.shipId===val)||r.shipSegments?.[0];r.shipSegments=[{shipId:val,units:r.ship,date:_existSeg2?.date||r.sentDate||todayISO(),type:r.shipType||'Standard'}];}
         r.allShipIds=val?[val]:[];
       }
     }
@@ -2241,25 +2241,35 @@ async function doBulkArchive(){
   if(!sentRows.length){toast('None of the selected rows are Sent to Amazon','er');return;}
   const msg=`Archive ${sentRows.length} Sent to Amazon row${sentRows.length!==1?'s':''}?${notSent>0?' ('+notSent+' non-sent rows skipped)':''}\n\nThis clears them off the prep sheet for good. They stay permanently on the Shipments page under their Shipment ID. (If you ever attached one by mistake, "Show Archived" can restore it — but you shouldn't normally need to.)`;
   showConfirm('Archive rows?',msg,async()=>{
+    // Block UI during save so closing/refreshing mid-save can't corrupt data
+    const archiveBtn=document.querySelector('[onclick="doBulkArchive()"]');
+    if(archiveBtn){archiveBtn.disabled=true;archiveBtn.textContent='Archiving…';}
     setSyncStatus('syncing');
-    // Mark archived locally first so the UI updates instantly (fixes the slow
-    // "clearing rows" lag — no per-row await before re-render).
+    // Mark archived + correct status locally first for instant UI update
     const ids=[];
-    sentRows.forEach(r=>{r.archived=true;if(r.uuid)ids.push(r.uuid);});
+    sentRows.forEach(r=>{
+      r.archived=true;
+      r.status='Sent to Amazon'; // ensure status is correct before saving
+      if(r.uuid)ids.push(r.uuid);
+    });
     clearBulkSelect();
     renderPrep();renderShipments&&renderShipments();renderDashboard&&renderDashboard();
-    // Persist in a single batched update instead of N round-trips.
+    // Persist in a single batched update — archived AND status together
     if(ids.length){
-      let res=await sb.from('prep_rows').update({archived:true}).in('id',ids);
+      let res=await sb.from('prep_rows').update({archived:true,status:'Sent to Amazon'}).in('id',ids);
       if(res.error&&_missingColInErr(res.error)==='archived'){
         _missingCols.add('archived');
         if(!_missingColWarned){_missingColWarned=true;toast('Add the "archived" column — see Settings → Database','er');}
-        // Fall back to per-row saveRow which strips the missing column (keeps
-        // them archived in memory; persists once the column exists).
         res={error:null};
       }
-      if(res.error){setSyncStatus('error');toast('Archive save failed: '+res.error.message,'er');return;}
+      if(res.error){
+        setSyncStatus('error');
+        toast('Archive save failed: '+res.error.message,'er');
+        if(archiveBtn){archiveBtn.disabled=false;archiveBtn.textContent='🗑 Archive Sent';}
+        return;
+      }
     }
+    if(archiveBtn){archiveBtn.disabled=false;archiveBtn.textContent='🗑 Archive Sent';}
     setSyncStatus('synced');
     logAudit('Bulk archive',sentRows.length+' rows');
     toastUndo(`${sentRows.length} row${sentRows.length!==1?'s':''} archived`,async()=>{
@@ -4403,9 +4413,14 @@ function handleStatusChange(id,sel){
   const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
   if(!r)return;
   const prevStatus=r.status;
-  // If someone changes the status of an archived row, it's back in the active
-  // workflow — un-archive it so it reappears on the prep sheet.
-  if(r.archived){r.archived=false;}
+  // Only unarchive if the row hasn't been sent — sent rows stay archived permanently
+  if(r.archived&&r.sent!=='Yes'&&r.status!=='Sent to Amazon'){r.archived=false;}
+  else if(r.archived&&(r.sent==='Yes'||r.status==='Sent to Amazon')){
+    // Don't allow status changes on sent+archived rows
+    sel.value=r.status;
+    toast('This row has been sent and archived — it cannot be edited','er');
+    return;
+  }
   // Use the row's actual local id for DOM element / debounce keys (the <tr>
   // element id is row-<localId>), while the row itself was resolved via the
   // unique uuid passed in — this prevents local-id collisions from saving the
@@ -5449,7 +5464,6 @@ async function runSheetSync(manual){
     const res=await fetch(efUrl,{cache:'no-store',headers:{'Authorization':`Bearer ${SUPA_KEY}`}});
     if(!res.ok)throw new Error(`Edge Function error: ${res.status} ${res.statusText}`);
     const json=await res.json();
-    console.log('[SheetSync] edge function debug:',json.debug);
     if(json.error)throw new Error(json.error);
     csv=json.csv;
     if(!csv)throw new Error('No CSV returned from Edge Function');
@@ -6930,6 +6944,12 @@ function openEditShipment(shipId){
   _editShipId=shipId;
   const c=shipmentContents(shipId);
   document.getElementById('editShipModalTitle').textContent='Edit Shipment — '+shipId;
+  // Pre-fill date from first segment of this shipment
+  const _editC=shipmentContents(shipId);
+  const _editFirstSeg=(_editC.oaRows[0]?.shipSegments||[]).find(s=>s.shipId===shipId);
+  const _editDate=_editFirstSeg?.date||_editC.oaRows[0]?.sentDate||'';
+  const _editDateEl=document.getElementById('editShipDate');
+  if(_editDateEl&&_editDate)_editDateEl.value=_editDate;
   document.getElementById('editShipNewId').value=shipId;
   document.getElementById('editShipSummary').innerHTML=
     `<b style="color:var(--text);">${shipId}</b> currently holds: `+
@@ -6942,6 +6962,31 @@ function openEditShipment(shipId){
   om('editShipModal');
 }
 
+async function saveShipmentDate(){
+  const shipId=_editShipId;
+  const newDate=(document.getElementById('editShipDate').value||'').trim();
+  if(!shipId)return;
+  if(!newDate){toast('Pick a date first','er');return;}
+  const c=shipmentContents(shipId);
+  setSyncStatus('syncing');
+  for(const r of c.oaRows){
+    const segs=normaliseSegments(r);
+    segs.forEach(sg=>{if(sg.shipId===shipId)sg.date=newDate;});
+    r.shipSegments=segs;
+    r.sentDate=newDate;
+    r._dirty=true;
+    await saveRow(r);
+  }
+  for(const ls of c.lav){
+    ls.date=newDate;
+    if(ls.uuid)await sb.from('lavarion_shipments').update({date:newDate}).eq('id',ls.uuid);
+  }
+  setSyncStatus('synced');
+  cm('editShipModal');
+  renderShipments();renderPrep();renderDashboard();
+  toast(`✓ Date updated to ${newDate.split('-').reverse().join('/')}`);
+  logAudit('Shipment date changed',`${shipId} → ${newDate}`);
+}
 async function saveShipmentRename(){
   const oldId=_editShipId;
   const newId=(document.getElementById('editShipNewId').value||'').trim().toUpperCase();
@@ -7457,6 +7502,15 @@ setInterval(updateClock,30000);
       <div style="display:flex;gap:8px;margin-bottom:18px;">
         <input id="editShipNewId" type="text" style="flex:1;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:12px;font-family:var(--mono);font-weight:700;" placeholder="New Shipment ID">
         <button onclick="saveShipmentRename()" style="padding:7px 14px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Rename</button>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:18px;">
+        <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Change Shipment Date</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.5;">Updates the sent date across all SKUs in this shipment. Use if the wrong date was recorded.</div>
+        <div style="display:flex;gap:8px;">
+          <input id="editShipDate" type="date" style="flex:1;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:12px;">
+          <button onclick="saveShipmentDate()" style="padding:7px 14px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Update Date</button>
+        </div>
       </div>
 
       <div style="border-top:1px solid var(--border);padding-top:14px;">
