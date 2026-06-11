@@ -1085,8 +1085,9 @@ CREATE POLICY IF NOT EXISTS "app_settings_all" ON app_settings FOR ALL USING (tr
         <select class="fi-in" id="f-subSave"><option value="No">No</option><option value="Yes">Yes — S&S (exempt from overdue alerts)</option></select>
       </div>
       <div class="fi"><label class="fl">SKU</label><input class="fi-in" type="text" id="f-sku" placeholder="e.g. Amg_73.61_1803_105"></div>
-      <div class="fi"><label class="fl">VAT Status <span style="font-size:9px;color:var(--text3);">(from purchase sheet col H)</span></label>
-        <select class="fi-in" id="f-vat"><option value="">— (from sheet / unknown)</option><option value="20">20% (Standard)</option><option value="5">5% (Reduced)</option><option value="0">0% (VAT-free)</option></select>
+      <div class="fi"><label class="fl">VAT Status <span style="font-size:9px;color:var(--text3);">(auto from purchase sheet col H)</span></label>
+        <div id="f-vat-display" class="fi-in" style="display:flex;align-items:center;color:var(--text3);background:var(--bg2);cursor:not-allowed;">—</div>
+        <input type="hidden" id="f-vat">
       </div>
       <div class="fi"><label class="fl">SAS Link (auto from ASIN)</label><input class="fi-in" type="url" id="f-sas" placeholder="Auto-filled"></div>
       <div class="fi"><label class="fl">Expected Units</label><input class="fi-in" type="number" id="f-exp" placeholder="0"></div>
@@ -1326,15 +1327,16 @@ function vatBadge(v){
   if(v==='0')return `<span title="VAT-free / 0% VAT" style="font-size:8px;font-weight:800;padding:1px 6px;border-radius:8px;background:rgba(45,212,191,.16);color:#2dd4bf;border:1px solid rgba(45,212,191,.45);margin-left:5px;white-space:nowrap;letter-spacing:.03em;">VAT-FREE</span>`;
   return '';
 }
-// Always-visible VAT marker — shows the rate on every line, pulling the value
-// set in the row / Lavarion detail (own-account SKUs fill from purchase-sheet
-// column H on sync). 0% is highlighted teal; 5% amber; 20% neutral. Anything
-// not explicitly 5 or 20 reads "0% VAT" (never a dash).
+// Always-visible VAT marker — one neutral grey style for every rate. Shows the
+// real value (0% / 5% / 20%) pulled from the row / Lavarion detail. Own-account
+// SKUs come from purchase-sheet column H on sync; if not pulled yet it shows a
+// muted "VAT —" rather than guessing a rate.
 function vatTag(v){
-  v=(v===5||v==='5')?'5':(v===20||v==='20')?'20':'0';
-  if(v==='5')return `<span title="5% reduced-rate VAT" style="font-size:8px;font-weight:700;padding:1px 6px;border-radius:8px;background:rgba(251,191,36,.14);color:#fbbf24;border:1px solid rgba(251,191,36,.4);margin-left:6px;white-space:nowrap;vertical-align:middle;">5% VAT</span>`;
-  if(v==='20')return `<span title="20% standard-rate VAT" style="font-size:8px;font-weight:700;padding:1px 6px;border-radius:8px;background:rgba(148,163,184,.16);color:var(--text2);border:1px solid var(--border2);margin-left:6px;white-space:nowrap;vertical-align:middle;">20% VAT</span>`;
-  return `<span title="0% / VAT-free" style="font-size:8px;font-weight:800;padding:1px 6px;border-radius:8px;background:rgba(45,212,191,.16);color:#2dd4bf;border:1px solid rgba(45,212,191,.45);margin-left:6px;white-space:nowrap;letter-spacing:.03em;vertical-align:middle;">0% VAT</span>`;
+  v=(v===0||v==='0')?'0':(v===5||v==='5')?'5':(v===20||v==='20')?'20':'';
+  const label=v===''?'VAT —':v+'% VAT';
+  const extra=v===''?'border-style:dashed;color:var(--text3);':'color:var(--text2);';
+  const tip=v===''?'VAT not set yet — fills from purchase-sheet column H on next sync':v+'% VAT';
+  return `<span title="${tip}" style="font-size:8px;font-weight:700;padding:1px 6px;border-radius:8px;background:rgba(148,163,184,.14);border:1px solid var(--border2);${extra}margin-left:6px;white-space:nowrap;vertical-align:middle;">${label}</span>`;
 }
 function vatSelectOptions(v){
   return ['','20','5','0'].map(o=>`<option value="${o}" ${String(v||'')===o?'selected':''}>${o===''?'— (from sheet / unknown)':o==='20'?'20% (Standard)':o==='5'?'5% (Reduced)':'0% (VAT-free)'}</option>`).join('');
@@ -2229,6 +2231,8 @@ function openEdit(id){
   document.getElementById('f-dg').value=r.dg||'';
   document.getElementById('f-sku').value=r.sku||'';
   const vatEl=document.getElementById('f-vat');if(vatEl)vatEl.value=r.vat||'';
+  const vatDisp=document.getElementById('f-vat-display');
+  if(vatDisp)vatDisp.textContent=({'0':'0% VAT','5':'5% VAT','20':'20% VAT'})[r.vat]||'— not set (fills from purchase sheet column H)';
   document.getElementById('f-sas').value=r.sas||'';
   document.getElementById('f-exp').value=r.exp||'';
   document.getElementById('f-aqty').value=r.aqty||'';
@@ -2261,6 +2265,7 @@ function clearForm(){
   document.getElementById('f-issueType').value='';
   document.getElementById('f-dg').value='';
   const vatC=document.getElementById('f-vat');if(vatC)vatC.value='';
+  const vatD=document.getElementById('f-vat-display');if(vatD)vatD.textContent='— not set (fills from purchase sheet column H)';
   tbq();
 }
 async function moveToActions(id){
