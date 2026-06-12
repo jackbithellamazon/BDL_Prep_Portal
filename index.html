@@ -1110,13 +1110,14 @@ CREATE POLICY IF NOT EXISTS "app_settings_all" ON app_settings FOR ALL USING (tr
       </select>
       <select class="audit-filter" id="auditFilterType" onchange="setAuditFilter('type',this.value)">
         <option value="all">All actions</option>
-        <option value="Sheet Sync">Sheet Sync</option>
         <option value="Sent">Sent to Amazon</option>
+        <option value="Status">Status changes</option>
+        <option value="Shipment">Shipments</option>
+        <option value="Return">Returns</option>
         <option value="Action">Issues / Actions</option>
         <option value="Issue">Issues raised</option>
-        <option value="Status">Status changes</option>
         <option value="archive">Archive</option>
-        <option value="Return">Returns</option>
+        <option value="delete">Deletions</option>
         <option value="Lavarion">Lavarion</option>
       </select>
       <select class="audit-filter" id="auditFilterRange" onchange="setAuditFilter('range',this.value)">
@@ -5942,7 +5943,6 @@ function confirmImport(){
 
     rows.push(newRow);
     newRows.push(newRow);
-    logAudit('Imported from Sheet',sku);
     imported++;
   });
 
@@ -6304,7 +6304,6 @@ async function runSheetSync(manual){
   if(totalDeactivated>0)logParts.push(totalDeactivated+' removed');
   if(totalErrors>0)logParts.push(totalErrors+' error(s)');
   const logMsg=logParts.length?logParts.join(', '):'Up to date — no changes';
-  if(anyChange)logAudit('Sheet Sync',logMsg); // ONE summary line per run, not one per row
   setSheetSyncLog(totalErrors>0?logMsg+' ⚠':logMsg,totalErrors>0);
   setSheetSyncStatus(nowStr,null);
   if(manual&&(anyChange||totalErrors>0))toast((totalErrors>0?'⚠ ':'')+'Sheet sync: '+logMsg,totalErrors>0?'er':null);
