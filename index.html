@@ -497,6 +497,13 @@ select.fi-in option{background:var(--bg2);}
 .audit-txt{font-size:11px;color:var(--text);line-height:1.5;}
 .audit-txt strong{color:var(--accent);}
 .audit-time{font-size:9px;color:var(--text3);margin-top:2px;}
+.audit-day{background:var(--bg3);color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:6px 14px;border-bottom:1px solid var(--border);border-top:1px solid var(--border);font-family:var(--mono);}
+.audit-day:first-child{border-top:none;}
+.audit-filter{height:30px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:11px;padding:0 8px;cursor:pointer;outline:none;}
+.audit-filter:hover{border-color:var(--border2);}
+.audit-empty{padding:34px;text-align:center;color:var(--text3);font-size:12px;}
+#auditLoadMore{margin:0 12px 16px;padding:9px 0;width:calc(100% - 24px);background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;}
+#auditLoadMore:hover{background:var(--bg4);color:var(--text);}
 
 /* ── EMPTY ── */
 .empty{padding:48px;text-align:center;}
@@ -598,6 +605,50 @@ html.light-mode{
 </head>
 <body>
 
+<!-- ════════════════════════════════════════════════════════════════════
+     AUTH GATE — login wall. The whole app stays hidden until a real
+     Supabase user signs in. Combined with RLS (see supabase_security.sql)
+     this is what actually protects the data: the public anon key in this
+     file is useless without a valid login.
+     ════════════════════════════════════════════════════════════════════ -->
+<style>
+  #authGate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+    background:#0d0d0b;font-family:'Segoe UI',Roboto,Arial,sans-serif;}
+  #authGate .ag-card{width:340px;max-width:90vw;background:#131311;border:1px solid #2a2925;border-radius:14px;
+    padding:30px 28px;box-shadow:0 24px 60px rgba(0,0,0,.6);}
+  #authGate .ag-logo{font-size:22px;font-weight:600;color:#fff;margin-bottom:4px;letter-spacing:.3px;}
+  #authGate .ag-logo em{color:#f59e0b;font-style:normal;}
+  #authGate .ag-sub{font-size:12px;color:#cbc6bc;margin-bottom:22px;}
+  #authGate label{display:block;font-size:11px;font-weight:600;color:#cbc6bc;margin:14px 0 5px;}
+  #authGate input{width:100%;height:38px;background:#1a1917;border:1px solid #3a3935;border-radius:8px;
+    color:#fff;font-size:13px;padding:0 12px;outline:none;}
+  #authGate input:focus{border-color:#f59e0b;}
+  #authGate button{width:100%;height:40px;margin-top:20px;background:#f59e0b;color:#0d0d0b;border:none;
+    border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;}
+  #authGate button:disabled{opacity:.6;cursor:default;}
+  #authGate .ag-err{min-height:16px;margin-top:12px;font-size:11px;color:#ff5555;text-align:center;}
+  #appShell{flex:1;display:flex;min-width:0;height:100vh;visibility:hidden;} /* restore body's flex row: sidebar + main side by side */
+  body.authed #authGate{display:none;}
+  body.authed #appShell{visibility:visible;}
+</style>
+<div id="authGate">
+  <div class="ag-card">
+    <div class="ag-logo">BDL <em>PrepHub</em></div>
+    <div class="ag-sub">Sign in to continue</div>
+    <label for="agEmail">Email</label>
+    <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
+      onkeydown="if(event.key==='Enter')document.getElementById('agPass').focus()">
+    <label for="agPass">Password</label>
+    <input id="agPass" type="password" autocomplete="current-password" placeholder="••••••••"
+      onkeydown="if(event.key==='Enter')agSignIn()">
+    <button id="agBtn" onclick="agSignIn()">Sign in</button>
+    <div class="ag-err" id="agErr"></div>
+  </div>
+</div>
+
+<!-- Everything below is wrapped so it can be hidden until login succeeds. -->
+<div id="appShell">
+
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
@@ -652,8 +703,8 @@ html.light-mode{
     </button>
   </div>
   <div class="sb-foot">
-    <div class="sb-av" id="sbAv">JB</div>
-    <div class="sb-info"><div class="sb-name" id="sbName">Jack Bithell</div><div class="sb-role" id="sbRole">Owner</div></div>
+    <div class="sb-av" id="sbAv">?</div>
+    <div class="sb-info"><div class="sb-name" id="sbName">—</div><div class="sb-role" id="sbRole">—</div></div>
   </div>
 </nav>
 
@@ -680,10 +731,11 @@ html.light-mode{
         <span id="syncText">Synced</span>
       </div>
       <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">🌙</button>
+      <button class="theme-btn" id="logoutBtn" onclick="agSignOut()" title="Sign out">⎋</button>
       </div>
-      <div class="user-chip" onclick="cycleUser()">
-        <div class="user-chip-name" id="topName">Jack Bithell</div>
-        <div class="user-chip-av" id="topAv">JB</div>
+      <div class="user-chip" onclick="agSignOut()" title="Signed in — click to sign out">
+        <div class="user-chip-name" id="topName">—</div>
+        <div class="user-chip-av" id="topAv">?</div>
       </div>
     </div>
   </div>
@@ -1048,14 +1100,36 @@ CREATE POLICY IF NOT EXISTS "app_settings_all" ON app_settings FOR ALL USING (tr
 
   <!-- AUDIT PAGE -->
   <div class="page" id="page-audit">
-    <div class="toolbar">
+    <div class="toolbar" style="gap:8px;flex-wrap:wrap;align-items:center;">
       <div class="search-box">
         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="13" y2="13"/></svg>
-        <input placeholder="Search audit log…">
+        <input id="auditSearch" placeholder="Search audit log…" oninput="onAuditSearch(this.value)">
       </div>
+      <select class="audit-filter" id="auditFilterUser" onchange="setAuditFilter('user',this.value)">
+        <option value="all">All people</option>
+      </select>
+      <select class="audit-filter" id="auditFilterType" onchange="setAuditFilter('type',this.value)">
+        <option value="all">All actions</option>
+        <option value="Sheet Sync">Sheet Sync</option>
+        <option value="Sent">Sent to Amazon</option>
+        <option value="Action">Issues / Actions</option>
+        <option value="Issue">Issues raised</option>
+        <option value="Status">Status changes</option>
+        <option value="archive">Archive</option>
+        <option value="Return">Returns</option>
+        <option value="Lavarion">Lavarion</option>
+      </select>
+      <select class="audit-filter" id="auditFilterRange" onchange="setAuditFilter('range',this.value)">
+        <option value="all">All time</option>
+        <option value="today">Today</option>
+        <option value="7d">Last 7 days</option>
+        <option value="30d">Last 30 days</option>
+      </select>
+      <span id="auditCount" style="font-size:10px;color:var(--text3);margin-left:auto;font-family:var(--mono);"></span>
     </div>
-    <div class="tbl-wrap">
+    <div class="tbl-wrap" style="overflow-y:auto;">
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:12px;" id="auditList"></div>
+      <button id="auditLoadMore" onclick="loadAuditPage(false)" style="display:none;">Load older activity</button>
     </div>
   </div>
 </div>
@@ -1255,7 +1329,7 @@ const USERS=[
   {id:'uk',name:'UK Staff',init:'UK',role:'Prep Team',col:'#60a5fa'},
   {id:'va',name:'VA',init:'VA',role:'Admin',col:'#34d399'},
 ];
-let cu=USERS[0];
+let cu={id:'',name:'-',role:'',init:'?',col:'#888888'}; // neutral until a real login sets identity
 
 // UK local date ISO string (YYYY-MM-DD) — avoids UTC offset bug
 function todayISO(){
@@ -1399,7 +1473,6 @@ function sortRows(){
 
 let claims=[];
 let completed=[];
-let audit=[];
 let editId=null,pendComp=null,pendClaim=null,nid=0;
 // Boxes per shipment ID — stored separately as shipments are derived
 let shipBoxes={};
@@ -1627,7 +1700,7 @@ function goPage(n,btn){
   document.getElementById('pageTitle').textContent=t[n]||n;
   if(n==='dashboard')renderDashboard();
   if(n==='insights')renderInsights();
-  if(n==='audit')renderAudit();
+  if(n==='audit'){buildAuditSeatFilter();loadAuditPage(true);}
   if(n==='claims')renderClaims();
   if(n==='admin')renderAdmin();
   if(n==='shipments'){setShipDateFilter(_shipDateFilter);}
@@ -1713,15 +1786,7 @@ function runGlobalSearch(qRaw){
         <span style="font-size:13px;color:var(--text3);flex-shrink:0;">→</span>
       </div>`).join('');
 }
-function cycleUser(){
-  const i=USERS.findIndex(u=>u.id===cu.id);cu=USERS[(i+1)%USERS.length];
-  document.getElementById('sbAv').textContent=cu.init;
-  document.getElementById('sbName').textContent=cu.name;
-  document.getElementById('sbRole').textContent=cu.role;
-  document.getElementById('topAv').textContent=cu.init;
-  document.getElementById('topName').textContent=cu.name;
-  toast('Switched to '+cu.name);
-}
+function cycleUser(){ /* disabled — identity now comes only from the signed-in Supabase account */ }
 
 // ── COPY ─────────────────────────────────────────────────────────────────────
 function copyVal(text,el){
@@ -4691,13 +4756,111 @@ function openSupplierModal(sup){
   om('supplierModal');
 }
 
-function logAudit(act,det){audit.unshift({u:cu,act,det,t:new Date().toLocaleString('en-GB')});}
+// ── AUDIT LOG (persisted to Supabase · paginated · filtered) ──────────────────
+// Each entry is saved to the audit_log table so it survives refresh and is
+// shared across all 3 laptops. The page loads only ~50 at a time, so the table
+// can hold millions of rows without the browser ever slowing down.
+let audit=[];                 // entries currently loaded into the page
+let _auditOffset=0;           // how many rows pulled from the DB so far
+let _auditHasMore=true;       // is there an older page to load?
+let _auditLoading=false;
+let _auditFirstLoad=false;    // have we loaded from the DB at least once?
+const AUDIT_PAGE=50;
+const _auditFilters={user:'all',type:'all',range:'all',q:''};
+
+// Record an action: show it instantly AND save it to Supabase in the background.
+function logAudit(act,det){
+  const e={user_id:cu.id,user_name:cu.name,user_role:cu.role,user_init:cu.init,user_col:cu.col,
+           action:act,detail:det||'',created_at:new Date().toISOString()};
+  audit.unshift(e); // instant local display
+  if(document.getElementById('page-audit')?.classList.contains('active'))renderAudit();
+  // Persist (fire-and-forget — never blocks the UI).
+  sb.from('audit_log').insert({
+    user_id:e.user_id,user_name:e.user_name,user_role:e.user_role,user_init:e.user_init,
+    user_col:e.user_col,action:e.action,detail:e.detail,created_at:e.created_at
+  }).then(({error})=>{if(error)console.warn('audit save:',error.message);});
+}
+
+// Pull one page of history from Supabase using the current filters.
+async function loadAuditPage(reset){
+  if(_auditLoading)return;
+  _auditLoading=true;
+  if(reset){_auditOffset=0;_auditHasMore=true;audit=[];}
+  try{
+    let q=sb.from('audit_log').select('*').order('created_at',{ascending:false});
+    const f=_auditFilters;
+    if(f.user!=='all')q=q.eq('user_id',f.user);
+    if(f.type!=='all')q=q.ilike('action','%'+f.type+'%');
+    if(f.range!=='all'){
+      const days=f.range==='today'?1:(f.range==='7d'?7:30);
+      q=q.gte('created_at',new Date(Date.now()-days*864e5).toISOString());
+    }
+    if(f.q){const s=f.q.replace(/[%,()]/g,' ');q=q.or(`action.ilike.%${s}%,detail.ilike.%${s}%`);}
+    q=q.range(_auditOffset,_auditOffset+AUDIT_PAGE-1);
+    const {data,error}=await q;
+    if(error)throw error;
+    audit=audit.concat(data||[]);
+    _auditOffset+=(data||[]).length;
+    _auditHasMore=(data||[]).length===AUDIT_PAGE;
+    _auditFirstLoad=true;
+  }catch(e){console.warn('audit load:',e.message);}
+  _auditLoading=false;
+  renderAudit();
+}
+
+function setAuditFilter(kind,val){_auditFilters[kind]=val;loadAuditPage(true);}
+let _auditSearchT=null;
+function onAuditSearch(v){_auditFilters.q=v.trim();clearTimeout(_auditSearchT);_auditSearchT=setTimeout(()=>loadAuditPage(true),250);}
+
+// Populate the "person" filter from whoever actually appears in recent history,
+// so new seats show up automatically with no code changes.
+async function buildAuditSeatFilter(){
+  const sel=document.getElementById('auditFilterUser');
+  if(!sel)return;
+  try{
+    const {data}=await sb.from('audit_log').select('user_id,user_name,user_role')
+      .order('created_at',{ascending:false}).limit(2000);
+    const seen=new Map();
+    (data||[]).forEach(r=>{if(r.user_id&&!seen.has(r.user_id))seen.set(r.user_id,r.user_name||r.user_id);});
+    const cur=sel.value;
+    sel.innerHTML='<option value="all">All people</option>'+
+      [...seen.entries()].sort((a,b)=>a[1].localeCompare(b[1]))
+        .map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join('');
+    if([...sel.options].some(o=>o.value===cur))sel.value=cur;
+  }catch(e){/* leave the default option */}
+}
+
+function _auditDayLabel(iso){
+  const d=new Date(iso),now=new Date();
+  const diff=Math.round((new Date(now.getFullYear(),now.getMonth(),now.getDate())
+    -new Date(d.getFullYear(),d.getMonth(),d.getDate()))/864e5);
+  if(diff===0)return'Today';
+  if(diff===1)return'Yesterday';
+  return d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
+}
+
 function renderAudit(){
-  document.getElementById('auditList').innerHTML=audit.map(a=>`
-    <div class="audit-item">
-      <div class="audit-av" style="background:${a.u.col}22;color:${a.u.col};">${a.u.init}</div>
-      <div><div class="audit-txt"><strong>${a.u.name}</strong> ${a.act} — ${a.det}</div><div class="audit-time">${a.t}</div></div>
-    </div>`).join('');
+  const host=document.getElementById('auditList');
+  if(!host)return;
+  const lm=document.getElementById('auditLoadMore');
+  const ct=document.getElementById('auditCount');
+  if(!_auditFirstLoad&&audit.length===0){host.innerHTML='<div class="audit-empty">Loading…</div>';if(lm)lm.style.display='none';return;}
+  if(audit.length===0){host.innerHTML='<div class="audit-empty">No matching activity.</div>';if(lm)lm.style.display='none';if(ct)ct.textContent='0 shown';return;}
+  let html='',lastDay=null;
+  for(const a of audit){
+    const day=_auditDayLabel(a.created_at);
+    if(day!==lastDay){html+=`<div class="audit-day">${day}</div>`;lastDay=day;}
+    const time=new Date(a.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const col=a.user_col||'#f59e0b';
+    const roleTag=a.user_role?` · ${esc(a.user_role)}`:'';
+    html+=`<div class="audit-item">
+      <div class="audit-av" style="background:${col}22;color:${col};">${esc(a.user_init||'?')}</div>
+      <div><div class="audit-txt"><strong>${esc(a.user_name||'Unknown')}</strong> ${esc(a.action)} — ${esc(a.detail||'')}</div><div class="audit-time">${time}${roleTag}</div></div>
+    </div>`;
+  }
+  host.innerHTML=html;
+  if(ct)ct.textContent=audit.length+' shown'+(_auditHasMore?'+':'');
+  if(lm)lm.style.display=_auditHasMore?'block':'none';
 }
 
 // ── MODALS ────────────────────────────────────────────────────────────────────
@@ -6069,7 +6232,7 @@ async function runSheetSync(manual){
   for(const{fields,syncId}of toAdd){
     const newRow={id:++nid,sheetSyncId:syncId,...fields,notes:'',rcvd:0,issueType:'',issueQty:0,status:'In-Transit',ship:0,shipId:'',sent:'No',sentDate:'',reimb:'No',pri:'No',archived:false,shipSegments:[],allShipIds:[],createdISO:todayISO(),createdAt:getNowUK(),importedFrom:'Sheet Sync',sheetRow:''};
     rows.push(newRow);
-    try{const ok=await saveRow(newRow);if(ok){added++;logAudit('Sheet Sync — added',fields.sku);}else{saveErrors.push('Save failed: '+fields.sku);rows.pop();}}
+    try{const ok=await saveRow(newRow);if(ok){added++;}else{saveErrors.push('Save failed: '+fields.sku);rows.pop();}}
     catch(e){saveErrors.push('Save error: '+fields.sku+' — '+e.message);rows.pop();}
   }
 
@@ -6081,7 +6244,7 @@ async function runSheetSync(manual){
     if(syncId!==existing.sheetSyncId){existing.sheetSyncId=syncId;changed=true;}
     if(changed){
       existing._dirty=true;
-      try{const ok=await saveRow(existing);if(ok){updated++;logAudit('Sheet Sync — updated',existing.sku);}else saveErrors.push('Update failed: '+existing.sku);}
+      try{const ok=await saveRow(existing);if(ok){updated++;}else saveErrors.push('Update failed: '+existing.sku);}
       catch(e){saveErrors.push('Update error: '+existing.sku+' — '+e.message);}
     }
   }
@@ -6090,7 +6253,7 @@ async function runSheetSync(manual){
   for(const{existing,fields,syncId}of toReactivate){
     Object.assign(existing,fields);
     existing.sheetSyncId=syncId;existing.archived=false;existing.status='In-Transit';existing._dirty=true;
-    try{await saveRow(existing);reactivated++;logAudit('Sheet Sync — reactivated',existing.sku);}
+    try{await saveRow(existing);reactivated++;}
     catch(e){saveErrors.push('Reactivate error: '+existing.sku+' — '+e.message);}
   }
 
@@ -6102,12 +6265,10 @@ async function runSheetSync(manual){
         // Has shipment data — archive it (keep on Shipments page)
         r.archived=true;r._dirty=true;
         await saveRow(r);
-        logAudit('Sheet Sync — archived (has shipment)',r.sku);
       }else{
         // Never shipped — fully delete from Supabase, no trace in Show Archived
         if(r.uuid){await sb.from('prep_rows').delete().eq('id',r.uuid);}
         rows.splice(rows.indexOf(r),1);
-        logAudit('Sheet Sync — deleted (no shipment)',r.sku);
       }
       deactivated++;
     }catch(e){saveErrors.push('Remove error: '+r.sku+' — '+e.message);}
@@ -6143,6 +6304,7 @@ async function runSheetSync(manual){
   if(totalDeactivated>0)logParts.push(totalDeactivated+' removed');
   if(totalErrors>0)logParts.push(totalErrors+' error(s)');
   const logMsg=logParts.length?logParts.join(', '):'Up to date — no changes';
+  if(anyChange)logAudit('Sheet Sync',logMsg); // ONE summary line per run, not one per row
   setSheetSyncLog(totalErrors>0?logMsg+' ⚠':logMsg,totalErrors>0);
   setSheetSyncStatus(nowStr,null);
   if(manual&&(anyChange||totalErrors>0))toast((totalErrors>0?'⚠ ':'')+'Sheet sync: '+logMsg,totalErrors>0?'er':null);
@@ -6336,7 +6498,13 @@ function bootSheetSync(){
 }
 const SUPA_URL='https://vsekpaibspetreadkxyi.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzZWtwYWlic3BldHJlYWRreHlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDE0NzcsImV4cCI6MjA5NDI3NzQ3N30.DVDI1nsBTyDbRPJDw_fcc7oohmH94erM07626xC4MtY';
-const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{
+  auth:{
+    persistSession:true,        // keep each laptop logged in across refreshes
+    autoRefreshToken:true,      // silently refresh the session before it expires
+    storageKey:'bdl-prephub-auth'
+  }
+});
 
 // ── SYNC STATUS ───────────────────────────────────────────────────────────────
 function setSyncStatus(status){
@@ -7065,6 +7233,7 @@ async function clearEverything(){
     await sb.from('app_settings').delete().eq('key','sync_history').catch(()=>{});
     _syncHistory.length=0;
     rows=[];claims=[];shipBoxes={};lavAsins=[];lavShipments=[];
+    audit=[];_auditOffset=0;_auditFirstLoad=false;
     renderPrep();renderDashboard();renderClaims();updateCB();
     updateSyncHealthUI();
     setSyncStatus('synced');
@@ -7801,14 +7970,98 @@ setInterval(()=>{
   if(d!==_lastDay){_lastDay=d;renderDashboard();renderPrep();renderShipments();toast('Day changed — dashboard updated');}
 },60000); // check every minute
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-setSyncStatus('syncing');
-dbLoad().then(()=>{
-  setupRealtime();
-  // Default to Prep Sheet
-  const prepBtn=document.querySelector('.sb-item.on');
-  if(prepBtn)goPage('prep',prepBtn);
+// ── INIT (auth-gated) ──────────────────────────────────────────────────────────
+// The data layer (dbLoad → realtime → sheet sync) only starts AFTER a confirmed
+// Supabase session. Until then the login wall (#authGate) is shown.
+
+let _appBooted=false;
+function bootApp(){
+  if(_appBooted)return;            // guard against double-boot on token refresh
+  _appBooted=true;
+  document.body.classList.add('authed');
+  setSyncStatus('syncing');
+  dbLoad().then(()=>{
+    setupRealtime();
+    // Default to Prep Sheet
+    const prepBtn=document.querySelector('.sb-item.on');
+    if(prepBtn)goPage('prep',prepBtn);
+  });
+}
+
+// Map the signed-in email to one of the three known operators so the user-chip
+// and audit log show who actually did something (instead of a clickable guess).
+// Stable avatar colour derived from the seat key, so every seat looks distinct
+// even if no colour was set in Supabase.
+function _seatColor(key){
+  const palette=['#f59e0b','#60a5fa','#34d399','#cc99ff','#ff6b9d','#5eead4','#fbbf24','#a78bfa','#4ade80','#fb7185'];
+  let h=0;for(let i=0;i<(key||'').length;i++)h=(h*31+key.charCodeAt(i))>>>0;
+  return palette[h%palette.length];
+}
+
+// Build the current identity ENTIRELY from the Supabase account.
+// Identity comes from the user's metadata (set in the dashboard). If a field is
+// missing we fall back to the email — NEVER to a hard-coded person like Jack.
+function applyIdentity(user){
+  if(!user)return;
+  const m=user.user_metadata||{};
+  const email=(user.email||'').toLowerCase();
+  const localPart=email.split('@')[0]||'user';
+  // Turn the email name into a tidy display name automatically: jack -> Jack,
+  // tom.smith -> Tom Smith. So first-name emails just work with nothing to set up.
+  const prettyLocal=localPart.split(/[._-]+/).filter(Boolean)
+    .map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+  const name=(m.name||m.full_name||prettyLocal||localPart).toString();
+  const role=(m.role||'').toString();
+  const seat=(m.seat||email||localPart).toString();
+  const init=(m.init
+    ||name.split(/[\s._-]+/).filter(Boolean).map(w=>w[0]).join('').slice(0,2)
+    ||localPart.slice(0,2)).toUpperCase();
+  const col=m.color||m.col||_seatColor(seat);
+  cu={id:seat,name,role,init,col};
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('sbAv',cu.init);set('sbName',cu.name);set('sbRole',cu.role||'');
+  set('topAv',cu.init);set('topName',cu.name);
+}
+
+async function agSignIn(){
+  const btn=document.getElementById('agBtn');
+  const err=document.getElementById('agErr');
+  const email=document.getElementById('agEmail').value.trim();
+  const pass=document.getElementById('agPass').value;
+  if(!email||!pass){err.textContent='Enter your email and password.';return;}
+  btn.disabled=true;btn.textContent='Signing in…';err.textContent='';
+  try{
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error)throw error;
+    applyIdentity(data.user);
+    bootApp();
+  }catch(ex){
+    err.textContent=ex.message||'Sign-in failed. Check your details.';
+    btn.disabled=false;btn.textContent='Sign in';
+  }
+}
+
+async function agSignOut(){
+  try{await sb.auth.signOut();}catch(e){}
+  // Hard reload is the safest way to fully reset in-memory app state.
+  location.reload();
+}
+
+// On load: if a valid session already exists on this laptop, go straight in.
+sb.auth.getSession().then(({data})=>{
+  if(data.session){
+    applyIdentity(data.session.user);
+    bootApp();
+  }else{
+    document.getElementById('agEmail')?.focus();
+  }
 });
+
+// If the session is lost (token expired, signed out elsewhere) force re-login.
+sb.auth.onAuthStateChange((event)=>{
+  if(event==='SIGNED_OUT'){document.body.classList.remove('authed');}
+});
+
 
 // UK date/time clock
 function updateClock(){
@@ -8168,5 +8421,6 @@ setInterval(updateClock,30000);
   </div>
 </div>
 
+</div><!-- /#appShell -->
 </body>
 </html>
