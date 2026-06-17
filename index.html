@@ -840,7 +840,7 @@ html.light-mode{
           <th style="width:70px;">Issues<br>(Type/Qty)</th>
           <th style="width:44px;">Shipped<br>Qty</th>
           <th style="width:52px;">Sent to<br>Amazon</th>
-          <th style="width:100px;white-space:normal;">Shipment ID</th>
+          <th style="width:130px;white-space:normal;">Shipment ID</th>
           <th style="width:52px;">Reimburse<br>Chase</th>
           <th class="th-left" style="min-width:110px;">Packing Notes</th>
           <th class="th-left" style="min-width:110px;">VA Note</th>
@@ -867,7 +867,7 @@ html.light-mode{
       </div>
       <select class="fsel" id="claimStF" onchange="filterClaims()">
         <option value="">All Statuses</option>
-        <option>Issue</option>
+        <option>Needs Attention</option>
         <option>Open</option>
         <option>Chasing</option>
         <option>Resolved</option>
@@ -942,14 +942,15 @@ html.light-mode{
         <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px;">Implied Prep Fee Rates</div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:14px;">Used to calculate implied prep costs on Dashboard, Insights, and Shipments. All prices ex. VAT (VAT added at 20%).</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tier 1 rate/unit</div><input type="number" step="0.01" id="pf-tier1p" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">First 1,000 units</div></div>
-          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tier 2 rate/unit</div><input type="number" step="0.01" id="pf-tier2p" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">1,001–3,000 units</div></div>
-          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tier 3 rate/unit</div><input type="number" step="0.01" id="pf-tier3p" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">3,001–5,000 units</div></div>
-          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tier 4 rate/unit</div><input type="number" step="0.01" id="pf-tier4p" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">5,000+ units</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tier 1 rate/unit</div><input type="number" step="0.01" id="pf-tier1p" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">If monthly total ≤ 1,000 units</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tier 2 rate/unit</div><input type="number" step="0.01" id="pf-tier2p" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">If monthly total 1,001–3,000</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tier 3 rate/unit</div><input type="number" step="0.01" id="pf-tier3p" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">If monthly total 3,001–5,000</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Tier 4 rate/unit</div><input type="number" step="0.01" id="pf-tier4p" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">If monthly total 5,000+</div></div>
           <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Box cost (£)</div><input type="number" step="0.01" id="pf-boxCost" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Per box (reusable)</div></div>
           <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">DG box cost (£)</div><input type="number" step="0.01" id="pf-dgExtraPerBox" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Same as standard box (£1)</div></div>
           <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Oversize rate/unit (£)</div><input type="number" step="0.01" id="pf-osCostPerUnit" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Flat per OS unit</div></div>
           <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Bundle rate/unit (£)</div><input type="number" step="0.01" id="pf-bundleCostPerUnit" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Per bundled unit</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Typical monthly volume</div><input type="number" step="100" id="pf-expectedMonthlyUnits" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Sets the rate for Today/Week estimates</div></div>
         </div>
         <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
           <button onclick="saveSettingsPrepFees()" style="padding:6px 16px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Save Rates</button>
@@ -998,6 +999,13 @@ html.light-mode{
             <button onclick="addSyncSource()" style="padding:3px 10px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">+ Add Source</button>
           </div>
           <div id="syncSourcesList" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:3px;">Excluded from Sync</div>
+          <div style="font-size:9px;color:var(--text3);margin-bottom:8px;">Rows removed via "🚫 Remove &amp; exclude from sync" never re-add from the sheet. Search by SKU or ASIN, then re-allow one to let it sync again.</div>
+          <input id="syncExcludedSearch" oninput="renderSyncExcludedList()" placeholder="Search SKU or ASIN…" style="width:100%;padding:6px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;margin-bottom:8px;box-sizing:border-box;">
+          <div id="syncExcludedList" style="display:flex;flex-direction:column;gap:6px;"></div>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
@@ -1074,6 +1082,11 @@ ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
 ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS sheet_sync_id text;
 ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS vat text DEFAULT '';
 ALTER TABLE lavarion_asins ADD COLUMN IF NOT EXISTS vat text DEFAULT '20';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS va_note text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS jack_note text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS reimbursed text DEFAULT 'No';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS reimburse_note text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
 CREATE UNIQUE INDEX IF NOT EXISTS prep_rows_sheet_sync_id_key ON prep_rows (sheet_sync_id) WHERE sheet_sync_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS app_settings (key text primary key, value text);
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
@@ -1215,7 +1228,7 @@ CREATE POLICY IF NOT EXISTS "app_settings_all" ON app_settings FOR ALL USING (tr
       <div class="fi"><label class="fl">Expected Delivery</label><input class="fi-in" type="date" id="f-expectedDelivery"></div>
       <div class="fi"><label class="fl">Sheet Row # <span style="font-size:9px;color:var(--text3);">(optional)</span></label><input class="fi-in" type="number" id="f-sheetRow" placeholder="e.g. 2334"></div>
     </div></div>
-    <div class="mf" style="justify-content:space-between;"><button id="deleteEditBtn" onclick="deleteEditRow()" style="display:none;padding:6px 14px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Delete Row</button><div style="display:flex;gap:8px;"><button class="btn-cancel" onclick="cm('addModal')">Cancel</button><button class="btn-save" onclick="saveRowForm()">Save Row</button></div></div>
+    <div class="mf" style="justify-content:space-between;"><div style="display:flex;gap:8px;"><button id="deleteEditBtn" onclick="deleteEditRow()" style="display:none;padding:6px 14px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Delete Row</button><button id="excludeSyncBtn" onclick="removeAndExcludeRow()" title="Permanently remove this row and stop it syncing back from the sheet" style="display:none;padding:6px 14px;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.4);color:#cbd5e1;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">🚫 Remove &amp; exclude from sync</button></div><div style="display:flex;gap:8px;"><button class="btn-cancel" onclick="cm('addModal')">Cancel</button><button class="btn-save" onclick="saveRowForm()">Save Row</button></div></div>
   </div>
 </div>
 
@@ -1289,7 +1302,7 @@ CREATE POLICY IF NOT EXISTS "app_settings_all" ON app_settings FOR ALL USING (tr
       <div class="fi"><label class="fl">Cost per Unit (£)</label><input class="fi-in" type="number" id="cl-cost" placeholder="0.00" step="0.01"></div>
       <div class="fi"><label class="fl">Status</label>
         <select class="fi-in" id="cl-cst">
-          <option>Open</option><option>Chasing</option><option>Resolved</option>
+          <option>Needs Attention</option><option>Open</option><option>Chasing</option><option>Resolved</option>
         </select>
       </div>
       <div class="fi full"><label class="fl">Issue Description / Notes</label><textarea class="fi-in" id="cl-notes" placeholder="Describe the issue…" style="height:70px;"></textarea></div>
@@ -1375,6 +1388,21 @@ function parseSKU(skuStr){
 }
 
 let rows=[];
+
+// Sellable expected units = what actually gets sent to Amazon. For a bundle
+// (bun='Yes', N items per bundle) the purchase sheet's physical "Total units"
+// column counts individual items, so the number of saleable bundles is qty / N.
+// e.g. 98 physical items in bundles of 2 → 49 units sent to Amazon. Non-bundle
+// rows (or bundles with no/1 qty) are returned unchanged.
+function sellableExp(qty,bun,bqty){
+  const q=parseInt(qty)||0;
+  const n=parseInt(bqty)||0;
+  if(String(bun||'').trim()==='Yes'&&n>1){
+    const bundles=Math.floor(q/n);
+    return bundles>0?bundles:q;
+  }
+  return q;
+}
 
 // ── VAT HELPERS ───────────────────────────────────────────────────────────────
 // VAT status is stored as '' (unknown), '0', '5' or '20'. Pulled from the
@@ -1496,6 +1524,7 @@ function getRowEls(){return Array.from(document.querySelectorAll('#prepBody tr')
 
 // Get only visible tds — uses getComputedStyle so CSS-cascade hidden cols are caught
 function getVisibleTds(tr){
+  if(!tr)return [];
   return Array.from(tr.querySelectorAll('td')).filter(td=>getComputedStyle(td).display!=='none');
 }
 
@@ -1707,7 +1736,7 @@ function goPage(n,btn){
   if(n==='shipments'){setShipDateFilter(_shipDateFilter);}
   if(n==='lavarion')renderLavarion();
   if(n==='settings'){
-    ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit'].forEach(k=>{
+    ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit','expectedMonthlyUnits'].forEach(k=>{
       const el=document.getElementById('pf-'+k);
       if(el)el.value=prepFees[k]||0;
     });
@@ -1990,6 +2019,13 @@ function renderPrepRows(data){
       r._dirty=true;
       debounce('autoflag_'+r.id,()=>saveRow(r),2000);
     }
+    // Once a row has arrived/shipped, the transit follow-up tag is moot — clear it
+    // so it stops showing "Late" and drops out of the chase queue.
+    if(['Sent to Amazon','Part Sent','Delivered','In Warehouse','Returned'].includes(r.status)&&r.transitAction){
+      r.transitAction='';
+      r._dirty=true;
+      debounce('clearta_'+r.id,()=>saveRow(r),2000);
+    }
     const isSubSaveInTransit=isSubSave&&r.status==='In-Transit';
     const hasIssue=r.issueType&&r.issueType!=='—'&&r.issueType!=='';
     const statusClass=
@@ -2062,10 +2098,10 @@ function renderPrepRows(data){
         <option${r.bun==='No'?' selected':''}>No</option><option${r.bun==='Yes'?' selected':''}>Yes</option>
       </select></td>
       <td class="col-bundle">${r.bun==='Yes'?`<input class="ci ci-num" type="text" value="${r.bqty||''}" placeholder="—" onchange="uf('${r.uuid||r.id}','bqty',this.value);" tabindex="-1">`:`<span style="color:var(--text3);">—</span>`}</td>
-      <td><input class="ci ci-num" type="number" value="${r.exp}" onchange="uf('${r.uuid||r.id}','exp',+this.value);debounce('stats',renderStats);" tabindex="-1"></td>
+      <td><input class="ci ci-num" type="number" value="${r.exp}" onchange="uf('${r.uuid||r.id}','exp',+this.value);updateDiffCell(${r.id},${r.rcvd||0},+this.value);debounce('stats',renderStats);" tabindex="-1">${(r.bun==='Yes'&&(parseInt(r.bqty)||0)>1)?`<div style="font-size:8px;color:var(--text3);margin-top:1px;white-space:nowrap;line-height:1;" title="Bundle of ${r.bqty}: ${r.exp||0} saleable unit${(r.exp||0)!==1?'s':''} sent to Amazon = ${(r.exp||0)*(parseInt(r.bqty)||0)} physical item${((r.exp||0)*(parseInt(r.bqty)||0))!==1?'s':''} to receive/count">×${r.bqty} = ${(r.exp||0)*(parseInt(r.bqty)||0)} items</div>`:''}</td>
       <td><select class="ci-sel" onchange="handleStatusChange('${r.uuid||r.id}',this);" tabindex="-1">
         ${['In-Transit','Delivered','In Warehouse','Part Sent','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
-      </select></td>
+      </select>${r.status==='Part Sent'?(()=>{const _left=remainingToShip(r);const _bs='display:block;margin-top:3px;width:100%;box-sizing:border-box;padding:4px 4px;border:none;border-radius:4px;font-size:9px;font-weight:800;cursor:pointer;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;background:#2563eb;color:#fff;';return `<button onclick="${_left>0?'sendMore':'sendExtra'}('${r.uuid||r.id}')" title="Send ${_left>0?'the remaining '+_left+' unit'+(_left===1?'':'s'):'another unit (none calculated as outstanding, but you can still send 1+ more)'} to a shipment ID" style="${_bs}">↗ Send more${_left>0?` (${_left})`:''}</button>`;})():''}</td>
       <td><input class="ci ci-num" type="number" value="${r.rcvd}" onchange="uf('${r.uuid||r.id}','rcvd',+this.value);updateDiffCell(${r.id},+this.value,${r.exp||0});debounce('stats',renderStats);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
       <td id="diff-${r.id}">${diffEl}</td>
       <td style="text-align:center;">
@@ -2081,28 +2117,43 @@ function renderPrepRows(data){
         ${(()=>{
           const segs=normaliseSegments(r);
           const unitWord=n=>n===1?'unit':'units';
+          // A subtle "undo this batch" control — reads as a deliberate action, not
+          // an error. Muted by default, turns red only on hover.
+          const undoBtn=(s)=>`<button onclick="undoSegment('${r.uuid||r.id}','${s.shipId}','${s.date||''}',${s.units||0})" title="Undo this batch — return ${s.units} ${unitWord(s.units)} to send" style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;background:transparent;border:none;color:var(--text3);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;line-height:1;" onmouseover="this.style.background='var(--btn-red-bg)';this.style.color='var(--btn-red-text)';" onmouseout="this.style.background='transparent';this.style.color='var(--text3)';">↺</button>`;
+          const unitBadge=(n)=>`<span style="flex-shrink:0;font-family:var(--mono);font-size:9px;font-weight:800;color:var(--accent);background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.25);border-radius:8px;padding:0 6px;line-height:1.5;white-space:nowrap;">${n} ${unitWord(n)}</span>`;
           if(segs.length>1){
-            // Split across shipments: stack each ID on its own line, bold, with
-            // a clear unit count. Not inline-editable (use the green tick / undo).
-            return `<div style="display:flex;flex-direction:column;gap:3px;">${
-              segs.map(s=>`<div style="font-family:var(--mono);font-size:10px;line-height:1.3;">
-                <span style="font-weight:800;color:var(--text);">${s.shipId}</span>
-                <span style="color:var(--text2);font-weight:600;"> — ${s.units} ${unitWord(s.units)}</span>
+            // Split across shipments: stack each FBA ID as its own chip. The unit
+            // badge matters here — it shows how the units divide across shipments.
+            return `<div style="display:flex;flex-direction:column;gap:4px;">${
+              segs.map(s=>`<div style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:2px 4px 2px 8px;">
+                <span style="font-family:var(--mono);font-size:10px;font-weight:800;color:var(--text);word-break:break-all;line-height:1.3;flex:1;min-width:0;">${s.shipId}</span>
+                ${unitBadge(s.units)}
+                ${undoBtn(s)}
               </div>`).join('')
             }</div>`;
           }
-          // Single shipment (or none): editable primary ID.
-          return `<div style="font-family:var(--mono);font-size:10px;font-weight:700;word-break:break-all;white-space:normal;line-height:1.4;cursor:pointer;min-height:18px;color:${r.shipId?'var(--text)':'var(--text3)'}"
+          if(segs.length===1){
+            // One batch: a clean chip with an editable ID and a subtle undo. No unit
+            // count here — it's identical to the Shipped Qty column, so it's just noise.
+            const s=segs[0];
+            return `<div style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:2px 4px 2px 8px;">
+              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${r.shipId?'var(--text)':'var(--text3)'};word-break:break-all;white-space:normal;line-height:1.4;cursor:text;flex:1;min-width:0;"
+                onclick="editShipIdInline('${r.uuid||r.id}',this)" title="Click to edit shipment ID">${r.shipId||'—'}</span>
+              ${undoBtn(s)}
+            </div>`;
+          }
+          // No shipment yet: an editable, dashed "add ID" chip.
+          return `<div style="font-family:var(--mono);font-size:10px;font-weight:700;word-break:break-all;white-space:normal;line-height:1.4;cursor:text;min-height:18px;color:var(--text3);border:1px dashed var(--border2);border-radius:6px;padding:2px 8px;"
             onclick="editShipIdInline('${r.uuid||r.id}',this)"
-            title="Click to edit">${r.shipId||'—'}</div>`;
+            title="Click to add shipment ID">${r.shipId||'—'}</div>`;
         })()}
         <input type="hidden" id="shipid-${r.id}" value="${r.shipId||''}">
       </td>
       <td><select class="ci-sel" onchange="uf('${r.uuid||r.id}','reimb',this.value);" tabindex="-1">
         <option${r.reimb==='No'?' selected':''}>No</option><option${r.reimb==='Yes'?' selected':''}>Yes</option>
       </select></td>
-      <td class="td-left"><input class="ci ci-note" type="text" value="${(r.notes||'').replace(/"/g,'&quot;')}" placeholder="—" onchange="uf('${r.uuid||r.id}','notes',this.value);" tabindex="-1" title="${(r.notes||'').replace(/"/g,'&quot;')}" style="min-width:150px;" onfocus="this.style.minWidth='280px';this.style.position='relative';this.style.zIndex='10';" onblur="this.style.minWidth='';this.style.position='';this.style.zIndex='';"></td>
-      <td class="td-left"><input class="ci ci-note" type="text" value="${(r.vaNote||'').replace(/"/g,'&quot;')}" placeholder="—" onchange="uf('${r.uuid||r.id}','vaNote',this.value);" tabindex="-1" title="${(r.vaNote||'').replace(/"/g,'&quot;')}" style="min-width:150px;" onfocus="this.style.minWidth='280px';this.style.position='relative';this.style.zIndex='10';" onblur="this.style.minWidth='';this.style.position='';this.style.zIndex='';"></td>
+      <td class="td-left"><textarea class="ci ci-note" rows="2" placeholder="—" onchange="uf('${r.uuid||r.id}','notes',this.value);" tabindex="-1" title="${(r.notes||'').replace(/"/g,'&quot;')}" style="min-width:150px;width:150px;height:34px;line-height:1.35;white-space:normal;resize:none;overflow:hidden;vertical-align:top;font-family:inherit;" onfocus="this.style.width='280px';this.style.height='84px';this.style.overflow='auto';this.style.position='relative';this.style.zIndex='10';" onblur="this.style.width='';this.style.height='34px';this.style.overflow='hidden';this.style.position='';this.style.zIndex='';">${(r.notes||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea></td>
+      <td class="td-left"><textarea class="ci ci-note" rows="2" placeholder="—" onchange="uf('${r.uuid||r.id}','vaNote',this.value);" tabindex="-1" title="${(r.vaNote||'').replace(/"/g,'&quot;')}" style="min-width:150px;width:150px;height:34px;line-height:1.35;white-space:normal;resize:none;overflow:hidden;vertical-align:top;font-family:inherit;" onfocus="this.style.width='280px';this.style.height='84px';this.style.overflow='auto';this.style.position='relative';this.style.zIndex='10';" onblur="this.style.width='';this.style.height='34px';this.style.overflow='hidden';this.style.position='';this.style.zIndex='';">${(r.vaNote||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea></td>
       <td style="text-align:center;min-width:160px;">
         <select class="ci" onchange="uf('${r.uuid||r.id}','transitAction',this.value);" style="font-size:10px;padding:2px 6px;background:${{'Urgent — Chase Now':'rgba(239,68,68,.2)','Late — Needs Chasing':'rgba(239,68,68,.15)','Delayed':'rgba(251,146,60,.15)','Chasing Supplier':'rgba(251,146,60,.12)','Awaiting Update':'rgba(251,146,60,.1)','On Its Way':'rgba(34,197,94,.08)'}[r.transitAction]||'var(--bg3)'};color:${{'Urgent — Chase Now':'#f87171','Late — Needs Chasing':'#f87171','Delayed':'#fb923c','Chasing Supplier':'#fb923c','Awaiting Update':'#fbbf24','On Its Way':'var(--green)'}[r.transitAction]||'var(--text2)'};border:1px solid ${{'Urgent — Chase Now':'rgba(239,68,68,.4)','Late — Needs Chasing':'rgba(239,68,68,.3)','Delayed':'rgba(251,146,60,.35)','Chasing Supplier':'rgba(251,146,60,.3)','Awaiting Update':'rgba(251,191,36,.3)','On Its Way':'rgba(34,197,94,.3)'}[r.transitAction]||'var(--border2)'};border-radius:3px;width:100%;cursor:pointer;font-weight:${r.transitAction?'600':'400'};" tabindex="-1">
           <option value="" ${!r.transitAction?'selected':''}>—</option>
@@ -2286,6 +2337,10 @@ function openEdit(id){
   const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));if(!r)return;
   editId=id;document.getElementById('addTitle').textContent='Edit Row';
   const db=document.getElementById('deleteEditBtn');if(db)db.style.display='';
+  // "Remove & exclude from sync" only for rows with NO shipment and NOT marked sent
+  // — so it can never nuke a real, shipment-backed send.
+  const exb=document.getElementById('excludeSyncBtn');
+  if(exb){const hasShip=r.shipId||(r.allShipIds||[]).length||(r.shipSegments||[]).length;const isSent=r.sent==='Yes'||r.status==='Sent to Amazon';exb.style.display=(!hasShip&&!isSent)?'':'none';}
   clearForm();
   // populate date
   if(r.date){const[dd,mm]=r.date.split('/');document.getElementById('f-date').value=`2026-${(mm||'01').padStart(2,'0')}-${(dd||'01').padStart(2,'0')}`;}  
@@ -2440,6 +2495,33 @@ async function doBulkArchive(){
   });
 }
 
+// Permanently remove a junk/demo row AND tombstone it so the sheet sync never
+// re-adds it. Only callable for rows with no shipment and not marked sent (the
+// button is hidden otherwise). Never touches the Shipments page.
+function removeAndExcludeRow(){
+  if(!editId){toast('No row selected','er');return;}
+  const r=rows.find(x=>String(x.id)===String(editId)||x.uuid===String(editId));
+  if(!r){toast('Row not found','er');return;}
+  const hasShip=r.shipId||(r.allShipIds||[]).length||(r.shipSegments||[]).length;
+  if(hasShip||r.sent==='Yes'||r.status==='Sent to Amazon'){toast('This row has a shipment or is marked sent — can’t exclude it here','er');return;}
+  showConfirm('Remove & exclude from sync?',
+    `Permanently remove "${r.sku}" and stop it syncing back from the sheet. The record is gone for good (you can re-allow it later in Settings → Excluded from Sync). This does not affect the Shipments page.`,
+    async()=>{
+      const syncId=r.sheetSyncId||((r.sku||'')+'|'+((r.oid||'').trim()||'nooid'));
+      if(!_syncExcluded.some(x=>_exId(x)===syncId)){_syncExcluded.push({syncId,sku:r.sku||'',asin:r.asin||'',prod:r.prod||'',oid:(r.oid||'').trim()});await saveSyncExcluded();}
+      try{if(r.uuid)await sb.from('prep_rows').delete().eq('id',r.uuid);}catch(e){console.warn('delete failed',e);}
+      rows=rows.filter(x=>x!==r);
+      editId=null;
+      cm('addModal');
+      renderPrep();
+      if(typeof renderShipments==='function')renderShipments();
+      if(typeof renderDashboard==='function')renderDashboard();
+      toast('Row removed & excluded from sync');
+      logAudit('Row removed & excluded from sync',`${r.sku} (${syncId})`);
+    }
+  );
+}
+
 function deleteEditRow(){
   if(!editId){toast('No row selected','er');return;}
   const r=rows.find(x=>String(x.id)===String(editId)||x.uuid===String(editId));
@@ -2565,7 +2647,7 @@ function doClaim(){
     sup:r.sup,oid:r.oid||'',prod:r.prod||'',acct:r.acct||'',
     issT:it,exp:r.exp,rec:r.rcvd,dif,
     cost,claimValue:cost*dif,
-    cst:'Issue',notes:initNote,
+    cst:'Needs Attention',notes:initNote,
     log:[{t:getNowUK(),msg:'Action raised from Prep Sheet'+(initNote?` — ${initNote}`:'')}],
   });
   logAudit('Action raised',r.sku);
@@ -2598,7 +2680,7 @@ function openAddClaim(){
   document.getElementById('cl-rec').value='';
   document.getElementById('cl-cost').value='';
   document.getElementById('cl-issT').value='Missing Items';
-  document.getElementById('cl-cst').value='Issue';
+  document.getElementById('cl-cst').value='Needs Attention';
   om('addClaimModal');
 }
 function openEditClaim(id){
@@ -2704,6 +2786,8 @@ function _adminItems(){
     const isSubSave=r.subSave==='Yes';
     const isStuck=days>20&&r.status==='In-Transit'&&expPassed&&!isSubSave;
     const ta=r.transitAction||'';
+    // Arrived/shipped rows are never "in transit to chase" — keep them out.
+    if(['Sent to Amazon','Part Sent','Delivered','In Warehouse','Returned'].includes(r.status))return;
     const inChase=ADMIN_CHASE_STATES.includes(ta);
     // VA has already handled it — drop from the queue.
     if(ta==='On Its Way')return;
@@ -2829,7 +2913,7 @@ function renderAdmin(){
       </div>
       <div style="padding:6px 14px 12px;">
         ${openIssues.slice(0,12).map(c=>{
-          const sc=c.cst==='Issue'?'#ff6b6b':c.cst==='Open'?'#f97316':c.cst==='Chasing'?'#fbbf24':'#64748b';
+          const sc=c.cst==='Needs Attention'?'#ff6b6b':c.cst==='Open'?'#f97316':c.cst==='Chasing'?'#fbbf24':'#64748b';
           return`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">
             <div style="display:flex;align-items:center;gap:10px;min-width:0;">
               <span style="font-size:9px;font-weight:800;color:#0f172a;background:${sc};padding:2px 8px;border-radius:4px;white-space:nowrap;">${(c.cst||'').toUpperCase()}</span>
@@ -2852,6 +2936,7 @@ function renderClaims(){
   const q=(document.getElementById('claimSrch')||{}).value?.toLowerCase()||'';
   const sf=(document.getElementById('claimStF')||{}).value||'';
   let d=claims.filter(r=>
+    !r.archived&&
     (!q||(r.sku+r.asin+r.sup+r.prod+r.oid).toLowerCase().includes(q))&&
     (!sf||r.cst===sf)
   );
@@ -2868,8 +2953,16 @@ function renderClaims(){
   const resolvedCount=d.filter(c=>c.cst==='Resolved').length;
   const totalUnits=d.filter(c=>c.cst!=='Resolved').reduce((a,c)=>a+(c.dif||0),0);
 
-  const issueCount=d.filter(c=>c.cst==='Issue').length;
+  const issueCount=d.filter(c=>c.cst==='Needs Attention').length;
   const openOnlyCount=d.filter(c=>c.cst==='Open').length;
+
+  // Reimbursed-aware recovery: a resolved claim only counts as recovered when
+  // it was actually reimbursed. The rest is still owed.
+  const resolvedClaimsD=d.filter(c=>c.cst==='Resolved');
+  const reimbursedVal=resolvedClaimsD.filter(c=>c.reimbursed==='Yes').reduce((a,c)=>a+(c.claimValue||0),0);
+  const owedVal=resolvedClaimsD.filter(c=>(c.reimbursed||'No')!=='Yes').reduce((a,c)=>a+(c.claimValue||0),0);
+  const partialCount=resolvedClaimsD.filter(c=>c.reimbursed==='Partial').length;
+  const recSub=owedVal>0?(fmtGBP2(owedVal)+' still owed'+(partialCount?` · ${partialCount} partial`:'')):(reimbursedVal>0?'All recovered ✓':'—');
 
   const tile=(label,val,col,sub)=>`<div style="background:${col}14;border:3px solid ${col}88;border-radius:8px;padding:12px 14px;flex:1;min-width:90px;">
     <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-weight:700;">${label}</div>
@@ -2879,17 +2972,18 @@ function renderClaims(){
 
   el.innerHTML=`
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-      ${tile('Issue',issueCount,'#ff6b6b',issueCount>0?'Raised — not yet contacted':'')}
+      ${tile('Needs Attention',issueCount,'#ff6b6b',issueCount>0?'Raised — not yet contacted':'')}
       ${tile('Open',openOnlyCount,'#f97316',openOnlyCount>0?'Contacted once':'')}
       ${tile('Chasing',chasingCount,'#fbbf24',chasingCount>0?'Awaiting reply':'')}
       ${tile('Resolved',resolvedCount,'#4ade80',resolvedCount>0?'Done':'All clear')}
+      ${tile('Recovered',fmtGBP2(reimbursedVal),'#34d399',recSub)}
       ${tile('Value at Risk',fmtGBP2(totalVal),'#fbbf24',totalUnits+' units affected')}
     </div>
 
     ${d.map(c=>{
       const skuParsed=parseSKU(c.sku);
-      const statusCol=c.cst==='Issue'?'#ff6b6b':c.cst==='Open'?'#f97316':c.cst==='Chasing'?'#fbbf24':c.cst==='Resolved'?'#4ade80':'#64748b';
-      const borderCol=c.cst==='Issue'?'#ff6b6b':c.cst==='Open'?'#f97316':c.cst==='Chasing'?'#fbbf24':c.cst==='Resolved'?'#4ade80':'var(--border)';
+      const statusCol=c.cst==='Needs Attention'?'#ff6b6b':c.cst==='Open'?'#f97316':c.cst==='Chasing'?'#fbbf24':c.cst==='Resolved'?'#4ade80':'#64748b';
+      const borderCol=c.cst==='Needs Attention'?'#ff6b6b':c.cst==='Open'?'#f97316':c.cst==='Chasing'?'#fbbf24':c.cst==='Resolved'?'#4ade80':'var(--border)';
       const allLog=c.log||[];
       // Split log into status changes vs contact entries
       const statusLog=allLog.filter(e=>(e.msg||'').startsWith('Status changed'));
@@ -2987,6 +3081,18 @@ function renderClaims(){
               <div style="font-size:12px;color:#e2e8f0;line-height:1.5;">${c.notes}</div>
             </div>`:''}
 
+            <!-- VA + Jack/Supplier notes (two separate boxes) -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+              <div style="background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.18);border-radius:6px;padding:8px 10px;">
+                <div style="font-size:8px;font-weight:800;color:#60a5fa;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">VA Notes</div>
+                <textarea onchange="updateClaimField('${c.id}','vaNote',this.value)" placeholder="Follow-ups, tracking, escalations…" style="width:100%;min-height:46px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.08);border-radius:4px;color:#e2e8f0;font-size:11px;line-height:1.4;padding:6px 8px;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;">${(c.vaNote||'').replace(/</g,'&lt;')}</textarea>
+              </div>
+              <div style="background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.18);border-radius:6px;padding:8px 10px;">
+                <div style="font-size:8px;font-weight:800;color:#c084fc;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Jack / Supplier Notes</div>
+                <textarea onchange="updateClaimField('${c.id}','jackNote',this.value)" placeholder="Supplier replies, decisions, refs…" style="width:100%;min-height:46px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.08);border-radius:4px;color:#e2e8f0;font-size:11px;line-height:1.4;padding:6px 8px;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;">${(c.jackNote||'').replace(/</g,'&lt;')}</textarea>
+              </div>
+            </div>
+
             <!-- Contact Log section -->
             <div style="border:1px solid rgba(255,255,255,.07);border-radius:6px;overflow:hidden;">
               <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,.04);border-bottom:${contactLog.length>0?'1px solid rgba(255,255,255,.07)':'none'};">
@@ -3010,7 +3116,7 @@ function renderClaims(){
             <div style="padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;">
               <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Status</div>
               <select class="ci-sel" onchange="updateClaimSt('${c.id}',this.value)" style="font-size:12px;padding:7px 10px;width:100%;font-weight:700;border-radius:5px;background:${statusCol}22;color:${statusCol};border:1px solid ${statusCol}55;">
-                ${['Issue','Open','Chasing','Resolved'].map(s=>`<option${c.cst===s?' selected':''}>${s}</option>`).join('')}
+                ${['Needs Attention','Open','Chasing','Resolved'].map(s=>`<option${c.cst===s?' selected':''}>${s}</option>`).join('')}
               </select>
               <!-- Status history pills -->
               ${statusLog.length>0?`<div style="margin-top:8px;display:flex;flex-direction:column;gap:3px;">
@@ -3022,9 +3128,17 @@ function renderClaims(){
               </div>`:''}
             </div>
 
+            ${c.cst==='Resolved'?`<div style="padding:8px 10px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.2);border-radius:6px;">
+              <div style="font-size:9px;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Reimbursed?</div>
+              <select class="ci-sel" onchange="updateClaimField('${c.id}','reimbursed',this.value)" style="font-size:12px;padding:6px 10px;width:100%;font-weight:700;border-radius:5px;background:${c.reimbursed==='Yes'?'rgba(74,222,128,.15)':c.reimbursed==='Partial'?'rgba(251,191,36,.15)':'rgba(248,113,113,.12)'};color:${c.reimbursed==='Yes'?'#4ade80':c.reimbursed==='Partial'?'#fbbf24':'#f87171'};border:1px solid rgba(255,255,255,.12);margin-bottom:6px;">
+                ${['No','Yes','Partial'].map(o=>`<option${(c.reimbursed||'No')===o?' selected':''}>${o}</option>`).join('')}
+              </select>
+              <textarea onchange="updateClaimField('${c.id}','reimburseNote',this.value)" placeholder="Reimbursement notes (amount, ref, date)…" style="width:100%;min-height:40px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.08);border-radius:4px;color:#e2e8f0;font-size:11px;line-height:1.4;padding:6px 8px;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;">${(c.reimburseNote||'').replace(/</g,'&lt;')}</textarea>
+            </div>`:''}
+
             <!-- Action buttons -->
             <div style="display:flex;flex-direction:column;gap:6px;">
-              ${c.cst!=='Resolved'?`<button onclick="resolveIssue('${c.id}')" style="padding:7px 10px;background:rgba(74,222,128,.15);border:1px solid #4ade8066;color:#4ade80;border-radius:5px;font-size:11px;font-weight:800;cursor:pointer;text-align:center;">✓ Mark Resolved</button>`:''}
+              ${c.cst!=='Resolved'?`<button onclick="resolveIssue('${c.id}')" style="padding:7px 10px;background:rgba(74,222,128,.15);border:1px solid #4ade8066;color:#4ade80;border-radius:5px;font-size:11px;font-weight:800;cursor:pointer;text-align:center;">✓ Mark Resolved</button>`:`<button onclick="archiveClaim('${c.id}')" title="Clear this resolved claim out of the active list (the record is kept)" style="padding:7px 10px;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.3);color:#cbd5e1;border-radius:5px;font-size:11px;font-weight:800;cursor:pointer;text-align:center;">📦 Archive (clear)</button>`}
               <button onclick="openEditAction('${c.id}')" style="padding:7px 10px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.3);color:#60a5fa;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">✏️ Edit Details</button>
               <button onclick="removeIssue('${c.id}')" style="padding:7px 10px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:#f87171;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">🗑 Delete</button>
             </div>
@@ -3050,6 +3164,29 @@ function renderClaims(){
     }).join('')}`;
 }
 function filterClaims(){renderClaims();}
+
+// Edit a single claim field (VA/Jack notes, reimbursed status/notes) and persist.
+async function updateClaimField(id,field,val){
+  const c=claims.find(x=>String(x.id)===String(id));
+  if(!c)return;
+  c[field]=val;
+  await saveClaim(c);
+  // Re-render only when a change affects the card's layout/colours (reimbursed
+  // toggle changes the select colour); plain note edits don't need a repaint.
+  if(field==='reimbursed')renderClaims();
+}
+
+// Archive a resolved claim: clear it out of the active list but keep the record.
+async function archiveClaim(id){
+  const c=claims.find(x=>String(x.id)===String(id));
+  if(!c)return;
+  if(c.cst!=='Resolved'){toast('Only resolved claims can be archived','er');return;}
+  c.archived=true;
+  await saveClaim(c);
+  renderClaims();
+  toastUndo('Claim archived',async()=>{c.archived=false;await saveClaim(c);renderClaims();});
+}
+
 async function resolveIssue(id){
   const c=claims.find(x=>String(x.id)===String(id));
   if(!c)return;
@@ -3234,7 +3371,7 @@ function renderDashboard(){
   const todayBoxes=boxesForDate(todayStr);
   const ydBoxes=boxesForDate(yesterdayStr);
   const weekBoxes=boxesForRange(ws,we);
-  const weekShipments=new Set(rows.filter(r=>r.sent==='Yes'&&r.sentDate&&(()=>{const d=new Date(r.sentDate);return d>=ws&&d<=we;})()&&r.shipId).map(r=>r.shipId)).size;
+  const weekShipments=weekRoll.shipments; // unique shipment IDs incl. Lavarion + Part-Sent, matches the Weekly Activity total
 
   // ── TRANSIT ──────────────────────────────────────────────────────────────────
   const transitRows=rows.filter(r=>r.status==='In-Transit');
@@ -3251,7 +3388,7 @@ function renderDashboard(){
 
   // ── CLAIMS ───────────────────────────────────────────────────────────────────
   const openClaimsList=claims.filter(c=>c.cst!=='Resolved'&&c.cst!=='Closed');  // includes Issue, Open, Chasing
-  const issuedClaimsList=claims.filter(c=>c.cst==='Issue');
+  const issuedClaimsList=claims.filter(c=>c.cst==='Needs Attention');
   const chasingClaimsList=claims.filter(c=>c.cst==='Chasing');
   const resolvedClaimsList=claims.filter(c=>c.cst==='Resolved'||c.cst==='Closed');
   const openClaims=openClaimsList.length;
@@ -3267,6 +3404,8 @@ function renderDashboard(){
   const incorrectVal=incorrectClaims.reduce((a,c)=>a+(c.claimValue||0),0);
   const totalAtRisk=missingVal+damagedVal+incorrectVal;
   const resolvedVal=resolvedClaimsList.reduce((a,c)=>a+(c.claimValue||0),0);
+  const resolvedReimbursedVal=resolvedClaimsList.filter(c=>c.reimbursed==='Yes').reduce((a,c)=>a+(c.claimValue||0),0);
+  const resolvedOwedVal=resolvedClaimsList.filter(c=>(c.reimbursed||'No')!=='Yes').reduce((a,c)=>a+(c.claimValue||0),0);
   const resolvedUnits=resolvedClaimsList.reduce((a,c)=>a+(c.dif||0),0);
   // Unique counts
   const affectedSkus=new Set(openClaimsList.map(c=>c.sku).filter(Boolean)).size;
@@ -3296,19 +3435,16 @@ function renderDashboard(){
     const dm=String(d.getMonth()+1).padStart(2,'0');
     const dd2=String(d.getDate()).padStart(2,'0');
     const ds=`${dy}-${dm}-${dd2}`;
-    const oaU=rows.filter(r=>r.sent==='Yes'&&r.sentDate===ds).reduce((a,r)=>a+(r.ship||0),0);
-    const lavU=lavShipments.filter(s=>s.date===ds).reduce((a,s)=>a+(s.units||0),0);
-    const ships=new Set([
-      ...rows.filter(r=>r.sentDate===ds&&r.shipId).map(r=>r.shipId),
-      ...lavShipments.filter(s=>s.date===ds&&s.shipId).map(s=>s.shipId)
-    ]).size;
-    const allShipIdsForDay=new Set([
-      ...rows.filter(r=>r.sentDate===ds&&r.shipId).map(r=>r.shipId),
-      ...lavShipments.filter(s=>s.date===ds&&s.shipId).map(s=>s.shipId)
-    ]);
-    const boxes=Array.from(allShipIdsForDay).reduce((t,sid)=>t+(shipBoxes[sid]||0),0);
+    // Canonical per-day rollup (segment-aware, includes Part-Sent + Lavarion +
+    // Returns) so the daily rows and TOTAL match the "This Week" tile. The old
+    // method used r.sent==='Yes' + whole-row r.ship on r.sentDate and dropped
+    // Part-Sent/segment/return units, under-counting the week.
+    const dayRoll=sentRollup(ds,ds);
+    const dayShipIds=new Set(dayRoll.rows.map(r=>r.shipId).filter(Boolean));
+    const ships=dayShipIds.size;
+    const boxes=Array.from(dayShipIds).reduce((t,sid)=>t+(shipBoxes[sid]||0),0);
     const isFuture=ds>todayStr;
-    weekDays.push({day:dayNames[i],ds,units:oaU+lavU,ships,boxes,isToday:ds===todayStr,isFuture});
+    weekDays.push({day:dayNames[i],ds,units:dayRoll.units,skus:dayRoll.skus,asins:dayRoll.asins,ships,boxes,isToday:ds===todayStr,isFuture});
   }
 
   // Last week totals for comparison — clone ws/we properly
@@ -3376,7 +3512,7 @@ function renderDashboard(){
     const sRows=rows.filter(r=>r.sent==='Yes'&&r.shipId===shipId);
     const sLav=lavShipments.filter(s=>s.shipId===shipId);
     const sBoxMap=shipBoxes[shipId]?{[shipId]:shipBoxes[shipId]}:{};
-    return calcImpliedPrepCost(sRows,sLav,sBoxMap);
+    return calcImpliedPrepCost(sRows,sLav,sBoxMap,prepFees.expectedMonthlyUnits);
   }
 
   // Per-day costs this week
@@ -3386,7 +3522,7 @@ function renderDashboard(){
     const dLav=lavShipments.filter(s=>s.date===d.ds);
     const dShipIds=new Set([...dRows.filter(r=>r.shipId).map(r=>r.shipId),...dLav.filter(s=>s.shipId).map(s=>s.shipId)]);
     const dBoxMap=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>dShipIds.has(sid)));
-    dayPrepCosts[d.ds]=calcImpliedPrepCost(dRows,dLav,dBoxMap);
+    dayPrepCosts[d.ds]=calcImpliedPrepCost(dRows,dLav,dBoxMap,prepFees.expectedMonthlyUnits);
   });
 
   // Per-tile prep costs
@@ -3394,22 +3530,29 @@ function renderDashboard(){
     const r=rows.filter(x=>x.sent==='Yes'&&x.sentDate===sentDate);
     const l=lavShipments.filter(x=>x.date===sentDate);
     const ids=new Set([...r.filter(x=>x.shipId).map(x=>x.shipId),...l.filter(x=>x.shipId).map(x=>x.shipId)]);
-    return calcImpliedPrepCost(r,l,Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>ids.has(sid))));
+    return calcImpliedPrepCost(r,l,Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>ids.has(sid))),prepFees.expectedMonthlyUnits);
   };
   const todayPC=mkTilePC(todayStr);
   const ydPC=mkTilePC(yesterdayStr);
   const weekShipIdSet=new Set([...rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we&&r.shipId).map(r=>r.shipId),...lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we&&s.shipId).map(s=>s.shipId)]);
-  const weekPC=calcImpliedPrepCost(rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we),lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we),Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>weekShipIdSet.has(sid))));
+  const weekPC=calcImpliedPrepCost(rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we),lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we),Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>weekShipIdSet.has(sid))),prepFees.expectedMonthlyUnits);
 
-  // MTD totals
+  // MTD totals — use the canonical sentRollup so the dashboard tile matches the
+  // Shipments page (source of truth) and Prep Sheet exactly. The old logic used
+  // r.sent==='Yes' (dropping Part-Sent rows), whole-row r.ship totals on r.sentDate
+  // (instead of per-segment units/dates) and omitted Returns, which under-counted
+  // units, COG and shipments. sentRollup is segment-aware and includes OA (incl.
+  // Part-Sent) + Lavarion + Returns, with Return COG excluded — exactly like Shipments.
+  const monthRoll=sentRollup(ms,me);
   const mtdSentRowsFull=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&r.sentDate>=mss&&r.sentDate<=mes);
   const mtdSentLavFull=lavShipments.filter(s=>s.date&&s.date>=mss&&s.date<=mes);
-  const mtdUnits=mtdSentRowsFull.reduce((a,r)=>a+(r.ship||0),0)+mtdSentLavFull.reduce((a,s)=>a+(s.units||0),0);
-  const mtdCOG=mtdSentRowsFull.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||0)),0)+mtdSentLavFull.reduce((a,s)=>a+(s.cost||0)*(s.units||0),0);
-  const mtdShipCount=new Set([...mtdSentRowsFull.filter(r=>r.shipId).map(r=>r.shipId),...mtdSentLavFull.filter(s=>s.shipId).map(s=>s.shipId)]).size;
-  const mtdSkus=mtdSentRowsFull.length+mtdSentLavFull.length;
-  const mtdAsins=new Set([...mtdSentRowsFull.map(r=>r.asin),...mtdSentLavFull.map(s=>s.asin)]).size;
-  const mtdBoxesCount=Array.from(new Set([...mtdSentRowsFull.filter(r=>r.shipId).map(r=>r.shipId),...mtdSentLavFull.filter(s=>s.shipId).map(s=>s.shipId)])).reduce((a,sid)=>a+(shipBoxes[sid]||0),0);
+  const mtdUnits=monthRoll.units;
+  const mtdCOG=monthRoll.value;
+  const mtdShipCount=monthRoll.shipments;
+  const mtdSkus=monthRoll.skus;
+  const mtdAsins=monthRoll.asins;
+  const mtdBoxesCount=Array.from(new Set(monthRoll.rows.map(r=>r.shipId).filter(Boolean))).reduce((a,sid)=>a+(shipBoxes[sid]||0),0);
+  const mtdPrepDays=new Set(monthRoll.rows.map(r=>r.isoDate).filter(Boolean)).size;
   const todaySkus=todayRoll.skus;
   const weekAsins=weekRoll.asins;
   const weekSkus=weekRoll.skus;
@@ -3466,7 +3609,7 @@ function renderDashboard(){
       ${kTile('This Month',`#06b6d4`,
         fmt(mtdUnits),'units sent this month',
         fmtGBP2(mtdCOG),'COG value sent',
-        pill('Shipments',fmt(mtdShipCount),COL.ship)+pill('SKUs',fmt(mtdSkus),COL.sku)+pill('ASINs',fmt(mtdAsins),COL.asin)+pill('Shipments',fmt(mtdShipCount),COL.ship)+pill('SKUs',fmt(mtdSkus),COL.sku)+pill('Boxes',fmt(mtdBoxesCount),COL.box)+pill('Prep Days',fmt(new Set([...mtdSentRowsFull.map(r=>r.sentDate),...mtdSentLavFull.map(s=>s.date)]).size),'#34d399')+(prepCost.totalUnits>0?pill('Prep cost',fmtGBP2(prepCost.withVat),GOLD):''),
+        pill('Shipments',fmt(mtdShipCount),COL.ship)+pill('SKUs',fmt(mtdSkus),COL.sku)+pill('ASINs',fmt(mtdAsins),COL.asin)+pill('Boxes',fmt(mtdBoxesCount),COL.box)+pill('Prep Days',fmt(mtdPrepDays),'#34d399')+(prepCost.totalUnits>0?pill('Prep cost',fmtGBP2(prepCost.withVat),GOLD):''),
         '','')
       }
     </div>
@@ -3484,10 +3627,8 @@ function renderDashboard(){
           ${weekDays.map(d=>{
             const isT=d.isToday,isF=d.isFuture,isW=d.day==='Sat'||d.day==='Sun';
             const dc=isF?'#334155':isT?COL.today:isW?'#334155':'#94a3b8';
-            const oa=rows.filter(r=>r.sent==='Yes'&&r.sentDate===d.ds);
-            const lv=lavShipments.filter(s=>s.date===d.ds);
-            const sk=oa.length+lv.length;
-            const as=new Set([...oa.map(r=>r.asin),...lv.map(s=>s.asin)]).size;
+            const sk=d.skus;
+            const as=d.asins;
             return`<div style="display:grid;grid-template-columns:24px 1fr 44px 40px 36px 44px 32px;padding:3px 2px;background:${isT?'rgba(74,222,128,.07)':'transparent'};border-radius:3px;align-items:center;${isW?'opacity:.3':''}">
               <div style="font-size:7px;color:${isT?COL.today:'transparent'};font-weight:700;">NOW</div>
               <div style="font-size:10px;font-weight:${isT?'800':'500'};color:${dc};">${d.day}</div>
@@ -3501,11 +3642,8 @@ function renderDashboard(){
           ${(()=>{
             const act=weekDays.filter(d=>!d.isFuture);
             const tU=act.reduce((a,d)=>a+d.units,0),tSh=act.reduce((a,d)=>a+d.ships,0),tBx=act.reduce((a,d)=>a+d.boxes,0);
-            const sd=act.map(d=>d.ds);
-            const aOA=rows.filter(r=>r.sent==='Yes'&&sd.includes(r.sentDate));
-            const aLV=lavShipments.filter(s=>sd.includes(s.date));
-            const tSk=aOA.length+aLV.length;
-            const tAs=new Set([...aOA.map(r=>r.asin),...aLV.map(s=>s.asin)]).size;
+            const tSk=act.reduce((a,d)=>a+d.skus,0);
+            const tAs=weekRoll.asins; // unique ASINs across the week (matches the This Week tile)
             const lw=lwTotal.units>0||lwSkus>0;
             return`<div style="border-top:2px solid var(--border);margin-top:3px;padding-top:3px;">
               <div style="display:grid;grid-template-columns:24px 1fr 44px 40px 36px 44px 32px;padding:3px 2px;">
@@ -3541,28 +3679,14 @@ function renderDashboard(){
           <div style="font-size:28px;font-weight:900;color:${GOLD};font-family:var(--mono);line-height:1;">${fmtGBP2(prepCost.withVat)}</div>
           <div style="font-size:10px;color:#cbd5e1;margin-bottom:10px;">inc. VAT · ${fmtGBP2(prepCost.subtotal)} ex. VAT</div>
 
-          <!-- Tiered rate breakdown -->
-          <div style="font-size:8px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Unit rate breakdown (tiered, ex. VAT)</div>
+          <!-- Volume rate breakdown -->
+          <div style="font-size:8px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Unit rate (volume-based, ex. VAT)</div>
           ${(()=>{
-            let rem=prepCost.totalUnits,html='';
-            const tiers=[
-              [prepFees.tier1Units,prepFees.tier1p,'1–'+prepFees.tier1Units],
-              [prepFees.tier2Units-prepFees.tier1Units,prepFees.tier2p,(prepFees.tier1Units+1)+'–'+prepFees.tier2Units],
-              [prepFees.tier3Units-prepFees.tier2Units,prepFees.tier3p,(prepFees.tier2Units+1)+'–'+prepFees.tier3Units],
-              [Infinity,prepFees.tier4p,(prepFees.tier3Units+1)+'+'],
-            ];
-            for(const[max,rate,range] of tiers){
-              if(rem<=0)break;
-              const used=Math.min(rem,max);
-              const cost=used*rate;
-              const rateStr=rate<1?(rate*100).toFixed(0)+'p':(fmtGBP2(rate));
-              html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
-                <span style="font-size:10px;color:#cbd5e1;">${fmt(used)} units × ${rateStr} <span style="font-size:8px;color:#64748b;">(tier ${range})</span></span>
-                <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(cost)}</span>
+            const rateStr=prepCost.unitRate<1?(prepCost.unitRate*100).toFixed(0)+'p':fmtGBP2(prepCost.unitRate);
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+                <span style="font-size:10px;color:#cbd5e1;">${fmt(prepCost.tieredUnits)} units × ${rateStr} <span style="font-size:8px;color:#64748b;">(volume band ${prepCost.unitRateBand})</span></span>
+                <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(prepCost.baseCost)}</span>
               </div>`;
-              rem-=used;
-            }
-            return html;
           })()}
 
           <!-- Extras -->
@@ -3710,8 +3834,8 @@ function renderDashboard(){
               ${[
                 ['Claims closed',fmt(resolvedClaimsList.length),'#4ade80'],
                 ['Suppliers resolved',fmt(resolvedSuppliers),'#60a5fa'],
-                ['Units recovered',fmt(resolvedUnits),'#4ade80'],
-                ['Value recovered',fmtGBP2(resolvedVal),'#fbbf24'],
+                ['£ reimbursed',fmtGBP2(resolvedReimbursedVal),'#34d399'],
+                ['£ still owed',fmtGBP2(resolvedOwedVal),resolvedOwedVal>0?'#f87171':'#64748b'],
               ].map(([l,v,col])=>`<div style="padding:3px 0;">
                 <div style="font-size:8px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px;">${l}</div>
                 <div style="font-size:13px;font-weight:900;font-family:var(--mono);color:${col};">${v}</div>
@@ -3924,6 +4048,11 @@ function getInsightRange(){
   const todayStr=todayISO();
   function localISO(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
   if(insightRange==='week'){const{s,e}=getWeekRange();return{s:localISO(s),e:localISO(e),label:'This Week'};}
+  if(insightRange&&insightRange.indexOf('m:')===0){
+    const[y,mo]=insightRange.slice(2).split('-').map(Number);
+    const s=new Date(y,mo-1,1),e=new Date(y,mo,0);
+    return{s:localISO(s),e:localISO(e),label:new Date(y,mo-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'})};
+  }
   if(insightRange==='mtd'){const s=new Date(now.getFullYear(),now.getMonth(),1);return{s:localISO(s),e:todayStr,label:'Month to Date'};}
   if(insightRange==='30d'){const s=new Date();s.setDate(s.getDate()-29);return{s:localISO(s),e:todayStr,label:'Last 30 Days'};}
   if(insightRange==='90d'){const s=new Date();s.setDate(s.getDate()-89);return{s:localISO(s),e:todayStr,label:'Last 90 Days'};}
@@ -3969,7 +4098,10 @@ function renderInsights(){
   const oaLines=byKind('oa'),lavLines=byKind('lav'),retLines=byKind('return');
 
   const totalUnits=sum(lines,l=>l.units);
-  const totalValue=sum(lines,l=>l.value);
+  // COG excludes Returns to match the Shipments page (source of truth): returns are
+  // stock coming back, counted as units but not as new outbound COG value. retValue
+  // is still computed separately below for the Returns KPI.
+  const totalValue=sum(lines.filter(l=>l.kind!=='return'),l=>l.value);
   const allShipIds=new Set(lines.filter(l=>l.shipId).map(l=>l.shipId));
   const totalBoxes=Object.entries(shipBoxes).reduce((t,[sid,b])=>allShipIds.has(sid)?t+(b||0):t,0);
   const avgUPS=allShipIds.size?Math.round(totalUnits/allShipIds.size):0;
@@ -4017,7 +4149,8 @@ function renderInsights(){
   const missingUnits=sum(missingC,c=>c.dif||0),damagedUnits=sum(damagedC,c=>c.dif||0),incorrectUnits=sum(incorrectC,c=>c.dif||0);
   const missingVal=sum(missingC,c=>c.claimValue||0),damagedVal=sum(damagedC,c=>c.claimValue||0);
   const totalAtRisk=sum(openClaims,c=>c.claimValue||0);
-  const recovered=sum(resolvedClaims,c=>c.claimValue||0);
+  const recovered=sum(resolvedClaims.filter(c=>c.reimbursed==='Yes'),c=>c.claimValue||0);
+  const stillOwed=sum(resolvedClaims.filter(c=>(c.reimbursed||'No')!=='Yes'),c=>c.claimValue||0);
 
   // ── WEEKLY TREND (units + value, all-in) ───────────────────────────────────
   const weekTrend=[];
@@ -4055,6 +4188,14 @@ function renderInsights(){
   });
   const monthEntries=Object.entries(monthMap).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,12);
 
+  // ── MONTH-OVER-MONTH ANALYSIS (for the trends/insights strip) ──────────────
+  const _curM=monthEntries[0]?monthEntries[0][1]:{units:0,value:0,prep:0};
+  const _prevM=monthEntries[1]?monthEntries[1][1]:{units:0,value:0,prep:0};
+  const momPct=(a,b)=>b>0?((a-b)/b*100):(a>0?100:0);
+  const ppuCur=_curM.units?(_curM.prep/_curM.units):0;
+  const ppuPrev=_prevM.units?(_prevM.prep/_prevM.units):0;
+  const ratioCur=_curM.prep>0?(_curM.value/_curM.prep):0;
+
   // ── PREP COST (range) ──────────────────────────────────────────────────────
   const oaForPrep=(()=>{const map={};oaLines.forEach(l=>{const key=l.sku+'|'+l.shipId;if(!map[key])map[key]={sku:l.sku,shipType:l.type,shipId:l.shipId,inBundle:'No',_segUnits:0,ship:0};map[key]._segUnits+=l.units;});
     // attach inBundle from source rows
@@ -4069,9 +4210,26 @@ function renderInsights(){
   // ── UI HELPERS ─────────────────────────────────────────────────────────────
   const filterBtns=[['week','This Week'],['mtd','MTD'],['30d','30 Days'],['90d','90 Days'],['ytd','YTD'],['all','All Time'],['custom','Custom']]
     .map(([v,l])=>`<button onclick="insightRange='${v}';renderInsights();" style="padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid ${insightRange===v?'var(--accent)':'var(--border)'};background:${insightRange===v?'var(--btn-amber-bg)':'var(--bg2)'};color:${insightRange===v?'var(--btn-amber-text)':'var(--text3)'};">${l}</button>`).join('');
+  // Quick-pick buttons for each recent calendar month — clicking re-renders the
+  // whole page for that month (Jan, Feb, last month, etc.).
+  const _MON=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthBtns=monthEntries.slice(0,8).map(([k])=>{const[y,m]=k.split('-');const v='m:'+k;const active=insightRange===v;return `<button onclick="insightRange='${v}';renderInsights();" style="padding:5px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;border:1px solid ${active?'var(--accent)':'var(--border2)'};background:${active?'var(--btn-amber-bg)':'var(--bg3)'};color:${active?'var(--btn-amber-text)':'var(--text2)'};">${_MON[+m]} '${y.slice(2)}</button>`;}).join('');
   const sectionHead=t=>`<div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;padding-bottom:6px;border-bottom:2px solid var(--border);margin-top:6px;">${t}</div>`;
   const kpi=(t,v,sub,c='var(--text)',borderC='')=>`<div class="ic" style="${borderC?`border-color:${borderC};border-top:3px solid ${borderC};`:''}"><div class="ic-title">${t}</div><div class="ic-val" style="color:${c};">${v}</div><div class="ic-sub">${sub||''}</div></div>`;
   const bar=(label,val,max,col,valText,lblW=80)=>`<div class="brow"><div class="blabel" style="width:${lblW}px;font-size:9px;">${label}</div><div class="btrack"><div class="bfill" style="width:${Math.round((val/max)*100)}%;background:${col};"></div></div><div class="bval" style="font-size:9px;">${valText}</div></div>`;
+
+  // Last-6-calendar-month series for the overview sparklines + compare popup.
+  const _mm=buildMonthMap(null);
+  const _recent=Object.keys(_mm).sort().slice(-6);
+  const _series={units:[],cog:[],ships:[],prep:[]};
+  _recent.forEach(k=>{const md=_mm[k];const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));const mm=calcInsMetrics(md.rows,md.lavRows,bm);_series.units.push(mm.totalUnits||0);_series.cog.push(mm.cog||0);_series.ships.push(mm.ships||0);_series.prep.push(mm.withVat||0);});
+  const spark=(vals,color)=>{
+    if(!vals||vals.length<2||!vals.some(v=>v>0))return'';
+    const max=Math.max(...vals),min=Math.min(...vals,0),rng=(max-min)||1,W=120,H=24;
+    const pts=vals.map((v,i)=>`${((i/(vals.length-1))*W).toFixed(1)},${(H-((v-min)/rng)*H).toFixed(1)}`).join(' ');
+    const lx=W,ly=(H-((vals[vals.length-1]-min)/rng)*H).toFixed(1);
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="20" preserveAspectRatio="none" style="margin-top:6px;display:block;overflow:visible;opacity:.85;"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${lx}" cy="${ly}" r="2.2" fill="${color}"/></svg>`;
+  };
 
   w.innerHTML=`<div style="padding:14px;display:flex;flex-direction:column;gap:14px;">
 
@@ -4085,15 +4243,61 @@ function renderInsights(){
       `:''}
       <span style="font-size:11px;color:var(--accent);font-weight:700;margin-left:4px;">${rlabel}</span>
     </div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:-4px;">
+      <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-right:2px;">Jump to month:</span>
+      ${monthBtns||'<span style="font-size:10px;color:var(--text3);">no months yet</span>'}
+    </div>
 
     <!-- HEADLINE -->
     ${sectionHead('Overview — '+rlabel)}
     <div class="ig-row ig-4">
-      ${kpi('Total Units Sent',fmt(totalUnits),`Stock ${fmt(stockUnits)} · Lav ${fmt(lavUnits)} · Ret ${fmt(retUnits)}`,'#55ff55','#55ff55')}
-      ${kpi('Total COG Value',fmtGBP2(totalValue),`avg £${avgCogUnit.toFixed(2)}/unit`,'#ffaa33','#ffaa33')}
-      ${kpi('Shipments',fmt(allShipIds.size),`${fmt(totalBoxes)} boxes · ${avgUPS} units/ship`,'#5599ff','#5599ff')}
-      ${kpi('Prep Cost (inc VAT)',fmtGBP2(prepTotal),`COG:Prep ratio ${efficiency?efficiency.toFixed(0)+'×':'—'}`,'#cc99ff','#cc99ff')}
+      <div onclick="openUnitsExplorer()" style="cursor:pointer;" title="Click for units trend & breakdown">${kpi('Total Units Sent ▸',fmt(totalUnits),`Stock ${fmt(stockUnits)} · Lav ${fmt(lavUnits)} · Ret ${fmt(retUnits)}`+spark(_series.units,'#55ff55'),'#55ff55','#55ff55')}</div>
+      <div onclick="openCogExplorer()" style="cursor:pointer;" title="Click for COG trend & by-supplier">${kpi('Total COG Value ▸',fmtGBP2(totalValue),`avg £${avgCogUnit.toFixed(2)}/unit`+spark(_series.cog,'#ffaa33'),'#ffaa33','#ffaa33')}</div>
+      <div onclick="openInsCompare()" style="cursor:pointer;" title="Click to compare months">${kpi('Shipments ▸',fmt(allShipIds.size),`${fmt(totalBoxes)} boxes · ${avgUPS} units/ship`+spark(_series.ships,'#5599ff'),'#5599ff','#5599ff')}</div>
+      <div onclick="openPrepExplorer('mtd')" style="cursor:pointer;" title="Click for the Prep Fee Explorer — breakdown, trend and any month">${kpi('Prep Cost (inc VAT) ▸',fmtGBP2(prepTotal),`COG:Prep ratio ${efficiency?efficiency.toFixed(0)+'×':'—'} · click for detail`+spark(_series.prep,'#cc99ff'),'#cc99ff','#cc99ff')}</div>
     </div>
+
+    <!-- TRENDS & ANALYSIS (top) -->
+    ${sectionHead('Trends & Analysis — latest months')}
+    ${(()=>{
+      const aCard=(label,big,sub,deltaPct,goodWhenDown)=>{
+        const col=(deltaPct==null)?'var(--text3)':(((goodWhenDown?deltaPct<-0.5:deltaPct>0.5))?'#4ade80':((goodWhenDown?deltaPct>0.5:deltaPct<-0.5)?'#f87171':'var(--text3)'));
+        const arrow=deltaPct==null?'':(deltaPct>0.5?'▲':deltaPct<-0.5?'▼':'→');
+        return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+          <div style="font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">${label}</div>
+          <div style="font-size:26px;font-weight:900;font-family:var(--mono);color:var(--text);line-height:1;">${big}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:7px;">${deltaPct==null?'':`<span style="font-size:11px;font-weight:800;font-family:var(--mono);color:${col};">${arrow} ${Math.abs(deltaPct).toFixed(0)}%</span>`}<span style="font-size:10px;color:var(--text3);">${sub}</span></div>
+        </div>`;
+      };
+      const topSup=supEntries[0];
+      const supShare=topSup&&stockValue>0?Math.round(topSup[1].value/stockValue*100):0;
+      return `<div class="ig-row ig-4" style="margin-bottom:8px;">
+        ${aCard('Units (this mo, so far)',fmt(_curM.units),'vs last month',momPct(_curM.units,_prevM.units),false)}
+        <div onclick="openPrepEfficiency()" style="cursor:pointer;" title="Click for prep efficiency over time">${aCard('Prep £/unit ▸',ppuCur?'£'+ppuCur.toFixed(2):'—','vs last month'+(ppuPrev?` (was £${ppuPrev.toFixed(2)})`:''),ppuPrev?momPct(ppuCur,ppuPrev):null,true)}</div>
+        <div onclick="openPrepEfficiency()" style="cursor:pointer;" title="Click for prep efficiency over time">${aCard('COG : Prep ratio ▸',ratioCur?ratioCur.toFixed(1)+'×':'—','higher = leaner prep',null)}</div>
+        ${aCard('Top supplier share',topSup?supShare+'%':'—',topSup?topSup[0].slice(0,18):'by COG value',null)}
+      </div>`;
+    })()}
+
+    <!-- PREP SUMMARY (top) -->
+    <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:10px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;">Prep Fee — ${rlabel}</div>
+        <button onclick="openPrepExplorer('mtd')" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.4);color:#fbbf24;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">🧮 Prep Fee Explorer — breakdown · trend · any month ▸</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+        ${[['Total inc. VAT',fmtGBP2(prepTotal),'#fbbf24'],['Per unit',pc.tieredUnits>0?'£'+(prepTotal/(totalUnits||1)).toFixed(2):'—','#fb923c'],['Per shipment',prepShips>0?'£'+(prepTotal/prepShips).toFixed(2):'—','#34d399'],['COG : Prep ratio',efficiency?efficiency.toFixed(1)+'×':'—','#cc99ff']].map(([l,v,col])=>`<div style="background:var(--bg3);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:20px;font-weight:900;font-family:var(--mono);color:${col};line-height:1;">${v}</div><div style="font-size:8px;color:#94a3b8;margin-top:4px;text-transform:uppercase;letter-spacing:.06em;">${l}</div></div>`).join('')}
+      </div>
+    </div>
+
+    <!-- COG VALUE BY MONTH (clickable) -->
+    ${(()=>{const chron=[...monthEntries].reverse();if(!chron.length)return'';const mx=Math.max(...chron.map(([,v])=>v.value),1);
+      return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
+        <div style="font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">COG Value by Month — tap a month to drill in</div>
+        <div style="display:flex;align-items:flex-end;gap:6px;height:120px;">
+          ${chron.map(([k,v])=>{const[y,m]=k.split('-');const h=Math.max(4,Math.round((v.value/mx)*92));const active=insightRange==='m:'+k;return `<div onclick="insightRange='m:${k}';renderInsights();" title="${_MON[+m]} ${y}: ${fmtGBP2(v.value)} · ${fmt(v.units)} units" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;min-width:0;"><div style="font-size:8px;font-family:var(--mono);color:${active?'#ffaa33':'var(--text3)'};white-space:nowrap;">${v.value>=1000?'£'+(v.value/1000).toFixed(0)+'k':'£'+Math.round(v.value)}</div><div style="width:76%;height:${h}px;background:${active?'#ffaa33':'rgba(255,170,51,.35)'};border-radius:3px 3px 0 0;transition:height .2s;"></div><div style="font-size:8px;color:${active?'#ffaa33':'var(--text3)'};font-weight:${active?'800':'400'};">${_MON[+m]} '${y.slice(2)}</div></div>`;}).join('')}
+        </div>
+      </div>`;})()}
 
     <!-- TREND -->
     <div class="ig-row ig-2">
@@ -4111,27 +4315,11 @@ function renderInsights(){
     <div class="ig-row ig-2">
       <div class="ic" style="align-items:stretch;text-align:left;">
         <div class="ic-title" style="text-align:left;">Volume Composition (units)</div>
-        ${[['Stock',stockUnits,'#5599ff'],['Lavarion',lavUnits,'#cc99ff'],['Returns',retUnits,'#60d5ff']].map(([l,u,c])=>bar(l,u,totalUnits||1,c,`${fmt(u)} · ${Math.round(u/(totalUnits||1)*100)}%`,70)).join('')}
+        ${[['Stock',stockUnits,'#5599ff'],['Lavarion',lavUnits,'#cc99ff']].map(([l,u,c])=>bar(l,u,totalUnits||1,c,`${fmt(u)} · ${Math.round(u/(totalUnits||1)*100)}%`,70)).join('')}
       </div>
       <div class="ic" style="align-items:stretch;text-align:left;">
         <div class="ic-title" style="text-align:left;">Stock Type Breakdown (units)</div>
         ${[['Standard',stdUnits,'#5599ff'],['DG',dgUnits,'#ff5555'],['Oversize',osUnits,'#ffaa33']].map(([l,u,c])=>bar(l,u,stockUnits||1,c,`${fmt(u)} · ${Math.round(u/(stockUnits||1)*100)}%`,70)).join('')}
-      </div>
-    </div>
-
-    <!-- STOCK & PIPELINE -->
-    ${sectionHead('Stock & Pipeline (current)')}
-    <div class="ig-row ig-3">
-      ${kpi('In Transit',fmt(transit.u),`${fmtGBP2(transit.v)} · ${transit.n} SKUs`,'#5599ff','#5599ff')}
-      ${kpi('In Warehouse',fmt(warehouse.u),`${fmtGBP2(warehouse.v)} · ${warehouse.n} SKUs`,'#cc99ff','#cc99ff')}
-      ${kpi('Delivered (awaiting)',fmt(delivered.u),`${fmtGBP2(delivered.v)} · ${delivered.n} SKUs`,'#86efac','#86efac')}
-    </div>
-    <div class="ig-row ig-2">
-      <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Pipeline by Units</div>
-        ${(()=>{const stg=[['In-Transit','#5599ff'],['Delivered','#86efac'],['In Warehouse','#cc99ff'],['Issue','#ff5555'],['Not Arrived','#ffaa33']];const mx=Math.max(...stg.map(([st])=>pipe(st).u),1);return stg.map(([st,c])=>bar(st,pipe(st).u,mx,c,fmt(pipe(st).u))).join('');})()}
-      </div>
-      <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Pipeline by Value</div>
-        ${(()=>{const stg=[['In-Transit','#5599ff'],['In Warehouse','#cc99ff'],['Delivered','#86efac'],['Issue','#ff5555']];const mx=Math.max(...stg.map(([st])=>pipe(st).v),1);return stg.map(([st,c])=>bar(st,pipe(st).v,mx,c,fmtGBP(pipe(st).v))).join('');})()}
       </div>
     </div>
 
@@ -4147,7 +4335,7 @@ function renderInsights(){
       <table style="min-width:unset;width:100%;"><thead style="position:static;"><tr>
         <th class="th-left">Supplier</th><th>Units</th><th>COG Value</th><th>Avg COG/U</th><th>Avg Transit</th><th>Issues</th><th>Issue Value</th><th>Issue Rate</th>
       </tr></thead><tbody>
-      ${supEntries.length?supEntries.map(([s,v])=>{const avgCog=v.units?(v.value/v.units).toFixed(2):'—';const avgDays=v.days.length?Math.round(v.days.reduce((a,b)=>a+b,0)/v.days.length):'—';const ir=v.units?(v.issues/v.units*100).toFixed(1)+'%':'—';return`<tr onclick="openSupplierModal('${s.replace(/'/g,"\\'")}')" style="cursor:pointer;" onmouseover="this.style.background='rgba(245,158,11,.05)'" onmouseout="this.style.background=''"><td class="td-left" style="font-weight:600;">${s} <span style="font-size:9px;color:var(--accent);opacity:.7;">↗</span></td><td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(v.units)}</td><td style="font-family:var(--mono);font-weight:700;color:#ffaa33;">${fmtGBP(v.value)}</td><td style="font-family:var(--mono);">£${avgCog}</td><td style="font-family:var(--mono);color:${avgDays>10?'#ffaa33':avgDays!=='—'?'#55ff55':'var(--text3)'};">${avgDays!=='—'?avgDays+'d':'—'}</td><td style="font-family:var(--mono);color:${v.issues>0?'#ff5555':'#55ff55'};">${fmt(v.issues)}</td><td style="font-family:var(--mono);color:${v.issueVal>0?'#ff5555':'var(--text3)'};">${v.issueVal>0?fmtGBP(v.issueVal):'—'}</td><td style="font-family:var(--mono);color:${parseFloat(ir)>5?'#ff5555':parseFloat(ir)>0?'#ffaa33':'#55ff55'};">${ir}</td></tr>`;}).join(''):`<tr><td colspan="8"><div style="padding:16px;color:var(--text3);text-align:center;">No sent data for this period</div></td></tr>`}
+      ${(()=>{const active=supEntries.filter(([,v])=>v.units>0||v.issues>0).slice(0,5);return active.length?active.map(([s,v])=>{const avgCog=v.units?(v.value/v.units).toFixed(2):'—';const avgDays=v.days.length?Math.round(v.days.reduce((a,b)=>a+b,0)/v.days.length):'—';const ir=v.units?(v.issues/v.units*100).toFixed(1)+'%':'—';return`<tr onclick="openSupplierModal('${s.replace(/'/g,"\\'")}')" style="cursor:pointer;" onmouseover="this.style.background='rgba(245,158,11,.05)'" onmouseout="this.style.background=''"><td class="td-left" style="font-weight:600;">${s} <span style="font-size:9px;color:var(--accent);opacity:.7;">↗</span></td><td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(v.units)}</td><td style="font-family:var(--mono);font-weight:700;color:#ffaa33;">${fmtGBP(v.value)}</td><td style="font-family:var(--mono);">£${avgCog}</td><td style="font-family:var(--mono);color:${avgDays>10?'#ffaa33':avgDays!=='—'?'#55ff55':'var(--text3)'};">${avgDays!=='—'?avgDays+'d':'—'}</td><td style="font-family:var(--mono);color:${v.issues>0?'#ff5555':'#55ff55'};">${fmt(v.issues)}</td><td style="font-family:var(--mono);color:${v.issueVal>0?'#ff5555':'var(--text3)'};">${v.issueVal>0?fmtGBP(v.issueVal):'—'}</td><td style="font-family:var(--mono);color:${parseFloat(ir)>5?'#ff5555':parseFloat(ir)>0?'#ffaa33':'#55ff55'};">${ir}</td></tr>`;}).join('')+(supEntries.filter(([,v])=>v.units>0||v.issues>0).length>5?`<tr><td colspan="8" style="text-align:center;padding:10px;"><button onclick="openAllSuppliersModal()" style="padding:5px 14px;background:var(--btn-amber-bg);border:1px solid var(--btn-amber-border);color:var(--btn-amber-text);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">View all ${supEntries.filter(([,v])=>v.units>0||v.issues>0).length} suppliers ↗</button></td></tr>`:''):`<tr><td colspan="8"><div style="padding:16px;color:var(--text3);text-align:center;">No sent data for this period</div></td></tr>`;})()}
       </tbody></table>
     </div>
 
@@ -4159,7 +4347,7 @@ function renderInsights(){
       </div>
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
         <table style="min-width:unset;width:100%;"><thead style="position:static;"><tr><th class="th-left">Account</th><th>Units</th><th>COG Value</th><th>Shipments</th><th>Issues</th></tr></thead><tbody>
-        ${acctEntries.length?acctEntries.map(([a,v])=>`<tr><td class="td-left" style="font-weight:600;">${a}</td><td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(v.units)}</td><td style="font-family:var(--mono);color:#ffaa33;">${fmtGBP(v.value)}</td><td style="font-family:var(--mono);color:var(--text2);">${v.ships.size}</td><td style="font-family:var(--mono);color:${v.issues>0?'#ff5555':'var(--text3)'};">${v.issues||'—'}</td></tr>`).join(''):`<tr><td colspan="5"><div style="padding:16px;color:var(--text3);text-align:center;">No account data</div></td></tr>`}
+        ${acctEntries.length?acctEntries.map(([a,v])=>`<tr onclick="openAccountModal('${a.replace(/'/g,"\\'")}')" style="cursor:pointer;" onmouseover="this.style.background='rgba(96,165,250,.06)'" onmouseout="this.style.background=''"><td class="td-left" style="font-weight:600;">${a} <span style="font-size:9px;color:var(--accent);opacity:.7;">↗</span></td><td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(v.units)}</td><td style="font-family:var(--mono);color:#ffaa33;">${fmtGBP(v.value)}</td><td style="font-family:var(--mono);color:var(--text2);">${v.ships.size}</td><td style="font-family:var(--mono);color:${v.issues>0?'#ff5555':'var(--text3)'};">${v.issues||'—'}</td></tr>`).join(''):`<tr><td colspan="5"><div style="padding:16px;color:var(--text3);text-align:center;">No account data</div></td></tr>`}
         </tbody></table>
       </div>
     </div>
@@ -4170,7 +4358,7 @@ function renderInsights(){
       ${kpi('Missing',fmt(missingUnits),`${fmtGBP2(missingVal)} · ${missingC.length} claim${missingC.length!==1?'s':''}`,missingUnits>0?'#ff5555':'#55ff55',missingUnits>0?'#ff5555':'')}
       ${kpi('Damaged',fmt(damagedUnits),`${fmtGBP2(damagedVal)} · ${damagedC.length} claim${damagedC.length!==1?'s':''}`,damagedUnits>0?'#ff5555':'#55ff55',damagedUnits>0?'#ff5555':'')}
       ${kpi('Open £ At Risk',fmtGBP2(totalAtRisk),`${openClaims.length} open claim${openClaims.length!==1?'s':''}`,totalAtRisk>0?'#ff5555':'#55ff55',totalAtRisk>0?'#ff5555':'')}
-      ${kpi('Recovered',fmtGBP2(recovered),`${resolvedClaims.length} resolved`,'#55ff55','#55ff55')}
+      ${kpi('Recovered',fmtGBP2(recovered),stillOwed>0?`${fmtGBP2(stillOwed)} still owed`:`${resolvedClaims.length} resolved`,'#55ff55','#55ff55')}
     </div>
     ${claims.length?`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
       <div style="padding:10px 14px;font-size:10px;font-weight:800;color:var(--accent);border-bottom:1px solid var(--border);">All Actions &amp; Claims (${claims.length})</div>
@@ -4198,22 +4386,6 @@ function renderInsights(){
       </div>
     </div>
 
-    <!-- RETURNS DEEP DIVE (new) -->
-    ${sectionHead('Returns Deep-Dive')}
-    <div class="ig-row ig-3">
-      ${kpi('Return Units ('+rlabel+')',fmt(retUnits),fmtGBP2(retValue),'#60d5ff','#60d5ff')}
-      ${kpi('Return Shipments',fmt(retShipIds.size),'FBA IDs with returns','#60d5ff')}
-      ${kpi('All-Time Returns',fmt(returnShipments.reduce((a,s)=>a+(s.units||0),0)),`${returnSkus.length} on active list`,'#55ff55','#55ff55')}
-    </div>
-    <div class="ig-row ig-2">
-      <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Returns Attached to Shipments (last 10)</div>
-        ${returnShipments.length?`<table style="width:100%;min-width:unset;border:none;"><thead style="position:static;"><tr><th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);text-align:left;">Date</th><th class="th-left" style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">SKU</th><th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">Shipment</th><th style="font-size:9px;padding:3px 6px;background:none;border:none;color:var(--text3);">Units</th></tr></thead><tbody>${[...returnShipments].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,10).map(s=>`<tr><td style="font-size:10px;font-family:var(--mono);color:var(--text3);padding:3px 6px;border-color:var(--border);">${s.date||'—'}</td><td class="td-left" style="font-size:10px;font-family:var(--mono);padding:3px 6px;border-color:var(--border);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.sku}">${s.sku}</td><td style="font-size:10px;font-family:var(--mono);color:var(--accent);padding:3px 6px;border-color:var(--border);">${s.shipId}</td><td style="font-family:var(--mono);font-weight:700;color:#60d5ff;padding:3px 6px;border-color:var(--border);">${s.units}</td></tr>`).join('')}</tbody></table>`:`<div style="color:var(--text3);font-size:11px;padding:8px 0;text-align:center;">No returns attached to shipments yet</div>`}
-      </div>
-      <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Top Returned SKUs (all-time units)</div>
-        ${(()=>{const g={};returnShipments.forEach(s=>{const k=s.sku||'?';if(!g[k])g[k]={u:0};g[k].u+=s.units||0;});const e=Object.entries(g).sort((a,b)=>b[1].u-a[1].u).slice(0,8);const mx=Math.max(...e.map(x=>x[1].u),1);return e.length?e.map(([k,x])=>bar(k.slice(0,18),x.u,mx,'#60d5ff',fmt(x.u),110)).join(''):`<div style="color:var(--text3);font-size:11px;padding:8px;text-align:center;">No returns data</div>`;})()}
-      </div>
-    </div>
-
     <!-- PREP COST -->
     <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:14px 16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -4225,7 +4397,7 @@ function renderInsights(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>
           <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Cost breakdown</div>
-          ${[[fmt(pc.totalUnits)+' units × tiered rate',fmtGBP2(pc.baseCost),'#fbbf24'],...(pc.osCost>0?[[pc.osUnits+' OS × £'+prepFees.osCostPerUnit,fmtGBP2(pc.osCost),'#fb923c']]:[]),...(pc.bundleCost>0?[[pc.bundleUnits+' bundle × £'+prepFees.bundleCostPerUnit,fmtGBP2(pc.bundleCost),'#34d399']]:[]),[pc.totalBoxes+' boxes × £'+prepFees.boxCost,fmtGBP2(pc.boxCostTotal),'#60a5fa'],...(pc.dgExtra>0?[[pc.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox,fmtGBP2(pc.dgExtra),'#f87171']]:[]),['VAT 20%','£'+(pc.withVat-pc.subtotal).toFixed(2),'#94a3b8'],['Total inc. VAT',fmtGBP2(pc.withVat),'#fbbf24']].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${l}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
+          ${[[fmt(pc.tieredUnits)+' units × '+(pc.unitRate<1?(pc.unitRate*100).toFixed(0)+'p':fmtGBP2(pc.unitRate))+' (band '+pc.unitRateBand+')',fmtGBP2(pc.baseCost),'#fbbf24'],...(pc.osCost>0?[[pc.osUnits+' OS × £'+prepFees.osCostPerUnit,fmtGBP2(pc.osCost),'#fb923c']]:[]),...(pc.bundleCost>0?[[pc.bundleUnits+' bundle × £'+prepFees.bundleCostPerUnit,fmtGBP2(pc.bundleCost),'#34d399']]:[]),[pc.totalBoxes+' boxes × £'+prepFees.boxCost,fmtGBP2(pc.boxCostTotal),'#60a5fa'],...(pc.dgExtra>0?[[pc.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox,fmtGBP2(pc.dgExtra),'#f87171']]:[]),['VAT 20%','£'+(pc.withVat-pc.subtotal).toFixed(2),'#94a3b8'],['Total inc. VAT',fmtGBP2(pc.withVat),'#fbbf24']].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${l}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
         </div>
         <div>
           <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Cost by prep day (recent)</div>
@@ -4235,10 +4407,25 @@ function renderInsights(){
     </div>
 
     <!-- MONTHLY HISTORY (permanent) -->
-    ${sectionHead('Monthly History (all-in)')}
+    ${sectionHead('Monthly History (all-in) — tap a month to view it')}
+    ${(()=>{
+      const chron=[...monthEntries].reverse(); // oldest → newest
+      if(!chron.length)return'';
+      const mxU=Math.max(...chron.map(([,v])=>v.units),1);
+      return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+        <div style="font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">Units Sent by Month — tap a bar</div>
+        <div style="display:flex;align-items:flex-end;gap:6px;height:130px;">
+          ${chron.map(([k,v])=>{const[y,m]=k.split('-');const h=Math.max(4,Math.round((v.units/mxU)*100));const active=insightRange==='m:'+k;return `<div onclick="insightRange='m:${k}';renderInsights();" title="${_MON[+m]} ${y}: ${fmt(v.units)} units · prep ${fmtGBP2(v.prep)}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;min-width:0;">
+            <div style="font-size:9px;font-family:var(--mono);color:${active?'#55ff55':'var(--text3)'};font-weight:700;white-space:nowrap;">${fmt(v.units)}</div>
+            <div style="width:76%;height:${h}px;background:${active?'#55ff55':'rgba(85,255,85,.35)'};border-radius:3px 3px 0 0;transition:height .2s;"></div>
+            <div style="font-size:9px;color:${active?'#55ff55':'var(--text3)'};font-weight:${active?'800':'400'};white-space:nowrap;">${_MON[+m]} '${y.slice(2)}</div>
+          </div>`;}).join('')}
+        </div>
+      </div>`;
+    })()}
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
       <table style="min-width:unset;width:100%;"><thead style="position:static;"><tr><th class="th-left">Month</th><th>Units Sent</th><th>COG Value</th><th>Prep Cost</th><th>COG : Prep</th></tr></thead><tbody>
-      ${monthEntries.length?monthEntries.map(([k,v])=>{const[y,m]=k.split('-');const lbl=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m]+' '+y;const ratio=v.prep>0?(v.value/v.prep).toFixed(1)+'×':'—';return`<tr><td class="td-left" style="font-weight:600;">${lbl}</td><td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(v.units)}</td><td style="font-family:var(--mono);color:#ffaa33;">${fmtGBP(v.value)}</td><td style="font-family:var(--mono);color:#cc99ff;">${fmtGBP2(v.prep)}</td><td style="font-family:var(--mono);color:var(--text2);">${ratio}</td></tr>`;}).join(''):`<tr><td colspan="5"><div style="padding:16px;color:var(--text3);text-align:center;">No history yet</div></td></tr>`}
+      ${monthEntries.length?monthEntries.map(([k,v])=>{const[y,m]=k.split('-');const lbl=_MON[+m]+' '+y;const ratio=v.prep>0?(v.value/v.prep).toFixed(1)+'×':'—';const active=insightRange==='m:'+k;return`<tr onclick="insightRange='m:${k}';renderInsights();" style="cursor:pointer;${active?'background:rgba(85,255,85,.06);':''}" onmouseover="this.style.background='rgba(245,158,11,.05)'" onmouseout="this.style.background='${active?'rgba(85,255,85,.06)':''}'"><td class="td-left" style="font-weight:600;">${lbl} <span style="font-size:9px;color:var(--accent);opacity:.7;">↗</span></td><td style="font-family:var(--mono);font-weight:700;color:#55ff55;">${fmt(v.units)}</td><td style="font-family:var(--mono);color:#ffaa33;">${fmtGBP(v.value)}</td><td style="font-family:var(--mono);color:#cc99ff;">${fmtGBP2(v.prep)}</td><td style="font-family:var(--mono);color:var(--text2);">${ratio}</td></tr>`;}).join(''):`<tr><td colspan="5"><div style="padding:16px;color:var(--text3);text-align:center;">No history yet</div></td></tr>`}
       </tbody></table>
     </div>
 
@@ -4393,12 +4580,357 @@ function renderInsightsTab(tab){
   renderInsPanel(body,allRows,allLav,bm,label,showChart);
 }
 
+// Month-by-month PREP COST comparison. Powers the "Month by Month" tab in the
+// Insights popup (the renderer was previously missing, so the tab showed nothing).
+// Prep-focused per request: each month's prep cost inc. VAT, units, £/unit and the
+// change vs the previous month. Uses the same prep helpers as the rest of Insights.
+function renderInsMonthly(body){
+  const map=buildMonthMap(null);
+  const entries=Object.entries(map).sort(([a],[b])=>b.localeCompare(a)); // newest first
+  if(!entries.length){body.innerHTML='<div style="color:var(--text3);text-align:center;padding:40px;">No shipment history yet.</div>';return;}
+
+  const months=entries.map(([key,md])=>{
+    const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));
+    const m=calcInsMetrics(md.rows,md.lavRows,bm);
+    const[y,mm]=key.split('-');
+    return{key,label:md.label,
+      shortLabel:new Date(+y,+mm-1,1).toLocaleString('en-GB',{month:'short'})+" '"+y.slice(2),
+      units:m.totalUnits||0,boxes:m.totalBoxes||0,prep:m.withVat||0,cog:m.cog||0,
+      prepPerUnit:(m.totalUnits>0)?(m.withVat/m.totalUnits):0};
+  });
+
+  const totPrep=months.reduce((a,m)=>a+m.prep,0);
+  const totUnits=months.reduce((a,m)=>a+m.units,0);
+  const avgPrep=months.length?totPrep/months.length:0;
+  const avgPerUnit=totUnits>0?totPrep/totUnits:0;
+  const maxPrep=Math.max(...months.map(m=>m.prep),1);
+
+  const head=`
+    <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;">Prep Cost — Month by Month</div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:14px;">Every month with shipment activity, newest first. All figures are prep cost inc. VAT.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:18px;">
+      ${kpiCard('Months Tracked',months.length,'with activity','#60a5fa')}
+      ${kpiCard('Total Prep',fmtGBP2(totPrep),'inc. VAT, all months','#fbbf24')}
+      ${kpiCard('Avg / Month',fmtGBP2(avgPrep),'mean monthly prep','#f59e0b')}
+      ${kpiCard('Avg / Unit','£'+avgPerUnit.toFixed(2),'blended prep per unit','#94a3b8')}
+    </div>`;
+
+  const chartData=months.map(m=>({label:m.label,shortLabel:m.shortLabel,prep:m.prep}));
+  const chart=chartData.length>1?`<div style="margin-bottom:18px;">${insBarChart(chartData,'prep','Prep Cost (inc. VAT)','#fbbf24')}</div>`:'';
+
+  const GRID='grid-template-columns:118px 1fr 78px 56px 74px 76px;';
+  const rowsHtml=months.map((m,i)=>{
+    const prev=months[i+1]; // older month (list is newest-first)
+    let delta='—',dCol='var(--text3)';
+    if(prev&&prev.prep>0){
+      const pct=((m.prep-prev.prep)/prev.prep)*100;
+      dCol=Math.abs(pct)<0.05?'var(--text3)':(pct>0?'#f87171':'#34d399'); // more spend = red
+      delta=`${pct>0.05?'▲':pct<-0.05?'▼':'→'} ${Math.abs(pct).toFixed(1)}%`;
+    }
+    const barW=Math.round((m.prep/maxPrep)*100);
+    return`<div style="display:grid;${GRID}gap:8px;align-items:center;padding:9px 10px;border-bottom:1px solid var(--border);">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);">${m.label}</div>
+      <div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${barW}%;background:#fbbf24;border-radius:3px;"></div></div>
+      <div style="font-size:12px;font-family:var(--mono);font-weight:800;color:#fbbf24;text-align:right;">${fmtGBP2(m.prep)}</div>
+      <div style="font-size:11px;font-family:var(--mono);color:#60a5fa;text-align:right;">${fmt(m.units)}u</div>
+      <div style="font-size:11px;font-family:var(--mono);color:#94a3b8;text-align:right;">£${m.prepPerUnit.toFixed(2)}</div>
+      <div style="font-size:11px;font-family:var(--mono);font-weight:700;color:${dCol};text-align:right;" title="${prev?'vs '+prev.label:'no prior month'}">${delta}</div>
+    </div>`;
+  }).join('');
+
+  const table=`
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <div style="display:grid;${GRID}gap:8px;padding:8px 10px;border-bottom:2px solid var(--border);font-size:8px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">
+        <div>Month</div><div></div><div style="text-align:right;">Prep £</div><div style="text-align:right;">Units</div><div style="text-align:right;">£/Unit</div><div style="text-align:right;">vs Prev</div>
+      </div>
+      ${rowsHtml}
+    </div>
+    <div style="font-size:9px;color:var(--text3);margin-top:8px;line-height:1.4;">"vs Prev" compares each month's prep cost to the month before it — <span style="color:#f87171;">red ▲</span> spent more, <span style="color:#34d399;">green ▼</span> spent less. Rates configurable in Settings → Prep Fees.</div>`;
+
+  body.innerHTML=head+chart+table;
+}
+
+// Holds the metrics + label for the currently-rendered insights panel so the
+// "Prep Cost ▸" card can open a detailed breakdown on click.
+let _lastInsMet=null,_lastInsLabel='';
+let _prepExpPeriod='mtd';
+
+// Resolve a period key to a {s,e,label} date range. Keys: 'mtd', 'lastmonth',
+// or a 'YYYY-MM' month key.
+function prepExpRange(key){
+  const now=new Date();
+  if(key==='mtd'){return{s:new Date(now.getFullYear(),now.getMonth(),1),e:now,label:'This Month (MTD)'};}
+  if(key==='lastmonth'){return{s:new Date(now.getFullYear(),now.getMonth()-1,1),e:new Date(now.getFullYear(),now.getMonth(),0,23,59,59),label:'Last Month'};}
+  const[y,m]=key.split('-').map(Number);
+  return{s:new Date(y,m-1,1),e:new Date(y,m,0,23,59,59),label:new Date(y,m-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'})};
+}
+// Prep metrics for a date range.
+function prepExpMetrics(s,e){
+  const inR=d=>{if(!d)return false;const x=new Date(d);return x>=s&&x<=e;};
+  const sr=rows.filter(r=>r.sent==='Yes'&&inR(r.sentDate));
+  const lv=lavShipments.filter(x=>inR(x.date));
+  const ids=new Set([...sr.filter(r=>r.shipId).map(r=>r.shipId),...lv.filter(x=>x.shipId).map(x=>x.shipId)]);
+  const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>ids.has(sid)));
+  return calcInsMetrics(sr,lv,bm);
+}
+// The detailed cost rows for a metrics object.
+function prepBreakdownRows(m){
+  const vatAmt=(m.withVat||0)-(m.subtotal||0);
+  const rateStr=m.unitRate!=null?(m.unitRate<1?(m.unitRate*100).toFixed(0)+'p':fmtGBP2(m.unitRate)):'rate';
+  const row=(label,val,sub,col)=>`<div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--border);">
+    <div><div style="font-size:12px;color:var(--text2);font-weight:600;">${label}</div>${sub?`<div style="font-size:9px;color:var(--text3);">${sub}</div>`:''}</div>
+    <div style="font-family:var(--mono);font-size:12px;font-weight:700;color:${col||'var(--text)'};">${val}</div>
+  </div>`;
+  return `
+    ${row('Volume base rate',fmtGBP2(m.baseCost||0),`${fmt(m.tieredUnits||0)} units (Standard + DG + Lavarion) × ${rateStr} (volume band ${m.unitRateBand||'—'})`,'#fbbf24')}
+    ${(m.osCost>0)?row('Oversize surcharge',fmtGBP2(m.osCost),`${fmt(m.osUnits||0)} oversize units`,'#fb923c'):''}
+    ${(m.bundleCost>0)?row('Bundle handling',fmtGBP2(m.bundleCost),`${fmt(m.bundleUnits||0)} bundled units`,'#34d399'):''}
+    ${(m.boxCostTotal>0)?row('Boxes',fmtGBP2(m.boxCostTotal),`${fmt(m.stdBoxes||0)} standard + ${fmt(m.dgBoxes||0)} DG`,'#60a5fa'):''}
+    ${row('Subtotal (ex. VAT)',fmtGBP2(m.subtotal||0),'','var(--text)')}
+    ${row('VAT',fmtGBP2(vatAmt),'','#94a3b8')}
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 2px;border-top:2px solid var(--accent);margin-top:4px;">
+      <div style="font-size:13px;font-weight:800;color:var(--text);">Total inc. VAT</div>
+      <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:#fbbf24;">${fmtGBP2(m.withVat||0)}</div>
+    </div>`;
+}
+// Open / refresh the Prep Fee Explorer for a given period.
+function openPrepExplorer(key){
+  if(key)_prepExpPeriod=key;
+  const box=document.getElementById('insPrepBreakdownBody');
+  if(!box)return;
+  const{s,e,label}=prepExpRange(_prepExpPeriod);
+  const m=prepExpMetrics(s,e);
+
+  // Build the list of selectable periods: This Month, Last Month, then recent months.
+  const monthMap=buildMonthMap(null);
+  const monthKeys=Object.keys(monthMap).sort((a,b)=>b.localeCompare(a)).slice(0,8);
+  const now=new Date();
+  const thisKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const lastD=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const lastKey=lastD.getFullYear()+'-'+String(lastD.getMonth()+1).padStart(2,'0');
+  const periods=[['mtd','This Month'],['lastmonth','Last Month'],...monthKeys.filter(k=>k!==thisKey&&k!==lastKey).map(k=>{const[y,mm]=k.split('-');return[k,new Date(+y,+mm-1,1).toLocaleString('en-GB',{month:'short'})+" '"+y.slice(2)];})];
+  const pillRow=periods.map(([k,lbl])=>{
+    const active=k===_prepExpPeriod;
+    return `<button onclick="openPrepExplorer('${k}')" style="padding:5px 11px;border-radius:14px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;border:1px solid ${active?'var(--accent)':'var(--border2)'};background:${active?'rgba(251,191,36,.15)':'var(--bg3)'};color:${active?'#fbbf24':'var(--text2)'};">${lbl}</button>`;
+  }).join('');
+
+  // Month-by-month prep trend (clickable bars), oldest→newest.
+  const trend=monthKeys.slice().reverse().map(k=>{
+    const md=monthMap[k];const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));
+    const mm=calcInsMetrics(md.rows,md.lavRows,bm);
+    const[y,mo]=k.split('-');
+    return{key:k,short:new Date(+y,+mo-1,1).toLocaleString('en-GB',{month:'short'}),prep:mm.withVat||0};
+  });
+  const maxPrep=Math.max(...trend.map(t=>t.prep),1);
+  const trendBars=trend.map(t=>{
+    const h=Math.max(4,Math.round((t.prep/maxPrep)*90));
+    const sel=t.key===_prepExpPeriod;
+    return `<div onclick="openPrepExplorer('${t.key}')" title="${t.short}: ${fmtGBP2(t.prep)}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;min-width:0;">
+      <div style="font-size:8px;font-family:var(--mono);color:${sel?'#fbbf24':'var(--text3)'};white-space:nowrap;">${t.prep>=1000?'£'+(t.prep/1000).toFixed(1)+'k':'£'+Math.round(t.prep)}</div>
+      <div style="width:70%;height:${h}px;background:${sel?'#fbbf24':'rgba(251,191,36,.3)'};border-radius:3px 3px 0 0;transition:height .2s;"></div>
+      <div style="font-size:8px;color:${sel?'#fbbf24':'var(--text3)'};font-weight:${sel?'800':'400'};">${t.short}</div>
+    </div>`;
+  }).join('');
+
+  const empty=!(m.totalUnits||0);
+
+  // Previous comparable period (for deltas).
+  let py,pmo;
+  if(_prepExpPeriod==='mtd'||_prepExpPeriod==='lastmonth'){
+    const base=_prepExpPeriod==='mtd'?new Date(now.getFullYear(),now.getMonth(),1):new Date(now.getFullYear(),now.getMonth()-1,1);
+    const p=new Date(base.getFullYear(),base.getMonth()-1,1);py=p.getFullYear();pmo=p.getMonth();
+  }else{const[yy,mm]=_prepExpPeriod.split('-').map(Number);const p=new Date(yy,mm-2,1);py=p.getFullYear();pmo=p.getMonth();}
+  const prevM=prepExpMetrics(new Date(py,pmo,1),new Date(py,pmo+1,0,23,59,59));
+  const prevLbl=new Date(py,pmo,1).toLocaleString('en-GB',{month:'short'});
+  const ppuCur=m.totalUnits?m.withVat/m.totalUnits:0, ppuPrev=prevM.totalUnits?prevM.withVat/prevM.totalUnits:0;
+  const ratioCur=m.withVat?(m.cog/m.withVat):0;
+  const rateStr=r=>r==null?'—':(r<1?(r*100).toFixed(0)+'p':'£'+r.toFixed(2));
+  const delta=(cur,prev,goodDown)=>{const pct=prev>0?((cur-prev)/prev*100):(cur>0?100:0);const col=((goodDown?pct<-0.5:pct>0.5))?'#4ade80':((goodDown?pct>0.5:pct<-0.5)?'#f87171':'var(--text3)');return prev>0?`<span style="font-family:var(--mono);font-weight:800;color:${col};">${pct>0.5?'▲':pct<-0.5?'▼':'→'} ${Math.abs(pct).toFixed(0)}%</span>`:'<span style="color:var(--text3);">—</span>';};
+
+  // Volume-band insight.
+  const tu=m.tieredUnits||0;
+  const bands=[{max:prepFees.tier1Units,rate:prepFees.tier1p,label:'1–'+fmt(prepFees.tier1Units)},{max:prepFees.tier2Units,rate:prepFees.tier2p,label:fmt(prepFees.tier1Units+1)+'–'+fmt(prepFees.tier2Units)},{max:prepFees.tier3Units,rate:prepFees.tier3p,label:fmt(prepFees.tier2Units+1)+'–'+fmt(prepFees.tier3Units)},{max:Infinity,rate:prepFees.tier4p,label:fmt(prepFees.tier3Units+1)+'+'}];
+  const ci=Math.max(0,bands.findIndex(b=>tu<=b.max));const cur=bands[ci],nb=bands[ci+1];
+  const bandInsight=tu<=0?'':(nb?`You're in the <b style="color:#fbbf24;">${cur.label}</b> band at <b>${rateStr(cur.rate)}/unit</b>. <b style="color:#4ade80;">${fmt((cur.max+1)-tu)} more units</b> this period would reach the <b>${nb.label}</b> band at <b>${rateStr(nb.rate)}/unit</b> — that lower rate applies to <i>every</i> unit, not just the new ones.`:`You're in the top <b style="color:#4ade80;">${cur.label}</b> band at <b>${rateStr(cur.rate)}/unit</b> — best available rate.`);
+
+  // Cost composition (% of ex-VAT subtotal).
+  const sub=m.subtotal||1;
+  const comp=[['Volume base',m.baseCost||0,'#fbbf24'],['Oversize',m.osCost||0,'#fb923c'],['Bundle',m.bundleCost||0,'#34d399'],['Boxes',m.boxCostTotal||0,'#60a5fa']].filter(c=>c[1]>0);
+
+  const kpiTile=(v,l,c)=>`<div style="background:var(--bg3);border-radius:8px;padding:11px 8px;text-align:center;"><div style="font-size:18px;font-weight:900;font-family:var(--mono);color:${c};line-height:1;">${v}</div><div style="font-size:8px;color:#94a3b8;margin-top:4px;text-transform:uppercase;letter-spacing:.05em;">${l}</div></div>`;
+
+  box.innerHTML=`
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">${pillRow}</div>
+    ${trend.length>1?`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 10px 8px;margin-bottom:14px;">
+      <div style="font-size:8px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Prep Cost Trend (inc. VAT) — tap a month</div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:120px;">${trendBars}</div>
+    </div>`:''}
+    <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:2px;">${label}</div>
+    ${empty?`<div style="color:var(--text3);padding:24px;text-align:center;">No prep activity in this period.</div>`:`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">${fmt(m.totalUnits||0)} units · ${fmt(m.totalBoxes||0)} box${(m.totalBoxes||0)!==1?'es':''} · ${fmt(m.ships||0)} shipments</div>
+    <div style="font-size:30px;font-weight:900;font-family:var(--mono);color:#fbbf24;line-height:1;margin-bottom:2px;">${fmtGBP2(m.withVat||0)}</div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:12px;">inc. VAT · ${fmtGBP2(m.subtotal||0)} ex. VAT</div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px;">
+      ${kpiTile(fmtGBP2(m.withVat||0),'Total inc VAT','#fbbf24')}
+      ${kpiTile('£'+ppuCur.toFixed(2),'Per unit','#fb923c')}
+      ${kpiTile(m.ships>0?'£'+(m.withVat/m.ships).toFixed(2):'—','Per shipment','#34d399')}
+      ${kpiTile(ratioCur?ratioCur.toFixed(1)+'×':'—','COG : Prep','#cc99ff')}
+    </div>
+
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-around;gap:8px;">
+      <div style="text-align:center;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Prep vs ${prevLbl}</div><div style="font-size:12px;">${delta(m.withVat||0,prevM.withVat||0,true)}</div></div>
+      <div style="text-align:center;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">£/unit vs ${prevLbl}</div><div style="font-size:12px;">${delta(ppuCur,ppuPrev,true)}</div></div>
+      <div style="text-align:center;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">${prevLbl} total</div><div style="font-size:12px;font-family:var(--mono);color:var(--text2);">${prevM.withVat?fmtGBP2(prevM.withVat):'—'}</div></div>
+    </div>
+
+    ${bandInsight?`<div style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:11px 13px;margin-bottom:12px;font-size:11px;line-height:1.5;color:var(--text2);">💡 ${bandInsight}</div>`:''}
+
+    ${comp.length>1?`<div style="margin-bottom:14px;">
+      <div style="font-size:8px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Cost Composition (ex. VAT)</div>
+      ${comp.map(([l,v,c])=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0;"><div style="width:80px;font-size:10px;color:var(--text2);">${l}</div><div style="flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${Math.round(v/sub*100)}%;background:${c};border-radius:4px;"></div></div><div style="width:84px;text-align:right;font-size:10px;font-family:var(--mono);color:${c};font-weight:700;">${fmtGBP2(v)} · ${Math.round(v/sub*100)}%</div></div>`).join('')}
+    </div>`:''}
+
+    <div style="font-size:8px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Line-by-line</div>
+    ${prepBreakdownRows(m)}`}
+    <div style="font-size:9px;color:var(--text3);margin-top:12px;line-height:1.4;">Each month is priced at its own actual volume (volume-based flat rate). Rates configurable in Settings → Prep Fees.</div>`;
+  om('insPrepModal');
+}
+
+// Back-compat: the Insights prep KPI card opens the explorer at the current month.
+function showInsPrepBreakdown(){openPrepExplorer('mtd');}
+
+// ── Insights detail popups (Units / COG / Account / Prep efficiency) ──────────
+const _MONA=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function _insMonthSeries(){
+  const mm=buildMonthMap(null);
+  return Object.keys(mm).sort().slice(-10).map(k=>{
+    const md=mm[k];const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));
+    const m=calcInsMetrics(md.rows,md.lavRows,bm);const[y,mo]=k.split('-');
+    return{key:k,short:_MONA[+mo]+" '"+y.slice(2),units:m.totalUnits||0,cog:m.cog||0,prep:m.withVat||0,
+      lav:m.lavUnits||0,stock:(m.totalUnits||0)-(m.lavUnits||0),
+      ppu:m.totalUnits?(m.withVat/m.totalUnits):0,ratio:m.withVat?(m.cog/m.withVat):0};
+  });
+}
+function _insBars(series,key,color,fmtFn,onClickMonth){
+  if(!series.length)return'<div style="color:var(--text3);padding:20px;text-align:center;">No data yet</div>';
+  const mx=Math.max(...series.map(s=>s[key]),1);
+  return `<div style="display:flex;align-items:flex-end;gap:5px;height:130px;">${series.map(s=>{const h=Math.max(4,Math.round((s[key]/mx)*100));return `<div ${onClickMonth?`onclick="${onClickMonth}('${s.key}')"`:''} title="${s.short}: ${fmtFn(s[key])}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;${onClickMonth?'cursor:pointer;':''}min-width:0;"><div style="font-size:8px;font-family:var(--mono);color:var(--text3);white-space:nowrap;">${fmtFn(s[key])}</div><div style="width:74%;height:${h}px;background:${color};border-radius:3px 3px 0 0;opacity:.82;"></div><div style="font-size:8px;color:var(--text3);">${s.short}</div></div>`;}).join('')}</div>`;
+}
+function _deltaBadge(cur,prev,goodWhenDown){
+  const pct=prev>0?((cur-prev)/prev*100):(cur>0?100:0);
+  const col=((goodWhenDown?pct<-0.5:pct>0.5))?'#4ade80':((goodWhenDown?pct>0.5:pct<-0.5)?'#f87171':'var(--text3)');
+  const arrow=pct>0.5?'▲':pct<-0.5?'▼':'→';
+  return `<span style="font-family:var(--mono);font-weight:800;color:${col};">${arrow} ${Math.abs(pct).toFixed(0)}%</span>`;
+}
+function _insShow(title,html){document.getElementById('insDetailTitle').textContent=title;document.getElementById('insDetailBody').innerHTML=html;om('insDetailModal');}
+function _drillMonth(k){cm('insDetailModal');insightRange='m:'+k;renderInsights();}
+
+function openUnitsExplorer(){
+  const s=_insMonthSeries();const cur=s[s.length-1]||{units:0,stock:0,lav:0},prev=s[s.length-2]||{units:0};
+  const tot=cur.units||1;
+  _insShow('Units Sent — Trend & Breakdown',`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Units sent per month — tap a bar to open that month.</div>
+    ${_insBars(s,'units','#55ff55',fmt,'_drillMonth')}
+    <div style="display:flex;gap:8px;margin:16px 0 14px;">
+      <div style="flex:1;background:var(--bg3);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#55ff55;">${fmt(cur.units)}</div><div style="font-size:9px;color:var(--text3);margin-top:3px;">This month · ${_deltaBadge(cur.units,prev.units,false)} vs last</div></div>
+      <div style="flex:1;background:var(--bg3);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#5599ff;">${fmt(cur.stock)}</div><div style="font-size:9px;color:var(--text3);margin-top:3px;">Stock · ${Math.round(cur.stock/tot*100)}%</div></div>
+      <div style="flex:1;background:var(--bg3);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#cc99ff;">${fmt(cur.lav)}</div><div style="font-size:9px;color:var(--text3);margin-top:3px;">Lavarion · ${Math.round(cur.lav/tot*100)}%</div></div>
+    </div>
+    <div style="font-size:9px;color:var(--text3);">"This month" = latest calendar month so far.</div>`);
+}
+function openCogExplorer(){
+  const s=_insMonthSeries();const cur=s[s.length-1]||{cog:0},prev=s[s.length-2]||{cog:0};
+  const sup={};rows.filter(r=>r.sent==='Yes').forEach(r=>{const k=r.sup||'—';if(!sup[k])sup[k]={u:0,c:0};const u=r.ship||0;sup[k].u+=u;sup[k].c+=(parseSKU(r.sku).cogs||0)*u;});
+  const se=Object.entries(sup).filter(([,v])=>v.c>0).sort((a,b)=>b[1].c-a[1].c).slice(0,10);const mx=Math.max(...se.map(([,v])=>v.c),1);
+  _insShow('COG Value — Trend & By Supplier',`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">COG value sent per month — tap a bar to open that month.</div>
+    ${_insBars(s,'cog','#ffaa33',v=>v>=1000?'£'+(v/1000).toFixed(0)+'k':'£'+Math.round(v),'_drillMonth')}
+    <div style="background:var(--bg3);border-radius:8px;padding:12px;margin:16px 0 6px;text-align:center;"><div style="font-size:24px;font-weight:900;font-family:var(--mono);color:#ffaa33;">${fmtGBP2(cur.cog)}</div><div style="font-size:9px;color:var(--text3);margin-top:3px;">This month · ${_deltaBadge(cur.cog,prev.cog,false)} vs last</div></div>
+    <div style="font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 8px;">COG by Supplier (all-time)</div>
+    ${se.length?se.map(([s2,v])=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;"><div style="width:120px;font-size:11px;font-weight:600;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s2}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${Math.round(v.c/mx*100)}%;background:#ffaa33;border-radius:4px;"></div></div><div style="width:64px;text-align:right;font-size:11px;font-family:var(--mono);font-weight:700;color:#ffaa33;">${fmtGBP(v.c)}</div></div>`).join(''):'<div style="color:var(--text3);padding:10px;text-align:center;">No supplier data</div>'}`);
+}
+function openPrepEfficiency(){
+  const s=_insMonthSeries();const cur=s[s.length-1]||{ppu:0,ratio:0},prev=s[s.length-2]||{ppu:0};
+  _insShow('Prep Efficiency Over Time',`
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <div style="flex:1;background:var(--bg3);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#fb923c;">${cur.ppu?'£'+cur.ppu.toFixed(2):'—'}</div><div style="font-size:9px;color:var(--text3);margin-top:3px;">Prep £/unit · ${_deltaBadge(cur.ppu,prev.ppu,true)} vs last</div></div>
+      <div style="flex:1;background:var(--bg3);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#cc99ff;">${cur.ratio?cur.ratio.toFixed(1)+'×':'—'}</div><div style="font-size:9px;color:var(--text3);margin-top:3px;">COG : Prep ratio</div></div>
+    </div>
+    <div style="font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Prep £/unit by month (lower = better)</div>
+    ${_insBars(s,'ppu','#fb923c',v=>v?'£'+v.toFixed(2):'£0','_drillMonth')}
+    <div style="font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px;">COG : Prep ratio by month (higher = leaner)</div>
+    ${_insBars(s,'ratio','#cc99ff',v=>v?v.toFixed(0)+'×':'—','_drillMonth')}`);
+}
+function openAccountModal(acct){
+  const a=String(acct);
+  const sent=rows.filter(r=>r.sent==='Yes'&&(r.acct||'—')===a);
+  const units=sent.reduce((x,r)=>x+(r.ship||0),0);
+  const cog=sent.reduce((x,r)=>x+(parseSKU(r.sku).cogs||0)*(r.ship||0),0);
+  const ships=new Set(sent.filter(r=>r.shipId).map(r=>r.shipId)).size;
+  const issues=rows.filter(r=>(r.acct||'—')===a&&r.issueQty>0).reduce((x,r)=>x+(r.issueQty||0),0);
+  const mser={};sent.forEach(r=>{const k=(r.sentDate||'').slice(0,7);if(!k)return;mser[k]=(mser[k]||0)+(r.ship||0);});
+  const keys=Object.keys(mser).sort().slice(-10);
+  const series=keys.map(k=>{const[y,mo]=k.split('-');return{key:k,short:_MONA[+mo]+" '"+y.slice(2),units:mser[k]};});
+  _insShow('Account — '+a,`
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
+      ${[['Units',fmt(units),'#55ff55'],['COG Value',fmtGBP2(cog),'#ffaa33'],['Shipments',fmt(ships),'#5599ff'],['Issue Units',fmt(issues),issues>0?'#f87171':'#64748b']].map(([l,v,c])=>`<div style="background:var(--bg3);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:20px;font-weight:900;font-family:var(--mono);color:${c};line-height:1;">${v}</div><div style="font-size:8px;color:var(--text3);margin-top:4px;text-transform:uppercase;letter-spacing:.06em;">${l}</div></div>`).join('')}
+    </div>
+    <div style="font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Units sent by month — ${a}</div>
+    ${_insBars(series,'units','#60a5fa',fmt,null)}`);
+}
+
+// "This Month vs Last Month" comparison popup — opened from the overview tiles.
+function openInsCompare(){
+  const box=document.getElementById('insCompareBody');if(!box)return;
+  const now=new Date();
+  const tm=prepExpMetrics(new Date(now.getFullYear(),now.getMonth(),1),now);
+  const lm=prepExpMetrics(new Date(now.getFullYear(),now.getMonth()-1,1),new Date(now.getFullYear(),now.getMonth(),0,23,59,59));
+  const dayNo=now.getDate();
+  // 6-month series per metric for the mini trend.
+  const mm=buildMonthMap(null);const keys=Object.keys(mm).sort().slice(-6);
+  const ser={units:[],cog:[],ships:[],prep:[]};
+  keys.forEach(k=>{const md=mm[k];const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));const x=calcInsMetrics(md.rows,md.lavRows,bm);ser.units.push(x.totalUnits||0);ser.cog.push(x.cog||0);ser.ships.push(x.ships||0);ser.prep.push(x.withVat||0);});
+  const miniTrend=(vals,color)=>{
+    if(!vals.length)return'';const max=Math.max(...vals,1);
+    return `<div style="display:flex;align-items:flex-end;gap:3px;height:34px;">${vals.map((v,i)=>`<div title="${keys[i]}: ${v}" style="flex:1;height:${Math.max(3,Math.round((v/max)*34))}px;background:${i===vals.length-1?color:color+'66'};border-radius:2px 2px 0 0;"></div>`).join('')}</div>`;
+  };
+  const card=(label,thisV,lastV,fmtFn,color,series)=>{
+    const pct=lastV>0?((thisV-lastV)/lastV*100):(thisV>0?100:0);
+    const up=pct>0.5,down=pct<-0.5;
+    const dCol=up?'#4ade80':down?'#f87171':'var(--text3)';
+    const arrow=up?'▲':down?'▼':'→';
+    return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+        <div style="font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">${label}</div>
+        <div style="font-size:11px;font-weight:800;font-family:var(--mono);color:${dCol};">${arrow} ${Math.abs(pct).toFixed(0)}%</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;">
+        <div><div style="font-size:8px;color:var(--text3);">This month (to day ${dayNo})</div><div style="font-size:20px;font-weight:900;font-family:var(--mono);color:${color};line-height:1.1;">${fmtFn(thisV)}</div></div>
+        <div style="text-align:right;"><div style="font-size:8px;color:var(--text3);">Last month (full)</div><div style="font-size:14px;font-weight:700;font-family:var(--mono);color:var(--text2);line-height:1.1;">${fmtFn(lastV)}</div></div>
+      </div>
+      ${miniTrend(series,color)}
+    </div>`;
+  };
+  box.innerHTML=`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.4;">This calendar month so far vs all of last month. The % is a running pace check — early in the month it'll naturally trail a full month. Bars show the last ${keys.length} months.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      ${card('Units Sent',tm.totalUnits||0,lm.totalUnits||0,fmt,'#55ff55',ser.units)}
+      ${card('COG Value',tm.cog||0,lm.cog||0,fmtGBP2,'#ffaa33',ser.cog)}
+      ${card('Shipments',tm.ships||0,lm.ships||0,fmt,'#5599ff',ser.ships)}
+      ${card('Prep (inc VAT)',tm.withVat||0,lm.withVat||0,fmtGBP2,'#cc99ff',ser.prep)}
+    </div>
+    <div style="margin-top:12px;text-align:center;"><button onclick="cm('insCompareModal');openPrepExplorer('mtd')" style="padding:7px 14px;background:rgba(204,153,255,.12);border:1px solid rgba(204,153,255,.35);color:#cc99ff;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Open full Prep Fee Explorer →</button></div>`;
+  om('insCompareModal');
+}
+
 function renderInsPanel(body,allRows,allLav,boxMap,label,showChart){
   if(!allRows.length&&!allLav.length){
     body.innerHTML=`<div style="color:var(--text3);text-align:center;padding:40px;">No data for ${label.toLowerCase()}.</div>`;
     return;
   }
   const met=calcInsMetrics(allRows,allLav,boxMap);
+  _lastInsMet=met;_lastInsLabel=label;
   const cogPerUnit=met.totalUnits>0?(met.cog/met.totalUnits):0;
   const prepPct=met.cog>0?((met.withVat/met.cog)*100):0;
 
@@ -4407,13 +4939,13 @@ function renderInsPanel(body,allRows,allLav,boxMap,label,showChart){
     <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:14px;">${label}</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:20px;">
       ${kpiCard('Units Sent',fmt(met.totalUnits),'units shipped','#60a5fa')}
-      ${kpiCard('COG','£'+fmtGBP2(met.cog),'cost of goods','#f59e0b')}
+      ${kpiCard('COG',fmtGBP2(met.cog),'cost of goods','#f59e0b')}
       ${kpiCard('SKU Lines',met.skus,'unique SKUs','#a78bfa')}
       ${kpiCard('ASINs',met.asins,'unique ASINs','#34d399')}
       ${kpiCard('Shipments',met.ships,'FBA shipments','#60a5fa')}
       ${kpiCard('Boxes',met.totalBoxes,'total boxes','#fb923c')}
       <div onclick="showInsPrepBreakdown()" style="cursor:pointer;" title="Click to see full breakdown">
-        ${kpiCard('Prep Cost ▸','£'+fmtGBP2(met.withVat),'inc. VAT · click for detail','#fbbf24')}
+        ${kpiCard('Prep Cost ▸',fmtGBP2(met.withVat),'inc. VAT · click for detail','#fbbf24')}
       </div>
       ${kpiCard('COG / Unit','£'+cogPerUnit.toFixed(2),'avg cost per unit','#94a3b8')}
       ${kpiCard('Prep %',prepPct.toFixed(1)+'%','prep as % of COG','#f472b6')}
@@ -4481,7 +5013,7 @@ function renderInsPanel(body,allRows,allLav,boxMap,label,showChart){
             </div>
             <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
               <span style="font-size:10px;color:var(--text3);">${s.skus.size} SKUs · ${s.orders.size} orders</span>
-              <span style="font-size:10px;font-family:var(--mono);color:#f59e0b;">£${fmtGBP2(s.cog)}</span>
+              <span style="font-size:10px;font-family:var(--mono);color:#f59e0b;">${fmtGBP2(s.cog)}</span>
             </div>
             <div style="height:3px;background:var(--bg);border-radius:2px;">
               <div style="height:100%;width:${Math.round((s.units/(topSups[0]?.units||1))*100)}%;background:#60a5fa;border-radius:2px;"></div>
@@ -4498,7 +5030,7 @@ function renderInsPanel(body,allRows,allLav,boxMap,label,showChart){
             </div>
             <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
               <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;">${a.prod||'—'}</span>
-              <span style="font-size:10px;font-family:var(--mono);color:#f59e0b;">£${fmtGBP2(a.cog)}</span>
+              <span style="font-size:10px;font-family:var(--mono);color:#f59e0b;">${fmtGBP2(a.cog)}</span>
             </div>
             <div style="height:3px;background:var(--bg);border-radius:2px;">
               <div style="height:100%;width:${Math.round((a.units/(topAsins[0]?.units||1))*100)}%;background:#34d399;border-radius:2px;"></div>
@@ -4521,7 +5053,7 @@ function renderInsPanel(body,allRows,allLav,boxMap,label,showChart){
           <td style="padding:5px 6px;font-size:10px;font-family:var(--mono);color:var(--text2);">${s.sku}</td>
           <td style="padding:5px 6px;font-size:10px;color:var(--text3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.prod||'—'}</td>
           <td style="padding:5px 6px;font-size:11px;font-family:var(--mono);font-weight:700;color:#60a5fa;text-align:right;">${fmt(s.units)}</td>
-          <td style="padding:5px 6px;font-size:10px;font-family:var(--mono);color:#f59e0b;text-align:right;">£${fmtGBP2(s.cog)}</td>
+          <td style="padding:5px 6px;font-size:10px;font-family:var(--mono);color:#f59e0b;text-align:right;">${fmtGBP2(s.cog)}</td>
           <td style="padding:5px 6px;font-size:10px;font-family:var(--mono);color:#94a3b8;text-align:right;">£${s.units>0?(s.cog/s.units).toFixed(2):'—'}</td>
           <td style="padding:5px 6px;">
             <div style="height:4px;background:var(--bg);border-radius:2px;">
@@ -4540,7 +5072,7 @@ function toggleInsMonth(key){
 }
 
 function saveSettingsPrepFees(){
-  ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit'].forEach(k=>{
+  ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit','expectedMonthlyUnits'].forEach(k=>{
     const el=document.getElementById('pf-'+k);
     if(el)prepFees[k]=parseFloat(el.value)||0;
   });
@@ -4553,7 +5085,7 @@ function resetPrepFees(){
   showConfirm('Reset prep fees?','This resets all rates to the Source 2 Store defaults.',()=>{
     prepFees={...PREP_FEE_DEFAULTS};
     savePrepFees();
-    ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit'].forEach(k=>{
+    ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit','expectedMonthlyUnits'].forEach(k=>{
       const el=document.getElementById('pf-'+k);
       if(el)el.value=prepFees[k];
     });
@@ -4985,7 +5517,7 @@ function updateArchivedBtn(){
   const n=rows.filter(r=>r.archived).length; // only shipped rows get archived now
   btn.style.background=_showArchived?'rgba(96,165,250,.35)':'var(--bg2)';
   btn.style.color=_showArchived?'#fff':'var(--text3)';
-  btn.textContent=_showArchived?'← Active Sheet':`Show Archived${n?` (${n})`:''}`;
+  btn.textContent=_showArchived?'← Active Sheet':'Show Archived';
 }
 function toggleIssuesFilter(){
   _issuesFilterActive=!_issuesFilterActive;
@@ -5071,6 +5603,95 @@ function addSegment(r,shipId,units,type){
   r.ship=segmentsSentTotal(r);           // legacy cumulative total
 }
 
+// Open the shipment-ID modal to send units of a row to a shipment.
+//  - isPartial=true  → asks for a quantity (1..remaining); row becomes Part Sent
+//                      if units are still left afterwards, else Sent to Amazon.
+//  - isPartial=false → sends ALL remaining units in one go (Sent to Amazon).
+// Only units not already attached to a shipment are offered, so this is safe to
+// call repeatedly on a Part-Sent row to send each subsequent batch to its own
+// FBA shipment ID / date.
+function openSendModal(r,isPartial,allowExtra){
+  const remaining=remainingToShip(r);
+  if(remaining<=0&&!allowExtra){toast('All available units are already in a shipment','er');return;}
+  const alreadyOut=segmentsSentTotal(r);
+  const forcePartial=isPartial||allowExtra;
+  const maxUnits=remaining>0?remaining:9999; // allowExtra: don't clamp the typed qty
+  showShipIdModal(
+    forcePartial?'Partial Send — Enter Shipment ID':'Shipment ID Required',
+    allowExtra
+      ?`Everything expected is already shipped — this sends additional unit(s) to a shipment. Enter how many and the FBA ID for THIS shipment.`
+      :isPartial
+        ?`Sending partial units (${remaining} available to send${alreadyOut?`, ${alreadyOut} already shipped`:''}${r.issueQty?`, ${r.issueQty} held for issue`:''}). Enter the FBA ID for THIS shipment.`
+        :`Enter the FBA Shipment ID for these ${remaining} units.${alreadyOut?` (${alreadyOut} already shipped separately)`:''}${r.issueQty?` (${r.issueQty} held for issue)`:''}`,
+    r.shipType||'Standard',
+    (shipId,type,partialUnits)=>{
+      const sendQty=forcePartial?(allowExtra?(partialUnits||0):Math.min(partialUnits||0,maxUnits)):remaining;
+      if(!(sendQty>0)){toast('Enter a quantity greater than 0','er');return;}
+      // Record this shipment as its own segment — never merge into a prior one.
+      addSegment(r,shipId,sendQty,type);
+      r.sentDate=todayISO();r.sentAt=getNowUK();
+      // Fully sent only when nothing is left to ship.
+      if(remainingToShip(r)>0){
+        r.status='Part Sent';r.sent='No';
+      }else{
+        r.status='Sent to Amazon';r.sent='Yes';
+        if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
+      }
+      r._dirty=true;
+      saveRow(r);
+      logAudit(r.status==='Part Sent'?'Part Sent':'Sent to Amazon',`${r.sku} → ${shipId} (${sendQty}u)`);
+      renderPrep();
+    },
+    forcePartial,maxUnits
+  );
+}
+
+// "↗ Send more" — send the NEXT batch of an already-Part-Sent row to a new
+// shipment. Re-selecting "Part Sent" in the dropdown can't trigger this (the
+// value hasn't changed, so no change event fires), so this gives a reliable,
+// repeatable entry point for multi-shipment splits.
+function sendMore(id){
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
+  if(!r)return;
+  // If the maths says nothing is outstanding, still allow sending extra unit(s)
+  // (e.g. you want to send 1 more on the same shipment for various reasons).
+  const allowExtra=remainingToShip(r)<=0;
+  openSendModal(r,true,allowExtra);
+}
+// Kept for the status-dropdown finalise path.
+function sendMoreExtra(id){
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
+  if(!r)return;
+  openSendModal(r,true,true);
+}
+
+// "Send more" on a row the maths says is fully shipped — lets the user push
+// ADDITIONAL unit(s) to a shipment (e.g. just 1 more on the same FBA ID) for
+// ad-hoc reasons. Opens the send modal in allow-extra mode so the typed qty
+// isn't clamped to the (zero) remaining count.
+function sendExtra(id){
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
+  if(!r)return;
+  openSendModal(r,true,true);
+}
+
+// When a Part-Sent row has nothing left to send (every sendable unit is already
+// in a shipment — e.g. after the Expected qty was corrected down), flip it to
+// fully "Sent to Amazon" instead of leaving it stuck on Part Sent with "0 left".
+function markFullySent(id){
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
+  if(!r)return;
+  if(remainingToShip(r)>0){toast('There are still units left to send','er');return;}
+  r.status='Sent to Amazon';r.sent='Yes';
+  if(!r.sentDate)r.sentDate=todayISO();
+  if(!r.sentAt)r.sentAt=getNowUK();
+  if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
+  r._dirty=true;
+  saveRow(r);
+  logAudit('Sent to Amazon',`${r.sku} — marked complete (0 left)`);
+  renderPrep();
+}
+
 function handleStatusChange(id,sel){
   const val=sel.value;
   const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
@@ -5090,45 +5711,21 @@ function handleStatusChange(id,sel){
   // wrong row.
   const domKey=r.id;
   const saveKey='save_'+(r.uuid||r.id);
+  if(val==='Sent to Amazon'&&remainingToShip(r)<=0&&segmentsSentTotal(r)>0){
+    // All sendable units are already in shipments (e.g. after the expected qty was
+    // corrected to even out). Selecting "Sent to Amazon" should just finalise the
+    // row — opening the send modal here would have nothing to send and would bounce
+    // the dropdown back to the previous status (the bug being fixed).
+    sel.value=r.status;
+    markFullySent(r.uuid||r.id);
+    return;
+  }
   if(val==='Sent to Amazon'||val==='Part Sent'){
     sel.value=r.status;
-    const isPartial=val==='Part Sent';
-    // Only the units NOT already attached to a shipment can be sent now. This
-    // matters when a row is already Part Sent — we must not re-offer units that
-    // already went out in an earlier shipment.
-    const maxUnits=remainingToShip(r);
-    if(maxUnits<=0){
-      toast('All available units are already in a shipment','er');
-      sel.value=r.status;
-      return;
-    }
-    const alreadyOut=segmentsSentTotal(r);
-    showShipIdModal(
-      isPartial?'Partial Send — Enter Shipment ID':'Shipment ID Required',
-      isPartial
-        ?`Sending partial units (${maxUnits} available to send${alreadyOut?`, ${alreadyOut} already shipped`:''}${r.issueQty?`, ${r.issueQty} held for issue`:''}). Enter the FBA ID for THIS shipment.`
-        :`Enter the FBA Shipment ID for these ${maxUnits} units.${alreadyOut?` (${alreadyOut} already shipped separately)`:''}${r.issueQty?` (${r.issueQty} held for issue)`:''}`,
-      r.shipType||'Standard',
-      (shipId,type,partialUnits)=>{
-        const sendQty=(isPartial&&partialUnits)?Math.min(partialUnits,maxUnits):maxUnits;
-        if(!(sendQty>0)){toast('Enter a quantity greater than 0','er');return;}
-        // Record this shipment as its own segment — never merge into a prior one.
-        addSegment(r,shipId,sendQty,type);
-        r.sentDate=todayISO();r.sentAt=getNowUK();
-        // Fully sent only when nothing is left to ship.
-        if(remainingToShip(r)>0){
-          r.status='Part Sent';r.sent='No';
-        }else{
-          r.status='Sent to Amazon';r.sent='Yes';
-          if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
-        }
-        r._dirty=true;
-        saveRow(r);
-        logAudit(r.status==='Part Sent'?'Part Sent':'Sent to Amazon',`${r.sku} → ${shipId} (${sendQty}u)`);
-        renderPrep();
-      },
-      isPartial,maxUnits
-    );
+    // Open the shared send modal. 'Part Sent' = partial (asks for a quantity),
+    // 'Sent to Amazon' = send all remaining. Same code path is reused by the
+    // "↗ Send more" button on already-Part-Sent rows (see sendMore / openSendModal).
+    openSendModal(r,val==='Part Sent');
   }else if((r.status==='Sent to Amazon'||r.status==='Part Sent')&&val!=='Sent to Amazon'&&val!=='Part Sent'){
     r._dirty=true;
     r.status=val;r.sent='No';r.sentDate='';r.ship=0;r.shipId='';r.allShipIds=[];r.shipSegments=[];
@@ -5597,13 +6194,16 @@ function renderShipments(){
     const skuCount=s.skus.length+(s.lavSkus||[]).length+(s.retSkus||[]).length;
     const safeId=s.id.replace(/[^a-z0-9]/gi,'_');
     const tc=s.type==='DG'?'var(--red)':s.type==='Oversize'?'var(--amber)':'var(--blue)';
-    return`<div class="hgroup" id="ship-${safeId}">
+    // Flag shipments with no box number entered — needs a box count before it's complete.
+    const noBox=!s.boxes||s.boxes<=0;
+    return`<div class="hgroup" id="ship-${safeId}"${noBox?' style="border:1px solid var(--red);border-left:4px solid var(--red);background:rgba(248,113,113,.06);border-radius:8px;"':''}>
       <div class="hhead" onclick="this.parentElement.classList.toggle('open')" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer;">
         <span class="hchev" style="font-size:20px;font-weight:900;line-height:1;">›</span>
         <span class="htitle" style="font-family:var(--mono);font-size:13px;font-weight:800;letter-spacing:.04em;display:inline-flex;align-items:center;gap:4px;">
           <span onclick="event.stopPropagation();copyShipId('${s.id}',this)" title="Click to copy this Shipment ID" style="color:var(--accent);cursor:copy;padding:1px 2px;border-radius:3px;">${s.id}</span>
           <span onclick="event.stopPropagation();copyShipId('${s.id}',this.previousElementSibling)" title="Copy Shipment ID" style="font-size:9px;opacity:.45;font-family:sans-serif;cursor:copy;">⎘</span>
         </span>
+        ${noBox?`<span title="No box count entered for this shipment" style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:rgba(248,113,113,.15);color:var(--red);border:1px solid var(--red);">⚠ NO BOXES</span>`:''}
         <span style="font-size:10px;color:var(--text3);">${dateDisp}</span>
         <span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:${tc}22;color:${tc};border:1px solid ${tc}44;">${s.type||'Standard'}</span>
         ${s.hasLav?`<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);">LAV</span>`:''}
@@ -5623,7 +6223,7 @@ function renderShipments(){
         <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);" onclick="event.stopPropagation()">
           📦
           <input type="number" min="0" value="${s.boxes||''}" placeholder="0"
-            style="width:56px;padding:2px 6px;background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--text);font-size:11px;font-family:var(--mono);font-weight:700;outline:none;text-align:center;"
+            style="width:56px;padding:2px 6px;background:var(--bg);border:1px solid ${noBox?'var(--red)':'var(--border2)'};border-radius:3px;color:var(--text);font-size:11px;font-family:var(--mono);font-weight:700;outline:none;text-align:center;"
             onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"
             onchange="shipBoxes['${s.id}']=+this.value;saveShipBoxes('${s.id}',+this.value);renderShipments();">
         </span>
@@ -5634,7 +6234,8 @@ function renderShipments(){
           const sc=calcImpliedPrepCost(
             s.skus,
             lavShipments.filter(ls=>ls.shipId===s.id),
-            shipBoxes[s.id]?{[s.id]:shipBoxes[s.id]}:{}
+            shipBoxes[s.id]?{[s.id]:shipBoxes[s.id]}:{},
+            prepFees.expectedMonthlyUnits
           );
           if(!sc.totalUnits)return'';
           return`<div style="display:flex;gap:12px;align-items:center;padding:6px 10px;background:rgba(251,191,36,.06);border-bottom:1px solid rgba(251,191,36,.15);flex-wrap:wrap;">
@@ -5715,14 +6316,17 @@ function renderShipments(){
             </tr>`;
           }).join('')}
           ${(s.retSkus||[]).map(rs=>`<tr style="background:rgba(96,165,250,.06);">
-              <td class="td-left" style="font-size:11px;font-weight:500;">${rs.prod||rs.sku} <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3);margin-left:4px;">RETURN</span></td>
+              <td class="td-left" style="font-size:11px;font-weight:500;">${retProdDesc(rs)} <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3);margin-left:4px;">RETURN</span></td>
               <td><span onclick="copyVal('${rs.asin||''}',this)" style="display:inline-flex;font-size:10px;">${rs.asin||'—'}</span></td>
               <td class="td-left"><span onclick="copyVal('${rs.sku}',this)" style="display:inline-flex;font-size:10px;">${rs.sku}</span></td>
               <td style="font-size:11px;color:var(--text3);">Return</td>
               <td style="color:#60a5fa;font-family:var(--mono);font-weight:700;">${rs.units||0}</td>
               <td style="font-family:var(--mono);color:var(--text2);">${fmtGBP2(rs.cost||0)}</td>
               <td style="color:var(--amber);font-family:var(--mono);font-weight:700;">${fmtGBP2((rs.cost||0)*(rs.units||0))}</td>
-              <td></td>
+              <td>
+                <button onclick="editRetShipLine('${rs.uuid}')" style="padding:2px 6px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:9px;cursor:pointer;">Edit</button>
+                <button onclick="deleteRetShipLine('${rs.uuid}')" title="Remove this return from this shipment" style="padding:2px 6px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:9px;cursor:pointer;margin-left:3px;">✕</button>
+              </td>
             </tr>`).join('')}
           </tbody>
           <tfoot><tr style="border-top:2px solid var(--accent);">
@@ -5906,6 +6510,8 @@ function confirmImport(){
 
     // Parse qty — use Total Units if available, else Quantity Bought
     const qty=parseInt(row['Total units **']||row['Quantity Bought']||row['Quanity Bought *']||row['Quanity Bought']||0)||0;
+    const bunVal=(row['In a Bundle?']||'No').trim();
+    const bqtyVal=(row['How Many In a Bundle?']||'').trim();
 
     const newRow={
       id:++nid,
@@ -5918,10 +6524,10 @@ function confirmImport(){
       sku:sku,
       dg:(row['DG']||'').trim(),
       sas:`https://sas.selleramp.com/sas/lookup?SasLookup%5Bsearch_term%5D=${(row['Asin']||row['ASIN']||'').trim()}`,
-      exp:qty,
+      exp:sellableExp(qty,bunVal,bqtyVal),
       aqty:parseInt(row['Quanity Bought *']||row['Quantity Bought']||row['Quanity Bought']||1)||1,
-      bun:(row['In a Bundle?']||'No').trim(),
-      bqty:(row['How Many In a Bundle?']||'').trim(),
+      bun:bunVal,
+      bqty:bqtyVal,
       subSave:(row['S&S (AC)']||'No').trim()==='Yes'?'Yes':'No',
       rcvd:0,
       issueType:'',
@@ -6194,7 +6800,7 @@ async function runSheetSync(manual){
     // 8th column (A=0 … H=7) so it works even if the header text differs.
     const vatColH=headers[7];
     const vatRaw=(row['VAT']||row['Vat']||row['VAT %']||row['VAT Rate']||row['Vat Rate']||row['VAT Status']||(vatColH?row[vatColH]:'')||'');
-    return{sku,date:dateFormatted,oid:(row['Order Id']||row['Order ID']||'').trim(),sup:(row['Bought From']||'').trim(),acct:(row['Account']||'').trim(),prod:(row['Name']||'').trim(),asin,dg:(row['DG']||'').trim(),vat:normVat(vatRaw),sas:`https://sas.selleramp.com/sas/lookup?SasLookup%5Bsearch_term%5D=${encodeURIComponent(asin)}`,exp:qty,aqty:qty,bun:(row['In a Bundle?']||'No').trim(),bqty:(row['How Many In a Bundle?']||'').trim(),subSave:(row['S&S (AC)']||row['SAS (AC)']||'No').trim()==='Yes'?'Yes':'No',vaNoteSheet:(row['VA Note']||'').trim()}; // notes NOT mapped — portal packing notes are owned by prep team
+    return{sku,date:dateFormatted,oid:(row['Order Id']||row['Order ID']||'').trim(),sup:(row['Bought From']||'').trim(),acct:(row['Account']||'').trim(),prod:(row['Name']||'').trim(),asin,dg:(row['DG']||'').trim(),vat:normVat(vatRaw),sas:`https://sas.selleramp.com/sas/lookup?SasLookup%5Bsearch_term%5D=${encodeURIComponent(asin)}`,exp:sellableExp(qty,(row['In a Bundle?']||'No').trim(),(row['How Many In a Bundle?']||'').trim()),aqty:qty,bun:(row['In a Bundle?']||'No').trim(),bqty:(row['How Many In a Bundle?']||'').trim(),subSave:(row['S&S (AC)']||row['SAS (AC)']||'No').trim()==='Yes'?'Yes':'No',vaNoteSheet:(row['VA Note']||'').trim()}; // notes NOT mapped — portal packing notes are owned by prep team
   };
 
   const allRowsBySyncId=new Map();
@@ -6212,6 +6818,7 @@ async function runSheetSync(manual){
     if(qty===0&&getTrigger(row)==='yes')skuWarnings.push('No qty: '+sku);
     const oid=(row['Order Id']||row['Order ID']||'').trim();
     const syncId=mkSyncId(sku,oid);
+    if(_syncExcluded.some(x=>_exId(x)===syncId)){return;} // permanently excluded — never re-add/reactivate
     const trigger=getTrigger(row);
     const fields=sheetFields(row);
     const existing=allRowsBySyncId.get(syncId)||allRowsBySku.get(sku.toLowerCase());
@@ -6320,6 +6927,23 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 // Sources: [{id, label, url, tab, col, active}]
 let _ssSources=[];
 
+// SKUs/orders permanently excluded from sheet sync (tombstones). Lives in the
+// shared app_settings table so it sticks for every device/user, not just here.
+let _syncExcluded=[];
+// Entries may be a legacy string ("sku|oid") or an object {syncId,sku,asin,prod,oid}.
+function _exId(x){return typeof x==='string'?x:(x&&x.syncId)||'';}
+async function loadSyncExcluded(){
+  try{
+    const{data}=await sb.from('app_settings').select('value').eq('key','sync_excluded').maybeSingle();
+    if(data&&data.value){_syncExcluded=JSON.parse(data.value)||[];}
+  }catch(e){console.warn('sync_excluded not loaded',e);}
+  if(typeof renderSyncExcludedList==='function')renderSyncExcludedList();
+}
+async function saveSyncExcluded(){
+  try{await sb.from('app_settings').upsert({key:'sync_excluded',value:JSON.stringify(_syncExcluded)},{onConflict:'key'});}
+  catch(e){console.warn('sync_excluded save failed',e);}
+}
+
 async function loadSyncSources(){
   try{
     const{data}=await sb.from('app_settings').select('value').eq('key','sync_sources').maybeSingle();
@@ -6384,6 +7008,34 @@ function renderSyncSourcesList(){
       </div>
     </div>
   `).join('');
+}
+
+function renderSyncExcludedList(){
+  const el=document.getElementById('syncExcludedList');
+  if(!el)return;
+  if(!_syncExcluded.length){el.innerHTML='<div style="font-size:10px;color:var(--text3);padding:4px 0;">Nothing excluded.</div>';return;}
+  const q=(document.getElementById('syncExcludedSearch')||{}).value||'';
+  const term=q.trim().toLowerCase();
+  // Normalise to objects (legacy entries are bare "sku|oid" strings).
+  const items=_syncExcluded.map(x=>typeof x==='string'?{syncId:x,sku:x.split('|')[0],asin:'',prod:'',oid:x.split('|')[1]||''}:x);
+  const filtered=term?items.filter(it=>((it.sku||'')+' '+(it.asin||'')+' '+(it.prod||'')).toLowerCase().includes(term)):items;
+  if(!filtered.length){el.innerHTML=`<div style="font-size:10px;color:var(--text3);padding:4px 0;">No excluded rows match "${q}".</div>`;return;}
+  el.innerHTML=filtered.map(it=>{
+    const oid=it.oid&&it.oid!=='nooid'?'Order '+it.oid:'no order id';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;">
+      <div style="min-width:0;">
+        <div style="font-size:11px;font-family:var(--mono);font-weight:700;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.sku||'—'}</div>
+        <div style="font-size:8px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.asin?'ASIN '+it.asin+' · ':''}${it.prod?it.prod.slice(0,40)+' · ':''}${oid}</div>
+      </div>
+      <button onclick="unExcludeSync('${_exId(it).replace(/'/g,"\\'")}')" style="flex-shrink:0;padding:3px 10px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">Re-allow</button>
+    </div>`;
+  }).join('');
+}
+async function unExcludeSync(id){
+  _syncExcluded=_syncExcluded.filter(x=>_exId(x)!==id);
+  await saveSyncExcluded();
+  renderSyncExcludedList();
+  toast('Re-allowed — it can sync back from the sheet again');
 }
 
 function addSyncSource(){
@@ -6487,7 +7139,7 @@ function startHealthUITimer(){
 // Called once after app data loads (so rows[] is populated for deduplication).
 function bootSheetSync(){
   loadSheetSyncUI();
-  Promise.all([loadSyncSources(),loadSyncHistory()]).then(updateSyncHealthUI);
+  Promise.all([loadSyncSources(),loadSyncHistory(),loadSyncExcluded()]).then(updateSyncHealthUI);
   startHealthUITimer(); // FIX 5: keep health UI ticking
   initSheetSyncLeader();
   if(_ssConfig.enabled){
@@ -6537,6 +7189,33 @@ async function dbLoad(){
     ]);
     if(rowsRes.error)throw rowsRes.error;
     rows=(rowsRes.data||[]).map(dbToRow);
+    // ── ONE-TIME BUNDLE EXPECTED-UNITS CORRECTION ──────────────────────────────
+    // Older bundle rows were imported with the sheet's PHYSICAL item count in
+    // Expected Units (e.g. 98 = 49 bundles × 2) instead of the saleable count
+    // sent to Amazon (49). This silently doubled their COG everywhere. Fix only
+    // rows whose stored exp EXACTLY equals SKU-units × bundle-qty — that's the
+    // provable un-corrected signature, so an already-fixed row (exp = SKU-units)
+    // is never touched and this can't run twice.
+    {
+      const toFix=rows.filter(r=>{
+        const bq=parseInt(r.bqty)||0;
+        const su=parseSKU(r.sku).units||0;
+        return String(r.bun).trim()==='Yes'&&bq>1&&su>0&&(parseInt(r.exp)||0)===su*bq;
+      });
+      if(toFix.length){
+        toFix.forEach(r=>{
+          const su=parseSKU(r.sku).units||0;
+          logAudit('Bundle expected units corrected',`${r.sku}: ${r.exp} → ${su} (÷${r.bqty})`);
+          r.exp=su;
+          // If received was auto-set to the old physical expected, realign it too.
+          if((parseInt(r.rcvd)||0)===su*(parseInt(r.bqty)||1))r.rcvd=su;
+          r._dirty=true;
+        });
+        setSyncStatus('syncing');
+        Promise.all(toFix.map(r=>saveRow(r))).then(()=>setSyncStatus('synced')).catch(()=>setSyncStatus('error'));
+        toast(`✓ Corrected ${toFix.length} bundle row${toFix.length!==1?'s':''} (Expected Units → saleable count)`);
+      }
+    }
     // Bump the local-id counter past every id already in the DB. Without this,
     // nid stays at 0 on each load and ++nid produces 1,2,3… which collide with
     // existing rows' local_ids — causing the wrong row (e.g. a stray Philips
@@ -6692,13 +7371,18 @@ function claimToDb(c){
     status:c.cst||'Open',
     notes:c.notes||'',
     account:c.acct||'',
+    va_note:c.vaNote||'',
+    jack_note:c.jackNote||'',
+    reimbursed:c.reimbursed||'No',
+    reimburse_note:c.reimburseNote||'',
+    archived:!!c.archived,
     contact_log:JSON.stringify(c.log||[]),
   };
 }
 function dbToClaim(d){
   let log=[];try{log=JSON.parse(d.contact_log||'[]');}catch(e){}
   // Map old statuses to new ones
-  const statusMap={'In Progress':'Chasing','Refunded':'Resolved','Closed':'Resolved','Refund Required':'Chasing'};
+  const statusMap={'In Progress':'Chasing','Refunded':'Resolved','Closed':'Resolved','Refund Required':'Chasing','Issue':'Needs Attention'};
   const rawStatus=d.status||'Open';
   const mappedStatus=statusMap[rawStatus]||rawStatus;
   return{
@@ -6708,7 +7392,10 @@ function dbToClaim(d){
     sku:d.sku||'',asin:d.asin||'',issT:d.issue_type||'',
     exp:d.expected_qty||0,rec:d.received_qty||0,dif:d.difference||0,
     cost:d.cost_per_unit||0,claimValue:d.claim_value||0,
-    cst:mappedStatus,notes:d.notes||'',acct:d.account||'',log,
+    cst:mappedStatus,notes:d.notes||'',acct:d.account||'',
+    vaNote:d.va_note||'',jackNote:d.jack_note||'',
+    reimbursed:d.reimbursed||'No',reimburseNote:d.reimburse_note||'',
+    archived:!!d.archived,log,
   };
 }
 function dbToLav(d){
@@ -6727,7 +7414,7 @@ let _missingColWarned=false;
 function _missingColInErr(err){
   if(!err)return null;
   const m=((err.message||'')+' '+(err.details||'')+' '+(err.hint||'')).toLowerCase();
-  for(const col of ['ship_segments','archived','vat']){if(m.includes(col))return col;}
+  for(const col of ['ship_segments','archived','vat','va_note','jack_note','reimbursed','reimburse_note']){if(m.includes(col))return col;}
   return null;
 }
 // Back-compat alias used elsewhere.
@@ -6827,12 +7514,23 @@ async function archiveRowUI(id){
 }
 async function saveClaim(c){
   setSyncStatus('syncing');
-  const data=claimToDb(c);
+  const buildData=()=>{const d=claimToDb(c);_missingCols.forEach(k=>delete d[k]);return d;};
+  const runWrite=async(makeReq)=>{
+    let out=await makeReq(buildData());let guard=0;
+    while(out.error&&guard<4){
+      const col=_missingColInErr(out.error);
+      if(!col||_missingCols.has(col))break;
+      _missingCols.add(col);
+      if(!_missingColWarned){_missingColWarned=true;toast('A quick DB update is needed — see Settings → Database','er');}
+      out=await makeReq(buildData());guard++;
+    }
+    return out;
+  };
   let res;
   if(c.uuid){
-    res=await sb.from('actions').update(data).eq('id',c.uuid);
+    res=await runWrite(data=>sb.from('actions').update(data).eq('id',c.uuid));
   }else{
-    res=await sb.from('actions').insert(data).select().single();
+    res=await runWrite(data=>sb.from('actions').insert(data).select().single());
     if(res.data)c.uuid=res.data.id;
   }
   if(res.error){console.error('Save claim error:',res.error);setSyncStatus('error');return false;}
@@ -7160,6 +7858,42 @@ function updateIssueFlag(id,hasIssue,issueList){
   }
 }
 
+// Undo a single shipment batch (segment) on a row — pulls those units off that
+// FBA shipment and returns them to "to send" on this row. Unlike undoSentToAmazon
+// (which only peels the most recent batch and only on fully-sent rows), this works
+// on Part-Sent rows too and can target ANY batch. Identified by shipId+date+units
+// so the right segment is removed even when a SKU is split several ways.
+function undoSegment(id,shipId,dateISO,units){
+  const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
+  if(!r)return;
+  const segs=normaliseSegments(r);
+  const idx=segs.findIndex(s=>s.shipId===shipId&&(s.date||'')===(dateISO||'')&&(s.units||0)===(units||0));
+  if(idx<0){toast('Could not find that batch','er');return;}
+  const seg=segs[idx];
+  const dd=dateISO&&dateISO.length>=10?`${dateISO.slice(8,10)}/${dateISO.slice(5,7)}`:'';
+  showConfirm('Undo this shipment batch?',
+    `Removes ${seg.units} unit${seg.units!==1?'s':''} from ${shipId}${dd?` (sent ${dd})`:''} and puts them back as "to send" on this row. Other batches and the rest of that shipment are unaffected.`,
+    ()=>{
+      const remaining=segs.filter((s,i)=>i!==idx);
+      r.shipSegments=remaining;
+      r.allShipIds=[...new Set(remaining.map(s=>s.shipId))];
+      r.ship=remaining.reduce((a,s)=>a+(s.units||0),0);
+      r.shipId=remaining.length?remaining[remaining.length-1].shipId:'';
+      if(remaining.length===0){
+        r.status='In Warehouse';r.sent='No';r.sentDate='';r.sentAt='';
+      }else if(remainingToShip(r)>0){
+        r.status='Part Sent';r.sent='No';
+      }else{
+        r.status='Sent to Amazon';r.sent='Yes';
+      }
+      r._dirty=true;
+      saveRow(r);
+      logAudit('Shipment batch undone',`${r.sku}: −${seg.units}u from ${shipId}`);
+      renderPrep();renderShipments&&renderShipments();renderDashboard&&renderDashboard();
+      toast(`✓ Batch undone — ${seg.units}u back to send`);
+    });
+}
+
 function undoSentToAmazon(id){
   const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
   if(!r)return;
@@ -7247,6 +7981,26 @@ let _retEditId=null;
 let _retShipId=null;
 let _retLineCount=0;
 
+// Derive a human-readable product description for a return SKU/line. Return SKUs
+// are often bulk-pasted with no product name, so this looks the SKU/ASIN up in
+// the prep sheet and the Lavarion catalogue. When found, the name is cached back
+// onto the object so other views pick it up. Falls back to a short descriptor
+// built from the SKU parts (supplier · type) so there's always something more
+// identifiable than the raw encoded SKU.
+function retProdDesc(o){
+  if(o&&o.prod&&String(o.prod).trim())return String(o.prod).trim();
+  const sku=o&&o.sku, asin=o&&o.asin;
+  let m=rows.find(x=>x.sku===sku||(asin&&x.asin===asin));
+  if(m&&m.prod){if(o)o.prod=m.prod;return m.prod;}
+  m=(lavAsins||[]).find(x=>x.sku===sku||(asin&&x.asin===asin));
+  if(m&&m.prod){if(o)o.prod=m.prod;return m.prod;}
+  const p=parseSKU(sku||'');
+  const bits=[];
+  if(p.sup)bits.push(p.sup);
+  if(p.type)bits.push(p.type);
+  return bits.length?bits.join(' · '):(sku||'');
+}
+
 function renderReturns(){
   const w=document.getElementById('returnsList');
   const q=(document.getElementById('returnSrch')||{}).value?.toLowerCase()||'';
@@ -7270,6 +8024,7 @@ function renderReturns(){
     <tbody>
     ${data.map(r=>{
       const cog=parseSKU(r.sku).cogs||r.cog||0;
+      const prodDesc=retProdDesc(r);
       const myShipments=returnShipments.filter(s=>s.sku===r.sku);
       const shipCount=myShipments.length;
       const totalUnits=myShipments.reduce((a,s)=>a+(s.units||0),0);
@@ -7280,7 +8035,7 @@ function renderReturns(){
           <span class="s-sku" onclick="copyVal('${r.sku}',this)" style="display:inline-flex;font-size:10px;">${r.sku}</span>
           ${isShipped?`<span style="font-size:8px;font-weight:800;padding:1px 5px;border-radius:3px;background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.3);margin-left:4px;">IN SHIPMENT</span>`:''}
         </td>
-        <td class="td-left" style="font-size:11px;font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.prod}">${r.prod||'—'}</td>
+        <td class="td-left" style="font-size:11px;font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${prodDesc}">${prodDesc||'—'}</td>
         <td><span class="s-asin" onclick="copyVal('${r.asin}',this)" style="display:inline-flex;font-size:10px;">${r.asin||'—'}</span></td>
         <td style="font-family:var(--mono);color:var(--amber);">${fmtGBP2(cog)}</td>
         <td style="font-size:11px;color:var(--text2);">${r.notes||'—'}</td>
@@ -7306,18 +8061,22 @@ function openBulkAddReturns(){
 
 async function saveBulkReturns(){
   const raw=document.getElementById('bulkReturnInput').value;
-  const skus=raw.split('\n').map(s=>s.trim()).filter(s=>s.length>0);
-  if(!skus.length){toast('Paste at least one SKU','er');return;}
+  // Each line is "SKU | quick name" — the name part is optional.
+  const lines=raw.split('\n').map(s=>s.trim()).filter(s=>s.length>0).map(line=>{
+    const sep=line.search(/[|\t]/);
+    if(sep>=0)return{sku:line.slice(0,sep).trim(),name:line.slice(sep+1).trim()};
+    return{sku:line.trim(),name:''};
+  }).filter(x=>x.sku.length>0);
+  if(!lines.length){toast('Paste at least one SKU','er');return;}
   const preview=document.getElementById('bulkReturnPreview');
-  preview.textContent=`Adding ${skus.length} SKU${skus.length!==1?'s':''}…`;
+  preview.textContent=`Adding ${lines.length} SKU${lines.length!==1?'s':''}…`;
   let added=0;
-  for(const sku of skus){
-
+  for(const {sku,name} of lines){
     // Skip only if confirmed saved in Supabase (has uuid) — ignore stale local-only entries
     if(returnSkus.find(r=>r.sku===sku&&r.uuid))continue;
     const cog=parseSKU(sku).cogs||0;
     const match=rows.find(r=>r.sku===sku);
-    const obj={uuid:null,sku,asin:match?.asin||'',prod:match?.prod||'',cog,units:1,notes:''};
+    const obj={uuid:null,sku,asin:match?.asin||'',prod:name||match?.prod||'',cog,units:1,notes:''};
     const res=await sb.from('returns_skus').insert({sku:obj.sku,asin:obj.asin,product_name:obj.prod,cog:obj.cog,units:obj.units,notes:obj.notes}).select().single();
     if(res.error){console.error('Bulk return SKU insert error:',res.error);toast('Save failed for '+sku+': '+res.error.message,'er');continue;}
     if(res.data)obj.uuid=res.data.id;
@@ -7469,7 +8228,7 @@ function renderRetShipExisting(){
         <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;">
           <div style="flex:1;min-width:0;">
             <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${rs.sku}</div>
-            <div style="font-size:9px;color:var(--text2);">${rs.prod||''}</div>
+            <div style="font-size:9px;color:var(--text2);">${retProdDesc(rs)||''}</div>
           </div>
           <input type="number" min="1" value="${rs.units||1}" id="ret-existing-units-${rs.uuid}" style="width:64px;padding:3px 6px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;font-family:var(--mono);text-align:center;">
           <button onclick="saveRetShipLine('${rs.uuid}')" title="Save units" style="padding:3px 8px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">Save</button>
@@ -7523,7 +8282,7 @@ function addRetShipLine(){
         <div style="font-size:9px;color:var(--text3);margin-bottom:3px;">SKU</div>
         <select class="fi-in" id="rsl-sku-${idx}" style="font-size:11px;" onchange="onRslSelect(${idx})">
           <option value="">Select Return SKU…</option>
-          ${returnSkus.map(r=>`<option value="${r.sku}">${r.prod?r.prod+' — ':''} ${r.sku}</option>`).join('')}
+          ${returnSkus.map(r=>`<option value="${r.sku}">${retProdDesc(r)?retProdDesc(r)+' — ':''} ${r.sku}</option>`).join('')}
         </select>
       </div>
       <div>
@@ -7591,6 +8350,10 @@ const PREP_FEE_DEFAULTS={
   tier2Units:3000,tier2p:0.45,
   tier3Units:5000,tier3p:0.35,
   tier4p:0.30,
+  // Daily/weekly prep estimates are priced at the rate implied by a TYPICAL
+  // month's volume (not their own tiny volume), since the prep bill is monthly.
+  // 2,000 lands in the 1,001–3,000 band → the 45p rate.
+  expectedMonthlyUnits:2000,
   boxCost:1.00,
   dgExtraPerBox:2.50,
   osCostPerUnit:1.50,
@@ -7600,13 +8363,31 @@ const PREP_FEE_DEFAULTS={
 let prepFees={...PREP_FEE_DEFAULTS};
 function loadPrepFees(){try{const s=localStorage.getItem('prepFees');if(s)prepFees={...PREP_FEE_DEFAULTS,...JSON.parse(s)};}catch(e){}}
 function savePrepFees(){localStorage.setItem('prepFees',JSON.stringify(prepFees));}
-function calcTieredRate(units){
-  let cost=0,rem=units;
-  const tiers=[{max:prepFees.tier1Units,r:prepFees.tier1p},{max:prepFees.tier2Units-prepFees.tier1Units,r:prepFees.tier2p},{max:prepFees.tier3Units-prepFees.tier2Units,r:prepFees.tier3p},{max:Infinity,r:prepFees.tier4p}];
-  for(const t of tiers){if(rem<=0)break;const u=Math.min(rem,t.max);cost+=u*t.r;rem-=u;}
-  return cost;
+// Prep is billed as a VOLUME flat-rate, not progressive brackets: the total
+// number of units in the period decides ONE per-unit rate, and EVERY unit is
+// charged at that rate. e.g. 1,183 units → falls in the 1,001–3,000 band → all
+// 1,183 units × the tier-2 rate (not 1,000 @ tier1 + 183 @ tier2).
+function pickUnitRate(units){
+  if(units<=prepFees.tier1Units)return prepFees.tier1p;
+  if(units<=prepFees.tier2Units)return prepFees.tier2p;
+  if(units<=prepFees.tier3Units)return prepFees.tier3p;
+  return prepFees.tier4p;
 }
-function calcImpliedPrepCost(sentRows,sentLavRows,boxMap){
+// Human-readable band label for the volume the units fall into.
+function unitRateBand(units){
+  if(units<=prepFees.tier1Units)return '1–'+fmt(prepFees.tier1Units);
+  if(units<=prepFees.tier2Units)return (prepFees.tier1Units+1)+'–'+fmt(prepFees.tier2Units);
+  if(units<=prepFees.tier3Units)return (prepFees.tier2Units+1)+'–'+fmt(prepFees.tier3Units);
+  return fmt(prepFees.tier3Units+1)+'+';
+}
+function calcTieredRate(units){
+  return units*pickUnitRate(units);
+}
+function calcImpliedPrepCost(sentRows,sentLavRows,boxMap,rateUnits){
+  // rateUnits (optional): the volume used to PICK the per-unit rate. Defaults to
+  // this period's own tiered units (correct for the monthly figure). Daily/weekly
+  // tiles pass the typical monthly volume so they're priced at the realistic
+  // monthly rate rather than their own small volume.
   // Standard/DG/Lavarion → tiered rate pool
   // Oversize → £1.50 flat per unit
   // Bundle → 60p flat per unit
@@ -7620,7 +8401,8 @@ function calcImpliedPrepCost(sentRows,sentLavRows,boxMap){
   const bundleUnits=sentRows.filter(r=>r.inBundle==='Yes').reduce((a,r)=>a+u(r),0);
   const lavUnits=sentLavRows.reduce((a,s)=>a+(s.units||0),0);
   const tieredUnits=stdUnits+dgUnits+lavUnits;
-  const baseCost=calcTieredRate(tieredUnits);
+  const _rateVol=(rateUnits!=null&&rateUnits>0)?rateUnits:tieredUnits;
+  const baseCost=tieredUnits*pickUnitRate(_rateVol);
   const osCost=osUnits*prepFees.osCostPerUnit;
   const bundleCost=bundleUnits*prepFees.bundleCostPerUnit;
   const dgBoxes=Object.entries(boxMap).filter(([sid])=>(_shipTypeCache[sid]||'Standard')==='DG').reduce((a,[,b])=>a+(b||0),0);
@@ -7631,6 +8413,7 @@ function calcImpliedPrepCost(sentRows,sentLavRows,boxMap){
   const subtotal=baseCost+osCost+bundleCost+boxCostTotal;
   return{totalUnits,stdUnits,osUnits,dgUnits,bundleUnits,lavUnits,tieredUnits,
     baseCost,osCost,bundleCost,boxCostTotal,dgBoxes,stdBoxes,totalBoxes,
+    unitRate:pickUnitRate(_rateVol),unitRateBand:unitRateBand(_rateVol),
     subtotal,withVat:subtotal*prepFees.vatRate};
 }
 
@@ -7844,6 +8627,36 @@ function delLavShipLine(uuid){
       toast('Removed from shipment ✓');
     });
 }
+// ── EDIT A RETURN LINE ON A SHIPMENT ─────────────────────────────────────────
+// Mirrors editLavShipLine — opens the modal pre-filled with this return's units
+// and cost. Looked up by the returns_shipments row uuid.
+let _editRetLineId=null;
+function editRetShipLine(uuid){
+  const rs=returnShipments.find(s=>String(s.uuid)===String(uuid));
+  if(!rs){toast('Could not find that return line','er');return;}
+  _editRetLineId=rs.uuid;
+  document.getElementById('editRetUnits').value=rs.units||0;
+  document.getElementById('editRetCog').value=rs.cost||0;
+  document.getElementById('editRetProd').textContent=rs.prod||rs.sku||'';
+  om('editRetLineModal');
+}
+async function saveEditRetLine(){
+  const rs=returnShipments.find(s=>String(s.uuid)===String(_editRetLineId));
+  if(!rs)return;
+  const units=parseInt(document.getElementById('editRetUnits').value)||0;
+  if(units<=0){toast('Units must be greater than 0','er');return;}
+  rs.units=units;
+  rs.cost=parseFloat(document.getElementById('editRetCog').value)||0;
+  if(rs.uuid){
+    const res=await sb.from('returns_shipments').update({units:rs.units,cost:rs.cost}).eq('id',rs.uuid);
+    if(res.error){toast('Update failed: '+res.error.message,'er');return;}
+  }
+  cm('editRetLineModal');
+  renderShipments();renderReturns();renderDashboard();
+  toast('Return line updated ✓');
+  logAudit('Return units updated',`${rs.sku} → ${rs.shipId} (${units})`);
+}
+
 let _shipLavOnly=false;
 let _shipDateFilter='mtd';
 function toggleShipLavFilter(){
@@ -8215,6 +9028,31 @@ setInterval(updateClock,30000);
   </div>
 </div>
 
+<!-- INSIGHTS PREP COST BREAKDOWN MODAL -->
+<div class="overlay" id="insPrepModal">
+  <div class="modal" style="max-width:660px;">
+    <div class="mh"><div class="mh-title">🧮 Prep Fee Explorer</div><button class="mh-close" onclick="cm('insPrepModal')">✕</button></div>
+    <div class="mb" style="padding:16px;" id="insPrepBreakdownBody"></div>
+    <div class="mf"><button class="btn-cancel" onclick="cm('insPrepModal')">Close</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="insDetailModal">
+  <div class="modal" style="max-width:680px;">
+    <div class="mh"><div class="mh-title" id="insDetailTitle">Detail</div><button class="mh-close" onclick="cm('insDetailModal')">✕</button></div>
+    <div class="mb" style="padding:16px;" id="insDetailBody"></div>
+    <div class="mf"><button class="btn-cancel" onclick="cm('insDetailModal')">Close</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="insCompareModal">
+  <div class="modal" style="max-width:620px;">
+    <div class="mh"><div class="mh-title">📊 This Month vs Last Month</div><button class="mh-close" onclick="cm('insCompareModal')">✕</button></div>
+    <div class="mb" style="padding:16px;" id="insCompareBody"></div>
+    <div class="mf"><button class="btn-cancel" onclick="cm('insCompareModal')">Close</button></div>
+  </div>
+</div>
+
 <!-- NEW SHIPMENT MODAL (Lavarion-only) -->
 <div class="overlay" id="newShipModal">
   <div class="modal" style="max-width:500px;">
@@ -8258,13 +9096,31 @@ setInterval(updateClock,30000);
   </div>
 </div>
 
+<!-- EDIT RETURN LINE MODAL -->
+<div class="overlay" id="editRetLineModal">
+  <div class="modal" style="max-width:380px;">
+    <div class="mh"><div class="mh-title">Edit Return Line</div><button class="mh-close" onclick="cm('editRetLineModal')">✕</button></div>
+    <div class="mb">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px;" id="editRetProd"></div>
+      <div class="fg">
+        <div class="fi"><label class="fl">Units</label><input class="fi-in" type="number" id="editRetUnits" min="0"></div>
+        <div class="fi"><label class="fl">Cost per Unit (£)</label><input class="fi-in" type="number" id="editRetCog" step="0.01" min="0"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn-cancel" onclick="cm('editRetLineModal')">Cancel</button>
+      <button class="btn-save" onclick="saveEditRetLine()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- BULK ADD RETURNS MODAL -->
 <div class="overlay" id="bulkReturnModal">
   <div class="modal" style="max-width:500px;">
     <div class="mh"><div class="mh-title">Bulk Add Return SKUs</div><button class="mh-close" onclick="cm('bulkReturnModal')">✕</button></div>
     <div class="mb" style="padding:16px;">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Paste one SKU per line. COG auto-fills from each SKU. All default to 1 unit — edit individually after if needed.</div>
-      <textarea id="bulkReturnInput" placeholder="Paste SKUs here, one per line:&#10;Amuk_139.99_1604_225_PS3_01&#10;Stan_22.95_0605_0_Jac1_02&#10;Amg_12.26_2204_19.99_Jac1_03"
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">One per line as <span style="font-family:var(--mono);color:var(--text2);">SKU | quick name</span>. The name (brand or short description, e.g. "Logitech mouse") helps UK staff prep. The name is optional — if left off it auto-fills from a matching prep row. COG auto-fills from each SKU; all default to 1 unit.</div>
+      <textarea id="bulkReturnInput" placeholder="SKU | quick name  (one per line):&#10;Amuk_139.99_1604_225_PS3_01 | Logitech mouse&#10;Stan_22.95_0605_0_Jac1_02 | Stanley flask&#10;Amg_12.26_2204_19.99_Jac1_03 | baking soda"
         style="width:100%;height:180px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:11px;padding:8px;resize:vertical;outline:none;box-sizing:border-box;"
         onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
       <div id="bulkReturnPreview" style="margin-top:8px;font-size:10px;color:var(--text3);"></div>
