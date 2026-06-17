@@ -1087,6 +1087,7 @@ ALTER TABLE actions ADD COLUMN IF NOT EXISTS jack_note text DEFAULT '';
 ALTER TABLE actions ADD COLUMN IF NOT EXISTS reimbursed text DEFAULT 'No';
 ALTER TABLE actions ADD COLUMN IF NOT EXISTS reimburse_note text DEFAULT '';
 ALTER TABLE actions ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS chase_snooze_until timestamptz;
 CREATE UNIQUE INDEX IF NOT EXISTS prep_rows_sheet_sync_id_key ON prep_rows (sheet_sync_id) WHERE sheet_sync_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS app_settings (key text primary key, value text);
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
@@ -2788,16 +2789,20 @@ function _adminItems(){
     const ta=r.transitAction||'';
     // Arrived/shipped rows are never "in transit to chase" — keep them out.
     if(['Sent to Amazon','Part Sent','Delivered','In Warehouse','Returned'].includes(r.status))return;
+    // Snoozed by the VA ("Done" = chased, come back later) — hide until it lapses.
+    if(r.chaseSnoozeUntil&&today<new Date(r.chaseSnoozeUntil))return;
+    // Past its expected delivery date and still not received → chase it.
+    const expOverdue=!!expDate&&today>expDate&&(r.status==='In-Transit'||r.status==='Not Arrived')&&!isSubSave;
     const inChase=ADMIN_CHASE_STATES.includes(ta);
-    // VA has already handled it — drop from the queue.
-    if(ta==='On Its Way')return;
-    if(!isStuck&&!inChase)return;
+    if(!isStuck&&!inChase&&!expOverdue)return;
     let sev,col;
     if(ta==='Urgent — Chase Now'){sev=4;col='#ef4444';}
     else if(ta==='Late — Needs Chasing'||isStuck){sev=3;col='#ef4444';}
+    else if(expOverdue){sev=3;col='#ef4444';}
     else if(ta==='Delayed'||ta==='Chasing Supplier'){sev=2;col='#fb923c';}
     else{sev=1;col='#fbbf24';}
-    const reason=isStuck?`Late — ${days} days in transit (threshold: 20 days)`:(ta||'Needs follow-up');
+    const expStr=expDate?expDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):'';
+    const reason=isStuck?`Late — ${days} days in transit (threshold: 20 days)`:(expOverdue?`Past expected date (${expStr}) — confirm arrival`:(ta||'Needs follow-up'));
     const cogs=parseSKU(r.sku).cogs||0;
     const units=r.exp||r.ship||0;
     out.push({rid:r.uuid||r.id,sku:r.sku,asin:r.asin,prod:r.prod,sup:r.sup,oid:r.oid,date:r.date,
@@ -2814,6 +2819,21 @@ function _adminTransitSelect(i){
   return`<select onchange="uf('${i.rid}','transitAction',this.value);renderAdmin();logAudit('Transit action (Admin)',this.value+' · ${(i.sku||'').replace(/'/g,"")}')" style="font-size:10px;padding:3px 7px;background:${bg};color:${fg};border:1px solid var(--border2);border-radius:4px;cursor:pointer;font-weight:600;">
     ${opts.map(o=>`<option value="${o}" ${i.ta===o?'selected':''}>${o||'— set status —'}</option>`).join('')}
   </select>`;
+}
+
+// VA clicked "Chased" — snooze this row for 4 days. It returns to the queue
+// after that if it still hasn't been received. (UK staff marking it received on
+// the Prep Sheet is what clears it permanently.)
+function snoozeChase(rid){
+  const r=rows.find(x=>x.uuid===String(rid)||String(x.id)===String(rid));
+  if(!r)return;
+  const until=new Date();until.setDate(until.getDate()+4);
+  r.chaseSnoozeUntil=until.toISOString();
+  r._dirty=true;
+  if(typeof saveRow==='function')saveRow(r);
+  renderAdmin();
+  toast('Chased — back in 4 days if not received');
+  logAudit('Chase snoozed 4d',`${r.sku||''}`);
 }
 
 function renderAdmin(){
@@ -2895,7 +2915,7 @@ function renderAdmin(){
             <td style="padding:9px 8px;">${_adminTransitSelect(i)}</td>
             <td style="padding:9px 14px;text-align:right;white-space:nowrap;">
               <button onclick="gsJump('prep','${jumpTerm}')" style="padding:4px 9px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;margin-right:4px;">View in Prep</button>
-              <button onclick="uf('${i.rid}','transitAction','On Its Way');renderAdmin();toast('Marked on its way — cleared from queue')" style="padding:4px 9px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">✓ Done</button>
+              <button onclick="snoozeChase('${i.rid}')" title="Mark as chased — hides it for 4 days, then it returns if still not received. UK staff marking it received clears it for good." style="padding:4px 9px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">✓ Chased (4d)</button>
             </td>
           </tr>`;
         }).join('')}
@@ -2960,7 +2980,7 @@ function renderClaims(){
   // it was actually reimbursed. The rest is still owed.
   const resolvedClaimsD=d.filter(c=>c.cst==='Resolved');
   const reimbursedVal=resolvedClaimsD.filter(c=>c.reimbursed==='Yes').reduce((a,c)=>a+(c.claimValue||0),0);
-  const owedVal=resolvedClaimsD.filter(c=>(c.reimbursed||'No')!=='Yes').reduce((a,c)=>a+(c.claimValue||0),0);
+  const owedVal=resolvedClaimsD.filter(c=>(c.reimbursed||'No')==='No').reduce((a,c)=>a+(c.claimValue||0),0);
   const partialCount=resolvedClaimsD.filter(c=>c.reimbursed==='Partial').length;
   const recSub=owedVal>0?(fmtGBP2(owedVal)+' still owed'+(partialCount?` · ${partialCount} partial`:'')):(reimbursedVal>0?'All recovered ✓':'—');
 
@@ -3129,11 +3149,11 @@ function renderClaims(){
             </div>
 
             ${c.cst==='Resolved'?`<div style="padding:8px 10px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.2);border-radius:6px;">
-              <div style="font-size:9px;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Reimbursed?</div>
-              <select class="ci-sel" onchange="updateClaimField('${c.id}','reimbursed',this.value)" style="font-size:12px;padding:6px 10px;width:100%;font-weight:700;border-radius:5px;background:${c.reimbursed==='Yes'?'rgba(74,222,128,.15)':c.reimbursed==='Partial'?'rgba(251,191,36,.15)':'rgba(248,113,113,.12)'};color:${c.reimbursed==='Yes'?'#4ade80':c.reimbursed==='Partial'?'#fbbf24':'#f87171'};border:1px solid rgba(255,255,255,.12);margin-bottom:6px;">
-                ${['No','Yes','Partial'].map(o=>`<option${(c.reimbursed||'No')===o?' selected':''}>${o}</option>`).join('')}
+              <div style="font-size:9px;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Outcome — reimbursed?</div>
+              <select class="ci-sel" onchange="updateClaimField('${c.id}','reimbursed',this.value)" style="font-size:12px;padding:6px 10px;width:100%;font-weight:700;border-radius:5px;background:${c.reimbursed==='Yes'?'rgba(74,222,128,.15)':c.reimbursed==='Partial'?'rgba(251,191,36,.15)':c.reimbursed==='Write-off'?'rgba(148,163,184,.15)':'rgba(248,113,113,.12)'};color:${c.reimbursed==='Yes'?'#4ade80':c.reimbursed==='Partial'?'#fbbf24':c.reimbursed==='Write-off'?'#cbd5e1':'#f87171'};border:1px solid rgba(255,255,255,.12);margin-bottom:6px;">
+                ${['No','Yes','Partial','Write-off'].map(o=>`<option${(c.reimbursed||'No')===o?' selected':''}>${o}</option>`).join('')}
               </select>
-              <textarea onchange="updateClaimField('${c.id}','reimburseNote',this.value)" placeholder="Reimbursement notes (amount, ref, date)…" style="width:100%;min-height:40px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.08);border-radius:4px;color:#e2e8f0;font-size:11px;line-height:1.4;padding:6px 8px;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;">${(c.reimburseNote||'').replace(/</g,'&lt;')}</textarea>
+              <textarea onchange="updateClaimField('${c.id}','reimburseNote',this.value)" placeholder="${c.reimbursed==='Write-off'?'Why written off (supplier refused, not worth chasing…)':'Reimbursement notes (amount, ref, date)…'}" style="width:100%;min-height:40px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.08);border-radius:4px;color:#e2e8f0;font-size:11px;line-height:1.4;padding:6px 8px;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;">${(c.reimburseNote||'').replace(/</g,'&lt;')}</textarea>
             </div>`:''}
 
             <!-- Action buttons -->
@@ -3171,8 +3191,13 @@ async function updateClaimField(id,field,val){
   if(!c)return;
   c[field]=val;
   await saveClaim(c);
-  // Re-render only when a change affects the card's layout/colours (reimbursed
-  // toggle changes the select colour); plain note edits don't need a repaint.
+  // Once a resolved claim has a final outcome (reimbursed / partial / written-off),
+  // auto-archive it so nothing sits half-finished — with an undo.
+  if(field==='reimbursed'&&c.cst==='Resolved'&&['Yes','Partial','Write-off'].includes(val)&&!c.archived){
+    c.archived=true;await saveClaim(c);renderClaims();
+    toastUndo(val==='Write-off'?'Written off & archived':'Outcome set & archived',async()=>{c.archived=false;await saveClaim(c);renderClaims();});
+    return;
+  }
   if(field==='reimbursed')renderClaims();
 }
 
@@ -3405,7 +3430,7 @@ function renderDashboard(){
   const totalAtRisk=missingVal+damagedVal+incorrectVal;
   const resolvedVal=resolvedClaimsList.reduce((a,c)=>a+(c.claimValue||0),0);
   const resolvedReimbursedVal=resolvedClaimsList.filter(c=>c.reimbursed==='Yes').reduce((a,c)=>a+(c.claimValue||0),0);
-  const resolvedOwedVal=resolvedClaimsList.filter(c=>(c.reimbursed||'No')!=='Yes').reduce((a,c)=>a+(c.claimValue||0),0);
+  const resolvedOwedVal=resolvedClaimsList.filter(c=>(c.reimbursed||'No')==='No').reduce((a,c)=>a+(c.claimValue||0),0);
   const resolvedUnits=resolvedClaimsList.reduce((a,c)=>a+(c.dif||0),0);
   // Unique counts
   const affectedSkus=new Set(openClaimsList.map(c=>c.sku).filter(Boolean)).size;
@@ -4150,7 +4175,7 @@ function renderInsights(){
   const missingVal=sum(missingC,c=>c.claimValue||0),damagedVal=sum(damagedC,c=>c.claimValue||0);
   const totalAtRisk=sum(openClaims,c=>c.claimValue||0);
   const recovered=sum(resolvedClaims.filter(c=>c.reimbursed==='Yes'),c=>c.claimValue||0);
-  const stillOwed=sum(resolvedClaims.filter(c=>(c.reimbursed||'No')!=='Yes'),c=>c.claimValue||0);
+  const stillOwed=sum(resolvedClaims.filter(c=>(c.reimbursed||'No')==='No'),c=>c.claimValue||0);
 
   // ── WEEKLY TREND (units + value, all-in) ───────────────────────────────────
   const weekTrend=[];
@@ -7293,6 +7318,7 @@ function rowToDb(r){
     priority:r.pri||'No',
     notes:r.notes||'',va_note:r.vaNote||'',transit_action:r.transitAction||'',
     expected_delivery:r.expectedDelivery||null,
+    chase_snooze_until:r.chaseSnoozeUntil||null,
     imported_from:r.importedFrom||'',
     sheet_sync_id:r.sheetSyncId||null,
     sheet_row:r.sheetRow||null,
@@ -7344,6 +7370,7 @@ function dbToRow(d){
     vaNote:d.va_note||'',
     transitAction:d.transit_action||'',
     expectedDelivery:d.expected_delivery||'',
+    chaseSnoozeUntil:d.chase_snooze_until||'',
     importedFrom:d.imported_from||'',
     sheetSyncId:d.sheet_sync_id||'',
     sheetRow:d.sheet_row||'',
@@ -7414,7 +7441,7 @@ let _missingColWarned=false;
 function _missingColInErr(err){
   if(!err)return null;
   const m=((err.message||'')+' '+(err.details||'')+' '+(err.hint||'')).toLowerCase();
-  for(const col of ['ship_segments','archived','vat','va_note','jack_note','reimbursed','reimburse_note']){if(m.includes(col))return col;}
+  for(const col of ['ship_segments','archived','vat','va_note','jack_note','reimbursed','reimburse_note','chase_snooze_until']){if(m.includes(col))return col;}
   return null;
 }
 // Back-compat alias used elsewhere.
