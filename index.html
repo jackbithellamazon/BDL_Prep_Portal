@@ -7267,6 +7267,8 @@ async function dbLoad(){
     setSyncStatus('synced');
     // Clear any previous error state
     renderPrep();renderDashboard();updateCB();
+    // Auto-clean any legacy return rows that still have " - name" stuck in the SKU.
+    repairLegacyReturnSkus(true);
     // Boot sheet sync AFTER rows are loaded so dedupe works on first poll.
     bootSheetSync();
   }catch(err){
@@ -8032,7 +8034,12 @@ function renderReturns(){
     w.innerHTML=`<div class="empty"><div class="empty-ico">↩</div><div class="empty-t">${q?'No returns match your search':'No return SKUs yet — click "+ Add Return SKU" to add one'}</div></div>`;
     return;
   }
-  w.innerHTML=`<table id="returnsTable">
+  const legacyN=data.filter(r=>/\s-\s/.test(r.sku||'')).length;
+  const banner=legacyN?`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--text2);">
+    <span>${legacyN} row${legacyN!==1?'s':''} added before the format fix still have the name stuck inside the SKU. Click to split them out into the Product column.</span>
+    <button onclick="repairLegacyReturnSkus()" style="white-space:nowrap;padding:4px 10px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">Clean up ${legacyN} row${legacyN!==1?'s':''}</button>
+  </div>`:'';
+  w.innerHTML=banner+`<table id="returnsTable">
     <thead><tr>
       <th class="th-left">SKU</th>
       <th class="th-left">Product</th>
@@ -8071,6 +8078,61 @@ function renderReturns(){
     }).join('')}
     </tbody>
   </table>`;
+}
+
+// Rows bulk-added BEFORE the parser was fixed have the " - name" text baked into
+// the stored SKU (e.g. "Arg_263.2_387_Jac_1_Ret - garmin nav"). This repair finds
+// them, splits the name into the Product field, and saves the corrected rows to
+// Supabase. It also handles the case where a clean copy of the SKU already exists
+// (e.g. you re-added it): instead of creating a duplicate-key clash it copies the
+// name onto the clean row and deletes the dirty one. Idempotent and safe to re-run.
+function legacyReturnRows(){
+  return returnSkus.filter(r=>/\s-\s/.test(r.sku||''));
+}
+async function repairLegacyReturnSkus(silent){
+  const bad=legacyReturnRows();
+  if(!bad.length){if(!silent)toast('No legacy rows to fix');return;}
+  let fixed=0,merged=0,failed=0;
+  for(const r of bad){
+    const m=String(r.sku).match(/^(.*?)\s-\s(.*)$/);
+    if(!m)continue;
+    const cleanSku=m[1].trim();
+    const name=m[2].trim();
+    if(!cleanSku){failed++;continue;}
+    // A different, already-clean row with this SKU? Merge into it, drop the dirty dupe.
+    const dupe=returnSkus.find(x=>x!==r&&x.uuid&&x.sku===cleanSku);
+    if(dupe){
+      if(name&&(!dupe.prod||!String(dupe.prod).trim())){
+        dupe.prod=name;
+        const u=await sb.from('returns_skus').update({product_name:dupe.prod}).eq('id',dupe.uuid);
+        if(u.error){console.error('Repair merge update error:',u.error);}
+      }
+      if(r.uuid){
+        const del=await sb.from('returns_skus').delete().eq('id',r.uuid);
+        if(del.error){console.error('Repair delete error:',del.error);failed++;continue;}
+      }
+      const idx=returnSkus.indexOf(r);if(idx>=0)returnSkus.splice(idx,1);
+      merged++;
+      continue;
+    }
+    // No clash — clean this row in place.
+    r.sku=cleanSku;
+    if(!r.prod||!String(r.prod).trim())r.prod=name;
+    if(r.uuid){
+      const upd=await sb.from('returns_skus').update({sku:r.sku,product_name:r.prod}).eq('id',r.uuid);
+      if(upd.error){console.error('Legacy return repair error:',upd.error);if(!silent)toast('Repair failed for '+cleanSku+': '+upd.error.message,'er');failed++;continue;}
+    }
+    fixed++;
+  }
+  renderReturns();
+  if(fixed||merged||failed||!silent){
+    const parts=[];
+    if(fixed)parts.push(`${fixed} cleaned`);
+    if(merged)parts.push(`${merged} duplicate${merged!==1?'s':''} merged`);
+    if(failed)parts.push(`${failed} failed`);
+    toast((failed?'⚠ ':'✓ ')+(parts.join(' · ')||'nothing to fix'),failed?'er':undefined);
+  }
+  logAudit('Return SKUs repaired',`${fixed} cleaned, ${merged} merged, ${failed} failed`);
 }
 
 function openBulkAddReturns(){
