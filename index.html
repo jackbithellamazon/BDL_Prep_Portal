@@ -3363,6 +3363,25 @@ function renderDashboard(){
     return{std,dg,os};
   }
 
+  // Mutually-exclusive split of sent units for the stacked Sent Mix bar. Stock
+  // (OA) units are bucketed by their shipment type (Standard/DG/Oversize); ALL
+  // Lavarion units are their own bucket so nothing is double-counted — even the
+  // Lavarion shipments that happen to be DG- or oversize-typed (tracked in lavDG
+  // /lavOS for the detail note). The four buckets sum to total.
+  function calcSentMix(start,end){
+    let std=0,dg=0,os=0;
+    const sentShipIds=new Set(rows.filter(r=>{if(r.sent!=='Yes'||!r.sentDate)return false;const d=new Date(r.sentDate);return d>=start&&d<=end;}).filter(r=>r.shipId).map(r=>r.shipId));
+    sentShipIds.forEach(sid=>{
+      const type=_shipTypeCache[sid]||rows.find(r=>r.shipId===sid)?.shipType||'Standard';
+      const units=rows.filter(r=>r.shipId===sid&&r.sent==='Yes').reduce((a,r)=>a+(r.ship||0),0);
+      if(type==='DG')dg+=units;else if(type==='Oversize')os+=units;else std+=units;
+    });
+    let lav=0,lavDG=0,lavOS=0;const lavByShip={};
+    lavShipments.filter(s=>{if(!s.date)return false;const d=new Date(s.date);return d>=start&&d<=end;}).forEach(s=>{lav+=(s.units||0);lavByShip[s.shipId]=(lavByShip[s.shipId]||0)+(s.units||0);});
+    Object.entries(lavByShip).forEach(([sid,u])=>{const t=_shipTypeCache[sid]||'Standard';if(t==='DG')lavDG+=u;else if(t==='Oversize')lavOS+=u;});
+    return{std,dg,os,lav,lavDG,lavOS,total:std+dg+os+lav};
+  }
+
   const todayStock=calcSentStock(todayStr);
   const ydStock=calcSentStock(yesterdayStr);
   const weekStock=calcSentStockRange(ws,we);
@@ -3598,6 +3617,45 @@ function renderDashboard(){
   const trendCol=todayTotal.units>ydTotal.units?COL.today:todayTotal.units<ydTotal.units?'#f87171':'#64748b';
   const todayDiff=Math.abs(todayTotal.units-ydTotal.units);
 
+  // ── SENT MIX (week + month, mutually-exclusive buckets) ──────────────────────
+  const mixWeek=calcSentMix(ws,we);
+  const mixMonth=calcSentMix(ms,me);
+
+  // ── MONTH PACE / HEALTH ──────────────────────────────────────────────────────
+  // Project the month-end pace from what's gone out so far and compare it to the
+  // recent monthly average, separately for total units, Lavarion and OA (stock).
+  const mtdLavUnits=calcSentLavRange(mss,mes).units;
+  const mtdStockUnits=Math.max(0,mtdUnits-mtdLavUnits);
+  const _now=new Date();
+  const _dim=new Date(_now.getFullYear(),_now.getMonth()+1,0).getDate();
+  const _frac=Math.max(_now.getDate()/_dim,0.0001);
+  const projUnits=Math.round(mtdUnits/_frac);
+  const projLav=Math.round(mtdLavUnits/_frac);
+  const projStock=Math.round(mtdStockUnits/_frac);
+  // Recent monthly averages from history, excluding the current (partial) month.
+  let avgUnits=0,avgLav=0,avgStock=0,histN=0;
+  try{
+    const ser=(typeof _insMonthSeries==='function'?_insMonthSeries():[]);
+    const prior=ser.slice(0,-1).slice(-3); // up to 3 completed months
+    histN=prior.length;
+    if(histN){
+      avgUnits=prior.reduce((a,s)=>a+(s.units||0),0)/histN;
+      avgLav=prior.reduce((a,s)=>a+(s.lav||0),0)/histN;
+      avgStock=prior.reduce((a,s)=>a+(s.stock||0),0)/histN;
+    }
+  }catch(e){}
+  const paceVerdict=(proj,base)=>{
+    if(!base)return{label:'No baseline',col:'#64748b',sub:'not enough history yet',r:0};
+    const r=proj/base;
+    if(r>=1.10)return{label:'Strong',col:'#4ade80',sub:`pacing ${Math.round((r-1)*100)}% above your recent average`,r};
+    if(r>=0.90)return{label:'On track',col:'#fbbf24',sub:'in line with your recent average',r};
+    if(r>=0.75)return{label:'A bit behind',col:'#fb923c',sub:`pacing ${Math.round((1-r)*100)}% below average`,r};
+    return{label:'Slow',col:'#f87171',sub:`pacing ${Math.round((1-r)*100)}% below average`,r};
+  };
+  const vUnits=paceVerdict(projUnits,avgUnits);
+  const vLav=paceVerdict(projLav,avgLav);
+  const vStock=paceVerdict(projStock,avgStock);
+
   w.innerHTML=`<div style="padding:12px;display:flex;flex-direction:column;gap:10px;">
 
     <!-- ROW 1: 5 KPI tiles -->
@@ -3606,7 +3664,7 @@ function renderDashboard(){
       ${kTile('In Transit',COL.transit,
         fmt(transit.units),'units in transit',
         fmtGBP2(transit.value),'COG value in transit',
-        pill('SKUs',fmt(transit.skus),COL.sku)+pill('ASINs',fmt(transit.asins),COL.asin),
+        pill('SKUs',fmt(transit.skus),COL.sku)+pill('ASINs',fmt(transit.asins),COL.asin)+pill('Avg £/unit',transit.units?fmtGBP2(transit.value/transit.units):'—',GOLD)+pill('Suppliers',fmt(new Set(transitRows.map(r=>r.sup).filter(Boolean)).size),COL.ship),
         '','')
       }
 
@@ -3620,7 +3678,7 @@ function renderDashboard(){
       ${kTile('Yesterday',COL.yday,
         fmt(ydTotal.units),'units sent',
         fmtGBP2(ydTotal.value),'COG value sent',
-        pill('SKUs',fmt(ydSkus),COL.sku)+pill('Boxes',fmt(ydBoxes),COL.box)+pill('vs Day Before',`${ydArrow} ${Math.abs(ydDiff)} units`,ydACol)+(ydPC.totalUnits>0?pill('Prep cost',fmtGBP2(ydPC.withVat),GOLD):''),
+        pill('SKUs',fmt(ydSkus),COL.sku)+pill('ASINs',fmt(ydRoll.asins),COL.asin)+pill('Boxes',fmt(ydBoxes),COL.box)+pill('COG/unit',ydTotal.units?fmtGBP2(ydTotal.value/ydTotal.units):'—',GOLD)+pill('vs Day Before',`${ydArrow} ${Math.abs(ydDiff)} units`,ydACol)+(ydPC.totalUnits>0?pill('Prep cost',fmtGBP2(ydPC.withVat),GOLD):''),
         '','')
       }
 
@@ -3758,14 +3816,57 @@ function renderDashboard(){
 
       <!-- Col 2: By Type + Pipeline + Claims + Ops -->
       <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">By Type — This Week</div>
-          ${[['Standard',weekTypes.std,COL.sku],['DG',weekTypes.dg,'#f87171'],['Oversize',weekTypes.os,COL.box],['Lavarion',weekLav.units,COL.asin]].map(([l,u,col])=>{
-            const pct=weekTotal.units?(u/weekTotal.units*100).toFixed(1):'0.0';
-            const bw=weekTotal.units?Math.round(u/weekTotal.units*100):0;
-            return`<div style="margin-bottom:6px;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:10px;color:${col};font-weight:600;">${l}</span><span style="font-size:10px;font-family:var(--mono);color:${col};font-weight:700;">${fmt(u)} <span style="opacity:.45;font-size:8px;">${pct}%</span></span></div><div style="height:8px;background:rgba(255,255,255,.08);border-radius:4px;position:relative;"><div style="width:${bw}%;height:100%;background:${col};border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;"><span style="font-size:7px;font-weight:800;color:rgba(0,0,0,.6);">${bw>15?pct+'%':''}</span></div></div></div>`;
-          }).join('')}
+
+        <!-- Month Pace / Health verdict -->
+        <div style="background:var(--bg2);border:1px solid ${vUnits.col}40;border-top:3px solid ${vUnits.col};border-radius:8px;padding:12px 14px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+            <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;">Month Pace</div>
+            <div style="font-size:9px;color:#94a3b8;">${histN?`vs avg of last ${histN} mo`:'building history'}</div>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:8px;">
+            <span style="font-size:22px;font-weight:900;color:${vUnits.col};line-height:1;">${vUnits.label}</span>
+            <span style="font-size:11px;color:#cbd5e1;">month for units sent</span>
+          </div>
+          <div style="font-size:11px;color:#cbd5e1;margin:4px 0 10px;line-height:1.4;">${fmt(mtdUnits)} sent so far · projecting <b style="color:${vUnits.col};">${fmt(projUnits)}</b> by month-end — ${vUnits.sub}.</div>
+          ${[['Units sent',mtdUnits,projUnits,avgUnits,vUnits,COL.week],['Lavarion',mtdLavUnits,projLav,avgLav,vLav,COL.asin],['OA / stock',mtdStockUnits,projStock,avgStock,vStock,COL.sku]].map(([l,mtdv,proj,avg,v,col])=>`
+            <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+              <span style="flex:1;font-size:11px;color:${col};font-weight:700;">${l}</span>
+              <span style="font-size:11px;font-family:var(--mono);color:#e2e8f0;" title="sent so far → projected month-end · recent monthly avg">${fmt(mtdv)} → ${fmt(proj)}${avg?` <span style="color:#94a3b8;">/ ${fmt(Math.round(avg))} avg</span>`:''}</span>
+              <span style="font-size:9px;font-weight:800;color:${v.col};min-width:64px;text-align:right;">${v.label}</span>
+            </div>`).join('')}
+          <div style="font-size:9px;color:#94a3b8;margin-top:7px;line-height:1.4;">Projection = sent-so-far ÷ share of month elapsed (${Math.round(_frac*100)}%). Recent avg = mean of completed months.</div>
         </div>
+
+        <!-- Sent Mix stacked bar (week / month) -->
+        ${(()=>{
+          const mix=_mixPeriod==='month'?mixMonth:mixWeek;
+          const segs=[['Standard',mix.std,COL.sku],['DG',mix.dg,'#f87171'],['Oversize',mix.os,COL.box],['Lavarion',mix.lav,COL.asin]];
+          const tot=mix.total||0;
+          const tabBtn=(k,lbl)=>`<button onclick="setMixPeriod('${k}')" style="padding:3px 10px;border-radius:12px;font-size:9px;font-weight:700;cursor:pointer;border:1px solid ${_mixPeriod===k?'var(--accent)':'var(--border2)'};background:${_mixPeriod===k?'rgba(251,191,36,.15)':'var(--bg3)'};color:${_mixPeriod===k?'#fbbf24':'var(--text2)'};">${lbl}</button>`;
+          const bar=tot>0?segs.filter(s=>s[1]>0).map(([l,u,col])=>{
+            const pc=u/tot*100;
+            return `<div title="${l}: ${fmt(u)} (${pc.toFixed(1)}%)" style="width:${pc}%;background:${col};display:flex;align-items:center;justify-content:center;">${pc>=10?`<span style="font-size:11px;font-weight:800;color:#000;">${Math.round(pc)}%</span>`:''}</div>`;
+          }).join(''):`<div style="width:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:10px;">No units sent ${_mixPeriod==='month'?'this month':'this week'}</div>`;
+          const overlap=(mix.lavDG+mix.lavOS)>0?`<div style="font-size:9px;color:#94a3b8;margin-top:8px;line-height:1.45;">Of ${fmt(mix.lav)} Lavarion units, ${mix.lavDG?fmt(mix.lavDG)+' are DG-typed':''}${mix.lavDG&&mix.lavOS?' and ':''}${mix.lavOS?fmt(mix.lavOS)+' oversize-typed':''} — kept under Lavarion, not double-counted in DG/Oversize.</div>`:'';
+          return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+              <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;">Sent Mix · ${tot>0?fmt(tot)+' units':'—'}</div>
+              <div style="display:flex;gap:5px;">${tabBtn('week','Week')}${tabBtn('month','Month')}</div>
+            </div>
+            <div style="display:flex;height:28px;width:100%;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.05);">${bar}</div>
+            <div style="display:flex;flex-direction:column;gap:0;margin-top:9px;">
+              ${segs.map(([l,u,col])=>{
+                const pc=tot?(u/tot*100):0;
+                return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+                  <span style="width:9px;height:9px;border-radius:2px;background:${col};flex-shrink:0;"></span>
+                  <span style="flex:1;font-size:12px;color:${col};font-weight:700;">${l}</span>
+                  <span style="font-size:14px;font-family:var(--mono);font-weight:800;color:${col};">${fmt(u)} <span style="font-size:11px;color:#cbd5e1;font-weight:600;margin-left:2px;">${pc.toFixed(1)}%</span></span>
+                </div>`;
+              }).join('')}
+            </div>
+            ${overlap}
+          </div>`;
+        })()}
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
           <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Pipeline</div>
           ${[['In-Transit',transit.units,COL.transit],['Delivered',rows.filter(r=>r.status==='Delivered').reduce((a,r)=>a+(r.exp||0),0),COL.today],['In Warehouse',rows.filter(r=>r.status==='In Warehouse').reduce((a,r)=>a+(r.exp||0),0),COL.asin],['Part Sent',rows.filter(r=>r.status==='Part Sent').reduce((a,r)=>a+(r.exp||0),0),COL.box],['Issue',rows.filter(r=>r.status==='Issue').reduce((a,r)=>a+(r.exp||0),0),'#f87171']].map(([l,u,col])=>`
@@ -4679,6 +4780,9 @@ function renderInsMonthly(body){
 // "Prep Cost ▸" card can open a detailed breakdown on click.
 let _lastInsMet=null,_lastInsLabel='';
 let _prepExpPeriod='mtd';
+// Sent Mix card: 'week' or 'month' view of the stacked composition bar.
+let _mixPeriod='week';
+function setMixPeriod(p){_mixPeriod=p;renderDashboard();}
 
 // Resolve a period key to a {s,e,label} date range. Keys: 'mtd', 'lastmonth',
 // or a 'YYYY-MM' month key.
@@ -4759,7 +4863,17 @@ function openPrepExplorer(key){
 
   const empty=!(m.totalUnits||0);
 
-  // Previous comparable period (for deltas).
+  // Month-end projection (only meaningful for the live month-to-date view).
+  let projBlock='';
+  if(_prepExpPeriod==='mtd'&&!empty){
+    const pn=new Date();
+    const pdim=new Date(pn.getFullYear(),pn.getMonth()+1,0).getDate();
+    const pf=Math.max(pn.getDate()/pdim,0.0001);
+    const projCost=(m.withVat||0)/pf;
+    const projUnits2=Math.round((m.totalUnits||0)/pf);
+    projBlock=`<div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.28);border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:11px;line-height:1.5;color:var(--text2);">📈 At the current pace (${Math.round(pf*100)}% of the month elapsed), you're on track for roughly <b style="color:#60a5fa;">${fmtGBP2(projCost)}</b> in prep this month across about <b style="color:#60a5fa;">${fmt(projUnits2)}</b> units.</div>`;
+  }
+
   let py,pmo;
   if(_prepExpPeriod==='mtd'||_prepExpPeriod==='lastmonth'){
     const base=_prepExpPeriod==='mtd'?new Date(now.getFullYear(),now.getMonth(),1):new Date(now.getFullYear(),now.getMonth()-1,1);
@@ -4810,6 +4924,7 @@ function openPrepExplorer(key){
     </div>
 
     ${bandInsight?`<div style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:11px 13px;margin-bottom:12px;font-size:11px;line-height:1.5;color:var(--text2);">💡 ${bandInsight}</div>`:''}
+    ${projBlock}
 
     ${comp.length>1?`<div style="margin-bottom:14px;">
       <div style="font-size:8px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Cost Composition (ex. VAT)</div>
