@@ -8014,18 +8014,12 @@ let _retLineCount=0;
 // onto the object so other views pick it up. Falls back to a short descriptor
 // built from the SKU parts (supplier · type) so there's always something more
 // identifiable than the raw encoded SKU.
+// Product/name for a return line. Only the explicit name the user typed (single
+// add) or supplied after the "-" in bulk add is shown. No auto-fill from prep
+// rows/catalogue and no synthesised "supplier · type" descriptor — empty stays
+// empty so the column reflects exactly what was entered.
 function retProdDesc(o){
-  if(o&&o.prod&&String(o.prod).trim())return String(o.prod).trim();
-  const sku=o&&o.sku, asin=o&&o.asin;
-  let m=rows.find(x=>x.sku===sku||(asin&&x.asin===asin));
-  if(m&&m.prod){if(o)o.prod=m.prod;return m.prod;}
-  m=(lavAsins||[]).find(x=>x.sku===sku||(asin&&x.asin===asin));
-  if(m&&m.prod){if(o)o.prod=m.prod;return m.prod;}
-  const p=parseSKU(sku||'');
-  const bits=[];
-  if(p.sup)bits.push(p.sup);
-  if(p.type)bits.push(p.type);
-  return bits.length?bits.join(' · '):(sku||'');
+  return (o&&o.prod&&String(o.prod).trim())?String(o.prod).trim():'';
 }
 
 function renderReturns(){
@@ -8088,10 +8082,13 @@ function openBulkAddReturns(){
 
 async function saveBulkReturns(){
   const raw=document.getElementById('bulkReturnInput').value;
-  // Each line is "SKU | quick name" — the name part is optional.
+  // Each line is "SKU - name" — the name part is optional.
+  // Separator is " - " (space-dash-space), "|", or a tab. Using space-dash-space
+  // (not a bare "-") means SKUs that contain dashes, e.g. "MY-OTE3-R49A", stay intact.
+  // The match is non-greedy so only the FIRST separator splits the line.
   const lines=raw.split('\n').map(s=>s.trim()).filter(s=>s.length>0).map(line=>{
-    const sep=line.search(/[|\t]/);
-    if(sep>=0)return{sku:line.slice(0,sep).trim(),name:line.slice(sep+1).trim()};
+    const m=line.match(/^(.*?)(?:\s+-\s+|\s*[|\t]\s*)(.*)$/);
+    if(m)return{sku:m[1].trim(),name:m[2].trim()};
     return{sku:line.trim(),name:''};
   }).filter(x=>x.sku.length>0);
   if(!lines.length){toast('Paste at least one SKU','er');return;}
@@ -8103,7 +8100,8 @@ async function saveBulkReturns(){
     if(returnSkus.find(r=>r.sku===sku&&r.uuid))continue;
     const cog=parseSKU(sku).cogs||0;
     const match=rows.find(r=>r.sku===sku);
-    const obj={uuid:null,sku,asin:match?.asin||'',prod:name||match?.prod||'',cog,units:1,notes:''};
+    // Product name is only set from the explicit name after the "-". No auto-fill.
+    const obj={uuid:null,sku,asin:match?.asin||'',prod:name||'',cog,units:1,notes:''};
     const res=await sb.from('returns_skus').insert({sku:obj.sku,asin:obj.asin,product_name:obj.prod,cog:obj.cog,units:obj.units,notes:obj.notes}).select().single();
     if(res.error){console.error('Bulk return SKU insert error:',res.error);toast('Save failed for '+sku+': '+res.error.message,'er');continue;}
     if(res.data)obj.uuid=res.data.id;
@@ -8134,12 +8132,11 @@ function onRetSkuInput(){
   const cog=parseSKU(sku).cogs;
   const cogEl=document.getElementById('ret-cog');
   if(cog>0&&cogEl)cogEl.value=cog.toFixed(2);
-  // Try to find product name from existing rows
+  // COG auto-fills from the SKU; ASIN fills from a matching prep row if found.
+  // Product name is NOT auto-filled — it stays whatever the user types.
   const match=rows.find(r=>r.sku===sku);
-  const prodEl=document.getElementById('ret-prod');
   const asinEl=document.getElementById('ret-asin');
   if(match){
-    if(prodEl)prodEl.value=match.prod||'';
     if(asinEl)asinEl.value=match.asin||'';
   }
 }
@@ -9146,8 +9143,8 @@ setInterval(updateClock,30000);
   <div class="modal" style="max-width:500px;">
     <div class="mh"><div class="mh-title">Bulk Add Return SKUs</div><button class="mh-close" onclick="cm('bulkReturnModal')">✕</button></div>
     <div class="mb" style="padding:16px;">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">One per line as <span style="font-family:var(--mono);color:var(--text2);">SKU | quick name</span>. The name (brand or short description, e.g. "Logitech mouse") helps UK staff prep. The name is optional — if left off it auto-fills from a matching prep row. COG auto-fills from each SKU; all default to 1 unit.</div>
-      <textarea id="bulkReturnInput" placeholder="SKU | quick name  (one per line):&#10;Amuk_139.99_1604_225_PS3_01 | Logitech mouse&#10;Stan_22.95_0605_0_Jac1_02 | Stanley flask&#10;Amg_12.26_2204_19.99_Jac1_03 | baking soda"
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">One per line as <span style="font-family:var(--mono);color:var(--text2);">SKU - name</span>. The name (brand or short description, e.g. "Logitech mouse") helps UK staff prep. The name is optional — if left off, the Product column stays empty. COG auto-fills from each SKU; all default to 1 unit.</div>
+      <textarea id="bulkReturnInput" placeholder="SKU - name  (one per line):&#10;Amuk_139.99_1604_225_PS3_01 - Logitech mouse&#10;Stan_22.95_0605_0_Jac1_02 - Stanley flask&#10;Amg_12.26_2204_19.99_Jac1_03 - baking soda"
         style="width:100%;height:180px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:11px;padding:8px;resize:vertical;outline:none;box-sizing:border-box;"
         onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
       <div id="bulkReturnPreview" style="margin-top:8px;font-size:10px;color:var(--text3);"></div>
@@ -9186,7 +9183,7 @@ setInterval(updateClock,30000);
       <div class="fg">
         <div class="fi">
           <label class="fl">SKU</label>
-          <input class="fi-in" type="text" id="ret-sku" placeholder="Paste SKU — COG and product auto-fill" oninput="onRetSkuInput()">
+          <input class="fi-in" type="text" id="ret-sku" placeholder="Paste SKU — COG auto-fills" oninput="onRetSkuInput()">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div class="fi">
@@ -9200,8 +9197,9 @@ setInterval(updateClock,30000);
             <div style="font-size:10px;color:var(--text3);margin-top:2px;">Default: 1 unit</div>
           </div>
         </div>
+        <div class="fi"><label class="fl">Product / Name (optional)</label><input class="fi-in" type="text" id="ret-prod" placeholder='Brand or short description, e.g. "Stanley flask"'></div>
         <div class="fi"><label class="fl">Notes (optional)</label><input class="fi-in" type="text" id="ret-notes" placeholder="Condition, reason, etc."></div>
-        <div class="fi" style="display:none;"><input type="text" id="ret-asin"><input type="text" id="ret-prod"></div>
+        <div class="fi" style="display:none;"><input type="text" id="ret-asin"></div>
       </div>
     </div>
     <div class="mf">
