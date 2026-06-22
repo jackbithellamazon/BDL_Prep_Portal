@@ -1088,7 +1088,6 @@ ALTER TABLE actions ADD COLUMN IF NOT EXISTS reimbursed text DEFAULT 'No';
 ALTER TABLE actions ADD COLUMN IF NOT EXISTS reimburse_note text DEFAULT '';
 ALTER TABLE actions ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
 ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS chase_snooze_until timestamptz;
-ALTER TABLE ship_boxes ADD COLUMN IF NOT EXISTS ship_type text DEFAULT 'Standard';
 CREATE UNIQUE INDEX IF NOT EXISTS prep_rows_sheet_sync_id_key ON prep_rows (sheet_sync_id) WHERE sheet_sync_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS app_settings (key text primary key, value text);
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
@@ -4157,14 +4156,11 @@ async function confirmLavShipMulti(){
     }
   });
   if(!lines.length){toast('Add at least one ASIN with units','er');return;}
-  let lavSaveOk=true;
   for(const entry of lines){
     lavShipments.push(entry);
-    const ok=await saveLavShipment(entry);
-    if(!ok){lavSaveOk=false;lavShipments.pop();}
-    else logAudit('Lavarion added to shipment',entry.asin+' x '+entry.units+' -> '+_lavShipId);
+    await saveLavShipment(entry);
+    logAudit('Lavarion added to shipment',entry.asin+' x '+entry.units+' -> '+_lavShipId);
   }
-  if(!lavSaveOk){renderShipments();return;}
   cm('lavShipModal');
   renderShipments();renderLavarion();
   toast('✓ '+lines.length+' Lavarion ASIN'+(lines.length!==1?'s':'')+' added to '+_lavShipId);
@@ -6239,12 +6235,13 @@ function renderShipments(){
       const sid=seg.shipId;if(!sid)return;
       const segDate=seg.date||r.sentDate||'';
       const segType=_shipTypeCache[sid]||seg.type||r.shipType||'Standard';
-      if(!shipMap[sid])shipMap[sid]={id:sid,date:segDate,skus:[],lavSkus:[],retSkus:[],units:0,value:0,boxes:shipBoxes[sid]||0,type:segType,hasLav:false};
+      if(!shipMap[sid])shipMap[sid]={id:sid,date:segDate,minDate:segDate,skus:[],lavSkus:[],retSkus:[],units:0,value:0,boxes:shipBoxes[sid]||0,type:segType,hasLav:false};
       // Per-segment view of the row so the table shows this shipment's units only.
       shipMap[sid].skus.push({...r,_segUnits:seg.units||0,shipId:sid});
       shipMap[sid].units+=(seg.units||0);
       shipMap[sid].value+=parseSKU(r.sku).cogs*(seg.units||0);
       if(segDate&&segDate>shipMap[sid].date)shipMap[sid].date=segDate;
+      if(segDate&&(!shipMap[sid].minDate||segDate<shipMap[sid].minDate))shipMap[sid].minDate=segDate;
       if(seg.type&&!_shipTypeCache[sid])shipMap[sid].type=seg.type;
     });
   });
@@ -6252,18 +6249,19 @@ function renderShipments(){
   // Add Lavarion shipments
   lavShipments.forEach(ls=>{
     if(!ls.shipId)return;
-    if(!shipMap[ls.shipId])shipMap[ls.shipId]={id:ls.shipId,date:ls.date||'',skus:[],lavSkus:[],retSkus:[],units:0,value:0,boxes:shipBoxes[ls.shipId]||0,type:_shipTypeCache[ls.shipId]||'Standard',hasLav:true};
+    if(!shipMap[ls.shipId])shipMap[ls.shipId]={id:ls.shipId,date:ls.date||'',minDate:ls.date||'',skus:[],lavSkus:[],retSkus:[],units:0,value:0,boxes:shipBoxes[ls.shipId]||0,type:_shipTypeCache[ls.shipId]||'Standard',hasLav:true};
     shipMap[ls.shipId].lavSkus.push(ls);
     shipMap[ls.shipId].units+=(ls.units||0);
     shipMap[ls.shipId].value+=(ls.cost||0)*(ls.units||0);
     shipMap[ls.shipId].hasLav=true;
     if(ls.date&&ls.date>shipMap[ls.shipId].date)shipMap[ls.shipId].date=ls.date;
+    if(ls.date&&(!shipMap[ls.shipId].minDate||ls.date<shipMap[ls.shipId].minDate))shipMap[ls.shipId].minDate=ls.date;
   });
 
   // Add Return shipments
   returnShipments.forEach(rs=>{
     if(!rs.shipId)return;
-    if(!shipMap[rs.shipId])shipMap[rs.shipId]={id:rs.shipId,date:rs.date||'',skus:[],lavSkus:[],retSkus:[],units:0,value:0,boxes:shipBoxes[rs.shipId]||0,type:_shipTypeCache[rs.shipId]||'Standard',hasLav:false};
+    if(!shipMap[rs.shipId])shipMap[rs.shipId]={id:rs.shipId,date:rs.date||'',minDate:rs.date||'',skus:[],lavSkus:[],retSkus:[],units:0,value:0,boxes:shipBoxes[rs.shipId]||0,type:_shipTypeCache[rs.shipId]||'Standard',hasLav:false};
     if(!shipMap[rs.shipId].retSkus)shipMap[rs.shipId].retSkus=[];
     shipMap[rs.shipId].retSkus.push(rs);
     shipMap[rs.shipId].units+=(rs.units||0);
@@ -6273,9 +6271,18 @@ function renderShipments(){
 
   let shipments=Object.values(shipMap).sort((a,b)=>a.date.localeCompare(b.date));
 
-  // Date filter
+  // Date filter — a shipment shows if its date span (earliest line .. latest
+  // line) overlaps the selected range. Using overlap instead of the single
+  // latest date means one stray line (e.g. a timezone-rollover date a day off)
+  // can't push the whole shipment out of view.
   if(dateFrom&&dateTo){
-    shipments=shipments.filter(s=>s.date>=dateFrom&&s.date<=dateTo);
+    shipments=shipments.filter(s=>{
+      const lo=((s.minDate||s.date)||'').slice(0,10);
+      const hi=(s.date||'').slice(0,10);
+      if(!lo&&!hi)return false;
+      const a=lo||hi, b=hi||lo;
+      return a<=dateTo&&b>=dateFrom; // ranges overlap
+    });
   }
 
   // Type filter
@@ -7715,9 +7722,7 @@ async function deleteLavAsin_db(a){
 async function saveLavShipment(s){
   const data={ship_id:s.shipId,asin:s.asin,sku:s.sku,product_name:s.prod,units:s.units,cost:s.cost,sent_date:s.date};
   const res=await sb.from('lavarion_shipments').insert(data).select().single();
-  if(res.error){console.error('saveLavShipment error:',res.error);setSyncStatus('error');toast('Save error: '+res.error.message,'er');return false;}
   if(res.data)s.uuid=res.data.id;
-  return true;
 }
 
 // ── REAL-TIME SUBSCRIPTIONS ───────────────────────────────────────────────────
@@ -7799,13 +7804,7 @@ function setupRealtime(){
   }).subscribe();
 
   sb.channel('ship_boxes').on('postgres_changes',{event:'*',schema:'public',table:'ship_boxes'},payload=>{
-    if(payload.new){
-      shipBoxes[payload.new.ship_id]=payload.new.boxes;
-      // Also keep _shipTypeCache in sync — without this the type we just wrote in
-      // saveNewShipment / updateShipmentType gets overwritten to 'Standard' the
-      // moment the realtime echo arrives (the old handler only updated shipBoxes).
-      if(payload.new.ship_type)_shipTypeCache[payload.new.ship_id]=payload.new.ship_type;
-    }
+    if(payload.new)shipBoxes[payload.new.ship_id]=payload.new.boxes;
   }).subscribe();
 
   sb.channel('lavarion_asins').on('postgres_changes',{event:'*',schema:'public',table:'lavarion_asins'},payload=>{
@@ -8982,33 +8981,14 @@ async function saveNewShipment(){
 
   // Save boxes — always upsert even when 0 so ship_type is persisted; otherwise
   // a DG shipment with no boxes yet loses its type on the next page refresh.
-  // Try with ship_type first; if that column doesn't exist yet (migration not run),
-  // fall back to boxes-only so the Lavarion save can still proceed.
   shipBoxes[shipId]=boxes||0;
-  {
-    const boxRes=await sb.from('ship_boxes').upsert({ship_id:shipId,boxes:boxes||0,ship_type:type},{onConflict:'ship_id'});
-    if(boxRes.error){
-      const errMsg=(boxRes.error.message||'').toLowerCase();
-      if(errMsg.includes('ship_type')){
-        // Column doesn't exist yet — run migration SQL in Settings. Fall back gracefully.
-        console.warn('ship_boxes.ship_type column missing — run migration SQL in Settings. Saving without type.');
-        await sb.from('ship_boxes').upsert({ship_id:shipId,boxes:boxes||0},{onConflict:'ship_id'});
-      } else {
-        console.error('ship_boxes upsert error:',boxRes.error);
-        toast('Box save error: '+boxRes.error.message+' — check Settings → Migration SQL','er');
-        // Don't abort — still save the Lavarion items so data isn't lost
-      }
-    }
-  }
+  await sb.from('ship_boxes').upsert({ship_id:shipId,boxes:boxes||0,ship_type:type},{onConflict:'ship_id'});
 
   // Save Lavarion shipments
-  let saveOk=true;
   for(const ls of lavRows){
     lavShipments.push(ls);
-    const ok=await saveLavShipment(ls);
-    if(!ok){saveOk=false;lavShipments.pop();} // remove from memory if DB save failed
+    await saveLavShipment(ls);
   }
-  if(!saveOk){renderShipments();return;} // bail without closing modal so user can retry
 
   cm('newShipModal');renderShipments();
   toast(`✓ Shipment ${shipId} created with ${lavRows.length} Lavarion ASIN${lavRows.length!==1?'s':''}`);
