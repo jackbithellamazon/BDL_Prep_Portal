@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v1.9.3</title>
+<title>BDL PrepHub v1.10.0</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -233,6 +233,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 
 /* ── STATS ── */
 .stats{display:flex;border-bottom:2px solid var(--accent);background:var(--bg2);flex-shrink:0;gap:6px;padding:8px;flex-wrap:wrap;}
+/* Dashboard activity widget — added counts + in-transit/arrived split */
+.pa-bar{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:8px;}
+.pa-title{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);}
+.pa-cells{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+@media(max-width:720px){.pa-cells{grid-template-columns:repeat(2,1fr);}}
+.pa-cell{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 14px;text-align:center;}
+.pa-cell .pa-lab{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);}
+.pa-cell .pa-u{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--text);line-height:1.15;}
+.pa-cell .pa-un{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-left:4px;}
+.pa-cell .pa-meta{font-size:10px;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:2px;}
+.pa-cell .pa-split{font-size:11px;font-variant-numeric:tabular-nums;margin-top:6px;line-height:1.6;}
+.pa-cell .pa-it{color:#5599ff;font-weight:700;}
+.pa-cell .pa-arr{color:#86efac;font-weight:700;}
+.pa-cell .pa-none{color:var(--text3);}
 .stat{flex:1;padding:10px 10px;text-align:center;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--border);border-radius:8px;transition:all .2s;cursor:pointer;min-width:100px;display:flex;flex-direction:column;justify-content:center;align-items:center;}
 .stat:hover{border-color:var(--accent);box-shadow:0 0 12px rgba(245,158,11,.2);}
 .stat-label{font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-weight:800;white-space:nowrap;}
@@ -600,6 +614,124 @@ html.light-mode{
   --btn-amber-bg:#451a03;--btn-amber-border:#451a03;--btn-amber-text:#ffffff;
   --btn-sf-bg:#1e3a8a;--btn-sf-border:#1e3a8a;--btn-sf-text:#ffffff;
 }
+
+/* ══════════ LAVARION v2 — components & recipes ══════════ */
+.lv2-cards{display:flex;gap:6px;padding:8px;flex-wrap:wrap;}
+.lv2-cards>.lv2-card{flex:1 1 150px;}
+@media(max-width:920px){.lv2-cards>.lv2-card{flex:1 1 calc(33.333% - 6px);}}
+@media(max-width:560px){.lv2-cards>.lv2-card{flex:1 1 calc(50% - 6px);}}
+.lv2-card{flex:1;background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--border2);border-radius:8px;padding:8px 10px;text-align:center;}
+.lv2-card .k{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px;}
+.lv2-card .v{font-variant-numeric:tabular-nums;font-size:24px;font-weight:800;margin:2px 0 2px;line-height:1;letter-spacing:-.02em;}
+.lv2-card .s{font-size:9px;color:var(--text2);font-weight:500;}
+.lv2-card.blue{border-top-color:#4a72b8;}.lv2-card.blue .k,.lv2-card.blue .v{color:#7d9cc9;}
+.lv2-card.purple{border-top-color:#8a6cbf;}.lv2-card.purple .k,.lv2-card.purple .v{color:#a98fd6;}
+.lv2-card.green{border-top-color:#3a8a52;}.lv2-card.green .k,.lv2-card.green .v{color:#6fbf82;}
+.lv2-card.amber{border-top-color:#e0a642;}.lv2-card.amber .k,.lv2-card.amber .v{color:#e0a642;}
+.lv2-card.red{border-top-color:#a84848;}.lv2-card.red .k,.lv2-card.red .v{color:#e07a7a;}
+.lv2-card.cyan{border-top-color:#3e8f8f;}.lv2-card.cyan .k,.lv2-card.cyan .v{color:#6cbdbd;}
+.lv2-bar{display:flex;align-items:center;gap:8px;padding:7px 8px 2px;flex-wrap:wrap;}
+.lv2-seg{display:inline-flex;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;}
+.lv2-seg button{background:none;border:none;color:var(--text2);font:inherit;font-weight:600;font-size:12px;padding:7px 15px;border-radius:6px;cursor:pointer;}
+.lv2-seg button.on{background:var(--bg4);color:var(--accent);}
+.lv2-content{padding:2px 8px 18px;flex:1;overflow-y:auto;min-height:0;}
+.lv2-notice{background:var(--bg2);border:1px solid var(--border);border-left:3px solid #e0a642;border-radius:8px;padding:12px 15px;margin-bottom:10px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13px;}
+.lv2-notice .k{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#e0a642;flex-shrink:0;}
+.lv2-notice .txt{flex:1;min-width:240px;color:var(--text2);}
+.lv2-notice .txt b{color:var(--text);font-weight:700;}
+.lv2-ghost{padding:7px 13px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-family:var(--sans);}
+.lv2-ghost:hover{color:var(--text);}
+.lv2-tbl{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:8px;}
+@media(max-width:760px){.lv2-tbl{overflow-x:auto;}.lv2-tbl table{min-width:680px;}}
+.lv2-tbl table{min-width:0;}
+.lv2-tbl td{padding:14px 10px!important;font-size:13px;line-height:1.35;}
+.lv2-asin{font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--text);letter-spacing:.02em;cursor:pointer;line-height:1.15;}
+.lv2-asin:hover{color:var(--accent);}
+.lv2-sku{font-size:11.5px;font-weight:500;color:var(--text2);margin-top:2px;letter-spacing:.02em;}
+.lv2-prod{font-weight:600;font-size:13px;color:var(--text);line-height:1.2;}
+.lv2-sub{font-size:11.5px;color:var(--text2);margin-top:2px;}
+.lv2-typ{font-size:9px;font-weight:700;padding:2px 7px;border-radius:7px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;background:var(--bg4);border:1px solid var(--border2);line-height:1.3;}
+.lv2-typ.branded{color:#7d9cc9;}.lv2-typ.complementary{color:#a98fd6;}.lv2-typ.packing{color:#e0a642;}
+.lv2-chev{display:inline-block;transition:transform .15s;color:var(--text3);font-size:9px;margin-right:8px;}
+tr.lv2-open .lv2-chev{transform:rotate(90deg);}
+.lv2-build{font-weight:700;font-size:14px;color:var(--text);letter-spacing:-.01em;}
+.lv2-build.ok{color:#6fbf82;}.lv2-build.low{color:#e07a7a;}.lv2-build.mid{color:#e0a642;}
+.lv2-num{font-variant-numeric:tabular-nums;font-size:13.5px;font-weight:600;}
+.lv2-mini{padding:3px 9px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--sans);line-height:1.3;}
+.lv2-mini.g{background:rgba(111,191,130,.1);border:1px solid rgba(111,191,130,.28);color:#84c996;}
+.lv2-mini.p{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);}
+.lv2-mini.p:hover{color:var(--text);}
+.lv2-link{color:var(--text2);text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer;}
+.lv2-link:hover{color:var(--text);}
+tr.lv2-recipe td{padding:0;background:var(--bg)!important;}
+.lv2-rbox{margin:6px 14px 11px 36px;border:1px solid var(--border2);border-radius:8px;background:var(--bg2);padding:11px 14px 7px;}
+.lv2-rsh{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--text3);text-transform:uppercase;margin:2px 0 6px;display:flex;align-items:center;gap:8px;}
+.lv2-rsh.pk{color:#e0a642;}
+.lv2-rsh:after{content:'';flex:1;height:1px;background:var(--border);}
+.lv2-cline{display:flex;align-items:center;gap:14px;padding:7px 8px;border-radius:6px;font-size:12.5px;}
+.lv2-cline:hover{background:var(--bg3);cursor:pointer;}
+.lv2-cline .q{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent);width:36px;flex-shrink:0;}
+.lv2-cline .nm{flex:1;font-weight:600;color:var(--text);display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.lv2-cline .stk{font-variant-numeric:tabular-nums;font-size:12px;color:var(--text2);}
+.lv2-limit{color:#e07a7a;font-size:10px;font-weight:800;background:rgba(224,122,122,.12);border:1px solid rgba(224,122,122,.35);padding:2px 8px;border-radius:7px;}
+.lv2-size{font-size:10px;font-weight:600;color:var(--text2);background:var(--bg4);border:1px solid var(--border2);padding:2px 8px;border-radius:7px;}
+.lv2-hint{font-size:11.5px;color:var(--text2);margin-top:9px;line-height:1.55;}
+.lv2-psec{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 15px;margin:7px 0 4px;}
+.lv2-ptop{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px;}
+.lv2-ptitle{font-size:13px;font-weight:800;color:var(--text);}
+.lv2-psub{font-size:11.5px;color:var(--text2);margin-top:2px;}
+.lv2-pset{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px;font-weight:600;}
+.lv2-pset input{width:56px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-variant-numeric:tabular-nums;font-size:13px;padding:6px;text-align:center;outline:none;}
+.lv2-pcards{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:700px){.lv2-pcards{grid-template-columns:1fr;}}
+.lv2-pcard{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;}
+.lv2-pcard.crit{border-color:rgba(224,122,122,.5);}
+.lv2-pch{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+.lv2-pf{font-size:13px;color:var(--text2);line-height:1.7;}
+.lv2-pf b{color:var(--text);font-variant-numeric:tabular-nums;font-weight:700;}
+.lv2-pa{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text);}
+.lv2-pa b{color:#e0a642;font-variant-numeric:tabular-nums;font-weight:700;}
+.lv2-pok{color:#6fbf82;}
+.lv2-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow:auto;box-shadow:0 28px 70px rgba(0,0,0,.55);}
+.lv2-modal.wide{max-width:620px;}.lv2-modal.slim{max-width:400px;}
+.lv2-mh{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:2;}
+.lv2-mh h3{font-size:15px;font-weight:700;color:var(--text);}
+.lv2-mx{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:13px;}
+.lv2-mb{padding:18px 20px;}
+.lv2-mf{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--bg2);}
+.lv2-fl{display:block;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin:0 0 5px;}
+.lv2-fl .opt{font-weight:600;text-transform:none;letter-spacing:0;}
+.lv2-in{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:7px;color:var(--text);font:inherit;font-size:13px;padding:9px 11px;outline:none;}
+.lv2-in:focus{border-color:var(--accent);}
+.lv2-g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.lv2-g3{display:grid;grid-template-columns:1fr 58px 90px;gap:8px;align-items:center;}
+.lv2-mrow{margin-bottom:14px;}
+.lv2-save{padding:9px 20px;background:var(--accent);color:#1a1a18;border:none;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;}
+.lv2-cancel{padding:9px 17px;background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:7px;font-weight:600;font-size:13px;cursor:pointer;}
+.lv2-tpick{display:flex;gap:6px;}
+.lv2-tpick button{flex:1;padding:9px;border-radius:7px;border:1px solid var(--border2);background:var(--bg);color:var(--text2);font:inherit;font-size:12px;font-weight:700;cursor:pointer;}
+.lv2-tpick button.on{color:var(--text);background:var(--bg4);border-color:var(--text3);}
+.lv2-sg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 14px;}
+.lv2-stat{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px 15px;}
+.lv2-stat .k{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);}
+.lv2-stat .v{font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;margin-top:4px;color:var(--text);}
+.lv2-stat.hand .v{color:#6fbf82;}.lv2-stat.order .v{color:#7d9cc9;}
+.lv2-panel{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px 15px;margin-bottom:12px;}
+.lv2-panel .h{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.lv2-panel .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);}
+.lv2-panel .row:last-child{border:none;}
+.lv2-dbtn{font-size:11px;font-weight:700;padding:5px 11px;border-radius:7px;cursor:pointer;border:1px solid rgba(125,156,201,.4);background:rgba(125,156,201,.1);color:#7d9cc9;}
+.lv2-dbtn.done{border-color:rgba(111,191,130,.4);background:rgba(111,191,130,.1);color:#6fbf82;cursor:default;}
+.lv2-co{border-radius:9px;padding:12px 15px;font-size:13px;line-height:1.6;border:1px solid var(--border);background:var(--bg);color:var(--text2);margin-bottom:12px;}
+.lv2-co b{color:var(--text);}
+.lv2-co.amber{border-left:3px solid #e0a642;}
+.lv2-rt{width:100%;border-collapse:collapse;margin-top:9px;font-size:13px;min-width:0;}
+.lv2-rt th{color:var(--text3);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:6px;border-bottom:1px solid var(--border);background:none;}
+.lv2-rt thead tr{background:none;border-bottom:none;}
+.lv2-rt td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;color:var(--text);}
+.lv2-rt td.l{text-align:left;}
+.lv2-rt .short{color:#e07a7a;font-weight:600;}.lv2-rt .ok{color:#6fbf82;}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
 </head>
@@ -922,14 +1054,67 @@ html.light-mode{
 
   <!-- LAVARION PAGE -->
   <div class="page" id="page-lavarion">
-    <div class="toolbar">
+    <div class="lv2-cards" id="lv2Cards"></div>
+    <div class="lv2-bar">
+      <div class="lv2-seg">
+        <button id="lv2TabB" class="on" onclick="lv2Tab('bundles')">Bundles</button>
+        <button id="lv2TabC" onclick="lv2Tab('components')">Components</button>
+      </div>
       <div class="search-box">
         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="13" y2="13"/></svg>
-        <input placeholder="Search ASIN, SKU, product…" id="lavSrch" oninput="renderLavarion()">
+        <input placeholder="Search ASIN, SKU, product…" id="lavSrch" oninput="renderLavarion()" autocomplete="off">
       </div>
-      <button class="btn-add" onclick="openAddLav()">+ Add Lavarion ASIN</button>
+      <select class="fsel" id="lv2TypeF" onchange="renderLavarion()" style="display:none;">
+        <option value="">All types</option><option value="branded">Branded</option>
+        <option value="complementary">Complementary</option><option value="packing">Packing</option>
+      </select>
+      <select class="fsel" id="lv2SortF" onchange="renderLavarion()" style="display:none;">
+        <option value="type">Sort: Type</option><option value="name">Sort: Name</option>
+        <option value="onhand">Sort: On hand</option><option value="used">Sort: Used in</option>
+      </select>
+      <select class="fsel" id="lv2BSortF" onchange="renderLavarion()">
+        <option value="default">Sort: Default</option><option value="buildable">Sort: Buildable</option>
+        <option value="shipped">Sort: Shipped 30d</option><option value="name">Sort: Name</option><option value="parts">Sort: Parts</option>
+      </select>
+      <button class="lv2-ghost" id="lv2PlanB" onclick="lv2OpenPlan()">Build planner</button>
+      <button class="btn-add" id="lv2AddB" onclick="openAddLav()">+ Add Lavarion ASIN</button>
+      <button class="btn-add" id="lv2AddC" onclick="lv2OpenCompForm(null)" style="display:none;">+ Add Component</button>
     </div>
-    <div class="tbl-wrap" style="padding:12px;" id="lavList"></div>
+    <div class="lv2-content">
+      <div id="lv2ViewB">
+        <div class="lv2-chips" id="lv2Chips"></div>
+        <div id="lv2Notice"></div>
+        <div class="lv2-tbl"><table>
+          <thead><tr>
+            <th class="th-left" style="width:165px;">ASIN / SKU</th>
+            <th class="th-left" style="width:300px;">Product Name</th>
+            <th style="width:105px;">Shipped 30d</th>
+            <th style="width:95px;">Last sent</th>
+            <th style="width:65px;">Parts</th>
+            <th style="width:85px;">VAT</th>
+            <th style="width:110px;">Buildable</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="lv2BundleBody"></tbody></table></div>
+        <div class="lv2-hint">Click a bundle to unfold its recipe. Shipping here or from the Shipments page deducts the same components automatically.</div>
+      </div>
+      <div id="lv2ViewC" style="display:none;">
+        <div class="lv2-chips" id="lv2CompChips"></div>
+        <div id="lv2PackPanel"></div>
+        <div class="lv2-tbl"><table>
+          <thead><tr>
+            <th class="th-left">Component</th>
+            <th style="width:130px;">Type</th>
+            <th style="width:85px;">On hand</th>
+            <th style="width:85px;">On order</th>
+            <th style="width:85px;">Case qty</th>
+            <th style="width:100px;">Used in</th>
+            <th style="width:80px;"></th>
+          </tr></thead>
+          <tbody id="lv2CompBody"></tbody></table></div>
+        <div class="lv2-hint">Click a row for full detail — stock, orders, deliveries and reorder maths. Case qty is optional.</div>
+      </div>
+    </div>
   </div>
 
   <!-- SETTINGS PAGE -->
@@ -2267,6 +2452,52 @@ function filterPrep(){
   if(wrap)wrap.scrollTop=scrollTop;
 }
 
+/* ── PREP ACTIVITY BAR — factual "added to the system" counts + still-in-transit ──
+   Answers "how much have we logged, and when." Straight counts off each row's
+   created date (createdISO, a reliable YYYY-MM-DD). No arrival guessing, no
+   "overdue" judgement. Underneath: a plain count of how much is still In-Transit. */
+function _prepStartOfWeek(now){ // Monday as week start
+  const d=new Date(now); const day=(d.getDay()+6)%7; d.setHours(0,0,0,0); d.setDate(d.getDate()-day); return d;
+}
+function renderActivityWidget(){
+  const el=document.getElementById('dashActivity'); if(!el)return;
+  const active=rows.filter(r=>!r.archived);
+  const now=new Date();
+  const todayStr=todayISO();
+  const y=new Date(now); y.setDate(y.getDate()-1);
+  const yStr=`${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
+  const weekStart=_prepStartOfWeek(now);
+  const monStart=new Date(now.getFullYear(),now.getMonth(),1);
+  const units=r=>parseInt(r.exp)||0;
+  const cog=r=>parseSKU(r.sku).cogs*(units(r));
+  const inRange=(iso,from)=>{ if(!iso)return false; const d=new Date(iso+'T00:00:00'); return d>=from; };
+  // INVARIANT (per card): inTransit + arrived === added (units & £).
+  const stillTransit=r=>r.status==='In-Transit'||r.status==='Not Arrived';
+  const B=()=>({u:0,cogv:0,lines:0,asins:new Set(),itU:0,itV:0,arrU:0,arrV:0});
+  const bT=B(),bY=B(),bW=B(),bM=B();
+  const tally=(b,r)=>{const u=units(r),v=cog(r);b.u+=u;b.cogv+=v;b.lines++;if(r.asin)b.asins.add(r.asin);
+    if(stillTransit(r)){b.itU+=u;b.itV+=v;}else{b.arrU+=u;b.arrV+=v;}};
+  active.forEach(r=>{const iso=r.createdISO||'';
+    if(iso===todayStr)tally(bT,r);
+    if(iso===yStr)tally(bY,r);
+    if(inRange(iso,weekStart))tally(bW,r);
+    if(inRange(iso,monStart))tally(bM,r);
+  });
+  const anyDated=active.some(r=>r.createdISO);
+  if(!anyDated){el.innerHTML='';return;}
+  const cell=(lab,b)=>`<div class="pa-cell">
+     <div class="pa-lab">${lab}</div>
+     <div class="pa-u">${b.u}<span class="pa-un">units</span></div>
+     <div class="pa-meta">${b.lines} SKU line${b.lines===1?'':'s'} · ${b.asins.size} ASIN${b.asins.size===1?'':'s'} · ${fmtGBP2(b.cogv)} COG</div>
+     <div class="pa-split">${b.u?`<span class="pa-it">In transit: ${b.itU} · ${fmtGBP2(b.itV)}</span><br><span class="pa-arr">Arrived: ${b.arrU} · ${fmtGBP2(b.arrV)}</span>`:'<span class="pa-none">nothing added</span>'}</div>
+   </div>`;
+  el.innerHTML=`<div class="pa-bar">
+     <div class="pa-title">Added to prep portal</div>
+     <div class="pa-cells">
+       ${cell('Today',bT)}${cell('Yesterday',bY)}${cell('This week',bW)}${cell('This month',bM)}
+     </div>
+   </div>`;
+}
 function renderPrep(){
   sortRows();
   renderStats();
@@ -3658,6 +3889,9 @@ function renderDashboard(){
 
   w.innerHTML=`<div style="padding:12px;display:flex;flex-direction:column;gap:10px;">
 
+    <!-- Activity widget: added to prep portal -->
+    <div id="dashActivity"></div>
+
     <!-- ROW 1: 5 KPI tiles -->
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
 
@@ -3995,6 +4229,7 @@ function renderDashboard(){
     </div>
 
   </div>`;
+  renderActivityWidget();
 }
 
 // ── LAVARION ──────────────────────────────────────────────────────────────────
@@ -4088,6 +4323,7 @@ function deleteLav(id){
     : '';
   showConfirm('Delete Lavarion ASIN?',`This removes ${a?.prod||'this ASIN'} from your Lavarion stock list.${histNote}`,()=>{
     deleteLavAsin_db(a);
+    if(a&&lv2Recipes[a.asin]){delete lv2Recipes[a.asin];if(typeof lv2Save==='function')lv2Save();}
     lavAsins=lavAsins.filter(x=>x.id!==id);
     renderLavarion();toast('Lavarion ASIN deleted — shipment history kept');
     logAudit('Lavarion ASIN deleted',(a?.sku||a?.asin||'')+(usedIn.length?` (history in ${usedIn.length} shipment${usedIn.length!==1?'s':''} preserved)`:''));
@@ -5543,6 +5779,13 @@ function cm(id){
   const m=document.getElementById('prepHistoryModal');
   if(m&&m._kbHandler){document.removeEventListener('keydown',m._kbHandler);m._kbHandler=null;}document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)cm(o.id);}));
+/* Escape closes any open lv2 modal — consistent with the app's other modals */
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape')return;
+  ['lv2CompOv','lv2BundleOv','lv2ShipOv','lv2OrderOv','lv2PlanOv'].forEach(function(id){
+    var o=document.getElementById(id); if(o&&o.classList.contains('open'))cm(id);
+  });
+});
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
 function toast(msg,type='ok'){
@@ -7554,7 +7797,7 @@ function dbToClaim(d){
   };
 }
 function dbToLav(d){
-  return{uuid:d.id,id:d.id,asin:d.asin||'',sku:d.sku||'',prod:d.product_name||'',cost:d.cost||0,total:d.total_stock||0,dg:d.dg||'No',vat:(d.vat!=null&&d.vat!=='')?String(d.vat):'20',notes:d.notes||''};
+  return{uuid:d.id,id:d.id,asin:d.asin||'',sku:d.sku||'',prod:d.product_name||'',cost:d.cost||0,total:d.total_stock||0,dg:d.dg||'No',vat:(d.vat!=null&&d.vat!=='')?String(d.vat):'20',notes:d.notes||'',archived:!!d.archived};
 }
 function dbToLavShip(d){
   return{uuid:d.id,shipId:d.ship_id||'',asin:d.asin||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:d.sent_date||''};
@@ -7701,18 +7944,20 @@ async function saveShipBoxes(shipId,boxes){
 async function saveLavAsin(a){
   setSyncStatus('syncing');
   const base={id:a.uuid||undefined,asin:a.asin,sku:a.sku,product_name:a.prod,cost:a.cost,total_stock:a.total,dg:a.dg,notes:a.notes};
-  const withVat={...base,vat:a.vat||''};
+  const full={...base,vat:a.vat||'',archived:!!a.archived};
   const run=async data=>{
     if(a.uuid)return await sb.from('lavarion_asins').update(data).eq('id',a.uuid);
     return await sb.from('lavarion_asins').insert(data).select().single();
   };
-  let res=await run(withVat);
-  // If the vat column doesn't exist yet, retry without it so saves never break.
-  if(res.error&&((res.error.message||'')+(res.error.details||'')+(res.error.hint||'')).toLowerCase().includes('vat')){
-    res=await run(base);
-  }
+  const missingCol=(res,col)=>res.error&&((res.error.message||'')+(res.error.details||'')+(res.error.hint||'')).toLowerCase().includes(col);
+  let res=await run(full);
+  // Graceful column fallbacks so a save never breaks on a not-yet-migrated schema,
+  // while still trying to keep as much data as possible each step.
+  if(missingCol(res,'archived')) res=await run({...base,vat:a.vat||''}); // archived col absent
+  if(missingCol(res,'vat'))      res=await run({...base,archived:!!a.archived}); // vat col absent
+  if(missingCol(res,'vat')||missingCol(res,'archived')) res=await run(base); // neither col
   if(!a.uuid&&res.data)a.uuid=res.data.id;
-  if(res.error){setSyncStatus('error');return;}
+  if(res.error){setSyncStatus('error');console.warn('saveLavAsin failed',res.error);toast('Lavarion save failed — check connection','er');return;}
   setSyncStatus('synced');
 }
 async function deleteLavAsin_db(a){
@@ -7813,6 +8058,28 @@ function setupRealtime(){
     else if(payload.eventType==='DELETE'){lavAsins=lavAsins.filter(x=>x.uuid!==payload.old.id);}
     if(document.getElementById('page-lavarion').classList.contains('active'))renderLavarion();
   }).subscribe();
+
+  // Lavarion components & recipes — keep this browser in step when another device
+  // edits them. Guarded: ignore echoes of our own in-flight saves, and debounce
+  // so a burst of row changes triggers a single reload.
+  var _lv2RtT=null,_lv2RtPending=false;
+  function _lv2ModalOpen(){
+    return ['lv2CompOv','lv2BundleOv','lv2ShipOv','lv2OrderOv','lv2PlanOv']
+      .some(function(id){var o=document.getElementById(id);return o&&o.classList.contains('open');});
+  }
+  function _lv2RemoteRefresh(){
+    if(window._lv2IsSaving&&window._lv2IsSaving())return; // our own write echoing back
+    clearTimeout(_lv2RtT);
+    _lv2RtT=setTimeout(function _run(){
+      // Don't reload out from under an open editor — it would discard the user's
+      // in-progress edit. Defer until the modal closes, then apply the fresh data.
+      if(_lv2ModalOpen()){_lv2RtPending=true;setTimeout(_run,1000);return;}
+      _lv2RtPending=false;
+      if(typeof window._lv2Reload==='function')window._lv2Reload();
+    },400);
+  }
+  sb.channel('lavarion_components').on('postgres_changes',{event:'*',schema:'public',table:'lavarion_components'},_lv2RemoteRefresh).subscribe();
+  sb.channel('lavarion_recipes').on('postgres_changes',{event:'*',schema:'public',table:'lavarion_recipes'},_lv2RemoteRefresh).subscribe();
 }
 
 // ── PATCH UF() TO ALSO SAVE TO SUPABASE ──────────────────────────────────────
@@ -9497,6 +9764,700 @@ setInterval(updateClock,30000);
   </div>
 </div>
 
+
+<!-- ══════════ LAVARION v2 — modals ══════════ -->
+<div class="overlay" id="lv2CompOv"><div class="lv2-modal"><div id="lv2CompInner"></div></div></div>
+<div class="overlay" id="lv2OrderOv"><div class="lv2-modal slim"><div id="lv2OrderInner"></div></div></div>
+<div class="overlay" id="lv2ShipOv"><div class="lv2-modal"><div id="lv2ShipInner"></div></div></div>
+<div class="overlay" id="lv2PlanOv"><div class="lv2-modal wide"><div id="lv2PlanInner"></div></div></div>
+<div class="overlay" id="lv2BundleOv"><div class="lv2-modal wide">
+  <div class="lv2-mh"><h3 id="lv2BundleTitle">Edit Lavarion ASIN</h3><button class="lv2-mx" onclick="cm('lv2BundleOv')">&#10005;</button></div>
+  <div class="lv2-mb">
+    <div class="lv2-g2 lv2-mrow">
+      <div><label class="lv2-fl">ASIN</label><input class="lv2-in" id="lv2f-asin" style="font-weight:600;letter-spacing:.03em;"></div>
+      <div><label class="lv2-fl">SKU <span class="opt">(optional)</span></label><input class="lv2-in" id="lv2f-sku"></div>
+    </div>
+    <div class="lv2-g2 lv2-mrow">
+      <div><label class="lv2-fl">VAT status</label><select class="lv2-in" id="lv2f-vat"><option value="20" selected>20% (Standard)</option><option value="5">5% (Reduced)</option><option value="0">0% (VAT-free)</option></select></div>
+      <div><label class="lv2-fl">Product name</label><input class="lv2-in" id="lv2f-prod"></div>
+    </div>
+    <div class="lv2-mrow"><label class="lv2-fl">Notes <span class="opt">(optional)</span></label><input class="lv2-in" id="lv2f-notes"></div>
+    <div style="border-top:1px solid var(--border);margin:6px 0 14px;"></div>
+    <div id="lv2NoCompWarn"></div>
+    <div class="lv2-rsh">Bundle Components</div>
+    <div id="lv2RecComp"></div>
+    <button class="lv2-ghost" style="margin:4px 0 16px;" onclick="lv2AddRecipeRow('comp')">+ Add component</button>
+    <div class="lv2-rsh pk">Packing</div>
+    <div id="lv2RecPack"></div>
+    <button class="lv2-ghost" style="margin-top:4px;" onclick="lv2AddRecipeRow('pack')">+ Add packing</button>
+    <div class="lv2-hint">Components are the product parts. Packing is the box the finished unit ships in.</div>
+  </div>
+  <div class="lv2-mf"><button class="lv2-cancel" id="lv2DelBtn" style="margin-right:auto;display:none;color:#e07a7a;border-color:rgba(224,122,122,.4);" onclick="lv2DeleteCurrent()">Delete</button><button class="lv2-cancel" onclick="cm('lv2BundleOv')">Cancel</button><button class="lv2-save" onclick="saveLav()">Save</button></div>
+</div></div>
+
+<script>
+/* ══════════ LAVARION v2 — components, recipes, packaging ══════════
+   Persistence: localStorage for components/recipes/settings (Supabase later).
+   Bundles remain the existing lavAsins array (Supabase-backed via saveLavAsin). */
+let lv2Components=[];           // loaded from lavarion_components on boot
+let lv2Recipes={};              // asin -> [{c,q}] — loaded from lavarion_recipes
+let lv2Settings={packMultiplier:2};
+/* global cover-months setting lives in app_settings (it's a setting, not inventory) */
+function lv2SaveSettings(){
+  try{ sb.from('app_settings').upsert({key:'lavarion_pack_months',value:String(lv2Settings.packMultiplier)},{onConflict:'key'})
+    .then(function(r){if(r.error)console.warn('pack months save',r.error);}); }catch(e){console.warn(e);}
+}
+(async function(){ try{
+  var r=await sb.from('app_settings').select('value').eq('key','lavarion_pack_months').maybeSingle();
+  if(r&&r.data&&r.data.value){lv2Settings.packMultiplier=parseInt(r.data.value)||2;
+    try{if(document.getElementById('lv2BundleBody'))renderLavarion();}catch(e){}}
+}catch(e){} })();
+let lv2Dismissed={};
+let _lv2Loaded=false;           // guards saves until the first cloud load completes
+let _lv2LoadedOK=false;         // true only after a SUCCESSFUL load — gates destructive prune/replace
+/* lv2Save is defined by the persistence block lower down (Supabase-only).
+   Fallback no-op so any early call before that block loads can't crash. */
+function lv2Save(){ if(typeof _lv2CloudSave==='function')_lv2CloudSave(); }
+const lv2Comp=id=>lv2Components.find(c=>c.id===id);
+const lv2TypeLabel=t=>t==='branded'?'Branded':t==='complementary'?'Complementary':'Packing';
+const lv2OnOrder=c=>(c.orders||[]).filter(o=>!o.delivered).reduce((s,o)=>s+o.qty,0);
+const lv2RecipeOf=a=>lv2Recipes[a.asin]||[];
+function lv2Buildable(a){const rec=lv2RecipeOf(a);if(!rec.length)return{n:null,limiter:null};
+ let m=Infinity,l=null,missing=false;
+ rec.forEach(r=>{const c=lv2Comp(r.c);
+  if(!c){missing=true;return;}                  // required component gone → can't build
+  const can=Math.floor(c.onHand/r.q);if(can<m){m=can;l=c.id;}});
+ if(missing)return{n:0,limiter:l,missing:true}; // a required part is missing entirely
+ return{n:m===Infinity?null:m,limiter:l};}
+function lv2BundlesUsing(id){return lavAsins.filter(a=>!a.archived&&lv2RecipeOf(a).some(r=>r.c===id));}
+function lv2BundlesUsingAll(id){return lavAsins.filter(a=>lv2RecipeOf(a).some(r=>r.c===id));}
+/* 30-day usage per packing box, computed live from real lavShipments history */
+function lv2Used30(compId){
+ const cut=Date.now()-30*864e5;let n=0;
+ (typeof lavShipments!=='undefined'?lavShipments:[]).forEach(s=>{
+  const d=new Date(s.date||s.sent_date||0).getTime();if(!(d>=cut))return;
+  const a=lavAsins.find(x=>x.asin===s.asin);if(!a)return;
+  const r=lv2RecipeOf(a).find(x=>x.c===compId);if(r)n+=r.q*(parseInt(s.units)||0);});
+ return n;}
+function lv2PackRec(c){const u=lv2Used30(c.id);const need=u*lv2Settings.packMultiplier;const oo=lv2OnOrder(c);
+ let toOrder=Math.max(0,need-c.onHand-oo),cases=null;
+ if(c.caseQty&&toOrder>0){cases=Math.ceil(toOrder/c.caseQty);toOrder=cases*c.caseQty;}
+ return{used30:u,need,oo,toOrder,cases,monthsLeft:u>0?(c.onHand/u):null};}
+/* deduct components whenever ANY path saves a Lavarion shipment (Lavarion page or Shipments page) */
+const _lv2_origSaveLavShipment=saveLavShipment;
+saveLavShipment=async function(sh){
+ try{const a=lavAsins.find(x=>x.asin===sh.asin);
+  if(a){const rec=lv2RecipeOf(a);const n=parseInt(sh.units)||0;
+   if(rec.length&&n>0){rec.forEach(r=>{const c=lv2Comp(r.c);if(c)c.onHand=Math.max(0,c.onHand-n*r.q);});lv2Save();}}
+ }catch(e){console.warn('lv2 deduct failed',e);}
+ return _lv2_origSaveLavShipment(sh);
+};
+/* ── page render (overrides original renderLavarion; goPage calls this) ── */
+let lv2ActiveTab='bundles',lv2OpenRows={};
+function lv2Tab(t){lv2ActiveTab=t;
+ document.getElementById('lv2ViewB').style.display=t==='bundles'?'':'none';
+ document.getElementById('lv2ViewC').style.display=t==='components'?'':'none';
+ document.getElementById('lv2TabB').classList.toggle('on',t==='bundles');
+ document.getElementById('lv2TabC').classList.toggle('on',t==='components');
+ document.getElementById('lv2AddB').style.display=t==='bundles'?'':'none';
+ document.getElementById('lv2AddC').style.display=t==='bundles'?'none':'';
+ document.getElementById('lv2TypeF').style.display=t==='bundles'?'none':'';
+ document.getElementById('lv2SortF').style.display=t==='bundles'?'none':'';
+ document.getElementById('lv2BSortF').style.display=t==='bundles'?'':'none';
+ document.getElementById('lv2PlanB').style.display=t==='bundles'?'':'none';
+ renderLavarion();}
+function renderLavarion(){lv2Cards();lv2NoticeRender();lv2RenderBundles();lv2RenderComps();lv2RenderPack();}
+function lv2Cards(){
+ const liveB=lavAsins.filter(a=>!a.archived);
+ const liveC=lv2Components.filter(c=>!c.archived);
+ const withRec=liveB.filter(a=>lv2RecipeOf(a).length);
+ const tb=withRec.reduce((s,a)=>s+(lv2Buildable(a).n||0),0);
+ const oo=liveC.reduce((s,c)=>s+lv2OnOrder(c),0);
+ const crit=liveC.filter(c=>c.type==='packing'&&lv2Used30(c.id)>0&&(c.onHand/lv2Used30(c.id))<1).length;
+ const cut30=Date.now()-30*864e5;let sh30=0,sh30v=0;
+ (typeof lavShipments!=='undefined'?lavShipments:[]).forEach(s=>{
+  const d=new Date((s.date||'').slice(0,10)).getTime();
+  if(d>=cut30){const u=parseInt(s.units)||0;sh30+=u;sh30v+=u*(s.cost||0);}});
+ const recNudge=withRec.length<liveB.length&&liveB.length?`${withRec.length} of ${liveB.length} have recipes`:'live Lavarion ASINs';
+ document.getElementById('lv2Cards').innerHTML=`
+  <div class="lv2-card blue"><div class="k">Bundles</div><div class="v">${liveB.length}</div><div class="s">${recNudge}</div></div>
+  <div class="lv2-card cyan"><div class="k">Shipped 30d</div><div class="v">${sh30}</div><div class="s">${sh30v>0?fmtGBP2(sh30v)+' sent to FBA':'Lavarion units sent'}</div></div>
+  <div class="lv2-card purple"><div class="k">Components</div><div class="v">${liveC.length}</div><div class="s">shared parts &amp; packing</div></div>
+  <div class="lv2-card green"><div class="k">Buildable now</div><div class="v">${tb}</div><div class="s">units across recipe bundles</div></div>
+  <div class="lv2-card amber"><div class="k">On order</div><div class="v">${oo}</div><div class="s">component units incoming</div></div>
+  <div class="lv2-card ${crit?'red':'green'}"><div class="k">Packaging</div><div class="v ${crit?'':'txt'}">${crit||'✓ Covered'}</div><div class="s">${crit?('box'+(crit>1?'es':'')+' under 1 month of stock'):'all boxes have 1+ month cover'}</div></div>`;}
+function lv2NoticeRender(){
+ const box=document.getElementById('lv2Notice');let out='';
+ const liveB=lavAsins.filter(a=>!a.archived);
+ /* setup progress strip — shows until every bundle has a recipe, then disappears */
+ const withRec=liveB.filter(a=>lv2RecipeOf(a).length).length;
+ if(liveB.length&&(!lv2Components.length||withRec<liveB.length)){
+  const s1=lv2Components.filter(c=>!c.archived).length>0,s2=withRec>0&&withRec===liveB.length;
+  out+=`<div class="lv2-setup">
+   <span class="t">Setup</span>
+   <span class="sstep ${s1?'sdone':''}">${s1?'✓':'1.'} Add components${s1?` (${lv2Components.filter(c=>!c.archived).length})`:''}</span>
+   ${s1?'':`<button class="lv2-ghost sm" onclick="lv2Tab('components');lv2OpenCompForm(null)">+ Add first component</button>`}
+   <span class="arr">→</span>
+   <span class="sstep ${s2?'sdone':''}">${s2?'✓':'2.'} Attach recipes <b>${withRec}/${liveB.length}</b> <span class="hint">(Edit a bundle)</span></span>
+   <span class="arr">→</span>
+   <span class="sstep">3. Ship — components auto-deduct</span>
+  </div>`;}
+ liveB.forEach(a=>{const bd=lv2Buildable(a);if(bd.n===null||bd.missing)return;
+  lv2RecipeOf(a).forEach(r=>{const c=lv2Comp(r.c);
+   if(c&&c.type==='branded'){const st=c.onHand-(bd.n*r.q);const key=a.asin+'_'+c.id;
+    if(st>0&&bd.limiter&&bd.limiter!==c.id&&!lv2Dismissed[key]){const lim=lv2Comp(bd.limiter);
+     out+=`<div class="lv2-notice"><span class="k">Stranded</span>
+      <div class="txt"><b>${st} × ${c.name}</b> can't be bundled — only ${bd.n} ${a.prod}${bd.n===1?'':'s'} buildable because ${lim.name} runs out first.</div>
+      <div style="display:flex;gap:6px;">
+       <button class="lv2-ghost" onclick="lv2NoticeAct('${key}','Ordered more ${lim.name.replace(/'/g,'')}')">Ordered more</button>
+       <button class="lv2-ghost" onclick="lv2NoticeAct('${key}','Diverted to OA')">Diverted to OA</button>
+       <button class="lv2-ghost" onclick="lv2NoticeAct('${key}','Marked as sent away')">Sent away</button>
+      </div></div>`;}}});});
+ box.innerHTML=out;}
+function lv2NoticeAct(key,msg){lv2Dismissed[key]=true;lv2NoticeRender();toast(msg);}
+let lv2BundleFilter='all';
+function lv2SetFilter(f){lv2BundleFilter=f;lv2RenderBundles();}
+/* live (non-archived) bundles — used everywhere except the Archived view */
+function lv2LiveBundles(){return lavAsins.filter(a=>!a.archived);}
+function lv2ArchiveBundle(id,on){const a=lavAsins.find(x=>x.id===id||String(x.id)===String(id));if(!a)return;
+ a.archived=on;saveLavAsin(a);renderLavarion();
+ toast(on?`${a.prod} archived`:`${a.prod} restored`);logAudit('Lavarion bundle '+(on?'archived':'restored'),a.asin);}
+let lv2CompFilter='all';
+function lv2SetCompFilter(f){lv2CompFilter=f;lv2RenderComps();}
+function lv2ArchiveComp(id,on){const c=lv2Comp(id);if(!c)return;
+ const used=lv2BundlesUsing(id).filter(a=>!a.archived);
+ if(on&&used.length){showConfirm('Archive component?',`${c.name} is used in ${used.length} active bundle recipe${used.length===1?'':'s'}. Archiving hides it from the list but keeps the data and its recipe links — you can restore it anytime.`,()=>{c.archived=true;lv2Save();renderLavarion();toast(`${c.name} archived`);logAudit('Component archived',c.name);});return;}
+ c.archived=on;lv2Save();renderLavarion();
+ toast(on?`${c.name} archived`:`${c.name} restored`);logAudit('Component '+(on?'archived':'restored'),c.name);}
+/* per-ASIN shipping stats straight from real lavShipments history */
+function lv2ShipStats(asin){
+ const cut=Date.now()-30*864e5;let u30=0,last='';
+ (typeof lavShipments!=='undefined'?lavShipments:[]).forEach(s=>{
+  if(s.asin!==asin)return;const d=(s.date||'').slice(0,10);if(!d)return;
+  if(new Date(d).getTime()>=cut)u30+=parseInt(s.units)||0;
+  if(d>last)last=d;});
+ return{u30,last};}
+function lv2Ago(d){if(!d)return'—';const days=Math.floor((Date.now()-new Date(d).getTime())/864e5);
+ return days<=0?'today':days===1?'1d ago':days<31?days+'d ago':days<365?Math.round(days/30.4)+'mo ago':Math.round(days/365)+'y ago';}
+function lv2RenderBundles(){
+ const q=(document.getElementById('lavSrch')||{}).value?.toLowerCase()||'';
+ const archView=lv2BundleFilter==='archived';
+ const base=lavAsins.filter(a=>(archView?a.archived:!a.archived)&&(!q||(a.asin+(a.sku||'')+a.prod).toLowerCase().includes(q)));
+ /* status buckets for chips + filtering (live bundles only) */
+ const live=lavAsins.filter(a=>!a.archived&&(!q||(a.asin+(a.sku||'')+a.prod).toLowerCase().includes(q)));
+ const stat=a=>{const rec=lv2RecipeOf(a);if(!rec.length)return'norecipe';return lv2Buildable(a).n>0?'ready':'blocked';};
+ const counts={all:live.length,ready:0,blocked:0,norecipe:0};
+ live.forEach(a=>counts[stat(a)]++);
+ const archCount=lavAsins.filter(a=>a.archived).length;
+ const chipEl=document.getElementById('lv2Chips');
+ if(chipEl){let chips=[['all','All'],['ready','Ready to ship'],['blocked','Blocked'],['norecipe','No recipe']]
+  .map(([k,l])=>`<button class="lv2-chip ${k} ${lv2BundleFilter===k?'on':''}" onclick="lv2SetFilter('${k}')">${l}<span class="n">${counts[k]}</span></button>`).join('');
+  if(archCount||archView)chips+=`<button class="lv2-chip archived ${archView?'on':''}" onclick="lv2SetFilter('archived')">Archived<span class="n">${archCount}</span></button>`;
+  chipEl.innerHTML=chips;}
+ let rows=archView?base:base.filter(a=>lv2BundleFilter==='all'||stat(a)===lv2BundleFilter);
+ const sort=(document.getElementById('lv2BSortF')||{}).value||'default';
+ if(sort==='buildable')rows=[...rows].sort((a,b)=>((lv2Buildable(b).n??-1)-(lv2Buildable(a).n??-1)));
+ else if(sort==='shipped')rows=[...rows].sort((a,b)=>lv2ShipStats(b.asin).u30-lv2ShipStats(a.asin).u30);
+ else if(sort==='name')rows=[...rows].sort((a,b)=>(a.prod||'').localeCompare(b.prod||''));
+ else if(sort==='parts')rows=[...rows].sort((a,b)=>lv2RecipeOf(b).length-lv2RecipeOf(a).length);
+ const body=document.getElementById('lv2BundleBody');
+ if(!rows.length){body.innerHTML=`<tr><td colspan="8" style="padding:32px;color:var(--text3);">${archView?'No archived bundles':(q||lv2BundleFilter!=='all'?'No Lavarion ASINs match':'No Lavarion ASINs yet — click "+ Add Lavarion ASIN" to get started')}</td></tr>`;return;}
+ body.innerHTML=rows.map(a=>{
+  const rec=lv2RecipeOf(a);const bd=lv2Buildable(a);const st=stat(a);const ss=lv2ShipStats(a.asin);
+  const cls=bd.n===null?'':bd.n===0?'low':bd.n<50?'mid':'ok';
+  const vv=(a.vat||a.vat==='0')?String(a.vat):'20';
+  const val=(a.cost>0&&bd.n>0)?`<div class="lv2-sub" style="margin-top:3px;">≈ ${fmtGBP2(bd.n*a.cost)} sendable</div>`:'';
+  const main=`<tr class="${lv2OpenRows[a.asin]?'lv2-open':''} ${st==='ready'?'lv2-st-ready':st==='blocked'?'lv2-st-blocked':''}" style="cursor:${rec.length?'pointer':'default'};" onclick="${rec.length?`lv2Toggle('${a.asin}')`:''}">
+   <td class="td-left">${rec.length?'<span class="lv2-chev">&#9654;</span>':'<span style="display:inline-block;width:17px;"></span>'}<span class="lv2-asin" onclick="event.stopPropagation();copyVal('${a.asin}',this)">${a.asin}</span>${a.sku?`<div class="lv2-sku">${a.sku}</div>`:''}</td>
+   <td class="td-left lv2-prodcell"><span class="lv2-prod" title="${a.prod}">${a.prod}</span>${a.notes?`<div class="lv2-sub">${a.notes}</div>`:''}</td>
+   <td style="text-align:center;"><span class="lv2-num" style="color:${ss.u30>0?'#6fbf82':'var(--text3)'};">${ss.u30||'—'}</span></td>
+   <td style="text-align:center;"><span style="font-size:12px;color:${ss.last?'var(--text2)':'var(--text3)'};">${lv2Ago(ss.last)}</span></td>
+   <td style="text-align:center;"><span class="lv2-num" style="color:var(--text2);">${rec.length||'—'}</span></td>
+   <td style="text-align:center;">${vatTag(vv)}</td>
+   <td style="text-align:center;">${bd.n===null?'<span style="color:var(--text3);font-size:12px;">no recipe</span>':bd.missing?'<span class="lv2-limit" title="A component in this recipe was deleted — re-add it or fix the recipe">missing part</span>':`<span class="lv2-build ${cls}">${bd.n}</span>${val}`}</td>
+   <td><div style="display:flex;gap:6px;justify-content:flex-end;" onclick="event.stopPropagation()">
+     ${archView?`<button class="lv2-mini g" onclick="lv2ArchiveBundle('${a.id}',false)">Restore</button>`
+       :`${rec.length?`<button class="lv2-mini g" onclick="lv2OpenShip('${a.asin}')">Ship units</button>`:''}
+        <button class="lv2-mini p" onclick="openEditLav('${a.id}')">Edit</button>
+        <button class="lv2-mini p" onclick="lv2ArchiveBundle('${a.id}',true)" title="Archive — hides without deleting">Archive</button>`}</div></td></tr>`;
+  let recHtml='';
+  if(lv2OpenRows[a.asin]&&rec.length){
+   const comp=rec.filter(r=>lv2Comp(r.c)&&lv2Comp(r.c).type!=='packing');
+   const pack=rec.filter(r=>lv2Comp(r.c)&&lv2Comp(r.c).type==='packing');
+   const line=r=>{const c=lv2Comp(r.c);if(!c)return'';const lim=bd.limiter===c.id;
+    return `<div class="lv2-cline" onclick="lv2OpenDetail('${c.id}')"><span class="q">×${r.q}</span><span class="nm">${c.name}<span class="lv2-typ ${c.type}">${lv2TypeLabel(c.type)}</span>${c.size?`<span class="lv2-size">${c.size}</span>`:''}</span><span class="stk">${c.onHand} in stock</span>${lim?`<span class="lv2-limit">limits build</span><button class="lv2-mini p" onclick="event.stopPropagation();lv2OpenOrder('${c.id}')">Log order</button>`:''}</div>`;};
+   recHtml=`<tr class="lv2-recipe"><td colspan="8"><div class="lv2-rbox">
+    <div class="lv2-rsh">Bundle Components</div>${comp.map(line).join('')||'<div class="lv2-hint" style="margin:2px 0 8px;">None</div>'}
+    ${pack.length?`<div class="lv2-rsh pk" style="margin-top:12px;">Packing</div>${pack.map(line).join('')}`:''}
+   </div></td></tr>`;}
+  return main+recHtml;}).join('');}
+function lv2Toggle(asin){lv2OpenRows[asin]=!lv2OpenRows[asin];lv2RenderBundles();}
+function lv2RenderComps(){
+ const q=(document.getElementById('lavSrch')||{}).value?.toLowerCase()||'';
+ const tf=document.getElementById('lv2TypeF').value;const sort=document.getElementById('lv2SortF').value;
+ const order={branded:0,complementary:1,packing:2};
+ const archView=lv2CompFilter==='archived';
+ let rows=lv2Components.filter(c=>(archView?c.archived:!c.archived)&&(!q||c.name.toLowerCase().includes(q))&&(!tf||c.type===tf));
+ rows.sort((a,b)=>{
+  if(sort==='name')return a.name.localeCompare(b.name);
+  if(sort==='onhand')return b.onHand-a.onHand;
+  if(sort==='used')return lv2BundlesUsing(b.id).length-lv2BundlesUsing(a.id).length;
+  return order[a.type]-order[b.type];});
+ const archCount=lv2Components.filter(c=>c.archived).length;
+ const cf=document.getElementById('lv2CompChips');
+ if(cf){cf.innerHTML=(archCount||archView)
+   ?`<button class="lv2-chip ${!archView?'on':''}" onclick="lv2SetCompFilter('all')">Active<span class="n">${lv2Components.filter(c=>!c.archived).length}</span></button><button class="lv2-chip archived ${archView?'on':''}" onclick="lv2SetCompFilter('archived')">Archived<span class="n">${archCount}</span></button>`
+   :'';}
+ const body=document.getElementById('lv2CompBody');
+ if(!rows.length){body.innerHTML=`<tr><td colspan="7" style="padding:32px;color:var(--text3);">${archView?'No archived components':(q||tf?'No components match':'No components yet — click "+ Add Component" to create your first (e.g. Exfoliating glove, Box M1)')}</td></tr>`;return;}
+ body.innerHTML=rows.map(c=>{const used=lv2BundlesUsing(c.id);const oo=lv2OnOrder(c);const low=c.onHand<100;
+  return `<tr style="cursor:pointer;" onclick="lv2OpenDetail('${c.id}')">
+   <td class="td-left"><span class="lv2-prod" style="font-size:13.5px;">${c.name}</span>${c.size?` <span class="lv2-size">${c.size}</span>`:''}${c.supplier?`<div class="lv2-sub">${c.supplier}</div>`:''}</td>
+   <td style="text-align:center;"><span class="lv2-typ ${c.type}">${lv2TypeLabel(c.type)}</span></td>
+   <td style="text-align:center;"><span class="lv2-num" style="color:${low?'#e07a7a':'#6fbf82'}">${c.onHand}</span></td>
+   <td style="text-align:center;"><span class="lv2-num" style="color:${oo?'#7d9cc9':'var(--text3)'}">${oo||'—'}</span></td>
+   <td style="text-align:center;"><span class="lv2-num" style="color:var(--text2)">${c.caseQty||'—'}</span></td>
+   <td style="text-align:center;"><span class="lv2-link" onclick="event.stopPropagation();lv2OpenDetail('${c.id}')">${used.length} bundle${used.length===1?'':'s'}</span></td>
+   <td><div style="display:flex;gap:6px;justify-content:flex-end;">${archView
+     ?`<button class="lv2-mini g" onclick="event.stopPropagation();lv2ArchiveComp('${c.id}',false)">Restore</button>`
+     :`<button class="lv2-mini p" onclick="event.stopPropagation();lv2OpenCompForm('${c.id}')">Edit</button><button class="lv2-mini p" onclick="event.stopPropagation();lv2ArchiveComp('${c.id}',true)" title="Archive — hides without deleting">Archive</button>`}</div></td></tr>`;}).join('');}
+function lv2RenderPack(){
+ const boxes=lv2Components.filter(c=>c.type==='packing'&&!c.archived);
+ const el=document.getElementById('lv2PackPanel');
+ if(!boxes.length){el.innerHTML='';return;}
+ const cards=boxes.map(c=>{const r=lv2PackRec(c);const crit=r.monthsLeft!==null&&r.monthsLeft<1;
+  return `<div class="lv2-pcard ${crit?'crit':''}">
+   <div class="lv2-pch"><span class="lv2-prod" style="font-size:14px;">${c.name}</span>${c.size?`<span class="lv2-size">${c.size}</span>`:''}${crit?'<span class="lv2-limit" style="margin-left:auto;">running low</span>':''}</div>
+   <div class="lv2-pf">Boxes used in the last 30 days: <b>${r.used30}</b><br>In stock now: <b>${c.onHand}</b>${r.oo?` · On order: <b>${r.oo}</b>`:''}</div>
+   <div class="lv2-pa">${r.used30===0?'<span style="color:var(--text3);font-weight:500;">No shipments in the last 30 days yet — usage builds automatically as you ship.</span>':(r.toOrder>0
+     ?`Order <b>${r.toOrder}</b>${r.cases?` (${r.cases} case${r.cases===1?'':'s'} of ${c.caseQty})`:''} to cover the next ${lv2Settings.packMultiplier} month${lv2Settings.packMultiplier===1?'':'s'}.`
+     :`<span class="lv2-pok">Enough stock for the next ${lv2Settings.packMultiplier} month${lv2Settings.packMultiplier===1?'':'s'} ✓</span>`)}</div></div>`;}).join('');
+ el.innerHTML=`<div class="lv2-psec"><div class="lv2-ptop">
+   <div><div class="lv2-ptitle">Packing boxes — do we have enough?</div>
+   <div class="lv2-psub">Based on boxes used in your shipments over the last 30 days.</div></div>
+   <label class="lv2-pset">Cover months <input type="number" min="1" value="${lv2Settings.packMultiplier}" oninput="lv2Settings.packMultiplier=parseInt(this.value)||1;lv2SaveSettings();lv2RenderPack();lv2Cards();"></label>
+  </div><div class="lv2-pcards">${cards}</div></div>`;}
+/* ── component detail ── */
+function lv2OpenDetail(id){
+ const c=lv2Comp(id);if(!c)return;const used=lv2BundlesUsing(id);const oo=lv2OnOrder(c);
+ let h=`<div class="lv2-mh"><h3>${c.name}</h3><button class="lv2-mx" onclick="cm('lv2CompOv')">&#10005;</button></div><div class="lv2-mb">
+  <div style="margin-bottom:14px;display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
+   <span class="lv2-typ ${c.type}">${lv2TypeLabel(c.type)}</span>${c.size?`<span class="lv2-size">${c.size}</span>`:''}
+   <span style="font-size:12.5px;color:var(--text2);">${c.supplier||''}${c.caseQty?`${c.supplier?' · ':''}case of ${c.caseQty}`:''}</span>
+   <button class="lv2-ghost" style="margin-left:auto;" onclick="lv2OpenCompForm('${c.id}')">Edit</button></div>
+  <div class="lv2-sg"><div class="lv2-stat hand"><div class="k">On hand</div><div class="v">${c.onHand}</div></div>
+  <div class="lv2-stat order"><div class="k">On order</div><div class="v">${oo}</div></div></div>
+  <div class="lv2-panel"><div class="h"><span>Orders</span><button class="lv2-ghost" onclick="lv2OpenOrder('${c.id}')">+ Log order</button></div>`;
+ if((c.orders||[]).length)c.orders.forEach(o=>{h+=`<div class="row"><span class="lv2-num">${o.qty} units</span>${o.delivered?'<span class="lv2-dbtn done">Delivered ✓</span>':`<span class="lv2-dbtn" onclick="lv2Delivered('${c.id}','${o.id}')">Mark delivered</span>`}</div>`;});
+ else h+=`<div style="font-size:12.5px;color:var(--text2);">No open orders. Log one when you reorder.</div>`;
+ h+=`</div>`;
+ if(used.length){h+=`<div class="lv2-panel"><div class="h">Used in ${used.length} bundle${used.length===1?'':'s'}</div>`;
+  used.forEach(a=>{const r=lv2RecipeOf(a).find(x=>x.c===c.id);
+   h+=`<div class="row"><span>${a.prod}</span><span style="color:var(--text2);font-size:12.5px;">${r.q}× per unit · ${Math.floor(c.onHand/r.q)} buildable</span></div>`;});h+=`</div>`;}
+ if(used.length>1)h+=`<div class="lv2-co amber">Shared pool — building one bundle draws from the same ${c.onHand} units the others rely on.</div>`;
+ if(c.type==='packing'){const r=lv2PackRec(c);
+  if(r.used30>0)h+=`<div class="lv2-co"><b>Reorder</b> — you used <b>${r.used30}</b> in the last 30 days. To cover ${lv2Settings.packMultiplier} month${lv2Settings.packMultiplier===1?'':'s'} you need ${r.need}. ${r.toOrder>0?`Order <b>${r.toOrder}</b>${r.cases?` (${r.cases} case${r.cases===1?'':'s'} of ${c.caseQty})`:''}.`:'You have enough ✓'}</div>`;}
+ else if(used[0]){h+=`<div class="lv2-co"><b>Reorder helper</b> — how many <b>${used[0].prod}</b> do you want to build?
+  <input class="lv2-in" id="lv2ReT" type="number" value="200" oninput="lv2ReCalc('${c.id}')" style="width:90px;display:inline-block;text-align:center;margin:0 6px;"><div id="lv2ReOut"></div></div>`;}
+ h+=`</div><div class="lv2-mf"><button class="lv2-cancel" onclick="cm('lv2CompOv')">Close</button></div>`;
+ document.getElementById('lv2CompInner').innerHTML=h;om('lv2CompOv');
+ if(used[0]&&c.type!=='packing')lv2ReCalc(c.id);}
+function lv2ReCalc(id){const c=lv2Comp(id);const a=lv2BundlesUsing(id)[0];const r=lv2RecipeOf(a).find(x=>x.c===id);
+ const t=parseInt(document.getElementById('lv2ReT').value||0);const need=t*r.q;const oo=lv2OnOrder(c);
+ let short=Math.max(0,need-c.onHand-oo),cell='—';
+ if(short){cell=c.caseQty?(Math.ceil(short/c.caseQty)+' case'+(Math.ceil(short/c.caseQty)===1?'':'s')+' ('+Math.ceil(short/c.caseQty)*c.caseQty+')'):(short+' units');}
+ document.getElementById('lv2ReOut').innerHTML=`<table class="lv2-rt"><tr><th class="l">Need</th><th>Have</th><th>On order</th><th>Short</th><th>Order</th></tr>
+  <tr><td class="l">${need}</td><td>${c.onHand}</td><td>${oo}</td><td class="${short?'short':'ok'}">${short||'0'}</td><td>${cell}</td></tr></table>`;}
+function lv2Delivered(cid,oid){const c=lv2Comp(cid);const o=c.orders.find(x=>x.id===oid);
+ o.delivered=true;o.delivered_at=new Date().toISOString();c.onHand+=o.qty;lv2Save();renderLavarion();lv2OpenDetail(cid);
+ toast(o.qty+' × '+c.name+' delivered → on hand');logAudit('Component delivered',c.name+' x '+o.qty);}
+/* ── log order modal ── */
+let lv2OrderId=null;
+function lv2OpenOrder(id){lv2OrderId=id;const c=lv2Comp(id);
+ document.getElementById('lv2OrderInner').innerHTML=`
+  <div class="lv2-mh"><h3>Log order — ${c.name}</h3><button class="lv2-mx" onclick="cm('lv2OrderOv')">&#10005;</button></div>
+  <div class="lv2-mb"><div class="lv2-mrow"><label class="lv2-fl">Quantity ordered</label>
+   <input class="lv2-in" id="lv2OrdQty" type="number" min="1" placeholder="e.g. 500" style="font-variant-numeric:tabular-nums;"></div>
+   ${c.caseQty?`<div class="lv2-hint" style="margin:-6px 0 8px;">Comes in cases of ${c.caseQty} — e.g. ${c.caseQty*4} = 4 cases.</div>`:''}
+   <div class="lv2-hint">Shows as <b style="color:#7d9cc9;">on order</b> until you mark it delivered, then moves into on hand.</div></div>
+  <div class="lv2-mf"><button class="lv2-cancel" onclick="cm('lv2OrderOv')">Cancel</button>
+  <button class="lv2-save" onclick="lv2SaveOrder()">Log order</button></div>`;
+ om('lv2OrderOv');setTimeout(()=>document.getElementById('lv2OrdQty').focus(),60);}
+function lv2SaveOrder(){const c=lv2Comp(lv2OrderId);const n=parseInt(document.getElementById('lv2OrdQty').value||0);
+ if(n<1){toast('Enter a quantity','er');return;}
+ c.orders=c.orders||[];c.orders.push({id:'o'+Date.now(),qty:n,delivered:false,ordered_at:new Date().toISOString()});lv2Save();
+ cm('lv2OrderOv');renderLavarion();lv2OpenDetail(lv2OrderId);
+ toast(n+' × '+c.name+' logged as on order');logAudit('Component order logged',c.name+' x '+n);}
+/* ── component add / edit ── */
+let lv2CompEditId=null,lv2FormType='complementary';
+function lv2OpenCompForm(id){
+ lv2CompEditId=id;const c=id?lv2Comp(id):{name:'',type:'complementary',supplier:'',caseQty:'',size:'',onHand:''};
+ lv2FormType=c.type;
+ document.getElementById('lv2CompInner').innerHTML=`
+  <div class="lv2-mh"><h3>${id?'Edit component':'Add component'}</h3><button class="lv2-mx" onclick="cm('lv2CompOv')">&#10005;</button></div>
+  <div class="lv2-mb">
+   <div class="lv2-mrow"><label class="lv2-fl">Type</label>
+    <div class="lv2-tpick" id="lv2TPick">${['branded','complementary','packing'].map(t=>`<button class="${t} ${c.type===t?'on':''}" onclick="lv2PickType('${t}')">${lv2TypeLabel(t)}</button>`).join('')}</div></div>
+   <div class="lv2-mrow"><label class="lv2-fl">Component name</label><input class="lv2-in" id="lv2cf-name" value="${(c.name||'').replace(/"/g,'&quot;')}" placeholder="e.g. Exfoliating glove"></div>
+   <div class="lv2-g2 lv2-mrow">
+    <div><label class="lv2-fl">Supplier <span class="opt">(optional)</span></label><input class="lv2-in" id="lv2cf-sup" value="${(c.supplier||'').replace(/"/g,'&quot;')}"></div>
+    <div><label class="lv2-fl">Case qty <span class="opt">(optional)</span></label><input class="lv2-in" id="lv2cf-case" type="number" value="${c.caseQty||''}" placeholder="blank if none"></div></div>
+   <div class="lv2-mrow" id="lv2SizeRow" style="display:${c.type==='packing'?'':'none'};">
+    <label class="lv2-fl">Box size <span class="opt">(packing)</span></label>
+    <input class="lv2-in" id="lv2cf-size" value="${(c.size||'').replace(/"/g,'&quot;')}" placeholder="e.g. Large — Hampers"></div>
+   <div class="lv2-mrow"><label class="lv2-fl">On hand now</label><input class="lv2-in" id="lv2cf-hand" type="number" value="${c.onHand!==''&&c.onHand!=null?c.onHand:''}" placeholder="0"></div>
+   <div class="lv2-hint">Orders aren't set here — open the component and use "+ Log order" when you reorder.</div></div>
+  <div class="lv2-mf">${id?`<button class="lv2-cancel" style="margin-right:auto;color:#e07a7a;border-color:rgba(224,122,122,.4);" onclick="lv2DeleteComp('${id}')">Delete</button><button class="lv2-cancel" onclick="cm('lv2CompOv');lv2ArchiveComp('${id}',true)">Archive</button>`:''}<button class="lv2-cancel" onclick="cm('lv2CompOv')">Cancel</button><button class="lv2-save" onclick="lv2SaveComp()">Save component</button></div>`;
+ om('lv2CompOv');}
+function lv2PickType(t){lv2FormType=t;
+ document.querySelectorAll('#lv2TPick button').forEach(b=>b.classList.remove('on'));
+ document.querySelector('#lv2TPick button.'+t).classList.add('on');
+ document.getElementById('lv2SizeRow').style.display=t==='packing'?'':'none';}
+function lv2SaveComp(){
+ const name=document.getElementById('lv2cf-name').value.trim();
+ if(!name){toast('Component name required','er');return;}
+ const obj={name,type:lv2FormType,supplier:document.getElementById('lv2cf-sup').value.trim(),
+  caseQty:parseInt(document.getElementById('lv2cf-case').value)||null,
+  size:lv2FormType==='packing'?(document.getElementById('lv2cf-size').value.trim()||null):null,
+  onHand:Math.max(0,parseInt(document.getElementById('lv2cf-hand').value)||0)};
+ if(lv2CompEditId){Object.assign(lv2Comp(lv2CompEditId),obj);}
+ else{obj.id='c'+Date.now();obj.orders=[];lv2Components.push(obj);}
+ lv2Save();cm('lv2CompOv');renderLavarion();
+ toast(lv2CompEditId?'Component updated':'Component added');
+ logAudit('Component '+(lv2CompEditId?'updated':'added'),name);}
+function lv2DeleteComp(id){const c=lv2Comp(id);const used=lv2BundlesUsing(id);
+ showConfirm('Delete component?',`This removes ${c.name} from your components list${used.length?` — it's currently in ${used.length} bundle recipe${used.length===1?'':'s'}, which will lose this line`:''}.`,()=>{
+  lavAsins.forEach(a=>{if(lv2Recipes[a.asin])lv2Recipes[a.asin]=lv2Recipes[a.asin].filter(r=>r.c!==id);});
+  lv2Components=lv2Components.filter(x=>x.id!==id);lv2Save();cm('lv2CompOv');renderLavarion();
+  toast('Component deleted');logAudit('Component deleted',c.name);});}
+/* ── ship from Lavarion page (records a real lav shipment; deduction runs via the saveLavShipment hook) ── */
+let lv2ShipAsin=null;
+function lv2OpenShip(asin){lv2ShipAsin=asin;const a=lavAsins.find(x=>x.asin===asin);const bd=lv2Buildable(a);
+ document.getElementById('lv2ShipInner').innerHTML=`<div class="lv2-mh"><h3>Ship — ${a.prod}</h3><button class="lv2-mx" onclick="cm('lv2ShipOv')">&#10005;</button></div><div class="lv2-mb">
+  <div class="lv2-hint" style="margin-bottom:12px;">${bd.n>0?`You can build <b style="color:#6fbf82;">${bd.n}</b> right now. Shipping deducts every component below and logs a Lavarion shipment.`:`<b style="color:#e07a7a;">Can't build any right now</b> — a component below is out of stock. Reorder the blocker, then come back to ship.`}</div>
+  <div class="lv2-g2 lv2-mrow">
+   <div><label class="lv2-fl">Units to ship</label><input class="lv2-in" id="lv2ShipQty" type="number" min="1" value="${Math.min(bd.n||0,10)||1}" oninput="lv2ShipPrev()"></div>
+   <div><label class="lv2-fl">FBA Shipment ID <span class="opt">(optional)</span></label><input class="lv2-in" id="lv2ShipId" placeholder="FBA15…" oninput="this.value=this.value.toUpperCase()"></div></div>
+  <div id="lv2ShipPrev"></div></div>
+  <div class="lv2-mf"><button class="lv2-cancel" onclick="cm('lv2ShipOv')">Cancel</button><button class="lv2-save" onclick="lv2DoShip()">Ship &amp; deduct</button></div>`;
+ om('lv2ShipOv');lv2ShipPrev();}
+function lv2ShipPrev(){const a=lavAsins.find(x=>x.asin===lv2ShipAsin);const n=parseInt(document.getElementById('lv2ShipQty').value||0);
+ let out='<div class="lv2-panel"><div class="h">Will deduct</div>';let blk=false;
+ lv2RecipeOf(a).forEach(r=>{const c=lv2Comp(r.c);if(!c)return;const af=c.onHand-n*r.q;if(af<0)blk=true;
+  out+=`<div class="row"><span>${c.name}</span><span class="lv2-num" style="color:${af<0?'#e07a7a':'var(--text)'}">${c.onHand} − ${n*r.q} = ${af}${af<0?' · short':''}</span></div>`;});
+ out+='</div>';if(blk)out+=`<div class="lv2-co amber">Not enough stock for ${n} — reduce quantity or reorder the short component.</div>`;
+ document.getElementById('lv2ShipPrev').innerHTML=out;return !blk;}
+async function lv2DoShip(){const a=lavAsins.find(x=>x.asin===lv2ShipAsin);const n=parseInt(document.getElementById('lv2ShipQty').value||0);
+ if(n<1)return;if(!lv2ShipPrev()){toast('Not enough stock','er');return;}
+ const shipId=(document.getElementById('lv2ShipId').value.trim())||'LAV-DIRECT';
+ const entry={shipId,asin:a.asin,sku:a.sku||'',prod:a.prod,units:n,cost:0,date:todayISO()};
+ lavShipments.push(entry);
+ await saveLavShipment(entry); /* hook deducts components */
+ cm('lv2ShipOv');renderLavarion();if(typeof renderShipments==='function')renderShipments();
+ toast('Shipped '+n+' × '+a.prod+' — components deducted');
+ logAudit('Lavarion shipped (with component deduction)',a.asin+' x '+n+' -> '+shipId);}
+/* ── bundle add/edit — overrides originals; keeps Supabase saveLavAsin, adds recipe ── */
+function openAddLav(){lavEditId=null;
+ document.getElementById('lv2BundleTitle').textContent='Add Lavarion ASIN';
+ document.getElementById('lv2DelBtn').style.display='none';
+ ['lv2f-asin','lv2f-sku','lv2f-prod','lv2f-notes'].forEach(id=>document.getElementById(id).value='');
+ document.getElementById('lv2f-vat').value='20';
+ document.getElementById('lv2RecComp').innerHTML='';document.getElementById('lv2RecPack').innerHTML='';
+ lv2RecipeWarn();
+ lv2AddRecipeRow('comp');om('lv2BundleOv');}
+function lv2RecipeWarn(){const w=document.getElementById('lv2NoCompWarn');if(!w)return;
+ const live=lv2Components.filter(c=>!c.archived).length;
+ w.innerHTML=live?'':`<div class="lv2-co amber" style="margin-bottom:12px;">No components exist yet — you need at least one before you can attach a recipe. <button class="lv2-ghost sm" onclick="cm('lv2BundleOv');lv2Tab('components');lv2OpenCompForm(null)">+ Add a component first</button></div>`;}
+function openEditLav(id){const a=lavAsins.find(x=>x.id===id||String(x.id)===String(id));if(!a)return;
+ lavEditId=a.id;
+ document.getElementById('lv2BundleTitle').textContent='Edit Lavarion ASIN';
+ document.getElementById('lv2DelBtn').style.display='';
+ document.getElementById('lv2f-asin').value=a.asin||'';
+ document.getElementById('lv2f-sku').value=a.sku||'';
+ document.getElementById('lv2f-prod').value=a.prod||'';
+ document.getElementById('lv2f-notes').value=a.notes||'';
+ document.getElementById('lv2f-vat').value=(a.vat||a.vat==='0')?String(a.vat):'20';
+ document.getElementById('lv2RecComp').innerHTML='';document.getElementById('lv2RecPack').innerHTML='';
+ const rec=lv2RecipeOf(a);
+ const comp=rec.filter(r=>lv2Comp(r.c)&&lv2Comp(r.c).type!=='packing');
+ const pack=rec.filter(r=>lv2Comp(r.c)&&lv2Comp(r.c).type==='packing');
+ (comp.length?comp:[{c:'',q:1}]).forEach(r=>lv2AddRecipeRow('comp',r.c,r.q));
+ pack.forEach(r=>lv2AddRecipeRow('pack',r.c,r.q));
+ lv2RecipeWarn();
+ om('lv2BundleOv');}
+function lv2AddRecipeRow(kind,sel,qty){sel=sel||'';qty=qty||1;
+ const opts=lv2Components.filter(c=>(kind==='pack'?c.type==='packing':c.type!=='packing')&&(!c.archived||c.id===sel));
+ const div=document.createElement('div');div.className='lv2-g3';div.style.marginBottom='8px';
+ div.innerHTML=`<select class="lv2-in lv2rc-c"><option value="">Select ${kind==='pack'?'box':'component'}…</option>
+   ${opts.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${c.name}${c.size?' — '+c.size:''}${c.archived?' (archived)':''}</option>`).join('')}</select>
+  <input class="lv2-in lv2rc-q" type="number" min="1" value="${qty}" style="text-align:center;">
+  <button class="lv2-ghost" onclick="this.parentElement.remove()">Remove</button>`;
+ document.getElementById(kind==='pack'?'lv2RecPack':'lv2RecComp').appendChild(div);}
+function saveLav(){
+ const asin=document.getElementById('lv2f-asin').value.trim();
+ const sku=document.getElementById('lv2f-sku').value.trim();
+ const prod=document.getElementById('lv2f-prod').value.trim();
+ if(!asin||!prod){toast('ASIN and Product Name required','er');return;}
+ const obj={id:lavEditId||++_lavNid,asin,sku,prod,cost:0,total:0,dg:'No',
+  vat:document.getElementById('lv2f-vat').value||'20',
+  notes:document.getElementById('lv2f-notes').value.trim()};
+ if(lavEditId){const i=lavAsins.findIndex(x=>x.id===lavEditId);if(i>=0){obj.uuid=lavAsins[i].uuid;
+  /* preserve fields the lv2 form doesn't edit — otherwise editing wiped cost/total/dg in Supabase */
+  obj.cost=lavAsins[i].cost||0;obj.total=lavAsins[i].total||0;obj.dg=lavAsins[i].dg||'No';
+  const oldAsin=lavAsins[i].asin;lavAsins[i]=obj;
+  if(oldAsin!==asin&&lv2Recipes[oldAsin]){lv2Recipes[asin]=lv2Recipes[oldAsin];delete lv2Recipes[oldAsin];}}}
+ else lavAsins.push(obj);
+ const collect=id=>[...document.getElementById(id).querySelectorAll('.lv2-g3')].map(r=>({c:r.querySelector('.lv2rc-c').value,q:parseInt(r.querySelector('.lv2rc-q').value)||1})).filter(r=>r.c);
+ const recipe=[...collect('lv2RecComp'),...collect('lv2RecPack')];
+ if(recipe.length)lv2Recipes[asin]=recipe;else delete lv2Recipes[asin];
+ lv2Save();
+ saveLavAsin(obj); /* existing Supabase persistence */
+ cm('lv2BundleOv');renderLavarion();
+ toast(lavEditId?'Lavarion ASIN updated':'Lavarion ASIN added ✓');
+ logAudit('Lavarion ASIN '+(lavEditId?'updated':'added'),sku||asin);}
+function lv2DeleteCurrent(){if(!lavEditId)return;cm('lv2BundleOv');deleteLav(lavEditId);}
+
+/* ── BUILD PLANNER: plan a batch across several bundles, get one combined shortfall list ── */
+function lv2OpenPlan(){
+ const withRec=lavAsins.filter(a=>!a.archived&&lv2RecipeOf(a).length);
+ if(!withRec.length){toast('Attach a recipe to at least one bundle first (Edit a bundle)','er');return;}
+ const rows=withRec.map(a=>{const bd=lv2Buildable(a);
+  return `<div class="lv2-prow"><span class="nm">${a.prod}<span class="lv2-sub" style="display:inline;margin-left:8px;">buildable now: <b style="color:${bd.n>0?'#6fbf82':'#e07a7a'};">${bd.n}</b></span></span>
+   <input class="lv2-in" type="number" min="0" placeholder="0" data-plan-asin="${a.asin}" oninput="lv2PlanCalc()" style="width:86px;text-align:center;flex-shrink:0;"></div>`;}).join('');
+ document.getElementById('lv2PlanInner').innerHTML=`
+  <div class="lv2-mh"><h3>Build planner</h3><button class="lv2-mx" onclick="cm('lv2PlanOv')">&#10005;</button></div>
+  <div class="lv2-mb">
+   <div class="lv2-hint" style="margin-bottom:12px;">Enter how many of each bundle you want to build. You'll get one combined list of every component you're short of — shared parts are counted once across all of them.</div>
+   <div id="lv2PlanRows">${rows}</div>
+   <div id="lv2PlanOut" style="margin-top:14px;"></div></div>
+  <div class="lv2-mf"><button class="lv2-cancel" onclick="cm('lv2PlanOv')">Close</button></div>`;
+ om('lv2PlanOv');lv2PlanCalc();}
+function lv2PlanCalc(){
+ const out=document.getElementById('lv2PlanOut');if(!out)return;
+ const needs={};let any=false;
+ document.querySelectorAll('#lv2PlanRows input[data-plan-asin]').forEach(inp=>{
+  const n=parseInt(inp.value)||0;if(!n)return;any=true;
+  const a=lavAsins.find(x=>x.asin===inp.dataset.planAsin);if(!a)return;
+  lv2RecipeOf(a).forEach(r=>{needs[r.c]=(needs[r.c]||0)+r.q*n;});});
+ if(!any){out.innerHTML='';return;}
+ let short=0,h=`<table class="lv2-rt" style="width:100%;"><tr><th class="l">Component</th><th>Need</th><th>Have</th><th>On order</th><th>Short</th><th>Order</th></tr>`;
+ Object.keys(needs).forEach(cid=>{const c=lv2Comp(cid);if(!c)return;
+  const need=needs[cid],oo=lv2OnOrder(c),sh=Math.max(0,need-c.onHand-oo);if(sh)short++;
+  let cell='—';
+  if(sh)cell=c.caseQty?`${Math.ceil(sh/c.caseQty)} case${Math.ceil(sh/c.caseQty)===1?'':'s'} (${Math.ceil(sh/c.caseQty)*c.caseQty})`:`${sh} units`;
+  h+=`<tr><td class="l">${c.name}${c.size?` <span class="lv2-size">${c.size}</span>`:''}</td><td>${need}</td><td>${c.onHand}</td><td>${oo||'—'}</td><td class="${sh?'short':'ok'}" style="color:${sh?'#e07a7a':'#6fbf82'};font-weight:700;">${sh||'0'}</td><td>${cell}</td></tr>`;});
+ h+='</table>';
+ h+=short?`<div class="lv2-co amber" style="margin-top:12px;">Short on <b>${short}</b> component${short===1?'':'s'} — order the amounts above (on-order stock already counted).</div>`
+        :`<div class="lv2-co" style="margin-top:12px;color:#6fbf82;"><b>✓ You can build all of that</b> with current stock.</div>`;
+ out.innerHTML=h;}
+
+/* ── BOOTSTRAP: ensure MY renderLavarion actually runs on load + every time the page is shown ── */
+(function(){
+  // 1) wrap goPage so navigating to Lavarion always re-renders with the live (my) render
+  if(typeof window.goPage==='function'){
+    var _goPage=window.goPage;
+    window.goPage=function(n){ var r=_goPage.apply(this,arguments); if(n==='lavarion'){ try{renderLavarion();}catch(e){console.warn('lav render',e);} } return r; };
+  }
+  // 2) paint now (covers the case where the page is already open at load)
+  function _boot(){ try{ if(document.getElementById('lv2BundleBody')) renderLavarion(); }catch(e){console.warn('lav boot',e);} }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_boot); else _boot();
+  // 3) safety net: if the page becomes active but empty, fill it
+  var pg=document.getElementById('page-lavarion');
+  if(pg){ new MutationObserver(function(){
+    if(pg.classList.contains('active')){ var b=document.getElementById('lv2BundleBody'); if(b&&b.childElementCount===0){ try{renderLavarion();}catch(e){} } }
+  }).observe(pg,{attributes:true,attributeFilter:['class']}); }
+  // 3b) the app's global click-outside-to-close wiring ran before the lv2 overlays
+  // existed in the DOM — wire them up here so clicking the dim area closes them
+  ['lv2CompOv','lv2OrderOv','lv2ShipOv','lv2BundleOv','lv2PlanOv'].forEach(function(id){
+    var o=document.getElementById(id);
+    if(o)o.addEventListener('click',function(e){ if(e.target===o)cm(id); });
+  });
+  // 4) FIX: dbLoad() never called renderLavarion(), so cloud lavAsins arriving after
+  // boot left this page stale/empty if you were sitting on it. Hook the sync status:
+  // every time the app flips to 'synced', repaint Lavarion with the fresh data.
+  if(typeof window.setSyncStatus==='function'){
+    var _setSync=window.setSyncStatus;
+    window.setSyncStatus=function(st){ var r=_setSync.apply(this,arguments);
+      if(st==='synced'){ try{ if(document.getElementById('lv2BundleBody')) renderLavarion(); }catch(e){} }
+      return r; };
+  }
+})();
+
+/* ── SUPABASE PERSISTENCE — two dedicated tables, NO localStorage ──────────
+   lavarion_components  : one row per shared part (uuid = c.uuid)
+   lavarion_recipes     : one row per (asin, component_id, qty)
+   In-memory shape is unchanged (lv2Components array, lv2Recipes map keyed by
+   asin) so all render/maths code is untouched — only storage swaps.
+   Save strategy: mirror full state on each change (debounced). Simple and
+   robust for this data size; last-write-wins across devices. */
+(function(){
+  var _t=null,_saving=false,_pending=false;
+  // map an in-memory component -> a DB row
+  function compToRow(c){return{
+    id:c.uuid||undefined, name:c.name||'', type:c.type||'complementary',
+    supplier:c.supplier||'', case_qty:(c.caseQty!=null?c.caseQty:null),
+    size:c.size||'', on_hand:parseInt(c.onHand)||0,
+    orders:JSON.stringify(c.orders||[]),
+    pack_multiplier:(c.packMultiplier!=null?c.packMultiplier:null),
+    archived:!!c.archived };}
+  function rowToComp(d){return{
+    uuid:d.id, id:d.id, name:d.name||'', type:d.type||'complementary',
+    supplier:d.supplier||'', caseQty:(d.case_qty!=null?d.case_qty:null),
+    size:d.size||'', onHand:d.on_hand||0,
+    orders:(function(){try{return JSON.parse(d.orders||'[]');}catch(e){return[];}})(),
+    packMultiplier:(d.pack_multiplier!=null?d.pack_multiplier:null),
+    archived:!!d.archived };}
+
+  async function _pushNow(){
+    // Only prune/replace once a SUCCESSFUL load has happened. If the load failed
+    // (e.g. tables missing), _lv2LoadedOK stays false and we never delete rows —
+    // this is the guard that makes accidental data loss impossible.
+    if(!_lv2LoadedOK)return;
+    if(_saving){_pending=true;return;}   // a save is running — queue another after it
+    _saving=true;
+    try{
+      // 1) COMPONENTS — upsert each row and stamp its uuid back individually
+      //    (upsert-array return order is NOT guaranteed, so match by name+created).
+      for(var i=0;i<lv2Components.length;i++){
+        var c=lv2Components[i];var row=compToRow(c);
+        if(c.uuid){
+          var u=await sb.from('lavarion_components').update(row).eq('id',c.uuid);
+          if(u.error)throw u.error;
+        }else{
+          var ins=await sb.from('lavarion_components').insert(row).select('id').single();
+          if(ins.error)throw ins.error;
+          c.uuid=ins.data.id; // exact row we just made
+        }
+      }
+      // delete DB component rows no longer present in memory
+      var keepIds=lv2Components.map(function(c){return c.uuid;}).filter(Boolean);
+      if(keepIds.length){
+        var dc=await sb.from('lavarion_components').delete().not('id','in','('+keepIds.join(',')+')');
+        if(dc.error)console.warn('component prune',dc.error);
+      }
+      // (if keepIds is empty we intentionally do NOT bulk-delete — avoids wiping
+      //  everything if memory is unexpectedly empty)
+
+      // 2) RECIPES — build the desired set, then reconcile non-destructively:
+      //    insert the new set FIRST, and only delete the old rows once the insert
+      //    succeeded. That way a mid-save failure can't leave you with no recipes.
+      var recRows=[];
+      Object.keys(lv2Recipes).forEach(function(asin){
+        (lv2Recipes[asin]||[]).forEach(function(r){
+          var c=lv2Comp(r.c);
+          if(c&&c.uuid)recRows.push({asin:asin,component_id:c.uuid,qty:parseInt(r.q)||1});
+        });
+      });
+      // fetch current recipe ids so we can delete exactly them AFTER a good insert
+      var existing=await sb.from('lavarion_recipes').select('id');
+      var oldIds=(existing.data||[]).map(function(x){return x.id;});
+      if(recRows.length){
+        var ir=await sb.from('lavarion_recipes').insert(recRows);
+        if(ir.error)throw ir.error;               // keep old rows if insert failed
+        if(oldIds.length){
+          var dr=await sb.from('lavarion_recipes').delete().in('id',oldIds);
+          if(dr.error)console.warn('recipe cleanup',dr.error);
+        }
+      }else if(oldIds.length){
+        // memory has zero recipes — only clear if that's a genuine state, which it
+        // is once loaded OK (e.g. user removed the last recipe)
+        var dr2=await sb.from('lavarion_recipes').delete().in('id',oldIds);
+        if(dr2.error)console.warn('recipe clear',dr2.error);
+      }
+    }catch(e){console.warn('lv2 Supabase save failed',e);toast('Lavarion save failed — check connection','er');}
+    _saving=false;
+    if(_pending){_pending=false;setTimeout(_pushNow,0);} // flush the edit that arrived mid-save
+  }
+  // exposed to lv2Save() (defined near the top as a thin wrapper)
+  window._lv2CloudSave=function(){ clearTimeout(_t); _t=setTimeout(_pushNow,500); };
+  window._lv2IsSaving=function(){ return _saving||_pending; };
+  window._lv2Reload=function(){ lv2Load(); };
+
+  // ── LOAD on boot: pull both tables, build the in-memory model, repaint ──
+  async function lv2Load(){
+    try{
+      var cr=await sb.from('lavarion_components').select('*').order('created_at',{ascending:true});
+      if(cr.error)throw cr.error;
+      lv2Components=(cr.data||[]).map(rowToComp);
+
+      var rr=await sb.from('lavarion_recipes').select('*');
+      if(rr.error)throw rr.error;
+      var byUuid={}; lv2Components.forEach(function(c){byUuid[c.uuid]=c.id;});
+      lv2Recipes={};
+      (rr.data||[]).forEach(function(d){
+        var localCid=byUuid[d.component_id]; if(!localCid)return; // component gone
+        (lv2Recipes[d.asin]=lv2Recipes[d.asin]||[]).push({c:localCid,q:d.qty||1});
+      });
+      _lv2Loaded=true; _lv2LoadedOK=true;   // safe to prune/replace from now on
+      try{ if(document.getElementById('lv2BundleBody'))renderLavarion(); }catch(e){}
+    }catch(e){
+      _lv2Loaded=true;          // allow single-row inserts (add component) to persist
+      _lv2LoadedOK=false;       // but NEVER prune/wipe — load didn't succeed
+      console.warn('lv2 load failed (are lavarion_components / lavarion_recipes created? run the SQL migration)',e);
+      toast('Lavarion data could not load — check the SQL migration ran','er');
+    }
+  }
+  // run after the app's first Supabase sync so lavAsins exist for recipe keying
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(lv2Load,400);});
+  else setTimeout(lv2Load,400);
+})();
+</script>
+
 </div><!-- /#appShell -->
+
+<style id="lv2-hard-overrides">
+/* ===== Lavarion v2 — win against app global table styles (id+!important) ===== */
+#page-lavarion .lv2-tbl table{min-width:0!important;}
+#page-lavarion .lv2-tbl thead tr{background:linear-gradient(90deg,#111110,#1b1a17)!important;border-bottom:2px solid var(--accent)!important;}
+#page-lavarion .lv2-tbl th{padding:10px 12px!important;border-right:none!important;background:none!important;white-space:nowrap!important;}
+#page-lavarion .lv2-tbl td{padding:11px 12px!important;border-right:none!important;white-space:nowrap!important;height:auto!important;line-height:1.35!important;vertical-align:middle!important;}
+#page-lavarion .lv2-tbl tbody tr{border-bottom:1px solid var(--border)!important;transition:background .1s;}
+#page-lavarion .lv2-tbl tbody tr:nth-child(even){background:var(--bg3)!important;}
+#page-lavarion .lv2-tbl tbody tr:hover{background:var(--bg4)!important;}
+#page-lavarion .lv2-tbl td.lv2-prodcell{max-width:300px;overflow:hidden;text-overflow:ellipsis;}
+/* recipe unfold cells shouldn't inherit gridlines/centering */
+#page-lavarion .lv2-tbl tr.lv2-recipe td{padding:0!important;background:var(--bg)!important;border-right:none!important;}
+/* KPI cards — v7 sizing */
+#page-lavarion .lv2-cards{gap:10px!important;padding:10px 10px 0!important;}
+#page-lavarion .lv2-card{padding:13px 14px!important;border-radius:10px!important;}
+#page-lavarion .lv2-card .k{font-size:10px!important;margin-bottom:2px!important;}
+#page-lavarion .lv2-card .v{font-size:28px!important;margin:3px 0 2px!important;}
+#page-lavarion .lv2-card .s{font-size:10px!important;}
+/* toolbar + buttons — v7 sizing */
+#page-lavarion .lv2-bar{padding:9px 10px 2px!important;}
+#page-lavarion .lv2-mini{padding:6px 13px!important;font-size:12px!important;line-height:1.3!important;border-radius:6px!important;}
+#page-lavarion .lv2-content{padding:2px 10px 18px!important;}
+/* v7-style content cap — stops the table stretching across ultra-wide screens
+   (all the slack was piling into the Product Name column) */
+#page-lavarion .lv2-cards,#page-lavarion .lv2-bar,#page-lavarion .lv2-content{max-width:1560px;margin-left:auto!important;margin-right:auto!important;width:100%;box-sizing:border-box;}
+/* KPI text values (e.g. "✓ Covered") shouldn't render at number size */
+#page-lavarion .lv2-card .v.txt{font-size:15px!important;font-weight:800!important;margin:10px 0 9px!important;letter-spacing:.04em;}
+/* filter chips */
+#page-lavarion .lv2-chips{display:flex;gap:7px;margin:4px 0 10px;flex-wrap:wrap;}
+#page-lavarion .lv2-chip{padding:6px 13px;border-radius:20px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--sans);}
+#page-lavarion .lv2-chip:hover{color:var(--text);}
+#page-lavarion .lv2-chip .n{opacity:.65;font-weight:600;margin-left:5px;font-variant-numeric:tabular-nums;}
+#page-lavarion .lv2-chip.on{color:var(--accent);border-color:var(--accent);background:rgba(224,166,66,.09);}
+#page-lavarion .lv2-chip.ready.on{color:#6fbf82;border-color:rgba(111,191,130,.6);background:rgba(111,191,130,.08);}
+#page-lavarion .lv2-chip.blocked.on{color:#e07a7a;border-color:rgba(224,122,122,.55);background:rgba(224,122,122,.08);}
+#page-lavarion .lv2-chip.archived.on{color:#a98fd6;border-color:rgba(169,143,214,.6);background:rgba(169,143,214,.09);}
+/* ready / blocked row state — coloured edge on the first cell */
+#page-lavarion .lv2-tbl td:first-child{border-left:3px solid transparent!important;}
+#page-lavarion .lv2-tbl tr.lv2-st-ready>td:first-child{border-left-color:rgba(111,191,130,.55)!important;}
+#page-lavarion .lv2-tbl tr.lv2-st-blocked>td:first-child{border-left-color:rgba(224,122,122,.6)!important;}
+/* setup progress strip */
+#page-lavarion .lv2-setup{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:11px 15px;margin-bottom:10px;font-size:12.5px;color:var(--text2);font-family:var(--sans)!important;}
+#page-lavarion .lv2-setup .t{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);}
+#page-lavarion .lv2-setup .sstep{font-weight:600;font-family:var(--sans)!important;display:inline!important;padding:0!important;background:none!important;border:none!important;}
+#page-lavarion .lv2-setup .sstep.sdone{color:#6fbf82!important;}
+#page-lavarion .lv2-setup .sstep b{color:var(--text);margin:0 4px;font-variant-numeric:tabular-nums;}
+#page-lavarion .lv2-setup .hint{font-weight:500;color:var(--text3);margin-left:5px;}
+#page-lavarion .lv2-setup .arr{color:var(--text3);}
+#page-lavarion .lv2-ghost.sm{padding:4px 10px;font-size:11px;}
+/* build planner rows */
+.lv2-prow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.lv2-prow .nm{font-weight:600;color:var(--text);}
+</style>
+
 </body>
 </html>
