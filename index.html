@@ -882,9 +882,9 @@ tr.lv2-recipe td{padding:0;background:var(--bg)!important;}
     <div class="stats" id="prepStats"></div>
     <div class="toolbar" style="flex-direction:column;align-items:stretch;gap:6px;padding:8px 12px;">
       <!-- Row 1: Search -->
-      <div class="search-box" style="width:100%;">
+      <div class="search-box" style="width:100%;position:relative;">
         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="13" y2="13"/></svg>
-        <input placeholder="Search SKU, ASIN, product, supplier…" id="prepSrch" oninput="filterPrep()" autocomplete="off" name="prepSrch_nosave" style="width:100%;">
+        <input placeholder="Search SKU, ASIN, product, supplier…" id="prepSrch" oninput="onPrepSearch()" onkeydown="if(event.key==='Escape'){this.value='';onPrepSearch();this.blur();}" autocomplete="off" name="prepSrch_nosave" style="width:100%;">
       </div>
       <!-- Row 2: Controls + Bulk -->
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -1077,8 +1077,11 @@ tr.lv2-recipe td{padding:0;background:var(--bg)!important;}
         <option value="shipped">Sort: Shipped 30d</option><option value="name">Sort: Name</option><option value="parts">Sort: Parts</option>
       </select>
       <button class="lv2-ghost" id="lv2PlanB" onclick="lv2OpenPlan()">Build planner</button>
+      <button class="lv2-ghost" id="lv2BulkB" onclick="lv2OpenBulk()">⚡ Recipe builder</button>
+      <button class="lv2-ghost" id="lv2MxB" onclick="lv2OpenMatrix()">▦ Matrix</button>
       <button class="btn-add" id="lv2AddB" onclick="openAddLav()">+ Add Lavarion ASIN</button>
       <button class="btn-add" id="lv2AddC" onclick="lv2OpenCompForm(null)" style="display:none;">+ Add Component</button>
+      <button class="lv2-ghost" id="lv2AddCB" onclick="lv2OpenBulkComp()" style="display:none;">⚡ Bulk add</button>
     </div>
     <div class="lv2-content">
       <div id="lv2ViewB">
@@ -1769,6 +1772,11 @@ document.addEventListener('keydown',e=>{
   if(document.querySelector('.overlay.open'))return;
   if(!document.getElementById('page-prep').classList.contains('active'))return;
   const active=document.activeElement;
+  // Bail immediately if the user is typing in ANY text input/textarea (search box,
+  // bulk ship-id field, etc.) — the table keyboard-nav must never intercept those
+  // keystrokes, or it blocks the character from appearing. Only cell editors (.ci)
+  // and cell selects (.ci-sel) participate in navigation below.
+  if(active&&(active.tagName==='INPUT'||active.tagName==='TEXTAREA')&&!active.classList.contains('ci')){return;}
   const inInput=active&&(active.tagName==='INPUT'||active.tagName==='TEXTAREA')&&active.classList.contains('ci');
   const inSelect=active&&active.tagName==='SELECT'&&active.classList.contains('ci-sel');
   const trs=getRowEls();if(!trs.length)return;
@@ -2176,6 +2184,9 @@ function renderPrepRows(data){
   }
   // Clear stale DOM refs
   _prevFocusTr=null;_prevFocusTd=null;
+  // The DOM is about to be rewritten with an arbitrary row set — the search
+  // fast-path can no longer assume it holds the plain base set.
+  _prepDomSig=null;
   const b=document.getElementById('prepBody');
   if(!data.length){b.innerHTML=`<tr><td colspan="18"><div class="empty"><div class="empty-ico">📦</div><div class="empty-t">No rows found</div></div></td></tr>`;return;}
   const todayStr=todayISO();
@@ -2402,8 +2413,106 @@ function uf(id,field,val){
   debounce('save_'+id,()=>{saveRow(r);},300);
 }
 
-function filterPrep(){
-  flushPending();
+/* Search filters on every keystroke, instantly. The row data is all in memory,
+   so matching "bos" → "Bosch" is a trivial array filter — spreadsheet-fast.
+   Crucially it does NOT flush dirty-row saves (that network work is what used
+   to block the repaint per keystroke). Edits still save via their own debounce. */
+/* The prep table render is heavy (rebuilds all rows' HTML). Running it inline on
+   each keystroke blocks the browser from painting the typed character. So we
+   defer the filter: the keystroke returns immediately (input paints), then the
+   filter runs after a short idle. Rapid typing collapses to a single render. */
+let _prepSearchT=null;
+/* THE DURABLE FIX — searching no longer rebuilds the table's HTML at all.
+   The table is rendered ONCE with the full base set (status/late/issue/archive
+   filters applied, but NOT the search query). Each keystroke then just toggles
+   `display:none` on existing <tr> elements — no innerHTML, no Date parsing,
+   no 185-line template per row. That's sub-millisecond for hundreds of rows,
+   so typing paints instantly and results follow in the same breath.
+   A full rebuild only happens when the underlying base set changes (status
+   filter, sort, archive toggle, data edits) — renderPrepRows invalidates
+   `_prepDomSig` whenever it rewrites the DOM, and the next keystroke rebuilds
+   the base set exactly once before returning to the cheap toggle path. */
+function onPrepSearch(){
+  clearTimeout(_prepSearchT);
+  // Tiny coalescing delay: the keystroke handler itself does nothing heavy,
+  // so the character always paints on the very next frame.
+  _prepSearchT=setTimeout(()=>{requestAnimationFrame(applyPrepSearch);},40);
+}
+let _prepDomSig=null; // signature of the un-searched base set currently in the DOM
+function _prepBaseSig(){
+  const st=(document.getElementById('prepStF')||{}).value||'';
+  return st+'|'+(_issuesFilterActive?1:0)+'|'+(_lateFilterActive?1:0)+'|'+(_showArchived?1:0);
+}
+// Base set = every filter EXCEPT the search query (mirrors filterPrep's logic)
+function _prepBaseRows(){
+  const st=(document.getElementById('prepStF')||{}).value||'';
+  const base=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
+  if(!st&&!_issuesFilterActive&&!_lateFilterActive)return base;
+  return base.filter(r=>{
+    const rid=r.uuid||String(r.id);
+    if(_issuesFilterActive){
+      const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
+      if(!hasIssue)return false;
+    }
+    if(_lateFilterActive){
+      if(r.status!=='In-Transit')return false;
+      const[dd,mm]=(r.date||'').split('/');
+      if(!dd||!mm)return false;
+      const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+      if(Math.floor((new Date()-d)/864e5)<=20)return false;
+    }
+    if(st){
+      const hasIssueFlag=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
+      if(r.status!==st&&!(st==='Issue'&&hasIssueFlag))return false;
+    }
+    return true;
+  });
+}
+function applyPrepSearch(){
+  const inp=document.getElementById('prepSrch');if(!inp)return;
+  const q=inp.value.toLowerCase();
+  const sig=_prepBaseSig();
+  if(_prepDomSig!==sig){
+    // DOM doesn't currently hold the plain base set — rebuild it ONCE (without
+    // the query), preserving scroll, then fall through to the cheap toggle.
+    const wrap=document.querySelector('#page-prep .tbl-wrap');
+    const scrollTop=wrap?wrap.scrollTop:0;
+    renderPrepRows(_prepBaseRows());   // sets _prepDomSig=null internally
+    if(_pendingPrepRender)return;      // rebuild was deferred (cell mid-edit)
+    _prepDomSig=sig;
+    if(wrap)wrap.scrollTop=scrollTop;
+  }
+  const b=document.getElementById('prepBody');if(!b)return;
+  const map=new Map(rows.map(r=>[String(r.id),r]));
+  let shown=0;
+  b.querySelectorAll('tr[data-id]').forEach(tr=>{
+    const r=map.get(tr.dataset.id);
+    let show=true;
+    if(q){
+      if(!r)show=false;
+      else{
+        if(!r._srch)r._srch=(r.sku+'|'+r.asin+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+r.date+'|'+(r.notes||'')+'|'+(r.vaNote||'')+'|'+(r.transitAction||'')).toLowerCase();
+        show=r._srch.includes(q);
+      }
+    }
+    tr.style.display=show?'':'none';
+    if(show){shown++;const numDiv=tr.querySelector('td div');if(numDiv)numDiv.textContent=shown;}
+  });
+  // "No rows found" message when the query matches nothing (all rows hidden)
+  let nm=document.getElementById('prepNoMatchRow');
+  if(shown===0&&q){
+    if(!nm){
+      nm=document.createElement('tr');
+      nm.id='prepNoMatchRow';
+      nm.innerHTML='<td colspan="18"><div class="empty"><div class="empty-ico">📦</div><div class="empty-t">No rows found</div></div></td>';
+      b.appendChild(nm);
+    }
+    nm.style.display='';
+  }else if(nm){nm.style.display='none';}
+}
+function updatePrepSearchUI(){}
+function filterPrep(skipFlush){
+  if(!skipFlush)flushPending();
   // Reset late filter when a status filter is applied — they conflict
   const _stVal=(document.getElementById('prepStF')||{}).value||'';
   if(_stVal&&_lateFilterActive){_lateFilterActive=false;const lb=document.getElementById('showLateBtn');if(lb){lb.textContent='⏱ Late';lb.style.background='rgba(251,146,60,.15)';lb.style.borderColor='rgba(251,146,60,.4)';}}  
@@ -8064,7 +8173,7 @@ function setupRealtime(){
   // so a burst of row changes triggers a single reload.
   var _lv2RtT=null,_lv2RtPending=false;
   function _lv2ModalOpen(){
-    return ['lv2CompOv','lv2BundleOv','lv2ShipOv','lv2OrderOv','lv2PlanOv']
+    return ['lv2CompOv','lv2BundleOv','lv2ShipOv','lv2OrderOv','lv2PlanOv','lv2BulkOv','lv2MxOv']
       .some(function(id){var o=document.getElementById(id);return o&&o.classList.contains('open');});
   }
   function _lv2RemoteRefresh(){
@@ -9770,6 +9879,8 @@ setInterval(updateClock,30000);
 <div class="overlay" id="lv2OrderOv"><div class="lv2-modal slim"><div id="lv2OrderInner"></div></div></div>
 <div class="overlay" id="lv2ShipOv"><div class="lv2-modal"><div id="lv2ShipInner"></div></div></div>
 <div class="overlay" id="lv2PlanOv"><div class="lv2-modal wide"><div id="lv2PlanInner"></div></div></div>
+<div class="overlay" id="lv2BulkOv"><div class="lv2-modal xwide"><div id="lv2BulkInner"></div></div></div>
+<div class="overlay" id="lv2MxOv"><div class="lv2-modal xwide"><div id="lv2MxInner"></div></div></div>
 <div class="overlay" id="lv2BundleOv"><div class="lv2-modal wide">
   <div class="lv2-mh"><h3 id="lv2BundleTitle">Edit Lavarion ASIN</h3><button class="lv2-mx" onclick="cm('lv2BundleOv')">&#10005;</button></div>
   <div class="lv2-mb">
@@ -9861,10 +9972,13 @@ function lv2Tab(t){lv2ActiveTab=t;
  document.getElementById('lv2TabC').classList.toggle('on',t==='components');
  document.getElementById('lv2AddB').style.display=t==='bundles'?'':'none';
  document.getElementById('lv2AddC').style.display=t==='bundles'?'none':'';
+ document.getElementById('lv2AddCB').style.display=t==='bundles'?'none':'';
  document.getElementById('lv2TypeF').style.display=t==='bundles'?'none':'';
  document.getElementById('lv2SortF').style.display=t==='bundles'?'none':'';
  document.getElementById('lv2BSortF').style.display=t==='bundles'?'':'none';
  document.getElementById('lv2PlanB').style.display=t==='bundles'?'':'none';
+ document.getElementById('lv2BulkB').style.display=t==='bundles'?'':'none';
+ document.getElementById('lv2MxB').style.display=t==='bundles'?'':'none';
  renderLavarion();}
 function renderLavarion(){lv2Cards();lv2NoticeRender();lv2RenderBundles();lv2RenderComps();lv2RenderPack();}
 function lv2Cards(){
@@ -10106,7 +10220,8 @@ function lv2OpenCompForm(id){
     <label class="lv2-fl">Box size <span class="opt">(packing)</span></label>
     <input class="lv2-in" id="lv2cf-size" value="${(c.size||'').replace(/"/g,'&quot;')}" placeholder="e.g. Large — Hampers"></div>
    <div class="lv2-mrow"><label class="lv2-fl">On hand now</label><input class="lv2-in" id="lv2cf-hand" type="number" value="${c.onHand!==''&&c.onHand!=null?c.onHand:''}" placeholder="0"></div>
-   <div class="lv2-hint">Orders aren't set here — open the component and use "+ Log order" when you reorder.</div></div>
+   <div class="lv2-hint">Orders aren't set here — open the component and use "+ Log order" when you reorder.</div>
+   ${id?'':`<div class="lv2-hint" style="margin-top:6px;">Adding lots at once? <a href="#" onclick="event.preventDefault();lv2OpenBulkComp();" style="color:#7d9cc9;font-weight:700;">Switch to bulk add →</a></div>`}</div>
   <div class="lv2-mf">${id?`<button class="lv2-cancel" style="margin-right:auto;color:#e07a7a;border-color:rgba(224,122,122,.4);" onclick="lv2DeleteComp('${id}')">Delete</button><button class="lv2-cancel" onclick="cm('lv2CompOv');lv2ArchiveComp('${id}',true)">Archive</button>`:''}<button class="lv2-cancel" onclick="cm('lv2CompOv')">Cancel</button><button class="lv2-save" onclick="lv2SaveComp()">Save component</button></div>`;
  om('lv2CompOv');}
 function lv2PickType(t){lv2FormType=t;
@@ -10410,6 +10525,450 @@ function lv2PlanCalc(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(lv2Load,400);});
   else setTimeout(lv2Load,400);
 })();
+/* ══════════ BULK RECIPE TOOLS — Rapid Builder + Recipe Matrix ══════════
+   Built for scale: ~50 bundles × 50+ components, recipes entered from memory.
+   • Rapid Builder: keyboard-first per-bundle entry — type-ahead search, Enter to
+     add, inline component creation, copy-recipe-from, auto-save on navigation.
+   • Recipe Matrix: every recipe on one grid (rows=bundles, cols=used components),
+     edit quantities like a spreadsheet, one Save writes everything via lv2Save().
+   Both are pure UI over the existing lv2Components / lv2Recipes model. */
+function _lv2esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+/* inject styles once (kept in JS so this feature is fully self-contained) */
+(function(){
+  var st=document.createElement('style');
+  st.textContent=[
+    '.lv2-modal.xwide{max-width:min(1500px,96vw);}',
+    '.lv2-sug{padding:8px 12px;font-size:12.5px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;color:var(--text);}',
+    '.lv2-sug.on,.lv2-sug:hover{background:rgba(96,165,250,.14);}',
+    '.lv2-sug.create{color:#7d9cc9;font-weight:600;}',
+    '.lv2-sugbox{position:absolute;top:100%;left:0;right:0;z-index:30;background:var(--bg2);border:1px solid var(--border2);border-radius:0 0 8px 8px;box-shadow:0 14px 34px rgba(0,0,0,.5);max-height:280px;overflow-y:auto;display:none;}',
+    '.lv2-bline{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;background:rgba(255,255,255,.02);}',
+    '.lv2-bline .nm{flex:1;font-size:12.5px;font-weight:600;color:var(--text);}',
+    '.lv2-bline input{width:64px;text-align:center;}',
+    '.lv2-bl-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2);margin-bottom:2px;}',
+    '.lv2-bl-item:hover{background:rgba(255,255,255,.05);}',
+    '.lv2-bl-item.on{background:rgba(96,165,250,.14);color:var(--text);font-weight:700;}',
+    '.lv2-bl-item .n{margin-left:auto;font-size:10px;font-family:var(--mono);color:var(--text3);}',
+    '.lv2-bl-item .n.ok{color:#6fbf82;}',
+    '#lv2MxWrap{overflow:auto;max-height:70vh;border:1px solid var(--border);border-radius:8px;}',
+    '#lv2MxWrap table{border-collapse:separate;border-spacing:0;min-width:100%;}',
+    '#lv2MxWrap th,#lv2MxWrap td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:0;background:var(--bg2);}',
+    '#lv2MxWrap thead th{position:sticky;top:0;z-index:3;vertical-align:bottom;padding:8px 4px;}',
+    '#lv2MxWrap thead th.rot div{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10.5px;font-weight:700;color:var(--text2);max-height:150px;min-height:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 auto;}',
+    '#lv2MxWrap th.stick,#lv2MxWrap td.stick{position:sticky;left:0;z-index:2;min-width:210px;max-width:260px;padding:6px 10px;text-align:left;}',
+    '#lv2MxWrap thead th.stick{z-index:4;}',
+    '#lv2MxWrap td.cell input{width:46px;border:none;background:transparent;color:var(--text);text-align:center;font-size:12px;font-family:var(--mono);padding:8px 2px;outline:none;}',
+    '#lv2MxWrap td.cell{text-align:center;}',
+    '#lv2MxWrap td.cell input:focus{background:rgba(96,165,250,.18);}',
+    '#lv2MxWrap td.cell.chg{background:rgba(251,191,36,.14);}',
+    '#lv2MxWrap td.cell.has{background:rgba(111,191,130,.07);}',
+    '.lv2mx-typ{font-size:8px;letter-spacing:.06em;text-transform:uppercase;font-weight:800;display:block;margin-top:4px;}',
+    '.lv2mx-typ.branded{color:#c084fc;}.lv2mx-typ.complementary{color:#60a5fa;}.lv2mx-typ.packing{color:#fb923c;}'
+  ].join('\n');
+  document.head.appendChild(st);
+})();
+
+/* ── RAPID RECIPE BUILDER ─────────────────────────────────────────────────── */
+let _lv2BulkAsin=null,_lv2BulkDraft=[],_lv2BulkDirty=false,_lv2SugList=[],_lv2SugIdx=0,_lv2NewN=0;
+
+function _lv2BulkBundles(){
+  // no-recipe bundles first (that's the work queue), then alphabetical
+  return lavAsins.filter(a=>!a.archived).slice().sort((a,b)=>{
+    const ra=lv2RecipeOf(a).length?1:0,rb=lv2RecipeOf(b).length?1:0;
+    if(ra!==rb)return ra-rb;
+    return (a.prod||'').localeCompare(b.prod||'');
+  });
+}
+function lv2OpenBulk(){
+  if(!lavAsins.filter(a=>!a.archived).length){toast('Add at least one Lavarion ASIN first','er');return;}
+  _lv2BulkAsin=null;_lv2BulkDraft=[];_lv2BulkDirty=false;
+  document.getElementById('lv2BulkInner').innerHTML=`
+   <div class="lv2-mh"><h3>⚡ Bulk Recipe Builder</h3><button class="lv2-mx" onclick="lv2BulkClose()">&#10005;</button></div>
+   <div style="display:grid;grid-template-columns:260px 1fr;min-height:62vh;max-height:72vh;">
+     <div id="lv2BulkList" style="border-right:1px solid var(--border);overflow-y:auto;padding:8px;"></div>
+     <div id="lv2BulkMain" style="overflow-y:auto;padding:14px 18px;position:relative;"></div>
+   </div>
+   <div class="lv2-mf">
+     <span id="lv2BulkProg" style="margin-right:auto;font-size:11px;color:var(--text3);"></span>
+     <button class="lv2-cancel" onclick="lv2BulkClose()">Done</button>
+     <button class="lv2-save" onclick="lv2BulkSaveNext()">Save &amp; next →</button>
+   </div>`;
+  om('lv2BulkOv');
+  const first=_lv2BulkBundles().find(a=>!lv2RecipeOf(a).length)||_lv2BulkBundles()[0];
+  lv2BulkSelect(first.asin);
+}
+function lv2BulkRenderList(){
+  const el=document.getElementById('lv2BulkList');if(!el)return;
+  const bundles=_lv2BulkBundles();
+  const done=bundles.filter(a=>lv2RecipeOf(a).length).length;
+  const prog=document.getElementById('lv2BulkProg');
+  if(prog)prog.textContent=done+' of '+bundles.length+' bundles have recipes';
+  el.innerHTML=bundles.map(a=>{
+    const n=(a.asin===_lv2BulkAsin)?_lv2BulkDraft.length:lv2RecipeOf(a).length;
+    return `<div class="lv2-bl-item ${a.asin===_lv2BulkAsin?'on':''}" onclick="lv2BulkSelect('${_lv2esc(a.asin)}')">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_lv2esc(a.prod||a.asin)}</span>
+      <span class="n ${n?'ok':''}">${n?n+' ✓':'—'}</span></div>`;
+  }).join('');
+}
+function lv2BulkCommit(){
+  // auto-save the current bundle's draft (called on navigation + close)
+  if(!_lv2BulkAsin||!_lv2BulkDirty)return;
+  const clean=_lv2BulkDraft.filter(r=>r.c&&(parseInt(r.q)||0)>0).map(r=>({c:r.c,q:parseInt(r.q)||1}));
+  if(clean.length)lv2Recipes[_lv2BulkAsin]=clean;else delete lv2Recipes[_lv2BulkAsin];
+  lv2Save();_lv2BulkDirty=false;
+  logAudit('Recipe saved (bulk builder)',_lv2BulkAsin+' — '+clean.length+' line'+(clean.length===1?'':'s'));
+}
+function lv2BulkSelect(asin){
+  lv2BulkCommit();
+  _lv2BulkAsin=asin;
+  _lv2BulkDraft=(lv2Recipes[asin]||[]).map(r=>({c:r.c,q:r.q}));
+  _lv2BulkDirty=false;
+  lv2BulkRenderMain();lv2BulkRenderList();
+  setTimeout(()=>{const s=document.getElementById('lv2BulkSearch');if(s)s.focus();},50);
+}
+function lv2BulkRenderMain(){
+  const a=lavAsins.find(x=>x.asin===_lv2BulkAsin);if(!a)return;
+  const others=lavAsins.filter(x=>!x.archived&&x.asin!==_lv2BulkAsin&&lv2RecipeOf(x).length);
+  document.getElementById('lv2BulkMain').innerHTML=`
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
+      <div style="font-size:15px;font-weight:800;color:var(--text);">${_lv2esc(a.prod||'')}</div>
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono);">${_lv2esc(a.asin)}</div>
+      ${others.length?`<select class="lv2-in" style="margin-left:auto;width:auto;font-size:11px;padding:4px 8px;" onchange="if(this.value)lv2BulkCopyFrom(this.value);this.value='';">
+        <option value="">Copy recipe from…</option>
+        ${others.map(o=>`<option value="${_lv2esc(o.asin)}">${_lv2esc(o.prod||o.asin)}</option>`).join('')}
+      </select>`:''}
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Type to find a component · <b>Enter</b> adds it · <b>Enter</b> again jumps back to search · Save &amp; next moves on. No match? Create it right here.</div>
+    <div style="position:relative;margin-bottom:14px;">
+      <input class="lv2-in" id="lv2BulkSearch" placeholder="Type component name — e.g. glove, ribbon, box…" autocomplete="off"
+        oninput="lv2BulkSug()" onkeydown="lv2BulkKey(event)" onblur="setTimeout(()=>{const b=document.getElementById('lv2BulkSugBox');if(b)b.style.display='none';},180)" onfocus="lv2BulkSug()">
+      <div class="lv2-sugbox" id="lv2BulkSugBox"></div>
+    </div>
+    <div id="lv2BulkLines"></div>`;
+  lv2BulkRenderLines();
+}
+function lv2BulkRenderLines(){
+  const el=document.getElementById('lv2BulkLines');if(!el)return;
+  if(!_lv2BulkDraft.length){el.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:8px;">No components yet — search above and press Enter to add the first one.</div>';return;}
+  const order={branded:0,complementary:1,packing:2};
+  const sorted=_lv2BulkDraft.slice().sort((x,y)=>{
+    const cx=lv2Comp(x.c),cy=lv2Comp(y.c);
+    return (order[(cx||{}).type]||0)-(order[(cy||{}).type]||0)||((cx||{}).name||'').localeCompare((cy||{}).name||'');
+  });
+  el.innerHTML=sorted.map(r=>{
+    const c=lv2Comp(r.c);if(!c)return'';
+    const i=_lv2BulkDraft.indexOf(r);
+    return `<div class="lv2-bline">
+      <span class="lv2-typ ${c.type}">${lv2TypeLabel(c.type)}</span>
+      <span class="nm">${_lv2esc(c.name)}${c.size?` <span class="lv2-size">${_lv2esc(c.size)}</span>`:''}</span>
+      <span style="font-size:10px;color:var(--text3);">qty / unit</span>
+      <input class="lv2-in" type="number" min="1" value="${r.q}" id="lv2blq-${i}"
+        oninput="_lv2BulkDraft[${i}].q=parseInt(this.value)||1;_lv2BulkDirty=true;"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('lv2BulkSearch').focus();}">
+      <button class="lv2-ghost" onclick="_lv2BulkDraft.splice(${i},1);_lv2BulkDirty=true;lv2BulkRenderLines();lv2BulkRenderList();">Remove</button>
+    </div>`;
+  }).join('');
+}
+function lv2BulkSug(){
+  const inp=document.getElementById('lv2BulkSearch');const box=document.getElementById('lv2BulkSugBox');
+  if(!inp||!box)return;
+  const raw=inp.value.trim(),q=raw.toLowerCase();
+  if(!q){box.style.display='none';box.innerHTML='';return;}
+  const inDraft=new Set(_lv2BulkDraft.map(r=>r.c));
+  _lv2SugList=lv2Components.filter(c=>!c.archived&&!inDraft.has(c.id)&&(c.name+' '+(c.size||'')).toLowerCase().includes(q)).slice(0,8);
+  _lv2SugIdx=0;
+  box.innerHTML=_lv2SugList.map((c,i)=>`<div class="lv2-sug ${i===0?'on':''}" onmousedown="event.preventDefault();lv2BulkAdd(${i});">
+      ${_lv2esc(c.name)}${c.size?' — '+_lv2esc(c.size):''}<span class="lv2-typ ${c.type}" style="margin-left:auto;">${lv2TypeLabel(c.type)}</span>
+    </div>`).join('')
+    +`<div class="lv2-sug create" onmousedown="event.preventDefault();lv2BulkCreateUI();">＋ Create "<b>&nbsp;${_lv2esc(raw)}&nbsp;</b>" as a new component…</div>`;
+  box.style.display='block';
+}
+function lv2BulkKey(e){
+  const box=document.getElementById('lv2BulkSugBox');
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault();
+    const n=_lv2SugList.length;if(!n)return;
+    _lv2SugIdx=(_lv2SugIdx+(e.key==='ArrowDown'?1:-1)+n)%n;
+    box.querySelectorAll('.lv2-sug').forEach((el,i)=>el.classList.toggle('on',i===_lv2SugIdx));
+  }else if(e.key==='Enter'){
+    e.preventDefault();
+    if(_lv2SugList.length)lv2BulkAdd(_lv2SugIdx);
+    else if(document.getElementById('lv2BulkSearch').value.trim())lv2BulkCreateUI();
+  }else if(e.key==='Escape'){box.style.display='none';}
+}
+function lv2BulkAdd(i){
+  const c=_lv2SugList[i];if(!c)return;
+  _lv2BulkDraft.push({c:c.id,q:1});_lv2BulkDirty=true;
+  const inp=document.getElementById('lv2BulkSearch');inp.value='';
+  document.getElementById('lv2BulkSugBox').style.display='none';
+  lv2BulkRenderLines();lv2BulkRenderList();
+  // focus the qty of the line we just added so Enter→qty→Enter flows fast
+  const idx=_lv2BulkDraft.length-1;
+  const qEl=document.getElementById('lv2blq-'+idx);
+  if(qEl){qEl.focus();qEl.select();}
+}
+function lv2BulkCreateUI(){
+  const raw=document.getElementById('lv2BulkSearch').value.trim();if(!raw)return;
+  const box=document.getElementById('lv2BulkSugBox');
+  box.innerHTML=`<div style="padding:10px 12px;font-size:12px;color:var(--text2);">Create <b style="color:var(--text);">${_lv2esc(raw)}</b> as:</div>
+    <div style="display:flex;gap:8px;padding:0 12px 12px;">
+      ${['branded','complementary','packing'].map(t=>`<button class="lv2-ghost" style="flex:1;" onmousedown="event.preventDefault();lv2BulkCreate('${t}');">${lv2TypeLabel(t)}</button>`).join('')}
+    </div>`;
+  box.style.display='block';
+}
+function lv2BulkCreate(type){
+  const raw=document.getElementById('lv2BulkSearch').value.trim();if(!raw)return;
+  const c={id:'c'+Date.now()+'_'+(++_lv2NewN),name:raw,type:type,supplier:'',caseQty:null,size:null,onHand:0,orders:[]};
+  lv2Components.push(c);
+  _lv2BulkDraft.push({c:c.id,q:1});_lv2BulkDirty=true;
+  document.getElementById('lv2BulkSearch').value='';
+  document.getElementById('lv2BulkSugBox').style.display='none';
+  lv2BulkRenderLines();lv2BulkRenderList();
+  toast('Component created: '+raw+' — set its stock later via the Components tab');
+  logAudit('Component added (bulk builder)',raw);
+  const qEl=document.getElementById('lv2blq-'+(_lv2BulkDraft.length-1));
+  if(qEl){qEl.focus();qEl.select();}
+}
+function lv2BulkCopyFrom(asin){
+  const src=lv2Recipes[asin]||[];if(!src.length)return;
+  const have=new Set(_lv2BulkDraft.map(r=>r.c));
+  src.forEach(r=>{if(!have.has(r.c))_lv2BulkDraft.push({c:r.c,q:r.q});});
+  _lv2BulkDirty=true;lv2BulkRenderLines();lv2BulkRenderList();
+  toast('Recipe copied — tweak quantities as needed');
+}
+function lv2BulkSaveNext(){
+  lv2BulkCommit();
+  const bundles=_lv2BulkBundles();
+  // next bundle without a recipe; if all have one, just advance down the list
+  let next=bundles.find(a=>a.asin!==_lv2BulkAsin&&!lv2RecipeOf(a).length);
+  if(!next){
+    const i=bundles.findIndex(a=>a.asin===_lv2BulkAsin);
+    next=bundles[i+1];
+  }
+  if(next)lv2BulkSelect(next.asin);
+  else{lv2BulkRenderList();toast('All bundles done ✓');}
+}
+function lv2BulkClose(){
+  lv2BulkCommit();
+  cm('lv2BulkOv');renderLavarion();
+}
+
+/* ── RECIPE MATRIX ────────────────────────────────────────────────────────── */
+let _lv2MxCols=[];   // component ids shown as columns (in display order)
+function _lv2MxSortCols(ids){
+  const order={branded:0,complementary:1,packing:2};
+  return ids.slice().sort((x,y)=>{
+    const a=lv2Comp(x),b=lv2Comp(y);
+    return (order[(a||{}).type]||0)-(order[(b||{}).type]||0)||((a||{}).name||'').localeCompare((b||{}).name||'');
+  });
+}
+function lv2OpenMatrix(){
+  const bundles=lavAsins.filter(a=>!a.archived);
+  if(!bundles.length){toast('Add at least one Lavarion ASIN first','er');return;}
+  const used=new Set();
+  bundles.forEach(a=>lv2RecipeOf(a).forEach(r=>{if(lv2Comp(r.c))used.add(r.c);}));
+  _lv2MxCols=_lv2MxSortCols([...used]);
+  document.getElementById('lv2MxInner').innerHTML=`
+    <div class="lv2-mh"><h3>▦ Recipe Matrix</h3><button class="lv2-mx" onclick="cm('lv2MxOv')">&#10005;</button></div>
+    <div class="lv2-mb" style="padding-bottom:8px;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <div style="font-size:11.5px;color:var(--text2);">Every bundle × every component in use. Edit quantities like a spreadsheet — blank = not in the recipe. <b>Enter</b> moves down the column.</div>
+        <select class="lv2-in" id="lv2MxAddCol" style="margin-left:auto;width:auto;font-size:11px;padding:4px 8px;" onchange="lv2MxAddColumn(this.value);this.value='';">
+          <option value="">+ Add column (component)…</option>
+        </select>
+      </div>
+      <div id="lv2MxWrap"></div>
+    </div>
+    <div class="lv2-mf">
+      <span id="lv2MxChg" style="margin-right:auto;font-size:11px;color:var(--text3);"></span>
+      <button class="lv2-cancel" onclick="cm('lv2MxOv')">Cancel</button>
+      <button class="lv2-save" onclick="lv2MxSave()">Save all changes</button>
+    </div>`;
+  lv2MxRenderTable();
+  lv2MxRefreshAddCol();
+  om('lv2MxOv');
+}
+function lv2MxRefreshAddCol(){
+  const sel=document.getElementById('lv2MxAddCol');if(!sel)return;
+  const shown=new Set(_lv2MxCols);
+  const opts=_lv2MxSortCols(lv2Components.filter(c=>!c.archived&&!shown.has(c.id)).map(c=>c.id));
+  sel.innerHTML='<option value="">+ Add column (component)…</option>'+opts.map(id=>{
+    const c=lv2Comp(id);return `<option value="${_lv2esc(id)}">${_lv2esc(c.name)}${c.size?' — '+_lv2esc(c.size):''} (${lv2TypeLabel(c.type)})</option>`;
+  }).join('');
+}
+function _lv2MxReadCells(){
+  // current unsaved cell values, keyed "asin␟compId" — survives table rebuilds
+  const vals={};
+  document.querySelectorAll('#lv2MxWrap td.cell input').forEach(inp=>{
+    vals[inp.dataset.a+'\u241f'+inp.dataset.c]=inp.value;
+  });
+  return vals;
+}
+function lv2MxAddColumn(id){
+  if(!id||_lv2MxCols.includes(id))return;
+  const keep=_lv2MxReadCells();
+  _lv2MxCols=_lv2MxSortCols(_lv2MxCols.concat([id]));
+  lv2MxRenderTable(keep);
+  lv2MxRefreshAddCol();
+}
+function lv2MxRenderTable(preserved){
+  const wrap=document.getElementById('lv2MxWrap');if(!wrap)return;
+  const bundles=lavAsins.filter(a=>!a.archived).slice().sort((a,b)=>(a.prod||'').localeCompare(b.prod||''));
+  if(!_lv2MxCols.length&&!lv2Components.filter(c=>!c.archived).length){
+    wrap.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">No components yet — add some via the ⚡ Recipe Builder or the Components tab first.</div>';return;
+  }
+  const head='<tr><th class="stick"><span style="font-size:10px;color:var(--text3);font-weight:700;">BUNDLE ↓ · COMPONENT →</span></th>'
+    +_lv2MxCols.map(id=>{const c=lv2Comp(id);if(!c)return'';
+      return `<th class="rot"><div title="${_lv2esc(c.name)}">${_lv2esc(c.name)}${c.size?' — '+_lv2esc(c.size):''}</div><span class="lv2mx-typ ${c.type}">${lv2TypeLabel(c.type).slice(0,4)}</span></th>`;}).join('')
+    +'</tr>';
+  const body=bundles.map((a,ri)=>{
+    const rec={};lv2RecipeOf(a).forEach(r=>rec[r.c]=r.q);
+    return '<tr><td class="stick"><div style="font-size:12px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+_lv2esc(a.prod||'')+'</div><div style="font-size:9.5px;color:var(--text3);font-family:var(--mono);">'+_lv2esc(a.asin)+'</div></td>'
+      +_lv2MxCols.map((id,ci)=>{
+        const key=a.asin+'\u241f'+id;
+        const orig=rec[id]!=null?String(rec[id]):'';
+        const val=preserved&&(key in preserved)?preserved[key]:orig;
+        return `<td class="cell ${val!==''?'has':''}"><input type="number" min="0" value="${_lv2esc(val)}" data-a="${_lv2esc(a.asin)}" data-c="${_lv2esc(id)}" data-orig="${_lv2esc(orig)}" data-r="${ri}" data-ci="${ci}"
+          oninput="lv2MxCellChg(this)" onkeydown="lv2MxCellKey(event,this)" onfocus="this.select()"></td>`;
+      }).join('')+'</tr>';
+  }).join('');
+  wrap.innerHTML='<table><thead>'+head+'</thead><tbody>'+body+'</tbody></table>';
+  // re-mark preserved-but-changed cells after a rebuild
+  wrap.querySelectorAll('td.cell input').forEach(inp=>lv2MxCellChg(inp,true));
+}
+function lv2MxCellChg(inp,silent){
+  const td=inp.closest('td');
+  const changed=inp.value!==inp.dataset.orig&&!(inp.value===''&&inp.dataset.orig==='');
+  td.classList.toggle('chg',changed);
+  td.classList.toggle('has',inp.value!==''&&parseInt(inp.value)>0);
+  if(!silent){
+    const n=document.querySelectorAll('#lv2MxWrap td.cell.chg').length;
+    const el=document.getElementById('lv2MxChg');
+    if(el)el.textContent=n?n+' unsaved change'+(n===1?'':'s'):'';
+  }
+}
+function lv2MxCellKey(e,inp){
+  if(e.key!=='Enter'&&e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
+  e.preventDefault();
+  const r=parseInt(inp.dataset.r)+(e.key==='ArrowUp'?-1:1);
+  const next=document.querySelector('#lv2MxWrap input[data-r="'+r+'"][data-ci="'+inp.dataset.ci+'"]');
+  if(next){next.focus();next.select();}
+}
+function lv2MxSave(){
+  const shown=new Set(_lv2MxCols);
+  const byAsin={};
+  document.querySelectorAll('#lv2MxWrap td.cell input').forEach(inp=>{
+    const q=parseInt(inp.value)||0;
+    if(q>0)(byAsin[inp.dataset.a]=byAsin[inp.dataset.a]||[]).push({c:inp.dataset.c,q:q});
+  });
+  let changes=0;
+  lavAsins.filter(a=>!a.archived).forEach(a=>{
+    const before=lv2RecipeOf(a);
+    // keep any recipe lines whose component ISN'T a matrix column (e.g. archived
+    // components) — the matrix must never silently drop what it doesn't show
+    const hidden=before.filter(r=>!shown.has(r.c));
+    const next=hidden.concat(byAsin[a.asin]||[]);
+    const norm=x=>x.map(r=>r.c+':'+r.q).sort().join('|');
+    if(norm(before)!==norm(next)){
+      changes++;
+      if(next.length)lv2Recipes[a.asin]=next;else delete lv2Recipes[a.asin];
+    }
+  });
+  if(!changes){toast('No changes to save');return;}
+  lv2Save();
+  cm('lv2MxOv');renderLavarion();
+  toast(changes+' bundle recipe'+(changes===1?'':'s')+' updated ✓');
+  logAudit('Recipe matrix save',changes+' bundles updated');
+}
+
+/* ── BULK ADD COMPONENTS ──────────────────────────────────────────────────────
+   One component per line, optional extra fields separated by comma or tab
+   (so a straight paste from Excel/Sheets works):
+     Name, on hand, case qty[, box size (packing only)]
+   The type picker applies to the whole batch — run it once per type.
+   Duplicates (name already exists, case-insensitive) are skipped and reported. */
+let _lv2BcType='complementary';
+function lv2OpenBulkComp(){
+  _lv2BcType='complementary';
+  document.getElementById('lv2CompInner').innerHTML=`
+   <div class="lv2-mh"><h3>⚡ Bulk add components</h3><button class="lv2-mx" onclick="cm('lv2CompOv')">&#10005;</button></div>
+   <div class="lv2-mb">
+    <div class="lv2-mrow"><label class="lv2-fl">Type — applies to every line below</label>
+     <div class="lv2-tpick" id="lv2BcTPick">${['branded','complementary','packing'].map(t=>`<button class="${t} ${t===_lv2BcType?'on':''}" onclick="lv2BcPickType('${t}')">${lv2TypeLabel(t)}</button>`).join('')}</div></div>
+    <div class="lv2-mrow"><label class="lv2-fl">One component per line</label>
+     <textarea class="lv2-in" id="lv2bc-txt" rows="10" style="min-height:190px;resize:vertical;font-family:var(--mono);font-size:12px;line-height:1.6;"
+       placeholder="Exfoliating glove&#10;Red ribbon, 250&#10;Thank-you card, 500, 100&#10;&#10;Format: Name, on hand, case qty — only the name is required.&#10;Paste from Excel works too (tabs are fine)." oninput="lv2BcPreview()"></textarea></div>
+    <div class="lv2-hint">Optional fields after the name: <b>on hand</b>, then <b>case qty</b>${''}<span id="lv2BcSizeHint" style="display:${_lv2BcType==='packing'?'':'none'};">, then <b>box size</b> (e.g. Box M1, 200, 50, Large — Hampers)</span>. Stock can always be fixed later on the Components tab.</div>
+    <div id="lv2BcPrev" style="margin-top:10px;"></div>
+   </div>
+   <div class="lv2-mf"><button class="lv2-cancel" onclick="lv2OpenCompForm(null)">← Single add</button>
+    <button class="lv2-cancel" onclick="cm('lv2CompOv')">Cancel</button>
+    <button class="lv2-save" id="lv2BcSaveB" onclick="lv2BcSave()" disabled style="opacity:.5;">Add components</button></div>`;
+  om('lv2CompOv');
+  setTimeout(()=>{const t=document.getElementById('lv2bc-txt');if(t)t.focus();},60);
+}
+function lv2BcPickType(t){
+  _lv2BcType=t;
+  document.querySelectorAll('#lv2BcTPick button').forEach(b=>b.classList.remove('on'));
+  const btn=document.querySelector('#lv2BcTPick button.'+t);if(btn)btn.classList.add('on');
+  const sh=document.getElementById('lv2BcSizeHint');if(sh)sh.style.display=t==='packing'?'':'none';
+  lv2BcPreview();
+}
+function lv2BcParse(){
+  const txt=(document.getElementById('lv2bc-txt')||{}).value||'';
+  const existing=new Set(lv2Components.filter(c=>!c.archived).map(c=>c.name.trim().toLowerCase()));
+  const seen=new Set(),ok=[],dups=[];
+  txt.split('\n').forEach(line=>{
+    const parts=line.split(/\t|,/).map(s=>s.trim());
+    const name=parts[0];
+    if(!name)return;
+    const key=name.toLowerCase();
+    if(existing.has(key)||seen.has(key)){dups.push(name);return;}
+    seen.add(key);
+    ok.push({
+      name:name,
+      onHand:Math.max(0,parseInt(parts[1])||0),
+      caseQty:parseInt(parts[2])>0?parseInt(parts[2]):null,
+      size:_lv2BcType==='packing'?(parts[3]||null):null
+    });
+  });
+  return{ok,dups};
+}
+function lv2BcPreview(){
+  const{ok,dups}=lv2BcParse();
+  const el=document.getElementById('lv2BcPrev');
+  const btn=document.getElementById('lv2BcSaveB');
+  if(btn){btn.disabled=!ok.length;btn.style.opacity=ok.length?'1':'.5';
+    btn.textContent=ok.length?`Add ${ok.length} component${ok.length===1?'':'s'}`:'Add components';}
+  if(!el)return;
+  if(!ok.length&&!dups.length){el.innerHTML='';return;}
+  let h='';
+  if(ok.length){
+    h+=`<div style="font-size:11px;color:#6fbf82;font-weight:700;margin-bottom:6px;">✓ ${ok.length} ready as ${lv2TypeLabel(_lv2BcType)}</div>
+     <div style="display:flex;flex-wrap:wrap;gap:5px;max-height:110px;overflow-y:auto;">
+      ${ok.map(c=>`<span style="font-size:10.5px;padding:3px 9px;border-radius:12px;background:rgba(111,191,130,.1);border:1px solid rgba(111,191,130,.3);color:var(--text2);">${_lv2esc(c.name)}${c.onHand?` · ${c.onHand}`:''}${c.caseQty?` · case ${c.caseQty}`:''}${c.size?` · ${_lv2esc(c.size)}`:''}</span>`).join('')}
+     </div>`;
+  }
+  if(dups.length){
+    h+=`<div style="font-size:11px;color:#fbbf24;font-weight:600;margin-top:8px;">⚠ Skipping ${dups.length} — already exist${dups.length===1?'s':''} (or repeated): ${dups.slice(0,6).map(_lv2esc).join(', ')}${dups.length>6?` +${dups.length-6} more`:''}</div>`;
+  }
+  el.innerHTML=h;
+}
+function lv2BcSave(){
+  const{ok,dups}=lv2BcParse();
+  if(!ok.length)return;
+  const base=Date.now();
+  ok.forEach((c,i)=>{
+    lv2Components.push({id:'c'+base+'_'+(++_lv2NewN),name:c.name,type:_lv2BcType,
+      supplier:'',caseQty:c.caseQty,size:c.size,onHand:c.onHand,orders:[]});
+  });
+  lv2Save();
+  cm('lv2CompOv');renderLavarion();
+  toast(ok.length+' component'+(ok.length===1?'':'s')+' added ✓'+(dups.length?' — '+dups.length+' duplicate'+(dups.length===1?'':'s')+' skipped':''));
+  logAudit('Components bulk-added',ok.length+' × '+lv2TypeLabel(_lv2BcType));
+}
+
 </script>
 
 </div><!-- /#appShell -->
