@@ -233,17 +233,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 
 /* ── STATS ── */
 .stats{display:flex;border-bottom:2px solid var(--accent);background:var(--bg2);flex-shrink:0;gap:6px;padding:8px;flex-wrap:wrap;}
-/* Dashboard activity widget — added counts + in-transit/arrived split */
-.pa-bar{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:8px;}
-.pa-title{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);}
-.pa-cells{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+/* Dashboard activity widget — added counts + in-transit/arrived split (condensed) */
+.pa-bar{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;gap:6px;}
+.pa-title{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);}
+.pa-cells{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
 @media(max-width:720px){.pa-cells{grid-template-columns:repeat(2,1fr);}}
-.pa-cell{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 14px;text-align:center;}
-.pa-cell .pa-lab{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);}
-.pa-cell .pa-u{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--text);line-height:1.15;}
-.pa-cell .pa-un{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-left:4px;}
-.pa-cell .pa-meta{font-size:10px;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:2px;}
-.pa-cell .pa-split{font-size:11px;font-variant-numeric:tabular-nums;margin-top:6px;line-height:1.6;}
+.pa-cell{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 12px;text-align:center;}
+.pa-cell .pa-lab{font-size:8.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);}
+.pa-cell .pa-u{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--text);line-height:1.1;}
+.pa-cell .pa-un{font-size:8.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-left:3px;}
+.pa-cell .pa-meta{font-size:9px;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:1px;}
+.pa-cell .pa-split{font-size:9.5px;font-variant-numeric:tabular-nums;margin-top:3px;}
 .pa-cell .pa-it{color:#5599ff;font-weight:700;}
 .pa-cell .pa-arr{color:#86efac;font-weight:700;}
 .pa-cell .pa-none{color:var(--text3);}
@@ -2485,11 +2485,11 @@ function renderActivityWidget(){
   });
   const anyDated=active.some(r=>r.createdISO);
   if(!anyDated){el.innerHTML='';return;}
-  const cell=(lab,b)=>`<div class="pa-cell">
+  const cell=(lab,b)=>`<div class="pa-cell" title="${lab} — added ${b.u} units · ${b.lines} SKU lines · ${b.asins.size} ASINs · ${fmtGBP2(b.cogv)} COG&#10;In transit: ${b.itU} units · ${fmtGBP2(b.itV)}&#10;Arrived: ${b.arrU} units · ${fmtGBP2(b.arrV)}">
      <div class="pa-lab">${lab}</div>
      <div class="pa-u">${b.u}<span class="pa-un">units</span></div>
-     <div class="pa-meta">${b.lines} SKU line${b.lines===1?'':'s'} · ${b.asins.size} ASIN${b.asins.size===1?'':'s'} · ${fmtGBP2(b.cogv)} COG</div>
-     <div class="pa-split">${b.u?`<span class="pa-it">In transit: ${b.itU} · ${fmtGBP2(b.itV)}</span><br><span class="pa-arr">Arrived: ${b.arrU} · ${fmtGBP2(b.arrV)}</span>`:'<span class="pa-none">nothing added</span>'}</div>
+     <div class="pa-meta">${b.lines} lines · ${b.asins.size} ASINs · ${fmtGBP2(b.cogv)}</div>
+     <div class="pa-split">${b.u?`<span class="pa-it">${b.itU} in transit</span> · <span class="pa-arr">${b.arrU} arrived</span>`:'<span class="pa-none">nothing added</span>'}</div>
    </div>`;
   el.innerHTML=`<div class="pa-bar">
      <div class="pa-title">Added to prep portal</div>
@@ -3889,9 +3889,6 @@ function renderDashboard(){
 
   w.innerHTML=`<div style="padding:12px;display:flex;flex-direction:column;gap:10px;">
 
-    <!-- Activity widget: added to prep portal -->
-    <div id="dashActivity"></div>
-
     <!-- ROW 1: 5 KPI tiles -->
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
 
@@ -4227,6 +4224,9 @@ function renderDashboard(){
       </div>
 
     </div>
+
+    <!-- Activity widget: added to prep portal (condensed, lower section) -->
+    <div id="dashActivity"></div>
 
   </div>`;
   renderActivityWidget();
@@ -10278,7 +10278,16 @@ function lv2PlanCalc(){
   if(typeof window.setSyncStatus==='function'){
     var _setSync=window.setSyncStatus;
     window.setSyncStatus=function(st){ var r=_setSync.apply(this,arguments);
-      if(st==='synced'){ try{ if(document.getElementById('lv2BundleBody')) renderLavarion(); }catch(e){} }
+      // Repaint ONLY when the Lavarion page is actually visible AND its table is
+      // empty (i.e. genuinely stale). Re-rendering on every 'synced' tick caused
+      // a flicker loop, since each save flips sync→synced→render→save…
+      if(st==='synced'){ try{
+        var pg=document.getElementById('page-lavarion');
+        var body=document.getElementById('lv2BundleBody');
+        if(pg&&pg.classList.contains('active')&&body&&body.childElementCount===0&&lavAsins.length){
+          renderLavarion();
+        }
+      }catch(e){} }
       return r; };
   }
 })();
