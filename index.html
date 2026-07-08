@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BDL PrepHub v1.10.0</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -30,7 +30,7 @@
   --sent-border:#148a3a;
   --sent-text:#aaffaa;
   --sent-text2:#77dd77;
-  --sans:'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --sans:'Geist','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
   --mono:'IBM Plex Mono',monospace;
 }
 
@@ -370,9 +370,9 @@ select.ci-sel option{background:var(--bg3);color:var(--text);font-weight:600;}
 .stack{display:flex;flex-direction:column;gap:3px;text-align:left;}
 .s-title{font-size:13px;font-weight:700;color:var(--text);cursor:pointer;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:5px;letter-spacing:0;text-rendering:auto;-webkit-font-smoothing:subpixel-antialiased;font-weight:700;}
 .s-title:hover{color:var(--accent);}
-.s-asin{font-size:12px;font-weight:700;color:var(--blue);font-family:Segoe UI, Roboto, Arial, sans-serif;cursor:pointer;display:flex;align-items:center;gap:5px;letter-spacing:0;text-rendering:auto;-webkit-font-smoothing:subpixel-antialiased;}
+.s-asin{font-size:12px;font-weight:700;color:var(--blue);font-family:var(--sans);cursor:pointer;display:flex;align-items:center;gap:5px;letter-spacing:0;text-rendering:auto;-webkit-font-smoothing:subpixel-antialiased;}
 .s-asin:hover{color:var(--accent);}
-.s-sku{font-size:11px;font-weight:700;color:var(--text2);font-family:Segoe UI, Roboto, Arial, sans-serif;cursor:pointer;display:flex;align-items:center;gap:5px;letter-spacing:0;text-rendering:auto;-webkit-font-smoothing:subpixel-antialiased;}
+.s-sku{font-size:11px;font-weight:700;color:var(--text2);font-family:var(--sans);cursor:pointer;display:flex;align-items:center;gap:5px;letter-spacing:0;text-rendering:auto;-webkit-font-smoothing:subpixel-antialiased;}
 .s-sku:hover{color:var(--accent);}
 .copy-ico{width:12px;height:12px;opacity:0;transition:opacity .15s;flex-shrink:0;}
 .s-title:hover .copy-ico,.s-asin:hover .copy-ico,.s-sku:hover .copy-ico{opacity:1;}
@@ -615,7 +615,7 @@ html.light-mode{
   --btn-sf-bg:#1e3a8a;--btn-sf-border:#1e3a8a;--btn-sf-text:#ffffff;
 }
 
-/* ══════════ LAVARION v2 — components & recipes ══════════ */
+/* ══════════ LAVARION v2 — components & component lists ══════════ */
 .lv2-cards{display:flex;gap:6px;padding:8px;flex-wrap:wrap;}
 .lv2-cards>.lv2-card{flex:1 1 150px;}
 @media(max-width:920px){.lv2-cards>.lv2-card{flex:1 1 calc(33.333% - 6px);}}
@@ -1077,18 +1077,23 @@ tr.lv2-recipe td{padding:0;background:var(--bg)!important;}
         <option value="shipped">Sort: Shipped 30d</option><option value="name">Sort: Name</option><option value="parts">Sort: Parts</option>
       </select>
       <button class="lv2-ghost" id="lv2PlanB" onclick="lv2OpenPlan()">Build planner</button>
-      <button class="lv2-ghost" id="lv2BulkB" onclick="lv2OpenBulk()">⚡ Recipe builder</button>
+      <button class="lv2-ghost" id="lv2BulkB" onclick="lv2OpenBulk()">Assign Components</button>
       <button class="lv2-ghost" id="lv2MxB" onclick="lv2OpenMatrix()">▦ Matrix</button>
       <button class="btn-add" id="lv2AddB" onclick="openAddLav()">+ Add Lavarion ASIN</button>
       <button class="btn-add" id="lv2AddC" onclick="lv2OpenCompForm(null)" style="display:none;">+ Add Component</button>
       <button class="lv2-ghost" id="lv2AddCB" onclick="lv2OpenBulkComp()" style="display:none;">⚡ Bulk add</button>
+      <button class="lv2-ghost" id="lv2DelB" onclick="lv2OpenDeliveries()" style="display:none;">📦 Deliveries</button>
+      <button class="lv2-ghost" id="lv2ReoB" onclick="lv2OpenReorder()" style="display:none;">🛒 Reorder</button>
+      <button class="lv2-ghost" id="lv2StkB" onclick="lv2OpenStocktake()" style="display:none;">📋 Stocktake</button>
     </div>
     <div class="lv2-content">
       <div id="lv2ViewB">
         <div class="lv2-chips" id="lv2Chips"></div>
+        <div id="lv2BulkBar" style="display:none;"></div>
         <div id="lv2Notice"></div>
         <div class="lv2-tbl"><table>
           <thead><tr>
+            <th style="width:38px;text-align:center;"><input type="checkbox" id="lv2BSelAll" title="Select all shown" onclick="lv2BSelAllToggle(this.checked)"></th>
             <th class="th-left" style="width:165px;">ASIN / SKU</th>
             <th class="th-left" style="width:300px;">Product Name</th>
             <th style="width:105px;">Shipped 30d</th>
@@ -1099,7 +1104,7 @@ tr.lv2-recipe td{padding:0;background:var(--bg)!important;}
             <th></th>
           </tr></thead>
           <tbody id="lv2BundleBody"></tbody></table></div>
-        <div class="lv2-hint">Click a bundle to unfold its recipe. Shipping here or from the Shipments page deducts the same components automatically.</div>
+        <div class="lv2-hint">Click a bundle to unfold its components. Shipping here or from the Shipments page deducts the same components automatically.</div>
       </div>
       <div id="lv2ViewC" style="display:none;">
         <div class="lv2-chips" id="lv2CompChips"></div>
@@ -1138,7 +1143,7 @@ tr.lv2-recipe td{padding:0;background:var(--bg)!important;}
           <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">DG box cost (£)</div><input type="number" step="0.01" id="pf-dgExtraPerBox" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Same as standard box (£1)</div></div>
           <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Oversize rate/unit (£)</div><input type="number" step="0.01" id="pf-osCostPerUnit" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Flat per OS unit</div></div>
           <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Bundle rate/unit (£)</div><input type="number" step="0.01" id="pf-bundleCostPerUnit" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Per bundled unit</div></div>
-          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Typical monthly volume</div><input type="number" step="100" id="pf-expectedMonthlyUnits" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Sets the rate for Today/Week estimates</div></div>
+          <div><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">Typical monthly volume</div><input type="number" step="100" id="pf-expectedMonthlyUnits" class="fi-in" style="font-family:var(--mono);"><div style="font-size:9px;color:var(--text3);">Sets the per-unit band for all prep estimates (Today, Week &amp; MTD) — your normal monthly volume</div></div>
         </div>
         <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
           <button onclick="saveSettingsPrepFees()" style="padding:6px 16px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">Save Rates</button>
@@ -1227,7 +1232,7 @@ tr.lv2-recipe td{padding:0;background:var(--bg)!important;}
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;">
         <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">Data Management</div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:14px;">Use these to clear trial data after testing. These actions are permanent and cannot be undone.</div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;flex-direction:column;gap:12px;">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);">
             <div>
               <div style="font-size:12px;font-weight:600;color:var(--text);">Clear All Prep Rows</div>
@@ -2128,7 +2133,7 @@ function renderStats(){
   const mk=(label,val,sub,col)=>`<div class="stat" style="border-top:3px solid ${col};">
     <div style="font-size:9px;font-weight:800;color:${col};text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">${label}</div>
     <div style="font-size:26px;font-weight:900;font-family:var(--mono);color:${col};line-height:1;">${val}</div>
-    <div style="font-size:10px;color:#64748b;margin-top:3px;">${sub}</div>
+    <div style="font-size:10px;color:#8b9bb3;margin-top:3px;">${sub}</div>
   </div>`;
 
   const lavWeekUnits=lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).reduce((a,s)=>a+(s.units||0),0);
@@ -3456,7 +3461,7 @@ function renderClaims(){
             <!-- Contact Log section -->
             <div style="border:1px solid rgba(255,255,255,.07);border-radius:6px;overflow:hidden;">
               <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,.04);border-bottom:${contactLog.length>0?'1px solid rgba(255,255,255,.07)':'none'};">
-                <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;">📋 Contact Log <span style="color:#475569;font-weight:600;">(${contactLog.length} entr${contactLog.length===1?'y':'ies'})</span></div>
+                <div style="font-size:9.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">📋 Contact Log <span style="color:#475569;font-weight:600;">(${contactLog.length} entr${contactLog.length===1?'y':'ies'})</span></div>
                 <button onclick="openClaimLog('${c.id}')" style="font-size:9px;padding:3px 8px;background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);color:#60a5fa;border-radius:4px;cursor:pointer;font-weight:700;">+ Add Entry</button>
               </div>
               ${contactLog.length>0?`<div style="padding:8px 12px;display:flex;flex-direction:column;gap:6px;">
@@ -3474,7 +3479,7 @@ function renderClaims(){
 
             <!-- Status control -->
             <div style="padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;">
-              <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Status</div>
+              <div style="font-size:9.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Status</div>
               <select class="ci-sel" onchange="updateClaimSt('${c.id}',this.value)" style="font-size:12px;padding:7px 10px;width:100%;font-weight:700;border-radius:5px;background:${statusCol}22;color:${statusCol};border:1px solid ${statusCol}55;">
                 ${['Needs Attention','Open','Chasing','Resolved'].map(s=>`<option${c.cst===s?' selected':''}>${s}</option>`).join('')}
               </select>
@@ -3751,7 +3756,18 @@ function renderDashboard(){
     const allIds=new Set([...stockShipIds,...lavShipIds]);
     return Array.from(allIds).reduce((t,sid)=>t+(shipBoxes[sid]||0),0);
   }
-  function boxesForRange(start,end){return Object.entries(shipBoxes).reduce((t,[sid,boxes])=>{const r=rows.find(x=>x.shipId===sid&&x.sentDate);if(!r)return t;const d=new Date(r.sentDate);return d>=start&&d<=end?t+(boxes||0):t;},0);}
+  function boxesForRange(start,end){
+    // Count boxes for every shipment sent in range — OA/stock AND Lavarion —
+    // so this matches the Weekly Activity table (which sums per-day boxes incl. Lavarion).
+    return Object.entries(shipBoxes).reduce((t,[sid,boxes])=>{
+      const r=rows.find(x=>x.shipId===sid&&x.sentDate);
+      const ls=lavShipments.find(x=>x.shipId===sid&&x.date);
+      const dISO=r?r.sentDate:(ls?ls.date:null);
+      if(!dISO)return t;
+      const d=new Date(dISO);
+      return d>=start&&d<=end?t+(boxes||0):t;
+    },0);
+  }
   const todayBoxes=boxesForDate(todayStr);
   const ydBoxes=boxesForDate(yesterdayStr);
   const weekBoxes=boxesForRange(ws,we);
@@ -3828,7 +3844,7 @@ function renderDashboard(){
     const ships=dayShipIds.size;
     const boxes=Array.from(dayShipIds).reduce((t,sid)=>t+(shipBoxes[sid]||0),0);
     const isFuture=ds>todayStr;
-    weekDays.push({day:dayNames[i],ds,units:dayRoll.units,skus:dayRoll.skus,asins:dayRoll.asins,ships,boxes,isToday:ds===todayStr,isFuture});
+    weekDays.push({day:dayNames[i],ds,units:dayRoll.units,skus:dayRoll.skus,asins:dayRoll.asins,ships,boxes,cog:dayRoll.value||0,isToday:ds===todayStr,isFuture});
   }
 
   // Last week totals for comparison — clone ws/we properly
@@ -3850,7 +3866,7 @@ function renderDashboard(){
     const pct=Math.abs(Math.round(diff/prev*100));
     const col=diff>0?'#55ff55':diff<0?'#ff5555':'var(--text3)';
     const arrow=diff>0?'↑':diff<0?'↓':'→';
-    return`<span style="color:${col};font-size:8px;font-weight:700;">${arrow}${pct}%</span>`;
+    return`<span style="color:${col};font-size:9px;font-weight:700;">${arrow}${pct}%</span>`;
   }
 
   // ── DASHBOARD CONSTANTS ──────────────────────────────────────────────────────
@@ -3859,25 +3875,28 @@ function renderDashboard(){
              sku:'#60a5fa',asin:'#c084fc',box:'#fb923c',ship:'#34d399',cog:'#fbbf24'};
 
   // Centred KPI tile — hero units top, £ second, then stat pills
-  const kTile=(title,col,units,unitLabel,gbp,gbpLabel,pills,badge,badgeCol)=>`
-    <div style="background:var(--bg2);border:1px solid ${col}33;border-top:3px solid ${col};border-radius:8px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:0;">
-      <div style="font-size:8px;font-weight:800;color:${col};text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
-        ${title}${badge?`<span style="font-size:14px;color:${badgeCol||col};">${badge}</span>`:''}
+  const kTile=(title,col,units,unitLabel,gbp,gbpLabel,pills,badge,badgeCol,onClick)=>`
+    <div ${onClick?`onclick="${onClick}" role="button" tabindex="0" onkeydown="if(event.key==='Enter'){${onClick}}"`:''} style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 12px 10px;box-shadow:0 2px 10px rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;text-align:center;gap:0;position:relative;${onClick?'cursor:pointer;':''}" ${onClick?'onmouseover="this.style.borderColor=\''+col+'88\'" onmouseout="this.style.borderColor=\'var(--border)\'"':''}>
+      <span style="position:absolute;top:0;left:14px;right:14px;height:2px;background:${col};opacity:.5;border-radius:0 0 3px 3px;"></span>
+      <div style="font-size:10px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;display:flex;align-items:center;gap:5px;">
+        ${title}${onClick?'<span style="font-size:10px;color:#9aa7ba;">▾</span>':''}${badge?`<span style="font-size:14px;color:${badgeCol||col};">${badge}</span>`:''}
       </div>
-      <div style="font-size:34px;font-weight:900;color:${col};font-family:var(--mono);line-height:1;">${units}</div>
-      <div style="font-size:9px;color:${col};opacity:.7;margin:2px 0 6px;">${unitLabel}</div>
-      <div style="font-size:16px;font-weight:800;color:${GOLD};font-family:var(--mono);margin-bottom:8px;">${gbp}</div>
-      <div style="font-size:8px;color:#64748b;margin-bottom:8px;">${gbpLabel}</div>
+      <div style="font-size:36px;font-weight:900;color:${col};font-family:var(--mono);line-height:1;">${units}</div>
+      <div style="font-size:10px;color:#aeb9c9;margin:3px 0 8px;">${unitLabel}</div>
+      <div style="font-size:16px;font-weight:800;color:${GOLD};font-family:var(--mono);margin-bottom:2px;">${gbp}</div>
+      <div style="font-size:9px;color:#aeb9c9;margin-bottom:10px;">${gbpLabel}</div>
       <div style="width:100%;display:flex;flex-direction:column;gap:0;">
         ${pills}
       </div>
     </div>`;
 
-  const pill=(label,val,col)=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 8px;background:rgba(255,255,255,.04);border-radius:4px;margin-bottom:2px;">
-      <span style="font-size:10px;color:#94a3b8;font-weight:500;">${label}</span>
-      <span style="font-size:12px;font-weight:700;font-family:var(--mono);color:${col};">${val}</span>
-    </div>`;
+  const _pillSemantic=[GOLD,'#4ade80','#f87171','#fb923c','#22c55e','#ef4444'];
+  const pill=(label,val,col)=>{
+    const vc=_pillSemantic.includes(col)?col:'#cbd5e1';   // neutralise decorative colours
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 8px;background:rgba(255,255,255,.03);border-radius:4px;margin-bottom:2px;">
+      <span style="font-size:11px;color:#aeb9c9;font-weight:500;">${label}</span>
+      <span style="font-size:12px;font-weight:700;font-family:var(--mono);color:${vc};">${val}</span>
+    </div>`;};
 
   loadPrepFees();
 
@@ -3889,7 +3908,7 @@ function renderDashboard(){
   const mtdSentLav=lavShipments.filter(s=>s.date&&s.date>=mss&&s.date<=mes);
   const mtdShipIds=new Set([...mtdSentRows.filter(r=>r.shipId).map(r=>r.shipId),...mtdSentLav.filter(s=>s.shipId).map(s=>s.shipId)]);
   const mtdBoxMap=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>mtdShipIds.has(sid)));
-  const prepCost=calcImpliedPrepCost(mtdSentRows,mtdSentLav,mtdBoxMap);
+  const prepCost=calcImpliedPrepCost(mtdSentRows,mtdSentLav,mtdBoxMap,prepFees.expectedMonthlyUnits);
 
   // Per-shipment costs this week
   function calcShipmentPrepCost(shipId){
@@ -3960,6 +3979,13 @@ function renderDashboard(){
   // ── SENT MIX (week + month, mutually-exclusive buckets) ──────────────────────
   const mixWeek=calcSentMix(ws,we);
   const mixMonth=calcSentMix(ms,me);
+  // Reconcile the mix to the canonical sent totals: OA units sent without a
+  // shipId/type default to Standard, so fold any remainder in rather than
+  // letting the bar under-count vs the Sent-this-week / month tiles.
+  (function(){
+    const wkRem=weekTotal.units-mixWeek.total; if(wkRem>0){mixWeek.std+=wkRem;mixWeek.total=weekTotal.units;}
+    const moRem=monthRoll.units-mixMonth.total; if(moRem>0){mixMonth.std+=moRem;mixMonth.total=monthRoll.units;}
+  })();
 
   // ── MONTH PACE / HEALTH ──────────────────────────────────────────────────────
   // Project the month-end pace from what's gone out so far and compare it to the
@@ -3999,7 +4025,7 @@ function renderDashboard(){
   w.innerHTML=`<div style="padding:12px;display:flex;flex-direction:column;gap:10px;">
 
     <!-- ROW 1: 5 KPI tiles -->
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
 
       ${kTile('In Transit',COL.transit,
         fmt(transit.units),'units in transit',
@@ -4033,88 +4059,150 @@ function renderDashboard(){
         fmt(mtdUnits),'units sent this month',
         fmtGBP2(mtdCOG),'COG value sent',
         pill('Shipments',fmt(mtdShipCount),COL.ship)+pill('SKUs',fmt(mtdSkus),COL.sku)+pill('ASINs',fmt(mtdAsins),COL.asin)+pill('Boxes',fmt(mtdBoxesCount),COL.box)+pill('Prep Days',fmt(mtdPrepDays),'#34d399')+(prepCost.totalUnits>0?pill('Prep cost',fmtGBP2(prepCost.withVat),GOLD):''),
-        '','')
+        '','','openMonthHistory()')
       }
     </div>
 
     <!-- ROW 2: Equal 3-col tetris — weekly+stock | type+pipeline+claims+ops | stuck -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:start;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:start;">
 
       <!-- Col 1: Weekly Activity + Stock vs Lavarion -->
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Weekly Activity</div>
-          <div style="display:grid;grid-template-columns:24px 1fr 44px 40px 36px 44px 32px;font-size:8px;color:#475569;font-weight:700;text-transform:uppercase;padding:0 2px 4px;border-bottom:1px solid var(--border);">
-            <span></span><span>Day</span><span style="text-align:right;">Units</span><span style="text-align:right;">SKUs</span><span style="text-align:right;">Ships</span><span style="text-align:right;">ASINs</span><span style="text-align:right;">Box</span>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-size:12px;font-weight:700;color:#f1f5f9;letter-spacing:.01em;">Weekly Activity</div>
+            <div style="font-size:11px;color:#9aa7ba;">${weekDays.filter(d=>!d.isFuture&&d.units>0).length} active day${weekDays.filter(d=>!d.isFuture&&d.units>0).length===1?'':'s'}</div>
           </div>
-          ${weekDays.map(d=>{
-            const isT=d.isToday,isF=d.isFuture,isW=d.day==='Sat'||d.day==='Sun';
-            const dc=isF?'#334155':isT?COL.today:isW?'#334155':'#94a3b8';
-            const sk=d.skus;
-            const as=d.asins;
-            return`<div style="display:grid;grid-template-columns:24px 1fr 44px 40px 36px 44px 32px;padding:3px 2px;background:${isT?'rgba(74,222,128,.07)':'transparent'};border-radius:3px;align-items:center;${isW?'opacity:.3':''}">
-              <div style="font-size:7px;color:${isT?COL.today:'transparent'};font-weight:700;">NOW</div>
-              <div style="font-size:10px;font-weight:${isT?'800':'500'};color:${dc};">${d.day}</div>
-              <div style="font-size:10px;font-family:var(--mono);font-weight:700;color:${isF?'#1e293b':d.units>0?COL.today:'#334155'};text-align:right;">${isF?'—':d.units||'—'}</div>
-              <div style="font-size:10px;font-family:var(--mono);color:${isF?'#1e293b':sk>0?COL.sku:'#334155'};text-align:right;">${isF?'—':sk||'—'}</div>
-              <div style="font-size:10px;font-family:var(--mono);color:${isF?'#1e293b':d.ships>0?COL.ship:'#334155'};text-align:right;">${isF?'—':d.ships||'—'}</div>
-              <div style="font-size:10px;font-family:var(--mono);color:${isF?'#1e293b':as>0?COL.asin:'#334155'};text-align:right;">${isF?'—':as||'—'}</div>
-              <div style="font-size:10px;font-family:var(--mono);color:${isF?'#1e293b':d.boxes>0?COL.box:'#334155'};text-align:right;">${isF?'—':d.boxes||'—'}</div>
-            </div>`;
-          }).join('')}
           ${(()=>{
-            const act=weekDays.filter(d=>!d.isFuture);
-            const tU=act.reduce((a,d)=>a+d.units,0),tSh=act.reduce((a,d)=>a+d.ships,0),tBx=act.reduce((a,d)=>a+d.boxes,0);
-            const tSk=act.reduce((a,d)=>a+d.skus,0);
-            const tAs=weekRoll.asins; // unique ASINs across the week (matches the This Week tile)
-            const lw=lwTotal.units>0||lwSkus>0;
-            return`<div style="border-top:2px solid var(--border);margin-top:3px;padding-top:3px;">
-              <div style="display:grid;grid-template-columns:24px 1fr 44px 40px 36px 44px 32px;padding:3px 2px;">
-                <div></div><div style="font-size:9px;font-weight:800;color:var(--accent);">TOTAL</div>
-                <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:${COL.today};text-align:right;">${fmt(tU)}</div>
-                <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:${COL.sku};text-align:right;">${tSk}</div>
-                <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:${COL.ship};text-align:right;">${tSh}</div>
-                <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:${COL.asin};text-align:right;">${tAs}</div>
-                <div style="font-size:10px;font-family:var(--mono);font-weight:800;color:${COL.box};text-align:right;">${tBx}</div>
-              </div>
-              ${lw?`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-top:4px;">
-                ${[['Units',tU,lwTotal.units,COL.today],['SKUs',tSk,lwSkus,COL.sku],['Ships',tSh,lwShipments,COL.ship],['ASINs',tAs,lwAsins,COL.asin],['Boxes',tBx,lwBoxes,COL.box]].map(([l,cur,prv,col])=>{
-                  const dd=cur-prv,p=prv?Math.abs(Math.round(dd/prv*100)):0,ac=dd>0?COL.today:dd<0?'#f87171':'#64748b',ar=dd>0?'↑':dd<0?'↓':'→';
-                  return`<div style="background:var(--bg3);border-radius:3px;padding:3px;text-align:center;"><div style="font-size:7px;color:#475569;">${l}</div><div style="font-size:10px;font-family:var(--mono);font-weight:700;color:${col};">${fmt(cur)}</div><div style="font-size:8px;color:${ac};font-weight:700;">${ar}${p}%</div></div>`;
-                }).join('')}
-              </div>`:`<div style="font-size:8px;color:#334155;text-align:center;padding:4px 0;">No last week data yet</div>`}
+            // Cohesive, slightly-muted palette. Each metric keeps ONE consistent
+            // colour identity (so colour = meaning, not decoration) — lively but
+            // not neon, and no glows/gradients beyond today's accent bar.
+            const AC='#38bdf8', COG='#34d399', SKU='#818cf8', SHIP='#f472b6', BOX='#fbbf24';
+            const TXT='#e8edf4', DIM='#94a3b8', FAINT='#5c6675', LINE='rgba(255,255,255,.06)';
+            const wmax=Math.max(...weekDays.filter(d=>!d.isFuture).map(d=>d.units),1);
+            const daysHtml=weekDays.map(d=>{
+              const isT=d.isToday,isF=d.isFuture,isW=d.day==='Sat'||d.day==='Sun';
+              if(isF||(isW&&d.units===0)){
+                return `<div style="display:flex;align-items:center;gap:12px;padding:9px 2px;border-bottom:1px solid ${LINE};">
+                  <span style="width:40px;font-size:12px;font-weight:600;color:${FAINT};">${d.day}</span>
+                  <span style="flex:1;font-size:11px;color:${FAINT};">${isF?'upcoming':'no activity'}</span>
+                  <span style="font-size:12px;font-family:var(--mono);color:${FAINT};">\u2014</span></div>`;
+              }
+              const bar=Math.max(3,Math.round(d.units/wmax*100));
+              return `<div style="display:flex;align-items:center;gap:13px;padding:10px 4px;border-radius:8px;margin-bottom:2px;${isT?'background:rgba(56,189,248,.07);':''}border-bottom:1px solid ${LINE};">
+                <span style="width:42px;font-size:12.5px;font-weight:${isT?'700':'600'};color:${isT?AC:TXT};line-height:1.15;">${d.day}${isT?'<span style="display:block;font-size:8.5px;font-weight:800;color:'+AC+';letter-spacing:.06em;">TODAY</span>':''}</span>
+                <div style="flex:1;">
+                  <div style="height:8px;border-radius:4px;background:rgba(255,255,255,.05);overflow:hidden;margin-bottom:6px;">
+                    <div style="width:${bar}%;height:100%;border-radius:4px;background:${isT?'linear-gradient(90deg,#38bdf8,#0ea5e9)':'rgba(56,189,248,.45)'};"></div>
+                  </div>
+                  <div style="font-size:11.5px;color:#c3cde0;display:flex;gap:14px;">
+                    <span style="color:${COG};font-weight:600;">${fmtGBP2(d.cog)}</span>
+                    <span><span style="color:${SKU};font-weight:700;">${d.skus}</span> SKUs</span>
+                    <span><span style="color:${SHIP};font-weight:700;">${d.ships}</span> ships</span>
+                    <span><span style="color:${BOX};font-weight:700;">${d.boxes}</span> boxes</span>
+                  </div>
+                </div>
+                <span style="font-size:16px;font-family:var(--mono);font-weight:800;color:${isT?AC:TXT};min-width:46px;text-align:right;">${fmt(d.units)}</span>
+              </div>`;
+            }).join('');
+
+            const act=weekDays.filter(d=>!d.isFuture&&d.units>0);
+            const nD=act.length||1;
+            const tU=act.reduce((a,d)=>a+d.units,0),tSh=act.reduce((a,d)=>a+d.ships,0),tBx=act.reduce((a,d)=>a+d.boxes,0),tSk=act.reduce((a,d)=>a+d.skus,0),tCog=act.reduce((a,d)=>a+d.cog,0),tAs=weekRoll.asins;
+            const best=act.slice().sort((a,b)=>b.units-a.units)[0];
+
+            const avgCard=(label,val,col)=>`<div style="flex:1;background:rgba(255,255,255,.025);border:1px solid ${LINE};border-radius:8px;padding:9px 6px;text-align:center;">
+              <div style="font-size:10px;color:${DIM};text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">${label}</div>
+              <div style="font-size:15px;font-family:var(--mono);font-weight:800;color:${col};line-height:1;">${val}</div>
             </div>`;
-          })()}
+
+            const lw=lwTotal.units>0||lwSkus>0;
+            const cmp=(l,cur,prv,col,ff)=>{
+              const f=ff||fmt;
+              const dd=cur-prv,p=prv?Math.abs(Math.round(dd/prv*100)):0;
+              const ac=dd>0?'#4ade80':dd<0?'#f87171':FAINT,ar=dd>0?'\u25b2':dd<0?'\u25bc':'\u2013';
+              return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid ${LINE};">
+                <span style="font-size:12px;color:#c3cde0;width:58px;">${l}</span>
+                <span style="font-size:13px;font-family:var(--mono);font-weight:800;color:${col};flex:1;text-align:right;padding-right:10px;">${f(cur)}</span>
+                <span style="font-size:11.5px;color:#b6c2d4;font-family:var(--mono);width:64px;text-align:right;">${f(prv)}</span>
+                <span style="font-size:11px;font-weight:700;color:${ac};width:56px;text-align:right;">${ar} ${p}%</span>
+              </div>`;
+            };
+            // Pace vs last week — projects this week's total from days elapsed so far
+            const elapsedD=weekDays.filter(d=>!d.isFuture).length||1;
+            const projU=Math.round(tU/elapsedD*7);
+            const paceR=lwTotal.units?projU/lwTotal.units:1;
+            const pace=lw?(paceR>=1.05?{t:'Ahead of last week',c:'#4ade80',ar:'\u25b2'}:paceR<=0.95?{t:'Behind last week',c:'#f87171',ar:'\u25bc'}:{t:'On pace with last week',c:'#7dd3fc',ar:'\u2192'}):null;
+
+            return `<div style="margin-bottom:16px;">${daysHtml}</div>
+
+            <div style="background:linear-gradient(135deg,rgba(56,189,248,.06),rgba(52,211,153,.04));border:1px solid rgba(56,189,248,.14);border-radius:10px;padding:14px 15px;margin-bottom:14px;">
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;">
+                <div>
+                  <div style="font-size:10px;font-weight:700;color:#7dd3fc;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Week so far</div>
+                  <div style="font-size:28px;font-family:var(--mono);font-weight:900;color:${TXT};line-height:1;">${fmt(tU)}<span style="font-size:12px;color:${DIM};font-weight:500;margin-left:6px;">units</span></div>
+                  ${pace?`<div style="font-size:11px;font-weight:600;color:${pace.c};margin-top:7px;">${pace.ar} ${pace.t} <span style="color:${FAINT};font-weight:500;">\u00b7 projecting ~${fmt(projU)}</span></div>`:''}
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:10px;color:${DIM};text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">COG value</div>
+                  <div style="font-size:17px;font-family:var(--mono);font-weight:800;color:${COG};line-height:1;">${fmtGBP2(tCog)}</div>
+                  ${best?`<div style="font-size:10.5px;color:${FAINT};margin-top:6px;">Best: <span style="color:${DIM};">${best.day} \u00b7 ${fmt(best.units)}</span></div>`:''}
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                ${avgCard('Units/day',fmt(Math.round(tU/nD)),AC)}
+                ${avgCard('COG/day',fmtGBP2(tCog/nD),COG)}
+                ${avgCard('Boxes/day',(tBx/nD).toFixed(1),BOX)}
+                ${avgCard('Ships/day',(tSh/nD).toFixed(1),SHIP)}
+              </div>
+            </div>
+
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;">
+                <span style="font-size:10px;font-weight:700;color:#b6c2d4;text-transform:uppercase;letter-spacing:.07em;">This week vs last</span>
+                <div style="display:flex;font-size:9px;color:${FAINT};text-transform:uppercase;letter-spacing:.04em;">
+                  <span style="width:52px;text-align:right;">now</span><span style="width:52px;text-align:right;">last</span><span style="width:56px;text-align:right;">change</span>
+                </div>
+              </div>
+              ${lw?cmp('Units',tU,lwTotal.units,AC)+cmp('COG',tCog,lwTotal.value,COG,fmtGBP2)+cmp('SKUs',tSk,lwSkus,SKU)+cmp('Ships',tSh,lwShipments,SHIP)+cmp('ASINs',tAs,lwAsins,'#38bdf8')+cmp('Boxes',tBx,lwBoxes,BOX)
+                :`<div style="font-size:11px;color:${FAINT};text-align:center;padding:10px 0;">No last-week data to compare yet</div>`}
+            </div>`})()}
         </div>
 
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Stock vs Lavarion</div>
-          ${[['Stock',weekStock.units,weekStock.value,COL.sku],['Lavarion',weekLav.units,weekLav.value,COL.asin],['Total',weekTotal.units,weekTotal.value,'#e2e8f0']].map(([l,u,v,col])=>`
-            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);">
-              <span style="font-size:11px;color:${col};font-weight:${l==='Total'?'800':'600'};">${l}</span>
-              <span style="font-size:11px;font-family:var(--mono);font-weight:800;color:${col};">${fmt(u)} <span style="font-size:9px;color:${GOLD};">${fmtGBP2(v)}</span></span>
-            </div>`).join('')}
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
+          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Stock vs Lavarion</div>
+          ${(()=>{const stockU=Math.max(0,weekTotal.units-weekLav.units-(weekRet.units||0));const den=(stockU+weekLav.units)||1;const sPc=stockU/den*100,lPc=weekLav.units/den*100;
+            return `<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.06);margin-bottom:10px;">
+              ${sPc>0?`<div title="Stock (OA) ${fmt(stockU)}" style="width:${sPc}%;background:${COL.sku};"></div>`:''}
+              ${lPc>0?`<div title="Lavarion ${fmt(weekLav.units)}" style="width:${lPc}%;background:${COL.asin};"></div>`:''}
+            </div>`
+            +[['Stock (OA)',stockU,weekStock.value,COL.sku],['Lavarion',weekLav.units,weekLav.value,COL.asin],['Total',weekTotal.units,weekTotal.value,'#e6ecf5']].map(([l,u,v,col])=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+              <span style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:${col};font-weight:${l==='Total'?'800':'700'};">${l==='Total'?'':`<span style="width:8px;height:8px;border-radius:2px;background:${col};"></span>`}${l}</span>
+              <span style="font-size:12px;font-family:var(--mono);font-weight:800;color:${col};">${fmt(u)} <span style="font-size:10.5px;color:${GOLD};">${fmtGBP2(v)}</span></span>
+            </div>`).join('');})()}
         </div>
 
         <!-- Implied Prep Cost MTD -->
-        <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:12px 14px;">
-          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Implied Prep Cost — MTD</div>
+        <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
+          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Implied Prep Cost — MTD</div>
           <div style="font-size:28px;font-weight:900;color:${GOLD};font-family:var(--mono);line-height:1;">${fmtGBP2(prepCost.withVat)}</div>
-          <div style="font-size:10px;color:#cbd5e1;margin-bottom:10px;">inc. VAT · ${fmtGBP2(prepCost.subtotal)} ex. VAT</div>
+          <div style="font-size:11px;color:#cbd5e1;margin-bottom:10px;">inc. VAT · ${fmtGBP2(prepCost.subtotal)} ex. VAT</div>
 
           <!-- Volume rate breakdown -->
-          <div style="font-size:8px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Unit rate (volume-based, ex. VAT)</div>
+          <div style="font-size:9px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Unit rate (volume-based, ex. VAT)</div>
           ${(()=>{
             const rateStr=prepCost.unitRate<1?(prepCost.unitRate*100).toFixed(0)+'p':fmtGBP2(prepCost.unitRate);
             return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
-                <span style="font-size:10px;color:#cbd5e1;">${fmt(prepCost.tieredUnits)} units × ${rateStr} <span style="font-size:8px;color:#64748b;">(volume band ${prepCost.unitRateBand})</span></span>
+                <span style="font-size:11px;color:#cbd5e1;">${fmt(prepCost.tieredUnits)} units so far × ${rateStr}/unit</span>
+              <div style="font-size:10px;color:#aeb9c9;margin-top:3px;line-height:1.5;">${rateStr}/unit is your <b style="color:#aeb9c9;">${fmt(prepFees.expectedMonthlyUnits)}/mo</b> price band (${prepCost.unitRateBand} units). Priced at your normal monthly volume so the rate doesn’t jump early in the month before you’ve shipped much.</div>
                 <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(prepCost.baseCost)}</span>
               </div>`;
           })()}
 
           <!-- Extras -->
           ${(prepCost.osCost>0||prepCost.bundleCost>0||prepCost.boxCostTotal>0||prepCost.dgExtra>0)?`
-          <div style="font-size:8px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px;">Extras (ex. VAT)</div>`:''}
+          <div style="font-size:9px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px;">Extras (ex. VAT)</div>`:''}
           ${[
             ...(prepCost.osCost>0?[[prepCost.osUnits+' OS units × £'+prepFees.osCostPerUnit+'/unit',fmtGBP2(prepCost.osCost),'#fb923c']]:[]),
             ...(prepCost.bundleCost>0?[[prepCost.bundleUnits+' bundle units × £'+prepFees.bundleCostPerUnit+'/unit',fmtGBP2(prepCost.bundleCost),'#34d399']]:[]),
@@ -4122,19 +4210,19 @@ function renderDashboard(){
             ...(prepCost.dgExtra>0?[[prepCost.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox+'/box (DG rate)',fmtGBP2(prepCost.dgExtra),'#f87171']]:[]),
           ].map(([l,v,col])=>`
             <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
-              <span style="font-size:10px;color:#cbd5e1;">${l}</span>
+              <span style="font-size:11px;color:#cbd5e1;">${l}</span>
               <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span>
             </div>`).join('')}
 
           <!-- Subtotal + VAT + Total -->
           <div style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.1);">
             <div style="display:flex;justify-content:space-between;padding:2px 0;">
-              <span style="font-size:10px;color:#94a3b8;">Subtotal ex. VAT</span>
-              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#94a3b8;">${fmtGBP2(prepCost.subtotal)}</span>
+              <span style="font-size:11px;color:#b6c2d4;">Subtotal ex. VAT</span>
+              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#b6c2d4;">${fmtGBP2(prepCost.subtotal)}</span>
             </div>
             <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.08);">
-              <span style="font-size:10px;color:#94a3b8;">VAT 20%</span>
-              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#94a3b8;">${fmtGBP2((prepCost.withVat-prepCost.subtotal))}</span>
+              <span style="font-size:11px;color:#b6c2d4;">VAT 20%</span>
+              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#b6c2d4;">${fmtGBP2((prepCost.withVat-prepCost.subtotal))}</span>
             </div>
             <div style="display:flex;justify-content:space-between;padding:4px 0;margin-top:2px;">
               <span style="font-size:11px;font-weight:800;color:#fbbf24;">Total inc. VAT</span>
@@ -4147,54 +4235,55 @@ function renderDashboard(){
             const todayCost=dayPrepCosts[todayStr];
             if(!activeDays)return'';
             return`<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);">
-              ${todayCost&&todayCost.totalUnits>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:9px;color:#cbd5e1;">Today's cost inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(todayCost.withVat)}</span></div>`:''}
-              <div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:9px;color:#cbd5e1;">Cost per prep day inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2((prepCost.withVat/activeDays))}</span></div>
+              ${todayCost&&todayCost.totalUnits>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:10px;color:#cbd5e1;">Today's cost inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(todayCost.withVat)}</span></div>`:''}
+              <div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:10px;color:#cbd5e1;">Cost per prep day inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2((prepCost.withVat/activeDays))}</span></div>
             </div>`;
           })()}
         </div>
       </div>
 
       <!-- Col 2: By Type + Pipeline + Claims + Ops -->
-      <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;flex-direction:column;gap:12px;">
 
         <!-- Month Pace / Health verdict -->
-        <div style="background:var(--bg2);border:1px solid ${vUnits.col}40;border-top:3px solid ${vUnits.col};border-radius:8px;padding:12px 14px;">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
-            <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;">Month Pace</div>
-            <div style="font-size:9px;color:#94a3b8;">${histN?`vs avg of last ${histN} mo`:'building history'}</div>
+            <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Month Pace</div>
+            <div style="font-size:10px;color:#b6c2d4;">${histN?`vs avg of last ${histN} mo`:'building history'}</div>
           </div>
           <div style="display:flex;align-items:baseline;gap:8px;">
             <span style="font-size:22px;font-weight:900;color:${vUnits.col};line-height:1;">${vUnits.label}</span>
-            <span style="font-size:11px;color:#cbd5e1;">month for units sent</span>
+            <span style="font-size:12.5px;color:#dbe3ee;">month for units sent</span>
           </div>
-          <div style="font-size:11px;color:#cbd5e1;margin:4px 0 10px;line-height:1.4;">${fmt(mtdUnits)} sent so far · projecting <b style="color:${vUnits.col};">${fmt(projUnits)}</b> by month-end — ${vUnits.sub}.</div>
+          <div style="font-size:12.5px;color:#dbe3ee;margin:5px 0 11px;line-height:1.5;">${fmt(mtdUnits)} sent so far · projecting <b style="color:${vUnits.col};">${fmt(projUnits)}</b> by month-end — ${vUnits.sub}.</div>
           ${[['Units sent',mtdUnits,projUnits,avgUnits,vUnits,COL.week],['Lavarion',mtdLavUnits,projLav,avgLav,vLav,COL.asin],['OA / stock',mtdStockUnits,projStock,avgStock,vStock,COL.sku]].map(([l,mtdv,proj,avg,v,col])=>`
             <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);">
-              <span style="flex:1;font-size:11px;color:${col};font-weight:700;">${l}</span>
-              <span style="font-size:11px;font-family:var(--mono);color:#e2e8f0;" title="sent so far → projected month-end · recent monthly avg">${fmt(mtdv)} → ${fmt(proj)}${avg?` <span style="color:#94a3b8;">/ ${fmt(Math.round(avg))} avg</span>`:''}</span>
-              <span style="font-size:9px;font-weight:800;color:${v.col};min-width:64px;text-align:right;">${v.label}</span>
+              <span style="flex:1;font-size:12.5px;color:${col};font-weight:700;">${l}</span>
+              <span style="font-size:12.5px;font-family:var(--mono);color:#f1f5f9;" title="sent so far → projected month-end · recent monthly avg">${fmt(mtdv)} → ${fmt(proj)}${avg?` <span style="color:#aeb9c9;">/ ${fmt(Math.round(avg))} avg</span>`:''}</span>
+              <span style="font-size:11px;font-weight:800;color:${v.col};min-width:64px;text-align:right;">${v.label}</span>
             </div>`).join('')}
-          <div style="font-size:9px;color:#94a3b8;margin-top:7px;line-height:1.4;">Projection = sent-so-far ÷ share of month elapsed (${Math.round(_frac*100)}%). Recent avg = mean of completed months.</div>
+          <div style="font-size:11px;color:#aeb9c9;margin-top:9px;line-height:1.5;">Projection = sent-so-far ÷ share of month elapsed (${Math.round(_frac*100)}%). Recent avg = mean of completed months.</div>
         </div>
 
         <!-- Sent Mix stacked bar (week / month) -->
         ${(()=>{
           const mix=_mixPeriod==='month'?mixMonth:mixWeek;
-          const segs=[['Standard',mix.std,COL.sku],['DG',mix.dg,'#f87171'],['Oversize',mix.os,COL.box],['Lavarion',mix.lav,COL.asin]];
+          const segs=[['Standard (stock)',mix.std,COL.sku],['DG (stock)',mix.dg,'#f87171'],['Oversize (stock)',mix.os,COL.box],['Lavarion',mix.lav,COL.asin]];
           const tot=mix.total||0;
-          const tabBtn=(k,lbl)=>`<button onclick="setMixPeriod('${k}')" style="padding:3px 10px;border-radius:12px;font-size:9px;font-weight:700;cursor:pointer;border:1px solid ${_mixPeriod===k?'var(--accent)':'var(--border2)'};background:${_mixPeriod===k?'rgba(251,191,36,.15)':'var(--bg3)'};color:${_mixPeriod===k?'#fbbf24':'var(--text2)'};">${lbl}</button>`;
+          const tabBtn=(k,lbl)=>`<button onclick="setMixPeriod('${k}')" style="padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid ${_mixPeriod===k?'var(--accent)':'var(--border2)'};background:${_mixPeriod===k?'rgba(251,191,36,.15)':'var(--bg3)'};color:${_mixPeriod===k?'#fbbf24':'var(--text2)'};">${lbl}</button>`;
           const bar=tot>0?segs.filter(s=>s[1]>0).map(([l,u,col])=>{
             const pc=u/tot*100;
             return `<div title="${l}: ${fmt(u)} (${pc.toFixed(1)}%)" style="width:${pc}%;background:${col};display:flex;align-items:center;justify-content:center;">${pc>=10?`<span style="font-size:11px;font-weight:800;color:#000;">${Math.round(pc)}%</span>`:''}</div>`;
-          }).join(''):`<div style="width:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:10px;">No units sent ${_mixPeriod==='month'?'this month':'this week'}</div>`;
-          const overlap=(mix.lavDG+mix.lavOS)>0?`<div style="font-size:9px;color:#94a3b8;margin-top:8px;line-height:1.45;">Of ${fmt(mix.lav)} Lavarion units, ${mix.lavDG?fmt(mix.lavDG)+' are DG-typed':''}${mix.lavDG&&mix.lavOS?' and ':''}${mix.lavOS?fmt(mix.lavOS)+' oversize-typed':''} — kept under Lavarion, not double-counted in DG/Oversize.</div>`:'';
-          return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          }).join(''):`<div style="width:100%;display:flex;align-items:center;justify-content:center;color:#b6c2d4;font-size:11px;">No units sent ${_mixPeriod==='month'?'this month':'this week'}</div>`;
+          const overlap=(mix.lavDG+mix.lavOS)>0?`<div style="font-size:10px;color:#b6c2d4;margin-top:8px;line-height:1.45;">Of ${fmt(mix.lav)} Lavarion units, ${mix.lavDG?fmt(mix.lavDG)+' are DG-typed':''}${mix.lavDG&&mix.lavOS?' and ':''}${mix.lavOS?fmt(mix.lavOS)+' oversize-typed':''} — kept under Lavarion, not double-counted in DG/Oversize.</div>`:'';
+          return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
-              <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;">Sent Mix · ${tot>0?fmt(tot)+' units':'—'}</div>
+              <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Sent Mix · ${tot>0?fmt(tot)+' units':'—'}</div>
               <div style="display:flex;gap:5px;">${tabBtn('week','Week')}${tabBtn('month','Month')}</div>
             </div>
             <div style="display:flex;height:28px;width:100%;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.05);">${bar}</div>
-            <div style="display:flex;flex-direction:column;gap:0;margin-top:9px;">
+            <div style="font-size:11px;color:#aeb9c9;margin:10px 0 6px;line-height:1.55;">Standard / DG / Oversize are your <b style="color:#aeb9c9;">OA stock</b> shipments. Lavarion is shown separately — it also ships as standard, so it’s <b style="color:#aeb9c9;">not</b> counted in the Standard figure.</div>
+            <div style="display:flex;flex-direction:column;gap:0;margin-top:5px;">
               ${segs.map(([l,u,col])=>{
                 const pc=tot?(u/tot*100):0;
                 return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
@@ -4207,16 +4296,21 @@ function renderDashboard(){
             ${overlap}
           </div>`;
         })()}
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Pipeline</div>
-          ${[['In-Transit',transit.units,COL.transit],['Delivered',rows.filter(r=>r.status==='Delivered').reduce((a,r)=>a+(r.exp||0),0),COL.today],['In Warehouse',rows.filter(r=>r.status==='In Warehouse').reduce((a,r)=>a+(r.exp||0),0),COL.asin],['Part Sent',rows.filter(r=>r.status==='Part Sent').reduce((a,r)=>a+(r.exp||0),0),COL.box],['Issue',rows.filter(r=>r.status==='Issue').reduce((a,r)=>a+(r.exp||0),0),'#f87171']].map(([l,u,col])=>`
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
-              <span style="font-size:10px;color:${col};font-weight:600;">${l}</span>
-              <span style="font-size:12px;font-weight:800;font-family:var(--mono);color:${u>0?col:'#1e293b'};">${u>0?fmt(u):'—'}</span>
-            </div>`).join('')}
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
+          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Pipeline</div>
+          ${(()=>{const st=[['In-Transit',transit.units,COL.transit],['Delivered',rows.filter(r=>r.status==='Delivered').reduce((a,r)=>a+(r.exp||0),0),COL.today],['In Warehouse',rows.filter(r=>r.status==='In Warehouse').reduce((a,r)=>a+(r.exp||0),0),COL.asin],['Part Sent',rows.filter(r=>r.status==='Part Sent').reduce((a,r)=>a+(r.exp||0),0),COL.box],['Issue',rows.filter(r=>r.status==='Issue').reduce((a,r)=>a+(r.exp||0),0),'#f87171']];
+            const pmax=Math.max(...st.map(s=>s[1]),1);
+            return st.map(([l,u,col])=>`
+            <div style="padding:5px 0 6px;border-bottom:1px solid rgba(255,255,255,.05);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="font-size:11px;color:#c3cde0;font-weight:600;">${l}</span>
+                <span style="font-size:12px;font-weight:800;font-family:var(--mono);color:${u>0?col:'#5a6b82'};">${u>0?fmt(u):'—'}</span>
+              </div>
+              <div style="height:4px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden;">${u>0?`<div style="width:${Math.max(3,u/pmax*100)}%;height:100%;background:${col};border-radius:3px;"></div>`:''}</div>
+            </div>`).join('');})()}
         </div>
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Active Inventory</div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
+          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Active Inventory</div><div style="font-size:10px;color:#aeb9c9;margin:-3px 0 7px;">In-Transit + Delivered + In-Warehouse + Part-Sent</div>
           ${(()=>{
             const inTR=rows.filter(r=>['In-Transit','Delivered','In Warehouse','Part Sent'].includes(r.status));
             const inTU=inTR.reduce((a,r)=>a+(r.exp||0),0);
@@ -4226,13 +4320,13 @@ function renderDashboard(){
             const issC=issR.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
             const actA=new Set(inTR.map(r=>r.asin)).size;
             return[
-              ['Units In Transit',fmt(inTU),COL.transit],
-              ['ASINs In Transit',fmt(actA),COL.asin],
-              ['COG In Transit',fmtGBP2(inTC),GOLD],
+              ['Active pipeline units',fmt(inTU),COL.transit],
+              ['Active pipeline ASINs',fmt(actA),COL.asin],
+              ['Active pipeline COG',fmtGBP2(inTC),GOLD],
               ['Issue Units',fmt(issU),issU>0?'#f87171':COL.today],
               ['Issue COG at Risk',fmtGBP2(issC),issU>0?'#f87171':GOLD],
               ['Open Actions',fmt(openClaims),openClaims>0?'#f87171':COL.today],
-            ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${l}</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:${col};">${v}</span></div>`).join('');
+            ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:11px;color:#b6c2d4;">${l}</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:${col};">${v}</span></div>`).join('');
           })()}
         </div>
 
@@ -4240,10 +4334,10 @@ function renderDashboard(){
 
       <!-- Col 3: Claims + Stuck -->
       <div style="display:flex;flex-direction:column;gap:8px;height:100%;align-self:stretch;">
-        <div style="background:var(--bg2);border:1px solid ${totalAtRisk>0?'rgba(248,113,113,.3)':'var(--border)'};border-radius:8px;padding:10px 12px;">
+        <div style="background:var(--bg2);border:1px solid ${totalAtRisk>0?'rgba(248,113,113,.3)':'var(--border)'};border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <!-- Header -->
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <div style="font-size:10px;font-weight:800;color:#e2e8f0;text-transform:uppercase;letter-spacing:.1em;">⚑ Claims & Issues</div>
+            <div style="font-size:11px;font-weight:800;color:#e2e8f0;text-transform:uppercase;letter-spacing:.1em;">⚑ Claims & Issues</div>
             ${totalAtRisk>0?`<div style="font-size:14px;font-weight:900;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(totalAtRisk)}</div>`:''}
           </div>
 
@@ -4258,23 +4352,23 @@ function renderDashboard(){
               ['Resolved',resolvedClaimsList.length,'#4ade80'],
             ].map(([l,n,col])=>`<div style="background:${col}18;border:2px solid ${col}55;border-radius:6px;padding:6px 4px;text-align:center;">
               <div style="font-size:18px;font-weight:900;font-family:var(--mono);color:${col};line-height:1;">${n}</div>
-              <div style="font-size:8px;color:#94a3b8;margin-top:2px;font-weight:600;">${l}</div>
+              <div style="font-size:9px;color:#b6c2d4;margin-top:2px;font-weight:600;">${l}</div>
             </div>`).join('')}
           </div>
 
           <!-- By issue type -->
           ${(missingClaims.length+damagedClaims.length+incorrectClaims.length)>0?`
           <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08);">
-            <div style="font-size:8px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;">By Type</div>
+            <div style="font-size:9px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;">By Type</div>
             ${[['Missing',missingClaims.length,missingUnits,missingVal,'#f87171'],['Damaged',damagedClaims.length,damagedUnits,damagedVal,'#fb923c'],['Incorrect',incorrectClaims.length,incorrectUnits,incorrectVal,'#60a5fa']].filter(([,cnt])=>cnt>0).map(([l,cnt,u,val,col])=>`
             <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;margin-bottom:3px;background:${col}10;border-radius:4px;border-left:3px solid ${col};">
               <div>
-                <span style="font-size:10px;font-weight:800;color:${col};">${l}</span>
-                <span style="font-size:9px;color:#94a3b8;margin-left:5px;">${cnt} claim${cnt!==1?'s':''}</span>
+                <span style="font-size:11px;font-weight:800;color:${col};">${l}</span>
+                <span style="font-size:10px;color:#b6c2d4;margin-left:5px;">${cnt} claim${cnt!==1?'s':''}</span>
               </div>
               <div style="text-align:right;">
                 <span style="font-size:11px;font-weight:700;color:#e2e8f0;font-family:var(--mono);">${fmt(u)} units</span>
-                <span style="font-size:10px;color:#fbbf24;font-family:var(--mono);margin-left:6px;font-weight:700;">${fmtGBP2(val)}</span>
+                <span style="font-size:11px;color:#fbbf24;font-family:var(--mono);margin-left:6px;font-weight:700;">${fmtGBP2(val)}</span>
               </div>
             </div>`).join('')}
           </div>`:``}
@@ -4287,7 +4381,7 @@ function renderDashboard(){
               ['Units at risk',fmt(totalIssueUnits),'#f87171'],
               ['£ at risk',fmtGBP2(totalAtRisk),'#fbbf24'],
             ].map(([l,v,col])=>`<div style="padding:4px 0;">
-              <div style="font-size:8px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px;">${l}</div>
+              <div style="font-size:9px;color:#c3cde0;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px;">${l}</div>
               <div style="font-size:13px;font-weight:900;font-family:var(--mono);color:${col};">${v}</div>
             </div>`).join('')}
           </div>
@@ -4295,7 +4389,7 @@ function renderDashboard(){
           <!-- Resolved -->
           ${resolvedClaimsList.length>0?`
           <div style="padding-top:8px;border-top:1px solid rgba(255,255,255,.08);">
-            <div style="font-size:8px;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;">✓ Resolved</div>
+            <div style="font-size:9px;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;">✓ Resolved</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;">
               ${[
                 ['Claims closed',fmt(resolvedClaimsList.length),'#4ade80'],
@@ -4303,29 +4397,29 @@ function renderDashboard(){
                 ['£ reimbursed',fmtGBP2(resolvedReimbursedVal),'#34d399'],
                 ['£ still owed',fmtGBP2(resolvedOwedVal),resolvedOwedVal>0?'#f87171':'#64748b'],
               ].map(([l,v,col])=>`<div style="padding:3px 0;">
-                <div style="font-size:8px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px;">${l}</div>
+                <div style="font-size:9px;color:#9aa7ba;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px;">${l}</div>
                 <div style="font-size:13px;font-weight:900;font-family:var(--mono);color:${col};">${v}</div>
               </div>`).join('')}
             </div>
           </div>`:``}
           `}
         </div>
-        <div style="background:var(--bg2);border:1px solid ${stuckRows.length>0?'rgba(248,113,113,.35)':'var(--border)'};border-radius:8px;padding:10px 12px;flex:1;min-height:0;">
-          <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Stuck In Transit <span style="color:#f87171;">&gt;20 Days</span></div>
+        <div style="background:var(--bg2);border:1px solid ${stuckRows.length>0?'rgba(248,113,113,.35)':'var(--border)'};border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);flex:1;min-height:0;">
+          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Stuck In Transit <span style="color:#f87171;">&gt;20 Days</span></div>
           ${stuckRows.length?`
           <div style="display:flex;gap:16px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07);justify-content:center;width:100%;">
-            <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#f87171;">${fmt(stuckUnits)}</div><div style="font-size:8px;color:#94a3b8;text-transform:uppercase;font-weight:600;">units at risk</div></div>
-            <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${GOLD};">${fmtGBP2(stuckValue)}</div><div style="font-size:8px;color:#94a3b8;text-transform:uppercase;font-weight:600;">value at risk</div></div>
+            <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#f87171;">${fmt(stuckUnits)}</div><div style="font-size:9px;color:#b6c2d4;text-transform:uppercase;font-weight:600;">units at risk</div></div>
+            <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${GOLD};">${fmtGBP2(stuckValue)}</div><div style="font-size:9px;color:#b6c2d4;text-transform:uppercase;font-weight:600;">value at risk</div></div>
           </div>
           <div style="max-height:320px;overflow-y:auto;">
             ${stuckRows.map(r=>{const[dd,mm]=(r.date||'').split('/');const yr=new Date().getFullYear();const d=new Date(`${yr}-${(mm||'01').padStart(2,'0')}-${(dd||'01').padStart(2,'0')}`);const days=Math.floor((new Date()-d)/864e5);const cog=parseSKU(r.sku).cogs*(r.exp||0);return`<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;">
-                  <div style="font-size:10px;font-weight:600;color:#f87171;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:155px;" title="${r.prod||r.sku}">${r.prod||r.sku}</div>
-                  <div style="font-size:10px;color:${GOLD};font-weight:800;flex-shrink:0;margin-left:4px;">${days}d</div>
+                  <div style="font-size:11px;font-weight:600;color:#f87171;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:155px;" title="${r.prod||r.sku}">${r.prod||r.sku}</div>
+                  <div style="font-size:11px;color:${GOLD};font-weight:800;flex-shrink:0;margin-left:4px;">${days}d</div>
                 </div>
                 <div style="display:flex;justify-content:space-between;">
-                  <div style="font-size:9px;color:#64748b;">${r.sup}</div>
-                  <div style="font-size:9px;font-family:var(--mono);color:#94a3b8;">${fmt(r.exp||0)} ${(r.exp||0)===1?'unit':'units'} · ${fmtGBP2(cog)}</div>
+                  <div style="font-size:10px;color:#9aa7ba;">${r.sup}</div>
+                  <div style="font-size:10px;font-family:var(--mono);color:#b6c2d4;">${fmt(r.exp||0)} ${(r.exp||0)===1?'unit':'units'} · ${fmtGBP2(cog)}</div>
                 </div>
               </div>`;}).join('')}
           </div>`:`<div style="color:${COL.today};font-size:11px;padding:4px 0;text-align:center;">✓ Nothing stuck</div>`}
@@ -4967,8 +5061,8 @@ function buildMonthMap(filterFn){
   return map;
 }
 
-function calcInsMetrics(sentRowsArr,lavArr,boxMap){
-  const pc=calcImpliedPrepCost(sentRowsArr,lavArr,boxMap||{});
+function calcInsMetrics(sentRowsArr,lavArr,boxMap,rateUnits){
+  const pc=calcImpliedPrepCost(sentRowsArr,lavArr,boxMap||{},rateUnits);
   const skus=new Set(sentRowsArr.map(r=>r.sku)).size;
   const asins=new Set(sentRowsArr.map(r=>r.asin).filter(Boolean)).size;
   const cog=sentRowsArr.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||0)),0);
@@ -5291,9 +5385,17 @@ function _insMonthSeries(){
   const mm=buildMonthMap(null);
   return Object.keys(mm).sort().slice(-10).map(k=>{
     const md=mm[k];const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));
-    const m=calcInsMetrics(md.rows,md.lavRows,bm);const[y,mo]=k.split('-');
+    const _curKey=new Date().toISOString().slice(0,7);
+    const m=calcInsMetrics(md.rows,md.lavRows,bm,k===_curKey?prepFees.expectedMonthlyUnits:null);const[y,mo]=k.split('-');
+    // per-month sent mix: OA rows bucketed by shipType, all Lavarion its own bucket
+    const _u=r=>(r.ship||r.shi||0);let _std=0,_dg=0,_os=0;
+    md.rows.forEach(r=>{const t=(r.shipType||(typeof _shipTypeCache!=='undefined'&&_shipTypeCache[r.shipId])||'Standard');if(t==='DG')_dg+=_u(r);else if(t==='Oversize')_os+=_u(r);else _std+=_u(r);});
+    const _lav=md.lavRows.reduce((a,s)=>a+(s.units||0),0);
     return{key:k,short:_MONA[+mo]+" '"+y.slice(2),units:m.totalUnits||0,cog:m.cog||0,prep:m.withVat||0,
       lav:m.lavUnits||0,stock:(m.totalUnits||0)-(m.lavUnits||0),
+      skus:m.skus||0,asins:m.asins||0,ships:m.ships||0,boxes:m.totalBoxes||0,
+      mixStd:_std,mixDG:_dg,mixOS:_os,mixLav:_lav,
+      cogPerUnit:m.totalUnits?(m.cog/m.totalUnits):0,
       ppu:m.totalUnits?(m.withVat/m.totalUnits):0,ratio:m.withVat?(m.cog/m.withVat):0};
   });
 }
@@ -6678,7 +6780,7 @@ function renderShipments(){
 
   const sc=(label,val,col)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 6px;border-right:1px solid rgba(255,255,255,.06);">
     <div style="font-size:15px;font-weight:900;font-family:var(--mono);color:${col};">${val}</div>
-    <div style="font-size:8px;color:#64748b;margin-top:2px;text-transform:uppercase;letter-spacing:.06em;">${label}</div>
+    <div style="font-size:8px;color:#8b9bb3;margin-top:2px;text-transform:uppercase;letter-spacing:.06em;">${label}</div>
   </div>`;
 
   const summaryBar=`<div style="display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;">
@@ -8168,12 +8270,12 @@ function setupRealtime(){
     if(document.getElementById('page-lavarion').classList.contains('active'))renderLavarion();
   }).subscribe();
 
-  // Lavarion components & recipes — keep this browser in step when another device
+  // Lavarion components & component lists — keep this browser in step when another device
   // edits them. Guarded: ignore echoes of our own in-flight saves, and debounce
   // so a burst of row changes triggers a single reload.
   var _lv2RtT=null,_lv2RtPending=false;
   function _lv2ModalOpen(){
-    return ['lv2CompOv','lv2BundleOv','lv2ShipOv','lv2OrderOv','lv2PlanOv','lv2BulkOv','lv2MxOv']
+    return ['lv2CompOv','lv2BundleOv','lv2ShipOv','lv2OrderOv','lv2PlanOv','lv2BulkOv','lv2MxOv','lv2DelOv','lv2ReoOv','lv2StkOv']
       .some(function(id){var o=document.getElementById(id);return o&&o.classList.contains('open');});
   }
   function _lv2RemoteRefresh(){
@@ -8989,7 +9091,12 @@ function calcImpliedPrepCost(sentRows,sentLavRows,boxMap,rateUnits){
   const bundleUnits=sentRows.filter(r=>r.inBundle==='Yes').reduce((a,r)=>a+u(r),0);
   const lavUnits=sentLavRows.reduce((a,s)=>a+(s.units||0),0);
   const tieredUnits=stdUnits+dgUnits+lavUnits;
-  const _rateVol=(rateUnits!=null&&rateUnits>0)?rateUnits:tieredUnits;
+  // rateUnits acts as a FLOOR on the band volume: price at your typical monthly
+  // volume unless you have already sent more (which earns a cheaper high-volume
+  // band). This stops early-month periods dropping into the 1-1,000 band when a
+  // full month will land far higher. Completed periods pass no rateUnits and use
+  // their own actual volume.
+  const _rateVol=(rateUnits!=null&&rateUnits>0)?Math.max(tieredUnits,rateUnits):tieredUnits;
   const baseCost=tieredUnits*pickUnitRate(_rateVol);
   const osCost=osUnits*prepFees.osCostPerUnit;
   const bundleCost=bundleUnits*prepFees.bundleCostPerUnit;
@@ -9641,6 +9748,13 @@ setInterval(updateClock,30000);
   </div>
 </div>
 
+<div class="overlay" id="monthHistModal">
+  <div class="modal" style="max-width:720px;width:95vw;">
+    <div class="mh"><div class="mh-title">📅 Month history</div><button class="mh-close" onclick="cm('monthHistModal')">✕</button></div>
+    <div class="mb" id="monthHistBody" style="padding:16px 18px;"></div>
+    <div class="mf"><button class="btn-cancel" onclick="cm('monthHistModal')">Close</button></div>
+  </div>
+</div>
 <div class="overlay" id="insCompareModal">
   <div class="modal" style="max-width:620px;">
     <div class="mh"><div class="mh-title">📊 This Month vs Last Month</div><button class="mh-close" onclick="cm('insCompareModal')">✕</button></div>
@@ -9881,6 +9995,9 @@ setInterval(updateClock,30000);
 <div class="overlay" id="lv2PlanOv"><div class="lv2-modal wide"><div id="lv2PlanInner"></div></div></div>
 <div class="overlay" id="lv2BulkOv"><div class="lv2-modal xwide"><div id="lv2BulkInner"></div></div></div>
 <div class="overlay" id="lv2MxOv"><div class="lv2-modal xwide"><div id="lv2MxInner"></div></div></div>
+<div class="overlay" id="lv2DelOv"><div class="lv2-modal xwide"><div id="lv2DelInner"></div></div></div>
+<div class="overlay" id="lv2ReoOv"><div class="lv2-modal xwide"><div id="lv2ReoInner"></div></div></div>
+<div class="overlay" id="lv2StkOv"><div class="lv2-modal xwide"><div id="lv2StkInner"></div></div></div>
 <div class="overlay" id="lv2BundleOv"><div class="lv2-modal wide">
   <div class="lv2-mh"><h3 id="lv2BundleTitle">Edit Lavarion ASIN</h3><button class="lv2-mx" onclick="cm('lv2BundleOv')">&#10005;</button></div>
   <div class="lv2-mb">
@@ -9908,7 +10025,7 @@ setInterval(updateClock,30000);
 
 <script>
 /* ══════════ LAVARION v2 — components, recipes, packaging ══════════
-   Persistence: localStorage for components/recipes/settings (Supabase later).
+   Persistence: localStorage for components/component lists/settings (Supabase later).
    Bundles remain the existing lavAsins array (Supabase-backed via saveLavAsin). */
 let lv2Components=[];           // loaded from lavarion_components on boot
 let lv2Recipes={};              // asin -> [{c,q}] — loaded from lavarion_recipes
@@ -9973,6 +10090,10 @@ function lv2Tab(t){lv2ActiveTab=t;
  document.getElementById('lv2AddB').style.display=t==='bundles'?'':'none';
  document.getElementById('lv2AddC').style.display=t==='bundles'?'none':'';
  document.getElementById('lv2AddCB').style.display=t==='bundles'?'none':'';
+ document.getElementById('lv2DelB').style.display=t==='bundles'?'none':'';
+ document.getElementById('lv2ReoB').style.display=t==='bundles'?'none':'';
+ document.getElementById('lv2StkB').style.display=t==='bundles'?'none':'';
+ lv2UpdateDelBadge();
  document.getElementById('lv2TypeF').style.display=t==='bundles'?'none':'';
  document.getElementById('lv2SortF').style.display=t==='bundles'?'none':'';
  document.getElementById('lv2BSortF').style.display=t==='bundles'?'':'none';
@@ -9992,18 +10113,18 @@ function lv2Cards(){
  (typeof lavShipments!=='undefined'?lavShipments:[]).forEach(s=>{
   const d=new Date((s.date||'').slice(0,10)).getTime();
   if(d>=cut30){const u=parseInt(s.units)||0;sh30+=u;sh30v+=u*(s.cost||0);}});
- const recNudge=withRec.length<liveB.length&&liveB.length?`${withRec.length} of ${liveB.length} have recipes`:'live Lavarion ASINs';
+ const recNudge=withRec.length<liveB.length&&liveB.length?`${withRec.length} of ${liveB.length} have components`:'live Lavarion ASINs';
  document.getElementById('lv2Cards').innerHTML=`
   <div class="lv2-card blue"><div class="k">Bundles</div><div class="v">${liveB.length}</div><div class="s">${recNudge}</div></div>
   <div class="lv2-card cyan"><div class="k">Shipped 30d</div><div class="v">${sh30}</div><div class="s">${sh30v>0?fmtGBP2(sh30v)+' sent to FBA':'Lavarion units sent'}</div></div>
   <div class="lv2-card purple"><div class="k">Components</div><div class="v">${liveC.length}</div><div class="s">shared parts &amp; packing</div></div>
-  <div class="lv2-card green"><div class="k">Buildable now</div><div class="v">${tb}</div><div class="s">units across recipe bundles</div></div>
+  <div class="lv2-card green"><div class="k">Buildable now</div><div class="v">${tb}</div><div class="s">units across all bundles</div></div>
   <div class="lv2-card amber"><div class="k">On order</div><div class="v">${oo}</div><div class="s">component units incoming</div></div>
   <div class="lv2-card ${crit?'red':'green'}"><div class="k">Packaging</div><div class="v ${crit?'':'txt'}">${crit||'✓ Covered'}</div><div class="s">${crit?('box'+(crit>1?'es':'')+' under 1 month of stock'):'all boxes have 1+ month cover'}</div></div>`;}
 function lv2NoticeRender(){
  const box=document.getElementById('lv2Notice');let out='';
  const liveB=lavAsins.filter(a=>!a.archived);
- /* setup progress strip — shows until every bundle has a recipe, then disappears */
+ /* setup progress strip — shows until every bundle has a component list, then disappears */
  const withRec=liveB.filter(a=>lv2RecipeOf(a).length).length;
  if(liveB.length&&(!lv2Components.length||withRec<liveB.length)){
   const s1=lv2Components.filter(c=>!c.archived).length>0,s2=withRec>0&&withRec===liveB.length;
@@ -10012,7 +10133,7 @@ function lv2NoticeRender(){
    <span class="sstep ${s1?'sdone':''}">${s1?'✓':'1.'} Add components${s1?` (${lv2Components.filter(c=>!c.archived).length})`:''}</span>
    ${s1?'':`<button class="lv2-ghost sm" onclick="lv2Tab('components');lv2OpenCompForm(null)">+ Add first component</button>`}
    <span class="arr">→</span>
-   <span class="sstep ${s2?'sdone':''}">${s2?'✓':'2.'} Attach recipes <b>${withRec}/${liveB.length}</b> <span class="hint">(Edit a bundle)</span></span>
+   <span class="sstep ${s2?'sdone':''}">${s2?'✓':'2.'} Assign components <b>${withRec}/${liveB.length}</b> <span class="hint">(Edit a bundle)</span></span>
    <span class="arr">→</span>
    <span class="sstep">3. Ship — components auto-deduct</span>
   </div>`;}
@@ -10029,6 +10150,8 @@ function lv2NoticeRender(){
       </div></div>`;}}});});
  box.innerHTML=out;}
 function lv2NoticeAct(key,msg){lv2Dismissed[key]=true;lv2NoticeRender();toast(msg);}
+let _lv2HideNoRec=false;
+let _lv2BSel=new Set();
 let lv2BundleFilter='all';
 function lv2SetFilter(f){lv2BundleFilter=f;lv2RenderBundles();}
 /* live (non-archived) bundles — used everywhere except the Archived view */
@@ -10040,7 +10163,7 @@ let lv2CompFilter='all';
 function lv2SetCompFilter(f){lv2CompFilter=f;lv2RenderComps();}
 function lv2ArchiveComp(id,on){const c=lv2Comp(id);if(!c)return;
  const used=lv2BundlesUsing(id).filter(a=>!a.archived);
- if(on&&used.length){showConfirm('Archive component?',`${c.name} is used in ${used.length} active bundle recipe${used.length===1?'':'s'}. Archiving hides it from the list but keeps the data and its recipe links — you can restore it anytime.`,()=>{c.archived=true;lv2Save();renderLavarion();toast(`${c.name} archived`);logAudit('Component archived',c.name);});return;}
+ if(on&&used.length){showConfirm('Archive component?',`${c.name} is used in ${used.length} active bundle component list${used.length===1?'':'s'}. Archiving hides it from the list but keeps the data and its component list links — you can restore it anytime.`,()=>{c.archived=true;lv2Save();renderLavarion();toast(`${c.name} archived`);logAudit('Component archived',c.name);});return;}
  c.archived=on;lv2Save();renderLavarion();
  toast(on?`${c.name} archived`:`${c.name} restored`);logAudit('Component '+(on?'archived':'restored'),c.name);}
 /* per-ASIN shipping stats straight from real lavShipments history */
@@ -10064,31 +10187,34 @@ function lv2RenderBundles(){
  live.forEach(a=>counts[stat(a)]++);
  const archCount=lavAsins.filter(a=>a.archived).length;
  const chipEl=document.getElementById('lv2Chips');
- if(chipEl){let chips=[['all','All'],['ready','Ready to ship'],['blocked','Blocked'],['norecipe','No recipe']]
+ if(chipEl){let chips=[['all','All'],['ready','Ready to ship'],['blocked','Blocked'],['norecipe','No components']]
   .map(([k,l])=>`<button class="lv2-chip ${k} ${lv2BundleFilter===k?'on':''}" onclick="lv2SetFilter('${k}')">${l}<span class="n">${counts[k]}</span></button>`).join('');
   if(archCount||archView)chips+=`<button class="lv2-chip archived ${archView?'on':''}" onclick="lv2SetFilter('archived')">Archived<span class="n">${archCount}</span></button>`;
+  if(!archView&&counts.norecipe>0)chips+=`<button class="lv2-chip ${_lv2HideNoRec?'on':''}" style="margin-left:auto;" onclick="lv2ToggleHideNoRec()" title="Collapse bundles that don't have a component list yet">${_lv2HideNoRec?'\u25c9':'\u25cb'} Hide no-components</button>`;
   chipEl.innerHTML=chips;}
  let rows=archView?base:base.filter(a=>lv2BundleFilter==='all'||stat(a)===lv2BundleFilter);
+ if(_lv2HideNoRec&&!archView)rows=rows.filter(a=>lv2RecipeOf(a).length);
  const sort=(document.getElementById('lv2BSortF')||{}).value||'default';
  if(sort==='buildable')rows=[...rows].sort((a,b)=>((lv2Buildable(b).n??-1)-(lv2Buildable(a).n??-1)));
  else if(sort==='shipped')rows=[...rows].sort((a,b)=>lv2ShipStats(b.asin).u30-lv2ShipStats(a.asin).u30);
  else if(sort==='name')rows=[...rows].sort((a,b)=>(a.prod||'').localeCompare(b.prod||''));
  else if(sort==='parts')rows=[...rows].sort((a,b)=>lv2RecipeOf(b).length-lv2RecipeOf(a).length);
  const body=document.getElementById('lv2BundleBody');
- if(!rows.length){body.innerHTML=`<tr><td colspan="8" style="padding:32px;color:var(--text3);">${archView?'No archived bundles':(q||lv2BundleFilter!=='all'?'No Lavarion ASINs match':'No Lavarion ASINs yet — click "+ Add Lavarion ASIN" to get started')}</td></tr>`;return;}
+ if(!rows.length){body.innerHTML=`<tr><td colspan="9" style="padding:32px;color:var(--text3);">${archView?'No archived bundles':(q||lv2BundleFilter!=='all'?'No Lavarion ASINs match':'No Lavarion ASINs yet — click "+ Add Lavarion ASIN" to get started')}</td></tr>`;return;}
  body.innerHTML=rows.map(a=>{
   const rec=lv2RecipeOf(a);const bd=lv2Buildable(a);const st=stat(a);const ss=lv2ShipStats(a.asin);
   const cls=bd.n===null?'':bd.n===0?'low':bd.n<50?'mid':'ok';
   const vv=(a.vat||a.vat==='0')?String(a.vat):'20';
   const val=(a.cost>0&&bd.n>0)?`<div class="lv2-sub" style="margin-top:3px;">≈ ${fmtGBP2(bd.n*a.cost)} sendable</div>`:'';
   const main=`<tr class="${lv2OpenRows[a.asin]?'lv2-open':''} ${st==='ready'?'lv2-st-ready':st==='blocked'?'lv2-st-blocked':''}" style="cursor:${rec.length?'pointer':'default'};" onclick="${rec.length?`lv2Toggle('${a.asin}')`:''}">
+   <td class="lv2-selcell" style="text-align:center;" onclick="event.stopPropagation()"><input type="checkbox" ${_lv2BSel.has(a.asin)?'checked':''} onclick="lv2BSel('${a.asin}',this.checked)"></td>
    <td class="td-left">${rec.length?'<span class="lv2-chev">&#9654;</span>':'<span style="display:inline-block;width:17px;"></span>'}<span class="lv2-asin" onclick="event.stopPropagation();copyVal('${a.asin}',this)">${a.asin}</span>${a.sku?`<div class="lv2-sku">${a.sku}</div>`:''}</td>
    <td class="td-left lv2-prodcell"><span class="lv2-prod" title="${a.prod}">${a.prod}</span>${a.notes?`<div class="lv2-sub">${a.notes}</div>`:''}</td>
    <td style="text-align:center;"><span class="lv2-num" style="color:${ss.u30>0?'#6fbf82':'var(--text3)'};">${ss.u30||'—'}</span></td>
    <td style="text-align:center;"><span style="font-size:12px;color:${ss.last?'var(--text2)':'var(--text3)'};">${lv2Ago(ss.last)}</span></td>
    <td style="text-align:center;"><span class="lv2-num" style="color:var(--text2);">${rec.length||'—'}</span></td>
    <td style="text-align:center;">${vatTag(vv)}</td>
-   <td style="text-align:center;">${bd.n===null?'<span style="color:var(--text3);font-size:12px;">no recipe</span>':bd.missing?'<span class="lv2-limit" title="A component in this recipe was deleted — re-add it or fix the recipe">missing part</span>':`<span class="lv2-build ${cls}">${bd.n}</span>${val}`}</td>
+   <td style="text-align:center;">${bd.n===null?'<span style="color:var(--text3);font-size:12px;">no components</span>':bd.missing?'<span class="lv2-limit" title="A component in this bundle was deleted — re-add it or fix the bundle">missing part</span>':`<span class="lv2-build ${cls}">${bd.n}</span>${val}`}</td>
    <td><div style="display:flex;gap:6px;justify-content:flex-end;" onclick="event.stopPropagation()">
      ${archView?`<button class="lv2-mini g" onclick="lv2ArchiveBundle('${a.id}',false)">Restore</button>`
        :`${rec.length?`<button class="lv2-mini g" onclick="lv2OpenShip('${a.asin}')">Ship units</button>`:''}
@@ -10100,11 +10226,12 @@ function lv2RenderBundles(){
    const pack=rec.filter(r=>lv2Comp(r.c)&&lv2Comp(r.c).type==='packing');
    const line=r=>{const c=lv2Comp(r.c);if(!c)return'';const lim=bd.limiter===c.id;
     return `<div class="lv2-cline" onclick="lv2OpenDetail('${c.id}')"><span class="q">×${r.q}</span><span class="nm">${c.name}<span class="lv2-typ ${c.type}">${lv2TypeLabel(c.type)}</span>${c.size?`<span class="lv2-size">${c.size}</span>`:''}</span><span class="stk">${c.onHand} in stock</span>${lim?`<span class="lv2-limit">limits build</span><button class="lv2-mini p" onclick="event.stopPropagation();lv2OpenOrder('${c.id}')">Log order</button>`:''}</div>`;};
-   recHtml=`<tr class="lv2-recipe"><td colspan="8"><div class="lv2-rbox">
+   recHtml=`<tr class="lv2-recipe"><td colspan="9"><div class="lv2-rbox">
     <div class="lv2-rsh">Bundle Components</div>${comp.map(line).join('')||'<div class="lv2-hint" style="margin:2px 0 8px;">None</div>'}
     ${pack.length?`<div class="lv2-rsh pk" style="margin-top:12px;">Packing</div>${pack.map(line).join('')}`:''}
    </div></td></tr>`;}
-  return main+recHtml;}).join('');}
+  return main+recHtml;}).join('');
+ window._lv2BVisible=rows.map(a=>a.asin);lv2BulkBarRender();}
 function lv2Toggle(asin){lv2OpenRows[asin]=!lv2OpenRows[asin];lv2RenderBundles();}
 function lv2RenderComps(){
  const q=(document.getElementById('lavSrch')||{}).value?.toLowerCase()||'';
@@ -10193,13 +10320,14 @@ function lv2OpenOrder(id){lv2OrderId=id;const c=lv2Comp(id);
   <div class="lv2-mb"><div class="lv2-mrow"><label class="lv2-fl">Quantity ordered</label>
    <input class="lv2-in" id="lv2OrdQty" type="number" min="1" placeholder="e.g. 500" style="font-variant-numeric:tabular-nums;"></div>
    ${c.caseQty?`<div class="lv2-hint" style="margin:-6px 0 8px;">Comes in cases of ${c.caseQty} — e.g. ${c.caseQty*4} = 4 cases.</div>`:''}
-   <div class="lv2-hint">Shows as <b style="color:#7d9cc9;">on order</b> until you mark it delivered, then moves into on hand.</div></div>
+   <div class="lv2-mrow" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><span><label class="lv2-fl">Order ref (optional)</label><input class="lv2-in" id="lv2OrdRef" placeholder="e.g. PO-104"></span><span><label class="lv2-fl">Expected (optional)</label><input class="lv2-in" id="lv2OrdExp" type="date"></span></div>
+   <div class="lv2-hint">Shows as <b style="color:#7d9cc9;">on order</b> until you mark it delivered, then moves into on hand. Receive it (with partials) via 📦 Deliveries.</div></div>
   <div class="lv2-mf"><button class="lv2-cancel" onclick="cm('lv2OrderOv')">Cancel</button>
   <button class="lv2-save" onclick="lv2SaveOrder()">Log order</button></div>`;
  om('lv2OrderOv');setTimeout(()=>document.getElementById('lv2OrdQty').focus(),60);}
 function lv2SaveOrder(){const c=lv2Comp(lv2OrderId);const n=parseInt(document.getElementById('lv2OrdQty').value||0);
  if(n<1){toast('Enter a quantity','er');return;}
- c.orders=c.orders||[];c.orders.push({id:'o'+Date.now(),qty:n,delivered:false,ordered_at:new Date().toISOString()});lv2Save();
+ c.orders=c.orders||[];const _ref=(document.getElementById('lv2OrdRef')||{}).value?.trim()||null;const _exp=(document.getElementById('lv2OrdExp')||{}).value||'';c.orders.push({id:'o'+Date.now(),qty:n,delivered:false,ordered_at:new Date().toISOString(),ref:_ref,expected:_exp?new Date(_exp+'T12:00:00').toISOString():null});lv2Save();
  cm('lv2OrderOv');renderLavarion();lv2OpenDetail(lv2OrderId);
  toast(n+' × '+c.name+' logged as on order');logAudit('Component order logged',c.name+' x '+n);}
 /* ── component add / edit ── */
@@ -10241,7 +10369,7 @@ function lv2SaveComp(){
  toast(lv2CompEditId?'Component updated':'Component added');
  logAudit('Component '+(lv2CompEditId?'updated':'added'),name);}
 function lv2DeleteComp(id){const c=lv2Comp(id);const used=lv2BundlesUsing(id);
- showConfirm('Delete component?',`This removes ${c.name} from your components list${used.length?` — it's currently in ${used.length} bundle recipe${used.length===1?'':'s'}, which will lose this line`:''}.`,()=>{
+ showConfirm('Delete component?',`This removes ${c.name} from your components list${used.length?` — it's currently in ${used.length} bundle component list${used.length===1?'':'s'}, which will lose this line`:''}.`,()=>{
   lavAsins.forEach(a=>{if(lv2Recipes[a.asin])lv2Recipes[a.asin]=lv2Recipes[a.asin].filter(r=>r.c!==id);});
   lv2Components=lv2Components.filter(x=>x.id!==id);lv2Save();cm('lv2CompOv');renderLavarion();
   toast('Component deleted');logAudit('Component deleted',c.name);});}
@@ -10271,7 +10399,7 @@ async function lv2DoShip(){const a=lavAsins.find(x=>x.asin===lv2ShipAsin);const 
  cm('lv2ShipOv');renderLavarion();if(typeof renderShipments==='function')renderShipments();
  toast('Shipped '+n+' × '+a.prod+' — components deducted');
  logAudit('Lavarion shipped (with component deduction)',a.asin+' x '+n+' -> '+shipId);}
-/* ── bundle add/edit — overrides originals; keeps Supabase saveLavAsin, adds recipe ── */
+/* ── bundle add/edit — overrides originals; keeps Supabase saveLavAsin, adds component list ── */
 function openAddLav(){lavEditId=null;
  document.getElementById('lv2BundleTitle').textContent='Add Lavarion ASIN';
  document.getElementById('lv2DelBtn').style.display='none';
@@ -10282,7 +10410,7 @@ function openAddLav(){lavEditId=null;
  lv2AddRecipeRow('comp');om('lv2BundleOv');}
 function lv2RecipeWarn(){const w=document.getElementById('lv2NoCompWarn');if(!w)return;
  const live=lv2Components.filter(c=>!c.archived).length;
- w.innerHTML=live?'':`<div class="lv2-co amber" style="margin-bottom:12px;">No components exist yet — you need at least one before you can attach a recipe. <button class="lv2-ghost sm" onclick="cm('lv2BundleOv');lv2Tab('components');lv2OpenCompForm(null)">+ Add a component first</button></div>`;}
+ w.innerHTML=live?'':`<div class="lv2-co amber" style="margin-bottom:12px;">No components exist yet — you need at least one before you can attach a component list. <button class="lv2-ghost sm" onclick="cm('lv2BundleOv');lv2Tab('components');lv2OpenCompForm(null)">+ Add a component first</button></div>`;}
 function openEditLav(id){const a=lavAsins.find(x=>x.id===id||String(x.id)===String(id));if(!a)return;
  lavEditId=a.id;
  document.getElementById('lv2BundleTitle').textContent='Edit Lavarion ASIN';
@@ -10335,7 +10463,7 @@ function lv2DeleteCurrent(){if(!lavEditId)return;cm('lv2BundleOv');deleteLav(lav
 /* ── BUILD PLANNER: plan a batch across several bundles, get one combined shortfall list ── */
 function lv2OpenPlan(){
  const withRec=lavAsins.filter(a=>!a.archived&&lv2RecipeOf(a).length);
- if(!withRec.length){toast('Attach a recipe to at least one bundle first (Edit a bundle)','er');return;}
+ if(!withRec.length){toast('Attach a component list to at least one bundle first (Edit a bundle)','er');return;}
  const rows=withRec.map(a=>{const bd=lv2Buildable(a);
   return `<div class="lv2-prow"><span class="nm">${a.prod}<span class="lv2-sub" style="display:inline;margin-left:8px;">buildable now: <b style="color:${bd.n>0?'#6fbf82':'#e07a7a'};">${bd.n}</b></span></span>
    <input class="lv2-in" type="number" min="0" placeholder="0" data-plan-asin="${a.asin}" oninput="lv2PlanCalc()" style="width:86px;text-align:center;flex-shrink:0;"></div>`;}).join('');
@@ -10472,7 +10600,7 @@ function lv2PlanCalc(){
           if(c&&c.uuid)recRows.push({asin:asin,component_id:c.uuid,qty:parseInt(r.q)||1});
         });
       });
-      // fetch current recipe ids so we can delete exactly them AFTER a good insert
+      // fetch current component list ids so we can delete exactly them AFTER a good insert
       var existing=await sb.from('lavarion_recipes').select('id');
       var oldIds=(existing.data||[]).map(function(x){return x.id;});
       if(recRows.length){
@@ -10480,13 +10608,13 @@ function lv2PlanCalc(){
         if(ir.error)throw ir.error;               // keep old rows if insert failed
         if(oldIds.length){
           var dr=await sb.from('lavarion_recipes').delete().in('id',oldIds);
-          if(dr.error)console.warn('recipe cleanup',dr.error);
+          if(dr.error)console.warn('component list cleanup',dr.error);
         }
       }else if(oldIds.length){
-        // memory has zero recipes — only clear if that's a genuine state, which it
-        // is once loaded OK (e.g. user removed the last recipe)
+        // memory has zero component lists — only clear if that's a genuine state, which it
+        // is once loaded OK (e.g. user removed the last component list)
         var dr2=await sb.from('lavarion_recipes').delete().in('id',oldIds);
-        if(dr2.error)console.warn('recipe clear',dr2.error);
+        if(dr2.error)console.warn('component list clear',dr2.error);
       }
     }catch(e){console.warn('lv2 Supabase save failed',e);toast('Lavarion save failed — check connection','er');}
     _saving=false;
@@ -10521,15 +10649,15 @@ function lv2PlanCalc(){
       toast('Lavarion data could not load — check the SQL migration ran','er');
     }
   }
-  // run after the app's first Supabase sync so lavAsins exist for recipe keying
+  // run after the app's first Supabase sync so lavAsins exist for component list keying
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(lv2Load,400);});
   else setTimeout(lv2Load,400);
 })();
-/* ══════════ BULK RECIPE TOOLS — Rapid Builder + Recipe Matrix ══════════
-   Built for scale: ~50 bundles × 50+ components, recipes entered from memory.
+/* ══════════ BULK RECIPE TOOLS — Rapid Builder + Component Matrix ══════════
+   Built for scale: ~50 bundles × 50+ components, component lists entered from memory.
    • Rapid Builder: keyboard-first per-bundle entry — type-ahead search, Enter to
-     add, inline component creation, copy-recipe-from, auto-save on navigation.
-   • Recipe Matrix: every recipe on one grid (rows=bundles, cols=used components),
+     add, inline component creation, copy-component list-from, auto-save on navigation.
+   • Component Matrix: every component list on one grid (rows=bundles, cols=used components),
      edit quantities like a spreadsheet, one Save writes everything via lv2Save().
    Both are pure UI over the existing lv2Components / lv2Recipes model. */
 function _lv2esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -10573,7 +10701,7 @@ function _lv2esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/<
 let _lv2BulkAsin=null,_lv2BulkDraft=[],_lv2BulkDirty=false,_lv2SugList=[],_lv2SugIdx=0,_lv2NewN=0;
 
 function _lv2BulkBundles(){
-  // no-recipe bundles first (that's the work queue), then alphabetical
+  // bundles with no components first (that's the work queue), then alphabetical
   return lavAsins.filter(a=>!a.archived).slice().sort((a,b)=>{
     const ra=lv2RecipeOf(a).length?1:0,rb=lv2RecipeOf(b).length?1:0;
     if(ra!==rb)return ra-rb;
@@ -10584,7 +10712,7 @@ function lv2OpenBulk(){
   if(!lavAsins.filter(a=>!a.archived).length){toast('Add at least one Lavarion ASIN first','er');return;}
   _lv2BulkAsin=null;_lv2BulkDraft=[];_lv2BulkDirty=false;
   document.getElementById('lv2BulkInner').innerHTML=`
-   <div class="lv2-mh"><h3>⚡ Bulk Recipe Builder</h3><button class="lv2-mx" onclick="lv2BulkClose()">&#10005;</button></div>
+   <div class="lv2-mh"><h3>Assign Components</h3><button class="lv2-mx" onclick="lv2BulkClose()">&#10005;</button></div>
    <div style="display:grid;grid-template-columns:260px 1fr;min-height:62vh;max-height:72vh;">
      <div id="lv2BulkList" style="border-right:1px solid var(--border);overflow-y:auto;padding:8px;"></div>
      <div id="lv2BulkMain" style="overflow-y:auto;padding:14px 18px;position:relative;"></div>
@@ -10603,7 +10731,7 @@ function lv2BulkRenderList(){
   const bundles=_lv2BulkBundles();
   const done=bundles.filter(a=>lv2RecipeOf(a).length).length;
   const prog=document.getElementById('lv2BulkProg');
-  if(prog)prog.textContent=done+' of '+bundles.length+' bundles have recipes';
+  if(prog)prog.textContent=done+' of '+bundles.length+' bundles have components';
   el.innerHTML=bundles.map(a=>{
     const n=(a.asin===_lv2BulkAsin)?_lv2BulkDraft.length:lv2RecipeOf(a).length;
     return `<div class="lv2-bl-item ${a.asin===_lv2BulkAsin?'on':''}" onclick="lv2BulkSelect('${_lv2esc(a.asin)}')">
@@ -10617,7 +10745,7 @@ function lv2BulkCommit(){
   const clean=_lv2BulkDraft.filter(r=>r.c&&(parseInt(r.q)||0)>0).map(r=>({c:r.c,q:parseInt(r.q)||1}));
   if(clean.length)lv2Recipes[_lv2BulkAsin]=clean;else delete lv2Recipes[_lv2BulkAsin];
   lv2Save();_lv2BulkDirty=false;
-  logAudit('Recipe saved (bulk builder)',_lv2BulkAsin+' — '+clean.length+' line'+(clean.length===1?'':'s'));
+  logAudit('Component list saved (bulk builder)',_lv2BulkAsin+' — '+clean.length+' line'+(clean.length===1?'':'s'));
 }
 function lv2BulkSelect(asin){
   lv2BulkCommit();
@@ -10635,7 +10763,7 @@ function lv2BulkRenderMain(){
       <div style="font-size:15px;font-weight:800;color:var(--text);">${_lv2esc(a.prod||'')}</div>
       <div style="font-size:11px;color:var(--text3);font-family:var(--mono);">${_lv2esc(a.asin)}</div>
       ${others.length?`<select class="lv2-in" style="margin-left:auto;width:auto;font-size:11px;padding:4px 8px;" onchange="if(this.value)lv2BulkCopyFrom(this.value);this.value='';">
-        <option value="">Copy recipe from…</option>
+        <option value="">Copy component list from…</option>
         ${others.map(o=>`<option value="${_lv2esc(o.asin)}">${_lv2esc(o.prod||o.asin)}</option>`).join('')}
       </select>`:''}
     </div>
@@ -10735,12 +10863,12 @@ function lv2BulkCopyFrom(asin){
   const have=new Set(_lv2BulkDraft.map(r=>r.c));
   src.forEach(r=>{if(!have.has(r.c))_lv2BulkDraft.push({c:r.c,q:r.q});});
   _lv2BulkDirty=true;lv2BulkRenderLines();lv2BulkRenderList();
-  toast('Recipe copied — tweak quantities as needed');
+  toast('Component list copied — tweak quantities as needed');
 }
 function lv2BulkSaveNext(){
   lv2BulkCommit();
   const bundles=_lv2BulkBundles();
-  // next bundle without a recipe; if all have one, just advance down the list
+  // next bundle without a component list; if all have one, just advance down the list
   let next=bundles.find(a=>a.asin!==_lv2BulkAsin&&!lv2RecipeOf(a).length);
   if(!next){
     const i=bundles.findIndex(a=>a.asin===_lv2BulkAsin);
@@ -10770,10 +10898,10 @@ function lv2OpenMatrix(){
   bundles.forEach(a=>lv2RecipeOf(a).forEach(r=>{if(lv2Comp(r.c))used.add(r.c);}));
   _lv2MxCols=_lv2MxSortCols([...used]);
   document.getElementById('lv2MxInner').innerHTML=`
-    <div class="lv2-mh"><h3>▦ Recipe Matrix</h3><button class="lv2-mx" onclick="cm('lv2MxOv')">&#10005;</button></div>
+    <div class="lv2-mh"><h3>▦ Component Matrix</h3><button class="lv2-mx" onclick="cm('lv2MxOv')">&#10005;</button></div>
     <div class="lv2-mb" style="padding-bottom:8px;">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-        <div style="font-size:11.5px;color:var(--text2);">Every bundle × every component in use. Edit quantities like a spreadsheet — blank = not in the recipe. <b>Enter</b> moves down the column.</div>
+        <div style="font-size:11.5px;color:var(--text2);">Every bundle × every component in use. Edit quantities like a spreadsheet — blank = not in the component list. <b>Enter</b> moves down the column.</div>
         <select class="lv2-in" id="lv2MxAddCol" style="margin-left:auto;width:auto;font-size:11px;padding:4px 8px;" onchange="lv2MxAddColumn(this.value);this.value='';">
           <option value="">+ Add column (component)…</option>
         </select>
@@ -10816,7 +10944,7 @@ function lv2MxRenderTable(preserved){
   const wrap=document.getElementById('lv2MxWrap');if(!wrap)return;
   const bundles=lavAsins.filter(a=>!a.archived).slice().sort((a,b)=>(a.prod||'').localeCompare(b.prod||''));
   if(!_lv2MxCols.length&&!lv2Components.filter(c=>!c.archived).length){
-    wrap.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">No components yet — add some via the ⚡ Recipe Builder or the Components tab first.</div>';return;
+    wrap.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">No components yet — add some via the ⚡ Assign Components or the Components tab first.</div>';return;
   }
   const head='<tr><th class="stick"><span style="font-size:10px;color:var(--text3);font-weight:700;">BUNDLE ↓ · COMPONENT →</span></th>'
     +_lv2MxCols.map(id=>{const c=lv2Comp(id);if(!c)return'';
@@ -10865,7 +10993,7 @@ function lv2MxSave(){
   let changes=0;
   lavAsins.filter(a=>!a.archived).forEach(a=>{
     const before=lv2RecipeOf(a);
-    // keep any recipe lines whose component ISN'T a matrix column (e.g. archived
+    // keep any component list lines whose component ISN'T a matrix column (e.g. archived
     // components) — the matrix must never silently drop what it doesn't show
     const hidden=before.filter(r=>!shown.has(r.c));
     const next=hidden.concat(byAsin[a.asin]||[]);
@@ -10878,8 +11006,8 @@ function lv2MxSave(){
   if(!changes){toast('No changes to save');return;}
   lv2Save();
   cm('lv2MxOv');renderLavarion();
-  toast(changes+' bundle recipe'+(changes===1?'':'s')+' updated ✓');
-  logAudit('Recipe matrix save',changes+' bundles updated');
+  toast(changes+' bundle component list'+(changes===1?'':'s')+' updated ✓');
+  logAudit('Component list matrix save',changes+' bundles updated');
 }
 
 /* ── BULK ADD COMPONENTS ──────────────────────────────────────────────────────
@@ -10969,6 +11097,501 @@ function lv2BcSave(){
   logAudit('Components bulk-added',ok.length+' × '+lv2TypeLabel(_lv2BcType));
 }
 
+/* ══════════ STOCK LOOP TOOLS — Deliveries · Reorder planner · Stocktake ══════
+   Closes the three bulk gaps in the order→deliver→ship→count loop:
+   • Deliveries: every open order on one list; tick what arrived, partial
+     quantities split into received + remainder-still-on-order. One save.
+   • Reorder planner: months-of-cover for every component (not just packing),
+     worst first, suggested qtys rounded to cases, grouped by supplier so a
+     ticked group reads like a PO. One click logs the lot as on order.
+   • Stocktake: bulk on-hand editor with deltas + last-counted tracking. */
+
+function _lv2DaysAgo(iso){if(!iso)return null;return Math.floor((Date.now()-new Date(iso).getTime())/864e5);}
+function _lv2Fdate(iso){if(!iso)return'—';const d=new Date(iso);return d.getDate()+'/'+(d.getMonth()+1);}
+
+/* keep the Deliveries button badge fresh whenever the page re-renders */
+function lv2OpenOrdersCount(){
+  return lv2Components.filter(c=>!c.archived).reduce((n,c)=>n+((c.orders||[]).filter(o=>!o.delivered).length),0);
+}
+function lv2UpdateDelBadge(){
+  const b=document.getElementById('lv2DelB');if(!b)return;
+  const n=lv2OpenOrdersCount();
+  b.innerHTML='📦 Deliveries'+(n?` <span style="background:rgba(96,165,250,.2);border:1px solid rgba(96,165,250,.4);border-radius:10px;padding:0 7px;font-size:10px;font-weight:800;">${n}</span>`:'');
+}
+const _lv2_origRenderLavarion=renderLavarion;
+renderLavarion=function(){_lv2_origRenderLavarion();lv2UpdateDelBadge();};
+
+/* ── 📦 DELIVERIES ────────────────────────────────────────────────────────── */
+function lv2OpenDeliveries(){
+  const open=[];
+  lv2Components.filter(c=>!c.archived).forEach(c=>(c.orders||[]).forEach(o=>{if(!o.delivered)open.push({c,o});}));
+  open.sort((a,b)=>new Date(a.o.ordered_at||0)-new Date(b.o.ordered_at||0));
+  let body;
+  if(!open.length){
+    body='<div style="padding:30px;text-align:center;color:var(--text3);font-size:12.5px;">Nothing on order right now — log orders from the 🛒 Reorder planner or a component\'s "+ Log order".</div>';
+  }else{
+    body=`<div style="font-size:11.5px;color:var(--text2);margin-bottom:10px;">Tick what arrived. Edit the <b>received</b> box for partial deliveries — the rest stays on order automatically.</div>
+    <div style="max-height:56vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+    ${open.map((x,i)=>{
+      const days=_lv2DaysAgo(x.o.ordered_at);
+      const lateExp=x.o.expected&&new Date(x.o.expected).getTime()<Date.now();
+      const late=lateExp||(days!=null&&days>=14);
+      return `<div style="display:grid;grid-template-columns:26px 1fr 120px 110px 120px;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);${late?'background:rgba(248,113,113,.05);':''}">
+        <input type="checkbox" id="lv2dl-ck-${i}" checked onchange="lv2DelRecalc()">
+        <div><div style="font-size:12.5px;font-weight:700;color:var(--text);">${_lv2esc(x.c.name)} <span class="lv2-typ ${x.c.type}" style="margin-left:4px;">${lv2TypeLabel(x.c.type)}</span></div>
+          <div style="font-size:10.5px;color:var(--text3);">${x.c.supplier?_lv2esc(x.c.supplier)+' · ':''}${x.o.ref?'ref '+_lv2esc(x.o.ref)+' · ':''}ordered ${days!=null?days+'d ago':'—'}${x.o.expected?` · expected ${_lv2Fdate(x.o.expected)}`:''}${late?' <b style="color:#f87171;">LATE</b>':''}</div></div>
+        <div style="font-size:11px;color:var(--text3);text-align:right;">ordered <b style="color:var(--text);font-family:var(--mono);">${x.o.qty}</b></div>
+        <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;"><span style="font-size:10px;color:var(--text3);">received</span>
+          <input class="lv2-in" type="number" min="0" max="${x.o.qty}" value="${x.o.qty}" id="lv2dl-q-${i}" style="width:70px;text-align:center;" oninput="lv2DelRecalc()"></div>
+        <div id="lv2dl-note-${i}" style="font-size:10px;color:var(--text3);text-align:right;"></div>
+      </div>`;
+    }).join('')}
+    </div>`;
+  }
+  document.getElementById('lv2DelInner').innerHTML=`
+   <div class="lv2-mh"><h3>📦 Deliveries — ${open.length} open order${open.length===1?'':'s'}</h3><button class="lv2-mx" onclick="cm('lv2DelOv')">&#10005;</button></div>
+   <div class="lv2-mb">${body}</div>
+   <div class="lv2-mf"><span id="lv2DelSum" style="margin-right:auto;font-size:11px;color:var(--text3);"></span>
+    <button class="lv2-cancel" onclick="cm('lv2DelOv')">Cancel</button>
+    ${open.length?'<button class="lv2-save" id="lv2DelGo" onclick="lv2DelReceive()">Receive selected</button>':''}</div>`;
+  window._lv2DelOpen=open;
+  om('lv2DelOv');lv2DelRecalc();
+}
+function lv2DelRecalc(){
+  const open=window._lv2DelOpen||[];let items=0,units=0;
+  open.forEach((x,i)=>{
+    const ck=document.getElementById('lv2dl-ck-'+i),q=document.getElementById('lv2dl-q-'+i),note=document.getElementById('lv2dl-note-'+i);
+    if(!ck||!q)return;
+    const v=Math.max(0,Math.min(x.o.qty,parseInt(q.value)||0));
+    if(note)note.innerHTML=ck.checked?(v>=x.o.qty?'<span style="color:#6fbf82;">complete ✓</span>':v>0?`partial — <b style="color:#fbbf24;">${x.o.qty-v} stays on order</b>`:'nothing'):'';
+    if(ck.checked&&v>0){items++;units+=v;}
+  });
+  const s=document.getElementById('lv2DelSum');
+  if(s)s.textContent=items?`Receiving ${units} units across ${items} order${items===1?'':'s'}`:'Nothing selected';
+  const go=document.getElementById('lv2DelGo');
+  if(go){go.disabled=!items;go.style.opacity=items?'1':'.5';}
+}
+function lv2DelReceive(){
+  const open=window._lv2DelOpen||[];let items=0,units=0,partials=0;
+  open.forEach((x,i)=>{
+    const ck=document.getElementById('lv2dl-ck-'+i),q=document.getElementById('lv2dl-q-'+i);
+    if(!ck||!ck.checked)return;
+    const recv=Math.max(0,Math.min(x.o.qty,parseInt(q.value)||0));
+    if(recv<1)return;
+    const c=x.c,o=x.o;
+    if(recv>=o.qty){
+      o.delivered=true;o.delivered_at=new Date().toISOString();
+    }else{
+      // partial: shrink the open order to the remainder, book the received
+      // part as its own delivered entry so history stays accurate
+      o.qty=o.qty-recv;partials++;
+      c.orders.push({id:'o'+Date.now()+'_'+i,qty:recv,delivered:true,ordered_at:o.ordered_at,delivered_at:new Date().toISOString(),ref:o.ref||null});
+    }
+    c.onHand=(c.onHand||0)+recv;
+    items++;units+=recv;
+  });
+  if(!items){toast('Nothing selected','er');return;}
+  lv2Save();cm('lv2DelOv');renderLavarion();
+  toast(units+' units received into stock across '+items+' order'+(items===1?'':'s')+(partials?' — '+partials+' partial'+(partials===1?'':'s')+' kept on order':'')+' ✓');
+  logAudit('Deliveries received',items+' orders, '+units+' units'+(partials?', '+partials+' partial':''));
+}
+
+/* ── 🛒 REORDER PLANNER ───────────────────────────────────────────────────── */
+function lv2OpenReorder(){
+  const comps=lv2Components.filter(c=>!c.archived);
+  if(!comps.length){toast('No components yet','er');return;}
+  const rows=comps.map(c=>{
+    const r=lv2PackRec(c); // works for any component: used30, need, oo, toOrder, cases
+    const cover=r.used30>0?((c.onHand+r.oo)/r.used30):null;
+    return{c,r,cover};
+  }).sort((a,b)=>{
+    const ca=a.cover==null?1e9:a.cover, cb=b.cover==null?1e9:b.cover;
+    return ca-cb||a.c.name.localeCompare(b.c.name);
+  });
+  // group by supplier (keeps "bit of both" workable — tick a group = a PO,
+  // or cherry-pick lines across groups)
+  const groups={};
+  rows.forEach(x=>{const k=(x.c.supplier||'').trim()||'No supplier set';(groups[k]=groups[k]||[]).push(x);});
+  const gkeys=Object.keys(groups).sort((a,b)=>a==='No supplier set'?1:b==='No supplier set'?-1:a.localeCompare(b));
+  let gi=0;
+  const body=gkeys.map(g=>{
+    const list=groups[g];
+    const html=`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);">
+      <b style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);">${_lv2esc(g)}</b>
+      <a href="#" style="font-size:10.5px;color:#7d9cc9;font-weight:700;" onclick="event.preventDefault();lv2ReoTickGroup(${gi},true)">tick all</a>
+      <a href="#" style="font-size:10.5px;color:var(--text3);" onclick="event.preventDefault();lv2ReoTickGroup(${gi},false)">none</a></div>`
+    +list.map(x=>{
+      const i=rows.indexOf(x);
+      const cov=x.cover;
+      const covTxt=cov==null?'<span style="color:var(--text3);">no usage</span>':`<b style="color:${cov<1?'#f87171':cov<2?'#fbbf24':'#6fbf82'};">${cov.toFixed(1)} mo</b>`;
+      return `<div data-g="${gi}" style="display:grid;grid-template-columns:26px 1fr 76px 76px 76px 84px 110px;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);">
+        <input type="checkbox" id="lv2ro-ck-${i}" data-g="${gi}" ${x.r.toOrder>0?'checked':''} onchange="lv2ReoRecalc()">
+        <div><div style="font-size:12.5px;font-weight:700;color:var(--text);">${_lv2esc(x.c.name)}${x.c.size?` <span class="lv2-size">${_lv2esc(x.c.size)}</span>`:''}</div>
+          <div style="font-size:10px;color:var(--text3);">${lv2TypeLabel(x.c.type)}${x.c.caseQty?' · case of '+x.c.caseQty:''}</div></div>
+        <div style="text-align:right;font-size:11px;color:var(--text3);">hand <b style="color:var(--text);font-family:var(--mono);">${x.c.onHand||0}</b></div>
+        <div style="text-align:right;font-size:11px;color:var(--text3);">order <b style="color:#7d9cc9;font-family:var(--mono);">${x.r.oo}</b></div>
+        <div style="text-align:right;font-size:11px;color:var(--text3);">30d <b style="color:var(--text);font-family:var(--mono);">${x.r.used30}</b></div>
+        <div style="text-align:right;font-size:11px;">${covTxt}</div>
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:5px;"><span style="font-size:10px;color:var(--text3);">order</span>
+          <input class="lv2-in" type="number" min="0" id="lv2ro-q-${i}" value="${x.r.toOrder||''}" placeholder="0" style="width:70px;text-align:center;" oninput="lv2ReoRecalc()"></div>
+      </div>`;
+    }).join('')+(gi++,'');
+    return html;
+  }).join('');
+  document.getElementById('lv2ReoInner').innerHTML=`
+   <div class="lv2-mh"><h3>🛒 Reorder planner</h3><button class="lv2-mx" onclick="cm('lv2ReoOv')">&#10005;</button></div>
+   <div class="lv2-mb">
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+      <div style="font-size:11.5px;color:var(--text2);">Worst cover first — <b style="color:#f87171;">red</b> &lt;1 month, <b style="color:#fbbf24;">amber</b> &lt;2. Suggested qtys reach <b>${lv2Settings.packMultiplier} month${lv2Settings.packMultiplier===1?'':'s'}</b> of cover, rounded up to whole cases.</div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+        <input class="lv2-in" id="lv2RoRef" placeholder="Order ref (optional)" style="width:150px;font-size:11px;padding:5px 8px;">
+        <span style="font-size:10px;color:var(--text3);">expected</span>
+        <input class="lv2-in" id="lv2RoExp" type="date" style="width:135px;font-size:11px;padding:5px 8px;">
+      </div>
+    </div>
+    <div style="max-height:54vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">${body}</div>
+   </div>
+   <div class="lv2-mf"><span id="lv2ReoSum" style="margin-right:auto;font-size:11px;color:var(--text3);"></span>
+    <button class="lv2-cancel" onclick="cm('lv2ReoOv')">Cancel</button>
+    <button class="lv2-save" id="lv2ReoGo" onclick="lv2ReoLog()">Log orders</button></div>`;
+  window._lv2ReoRows=rows;
+  om('lv2ReoOv');lv2ReoRecalc();
+}
+function lv2ReoTickGroup(g,on){
+  document.querySelectorAll('#lv2ReoInner input[type=checkbox][data-g="'+g+'"]').forEach(ck=>ck.checked=on);
+  lv2ReoRecalc();
+}
+function lv2ReoRecalc(){
+  const rows=window._lv2ReoRows||[];let items=0,units=0;
+  rows.forEach((x,i)=>{
+    const ck=document.getElementById('lv2ro-ck-'+i),q=document.getElementById('lv2ro-q-'+i);
+    if(ck&&ck.checked&&q&&(parseInt(q.value)||0)>0){items++;units+=parseInt(q.value);}
+  });
+  const s=document.getElementById('lv2ReoSum');
+  if(s)s.textContent=items?`Logging ${units} units across ${items} component${items===1?'':'s'}`:'Tick components and set quantities';
+  const go=document.getElementById('lv2ReoGo');
+  if(go){go.disabled=!items;go.style.opacity=items?'1':'.5';}
+}
+function lv2ReoLog(){
+  const rows=window._lv2ReoRows||[];
+  const ref=(document.getElementById('lv2RoRef')||{}).value?.trim()||null;
+  const expRaw=(document.getElementById('lv2RoExp')||{}).value||'';
+  const expected=expRaw?new Date(expRaw+'T12:00:00').toISOString():null;
+  const base=Date.now();let items=0,units=0;
+  rows.forEach((x,i)=>{
+    const ck=document.getElementById('lv2ro-ck-'+i),q=document.getElementById('lv2ro-q-'+i);
+    if(!ck||!ck.checked)return;
+    const n=parseInt(q.value)||0;if(n<1)return;
+    x.c.orders=x.c.orders||[];
+    x.c.orders.push({id:'o'+base+'_'+i,qty:n,delivered:false,ordered_at:new Date().toISOString(),ref:ref,expected:expected});
+    items++;units+=n;
+  });
+  if(!items){toast('Nothing selected','er');return;}
+  lv2Save();cm('lv2ReoOv');renderLavarion();
+  toast(items+' order'+(items===1?'':'s')+' logged ('+units+' units) — receive them via 📦 Deliveries when they arrive');
+  logAudit('Reorder planner',items+' orders logged, '+units+' units'+(ref?', ref '+ref:''));
+}
+
+/* ── 📋 STOCKTAKE ─────────────────────────────────────────────────────────── */
+function lv2OpenStocktake(){
+  const comps=lv2Components.filter(c=>!c.archived);
+  if(!comps.length){toast('No components yet','er');return;}
+  const order={branded:0,complementary:1,packing:2};
+  const sorted=comps.slice().sort((a,b)=>(order[a.type]||0)-(order[b.type]||0)||a.name.localeCompare(b.name));
+  document.getElementById('lv2StkInner').innerHTML=`
+   <div class="lv2-mh"><h3>📋 Stocktake</h3><button class="lv2-mx" onclick="cm('lv2StkOv')">&#10005;</button></div>
+   <div class="lv2-mb">
+    <div style="font-size:11.5px;color:var(--text2);margin-bottom:10px;">Type the counted amount for each component — <b>Enter</b> jumps to the next box. Leave blank to keep the current number. Shipping already deducts automatically, so this just corrects drift (breakage, miscounts).</div>
+    <div style="max-height:56vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+    ${sorted.map((c,i)=>{
+      const last=c.counted_at?_lv2DaysAgo(c.counted_at):null;
+      return `<div style="display:grid;grid-template-columns:1fr 110px 130px 110px;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);">
+        <div><div style="font-size:12.5px;font-weight:700;color:var(--text);">${_lv2esc(c.name)}${c.size?` <span class="lv2-size">${_lv2esc(c.size)}</span>`:''} <span class="lv2-typ ${c.type}" style="margin-left:4px;">${lv2TypeLabel(c.type)}</span></div>
+          <div style="font-size:10px;color:${last==null?'#fbbf24':last>60?'#fbbf24':'var(--text3)'};">${last==null?'never counted':'counted '+last+'d ago'}</div></div>
+        <div style="text-align:right;font-size:11px;color:var(--text3);">system <b style="color:var(--text);font-family:var(--mono);">${c.onHand||0}</b></div>
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;"><span style="font-size:10px;color:var(--text3);">counted</span>
+          <input class="lv2-in" type="number" min="0" data-cid="${_lv2esc(c.id)}" data-i="${i}" id="lv2stk-${i}" style="width:80px;text-align:center;"
+            oninput="lv2StkRecalc(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();const n=document.getElementById('lv2stk-${i+1}');if(n){n.focus();n.select();}}"></div>
+        <div id="lv2stk-d-${i}" style="text-align:right;font-size:11px;color:var(--text3);"></div>
+      </div>`;
+    }).join('')}
+    </div>
+   </div>
+   <div class="lv2-mf"><span id="lv2StkSum" style="margin-right:auto;font-size:11px;color:var(--text3);"></span>
+    <button class="lv2-cancel" onclick="cm('lv2StkOv')">Cancel</button>
+    <button class="lv2-save" id="lv2StkGo" onclick="lv2StkSave()">Save stocktake</button></div>`;
+  window._lv2StkSorted=sorted;
+  om('lv2StkOv');
+  setTimeout(()=>{const f=document.getElementById('lv2stk-0');if(f)f.focus();},60);
+  lv2StkRecalc();
+}
+function lv2StkRecalc(inp){
+  const sorted=window._lv2StkSorted||[];
+  if(inp){
+    const i=parseInt(inp.dataset.i);const c=sorted[i];
+    const el=document.getElementById('lv2stk-d-'+i);
+    if(el&&c){
+      if(inp.value===''){el.textContent='';}
+      else{
+        const d=(parseInt(inp.value)||0)-(c.onHand||0);
+        el.innerHTML=d===0?'<span style="color:#6fbf82;">matches ✓</span>':`<b style="color:${d<0?'#f87171':'#6fbf82'};">${d>0?'+':''}${d}</b>`;
+      }
+    }
+  }
+  let n=0;
+  sorted.forEach((c,i)=>{const q=document.getElementById('lv2stk-'+i);if(q&&q.value!=='')n++;});
+  const s=document.getElementById('lv2StkSum');
+  if(s)s.textContent=n?n+' of '+sorted.length+' counted':'';
+}
+function lv2StkSave(){
+  const sorted=window._lv2StkSorted||[];
+  let counted=0,changed=0,delta=0;
+  const now=new Date().toISOString();
+  sorted.forEach((c,i)=>{
+    const q=document.getElementById('lv2stk-'+i);
+    if(!q||q.value==='')return;
+    const v=Math.max(0,parseInt(q.value)||0);
+    counted++;c.counted_at=now;
+    if(v!==(c.onHand||0)){changed++;delta+=v-(c.onHand||0);c.onHand=v;}
+  });
+  if(!counted){toast('Nothing counted — enter at least one number','er');return;}
+  lv2Save();_lv2SaveCounted();cm('lv2StkOv');renderLavarion();
+  toast('Stocktake saved — '+counted+' counted, '+changed+' adjusted'+(changed?' (net '+(delta>0?'+':'')+delta+' units)':' ✓'));
+  logAudit('Stocktake',counted+' counted, '+changed+' adjusted, net '+(delta>0?'+':'')+delta);
+}
+
+/* counted_at isn't a column in lavarion_components — persisting it there would
+   require a schema change (and an unknown column would break every save). It
+   lives in app_settings instead, keyed by component uuid (falling back to name
+   for not-yet-synced components), same pattern as the pack-months setting. */
+function _lv2SaveCounted(){
+  try{
+    const map={};
+    lv2Components.forEach(c=>{if(c.counted_at)map[c.uuid||('n:'+c.name.toLowerCase())]=c.counted_at;});
+    sb.from('app_settings').upsert({key:'lavarion_counted',value:JSON.stringify(map)},{onConflict:'key'})
+      .then(r=>{if(r.error)console.warn('counted save',r.error);});
+  }catch(e){console.warn(e);}
+}
+(async function(){
+  try{
+    const r=await sb.from('app_settings').select('value').eq('key','lavarion_counted').maybeSingle();
+    if(!(r&&r.data&&r.data.value))return;
+    const map=JSON.parse(r.data.value);
+    const apply=()=>{lv2Components.forEach(c=>{
+      const v=map[c.uuid]||map['n:'+(c.name||'').toLowerCase()];
+      if(v&&!c.counted_at)c.counted_at=v;});};
+    if(_lv2Loaded)apply();
+    else{ // components may still be loading — retry briefly until they land
+      let tries=0;const t=setInterval(()=>{if(_lv2Loaded||++tries>40){clearInterval(t);apply();}},250);
+    }
+  }catch(e){console.warn('counted load',e);}
+})();
+
+
+/* ── ASIN list: multi-select, bulk archive/restore, bulk VAT, declutter ── */
+function lv2ToggleHideNoRec(){_lv2HideNoRec=!_lv2HideNoRec;lv2RenderBundles();}
+function lv2BSel(asin,on){if(on)_lv2BSel.add(asin);else _lv2BSel.delete(asin);lv2BulkBarRender();lv2BSelAllSync();}
+function lv2BSelAllToggle(on){
+  (window._lv2BVisible||[]).forEach(x=>{if(on)_lv2BSel.add(x);else _lv2BSel.delete(x);});
+  lv2RenderBundles();
+}
+function lv2BSelAllSync(){
+  const box=document.getElementById('lv2BSelAll');if(!box)return;
+  const vis=window._lv2BVisible||[];
+  const sel=vis.filter(x=>_lv2BSel.has(x)).length;
+  box.checked=sel>0&&sel===vis.length;
+  box.indeterminate=sel>0&&sel<vis.length;
+}
+function lv2BClearSel(){_lv2BSel.clear();lv2RenderBundles();}
+function lv2BulkBarRender(){
+  const bar=document.getElementById('lv2BulkBar');if(!bar)return;
+  lv2BSelAllSync();
+  // only count selections that are currently visible in this view
+  const vis=new Set(window._lv2BVisible||[]);
+  const n=[..._lv2BSel].filter(x=>vis.has(x)).length;
+  if(!n){bar.style.display='none';bar.innerHTML='';return;}
+  const archView=lv2BundleFilter==='archived';
+  bar.style.display='';
+  bar.innerHTML=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 14px;margin:2px 0 6px;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.3);border-radius:9px;">
+     <b style="font-size:12px;color:var(--text);">${n} selected</b>
+     ${archView
+       ?`<button class="lv2-mini g" onclick="lv2BulkArchive(false)">Restore selected</button>`
+       :`<button class="lv2-mini p" onclick="lv2BulkArchive(true)">Archive selected</button>
+         <span style="width:1px;height:18px;background:var(--border2);"></span>
+         <span style="font-size:11px;color:var(--text3);">Set VAT:</span>
+         <button class="lv2-mini g" onclick="lv2BulkVat('20')">20%</button>
+         <button class="lv2-mini g" onclick="lv2BulkVat('0')">0%</button>`}
+     <button class="lv2-mini" style="margin-left:auto;" onclick="lv2BClearSel()">Clear</button>
+   </div>`;
+}
+function _lv2SelectedAsins(){
+  const vis=new Set(window._lv2BVisible||[]);
+  return lavAsins.filter(a=>_lv2BSel.has(a.asin)&&vis.has(a.asin));
+}
+function lv2BulkArchive(on){
+  const list=_lv2SelectedAsins();if(!list.length)return;
+  list.forEach(a=>{a.archived=on;saveLavAsin(a);});
+  _lv2BSel.clear();renderLavarion();
+  toast(list.length+' bundle'+(list.length===1?'':'s')+(on?' archived':' restored')+' \u2713');
+  logAudit('Lavarion bundles '+(on?'archived':'restored'),list.length+' bundles');
+}
+function lv2BulkVat(v){
+  const list=_lv2SelectedAsins();if(!list.length)return;
+  let changed=0;
+  list.forEach(a=>{if(String(a.vat!=null?a.vat:'20')!==v){a.vat=v;saveLavAsin(a);changed++;}});
+  _lv2BSel.clear();renderLavarion();
+  toast(changed?changed+' bundle'+(changed===1?'':'s')+' set to '+v+'% VAT \u2713':'All already at '+v+'% VAT');
+  if(changed)logAudit('Lavarion bulk VAT',changed+' bundles \u2192 '+v+'%');
+}
+
+/* ── MONTH HISTORY POPUP ──────────────────────────────────────────────────────
+   Opened from the "This Month" tile. Navigable per-month view that reuses the
+   real figures from _insMonthSeries() so it can never disagree with the tiles.
+   Layout is fixed-height and the arrows are edge-pinned so nothing shifts as you
+   change month. ← / → keys navigate; click any bar to jump. */
+let _mhKey=null;
+function openMonthHistory(key){
+  const ser=(typeof _insMonthSeries==='function'?_insMonthSeries():[]);
+  if(!ser.length){toast('No month history yet');return;}
+  _mhKey=key||ser[ser.length-1].key;
+  if(!ser.some(s=>s.key===_mhKey))_mhKey=ser[ser.length-1].key;
+  _mhRender(ser);
+  om('monthHistModal');
+}
+function _mhNav(d){
+  const ser=(typeof _insMonthSeries==='function'?_insMonthSeries():[]);
+  const i=ser.findIndex(s=>s.key===_mhKey);
+  const ni=Math.min(ser.length-1,Math.max(0,i+d));
+  if(ni===i)return;
+  _mhKey=ser[ni].key;_mhRender(ser);
+}
+function _mhPick(key){if(key===_mhKey)return;_mhKey=key;_mhRender(_insMonthSeries());}
+document.addEventListener('keydown',function(e){
+  const m=document.getElementById('monthHistModal');
+  if(!m||!m.classList.contains('open'))return;
+  if(e.key==='ArrowLeft'){e.preventDefault();_mhNav(-1);}
+  else if(e.key==='ArrowRight'){e.preventDefault();_mhNav(1);}
+});
+function _mhRender(ser){
+  const GOLD='#fbbf24';
+  const LBL='#aeb9c9', HINT='#8b9bb3', MUTE='#7a889e', VAL='#e6ecf5', LINE='rgba(255,255,255,.07)';
+  const i=ser.findIndex(s=>s.key===_mhKey);
+  const m=ser[i]||ser[ser.length-1];
+  const prev=ser[i-1]||null;
+  const [y,mo]=m.key.split('-');
+  const full=new Date(+y,+mo-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'});
+  const isCurrent=i===ser.length-1;
+  const none=`<span style="color:${MUTE};">— no prior month</span>`;
+  const dl=(cur,pv,gd)=>pv?_deltaBadge(cur,pv,gd):none;
+
+  const others=ser.filter((s,idx)=>idx!==i && idx!==ser.length-1);
+  const avgU=others.length?others.reduce((a,s)=>a+s.units,0)/others.length:0;
+  let verdict={t:'No baseline yet',c:MUTE};
+  if(avgU){const r=m.units/avgU;
+    verdict = r>=1.10?{t:`Strong · ${Math.round((r-1)*100)}% above your average`,c:'#4ade80'}
+            : r>=0.90?{t:'On track · around your average',c:'#fbbf24'}
+            : r>=0.75?{t:`Quiet · ${Math.round((1-r)*100)}% below average`,c:'#fb923c'}
+            :          {t:`Low · ${Math.round((1-r)*100)}% below average`,c:'#f87171'};}
+  const isPeak=ser.length>1 && m.units===Math.max(...ser.map(s=>s.units)) && m.units>0;
+
+  const prepPctCog=m.cog?(m.prep/m.cog*100):0;
+  const upshp=m.ships?(m.units/m.ships):0;
+
+  // Tinted headline card with a coloured accent bar down the left
+  const stat=(label,val,col,dline)=>`
+    <div style="position:relative;background:linear-gradient(135deg,${col}18,${col}05);border:1px solid ${col}33;border-radius:11px;padding:13px 15px 12px;overflow:hidden;">
+      <span style="position:absolute;left:0;top:0;bottom:0;width:3px;background:${col};"></span>
+      <div style="font-size:9.5px;font-weight:800;color:${LBL};text-transform:uppercase;letter-spacing:.09em;margin-bottom:7px;">${label}</div>
+      <div style="font-size:25px;font-weight:900;font-family:var(--mono);color:${col};line-height:1;">${val}</div>
+      <div style="font-size:10.5px;margin-top:8px;">${dline} ${dline===none?'':`<span style="color:${HINT};">vs prev month</span>`}</div>
+    </div>`;
+  const mini=(label,val,col,sub)=>`
+    <div style="flex:1;background:${col}0f;border:1px solid ${col}26;border-radius:9px;padding:10px 8px;text-align:center;">
+      <div style="font-size:8.5px;font-weight:800;color:${LBL};text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">${label}</div>
+      <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:${col};line-height:1;">${val}</div>
+      ${sub?`<div style="font-size:8px;color:${HINT};margin-top:4px;">${sub}</div>`:''}
+    </div>`;
+
+  const segs=[['Standard (stock)',m.mixStd||0,'#60a5fa'],['DG (stock)',m.mixDG||0,'#f87171'],['Oversize (stock)',m.mixOS||0,'#fb923c'],['Lavarion',m.mixLav||0,'#c084fc']];
+  const mixTot=segs.reduce((a,s)=>a+s[1],0);
+  const mixDen=mixTot||1;
+  const mixBar=segs.filter(s=>s[1]>0).map(([l,u,c])=>{const pc=u/mixDen*100;return `<div title="${l}: ${fmt(u)} (${pc.toFixed(1)}%)" style="width:${pc}%;background:${c};display:flex;align-items:center;justify-content:center;">${pc>=12?`<span style="font-size:11px;font-weight:800;color:#0b1220;">${Math.round(pc)}%</span>`:''}</div>`;}).join('');
+  const mixLegend=segs.map(([l,u,c])=>`<div style="display:flex;align-items:center;gap:7px;font-size:11.5px;">
+      <span style="width:9px;height:9px;border-radius:2px;background:${c};flex-shrink:0;"></span>
+      <span style="color:${c};font-weight:700;flex:1;">${l}</span>
+      <span style="font-family:var(--mono);font-weight:800;color:${VAL};">${fmt(u)}</span>
+      <span style="color:${HINT};font-size:10px;width:40px;text-align:right;">${(u/mixDen*100).toFixed(1)}%</span>
+    </div>`).join('');
+
+  // Dual trend: units bars (cyan) + COG bars (gold), current month highlighted.
+  const trend=(field,accent,fmtFn)=>{
+    const mx=Math.max(...ser.map(s=>s[field]),1);
+    return `<div style="display:flex;align-items:flex-end;gap:7px;height:78px;padding:2px 2px 0;border-bottom:1px solid ${LINE};">
+      ${ser.map(s=>{const h=Math.max(6,Math.round(s[field]/mx*64));const on=s.key===m.key;
+        return `<div onclick="_mhPick('${s.key}')" title="${s.short}: ${fmtFn(s[field])}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;min-width:0;">
+          <div style="font-size:8.5px;font-family:var(--mono);font-weight:${on?'800':'600'};color:${on?accent:HINT};white-space:nowrap;">${fmtFn(s[field])}</div>
+          <div style="width:80%;height:${h}px;background:${on?accent:'#3a4a5f'};border-radius:4px 4px 0 0;${on?`box-shadow:0 0 10px ${accent}66;`:''}"></div>
+        </div>`;}).join('')}
+    </div>
+    <div style="display:flex;gap:7px;padding-top:5px;">
+      ${ser.map(s=>{const on=s.key===m.key;return `<div style="flex:1;text-align:center;font-size:8.5px;font-weight:${on?'800':'500'};color:${on?accent:HINT};white-space:nowrap;">${s.short}</div>`;}).join('')}
+    </div>`;
+  };
+
+  document.getElementById('monthHistBody').innerHTML=`
+    <div style="display:grid;grid-template-columns:38px 1fr 38px;align-items:center;margin-bottom:4px;">
+      <button onclick="_mhNav(-1)" ${i<=0?'disabled':''} aria-label="Previous month" style="width:38px;height:38px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:${i<=0?'#3a4a5f':VAL};font-size:18px;cursor:${i<=0?'default':'pointer'};">&lsaquo;</button>
+      <div style="text-align:center;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:9px;">
+          <div style="font-size:20px;font-weight:800;color:${VAL};">${full}</div>
+          ${isPeak?'<span style="font-size:8.5px;font-weight:800;color:#0b1220;background:linear-gradient(135deg,#fbbf24,#f59e0b);padding:2px 7px;border-radius:5px;letter-spacing:.04em;">PEAK</span>':''}
+        </div>
+        ${isCurrent?'<div style="font-size:10px;color:#22d3ee;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-top:3px;">Current month · in progress</div>':`<div style="display:inline-block;font-size:11px;font-weight:700;color:${verdict.c};background:${verdict.c}1a;border:1px solid ${verdict.c}33;padding:2px 10px;border-radius:20px;margin-top:5px;">${verdict.t}</div>`}
+      </div>
+      <button onclick="_mhNav(1)" ${i>=ser.length-1?'disabled':''} aria-label="Next month" style="width:38px;height:38px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:${i>=ser.length-1?'#3a4a5f':VAL};font-size:18px;cursor:${i>=ser.length-1?'default':'pointer'};">&rsaquo;</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;align-items:start;">
+      <div style="display:flex;flex-direction:column;gap:9px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+          ${stat('Units sent',fmt(m.units),'#22d3ee',dl(m.units,prev&&prev.units,false))}
+          ${stat('COG value',fmtGBP2(m.cog),GOLD,dl(m.cog,prev&&prev.cog,false))}
+          ${stat('Prep cost (inc VAT)',fmtGBP2(m.prep),'#fb923c',dl(m.prep,prev&&prev.prep,true))}
+          ${stat('Prep £/unit',m.units?fmtGBP2(m.ppu):'—','#34d399',prev&&prev.ppu?_deltaBadge(m.ppu,prev.ppu,true):none)}
+        </div>
+        <div style="font-size:9.5px;color:${HINT};padding:0 2px;line-height:1.55;">Prep £/unit is blended — the 50p base rate plus oversize (£1.50/unit) and box (£1/box) extras, incl. VAT.</div>
+        <div style="display:flex;gap:8px;">
+          ${mini('Shipments',fmt(m.ships),'#38bdf8')}${mini('SKUs',fmt(m.skus),'#818cf8')}${mini('ASINs',fmt(m.asins),'#22d3ee')}
+        </div>
+        <div style="display:flex;gap:8px;">
+          ${mini('Boxes',fmt(m.boxes),'#fbbf24')}${mini('Units / shpmt',upshp?upshp.toFixed(0):'—','#38bdf8')}${mini('Prep % of COG',prepPctCog?prepPctCog.toFixed(1)+'%':'—','#f87171','lower is better')}
+        </div>
+        <div style="display:flex;gap:8px;">
+          ${mini('COG / unit',m.units?fmtGBP2(m.cogPerUnit):'—','#34d399','avg stock value')}${mini('Units / SKU',m.skus?(m.units/m.skus).toFixed(1):'—','#818cf8')}${mini('Lavarion',m.units?Math.round((m.mixLav||0)/m.units*100)+'%':'—','#c084fc','of units sent')}
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:9px;">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:13px 15px;">
+          <div style="font-size:9.5px;font-weight:800;color:${LBL};text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px;">Sent mix · ${fmt(mixTot)} units</div>
+          <div style="display:flex;height:28px;width:100%;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.06);margin-bottom:11px;">${mixBar||`<div style="width:100%;display:flex;align-items:center;justify-content:center;color:${HINT};font-size:10px;">No units this month</div>`}</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">${mixLegend}</div>
+          <div style="font-size:9px;color:${HINT};margin-top:10px;line-height:1.5;">Standard / DG / Oversize are loose <b style="color:${LBL};">OA stock</b>. Lavarion is separate — it ships as standard but is counted on its own, so it’s not doubled into the Standard figure.</div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:13px 15px;">
+          <div style="display:flex;gap:14px;margin-bottom:10px;">
+            <span style="font-size:9.5px;font-weight:800;color:#22d3ee;text-transform:uppercase;letter-spacing:.09em;border-bottom:2px solid #22d3ee;padding-bottom:3px;">Units / mo</span>
+            <span style="font-size:9.5px;font-weight:800;color:${MUTE};text-transform:uppercase;letter-spacing:.09em;">${'\u25cf'} click a bar / ← →</span>
+          </div>
+          ${trend('units','#22d3ee',fmt)}
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:13px 15px;">
+          <div style="font-size:9.5px;font-weight:800;color:${GOLD};text-transform:uppercase;letter-spacing:.09em;border-bottom:2px solid ${GOLD};padding-bottom:3px;display:inline-block;margin-bottom:10px;">COG value / mo</div>
+          ${trend('cog',GOLD,v=>fmtGBP2(v).replace(/\.00$/,''))}
+        </div>
+      </div>
+    </div>`;
+}
 </script>
 
 </div><!-- /#appShell -->
@@ -10983,7 +11606,7 @@ function lv2BcSave(){
 #page-lavarion .lv2-tbl tbody tr:nth-child(even){background:var(--bg3)!important;}
 #page-lavarion .lv2-tbl tbody tr:hover{background:var(--bg4)!important;}
 #page-lavarion .lv2-tbl td.lv2-prodcell{max-width:300px;overflow:hidden;text-overflow:ellipsis;}
-/* recipe unfold cells shouldn't inherit gridlines/centering */
+/* component list unfold cells shouldn't inherit gridlines/centering */
 #page-lavarion .lv2-tbl tr.lv2-recipe td{padding:0!important;background:var(--bg)!important;border-right:none!important;}
 /* KPI cards — v7 sizing */
 #page-lavarion .lv2-cards{gap:10px!important;padding:10px 10px 0!important;}
