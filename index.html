@@ -1004,6 +1004,11 @@ tr.lv2-recipe td{padding:0;background:var(--bg)!important;}
         <option>Chasing</option>
         <option>Resolved</option>
       </select>
+      <select class="fsel" id="claimOwnF" onchange="filterClaims()">
+        <option value="">All owners</option>
+        <option value="VA">VA — investigate &amp; chase</option>
+        <option value="Jack">Jack — decisions</option>
+      </select>
       <button class="btn-add" onclick="openAddClaim()">+ Raise Action</button>
     </div>
     <div class="tbl-wrap" style="padding:12px;" id="claimList"></div>
@@ -1393,6 +1398,7 @@ CREATE POLICY IF NOT EXISTS "app_settings_all" ON app_settings FOR ALL USING (tr
           <option value="Damaged">Damaged</option>
           <option value="Incorrect">Incorrect</option>
           <option value="Gated">Gated</option>
+          <option value="Not Arrived">Not Arrived</option>
         </select>
       </div>
       <div class="fi"><label class="fl">Issue Qty</label><input class="fi-in" type="number" id="f-issueQty" placeholder="0"></div>
@@ -2994,6 +3000,9 @@ function doClaim(){
     issT:it,exp:r.exp,rec:r.rcvd,dif,
     cost,claimValue:cost*dif,
     cst:'Needs Attention',notes:initNote,
+    owner:_issueDefaults(it.includes('Gated')?'Gated':it.includes('Missing')?'Missing':it.includes('Damaged')?'Damaged':it.includes('Overdue')||it.includes('Tracking')?'Not Arrived':'Incorrect').owner,
+    nextAction:_issueDefaults(it.includes('Gated')?'Gated':it.includes('Missing')?'Missing':it.includes('Damaged')?'Damaged':it.includes('Overdue')||it.includes('Tracking')?'Not Arrived':'Incorrect').na,
+    nextDue:_issueDefaults(it.includes('Gated')?'Gated':it.includes('Missing')?'Missing':it.includes('Damaged')?'Damaged':it.includes('Overdue')||it.includes('Tracking')?'Not Arrived':'Incorrect').nd,
     log:[{t:getNowUK(),msg:'Action raised from Prep Sheet'+(initNote?` — ${initNote}`:'')}],
   });
   logAudit('Action raised',r.sku);
@@ -3105,11 +3114,19 @@ function addClaimLog(){
   const c=claims.find(x=>String(x.id)===String(_claimLogId));if(!c)return;
   if(!c.log)c.log=[];
   c.log.push({t:getNowUK(),msg});
+  c.lastChase=todayISO();
+  // Contacting the supplier IS chasing — the status advances itself so it can
+  // never drift out of sync with what's actually been done.
+  if(c.cst==='Needs Attention'||c.cst==='Open'){
+    c.cst='Chasing';
+    c.log.push({t:getNowUK(),msg:'Status changed to: Chasing (auto — supplier contacted)'});
+  }
   saveClaim(c);
   document.getElementById('claimLogInput').value='';
   renderClaimLog(c);
+  renderClaims();updateCB();
   logAudit('Claim log entry',`${c.sup}: ${msg}`);
-  toast('Entry added');
+  toast('Entry logged — status: '+c.cst);
 }
 
 // ── SARAH'S ADMIN (VA FOLLOW-UP HUB) ──────────────────────────────────────────
@@ -3181,6 +3198,37 @@ function snoozeChase(rid){
   logAudit('Chase snoozed 4d',`${r.sku||''}`);
 }
 
+// One-tap follow-up actions for Sarah's Admin — the answers to "has anyone
+// contacted the supplier?" and "what's next?" live on the claim itself.
+function adminMarkReviewed(id){
+  const c=claims.find(x=>String(x.id)===String(id));if(!c)return;
+  c.cst='Open';
+  if(!c.log)c.log=[];
+  c.log.push({t:getNowUK(),msg:'Reviewed — plan to be actioned'});
+  saveClaim(c);updateCB();renderAdmin();renderClaims();
+  toast('Marked reviewed — now decide the next action');
+  logAudit('Issue reviewed',c.sku||c.sup||'');
+}
+function adminQuickChase(id){
+  const c=claims.find(x=>String(x.id)===String(id));if(!c)return;
+  if(!c.log)c.log=[];
+  c.log.push({t:getNowUK(),msg:'Chased (quick log from Admin)'});
+  c.lastChase=todayISO();
+  if(c.cst==='Needs Attention'||c.cst==='Open')c.cst='Chasing';
+  saveClaim(c);updateCB();renderAdmin();renderClaims();
+  toast('Chase logged — status: '+c.cst);
+  logAudit('Issue chased',c.sku||c.sup||'');
+}
+function _claimChaseInfo(c){
+  // "Has anyone contacted the supplier?" — derived from the log itself.
+  const touched=(c.log||[]).some(e=>!/raised|awaiting review/i.test(e.msg||''));
+  if(!touched)return{txt:'No contact yet',col:'#f87171',days:999};
+  if(c.lastChase){
+    const days=Math.max(0,Math.round((new Date(todayISO())-new Date(c.lastChase))/864e5));
+    return{txt:days===0?'Chased today':`Chased ${days}d ago`,col:days>=5?'#f87171':days>=3?'#fbbf24':'#4ade80',days};
+  }
+  return{txt:'Contacted (date unknown)',col:'#fbbf24',days:4};
+}
 function renderAdmin(){
   const wrap=document.getElementById('adminWrap');
   if(!wrap)return;
@@ -3207,6 +3255,18 @@ function renderAdmin(){
         <div style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:.01em;">Sarah's Admin — Follow-Up Queue</div>
         <div style="font-size:11px;color:var(--text3);margin-top:2px;">Every colour-flagged prep row that needs chasing. Work top to bottom — clear the red first.</div>
       </div>
+      ${(()=>{
+        // Daily scoreboard: the VA's job is literally "make this zero".
+        const naN=claims.filter(c=>!c.archived&&c.cst==='Needs Attention').length;
+        const live=claims.filter(c=>!c.archived&&c.cst!=='Resolved');
+        const chaseN=live.filter(c=>c.cst!=='Needs Attention'&&(c.owner||((c.issT==='Gated')?'Jack':'VA'))!=='Jack'&&_claimChaseInfo(c).days>=4).length;
+        const dueN=live.filter(c=>c.nextDue&&c.nextDue<todayISO()).length;
+        const gatedN=live.filter(c=>c.issT==='Gated'&&!c.gatedDecision).length;
+        const red=naN+chaseN+dueN+cUrgent;
+        return red===0
+          ?`<div style="display:flex;align-items:center;gap:8px;padding:8px 16px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.35);border-radius:9px;"><span style="font-size:16px;">✅</span><div><div style="font-size:13px;font-weight:800;color:#4ade80;">0 red flags — follow-up done</div><div style="font-size:9.5px;color:#8fbf9f;">${gatedN?gatedN+' gated decision'+(gatedN===1?'':'s')+' waiting on Jack':'Nothing outstanding today'}</div></div></div>`
+          :`<div style="display:flex;align-items:center;gap:10px;padding:8px 16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.4);border-radius:9px;"><span style="font-size:20px;font-weight:900;font-family:var(--mono);color:#ef4444;">${red}</span><div><div style="font-size:12.5px;font-weight:800;color:#f87171;">red flag${red===1?'':'s'} to clear today</div><div style="font-size:9.5px;color:#c98a8a;">${[naN?naN+' unreviewed':'',chaseN?chaseN+' need chasing':'',dueN?dueN+' overdue':'',cUrgent?cUrgent+' urgent transit':''].filter(Boolean).join(' · ')}</div></div></div>`;
+      })()}
       <button onclick="renderAdmin()" style="padding:6px 12px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">↻ Refresh</button>
     </div>
 
@@ -3269,23 +3329,82 @@ function renderAdmin(){
     </div>`;
   }
 
-  // ── OPEN ISSUES ROLL-UP ─────────────────────────────────────────────────────
-  if(openIssues.length){
+  // ── OPEN ISSUES — SPLIT QUEUES ──────────────────────────────────────────────
+  // VA queue: Missing / Damaged / Not Arrived / Incorrect — investigate & chase.
+  // Jack's queue: Gated — a decision (eBay vs ungate), not a chase.
+  const _own=c=>c.owner||((c.issT==='Gated')?'Jack':'VA');
+  const vaIssues=openIssues.filter(c=>_own(c)!=='Jack');
+  const jackIssues=openIssues.filter(c=>_own(c)==='Jack');
+  const _issueRow=(c)=>{
+          const sc=c.cst==='Needs Attention'?'#ff6b6b':c.cst==='Open'?'#f97316':c.cst==='Chasing'?'#fbbf24':'#64748b';
+          const ch=_claimChaseInfo(c);
+          const due=c.nextDue&&c.nextDue<todayISO();
+          const chases=(c.log||[]).filter(e=>/chase|contact|emailed|called|messaged/i.test(e.msg||'')).length;
+          const needsChase=_own(c)!=='Jack'&&c.cst!=='Resolved'&&ch.days>=4;
+          const escalate=chases>=2&&c.cst==='Chasing';
+          const gatedUndecided=c.issT==='Gated'&&!c.gatedDecision;
+          return`<div style="padding:8px 0;border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+              <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                <span style="font-size:9px;font-weight:800;color:#0f172a;background:${sc};padding:2px 8px;border-radius:4px;white-space:nowrap;">${(c.cst||'').toUpperCase()}</span>
+                <span style="font-size:11px;color:var(--text2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:380px;">${c.prod||c.sku||'Issue'}</span>
+                <span style="font-size:9px;color:var(--text3);white-space:nowrap;">${c.issT||''} · ${c.dif||0}u</span>
+                ${needsChase?'<span style="font-size:8.5px;font-weight:800;color:#f87171;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.35);padding:1px 7px;border-radius:8px;white-space:nowrap;">CHASE AGAIN</span>':''}
+                ${escalate?'<span style="font-size:8.5px;font-weight:800;color:#fb923c;background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.35);padding:1px 7px;border-radius:8px;white-space:nowrap;">2+ CHASES — ESCALATE?</span>':''}
+                ${gatedUndecided?'<span style="font-size:8.5px;font-weight:800;color:#c084fc;background:rgba(192,132,252,.12);border:1px solid rgba(192,132,252,.35);padding:1px 7px;border-radius:8px;white-space:nowrap;">NO DECISION YET</span>':''}
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;white-space:nowrap;">
+                <span style="font-size:11px;font-family:var(--mono);font-weight:700;color:#fbbf24;">${fmtGBP2(c.claimValue||0)}</span>
+                ${c.cst==='Needs Attention'?`<button onclick="adminMarkReviewed('${c.id}')" style="padding:3px 9px;background:rgba(249,115,22,.14);border:1px solid rgba(249,115,22,.4);color:#f97316;border-radius:4px;font-size:9.5px;font-weight:800;cursor:pointer;">✓ Reviewed</button>`:''}
+                ${_own(c)!=='Jack'&&c.cst!=='Resolved'?`<button onclick="adminQuickChase('${c.id}')" style="padding:3px 9px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.35);color:#60a5fa;border-radius:4px;font-size:9.5px;font-weight:800;cursor:pointer;">📞 Chased today</button>`:''}
+                ${c.issT==='Gated'&&c.cst!=='Resolved'&&!c.gatedDecision?`<button onclick="setGatedDecision('${c.id}','eBay')" style="padding:3px 9px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);color:#34d399;border-radius:4px;font-size:9.5px;font-weight:800;cursor:pointer;">eBay</button><button onclick="setGatedDecision('${c.id}','Ungate')" style="padding:3px 9px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.35);color:#60a5fa;border-radius:4px;font-size:9.5px;font-weight:800;cursor:pointer;">Ungate</button>`:''}
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;margin-top:5px;padding-left:2px;">
+              <span style="font-size:10px;font-weight:700;color:${ch.col};">${ch.txt}</span>
+              <span style="font-size:10px;color:${c.nextAction?'var(--text2)':'#f87171'};font-weight:${c.nextAction?'500':'800'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px;">⭢ ${c.nextAction?c.nextAction:'No next action set'}${c.nextDue?` <span style="color:${due?'#f87171':'var(--text3)'};font-weight:700;">(due ${c.nextDue}${due?' — OVERDUE':''})</span>`:''}</span>
+            </div>
+          </div>`;
+  };
+  if(jackIssues.length){
+    html+=`<div style="background:var(--bg2);border:1px solid var(--border);border-left:4px solid #c084fc;border-radius:8px;overflow:hidden;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(192,132,252,.06);">
+        <div style="font-size:13px;font-weight:800;color:var(--text);">🔒 Jack — Gated decisions (${jackIssues.length})</div>
+        <div style="font-size:10px;font-weight:700;color:#c084fc;background:rgba(192,132,252,.12);padding:3px 10px;border-radius:10px;">eBay it or ungate it</div>
+      </div>
+      <div style="padding:6px 14px 12px;">
+        ${jackIssues.slice().sort((a,b)=>(a.gatedDecision?1:0)-(b.gatedDecision?1:0)).map(_issueRow).join('')}
+      </div>
+    </div>`;
+  }
+  if(vaIssues.length){
     html+=`<div style="background:var(--bg2);border:1px solid var(--border);border-left:4px solid #fbbf24;border-radius:8px;overflow:hidden;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(251,191,36,.06);">
-        <div style="font-size:13px;font-weight:800;color:var(--text);">⚑ Open Issues — ${openIssues.length}</div>
+        <div style="font-size:13px;font-weight:800;color:var(--text);">⚑ VA — Investigate &amp; chase (${vaIssues.length})</div>
         <button onclick="navToPage('claims')" style="font-size:10px;font-weight:700;color:#fbbf24;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);padding:3px 10px;border-radius:10px;cursor:pointer;">Open Issues page →</button>
       </div>
       <div style="padding:6px 14px 12px;">
-        ${openIssues.slice(0,12).map(c=>{
+        ${openIssues.slice().sort((a,b)=>(({'Needs Attention':0,'Open':1,'Chasing':2})[a.cst]??1)-(({'Needs Attention':0,'Open':1,'Chasing':2})[b.cst]??1)||(_claimChaseInfo(b).days-_claimChaseInfo(a).days)).slice(0,12).map(c=>{
           const sc=c.cst==='Needs Attention'?'#ff6b6b':c.cst==='Open'?'#f97316':c.cst==='Chasing'?'#fbbf24':'#64748b';
-          return`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">
-            <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-              <span style="font-size:9px;font-weight:800;color:#0f172a;background:${sc};padding:2px 8px;border-radius:4px;white-space:nowrap;">${(c.cst||'').toUpperCase()}</span>
-              <span style="font-size:11px;color:var(--text2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.prod||c.sku||'Issue'}</span>
-              <span style="font-size:9px;color:var(--text3);white-space:nowrap;">${c.issT||c.issueType||''}</span>
+          const ch=_claimChaseInfo(c);
+          const due=c.nextDue&&c.nextDue<todayISO();
+          return`<div style="padding:8px 0;border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+              <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                <span style="font-size:9px;font-weight:800;color:#0f172a;background:${sc};padding:2px 8px;border-radius:4px;white-space:nowrap;">${(c.cst||'').toUpperCase()}</span>
+                <span style="font-size:11px;color:var(--text2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:420px;">${c.prod||c.sku||'Issue'}</span>
+                <span style="font-size:9px;color:var(--text3);white-space:nowrap;">${c.issT||c.issueType||''} · ${c.dif||0}u</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;white-space:nowrap;">
+                <span style="font-size:11px;font-family:var(--mono);font-weight:700;color:#fbbf24;">${fmtGBP2(c.claimValue||0)}</span>
+                ${c.cst==='Needs Attention'?`<button onclick="adminMarkReviewed('${c.id}')" style="padding:3px 9px;background:rgba(249,115,22,.14);border:1px solid rgba(249,115,22,.4);color:#f97316;border-radius:4px;font-size:9.5px;font-weight:800;cursor:pointer;">✓ Reviewed</button>`:''}
+                ${c.cst!=='Resolved'?`<button onclick="adminQuickChase('${c.id}')" style="padding:3px 9px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.35);color:#60a5fa;border-radius:4px;font-size:9.5px;font-weight:800;cursor:pointer;">📞 Chased today</button>`:''}
+              </div>
             </div>
-            <span style="font-size:11px;font-family:var(--mono);font-weight:700;color:#fbbf24;white-space:nowrap;">${fmtGBP2(c.claimValue||0)}</span>
+            <div style="display:flex;align-items:center;gap:14px;margin-top:5px;padding-left:2px;">
+              <span style="font-size:10px;font-weight:700;color:${ch.col};">${ch.txt}</span>
+              <span style="font-size:10px;color:${c.nextAction?'var(--text2)':'#f87171'};font-weight:${c.nextAction?'500':'800'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px;">⭢ ${c.nextAction?c.nextAction:'No next action set — decide one on the Issues page'}${c.nextDue?` <span style="color:${due?'#f87171':'var(--text3)'};font-weight:700;">(due ${c.nextDue}${due?' — OVERDUE':''})</span>`:''}</span>
+            </div>
           </div>`;
         }).join('')}
         ${openIssues.length>12?`<div style="font-size:10px;color:var(--text3);text-align:center;padding-top:8px;">+${openIssues.length-12} more on the Issues page</div>`:''}
@@ -3296,16 +3415,56 @@ function renderAdmin(){
   wrap.innerHTML=html;
 }
 
+// Visual status pipeline — replaces the bare dropdown. Click a step to move
+// the issue there; each stage says exactly what it means so nobody guesses.
+let _expandedClaims=new Set();
+function toggleClaim(id){
+  id=String(id);
+  if(_expandedClaims.has(id))_expandedClaims.delete(id);else _expandedClaims.add(id);
+  renderClaims();
+}
+const CLAIM_STAGES=[
+  {s:'Needs Attention',short:'NEW',col:'#ff6b6b',desc:'Just raised — nobody has reviewed this yet'},
+  {s:'Open',short:'REVIEWED',col:'#f97316',desc:'Reviewed — plan decided, not yet chased'},
+  {s:'Chasing',short:'CHASING',col:'#fbbf24',desc:'Waiting on supplier / Amazon to reply'},
+  {s:'Resolved',short:'RESOLVED',col:'#4ade80',desc:'Closed — recovered, replaced or written off'},
+];
+function claimStepper(c){
+  const idx=Math.max(0,CLAIM_STAGES.findIndex(st=>st.s===c.cst));
+  const cur=CLAIM_STAGES[idx];
+  return `<div>
+    <div style="display:flex;align-items:center;">
+      ${CLAIM_STAGES.map((st,i)=>{
+        const done=i<idx,on=i===idx;
+        const circ=on?`background:${st.col};color:#0b1220;border:2px solid ${st.col};box-shadow:0 0 8px ${st.col}55;`
+                 :done?`background:${st.col}22;color:${st.col};border:2px solid ${st.col}66;`
+                 :`background:transparent;color:#5c6675;border:2px solid rgba(255,255,255,.14);`;
+        return `${i>0?`<div style="flex:1;height:2px;background:${i<=idx?cur.col+'66':'rgba(255,255,255,.1)'};min-width:6px;"></div>`:''}
+        <div onclick="updateClaimSt('${c.id}','${st.s}')" title="${st.s} — ${st.desc}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px;">
+          <div style="width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;${circ}">${done?'✓':i+1}</div>
+          <div style="font-size:7.5px;font-weight:800;letter-spacing:.04em;color:${on?st.col:done?st.col+'aa':'#5c6675'};white-space:nowrap;">${st.short}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:8px;font-size:10px;color:${cur.col};font-weight:600;line-height:1.4;background:${cur.col}12;border:1px solid ${cur.col}30;border-radius:5px;padding:5px 8px;">${cur.desc}</div>
+  </div>`;
+}
 function renderClaims(){
   const el=document.getElementById('claimList');
   const q=(document.getElementById('claimSrch')||{}).value?.toLowerCase()||'';
   const sf=(document.getElementById('claimStF')||{}).value||'';
+  const of=(document.getElementById('claimOwnF')||{}).value||'';
   let d=claims.filter(r=>
     !r.archived&&
     (!q||(r.sku+r.asin+r.sup+r.prod+r.oid).toLowerCase().includes(q))&&
-    (!sf||r.cst===sf)
+    (!sf||r.cst===sf)&&
+    (!of||(r.owner||((r.issT==='Gated')?'Jack':'VA'))===of)
   );
   updateCB();
+  // Work-queue order: unreviewed first, resolved last; oldest first within a
+  // stage so nothing can hide at the bottom for weeks.
+  const _stW={'Needs Attention':0,'Open':1,'Chasing':2,'Resolved':3};
+  d.sort((a,b)=>((_stW[a.cst]??1)-(_stW[b.cst]??1))||String(a.raisedAt||'').localeCompare(String(b.raisedAt||'')));
   if(!d.length){
     el.innerHTML=`<div class="empty"><div class="empty-ico">✅</div><div class="empty-t">${q||sf?'No actions match your search':'No open actions — raise one from the Prep Sheet or use the button above'}</div></div>`;
     return;
@@ -3318,8 +3477,13 @@ function renderClaims(){
   const resolvedCount=d.filter(c=>c.cst==='Resolved').length;
   const totalUnits=d.filter(c=>c.cst!=='Resolved').reduce((a,c)=>a+(c.dif||0),0);
 
-  const issueCount=d.filter(c=>c.cst==='Needs Attention').length;
-  const openOnlyCount=d.filter(c=>c.cst==='Open').length;
+  // Tiles count ALL live claims (not the filtered view) so the totals never
+  // lie when a search or status filter is active — and each tile IS the filter.
+  const A=claims.filter(r=>!r.archived);
+  const issueCount=A.filter(c=>c.cst==='Needs Attention').length;
+  const openOnlyCount=A.filter(c=>c.cst==='Open').length;
+  const chasingAll=A.filter(c=>c.cst==='Chasing').length;
+  const resolvedAll=A.filter(c=>c.cst==='Resolved').length;
 
   // Reimbursed-aware recovery: a resolved claim only counts as recovered when
   // it was actually reimbursed. The rest is still owed.
@@ -3329,18 +3493,28 @@ function renderClaims(){
   const partialCount=resolvedClaimsD.filter(c=>c.reimbursed==='Partial').length;
   const recSub=owedVal>0?(fmtGBP2(owedVal)+' still owed'+(partialCount?` · ${partialCount} partial`:'')):(reimbursedVal>0?'All recovered ✓':'—');
 
-  const tile=(label,val,col,sub)=>`<div style="background:${col}14;border:3px solid ${col}88;border-radius:8px;padding:12px 14px;flex:1;min-width:90px;">
+  const tile=(label,val,col,sub,fv)=>`<div onclick="(function(){const s=document.getElementById('claimStF');if(s){s.value=s.value==='${fv??''}'?'':'${fv??''}';renderClaims();}})()" title="Click to filter" style="cursor:pointer;background:${col}14;border:3px solid ${col}${(sf===(fv??''))&&fv?'':'88'};border-radius:8px;padding:12px 14px;flex:1;min-width:90px;">
     <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-weight:700;">${label}</div>
     <div style="font-size:26px;font-weight:900;font-family:var(--mono);color:${col};line-height:1;">${val}</div>
     ${sub?`<div style="font-size:9px;color:#94a3b8;margin-top:4px;font-weight:600;">${sub}</div>`:''}
   </div>`;
 
+  // Money line: computed from ALL live claims so it never lies under a filter.
+  const _live=A.filter(c=>c.cst!=='Resolved');
+  const _atRisk=_live.reduce((a,c)=>a+(c.claimValue||0),0);
+  const _oldest=_live.reduce((mx,c)=>{if(!c.raisedAt)return mx;const dd=Math.floor((new Date()-new Date(c.raisedAt))/864e5);return Math.max(mx,dd);},0);
+  const _resA=A.filter(c=>c.cst==='Resolved');
+  const _owedA=_resA.filter(c=>(c.reimbursed||'No')==='No').reduce((a,c)=>a+(c.claimValue||0),0);
   el.innerHTML=`
+    ${(_atRisk>0||_owedA>0)?`<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;margin-bottom:12px;background:linear-gradient(90deg,rgba(251,191,36,.08),rgba(251,191,36,.02));border:1px solid rgba(251,191,36,.25);border-radius:9px;">
+      <span style="font-size:12px;color:#e6ecf5;font-weight:600;">💷 <b style="color:#fbbf24;font-family:var(--mono);">${fmtGBP2(_atRisk)}</b> at risk across <b>${_live.length}</b> live issue${_live.length===1?'':'s'}${_oldest?` · oldest <b style="color:${_oldest>=14?'#f87171':'#e6ecf5'};">${_oldest}d</b>`:''}</span>
+      ${_owedA>0?`<span style="font-size:12px;color:#e6ecf5;font-weight:600;border-left:1px solid rgba(255,255,255,.12);padding-left:14px;">✅ resolved but <b style="color:#f87171;font-family:var(--mono);">${fmtGBP2(_owedA)}</b> still unpaid — <span style="color:#aeb9c9;">the easiest money to collect</span></span>`:''}
+    </div>`:''}
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-      ${tile('Needs Attention',issueCount,'#ff6b6b',issueCount>0?'Raised — not yet contacted':'')}
-      ${tile('Open',openOnlyCount,'#f97316',openOnlyCount>0?'Contacted once':'')}
-      ${tile('Chasing',chasingCount,'#fbbf24',chasingCount>0?'Awaiting reply':'')}
-      ${tile('Resolved',resolvedCount,'#4ade80',resolvedCount>0?'Done':'All clear')}
+      ${tile('Needs Attention',issueCount,'#ff6b6b',issueCount>0?'New — review these first':'Nothing awaiting review','Needs Attention')}
+      ${tile('Reviewed',openOnlyCount,'#f97316',openOnlyCount>0?'Plan decided — not chased yet':'','Open')}
+      ${tile('Chasing',chasingAll,'#fbbf24',chasingAll>0?'Waiting on supplier / Amazon':'','Chasing')}
+      ${tile('Resolved',resolvedAll,'#4ade80',resolvedAll>0?'Done':'All clear','Resolved')}
       ${tile('Recovered',fmtGBP2(reimbursedVal),'#34d399',recSub)}
       ${tile('Value at Risk',fmtGBP2(totalVal),'#fbbf24',totalUnits+' units affected')}
     </div>
@@ -3357,7 +3531,32 @@ function renderClaims(){
       const account=c.acct||'';
       const cogUnit=c.cost||skuParsed.cogs||0;
       const daysOpen=c.raisedAt?(()=>{const d=new Date(c.raisedAt),now=new Date();return Math.floor((now-d)/864e5);})()||0:0;
-      return`<div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid ${borderCol};border-radius:8px;margin-bottom:14px;overflow:hidden;">
+      // ── Compact triage row: one scannable line, click to expand the full card ──
+      const open=_expandedClaims.has(String(c.id))||d.length===1;
+      const chInfo=_claimChaseInfo(c);
+      const isJack=(c.owner||((c.issT==='Gated')?'Jack':'VA'))==='Jack';
+      const chasesN=(c.log||[]).filter(e=>/chase|contact|emailed|called|messaged/i.test(e.msg||'')).length;
+      const fChase=!isJack&&c.cst!=='Resolved'&&chInfo.days>=4;
+      const fEsc=chasesN>=2&&c.cst==='Chasing';
+      const fGated=c.issT==='Gated'&&!c.gatedDecision&&c.cst!=='Resolved';
+      const fDue=c.nextDue&&c.nextDue<todayISO()&&c.cst!=='Resolved';
+      const flagChip=(t,col)=>`<span style="font-size:8px;font-weight:800;color:${col};background:${col}1c;border:1px solid ${col}55;padding:1px 6px;border-radius:8px;white-space:nowrap;">${t}</span>`;
+      return`<div style="background:var(--bg2);border:1px solid ${open?borderCol+'55':'var(--border)'};border-left:3px solid ${borderCol};border-radius:8px;margin-bottom:${open?'14':'6'}px;overflow:hidden;">
+      <div onclick="toggleClaim('${c.id}')" style="display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;user-select:none;${open?`background:${statusCol}0d;border-bottom:1px solid var(--border);`:''}" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='${open?statusCol+'0d':''}'">
+        <span style="font-size:10px;color:#8b9bb3;width:10px;">${open?'▾':'▸'}</span>
+        <span style="font-size:9px;font-weight:900;padding:3px 9px;border-radius:4px;background:${statusCol};color:#0f172a;letter-spacing:.03em;white-space:nowrap;">${(c.cst||'').toUpperCase()}</span>
+        <span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;white-space:nowrap;background:${isJack?'rgba(192,132,252,.16)':'rgba(52,211,153,.14)'};color:${isJack?'#c084fc':'#34d399'};">${isJack?'JACK':'VA'}</span>
+        <span style="font-size:10px;font-weight:700;color:#cbd5e1;white-space:nowrap;">${c.issT||'Issue'} · ${c.dif||0}u</span>
+        <span style="flex:1;font-size:11.5px;font-weight:600;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:80px;" title="${(c.prod||'').replace(/"/g,'&quot;')}">${c.prod||c.sku||'—'}</span>
+        ${fGated?flagChip('NO DECISION','#c084fc'):''}
+        ${fChase?flagChip('CHASE AGAIN','#f87171'):''}
+        ${fEsc?flagChip('ESCALATE?','#fb923c'):''}
+        ${fDue?flagChip('OVERDUE','#f87171'):''}
+        ${c.cst!=='Resolved'?`<span style="font-size:9.5px;color:${chInfo.col};font-weight:700;white-space:nowrap;">${chInfo.txt}</span>`:''}
+        <span style="font-size:9.5px;color:#8b9bb3;white-space:nowrap;">${daysOpen}d open</span>
+        <span style="font-size:11.5px;font-family:var(--mono);font-weight:800;color:#fbbf24;white-space:nowrap;">${fmtGBP2(c.claimValue||0)}</span>
+      </div>
+      ${open?`<div style="border-top:3px solid ${borderCol};margin-top:-1px;">
 
         <!-- ── TOP STRIP: status badges + meta ─────────────────────────────── -->
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:${statusCol}0d;gap:10px;flex-wrap:wrap;">
@@ -3366,6 +3565,7 @@ function renderClaims(){
             <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;background:rgba(255,255,255,.08);color:#e2e8f0;">${c.issT||'Issue'}</span>
             ${isHighValue?`<span style="font-size:9px;font-weight:800;padding:3px 8px;border-radius:4px;background:#fbbf2422;color:#fbbf24;border:1px solid #fbbf2444;">⚡ HIGH VALUE</span>`:''}
             ${c.prepRowId?`<span style="font-size:9px;padding:3px 8px;border-radius:4px;background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.25);">⬆ From Prep Sheet</span>`:''}
+            ${(()=>{const j=(c.owner||'VA')==='Jack';return `<span onclick="setClaimOwner('${c.id}')" title="Click to reassign" style="cursor:pointer;font-size:9px;font-weight:800;padding:3px 8px;border-radius:4px;background:${j?'rgba(192,132,252,.16)':'rgba(52,211,153,.14)'};color:${j?'#c084fc':'#34d399'};border:1px solid ${j?'rgba(192,132,252,.35)':'rgba(52,211,153,.3)'};">${j?'👤 JACK':'👤 VA'}</span>`;})()}
           </div>
           <div style="display:flex;align-items:center;gap:16px;">
             <div style="text-align:right;">
@@ -3480,9 +3680,7 @@ function renderClaims(){
             <!-- Status control -->
             <div style="padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;">
               <div style="font-size:9.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Status</div>
-              <select class="ci-sel" onchange="updateClaimSt('${c.id}',this.value)" style="font-size:12px;padding:7px 10px;width:100%;font-weight:700;border-radius:5px;background:${statusCol}22;color:${statusCol};border:1px solid ${statusCol}55;">
-                ${['Needs Attention','Open','Chasing','Resolved'].map(s=>`<option${c.cst===s?' selected':''}>${s}</option>`).join('')}
-              </select>
+              ${claimStepper(c)}
               <!-- Status history pills -->
               ${statusLog.length>0?`<div style="margin-top:8px;display:flex;flex-direction:column;gap:3px;">
                 <div style="font-size:8px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Status History</div>
@@ -3493,7 +3691,24 @@ function renderClaims(){
               </div>`:''}
             </div>
 
-            ${c.cst==='Resolved'?`<div style="padding:8px 10px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.2);border-radius:6px;">
+            ${c.cst!=='Resolved'?`<div style="padding:8px 10px;background:${c.nextAction?'rgba(96,165,250,.06)':'rgba(248,113,113,.07)'};border:1px solid ${c.nextAction?'rgba(96,165,250,.22)':'rgba(248,113,113,.3)'};border-radius:6px;">
+              <div style="font-size:9px;font-weight:800;color:${c.nextAction?'#60a5fa':'#f87171'};text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">⭢ Next action ${c.nextAction?'':'— not set!'}</div>
+              <input value="${(c.nextAction||'').replace(/"/g,'&quot;')}" onchange="setClaimNext('${c.id}','nextAction',this.value)" placeholder="e.g. Chase Amazon UK for refund reply" style="width:100%;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:#e2e8f0;font-size:11.5px;padding:6px 8px;outline:none;box-sizing:border-box;margin-bottom:5px;font-family:inherit;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:9px;color:#94a3b8;font-weight:700;white-space:nowrap;">Due</span>
+                <input type="date" value="${c.nextDue||''}" onchange="setClaimNext('${c.id}','nextDue',this.value)" style="flex:1;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:#e2e8f0;font-size:11px;padding:4px 8px;outline:none;font-family:inherit;">
+                ${c.nextDue&&c.nextDue<todayISO()?'<span style="font-size:9px;font-weight:800;color:#f87171;white-space:nowrap;">OVERDUE</span>':''}
+              </div>
+            </div>`:''}
+            ${c.issT==='Gated'&&c.cst!=='Resolved'?`<div style="padding:8px 10px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.25);border-radius:6px;">
+              <div style="font-size:9px;font-weight:800;color:#c084fc;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">🔒 Gated — Jack's call</div>
+              <div style="display:flex;gap:6px;">
+                <button onclick="setGatedDecision('${c.id}','eBay')" style="flex:1;padding:6px 6px;background:${c.gatedDecision==='eBay'?'rgba(52,211,153,.2)':'rgba(255,255,255,.04)'};border:1px solid ${c.gatedDecision==='eBay'?'#34d39988':'rgba(255,255,255,.12)'};color:${c.gatedDecision==='eBay'?'#34d399':'#cbd5e1'};border-radius:5px;font-size:10px;font-weight:800;cursor:pointer;">Sell on eBay</button>
+                <button onclick="setGatedDecision('${c.id}','Ungate')" style="flex:1;padding:6px 6px;background:${c.gatedDecision==='Ungate'?'rgba(96,165,250,.2)':'rgba(255,255,255,.04)'};border:1px solid ${c.gatedDecision==='Ungate'?'#60a5fa88':'rgba(255,255,255,.12)'};color:${c.gatedDecision==='Ungate'?'#60a5fa':'#cbd5e1'};border-radius:5px;font-size:10px;font-weight:800;cursor:pointer;">Get ungated</button>
+              </div>
+              ${!c.gatedDecision?'<div style="font-size:9px;color:#c084fc;margin-top:5px;font-weight:600;">No decision yet — pick a route</div>':''}
+            </div>`:''}
+                        ${c.cst==='Resolved'?`<div style="padding:8px 10px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.2);border-radius:6px;">
               <div style="font-size:9px;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Outcome — reimbursed?</div>
               <select class="ci-sel" onchange="updateClaimField('${c.id}','reimbursed',this.value)" style="font-size:12px;padding:6px 10px;width:100%;font-weight:700;border-radius:5px;background:${c.reimbursed==='Yes'?'rgba(74,222,128,.15)':c.reimbursed==='Partial'?'rgba(251,191,36,.15)':c.reimbursed==='Write-off'?'rgba(148,163,184,.15)':'rgba(248,113,113,.12)'};color:${c.reimbursed==='Yes'?'#4ade80':c.reimbursed==='Partial'?'#fbbf24':c.reimbursed==='Write-off'?'#cbd5e1':'#f87171'};border:1px solid rgba(255,255,255,.12);margin-bottom:6px;">
                 ${['No','Yes','Partial','Write-off'].map(o=>`<option${(c.reimbursed||'No')===o?' selected':''}>${o}</option>`).join('')}
@@ -3525,6 +3740,7 @@ function renderClaims(){
 
           </div>
         </div>
+      </div>`:''}
       </div>`;
     }).join('')}`;
 }
@@ -3589,6 +3805,30 @@ async function removeIssue(id){
 }
 
 function openEditAction(id){const c=claims.find(x=>String(x.id)===String(id));if(!c)return;openEditClaim(c.id);}
+function setClaimOwner(id){
+  const c=claims.find(x=>String(x.id)===String(id));if(!c)return;
+  c.owner=(c.owner||'VA')==='Jack'?'VA':'Jack';
+  if(!c.log)c.log=[];
+  c.log.push({t:getNowUK(),msg:'Reassigned to '+c.owner});
+  saveClaim(c);renderClaims();if(typeof renderAdmin==='function')renderAdmin();
+  toast('Assigned to '+c.owner);
+}
+function setGatedDecision(id,dec){
+  const c=claims.find(x=>String(x.id)===String(id));if(!c)return;
+  c.gatedDecision=dec;
+  c.nextAction=dec==='eBay'?'List on eBay — remove from Amazon prep flow':'Source ungating invoice / buy extra units, then submit ungate';
+  if(!c.log)c.log=[];
+  c.log.push({t:getNowUK(),msg:'Decision: '+(dec==='eBay'?'Sell on eBay':'Get ungated')});
+  if(c.cst==='Needs Attention')c.cst='Open';
+  saveClaim(c);renderClaims();if(typeof renderAdmin==='function')renderAdmin();
+  toast(dec==='eBay'?'Decision: sell on eBay':'Decision: get ungated');
+  logAudit('Gated decision',(c.sku||'')+' → '+dec);
+}
+function setClaimNext(id,field,val){
+  const c=claims.find(x=>String(x.id)===String(id));if(!c)return;
+  c[field]=val;saveClaim(c);
+  logAudit('Next action '+(field==='nextDue'?'due date':'set'),`${c.sup||c.sku}: ${val||'cleared'}`);
+}
 function updateClaimSt(id,v){
   const c=claims.find(x=>String(x.id)===String(id));
   if(c){
@@ -3630,8 +3870,15 @@ function editClaimNote(id){
 }
 function updateCB(){
   const n=claims.filter(c=>c.cst!=='Resolved').length;
+  const na=claims.filter(c=>c.cst==='Needs Attention').length;
   const badge=document.getElementById('claimBadge');
-  if(badge)badge.textContent=n;
+  if(badge){
+    badge.textContent=n;
+    // Red badge = unreviewed issues exist (act now); amber = live but all reviewed.
+    badge.style.background=na>0?'#ef4444':(n>0?'rgba(251,191,36,.9)':'');
+    badge.style.color=na>0?'#fff':(n>0?'#0f172a':'');
+    badge.title=na>0?(na+' issue'+(na===1?'':'s')+' awaiting review'):(n+' live issue'+(n===1?'':'s'));
+  }
   const dot=document.getElementById('claimDot');
   if(dot)dot.style.display=n>0?'block':'none';
   // Stuck rows badge on Prep Sheet
@@ -7985,11 +8232,19 @@ function claimToDb(c){
     reimbursed:c.reimbursed||'No',
     reimburse_note:c.reimburseNote||'',
     archived:!!c.archived,
-    contact_log:JSON.stringify(c.log||[]),
+    // Envelope carries the log entries PLUS follow-up fields (next action, due
+    // date, last-chase date) — piggybacked in this JSON column so no database
+    // migration is needed. Old rows are plain arrays; both shapes are read.
+    contact_log:JSON.stringify({e:c.log||[],na:c.nextAction||'',nd:c.nextDue||'',lc:c.lastChase||'',ow:c.owner||'',dc:c.gatedDecision||''}),
   };
 }
 function dbToClaim(d){
-  let log=[];try{log=JSON.parse(d.contact_log||'[]');}catch(e){}
+  let log=[],na='',nd='',lc='',ow='',dc='';
+  try{
+    const parsed=JSON.parse(d.contact_log||'[]');
+    if(Array.isArray(parsed))log=parsed;
+    else if(parsed&&typeof parsed==='object'){log=parsed.e||[];na=parsed.na||'';nd=parsed.nd||'';lc=parsed.lc||'';ow=parsed.ow||'';dc=parsed.dc||'';}
+  }catch(e){}
   // Map old statuses to new ones
   const statusMap={'In Progress':'Chasing','Refunded':'Resolved','Closed':'Resolved','Refund Required':'Chasing','Issue':'Needs Attention'};
   const rawStatus=d.status||'Open';
@@ -8004,7 +8259,11 @@ function dbToClaim(d){
     cst:mappedStatus,notes:d.notes||'',acct:d.account||'',
     vaNote:d.va_note||'',jackNote:d.jack_note||'',
     reimbursed:d.reimbursed||'No',reimburseNote:d.reimburse_note||'',
-    archived:!!d.archived,log,
+    archived:!!d.archived,log,nextAction:na,nextDue:nd,lastChase:lc,
+    // Owner falls back by type so legacy issues get one automatically:
+    // Gated → Jack (his decision); everything else → VA (investigate & chase).
+    owner:ow||((d.issue_type||'')==='Gated'?'Jack':'VA'),
+    gatedDecision:dc,
   };
 }
 function dbToLav(d){
@@ -8029,6 +8288,12 @@ function _missingColInErr(err){
 // Back-compat alias used elsewhere.
 function _isMissingShipSegmentsErr(err){return _missingColInErr(err)==='ship_segments';}
 async function saveRow(r){
+  // ── Gated automation: if a row's issue type is Gated, the packing note must
+  //    say so — auto-stamp it once so UK staff never type "gated" twice. This
+  //    hook covers every save path (edit form, issue modal, sheet sync).
+  if(r&&r.issueType==='Gated'&&!(r.notes||'').toLowerCase().includes('gated')){
+    r.notes=r.notes?('Gated — '+r.notes):'Gated';
+  }
   setSyncStatus('syncing');
   const buildData=()=>{
     const d=rowToDb(r);
@@ -8327,18 +8592,55 @@ function openIssueModal(rowId){
   om('issueModal');
 }
 
+// The issue TYPE determines the workflow: who owns it, what the first move is,
+// and how soon. Missing/Damaged/Not Arrived/Incorrect → VA investigates & chases.
+// Gated → Jack decides (eBay vs get ungated). Damage claims are time-critical
+// (supplier windows), so they get the tightest due date.
+function _issueDefaults(type){
+  const plus=(n)=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
+  switch(type){
+    case 'Gated':return{owner:'Jack',na:'Decide: sell on eBay (1–2 units) or get ungated (invoice / buy units)',nd:plus(3)};
+    case 'Damaged':return{owner:'VA',na:'Get photos attached, then raise supplier / reimbursement claim',nd:plus(2)};
+    case 'Missing':return{owner:'VA',na:'Investigate — already shipped? portal not updated? Then contact supplier',nd:plus(2)};
+    case 'Not Arrived':return{owner:'VA',na:'Check tracking, then chase supplier for delivery ETA',nd:plus(2)};
+    case 'Incorrect':return{owner:'VA',na:'Contact supplier — wrong item received, arrange swap/refund',nd:plus(2)};
+    default:return{owner:'VA',na:'Investigate and decide next step',nd:plus(3)};
+  }
+}
+// Auto-describe an issue from the row's own numbers — no manual typing.
+function _autoIssueNote(type,qty,r){
+  const exp=r.exp||0,rec=r.rcvd||0;
+  if(type==='Missing')return `Missing ${qty} of ${exp} units (received ${rec})`;
+  if(type==='Gated')return `Gated — ${qty} unit${qty===1?'':'s'} can't be sent until ungated or returned`;
+  if(type==='Damaged')return `${qty} unit${qty===1?'':'s'} arrived damaged`;
+  if(type==='Incorrect')return `${qty} incorrect unit${qty===1?'':'s'} received`;
+  if(type==='Not Arrived')return `${qty} unit${qty===1?'':'s'} not arrived — no delivery received`;
+  return '';
+}
+// When staff pick a type, prefill the obvious quantity from the row itself:
+// Missing = shortfall (expected − received), Gated = the affected stock.
+function _ilTypePick(idx){
+  const r=rows.find(x=>String(x.id)===String(_issueRowId)||x.uuid===String(_issueRowId));
+  if(!r)return;
+  const t=(document.getElementById(`il-type-${idx}`)||{}).value;
+  const q=document.getElementById(`il-qty-${idx}`);
+  if(!q||q.value)return; // never overwrite something staff already typed
+  if(t==='Missing')q.value=Math.max(0,(r.exp||0)-(r.rcvd||0))||'';
+  else if(t==='Gated')q.value=Math.max(1,(r.rcvd||r.exp||1));
+}
 function addIssueLine(existing=null){
   const idx=_issueLineCount++;
   const div=document.createElement('div');
   div.id=`il-${idx}`;
   div.style.cssText='display:grid;grid-template-columns:1fr 70px 28px;gap:6px;align-items:center;background:var(--bg3);border-radius:6px;padding:8px 10px;';
   div.innerHTML=`
-    <select class="fi-in" id="il-type-${idx}" style="font-size:12px;">
+    <select class="fi-in" id="il-type-${idx}" style="font-size:12px;" onchange="_ilTypePick(${idx})">
       <option value="">— Select type —</option>
       <option value="Missing"${existing?.issT==='Missing'?' selected':''}>Missing</option>
       <option value="Damaged"${existing?.issT==='Damaged'?' selected':''}>Damaged</option>
       <option value="Incorrect"${existing?.issT==='Incorrect'?' selected':''}>Incorrect</option>
       <option value="Gated"${existing?.issT==='Gated'?' selected':''}>Gated</option>
+      <option value="Not Arrived"${existing?.issT==='Not Arrived'?' selected':''}>Not Arrived</option>
     </select>
     <div style="position:relative;">
       <input type="number" id="il-qty-${idx}" class="fi-in" min="1" value="${existing?.dif||''}" placeholder="Qty" style="font-size:12px;padding-right:24px;">
@@ -8360,7 +8662,7 @@ async function saveIssueModal(){
     const qtyEl=document.getElementById(`il-qty-${i}`);
     if(typeEl&&qtyEl){
       const t=typeEl.value;const q=parseInt(qtyEl.value)||0;
-      if(t&&q>0)lines.push({type:t,qty:q,uuid:document.getElementById(`il-uuid-${i}`)?.value||null,cst:document.getElementById(`il-cst-${i}`)?.value||'Open'});
+      if(t&&q>0)lines.push({type:t,qty:q,uuid:document.getElementById(`il-uuid-${i}`)?.value||null,cst:document.getElementById(`il-cst-${i}`)?.value||'Needs Attention'});
     }
     i++;
     if(i>20)break;
@@ -8386,7 +8688,11 @@ async function saveIssueModal(){
       const newCl={id:Date.now(),uuid:null,prepRowId:r.uuid||r.id,
         date:r.date,raisedAt:todayISO(),sup:r.sup,oid:r.oid,prod:r.prod,sku:r.sku,asin:r.asin,
         issT:line.type,exp:r.exp,rec:r.rcvd,dif:line.qty,cost:cog,claimValue:cog*line.qty,
-        cst:'Open',notes:'',log:[]};
+        cst:'Needs Attention',notes:_autoIssueNote(line.type,line.qty,r),
+        owner:_issueDefaults(line.type).owner,
+        nextAction:_issueDefaults(line.type).na,
+        nextDue:_issueDefaults(line.type).nd,
+        log:[{t:getNowUK(),msg:'Issue raised — awaiting review · assigned to '+_issueDefaults(line.type).owner}]};
       const res=await sb.from('actions').insert(claimToDb(newCl)).select().single();
       if(res.error){
         console.error('Issue insert error:',res.error.message,res.error.details,res.error.hint);
