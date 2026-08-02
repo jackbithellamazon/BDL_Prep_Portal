@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v1.7</title>
+<title>BDL PrepHub v2.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -776,6 +776,18 @@ html.light-mode{
 @media(max-width:1100px){
   #page-lavarion td.acts .btn.sm,.lav3 td.acts .btn.sm{padding:4px 6px;font-size:10px;}
 }
+
+#page-lavarion .schemabar.bad,.lav3 .schemabar.bad{display:flex;gap:12px;align-items:center;
+  background:rgba(248,113,113,.13);border:1px solid rgba(248,113,113,.45);border-left:5px solid var(--red);
+  border-radius:10px;padding:12px 15px;margin:0 0 14px;}
+#page-lavarion .schemabar .sbIcon,.lav3 .schemabar .sbIcon{flex:0 0 24px;height:24px;border-radius:50%;
+  background:var(--red);color:#1a0808;display:flex;align-items:center;justify-content:center;font:800 14px var(--num);}
+#page-lavarion .schemabar .sbTxt,.lav3 .schemabar .sbTxt{flex:1;min-width:0;font-size:12.5px;line-height:1.55;color:var(--text);}
+#page-lavarion .schemabar .sbTxt b,.lav3 .schemabar .sbTxt b{display:block;color:var(--red);font-size:13.5px;margin-bottom:2px;}
+#page-lavarion .schemabar .btn,.lav3 .schemabar .btn{flex:0 0 auto;}
+#page-lavarion .dbrow,.lav3 .dbrow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);font-size:12.5px;}
+#page-lavarion .dbrow:last-child,.lav3 .dbrow:last-child{border-bottom:0;}
+#page-lavarion .dbrow .nm,.lav3 .dbrow .nm{flex:1;font-weight:600;color:var(--text);}
 /* mixed-COG block */
 #page-lavarion .mixWrap,.lav3 .mixWrap{margin-bottom:13px;}
 #page-lavarion .mixHead,.lav3 .mixHead{display:flex;gap:12px;align-items:flex-start;background:rgba(248,113,113,.1);
@@ -1210,7 +1222,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v1.7</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v2.0</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1244,7 +1256,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v1.7</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v2.0</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -7029,6 +7041,73 @@ function remainingToShip(r){
 // shipment forward to today — a 27 July shipment stays 27 July forever.
 // Returns the earliest date already recorded against this shipId, or today if
 // it is genuinely a brand-new shipment.
+
+/* A shipment's date can drift — a line added weeks later used to drag the whole
+   thing to today. New lines now inherit the shipment's own date, but anything
+   already dragged forward needs putting back, so the date is editable and the
+   correction lands on every line at once. */
+function openShipDate(shipId){
+  const cur=shipDateFor(shipId);
+  const counts={oa:0,lav:0,ret:0};
+  rows.forEach(r=>{if((r.allShipIds||[]).includes(shipId)||r.shipId===shipId)counts.oa++;});
+  lavShipments.forEach(x=>{if(x.shipId===shipId)counts.lav++;});
+  returnShipments.forEach(x=>{if(x.shipId===shipId)counts.ret++;});
+  const total=counts.oa+counts.lav+counts.ret;
+  let host=document.getElementById('shipDateModal');
+  if(!host){host=document.createElement('div');host.id='shipDateModal';host.className='overlay';
+    host.addEventListener('click',e=>{if(e.target===host)cm('shipDateModal');});
+    document.body.appendChild(host);}
+  host.innerHTML=`<div class="modal" style="max-width:430px">
+    <div class="mh"><div class="mh-title">Shipment date</div>
+      <button class="mh-close" onclick="cm('shipDateModal')">✕</button></div>
+    <div style="padding:16px 18px">
+      <div style="font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:800;margin-bottom:10px">${shipId}</div>
+      <p style="margin:0 0 12px;font-size:12.5px;line-height:1.6;color:var(--text)">The date this shipment actually went to Amazon.
+        Changing it moves <b>every line in it</b> — ${counts.oa} prep row${counts.oa===1?'':'s'}${counts.lav?`, ${counts.lav} Lavarion line${counts.lav===1?'':'s'}`:''}${counts.ret?`, ${counts.ret} return line${counts.ret===1?'':'s'}`:''} — so the whole shipment stays on one date.</p>
+      <label style="display:block;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--text3);margin-bottom:5px">Shipment date</label>
+      <input type="date" id="shipDateFix" value="${cur}" style="width:100%;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:15px;font-weight:700">
+      <p style="margin:11px 0 0;font-size:11.5px;color:var(--text3);line-height:1.55">Monthly reporting follows the date, so this puts the units back in the month they were really sent.</p>
+    </div>
+    <div class="mf" style="display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--border)">
+      <button onclick="cm('shipDateModal')" style="padding:7px 14px;background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Cancel</button>
+      <button onclick="applyShipDate('${shipId.replace(/'/g,"\\'")}')" style="padding:7px 14px;background:var(--btn-amber-bg);border:1px solid var(--btn-amber-border);color:var(--btn-amber-text);border-radius:6px;font-size:12px;font-weight:800;cursor:pointer">Set the date</button>
+    </div></div>`;
+  om('shipDateModal');
+  setTimeout(()=>{const el=document.getElementById('shipDateFix');if(el)el.focus();},60);
+}
+function applyShipDate(shipId){
+  const v=(document.getElementById('shipDateFix')||{}).value||'';
+  if(!v){toast('Pick a date','er');return;}
+  cm('shipDateModal');
+  setShipmentDate(shipId,v);
+}
+function setShipmentDate(shipId,iso){
+  let touched=0;
+  rows.forEach(r=>{
+    let hit=false;
+    (r.shipSegments||[]).forEach(sg=>{if(sg.shipId===shipId){sg.date=iso;hit=true;}});
+    if(r.shipId===shipId||(r.allShipIds||[]).includes(shipId)){
+      /* only move the row's own sent date when this shipment is the only one on it */
+      const others=(r.shipSegments||[]).filter(sg=>sg.shipId!==shipId);
+      if(!others.length){r.sentDate=iso;}
+      hit=true;
+    }
+    if(hit){r._dirty=true;saveRow(r);touched++;}
+  });
+  lavShipments.forEach(x=>{if(x.shipId===shipId){x.date=iso;updateLavShipmentDate(x);touched++;}});
+  returnShipments.forEach(x=>{if(x.shipId===shipId){x.date=iso;
+    if(x.uuid)sb.from('returns_shipments').update({sent_date:iso}).eq('id',x.uuid)
+      .then(r=>{if(r.error)console.warn('[ship date] return',r.error);});
+    touched++;}});
+  logAudit('Shipment date',`${shipId} → ${iso} (${touched} line${touched===1?'':'s'})`);
+  renderShipments();
+  toast(`${shipId} moved to ${new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`,'ok');
+}
+async function updateLavShipmentDate(x){
+  if(!x.uuid)return;
+  const r=await sb.from('lavarion_shipments').update({sent_date:x.date}).eq('id',x.uuid);
+  if(r.error)console.warn('[ship date] lav',r.error);
+}
 function shipDateFor(shipId){
   if(!shipId)return todayISO();
   const found=[];
@@ -7692,7 +7771,9 @@ function renderShipments(){
           <span onclick="event.stopPropagation();copyShipId('${s.id}',this.previousElementSibling)" title="Copy Shipment ID" style="font-size:9px;opacity:.45;font-family:sans-serif;cursor:copy;">⎘</span>
         </span>
         ${noBox?`<span title="No box count entered for this shipment" style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:rgba(248,113,113,.15);color:var(--red);border:1px solid var(--red);">⚠ NO BOXES</span>`:''}
-        <span style="font-size:10px;color:var(--text3);">${dateDisp}</span>
+        <span onclick="event.stopPropagation();openShipDate('${s.id.replace(/'/g,"\\'")}')"
+          title="Click to correct the shipment date — this sets the date on every line in it"
+          style="font-size:10px;color:var(--text3);cursor:pointer;border-bottom:1px dashed var(--border);padding-bottom:1px;">${dateDisp} <span style="opacity:.5">✎</span></span>
         <span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:${tc}22;color:${tc};border:1px solid ${tc}44;">${s.type||'Standard'}</span>
         ${s.hasLav?`<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);">LAV</span>`:''}
         <span style="font-size:10px;color:var(--blue);font-weight:700;">${skuCount} SKU${skuCount!==1?'s':''}</span>
@@ -10487,7 +10568,10 @@ async function saveShipmentDate(){
   }
   for(const ls of c.lav){
     ls.date=newDate;
-    if(ls.uuid)await sb.from('lavarion_shipments').update({date:newDate}).eq('id',ls.uuid);
+    /* the column is sent_date — writing `date` failed silently, so Lavarion
+       lines kept the old date while the prep rows moved */
+    if(ls.uuid){const r=await sb.from('lavarion_shipments').update({sent_date:newDate}).eq('id',ls.uuid);
+      if(r.error)console.warn('[ship date] lav',r.error);}
   }
   setSyncStatus('synced');
   cm('editShipModal');
@@ -11339,12 +11423,12 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v1.7 · lav3 · 2026-08-02 · b31';
+const BUILD='v2.0 · lav3 · 2026-08-02 · b34';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
 let MIGRATED=false;       // true once old onHand/orders have been turned into layers
-let SCHEMA_MSG='';
+let SCHEMA_MSG='',SCHEMA_ERR='';
 
 /* the model the UI works against — hydrated from the app's live arrays */
 let D={products:[],components:[],purchases:[],log:[],settings:{
@@ -11498,8 +11582,14 @@ async function loadCloud(){
     READY=true;SCHEMA_MSG='';
   }catch(e){
     READY=false;
-    SCHEMA_MSG='The Lavarion tables don’t exist yet — run the migration SQL in Settings. Everything below works, but changes aren’t being saved.';
-    console.warn('[lav3] new tables missing — running in memory only',e&&e.message);
+    /* Name the table. "The tables don't exist" sent people hunting; knowing it
+       is lavarion_stock_layers specifically turns it into a two-minute fix. */
+    const which=/relation "?([a-z_]+)"? does not exist|Could not find the table '([^']+)'/i.exec(
+      (e&&e.message||'')+' '+(e&&e.details||''));
+    SCHEMA_MSG=which?`The table <b>${esc(which[1]||which[2])}</b> doesn't exist in the database yet.`
+      :'The Lavarion tables don’t exist in the database yet.';
+    SCHEMA_ERR=(e&&e.message)||'unknown error';
+    console.warn('[lav3] tables missing — running in memory only',e&&e.message);
   }
 }
 
@@ -13009,6 +13099,7 @@ function markArrived(kind,oid,lid){
   snap();
   l.arr=1;l.rem=l.qty;
   logIt('recv',`Received ${fmt(l.qty)} × ${o.name} @ ${gbp(l.cost)} — ${l.sup}`);
+  save();                                     // a receive must reach the database, not just the screen
   /* a delivery arriving marks its sheet row arrived, and releases every other
      destination that same purchase was split across */
   const ps=D.purchases.find(x=>x.oid===l.oid&&allocOf(x).some(a=>a.to===oid));
@@ -14091,7 +14182,7 @@ ALTER TABLE lavarion_components ADD COLUMN IF NOT EXISTS tag  text;
 CREATE TABLE IF NOT EXISTS lavarion_stock_layers (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   target_kind text NOT NULL,              -- 'component' | 'product'
-  target_id   uuid NOT NULL,
+  target_id   text,                       -- TEXT: the app's own ids aren't uuids
   bought_on   date NOT NULL,
   qty         int  NOT NULL,
   remaining   int  NOT NULL,
@@ -14127,7 +14218,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS lav_purch_key
 
 -- 5. shipments keep the cost they were sent with, forever
 ALTER TABLE lavarion_shipments  ADD COLUMN IF NOT EXISTS cog_per_unit numeric(10,4);
-ALTER TABLE lavarion_shipments  ADD COLUMN IF NOT EXISTS layers_used  jsonb;`;
+ALTER TABLE lavarion_shipments  ADD COLUMN IF NOT EXISTS layers_used  jsonb;
+-- 6. repair an earlier install that used uuid here (safe if already text)
+ALTER TABLE lavarion_stock_layers ALTER COLUMN target_id TYPE text USING target_id::text;
+ALTER TABLE lavarion_stock_layers ALTER COLUMN target_id DROP NOT NULL;
+ALTER TABLE lavarion_stock_layers ADD COLUMN IF NOT EXISTS source text;
+ALTER TABLE lavarion_stock_layers ADD COLUMN IF NOT EXISTS note   text;`;
 function copySql(){navigator.clipboard&&navigator.clipboard.writeText(SQL);toast('SQL copied — paste into the Supabase SQL editor','ok');}
 
 /* ═══════════════ HOW IT WORKS ═══════════════
@@ -14354,6 +14450,44 @@ function vGuide(){
 }
 
 /* ═══════════════ SETTINGS ═══════════════ */
+/* "Why isn't it saving?" should be answerable in one click rather than F12.
+   Each table is probed on its own so the answer is a table name, not a shrug. */
+const LAV_TABLES=[
+  {t:'lavarion_asins',        what:'Products'},
+  {t:'lavarion_components',   what:'Components'},
+  {t:'lavarion_recipes',      what:'What each bundle is made of'},
+  {t:'lavarion_stock_layers', what:'Stock batches, prices, deliveries'},
+  {t:'lavarion_purchases',    what:'Purchase sheet rows'},
+  {t:'lavarion_shipments',    what:'Units sent to Amazon'}
+];
+async function dbCheck(){
+  const box=document.getElementById('dbCheckOut');
+  if(box)box.innerHTML='<div class="pmeta" style="padding:10px 12px">Checking…</div>';
+  const out=[];
+  for(const row of LAV_TABLES){
+    let state,msg='';
+    try{
+      const r=await sb.from(row.t).select('id').limit(1);
+      if(r.error){state='missing';msg=r.error.message||'';}
+      else state='ok';
+    }catch(e){state='missing';msg=e.message||'';}
+    out.push({...row,state,msg});
+  }
+  const bad=out.filter(x=>x.state!=='ok');
+  if(box)box.innerHTML=`
+    ${bad.length?`<div class="note bad" style="margin:0 0 10px">
+        <b>${bad.length} table${bad.length===1?'':'s'} missing.</b> Anything that lives in ${bad.length===1?'it':'them'} works on screen
+        but is <b>not saved</b> — it disappears on refresh. Copy the SQL below into Supabase and run it once.</div>`
+      :`<div class="note" style="margin:0 0 10px;border-color:var(--grn)"><b style="color:var(--grn)">All six tables are there.</b>
+        Everything is being saved. If something still vanishes on refresh, screenshot it with the build number.</div>`}
+    ${out.map(x=>`<div class="dbrow">
+      <span style="width:16px;text-align:center;color:${x.state==='ok'?'var(--grn)':'var(--red)'};font-weight:800">${x.state==='ok'?'✓':'✕'}</span>
+      <span class="nm">${x.t}</span>
+      <span class="pmeta" style="margin:0;flex:1;text-align:right">${esc(x.what)}</span>
+      <span style="font-size:11px;font-weight:700;color:${x.state==='ok'?'var(--grn)':'var(--red)'}">${x.state==='ok'?'saving':'MISSING'}</span>
+    </div>`).join('')}`;
+  return out;
+}
 function vSettings(){
   $('lav3View').innerHTML=`
   <div class="cols2">
@@ -14424,7 +14558,15 @@ function vSettings(){
         </div>
       </div>
       <div class="panel">
-        <div class="ph"><span class="t">SQL for the real app</span><span class="sub">run once in Supabase before this goes into Prep Hub</span>
+        <div class="ph"><span class="t">Is it actually saving?</span><span class="sub">tests each table on its own</span>
+          <div class="r"><button class="btn pri sm" onclick="LV3.dbCheck()">Check the database</button></div></div>
+        <div id="dbCheckOut" style="padding:12px 14px">
+          <div class="pmeta" style="margin:0">If figures disappear when you refresh the page, run this first. It says which table is missing, and the SQL underneath creates it.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><span class="t">SQL for the real app</span><span class="sub">run once in Supabase — safe to re-run</span>
           <div class="r"><button class="btn sm" onclick="LV3.copySql()">Copy SQL</button></div></div>
         <div style="padding:12px 14px">
           <div class="note info" style="margin-bottom:10px">Nothing is dropped or overwritten. Your existing <b>lavarion_asins</b>, <b>lavarion_components</b>, <b>lavarion_recipes</b> and <b>lavarion_shipments</b> rows all survive — this adds a few columns and two new tables.</div>
@@ -14585,10 +14727,11 @@ function paint(){
   _painting=false;
   const b=document.getElementById('lav3Schema');
   if(b)b.innerHTML=SCHEMA_MSG
-    ?`<div class="schemabar">
-        <span class="dot" style="background:var(--amb)"></span>
-        <span>Not saving yet — the Lavarion tables haven't been created. Everything here works, but changes are lost on refresh.</span>
-        <button class="btn sm" onclick="LV3.go('settings')">Run the SQL</button></div>`:'';
+    ?`<div class="schemabar bad">
+        <span class="sbIcon">!</span>
+        <div class="sbTxt"><b>Nothing on this page is being saved.</b>
+          <span>${SCHEMA_MSG} Everything you type works on screen, but it is held in memory only and is lost the moment you refresh.</span></div>
+        <button class="btn warn sm" onclick="LV3.go('settings')">Fix it — run the SQL</button></div>`:'';
 }
 
 /* everything the page's inline handlers need */
@@ -14600,7 +14743,7 @@ const API={go,render:paint,boot,
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,copySql,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,saveOrder,setEta,openDeliveries,dlvSum,dlvReceive,ack,ackClear,compOptions,setCol,setPref,
+  openData,exportCsv,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,saveOrder,setEta,openDeliveries,dlvSum,dlvReceive,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
