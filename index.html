@@ -651,7 +651,10 @@ html.light-mode{
 
 /* ══════════ LAVARION v3 — scoped tokens & chrome ══════════ */
 #page-lavarion,.lav3{
-  --border3:#4a4944;--text4:#8d877c;--accent-hi:#ffb020;--accent-ink:#1a1a18;
+  --border3:#4a4944;--accent-hi:#ffb020;--accent-ink:#1a1a18;
+  /* Lavarion runs brighter than the rest of the app on purpose — grey on
+     near-black is unreadable, so secondary text sits well above mid-grey */
+  --text:#ffffff;--text2:#f7f4ee;--text3:#e6e1d6;--text4:#e6e1d6;
   --pri:var(--accent);--pri-ink:#1a1a18;
   --red-br:rgba(255,85,85,.34);
   --grn:#55ff55;--grn-bg:rgba(85,255,85,.11);--grn-br:rgba(85,255,85,.30);
@@ -663,7 +666,7 @@ html.light-mode{
   font-size:13px;line-height:1.45;letter-spacing:-.005em;font-feature-settings:'zero' 0,'ss01' 0;
 }
 #page-lavarion .lav3bar,.lav3 .lav3bar{display:flex;align-items:center;gap:16px;padding:0 18px;
-  border-bottom:1px solid var(--border);background:var(--bg2);}
+  border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:30;}
 #page-lavarion .lav3acts,.lav3 .lav3acts{margin-left:auto;display:flex;align-items:center;gap:8px;}
 #page-lavarion .tabs,.lav3 .tabs{position:static;background:transparent;padding:0;height:46px;border-bottom:none;}
 #page-lavarion .tabs button,.lav3 .tabs button{padding:0 15px;height:46px;}
@@ -718,7 +721,7 @@ html.light-mode{
 #page-lavarion .wrap,.lav3 .wrap{padding:18px 20px 64px;max-width:1620px;}
 #page-lavarion .kpis,.lav3 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:10px;margin-bottom:16px;}
 #page-lavarion .kpi,.lav3 .kpi{background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--border2);
-  border-radius:11px;padding:13px 15px;transition:border-color .12s,transform .12s,background .12s;}
+  border-radius:11px;padding:13px 15px;transition:background .12s;}
 #page-lavarion .kpi.c-blue,.lav3 .kpi.c-blue{border-top-color:var(--blu);}
 #page-lavarion .kpi.c-grn,.lav3 .kpi.c-grn{border-top-color:var(--grn);}
 #page-lavarion .kpi.c-red,.lav3 .kpi.c-red{border-top-color:var(--red);}
@@ -727,46 +730,54 @@ html.light-mode{
 #page-lavarion .kpi.c-acc,.lav3 .kpi.c-acc{border-top-color:var(--accent);}
 #page-lavarion .kpi.clk,.lav3 .kpi.clk{cursor:pointer;}
 #page-lavarion .kpi.clk:hover,.lav3 .kpi.clk:hover{background:var(--bg3);transform:translateY(-1px);}
-#page-lavarion .kpi .k,.lav3 .kpi .k{font-size:10.5px;font-weight:700;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;}
+#page-lavarion .kpi .k,.lav3 .kpi .k{font-size:10.5px;font-weight:700;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;}
 #page-lavarion .kpi .v,.lav3 .kpi .v{font-family:var(--num);font-size:28px;font-weight:600;line-height:1.15;letter-spacing:-.035em;margin-top:7px;
   font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1,'zero' 0;}
-#page-lavarion .kpi .s,.lav3 .kpi .s{font-size:11.5px;color:var(--text2);margin-top:5px;line-height:1.4;}
-#page-lavarion .panel,.lav3 .panel{background:var(--bg2);border:1px solid var(--border);border-radius:11px;margin-bottom:14px;overflow:hidden;}
+#page-lavarion .kpi .s,.lav3 .kpi .s{font-size:11.5px;color:var(--text3);margin-top:5px;line-height:1.4;}
+#page-lavarion .panel,.lav3 .panel{background:var(--bg2);border:1px solid var(--border);border-radius:11px;margin-bottom:14px;}
 #page-lavarion .panel .ph,.lav3 .panel .ph{background:var(--bg3);}
 #page-lavarion .ph,.lav3 .ph{display:flex;align-items:center;gap:11px;padding:12px 15px;border-bottom:1px solid var(--border);}
 #page-lavarion .ph .t,.lav3 .ph .t{font-size:12.5px;font-weight:700;letter-spacing:.01em;}
-#page-lavarion .ph .sub,.lav3 .ph .sub{font-size:12px;color:var(--text2);font-weight:400;}
+#page-lavarion .ph .sub,.lav3 .ph .sub{font-size:12px;color:var(--text3);font-weight:400;}
 #page-lavarion .ph .r,.lav3 .ph .r{margin-left:auto;display:flex;gap:7px;align-items:center;}
 #page-lavarion table,.lav3 table{width:100%;border-collapse:collapse;}
-#page-lavarion thead th,.lav3 thead th{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);text-align:center;padding:9px 10px;
-  border-bottom:1px solid var(--border);background:var(--bg3);letter-spacing:0;white-space:nowrap;
-}
+#page-lavarion thead th,.lav3 thead th{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--accent);text-align:center;padding:10px;background:var(--bg3);white-space:nowrap;
+  position:sticky;top:94px;z-index:12;box-shadow:inset 0 -1px 0 var(--border2);}
+/* the filter strip freezes under the tab bar; the header row sits under that */
+#page-lavarion .panel>.ph,.lav3 .panel>.ph{position:sticky;top:47px;z-index:14;}
+#page-lavarion .mod thead th,.lav3 .mod thead th{position:static;}
+#page-lavarion .cols2 thead th,.lav3 .cols2 thead th{position:static;}
 #page-lavarion thead th.l,.lav3 thead th.l{text-align:left;}
 #page-lavarion tbody td,.lav3 tbody td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:center;vertical-align:middle;font-size:13px;color:var(--text);}
 #page-lavarion tbody tr:last-child td,.lav3 tbody tr:last-child td{border-bottom:none;}
 #page-lavarion tbody td.l,.lav3 tbody td.l{text-align:left;}
-#page-lavarion tbody tr,.lav3 tbody tr{transition:background .1s;}
-#page-lavarion tbody tr:hover,.lav3 tbody tr:hover{background:var(--bg3);box-shadow:inset 3px 0 0 var(--accent);}
+#page-lavarion tbody tr,.lav3 tbody tr{transition:none;}
+#page-lavarion tbody tr:hover,.lav3 tbody tr:hover{background:var(--bg3);}
 #page-lavarion tbody tr.sub-row:hover,.lav3 tbody tr.sub-row:hover{background:transparent;}
 #page-lavarion .schemabar,.lav3 .schemabar{display:flex;align-items:center;gap:11px;margin:14px 18px 0;
   padding:10px 14px;background:var(--amb-bg);border:1px solid var(--amb-br);border-radius:9px;
   font-size:12.5px;color:var(--text2);}
 #page-lavarion .schemabar .dot,.lav3 .schemabar .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 #page-lavarion .schemabar .btn,.lav3 .schemabar .btn{margin-left:auto;}
+#page-lavarion .colgrid,.lav3 .colgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;}
+#page-lavarion .colgrid label,.lav3 .colgrid label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2);cursor:pointer;}
+#page-lavarion.dense tbody td,.lav3.dense tbody td{padding:6px 8px;}
+#page-lavarion.dense .pmeta,.lav3.dense .pmeta{margin-top:2px;}
 #page-lavarion .selbar,.lav3 .selbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:10px 14px;
   background:var(--bg3);border-bottom:1px solid var(--border);font-size:12.5px;color:var(--text2);}
 #page-lavarion .empty,.lav3 .empty{padding:24px 20px;text-align:center;color:var(--text2);font-size:13px;}
 #page-lavarion .pname,.lav3 .pname{font-weight:550;font-size:13px;line-height:1.3;letter-spacing:-.01em;color:var(--text);}
-#page-lavarion .pmeta,.lav3 .pmeta{font-size:11.5px;color:var(--text3);margin-top:3px;font-family:var(--mono);letter-spacing:0;
+#page-lavarion .pmeta,.lav3 .pmeta{font-size:12px;font-weight:500;color:var(--text2);margin-top:3px;font-family:var(--mono);letter-spacing:0;
   font-feature-settings:'zero' 0,'ss01' 0;}
-#page-lavarion .lab,.lav3 .lab{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:0;}
+#page-lavarion .lab,.lav3 .lab{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:0;}
 #page-lavarion .num,.lav3 .num{font-family:var(--num);font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1,'zero' 0;
   font-size:15px;font-weight:600;letter-spacing:-.02em;}
 #page-lavarion .num.g,.lav3 .num.g{color:var(--grn);}
 #page-lavarion .num.r,.lav3 .num.r{color:var(--red);}
 #page-lavarion .num.a,.lav3 .num.a{color:var(--amb);}
 #page-lavarion .num.b,.lav3 .num.b{color:var(--blu);}
-#page-lavarion .dim,.lav3 .dim{color:var(--text3);}
+#page-lavarion .dim,.lav3 .dim{color:var(--text2);opacity:.75;}
 #page-lavarion .chip,.lav3 .chip{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap;
   border:1px solid var(--border3);color:var(--text2);background:var(--bg4);letter-spacing:0;}
 #page-lavarion .chip.zzz,.lav3 .chip.zzz,#page-lavarion .chip.pl,.lav3 .chip.pl,#page-lavarion .chip.single,.lav3 .chip.single,#page-lavarion .chip.component,.lav3 .chip.component,#page-lavarion .chip.packaging,.lav3 .chip.packaging,#page-lavarion .chip.vat,.lav3 .chip.vat{background:var(--bg3);color:var(--text2);border-color:var(--border2);}
@@ -818,9 +829,9 @@ html.light-mode{
 #page-lavarion .rline .st,.lav3 .rline .st{font-family:var(--num);font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;}
 #page-lavarion .rsh,.lav3 .rsh{font-size:11px;font-weight:500;color:var(--text3);display:flex;align-items:center;gap:10px;margin:6px 0 3px;}
 #page-lavarion .rsh:after,.lav3 .rsh:after{content:'';flex:1;height:1px;background:var(--border);}
-#page-lavarion .limtag,.lav3 .limtag{display:inline-block;max-width:140px;margin-top:5px;font-size:11px;font-weight:450;color:var(--amb);
-  background:var(--amb-bg);border:1px solid var(--amb-br);border-radius:20px;padding:2px 9px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom;}
+#page-lavarion .limtag,.lav3 .limtag{display:block;margin:5px auto 0;font-size:11px;font-weight:600;color:var(--amb);
+  background:var(--amb-bg);border:1px solid var(--amb-br);border-radius:9px;padding:3px 8px;
+  white-space:normal;overflow-wrap:anywhere;line-height:1.3;max-width:100%;}
 #page-lavarion .limtag.out,.lav3 .limtag.out{color:var(--red);background:var(--red-bg);border-color:var(--red-br);}
 #page-lavarion .cogbox,.lav3 .cogbox{margin-top:12px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;font-size:12.5px;}
 #page-lavarion .cogrow,.lav3 .cogrow{display:flex;justify-content:space-between;gap:16px;padding:5px 0;color:var(--text2);}
@@ -889,6 +900,21 @@ html.light-mode{
 #page-lavarion .subhead,.lav3 .subhead{padding:8px 15px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:11px;
   color:var(--text3);font-weight:500;}
 #page-lavarion .cols2,.lav3 .cols2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+#page-lavarion .cols2.one,.lav3 .cols2.one{grid-template-columns:1fr;}
+#page-lavarion .cols2>*,.lav3 .cols2>*{min-width:0;}
+.panel{max-width:100%;}
+.panel>table{table-layout:fixed;width:100%;}
+.panel td{overflow:hidden;}
+#page-lavarion .panel,.lav3 .panel{max-width:100%;}
+#page-lavarion .panel>table,.lav3 .panel>table{table-layout:fixed;width:100%;}
+#page-lavarion .panel td,.lav3 .panel td{overflow:hidden;}
+#page-lavarion .cols2 .panel,.lav3 .cols2 .panel{min-width:0;overflow:hidden;}
+#page-lavarion .panel>table,.lav3 .panel>table{border-radius:0 0 11px 11px;}
+#page-lavarion .cols2 table,.lav3 .cols2 table{table-layout:fixed;width:100%;}
+#page-lavarion .cols2 td,.lav3 .cols2 td{overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .att .tx,.lav3 .att .tx{min-width:0;overflow-wrap:anywhere;}
+
+.cols2.one{grid-template-columns:1fr;}
 @media(max-width:1080px){#page-lavarion .cols2,.lav3 .cols2{grid-template-columns:1fr;}}
 #page-lavarion .setup,.lav3 .setup{display:flex;gap:13px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);}
 #page-lavarion .setup:last-child,.lav3 .setup:last-child{border-bottom:none;}
@@ -1265,6 +1291,7 @@ html.light-mode{
               onkeydown="if(event.key==='Escape'){this.value='';LV3.gsRun('');this.blur();}">
             <div id="gsOut"></div>
           </div>
+          <button class="btn sm" id="dlvBtn" onclick="LV3.openDeliveries()">Deliveries</button>
           <button class="btn sm" onclick="LV3.openData()">Data</button>
         </div>
       </div>
@@ -10943,7 +10970,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='lav3 · 2026-08-02 · b6';
+const BUILD='lav3 · 2026-08-02 · b15';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -10953,7 +10980,9 @@ let SCHEMA_MSG='';
 /* the model the UI works against — hydrated from the app's live arrays */
 let D={products:[],components:[],purchases:[],log:[],settings:{
   tabs:'Lavarion Q1, Lavarion Q2, Lavarion Q3, Lavarion Q4',
-  locations:'Warehouse, Prep Centre',coverWeeks:4,
+  locations:'Warehouse, Prep Centre',coverWeeks:4,lowWeeks:2,dense:false,startTab:'overview',
+  cols:{pIncoming:true,pOrdered:false,pShip:true,pCover:true,pCog:true,
+        cOnOrder:true,cOrdered:true,cAvg:true,cCover:true,cUsed:true},
   sheet:'https://docs.google.com/spreadsheets/d/1IG0BM8f2RIODPbUXu7hoXIUbqXTF2amCYCT5InZvMqU/edit'}};
 
 const TODAY=new Date();
@@ -10967,8 +10996,12 @@ const dayISO=()=>new Date().toISOString().slice(0,10);
 let COMPS=[], RECIPES={};
 window.lv2Components=COMPS; window.lv2Recipes=RECIPES;
 function compRow(c){return{id:c.uuid||undefined,name:c.name||'',type:(c.kind==='packaging'?'packing':(c.tag||'complementary')),
-  supplier:c.supplier||'',case_qty:(c.caseQty!=null?c.caseQty:null),size:c.size||'',on_hand:0,
-  orders:'[]',archived:!!c.archived};}
+  supplier:c.supplier||'',case_qty:(c.caseQty!=null?c.caseQty:null),size:c.size||'',
+  /* never overwrite the legacy figures — the migration reads them, and once
+     they're gone they're gone. Stock now lives in lavarion_stock_layers. */
+  on_hand:(c._legacyOnHand!=null?c._legacyOnHand:0),
+  orders:JSON.stringify(c._legacyOrders||[]),
+  archived:!!c.archived};}
 function rowToComp(d){return{uuid:d.id,id:d.id,name:d.name||'',
   kind:d.kind||(d.type==='packing'?'packaging':'component'),
   tag:d.tag||d.type||'complementary',caseQty:(d.case_qty!=null?d.case_qty:null),
@@ -11031,7 +11064,8 @@ window._lv2IsSaving=function(){return _writing>0;};
 
 /* ── hydrate: build D from what the app already has in memory ───────────── */
 function hydrate(){
-  D.products=(typeof lavAsins!=='undefined'?lavAsins:[]).filter(a=>!a.archived).map(a=>({
+  D.products=(typeof lavAsins!=='undefined'?lavAsins:[]).map(a=>({
+    archived:!!a.archived,
     id:String(a.id),uuid:a.uuid,asin:a.asin||'',sku:a.sku||'',name:a.prod||a.asin||'',
     type:a.ptype||'bundle',vat:(a.vat||a.vat==='0')?String(a.vat):'20',
     recipe:(RECIPES[a.asin]||[]).map(r=>({c:String(r.c),q:r.q})),
@@ -11039,7 +11073,8 @@ function hydrate(){
     ship30:shipStats(a.asin).u30,lastSent:shipStats(a.asin).last,_src:a}));
   D.products.forEach(p=>{const a=p._src;if(a&&a._sig===undefined)
     a._sig=[p.name,p.asin,p.sku,p.vat,p.type,JSON.stringify(p.recipe)].join('|');});
-  D.components=COMPS.filter(c=>!c.archived).map(c=>({
+  D.components=COMPS.map(c=>({
+    archived:!!c.archived,
     id:String(c.id),uuid:c.uuid,name:c.name||'',
     kind:c.kind||(c.type==='packing'?'packaging':'component'),
     tag:c.tag||c.type||'complementary',caseQty:c.caseQty||null,
@@ -11066,7 +11101,7 @@ async function loadCloud(){
   try{
     const lr=await sb.from('lavarion_stock_layers').select('*').order('bought_on',{ascending:true});
     if(lr.error)throw lr.error;
-    LAYERS=(lr.data||[]).map(d=>({uuid:d.id,id:d.id,kind:d.target_kind,tid:String(d.target_id_local||d.target_id),
+    LAYERS=(lr.data||[]).map(d=>({uuid:d.id,id:d.id,kind:d.target_kind,tid:String(d.target_id||''),
       date:(d.bought_on||'').slice(0,10),qty:d.qty||0,rem:d.remaining||0,cost:Number(d.unit_cost)||0,
       sup:d.supplier||'',oid:d.order_ref||'',loc:d.location||'Warehouse',arr:d.arrived?1:0,
       src:d.source||'',note:d.note||''}));
@@ -11109,14 +11144,21 @@ async function migrateOld(){
 }
 
 /* ── persistence ────────────────────────────────────────────────────────── */
-function layerRow(l){return{target_kind:l.kind,target_id_local:l.tid,bought_on:l.date,qty:l.qty,remaining:l.rem,
+function layerRow(l){return{target_kind:l.kind,target_id:String(l.tid),bought_on:l.date,qty:l.qty,remaining:l.rem,
   unit_cost:l.cost,supplier:l.sup,order_ref:l.oid,location:l.loc,arrived:!!l.arr,source:l.src||'',note:l.note||''};}
+let _layerErr=false;
 async function insertLayer(l){
   l.id=l.id||('L'+Date.now()+Math.floor(Math.random()*9999));
   LAYERS.push(l);
-  if(!READY)return l;
+  if(!READY||l._failed)return l;
   const r=await sb.from('lavarion_stock_layers').insert(layerRow(l)).select('id').single();
-  if(r.error){console.warn('[lav3] layer insert',r.error);return l;}
+  if(r.error){
+    l._failed=true;                                   // never retry this one on every save
+    if(!_layerErr){_layerErr=true;
+      console.warn('[lav3] stock_layers rejected the insert — schema mismatch?',r.error);
+      toast('Stock batches aren\'t saving — run the schema fix in Settings','er');}
+    return l;
+  }
   l.uuid=r.data.id;return l;
 }
 let _pt=null,_dirty=false,_warned=false,_lastStatus=0;
@@ -11136,8 +11178,11 @@ async function pushNow(){
   try{
     status('syncing');
     for(const l of LAYERS){
+      if(l._failed)continue;                           // parked — don't hammer a broken column
       if(l.uuid){const r=await sb.from('lavarion_stock_layers').update(layerRow(l)).eq('id',l.uuid);if(r.error)throw r.error;}
-      else{const r=await sb.from('lavarion_stock_layers').insert(layerRow(l)).select('id').single();if(!r.error)l.uuid=r.data.id;}
+      else{const r=await sb.from('lavarion_stock_layers').insert(layerRow(l)).select('id').single();
+        if(r.error){l._failed=true;if(!_layerErr){_layerErr=true;console.warn('[lav3] layer insert',r.error);}}
+        else l.uuid=r.data.id;}
     }
     const keep=LAYERS.map(l=>l.uuid).filter(Boolean);
     if(READY&&keep.length&&keep.length>=_layersLoadedCount){
@@ -11157,7 +11202,9 @@ async function pushNow(){
 /* products and components still save through the app's existing helpers */
 function saveProductSrc(p){
   const a=p._src;if(!a)return;
+  const oldAsin=a.asin;
   a.prod=p.name;a.asin=p.asin;a.sku=p.sku;a.vat=p.vat;a.ptype=p.type;
+  if(oldAsin&&oldAsin!==p.asin)delete RECIPES[oldAsin];   // don't strand the old key
   RECIPES[p.asin]=p.recipe.map(r=>({c:r.c,q:r.q}));
   saveLavAsin(a);
   saveProductType(a);
@@ -11193,6 +11240,7 @@ function isEmpty(){return !D.products.length&&!D.components.length;}
 function clearAll(){toast('Not available in the live app — delete items individually','er');}
 
 let TAB='overview',Q='',pFilter='all',cFilter='all',uFilter='all',openRows={};
+let _firstPaint=true;
 
 /* ── helpers ───────────────────────────────────────────── */
 const $=id=>document.getElementById(id);
@@ -11222,7 +11270,8 @@ function doUndo(){
 }
 function om(id){const e=$(id);if(e){e.classList.add('on');e.classList.add('open');}}
 function cm(id){const e=$(id);if(e){e.classList.remove('on');e.classList.remove('open');}}
-function logIt(k,txt){D.log.unshift({t:new Date().toISOString(),k,txt,who:'Becky'});}
+function logIt(k,txt){D.log.unshift({t:new Date().toISOString(),k,txt,who:(window.currentUserName||'Becky')});
+  if(D.log.length>400)D.log.length=400;saveState();}
 
 /* stock of a component or a product's own layers */
 const arrLayers=o=>(o.layers||[]).filter(l=>l.arr).sort((a,b)=>a.date.localeCompare(b.date));
@@ -11251,6 +11300,7 @@ function avail(p){
   if(!p.recipe.length)return{n:null,kind:'norecipe',limiter:null};
   let m=Infinity,lim=null;
   for(const r of p.recipe){const c=comp(r.c);if(!c){return{n:0,kind:'broken',limiter:null};}
+    if(c.untracked)continue;                      // not stock-controlled — can never block
     const can=Math.floor(onHand(c)/r.q);if(can<m){m=can;lim=c.id;}}
   return{n:m===Infinity?0:m,kind:'build',limiter:lim};
 }
@@ -11266,6 +11316,7 @@ function cogOf(p,units){
   }else{
     for(const r of p.recipe){
       const c=comp(r.c);if(!c)continue;
+      if(c.untracked)continue;                   // no stock, no cost, no block
       const need=r.q*units;const f=fifo(c,need);const isPack=c.kind==='packaging';
       lines.push({name:c.name,kind:c.kind,pack:isPack,q:r.q,need,parts:f.parts,short:f.short,value:f.value,cid:c.id});
       if(!isPack)total+=f.value;
@@ -11284,7 +11335,7 @@ function compWeekUse(c){
   return per30/4.35;
 }
 function compCover(c){const w=compWeekUse(c);if(!w)return null;return onHand(c)/w;}
-const usedIn=cid=>D.products.filter(p=>p.recipe.some(r=>r.c===cid));
+const usedIn=cid=>D.products.filter(p=>!p.archived&&p.recipe.some(r=>r.c===cid));
 
 /* ── global search: one box that finds anything and opens it ── */
 function gsRun(q){
@@ -11310,6 +11361,8 @@ document.addEventListener('click',e=>{if(!e.target.closest('.gs')){const b=$('gs
 
 /* ═══════════════ TABS + ROUTER ═══════════════ */
 function render(){
+  setTimeout(()=>{const b=$('dlvBtn');if(!b)return;const n=inboundCount();
+    b.innerHTML='Deliveries'+(n?` <span class="chip info" style="margin-left:5px">${fmt(n)}</span>`:'');},0);
   const t=[['overview','Overview',''],['products','Products',D.products.length],
            ['components','Components',D.components.length],
            ['purchases','Purchases',(()=>{const n=D.purchases.filter(x=>allocState(x).k==='none').length;return n?'· '+n+' to link':'';})()],
@@ -11322,8 +11375,10 @@ function go(t){TAB=t;Q='';render();window.scrollTo(0,0);}
 
 /* ═══════════════ OVERVIEW ═══════════════ */
 function vOverview(){
-  const live=D.products;
-  const blocked=live.filter(p=>{const a=avail(p);return a.kind!=='norecipe'&&a.n===0;});
+  const live=D.products.filter(p=>!p.archived);
+  const blockedAll=live.filter(p=>{const a=avail(p);return a.kind!=='norecipe'&&a.n===0;});
+  const blocked=blockedAll.filter(p=>!acked(p));
+  const ackedCount=blockedAll.length-blocked.length;
   const low=live.filter(p=>{const cw=coverWeeks(p);return cw!==null&&cw<2&&avail(p).n>0;});
   const incoming=D.components.reduce((s,c)=>s+onOrder(c),0)+live.reduce((s,p)=>s+onOrder(p),0);
   const shipped=live.reduce((s,p)=>s+(p.ship30||0),0);
@@ -11332,15 +11387,16 @@ function vOverview(){
   const sendable=live.reduce((s,p)=>{const a=avail(p);return s+(a.n||0);},0);
   const unlinked=D.purchases.filter(p=>allocState(p).k==='none').length;
 
-  const kpi=(k,v,s,col,click)=>`<div class="kpi ${click?'clk':''}" ${click?`onclick="${click}"`:''}>
-    <div class="k">${k}</div><div class="v" ${col?`style="color:${col}"`:''}>${v}</div><div class="s">${s}</div></div>`;
+  const RAIL={'var(--grn)':'c-grn','var(--red)':'c-red','var(--blu)':'c-blue','var(--amb)':'c-amb','var(--vio)':'c-vio','var(--accent)':'c-acc'};
+  const kpi=(k,v,s,col,click)=>`<div class="kpi ${RAIL[col]||'c-acc'} ${click?'clk':''}" ${click?`onclick="${click}"`:''}>
+    <div class="k">${k}</div><div class="v" style="color:${col||'var(--text)'}">${v}</div><div class="s">${s}</div></div>`;
 
   /* OUT OF STOCK — the only list that actually stops work */
   const sendableProds=live.filter(p=>(avail(p).n||0)>0);
   /* stock sitting in components nothing is built from — invisible money */
-  const orphans=D.components.filter(c=>!usedIn(c.id).length&&(onHand(c)>0||onOrder(c)>0));
+  const orphans=D.components.filter(c=>!c.archived&&!c.untracked&&!usedIn(c.id).length&&(onHand(c)>0||onOrder(c)>0));
   const orphanVal=orphans.reduce((t,c)=>t+arrLayers(c).reduce((a,l)=>a+l.rem*l.cost,0),0);
-  const oosComps=D.components.filter(c=>onHand(c)===0&&usedIn(c.id).length);
+  const oosComps=D.components.filter(c=>!c.archived&&!c.untracked&&onHand(c)===0&&usedIn(c.id).length&&!acked(c));
   const oosOwn=D.products.filter(p=>p.type!=='bundle'&&onHand(p)===0);
 
   const inbound=[];
@@ -11372,29 +11428,35 @@ function vOverview(){
   $('lav3View').innerHTML=`
   <div class="kpis">
     ${kpi('Products',fmt(live.length),(()=>{const b=live.filter(p=>p.type==='bundle').length,l=live.filter(p=>p.type==='pl').length,g=live.filter(p=>p.type==='single').length;
-      return [b?b+' bundle'+(b===1?'':'s'):'',l?l+' private label':'',g?g+' single':''].filter(Boolean).join(' · ')||'none yet';})(),null,"go('products')")}
+      return [b?b+' bundle'+(b===1?'':'s'):'',l?l+' private label':'',g?g+' single':''].filter(Boolean).join(' · ')||'none yet';})(),'var(--blu)',"go('products')")}
     ${kpi('Sendable now',fmt(sendable),'units ready to send',sendable?'var(--grn)':'var(--red)',"go('products')")}
     ${kpi('Out of stock',fmt(blocked.length),blocked.length?'product'+(blocked.length===1?'':'s')+' blocked':'everything can ship',blocked.length?'var(--red)':null,"pFilter='blocked';go('products')")}
     ${kpi('Incoming',fmt(incoming),inbound.length?`${inbound.length} deliveries · next ordered ${dshort(inbound[0].l.date)}`:'nothing on order',incoming?'var(--blu)':null,"go('purchases')")}
-    ${kpi('Shipped 30d',fmt(shipped),'units sent to FBA',null)}
-    ${kpi('Stock value',gbp(stockVal),'on hand, at what you paid',null,"go('components')")}
+    ${kpi('Shipped 30d',fmt(shipped),'units sent to FBA','var(--vio)')}
+    ${kpi('Stock value',gbp(stockVal),'on hand, at what you paid','var(--accent)',"go('components')")}
   </div>
 
-  <div class="cols2">
+  <div class="cols2${(!sendableProds.length&&!D.log.length)?' one':''}">
     <div>
       <div class="panel">
         <div class="ph"><span class="t" style="color:${(blocked.length||oosComps.length)?'var(--red)':'var(--text)'}">Out of stock</span>
-          <span class="sub">${(blocked.length||oosComps.length)?'nothing can be sent until these are back':'nothing is out of stock'}</span></div>
-        ${blocked.length?blocked.map(p=>{const a=avail(p);const c=a.limiter?comp(a.limiter):null;
+          <span class="sub">${(blocked.length||oosComps.length)?'nothing can be sent until these are back':'nothing is out of stock'}</span>
+          ${ackedCount?`<div class="r"><span class="pmeta" style="margin:0">${fmt(ackedCount)} dealt with</span>
+            <button class="btn sm" onclick="LV3.ackClear()">Show all</button></div>`:''}</div>
+        ${blocked.length?(_oosAll?blocked:blocked.slice(0,6)).map(p=>{const a=avail(p);const c=a.limiter?comp(a.limiter):null;
           const oo=c?onOrder(c):onOrder(p);
           return `<div class="att"><span class="dot" style="background:var(--red)"></span>
             <span class="tx"><b>${esc(p.name)}</b> <span class="chip ${p.type}" style="margin-left:4px">${typeLabel(p.type)}</span>
               <span class="s">${c?`out of <b style="color:var(--text2)">${esc(c.name)}</b>`:'no stock on hand'}${oo?` · <b style="color:var(--blue)">${fmt(oo)} on order</b>`:' · <b style="color:var(--red)">nothing on order</b>'}</span></span>
-            <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Open</button></div>`;}).join(''):''}
+            <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Open</button>
+            <button class="btn sm go" title="Mark as dealt with — hides it until stock changes" onclick="LV3.ack('${p.id}')">✓</button></div>`;}).join('')
+          +(blocked.length>6?`<div class="att" style="justify-content:center">
+             <button class="btn sm" onclick="LV3.toggleOos()">${_oosAll?'Show fewer':'Show all '+fmt(blocked.length)+' blocked products'}</button></div>`:''):''}
         ${oosComps.length?`<div class="subhead">Components at zero</div>
-          ${oosComps.map(c=>`<div class="att"><span class="dot" style="background:var(--red)"></span>
+          ${(_oosAll?oosComps:oosComps.slice(0,5)).map(c=>`<div class="att"><span class="dot" style="background:var(--red)"></span>
             <span class="tx"><b>${esc(c.name)}</b><span class="s">used in ${usedIn(c.id).map(u=>esc(u.name)).join(', ')}${onOrder(c)?` · <b style="color:var(--blue)">${fmt(onOrder(c))} on order</b>`:' · <b style="color:var(--red)">nothing on order</b>'}</span></span>
-            <button class="btn sm" onclick="LV3.openComp('${c.id}')">Open</button></div>`).join('')}`:''}
+            <button class="btn sm" onclick="LV3.openComp('${c.id}')">Open</button>
+            <button class="btn sm go" title="Mark as dealt with" onclick="LV3.ack('${c.id}')">✓</button></div>`).join('')}`:''}
         ${(!blocked.length&&!oosComps.length)?'<div class="empty">Everything is in stock.</div>':''}
       </div>
 
@@ -11403,7 +11465,7 @@ function vOverview(){
         ${orphans.length?`<div class="att"><span class="dot" style="background:var(--amb)"></span>
           <span class="tx"><b>${fmt(orphans.length)} component${orphans.length===1?'':'s'}</b> ${orphans.length===1?"holds stock but isn't":"hold stock but aren't"} in any product
             <span class="s">${orphans.slice(0,4).map(c=>esc(c.name)+' ('+fmt(onHand(c))+')').join(', ')}${orphans.length>4?` +${orphans.length-4} more`:''}${orphanVal?` · ${gbp(orphanVal)} sitting idle`:''}</span></span>
-          <button class="btn sm" onclick="cFilter='all';LV3.go('components')">Components</button></div>`:''}
+          <button class="btn sm" onclick="LV3.setFilter('c','all');LV3.go('components')">Components</button></div>`:''}
         ${low.map(p=>{const cw=coverWeeks(p);return `<div class="att"><span class="dot" style="background:var(--amber)"></span>
           <span class="tx"><b>${esc(p.name)}</b> — ${cw.toFixed(1)} weeks left<span class="s">${fmt(avail(p).n)} available · shipping ${fmt(p.ship30)} per 30 days</span></span>
           <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Open</button></div>`;}).join('')}
@@ -11412,19 +11474,19 @@ function vOverview(){
           <button class="btn sm" onclick="LV3.go('purchases')">Link them</button></div>`:''}
       </div>`:''}
 
-      <div class="panel">
+      ${inbound.length?`<div class="panel">
         <div class="ph"><span class="t">Landing soon</span><span class="sub">from the purchase sheet — not yet marked arrived</span></div>
         ${inbound.length?`<table><thead><tr><th class="l">Item</th><th class="l">Supplier</th><th>Ordered</th><th>Qty</th><th>Unit</th><th></th></tr></thead><tbody>
         ${inbound.map(x=>{const wait=Math.floor((TODAY-new Date(x.l.date))/864e5);
           return `<tr><td class="l"><div class="pname" style="font-size:12px;">${esc(x.o.name)}</div>
             <div class="pmeta">${x.type==='product'?'finished stock':'component'}${wait>=21?' · <b style="color:var(--red)">waiting '+wait+'d</b>':''}</div></td>
-          <td class="l" style="font-size:11.5px;color:var(--text3)">${esc(x.l.sup)}</td>
-          <td class="mono" style="font-size:11.5px;color:var(--text3)">${dshort(x.l.date)}</td>
+          <td class="l" style="font-size:12px;color:var(--text2)">${esc(x.l.sup)}</td>
+          <td class="mono" style="font-size:12px;color:var(--text2)">${dshort(x.l.date)}</td>
           <td><span class="num b">${fmt(x.l.qty)}</span></td>
-          <td class="mono" style="font-size:12px;color:var(--text3)">${gbp(x.l.cost)}</td>
+          <td class="mono" style="font-size:12px;color:var(--text2)">${gbp(x.l.cost)}</td>
           <td><button class="btn sm go" onclick="LV3.markArrived('${x.type}','${x.o.id}','${x.l.id}')">Arrived</button></td></tr>`;}).join('')}
-        </tbody></table>`:'<div class="empty">Nothing on order.</div>'}
-      </div>
+        </tbody></table>`:''}
+      </div>`:''}
     </div>
 
     <div>
@@ -11440,7 +11502,7 @@ function vOverview(){
             <div style="margin-top:4px;"><span class="chip ${p.type}">${typeLabel(p.type)}</span></div></td>
           <td><span class="num" style="color:${col}">${a.kind==='norecipe'?'—':fmt(a.n)}</span>
             <div class="pmeta">${a.kind==='build'?'buildable':'in stock'}</div></td>
-          <td class="mono" style="font-size:12px;color:var(--text3)">${fmt(p.ship30)}</td>
+          <td class="mono" style="font-size:12px;color:var(--text2)">${fmt(p.ship30)}</td>
           <td style="width:104px"><div class="bar"><i style="width:${pct}%;background:${col}"></i></div>
             <div class="pmeta" style="text-align:center">${cw===null?'no demand':cw.toFixed(1)+' wks'}</div></td></tr>`;}).join('')}
         </tbody></table>`:'<div class="empty">Nothing can be sent right now — everything is out of stock.</div>'}
@@ -11448,30 +11510,36 @@ function vOverview(){
           <b style="color:var(--red)">${blocked.length}</b> hidden because they can't be sent — ${blocked.map(b=>esc(b.name)).join(', ')}</div>`:''}
       </div>
 
-      <div class="panel">
+      ${D.log.length?`<div class="panel">
         <div class="ph"><span class="t">Recent movement</span><span class="sub">every in and out</span></div>
-        ${D.log.slice(0,9).map(l=>{const col=l.k==='ship'?'var(--purple)':l.k==='recv'?'var(--green)':l.k==='adj'?'var(--amber)':'var(--blue)';
+        ${D.log.slice(0,_logAll?40:9).map(l=>{const col=l.k==='ship'?'var(--purple)':l.k==='recv'?'var(--green)':l.k==='adj'?'var(--amber)':'var(--blue)';
           return `<div class="att"><span class="dot" style="background:${col}"></span>
           <span class="tx">${esc(l.txt)}<span class="s">${ago(l.t.slice(0,10))} · ${esc(l.who)}</span></span></div>`;}).join('')}
-      </div>
+        ${D.log.length>9?`<div class="att" style="justify-content:center">
+          <button class="btn sm" onclick="LV3.toggleLog()">${_logAll?'Show less':'Show more'}</button></div>`:''}
+      </div>`:''}
     </div>
   </div>`;
 }
-const typeLabel=t=>t==='bundle'?'Bundle':t==='pl'?'Private label':'Single';
+const typeLabel=t=>t==='bundle'?'Bundle':t==='pl'?'Private label':'Single';   // 'single' kept only for legacy rows
 
 /* ═══════════════ PRODUCTS ═══════════════ */
 function vProducts(){
   setTimeout(selBar,0);
-  const counts={all:D.products.length,bundle:0,pl:0,single:0,blocked:0};
-  D.products.forEach(p=>{counts[p.type]++;if(avail(p).n===0)counts.blocked++;});
-  let rows=D.products.filter(p=>(pFilter==='all'||(pFilter==='blocked'?avail(p).n===0:p.type===pFilter))
+  const liveP=D.products.filter(p=>!p.archived);
+  const archP=D.products.filter(p=>p.archived);
+  const counts={all:liveP.length,bundle:0,pl:0,single:0,blocked:0,archived:archP.length};
+  liveP.forEach(p=>{counts[p.type]++;if(avail(p).n===0)counts.blocked++;});
+  const basis=pFilter==='archived'?archP:liveP;
+  let rows=basis.filter(p=>(pFilter==='all'||pFilter==='archived'||(pFilter==='blocked'?avail(p).n===0:p.type===pFilter))
     &&(!Q||(p.name+p.asin+p.sku).toLowerCase().includes(Q)));
 
   $('lav3View').innerHTML=`
   <div class="panel">
     <div class="ph">
-      <div class="seg">${[['all','All'],['bundle','Bundles'],['pl','Private label'],['single','Single'],['blocked','Blocked']]
-        .map(([k,l])=>`<button class="${pFilter===k?'on':''}" onclick="pFilter='${k}';LV3.render()">${l}<span class="cnt">${counts[k]}</span></button>`).join('')}</div>
+      <div class="seg">${[['all','All'],['bundle','Bundles'],['pl','Private label'],['blocked','Out of stock']]
+        .concat(archP.length?[['archived','Archived']]:[])
+        .map(([k,l])=>`<button class="${pFilter===k?'on':''}" onclick="LV3.setFilter('p','${k}')">${l}<span class="cnt">${fmt(counts[k])}</span></button>`).join('')}</div>
       <input class="srch" placeholder="Search product, ASIN, SKU…" value="${esc(Q)}" oninput="Q=this.value.toLowerCase();LV3.vProducts()">
       <div class="r"><button class="btn" onclick="LV3.openMatrix()" title="Fill every bundle's components on one grid">Recipe grid</button>
         <button class="btn" onclick="LV3.openBulkProd()">Bulk add</button>
@@ -11480,17 +11548,38 @@ function vProducts(){
     <div id="selBar"></div>
     <table><thead><tr>
       <th style="width:30px;text-align:center"><input type="checkbox" onclick="LV3.selAll(this.checked)"></th>
-      <th class="l" style="width:290px">Product</th><th style="width:96px">Available</th><th style="width:82px">Incoming</th>
-      <th style="width:96px">Ordered</th><th style="width:76px">30d out</th><th style="width:96px">Cover</th>
-      <th style="width:96px">COG / unit</th><th style="width:62px">VAT</th><th style="width:150px"></th>
+      <th class="l" style="width:250px">Product</th><th style="width:128px">Available</th>
+      ${COL('pIncoming')?'<th class="l" style="width:170px">Incoming</th>':''}
+      ${COL('pOrdered')?'<th style="width:96px">Ordered</th>':''}
+      ${COL('pShip')?'<th style="width:76px">30d out</th>':''}
+      ${COL('pCover')?'<th style="width:96px">Cover</th>':''}
+      ${COL('pCog')?'<th style="width:96px">COG / unit</th>':''}<th style="width:150px"></th>
     </tr></thead><tbody>
-    ${rows.length?rows.map(p=>prodRow(p)).join(''):`<tr><td colspan="10" class="empty">${D.products.length?'Nothing matches this filter.':
+    ${rows.length?rows.map(p=>prodRow(p)).join(''):`<tr><td colspan="${3+['pIncoming','pOrdered','pShip','pCover','pCog'].filter(COL).length}" class="empty">${D.products.length?'Nothing matches this filter.':
    'No products yet.<div style="margin-top:10px;display:flex;gap:7px;justify-content:center"><button class="btn pri" onclick="LV3.openBulkProd()">Bulk add products</button><button class="btn" onclick="LV3.editProduct(null)">Add one</button></div>'}</td></tr>`}
     </tbody></table>
   </div>
   <div style="font-size:11px;color:var(--text3);padding:0 2px;">Tick products to set their type in bulk. Click a row to see what it's made of. Bundles show what they can <b>build</b>; private-label and single products show stock <b>on hand</b>.</div>`;
 }
 let SEL=new Set();
+let _oosAll=false,_logAll=false;
+function toggleLog(){_logAll=!_logAll;render();}
+/* things you've seen and dealt with — hidden until their stock actually moves */
+let ACK={};
+function ack(id){
+  /* remembered across refreshes */
+  const o=prod(id)||comp(id);if(!o)return;
+  ACK[id]=(prod(id)?avail(o).n:onHand(o))+'|'+onOrder(o);
+  saveState();render();toast('Marked as dealt with — it comes back if the numbers change');
+}
+function acked(o){
+  const id=o.id;if(!(id in ACK))return false;
+  const now=(prod(id)?avail(o).n:onHand(o))+'|'+onOrder(o);
+  if(ACK[id]!==now){delete ACK[id];return false;}      // something changed — surface it again
+  return true;
+}
+function ackClear(){ACK={};saveState();render();toast('Showing everything again');}
+function toggleOos(){_oosAll=!_oosAll;render();}
 function selOne(id,on){on?SEL.add(id):SEL.delete(id);vProducts();}
 function selAll(on){
   const shown=D.products.filter(p=>(pFilter==='all'||(pFilter==='blocked'?avail(p).n===0:p.type===pFilter))
@@ -11548,17 +11637,29 @@ function prodRow(p){
     <td><span class="num" style="color:${col}">${a.kind==='norecipe'?'—':fmt(a.n)}</span>
       <div class="pmeta">${a.kind==='build'?'buildable':a.kind==='norecipe'?'no recipe':'in stock'}</div>
       ${lim?`<div class="limtag ${a.n===0?'out':''}" title="${esc(lim.name)} ${a.n===0?'is out of stock':'limits this build'}">${a.n===0?'✕':'▲'} ${esc(lim.name)}</div>`:''}</td>
-    <td><span class="num ${oo?'b':'dim'}">${oo?'+'+fmt(oo):'—'}</span>${oo?'<div class="pmeta">on arrival</div>':''}</td>
-    <td>${nn?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(nn.date)}</span><div class="pmeta">${esc(nn.sup.split('—')[0].trim())}</div>`:'<span class="dim">—</span>'}</td>
-    <td><span class="num ${p.ship30?'':'dim'}">${p.ship30?fmt(p.ship30):'—'}</span><div class="pmeta">${ago(p.lastSent)}</div></td>
-    <td>${cw===null?'<span class="dim">—</span>':`<div class="bar"><i style="width:${Math.max(4,Math.min(100,cw/8*100))}%;background:${col}"></i></div>
-      <div class="pmeta" style="text-align:center">${cw.toFixed(1)} wks</div>`}</td>
-    <td><span class="num" style="color:var(--accent)">${cg.per?gbp(cg.per):'—'}</span>${cg.batches>1?`<div class="pmeta">${cg.batches} batch${cg.batches===1?'':'es'}</div>`:''}</td>
-    <td><span class="chip vat">${p.vat}%</span></td>
+    ${COL('pIncoming')?`<td class="l" style="text-align:left">${(()=>{
+      const inc=[];
+      if(p.type==='bundle')p.recipe.forEach(r=>{const c=comp(r.c);if(!c||c.untracked)return;
+        (c.layers||[]).filter(l=>!l.arr).forEach(l=>inc.push({n:c.name,q:l.qty,d:l.date}));});
+      else (p.layers||[]).filter(l=>!l.arr).forEach(l=>inc.push({n:p.name,q:l.qty,d:l.date}));
+      if(!inc.length)return '<span class="dim">—</span>';
+      inc.sort((a,b)=>(a.d||'').localeCompare(b.d||''));
+      return inc.slice(0,2).map(x=>`<div style="font-size:11.5px;line-height:1.35;margin-bottom:3px">
+        <b style="color:var(--blu)">${fmt(x.q)}</b> ${esc(x.n)}
+        <span class="pmeta" style="margin:0;display:block">ordered ${dshort(x.d)}</span></div>`).join('')
+        +(inc.length>2?`<span class="chip" style="font-size:10px">+${inc.length-2} more</span>`:'')
+        +(oo?`<div class="pmeta" style="margin-top:3px">unlocks +${fmt(oo)}</div>`:'');})()}</td>`:''}
+    ${COL('pOrdered')?`<td>${nn?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(nn.date)}</span><div class="pmeta">${esc(nn.sup.split('—')[0].trim())}</div>`:'<span class="dim">—</span>'}</td>`:''}
+    ${COL('pShip')?`<td><span class="num ${p.ship30?'':'dim'}">${p.ship30?fmt(p.ship30):'—'}</span><div class="pmeta">${ago(p.lastSent)}</div></td>`:''}
+    ${COL('pCover')?`<td>${cw===null?'<span class="dim">—</span>':`<div class="bar"><i style="width:${Math.max(4,Math.min(100,cw/8*100))}%;background:${col}"></i></div>
+      <div class="pmeta" style="text-align:center">${cw.toFixed(1)} wks</div>`}</td>`:''}
+    ${COL('pCog')?`<td><span class="num" style="color:var(--accent)">${cg.per?gbp(cg.per):'—'}</span>${cg.batches>1?`<div class="pmeta">${cg.batches} batch${cg.batches===1?'':'es'}</div>`:''}</td>`:''}
     <td onclick="event.stopPropagation()"><div style="display:flex;gap:5px;justify-content:flex-end">
-      <button class="btn sm go" onclick="LV3.openShip('${p.id}')">Ship</button>
-      <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Open</button>
-      <button class="btn sm" onclick="LV3.editProduct('${p.id}')">Edit</button></div></td></tr>`;
+      ${p.archived?`<button class="btn sm go" onclick="LV3.setArchived('product','${p.id}',false)">Restore</button>`
+        :`<button class="btn sm go" onclick="LV3.openShip('${p.id}')">Ship</button>
+          <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Open</button>
+          <button class="btn sm" onclick="LV3.editProduct('${p.id}')">Edit</button>
+          <button class="btn sm" title="Archive — hides it without deleting" onclick="LV3.setArchived('product','${p.id}',true)">⌫</button>`}</div></td></tr>`;
   if(!open)return main;
 
   /* expanded: what it's made of + live COG */
@@ -11570,7 +11671,8 @@ function prodRow(p){
       return `<div class="rline" onclick="LV3.openComp('${c.id}')"><span class="q">×${r.q}</span>
         <span class="nm">${esc(c.name)}<span class="chip ${c.kind}">${c.kind==='packaging'?'Packaging':'Component'}</span>
         ${isLim?'<span class="chip bad">limits build</span>':''}</span>
-        <span class="st">${fmt(h)} on hand · ${gbp(avgCost(c))} avg → <b style="color:${can?'var(--text2)':'var(--red)'}">${fmt(can)}</b> units</span></div>`;};
+        <span class="st">${c.untracked?'<span class="dim">not tracked</span>'
+          :`${fmt(h)} on hand${avgCost(c)>0?' · '+gbp(avgCost(c))+' avg':''} → <b style="color:${can?'var(--text2)':'var(--red)'}">${fmt(can)}</b> units`}</span></div>`;};
     inner=`<div class="rsh">Components</div>${parts.map(line).join('')||'<div class="pmeta">None</div>'}
       ${pack.length?`<div class="rsh">Packaging</div>${pack.map(line).join('')}`:''}`;
   }else{
@@ -11585,9 +11687,9 @@ function prodRow(p){
   const cogHtml=`<div class="cogbox">
     <div class="lab" style="margin-bottom:6px">Cost of one unit — oldest stock first</div>
     ${c1.lines.map(l=>`<div class="cogrow" ${l.pack?'style="opacity:.6"':''}><span>${esc(l.name)}${l.q>1?` ×${l.q}`:''}${l.pack?' <span class="chip packaging" style="opacity:.85">not in COG</span>':''}</span>
-      <b>${l.pack?'—':(l.parts.length?l.parts.map(pt=>`${pt.take}@${gbp(pt.cost)}`).join(' + '):'<span style="color:var(--red)">no stock</span>')}</b></div>`).join('')}
+      <b>${l.pack?'—':(l.parts.length?l.parts.map(pt=>`${fmt(pt.take)}@${pt.cost>0?gbp(pt.cost):'—'}`).join(' + '):'<span style="color:var(--red)">no stock</span>')}</b></div>`).join('')}
     <div class="cogtot"><span>COG per unit</span><span class="mono" style="color:var(--accent)">${gbp(c1.per)}</span></div></div>`;
-  return main+`<tr class="sub-row"><td colspan="10" style="padding:0"><div class="rbox">${inner}${cogHtml}
+  return main+`<tr class="sub-row"><td colspan="${3+['pIncoming','pOrdered','pShip','pCover','pCog'].filter(COL).length}" style="padding:0"><div class="rbox">${inner}${cogHtml}
     <div style="margin-top:9px;display:flex;gap:6px"><button class="btn sm" onclick="LV3.editProduct('${p.id}')">Edit recipe</button>
     <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Full detail</button></div></div></td></tr>`;
 }
@@ -11615,6 +11717,7 @@ function openProduct(id){
   $('lav3Mod1').className='mod wide';
   $('lav3Mod1').innerHTML=`
   <div class="mh"><h3>${esc(p.name)}</h3><span class="chip ${p.type}">${typeLabel(p.type)}</span>
+    <span class="chip vat">${p.vat}% VAT</span>
     <span class="pmeta" style="margin:0">${p.asin}${p.sku?' · '+esc(p.sku):''}</span><button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
   <div class="mb">
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:13px">
@@ -11658,7 +11761,7 @@ function editProduct(id){
     <div class="ed2">
       <div>
         <div class="edrow"><span class="lab">Type</span>
-          <div class="seg" style="width:100%">${['bundle','pl','single'].map(t=>`<button style="flex:1" class="${p.type===t?'on':''}" onclick="LV3.setType('${t}')">${typeLabel(t)}</button>`).join('')}</div>
+          <div class="seg" style="width:100%">${['bundle','pl'].map(t=>`<button style="flex:1" class="${p.type===t?'on':''}" onclick="LV3.setType('${t}')">${typeLabel(t)}</button>`).join('')}</div>
           <div class="pmeta" style="margin-top:4px;white-space:normal" id="typeHint"></div></div>
         <div class="edrow"><span class="lab">Product name</span><input class="in" id="e-name" value="${esc(p.name)}" placeholder="e.g. Pub Snack Box"></div>
         <div class="edrow" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -11684,7 +11787,7 @@ function editProduct(id){
 }
 function setType(t){
   EDIT.type=t;
-  document.querySelectorAll('#mod2 .seg button').forEach((b,i)=>b.classList.toggle('on',['bundle','pl','single'][i]===t));
+  document.querySelectorAll('#lav3Mod2 .seg button').forEach((b,i)=>b.classList.toggle('on',['bundle','pl'][i]===t));
   $('typeHint').innerHTML=t==='bundle'?'Built here from components. Availability = how many you can build.'
     :t==='pl'?'Arrives finished under our brand. Availability = its own stock; components optional.'
     :'Bought and sent as-is. Availability = its own stock.';
@@ -11704,13 +11807,27 @@ function copyRecipe(pid){
   $('recipeRows').innerHTML='';EDIT.recipe.forEach(r=>addRecipeRow(r.c,r.q));
   $('copyFrom').value='';recipePreview();toast('Copied components from '+src.name);
 }
+function compOptions(sel,filter){
+  const q=(filter||'').toLowerCase();
+  const hit=c=>!q||c.name.toLowerCase().includes(q);
+  return `<optgroup label="Components">${D.components.filter(c=>c.kind!=='packaging'&&(hit(c)||c.id===sel))
+      .map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join('')}</optgroup>
+    <optgroup label="Packaging">${D.components.filter(c=>c.kind==='packaging'&&(hit(c)||c.id===sel))
+      .map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join('')}</optgroup>`;
+}
+function rcSearch(inp){
+  const row=inp.closest('.rrow');const sel=row.querySelector('.rc-c');
+  const keep=sel.value;
+  sel.innerHTML=`<option value="">Select component…</option>`+compOptions(keep,inp.value)+`<option value="__new">+ Create a new component…</option>`;
+  sel.value=keep;recipePreview();
+}
 function addRecipeRow(cid,q){
   const d=document.createElement('div');d.className='rrow';
-  d.innerHTML=`<select class="in rc-c" onchange="LV3.rcChange(this)">
-      <option value="">Select component…</option>
-      <optgroup label="Components">${D.components.filter(c=>c.kind!=='packaging').map(c=>`<option value="${c.id}" ${c.id===cid?'selected':''}>${esc(c.name)}</option>`).join('')}</optgroup>
-      <optgroup label="Packaging">${D.components.filter(c=>c.kind==='packaging').map(c=>`<option value="${c.id}" ${c.id===cid?'selected':''}>${esc(c.name)}</option>`).join('')}</optgroup>
-      <option value="__new">+ Create a new component…</option></select>
+  d.innerHTML=`<div style="display:flex;flex-direction:column;gap:5px;min-width:0">
+      <input class="in rc-find" placeholder="Type to filter components…" oninput="LV3.rcSearch(this)" style="padding:5px 8px;font-size:11.5px">
+      <select class="in rc-c" onchange="LV3.rcChange(this)">
+      <option value="">Select component…</option>${compOptions(cid,'')}
+      <option value="__new">+ Create a new component…</option></select></div>
     <input class="in mono rc-q" type="number" min="1" value="${q||1}" style="text-align:center" oninput="LV3.recipePreview()">
     <span class="rcinfo"></span>
     <button class="btn sm dgr" title="Remove" onclick="this.parentElement.remove();LV3.recipePreview()">✕</button>`;
@@ -11740,6 +11857,7 @@ function recipePreview(){
     const c=comp(sel.value),info=r.querySelector('.rcinfo');
     const q=parseInt(r.querySelector('.rc-q').value)||1;
     if(!c){info.innerHTML='';r.classList.remove('lim');return;}
+    if(c.untracked){info.innerHTML='<span style="color:var(--text3)">not tracked — never blocks</span>';return;}
     const can=Math.floor(onHand(c)/q);
     info.innerHTML=`<span class="mono" style="color:${onHand(c)?'var(--text2)':'var(--red)'}">${fmt(onHand(c))}</span>
       <span style="color:var(--text3)">in stock · ${gbp(avgCost(c))}</span>
@@ -11804,10 +11922,33 @@ function saveProduct(id){
   logIt('edit',(id?'Updated product ':'Added product ')+name);
   cm('lav3Ov2');cm('lav3Ov1');render();toast(id?'Product updated':'Product added','ok');
 }
+function setArchived(kind,id,on){
+  const o=kind==='product'?prod(id):comp(id);if(!o)return;
+  if(on&&kind==='component'){
+    const uses=usedIn(id);
+    if(uses.length){showConfirm('Archive component?',
+      `${esc(o.name)} is used in ${uses.length} product${uses.length===1?'':'s'}. Archiving hides it but keeps the data and the recipes — you can restore it any time.`,
+      ()=>{snap();o.archived=true;if(o._src)o._src.archived=true;save();render();toastUndo(`${o.name} archived`);});return;}
+  }
+  snap();o.archived=on;if(o._src)o._src.archived=on;
+  if(kind==='product'&&o._src&&typeof saveLavAsin==='function')saveLavAsin(o._src);
+  save();render();toastUndo(on?`${o.name} archived`:`${o.name} restored`,'ok');
+}
 function delProduct(id){
   const p=prod(id);
   confirmBox('Delete product?',`${esc(p.name)} will be removed. Its shipment history stays in the movement log.`,()=>{
-    snap();D.products=D.products.filter(x=>x.id!==id);logIt('edit','Deleted product '+p.name);
+    snap();
+    const src=p._src;
+    D.products=D.products.filter(x=>x.id!==id);
+    /* explicit removal — a render must never delete, so deletes say so out loud */
+    if(src){
+      const i=lavAsins.indexOf(src);
+      if(i>=0)lavAsins.splice(i,1);
+      if(src.uuid)deleteLavAsin_db(src);
+    }
+    delete RECIPES[p.asin];
+    saveCompsRecipes();
+    logIt('edit','Deleted product '+p.name);
     cm('lav3Ov2');cm('lav3Ov1');render();toastUndo('Product deleted');});
 }
 
@@ -11901,23 +12042,31 @@ function doShip(){
 
 /* ═══════════════ COMPONENTS ═══════════════ */
 function vComponents(){
-  const counts={all:D.components.length,component:0,packaging:0,low:0};
-  D.components.forEach(c=>{counts[c.kind]++;const cv=compCover(c);if(cv!==null&&cv<2)counts.low++;});
-  let rows=D.components.filter(c=>(cFilter==='all'||(cFilter==='low'?(compCover(c)!==null&&compCover(c)<2):c.kind===cFilter))
+  const liveC=D.components.filter(c=>!c.archived);
+  const archC=D.components.filter(c=>c.archived);
+  const low=(D.settings.lowWeeks||2);
+  const counts={all:liveC.length,component:0,packaging:0,low:0,archived:archC.length};
+  liveC.forEach(c=>{counts[c.kind]++;const cv=compCover(c);if(cv!==null&&cv<low)counts.low++;});
+  const basisC=cFilter==='archived'?archC:liveC;
+  let rows=basisC.filter(c=>(cFilter==='all'||cFilter==='archived'||(cFilter==='low'?(compCover(c)!==null&&compCover(c)<low):c.kind===cFilter))
     &&(!Q||c.name.toLowerCase().includes(Q)));
   $('lav3View').innerHTML=`
   <div class="panel">
     <div class="ph">
       <div class="seg">${[['all','All'],['component','Components'],['packaging','Packaging'],['low','Running low']]
-        .map(([k,l])=>`<button class="${cFilter===k?'on':''}" onclick="cFilter='${k}';LV3.render()">${l}<span class="cnt">${counts[k]}</span></button>`).join('')}</div>
+        .concat(archC.length?[['archived','Archived']]:[])
+        .map(([k,l])=>`<button class="${cFilter===k?'on':''}" onclick="LV3.setFilter('c','${k}')">${l}<span class="cnt">${fmt(counts[k])}</span></button>`).join('')}</div>
       <input class="srch" placeholder="Search components…" value="${esc(Q)}" oninput="Q=this.value.toLowerCase();LV3.vComponents()">
       <div class="r"><button class="btn" onclick="LV3.openBulkComp()">Bulk add</button>
         <button class="btn pri" onclick="LV3.editComp(null)">+ Add component</button></div>
     </div>
     <table><thead><tr>
-      <th class="l" style="width:280px">Component</th><th style="width:88px">On hand</th><th style="width:84px">On order</th>
-      <th style="width:96px">Ordered</th><th style="width:92px">Avg cost</th><th style="width:100px">Oldest batch</th>
-      <th style="width:96px">Cover</th><th class="l" style="width:180px">Used in</th><th style="width:120px"></th>
+      <th class="l" style="width:240px">Component</th><th style="width:80px">On hand</th>
+      ${COL('cOnOrder')?'<th style="width:78px">On order</th>':''}
+      ${COL('cOrdered')?'<th style="width:92px">Ordered</th>':''}
+      ${COL('cAvg')?'<th style="width:92px">Avg cost</th>':''}
+      ${COL('cCover')?'<th style="width:92px">Cover</th>':''}
+      ${COL('cUsed')?'<th class="l" style="width:230px">Used in</th>':''}<th style="width:118px"></th>
     </tr></thead><tbody>
     ${rows.length?rows.map(c=>{
       const h=onHand(c),oo=onOrder(c),nx=nextIn(c),cv=compCover(c),old=arrLayers(c).filter(l=>l.rem>0)[0];
@@ -11927,19 +12076,24 @@ function vComponents(){
         <td class="l"><div class="pname" style="font-size:12.5px">${esc(c.name)}</div>
           <div style="margin-top:4px;display:flex;gap:5px;align-items:center">
             <span class="chip ${c.kind}">${c.kind==='packaging'?'Packaging':'Component'}</span>
+            ${c.untracked?'<span class="chip">not tracked</span>':''}
             ${c.caseQty?`<span class="pmeta" style="margin:0">case of ${fmt(c.caseQty)}</span>`:''}</div></td>
         <td><span class="num" style="color:${col}">${fmt(h)}</span>
           <div class="pmeta">${arrLayers(c).filter(l=>l.rem>0).length} batch${arrLayers(c).filter(l=>l.rem>0).length===1?'':'es'}</div></td>
-        <td><span class="num ${oo?'b':'dim'}">${oo?fmt(oo):'—'}</span></td>
-        <td>${nx?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(nx.date)}</span><div class="pmeta">${esc(nx.sup.split('—')[0].trim())}</div>`:'<span class="dim">—</span>'}</td>
-        <td><span class="num" style="font-size:13.5px;color:var(--accent)">${gbp(avgCost(c))}</span></td>
-        <td>${old?`<span class="mono" style="font-size:11.5px;color:var(--text3)">${dshort(old.date)}</span><div class="pmeta">${fmt(old.rem)} @ ${gbp(old.cost)}</div>`:'<span class="dim">—</span>'}</td>
-        <td>${cv===null?'<span class="dim">—</span>':`<div class="bar"><i style="width:${Math.max(4,Math.min(100,cv/8*100))}%;background:${col}"></i></div><div class="pmeta" style="text-align:center">${cv.toFixed(1)} wks</div>`}</td>
-        <td class="l" style="font-size:11px;color:var(--text3)">${uses.length?uses.map(u=>esc(u.name)).join(', '):'<span class="dim">not used yet</span>'}</td>
+        ${COL('cOnOrder')?`<td><span class="num ${oo?'b':'dim'}">${oo?fmt(oo):'—'}</span></td>`:''}
+        ${COL('cOrdered')?`<td>${nx?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(nx.date)}</span><div class="pmeta">${esc(nx.sup.split('—')[0].trim())}</div>`:'<span class="dim">—</span>'}</td>`:''}
+        ${COL('cAvg')?`<td>${avgCost(c)>0?`<span class="num" style="font-size:13.5px;color:var(--accent)">${gbp(avgCost(c))}</span>`
+          :`<span class="dim" style="font-size:12px" title="No price yet — it fills in when the purchase is allocated">price missing</span>`}</td>`:''}
+        ${COL('cCover')?`<td>${cv===null?'<span class="dim">—</span>':`<div class="bar"><i style="width:${Math.max(4,Math.min(100,cv/8*100))}%;background:${col}"></i></div><div class="pmeta" style="text-align:center">${cv.toFixed(1)} wks</div>`}</td>`:''}
+        ${COL('cUsed')?`<td class="l">${uses.length?`<div style="font-weight:600;font-size:12.5px">${fmt(uses.length)} product${uses.length===1?'':'s'}</div>
+          <div class="pmeta" style="white-space:normal" title="${esc(uses.map(u=>u.name).join(', '))}">${esc(uses.slice(0,2).map(u=>u.name).join(', '))}${uses.length>2?` +${uses.length-2} more`:''}</div>`
+          :'<span class="dim">not used yet</span>'}</td>`:''}
         <td onclick="event.stopPropagation()"><div style="display:flex;gap:5px;justify-content:flex-end">
-          <button class="btn sm" onclick="LV3.openAdjust('component','${c.id}')">Adjust</button>
-          <button class="btn sm" onclick="LV3.editComp('${c.id}')">Edit</button></div></td></tr>`;}).join('')
-      :`<tr><td colspan="9" class="empty">${D.components.length?'Nothing matches this filter.':
+          ${c.archived?`<button class="btn sm go" onclick="LV3.setArchived('component','${c.id}',false)">Restore</button>`
+            :`<button class="btn sm" onclick="LV3.openAdjust('component','${c.id}')">Adjust</button>
+              <button class="btn sm" onclick="LV3.editComp('${c.id}')">Edit</button>
+              <button class="btn sm" title="Archive — hides it without deleting" onclick="LV3.setArchived('component','${c.id}',true)">⌫</button>`}</div></td></tr>`;}).join('')
+      :`<tr><td colspan="${3+['cOnOrder','cOrdered','cAvg','cCover','cUsed'].filter(COL).length}" class="empty">${D.components.length?'Nothing matches this filter.':
    'No components yet.<div style="margin-top:10px;display:flex;gap:7px;justify-content:center"><button class="btn pri" onclick="LV3.openBulkComp()">Bulk add components</button><button class="btn" onclick="LV3.editComp(null)">Add one</button></div>'}</td></tr>`}
     </tbody></table>
   </div>
@@ -11988,22 +12142,59 @@ function editComp(id){
   <div class="mb">
     <div class="frow"><span class="lab">Name</span><input class="in" id="c-name" value="${esc(c.name)}" placeholder="e.g. Exfoliating Glove"></div>
     <div class="frow"><span class="lab">Kind</span>
-      <div class="seg" style="width:100%">${['component','packaging'].map(k=>`<button style="flex:1" class="${c.kind===k?'on':''}" onclick="document.querySelectorAll('#mod2 .seg button').forEach(b=>b.classList.remove('on'));this.classList.add('on');window._ck='${k}'">${k==='packaging'?'Packaging':'Component'}</button>`).join('')}</div>
+      <div class="seg" style="width:100%" id="ckSeg">${['component','packaging'].map(k=>`<button style="flex:1" class="${c.kind===k?'on':''}" onclick="LV3.pickKind('${k}')">${k==='packaging'?'Packaging':'Component'}</button>`).join('')}</div>
       <div class="pmeta" style="margin-top:5px">Packaging = the box/sleeve inside the finished product, not the shipping carton.</div></div>
     <div class="g2 frow">
-      <div><span class="lab">Tag <span style="text-transform:none;font-weight:600">(label only)</span></span>
-        <select class="in" id="c-tag">${['branded','white-label','complementary','bought-in'].map(t=>`<option ${c.tag===t?'selected':''}>${t}</option>`).join('')}</select></div>
+      <div id="ckCat"><span class="lab">What kind of component</span>
+        <select class="in" id="c-tag">${[['branded','Branded — e.g. Dove'],['private-label','Private label — e.g. Lavarion'],['complementary','Complementary — mitt, scraper, sandpaper']]
+          .map(([v,l])=>`<option value="${v}" ${c.tag===v?'selected':''}>${l}</option>`).join('')}</select></div>
       <div><span class="lab">Case qty <span style="text-transform:none;font-weight:600">(optional)</span></span><input class="in mono" id="c-case" type="number" value="${c.caseQty||''}"></div></div>
+    <label style="display:flex;gap:9px;align-items:flex-start;margin:2px 0 12px;font-size:12.5px;color:var(--text2);cursor:pointer">
+      <input type="checkbox" id="c-untracked" ${c.untracked?'checked':''} style="margin-top:2px">
+      <span>Don't track stock for this one
+        <span class="pmeta" style="margin-top:2px">For things you always have and share with OA — poly bags, tape, labels. It still shows in the recipe, but never blocks a build and never counts toward COG.</span></span></label>
     <div class="note info">Stock isn't typed here — it comes from purchase-sheet batches. Use <b>Correct stock</b> if a physical count disagrees.</div>
   </div>
   <div class="mf">${id?`<button class="btn dgr" onclick="LV3.delComp('${id}')">Delete</button>`:''}
     <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
     <button class="btn pri" onclick="LV3.saveComp('${id||''}')">Save</button></div></div>`;
-  window._ck=c.kind;om('lav3Ov2');
+  window._ck=c.kind;om('lav3Ov2');setTimeout(()=>pickKind(c.kind||'component'),0);
+}
+function setCol(k,on){D.settings.cols=D.settings.cols||{};D.settings.cols[k]=!!on;savePrefs();render();}
+function setPref(k,v){D.settings[k]=v;savePrefs();render();}
+function savePrefs(){
+  try{sb.from('app_settings').upsert({key:'lavarion_prefs',value:JSON.stringify(D.settings)},{onConflict:'key'})
+    .then(r=>{if(r.error)console.warn('prefs save',r.error);});}catch(e){}
+}
+/* movement log + "dealt with" ticks — small, so they ride along in app_settings */
+let _stateT=null;
+function saveState(){clearTimeout(_stateT);_stateT=setTimeout(()=>{
+  try{sb.from('app_settings').upsert({key:'lavarion_state',
+    value:JSON.stringify({log:D.log.slice(0,300),ack:ACK})},{onConflict:'key'})
+    .then(r=>{if(r.error)console.warn('state save',r.error);});}catch(e){}
+},1200);}
+async function loadState(){
+  try{const r=await sb.from('app_settings').select('value').eq('key','lavarion_state').maybeSingle();
+    if(r&&r.data&&r.data.value){const v=JSON.parse(r.data.value);
+      if(Array.isArray(v.log))D.log=v.log;
+      if(v.ack&&typeof v.ack==='object')ACK=v.ack;}}catch(e){}
+}
+async function loadPrefs(){
+  try{const r=await sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle();
+    if(r&&r.data&&r.data.value){const v=JSON.parse(r.data.value);
+      D.settings=Object.assign({},D.settings,v);
+      D.settings.cols=Object.assign({},{pIncoming:true,pOrdered:false,pShip:true,pCover:true,pCog:true,
+        cOnOrder:true,cOrdered:true,cAvg:true,cCover:true,cUsed:true},v.cols||{});}}catch(e){}
+}
+function pickKind(k){
+  window._ck=k;
+  [...document.querySelectorAll('#ckSeg button')].forEach((b,i)=>b.classList.toggle('on',['component','packaging'][i]===k));
+  const cat=$('ckCat');if(cat)cat.style.display=k==='packaging'?'none':'';   // packaging just needs a name
 }
 function saveComp(id){
   const name=$('c-name').value.trim();if(!name){toast('Name required','er');return;}
-  const obj={name,kind:window._ck||'component',tag:$('c-tag').value,caseQty:parseInt($('c-case').value)||null};
+  const obj={name,kind:window._ck||'component',tag:$('c-tag').value,caseQty:parseInt($('c-case').value)||null,
+    untracked:!!($('c-untracked')||{}).checked};
   if(id){Object.assign(comp(id),obj);}else{D.components.push({id:'c'+Date.now(),layers:[],...obj});}
   logIt('edit',(id?'Updated component ':'Added component ')+name);
   cm('lav3Ov2');cm('lav3Ov1');render();toast(id?'Component updated':'Component added','ok');
@@ -12119,7 +12310,7 @@ function vPurchases(){
   <div class="panel">
     <div class="ph">
       <div class="seg">${[['all','All',D.purchases.length],['todo','To allocate',unl.length],['part','Part done',part.length],['done','Allocated',done]]
-        .map(([k,l,n])=>`<button class="${uFilter===k?'on':''}" onclick="uFilter='${k}';LV3.vPurchases()">${l}<span class="cnt">${fmt(n)}</span></button>`).join('')}</div>
+        .map(([k,l,n])=>`<button class="${uFilter===k?'on':''}" onclick="LV3.setFilter('u','${k}')">${l}<span class="cnt">${fmt(n)}</span></button>`).join('')}</div>
       <div class="r"><input class="srch" placeholder="Search purchases…" value="${esc(Q)}" oninput="Q=this.value.toLowerCase();LV3.vPurchases()">
       <button class="btn" onclick="LV3.toast('Purchases sync runs from Settings → Sheet sync')">Sync now</button></div></div>
     ${rows.length?`<table><thead><tr>
@@ -12131,11 +12322,11 @@ function vPurchases(){
       const st=allocState(p),als=allocOf(p),wait=Math.floor((TODAY-new Date(p.date))/864e5),stale=!p.arr&&wait>=21;
       const sug=st.k==='none'?suggestFor(p):null;
       return `<tr>
-        <td class="l mono" style="font-size:12px;color:var(--text3)">${dshort(p.date)}</td>
+        <td class="l mono" style="font-size:12px;color:var(--text2)">${dshort(p.date)}</td>
         <td class="l"><div class="pname">${esc(p.name)}</div><div class="pmeta">${esc(p.oid)}</div></td>
         <td class="mono" style="font-weight:500">${fmt(p.qty)}</td>
         <td class="mono">${gbp(p.price)}</td>
-        <td class="l" style="font-size:12px;color:var(--text3)">${esc(p.sup)}</td>
+        <td class="l" style="font-size:12px;color:var(--text2)">${esc(p.sup)}</td>
         <td>${p.arr?'<span class="chip ok">Arrived</span>':`<span class="chip ${stale?'bad':'info'}">${stale?wait+'d waiting':'On order'}</span>`}</td>
         <td class="l">${als.length?als.map(a=>{const t=targetOf(a.to);
             return `<div style="display:flex;gap:7px;align-items:baseline;margin-bottom:2px">
@@ -12285,6 +12476,94 @@ function fillRest(){
 }
 function clearAlloc(){snap();setAlloc(LINKP,[]);cm('lav3Ov2');render();toastUndo('Unlinked');}
 
+
+/* ═══════════════ DELIVERIES ═══════════════
+   Everything ordered and not yet arrived, in one place. Works off stock
+   batches, so it covers migrated orders, purchase-sheet rows and anything
+   added by hand. Tick what turned up; edit the received box for a partial
+   and the remainder stays on order. */
+function inboundAll(){
+  const out=[];
+  D.components.forEach(c=>(c.layers||[]).filter(l=>!l.arr).forEach(l=>out.push({o:c,l,kind:'component'})));
+  D.products.forEach(p=>(p.layers||[]).filter(l=>!l.arr).forEach(l=>out.push({o:p,l,kind:'product'})));
+  return out.sort((a,b)=>(a.l.date||'').localeCompare(b.l.date||''));
+}
+function inboundCount(){return inboundAll().length;}
+function openDeliveries(){
+  const open=inboundAll();
+  window._dlv=open;
+  const body=open.length?`
+    <div class="note info" style="margin-bottom:12px">Tick what arrived. Edit the <b>received</b> box for a partial — the rest stays on order automatically.</div>
+    <div style="max-height:56vh;overflow:auto;border:1px solid var(--border);border-radius:9px">
+    ${open.map((x,i)=>{
+      const days=Math.floor((TODAY-new Date(x.l.date))/864e5);
+      const late=days>=21;
+      return `<div style="display:grid;grid-template-columns:26px minmax(0,1fr) 108px 132px 118px;gap:11px;align-items:center;
+        padding:11px 13px;border-bottom:1px solid var(--border);${late?'background:var(--red-bg);':''}">
+        <input type="checkbox" id="dlv-ck-${i}" checked onchange="LV3.dlvSum()">
+        <div style="min-width:0">
+          <div class="pname" style="font-size:13px">${esc(x.o.name)}
+            <span class="chip ${x.kind==='product'?'pl':'component'}">${x.kind==='product'?'Finished stock':'Component'}</span></div>
+          <div class="pmeta">${esc(x.l.sup||'—')}${x.l.oid&&x.l.oid!=='—'?' · '+esc(x.l.oid):''} · ordered ${dshort(x.l.date)}
+            ${late?`· <b style="color:var(--red)">${days}d waiting</b>`:`· ${days}d ago`}</div></div>
+        <div style="text-align:right"><span class="pmeta" style="margin:0">ordered</span>
+          <div class="num">${fmt(x.l.qty)}</div></div>
+        <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end">
+          <span class="pmeta" style="margin:0">received</span>
+          <input class="in mono" type="number" min="0" max="${x.l.qty}" value="${x.l.qty}" id="dlv-q-${i}"
+            style="width:74px;text-align:center;padding:6px" oninput="LV3.dlvSum()"></div>
+        <div id="dlv-n-${i}" style="font-size:11.5px;text-align:right;color:var(--text2)"></div>
+      </div>`;}).join('')}
+    </div>`
+    :`<div class="empty">Nothing on order.<div class="pmeta" style="margin-top:8px">Batches appear here as soon as something is ordered and not yet marked arrived.</div></div>`;
+  $('lav3Mod1').className='mod wide';
+  $('lav3Mod1').innerHTML=`
+    <div class="mh"><h3>Deliveries</h3>
+      <span class="pmeta" style="margin:0">${fmt(open.length)} open order${open.length===1?'':'s'}</span>
+      <button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
+    <div class="mb">${body}</div>
+    <div class="mf"><span id="dlvSum" class="pmeta" style="margin:0"></span>
+      <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov1')">Close</button>
+      ${open.length?'<button class="btn go" id="dlvGo" onclick="LV3.dlvReceive()">Receive selected</button>':''}</div></div>`;
+  om('lav3Ov1');dlvSum();
+}
+function dlvSum(){
+  const open=window._dlv||[];let items=0,units=0;
+  open.forEach((x,i)=>{
+    const ck=$('dlv-ck-'+i),q=$('dlv-q-'+i),n=$('dlv-n-'+i);
+    if(!ck||!q)return;
+    const v=Math.max(0,Math.min(x.l.qty,parseInt(q.value)||0));
+    if(n)n.innerHTML=!ck.checked?'<span class="dim">skipped</span>'
+      :v>=x.l.qty?'<span style="color:var(--grn)">all of it</span>'
+      :v>0?`<span style="color:var(--amb)">${fmt(x.l.qty-v)} stays on order</span>`:'<span class="dim">nothing</span>';
+    if(ck.checked&&v>0){items++;units+=v;}
+  });
+  const s=$('dlvSum');
+  if(s)s.textContent=items?`Receiving ${fmt(units)} units across ${fmt(items)} order${items===1?'':'s'}`:'Nothing selected';
+  const g=$('dlvGo');if(g){g.disabled=!items;g.style.opacity=items?'1':'.45';}
+}
+function dlvReceive(){
+  const open=window._dlv||[];let items=0,units=0,partials=0;
+  snap();
+  open.forEach((x,i)=>{
+    const ck=$('dlv-ck-'+i),q=$('dlv-q-'+i);
+    if(!ck||!ck.checked)return;
+    const got=Math.max(0,Math.min(x.l.qty,parseInt(q.value)||0));
+    if(got<1)return;
+    if(got>=x.l.qty){x.l.arr=1;x.l.rem=x.l.qty;}
+    else{
+      x.l.qty=x.l.qty-got;partials++;                 // remainder stays on order
+      (x.o.layers=x.o.layers||[]).push({id:'R'+Date.now()+'_'+i,date:x.l.date,qty:got,rem:got,cost:x.l.cost,
+        sup:x.l.sup,oid:x.l.oid,loc:x.l.loc,arr:1,src:x.l.src||'',note:x.l.note||''});
+    }
+    items++;units+=got;
+    logIt('recv',`Received ${fmt(got)} × ${x.o.name}${x.l.cost>0?' @ '+gbp(x.l.cost):''}${x.l.sup?' — '+x.l.sup:''}`);
+  });
+  if(!items){toast('Nothing selected','er');return;}
+  save();cm('lav3Ov1');render();
+  toastUndo(`${fmt(units)} units received across ${fmt(items)} order${items===1?'':'s'}${partials?` · ${partials} partial`:''}`,'ok');
+}
+
 /* ═══════════════ BULK SETUP ═══════════════
    Getting 28 products and their parts in by hand is the reason the old page
    never got used. Three tools: paste components, paste products, then fill
@@ -12297,7 +12576,7 @@ function openBulkComp(){
   <div class="mh"><h3>Bulk add components</h3><button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
   <div class="mb">
     <div class="note info" style="margin-bottom:10px">One per line. Paste straight from the sheet — columns can be separated by tabs or <b>|</b>.<br>
-      <span class="mono" style="font-size:11px;color:var(--text3)">Name | on hand | unit cost | packaging</span><br>
+      <span class="mono" style="font-size:12px;color:var(--text2)">Name | on hand | unit cost | packaging</span><br>
       Only the name is required. Add <b>packaging</b> at the end for boxes and sleeves.</div>
     <textarea class="in mono" id="bcTxt" rows="11" style="resize:vertical;line-height:1.6"
       placeholder="Exfoliating Glove | 118 | 0.44&#10;Self Tan Mitt | 96 | 0.58&#10;Gift Box — Medium | 392 | 0.31 | packaging&#10;Dove MD Tanning Lotion 75ml" oninput="LV3.bcPreview()"></textarea>
@@ -12345,7 +12624,7 @@ function openBulkProd(){
   <div class="mh"><h3>Bulk add products</h3><button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
   <div class="mb">
     <div class="note info" style="margin-bottom:10px">One per line, tabs or <b>|</b> between columns.<br>
-      <span class="mono" style="font-size:11px;color:var(--text3)">ASIN | SKU | Product name | type | VAT</span><br>
+      <span class="mono" style="font-size:12px;color:var(--text2)">ASIN | SKU | Product name | type | VAT</span><br>
       Type is <b>bundle</b>, <b>pl</b> or <b>single</b> — defaults to bundle. VAT defaults to 20.</div>
     <textarea class="in mono" id="bpTxt" rows="11" style="resize:vertical;line-height:1.6"
       placeholder="B0DW5HPRWB | LAV-DOVEMD-BDL | Dove 75ml MD Bundle | bundle&#10;B0G8R16QMB | LAV-WED30 | Wedding Cones 30 | pl&#10;B0GJ68VNM2 | LAV-GFBOX | GF Biscuit Hamper | bundle | 0" oninput="LV3.bpPreview()"></textarea>
@@ -12629,6 +12908,36 @@ function vSettings(){
         </div>
       </div>
       <div class="panel">
+        <div class="ph"><span class="t">What you see</span><span class="sub">hide anything you don't use</span></div>
+        <div style="padding:12px 14px">
+          <div class="lab" style="margin-bottom:7px">Products table</div>
+          <div class="colgrid">
+            ${[['pIncoming','Incoming'],['pOrdered','Ordered date'],['pShip','30d out'],['pCover','Cover'],['pCog','COG / unit']]
+              .map(([k,l])=>`<label><input type="checkbox" ${COL(k)?'checked':''} onchange="LV3.setCol('${k}',this.checked)"> ${l}</label>`).join('')}
+          </div>
+          <div class="lab" style="margin:14px 0 7px">Components table</div>
+          <div class="colgrid">
+            ${[['cOnOrder','On order'],['cOrdered','Ordered date'],['cAvg','Avg cost'],['cCover','Cover'],['cUsed','Used in']]
+              .map(([k,l])=>`<label><input type="checkbox" ${COL(k)?'checked':''} onchange="LV3.setCol('${k}',this.checked)"> ${l}</label>`).join('')}
+          </div>
+          <div class="lab" style="margin:14px 0 7px">Layout</div>
+          <div class="colgrid">
+            <label><input type="checkbox" ${D.settings.dense?'checked':''} onchange="LV3.setPref('dense',this.checked)"> Tighter rows</label>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:14px">
+            <div><span class="lab">Warn when cover drops under</span>
+              <select class="in" onchange="LV3.setPref('lowWeeks',parseInt(this.value))">
+                ${[1,2,3,4,6].map(w=>`<option value="${w}" ${(D.settings.lowWeeks||2)===w?'selected':''}>${w} week${w===1?'':'s'}</option>`).join('')}</select></div>
+            <div><span class="lab">Open Lavarion on</span>
+              <select class="in" onchange="LV3.setPref('startTab',this.value)">
+                ${[['overview','Overview'],['products','Products'],['components','Components'],['purchases','Purchases']]
+                  .map(([v,l])=>`<option value="${v}" ${(D.settings.startTab||'overview')===v?'selected':''}>${l}</option>`).join('')}</select></div>
+          </div>
+          <div class="note info" style="margin-top:12px">Everyday screens stay simple — the full detail is always one click away in a product or component.</div>
+        </div>
+      </div>
+
+      <div class="panel">
         <div class="ph"><span class="t">Cover target</span></div>
         <div style="padding:12px">
           <div class="frow"><span class="lab">Weeks of cover to aim for</span><input class="in mono" type="number" value="${D.settings.coverWeeks}" oninput="D.settings.coverWeeks=parseInt(this.value)||4;LV3.save()"></div>
@@ -12789,14 +13098,20 @@ function shipCheck(asin,units){
 let _booted=false;
 async function boot(){
   if(_booted)return;_booted=true;
+  await loadPrefs();
+  await loadState();
   await loadCompsRecipes();
   await loadCloud();
   await migrateOld();
   hydrate();
   paint();
 }
+const COL=k=>{const c=(D.settings&&D.settings.cols)||{};return c[k]!==false;};
 function paint(){
   if(!document.getElementById('lav3View'))return;
+  if(_firstPaint){_firstPaint=false;const t=D.settings.startTab;if(t&&t!=='overview')TAB=t;}
+  const pg=document.getElementById('page-lavarion');
+  if(pg)pg.classList.toggle('dense',!!D.settings.dense);
   _painting=true;
   hydrate();
   render();
@@ -12811,16 +13126,16 @@ function paint(){
 
 /* everything the page's inline handlers need */
 const API={go,render:paint,boot,
-  openProduct,editProduct,setType,addRecipeRow,rcChange,recipePreview,copyRecipe,saveProduct,delProduct,togRow,
+  openProduct,editProduct,setType,addRecipeRow,rcChange,rcSearch,recipePreview,copyRecipe,saveProduct,delProduct,togRow,setArchived,
   openShip,drawShip,doShip,copyCog,selOne,selAll,selClear,selType,selVat,
-  openComp,editComp,saveComp,delComp,markArrived,openAdjust,doAdjust,
+  openComp,editComp,saveComp,delComp,pickKind,markArrived,openAdjust,doAdjust,
   openLink,saveAlloc,clearAlloc,quickLink,addAllocRow,allocSum,useSuggestion,fillRest,
   openBulkComp,bcPreview,bcSave,openBulkProd,bpPreview,bpSave,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,copySql,clearAll,doUndo,gsRun,gsGo,
+  openData,exportCsv,copySql,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openDeliveries,dlvSum,dlvReceive,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
-  setFilter:(k,v)=>{if(k==='p')pFilter=v;if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
+  setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
   isReady:()=>READY};
 return API;
 })();
@@ -12927,7 +13242,9 @@ function _mhRender(ser){
     <div style="position:relative;background:linear-gradient(135deg,${col}18,${col}05);border:1px solid ${col}33;border-radius:11px;padding:13px 15px 12px;overflow:hidden;">
       <span style="position:absolute;left:0;top:0;bottom:0;width:3px;background:${col};"></span>
       <div style="font-size:9.5px;font-weight:800;color:${LBL};text-transform:uppercase;letter-spacing:.09em;margin-bottom:7px;">${label}</div>
-      <div style="font-size:25px;font-weight:900;font-family:var(--mono);color:${col};line-height:1;">${val}</div>
+      <div style="font-size:${String(val).length>10?'19px':String(val).length>8?'21.5px':'25px'};font-weight:900;
+        font-family:var(--mono);color:${col};line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+        title="${String(val)}">${val}</div>
       <div style="font-size:10.5px;margin-top:8px;">${dline} ${dline===none?'':`<span style="color:${HINT};">vs prev month</span>`}</div>
     </div>`;
   const mini=(label,val,col,sub)=>`
