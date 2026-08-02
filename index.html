@@ -760,6 +760,32 @@ html.light-mode{
   font-size:12.5px;color:var(--text2);}
 #page-lavarion .schemabar .dot,.lav3 .schemabar .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 #page-lavarion .schemabar .btn,.lav3 .schemabar .btn{margin-left:auto;}
+/* detail popup */
+#page-lavarion .dstats,.lav3 .dstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;margin-bottom:16px;}
+#page-lavarion .dstat,.lav3 .dstat{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:11px 13px;min-width:0;}
+#page-lavarion .dstat .k,.lav3 .dstat .k{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);}
+#page-lavarion .dstat .v,.lav3 .dstat .v{font-family:var(--num);font-size:22px;font-weight:600;margin-top:5px;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;}
+#page-lavarion .dstat .s,.lav3 .dstat .s{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.35;}
+#page-lavarion .dsec,.lav3 .dsec{display:flex;align-items:center;gap:10px;margin:18px 0 8px;}
+#page-lavarion .dsec .lab,.lav3 .dsec .lab{font-size:12px;font-weight:700;color:var(--text);}
+#page-lavarion .dsec .btn,.lav3 .dsec .btn{margin-left:auto;}
+#page-lavarion .dtab,.lav3 .dtab{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12.5px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+#page-lavarion .dtab th,.lav3 .dtab th{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text2);padding:9px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;}
+#page-lavarion .dtab th.l,.lav3 .dtab th.l{text-align:left;}
+#page-lavarion .dtab td,.lav3 .dtab td{padding:10px;text-align:right;border-bottom:1px solid var(--border);
+  color:var(--text);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .dtab td.l,.lav3 .dtab td.l{text-align:left;white-space:normal;}
+#page-lavarion .dtab tr:last-child td,.lav3 .dtab tr:last-child td{border-bottom:none;}
+#page-lavarion .dtab tr.lim td,.lav3 .dtab tr.lim td{background:var(--amb-bg);}
+#page-lavarion .dtab tr.spent td,.lav3 .dtab tr.spent td{opacity:.45;}
+#page-lavarion .dtab tr:hover td,.lav3 .dtab tr:hover td{background:var(--bg4);}
+/* nothing inside a modal may push it sideways */
+#page-lavarion .mod,.lav3 .mod{overflow:hidden;}
+#page-lavarion .mb,.lav3 .mb{overflow-x:hidden;}
+#page-lavarion .mb table,.lav3 .mb table{table-layout:fixed;width:100%;}
 #page-lavarion .colgrid,.lav3 .colgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;}
 #page-lavarion .colgrid label,.lav3 .colgrid label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2);cursor:pointer;}
 #page-lavarion.dense tbody td,.lav3.dense tbody td{padding:6px 8px;}
@@ -981,6 +1007,26 @@ html.light-mode{
     border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;}
   #authGate button:disabled{opacity:.6;cursor:default;}
   #authGate .ag-err{min-height:16px;margin-top:12px;font-size:11px;color:#ff5555;text-align:center;}
+
+/* ══════════ BOOT LOADER — covers the blank gap between sign-in and data ══════════ */
+#bootLoad{position:fixed;inset:0;z-index:9000;background:var(--bg);display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:22px;
+  font-family:var(--sans);transition:opacity .35s ease;}
+#bootLoad.on{display:flex;}
+#bootLoad.out{opacity:0;pointer-events:none;}
+#bootLoad .bl-mark{display:flex;align-items:center;gap:13px;}
+#bootLoad .bl-logo{width:42px;height:42px;border-radius:11px;background:var(--accent);color:#1a1a18;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;letter-spacing:-.02em;}
+#bootLoad .bl-name{font-size:19px;font-weight:700;color:var(--text);letter-spacing:-.01em;}
+#bootLoad .bl-name span{display:block;font-size:11.5px;font-weight:500;color:var(--text3);margin-top:3px;letter-spacing:.02em;}
+#bootLoad .bl-track{width:230px;height:3px;border-radius:2px;background:var(--bg4);overflow:hidden;}
+#bootLoad .bl-fill{height:100%;width:0;background:var(--accent);border-radius:2px;transition:width .45s ease;}
+#bootLoad .bl-step{font-size:12.5px;color:var(--text2);min-height:18px;}
+#bootLoad .bl-hint{position:absolute;bottom:26px;font-size:11px;color:var(--text3);}
+@media(prefers-reduced-motion:no-preference){
+  #bootLoad .bl-logo{animation:blPulse 1.6s ease-in-out infinite;}
+  @keyframes blPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+}
   #appShell{flex:1;display:flex;min-width:0;height:100vh;visibility:hidden;} /* restore body's flex row: sidebar + main side by side */
   body.authed #authGate{display:none;}
   body.authed #appShell{visibility:visible;}
@@ -1001,6 +1047,15 @@ html.light-mode{
 </div>
 
 <!-- Everything below is wrapped so it can be hidden until login succeeds. -->
+<div id="bootLoad">
+  <div class="bl-mark">
+    <div class="bl-logo">B</div>
+    <div class="bl-name">BDL Prep Hub<span id="blSub">Signing you in…</span></div>
+  </div>
+  <div class="bl-track"><div class="bl-fill" id="blFill"></div></div>
+  <div class="bl-step" id="blStep">Connecting</div>
+  <div class="bl-hint">Loading your shipments, rows and Lavarion stock</div>
+</div>
 <div id="appShell">
 
 <!-- SIDEBAR -->
@@ -1285,6 +1340,7 @@ html.light-mode{
       <div class="lav3bar">
         <div class="tabs" id="lav3Tabs"></div>
         <div class="lav3acts">
+          <button class="btn sm" onclick="LV3.openLogOrder()" title="Record something you've ordered">+ Order</button>
           <div class="gs">
             <input id="gsIn" placeholder="Search Lavarion…" autocomplete="off"
               oninput="LV3.gsRun(this.value)" onfocus="LV3.gsRun(this.value)"
@@ -10448,18 +10504,46 @@ setInterval(()=>{
 // The data layer (dbLoad → realtime → sheet sync) only starts AFTER a confirmed
 // Supabase session. Until then the login wall (#authGate) is shown.
 
+
+/* ── boot loader: something to look at while the data comes down ── */
+const BootLoad={
+  _t:null,
+  show(){const e=document.getElementById('bootLoad');if(!e)return;
+    e.classList.remove('out');e.classList.add('on');this.set(8,'Connecting');},
+  set(pct,txt){
+    const f=document.getElementById('blFill'),s=document.getElementById('blStep');
+    if(f)f.style.width=Math.min(100,pct)+'%';
+    if(s&&txt)s.textContent=txt;
+  },
+  done(){
+    const e=document.getElementById('bootLoad');if(!e)return;
+    this.set(100,'Ready');
+    clearTimeout(this._t);
+    setTimeout(()=>{e.classList.add('out');setTimeout(()=>e.classList.remove('on','out'),400);},260);
+  },
+  fail(msg){this.set(100,msg||'Couldn\'t load — check your connection');
+    setTimeout(()=>this.done(),1800);}
+};
+
 let _appBooted=false;
 function bootApp(){
   if(_appBooted)return;            // guard against double-boot on token refresh
   _appBooted=true;
   document.body.classList.add('authed');
   setSyncStatus('syncing');
+  BootLoad.show();
+  const sub=document.getElementById('blSub');if(sub)sub.textContent='Getting your data';
+  BootLoad.set(28,'Loading shipments and prep rows');
+  /* never leave someone staring at a loader — bail out after 12s regardless */
+  BootLoad._t=setTimeout(()=>BootLoad.fail('Still loading — carrying on'),12000);
   dbLoad().then(()=>{
+    BootLoad.set(72,'Setting up live updates');
     setupRealtime();
-    // Default to Prep Sheet
+    BootLoad.set(88,'Opening your prep sheet');
     const prepBtn=document.querySelector('.sb-item.on');
     if(prepBtn)goPage('prep',prepBtn);
-  });
+    BootLoad.done();
+  }).catch(e=>{console.warn('boot',e);BootLoad.fail();});
 }
 
 // Map the signed-in email to one of the three known operators so the user-chip
@@ -10970,7 +11054,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='lav3 · 2026-08-02 · b15';
+const BUILD='lav3 · 2026-08-02 · b17';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -11078,6 +11162,7 @@ function hydrate(){
     id:String(c.id),uuid:c.uuid,name:c.name||'',
     kind:c.kind||(c.type==='packing'?'packaging':'component'),
     tag:c.tag||c.type||'complementary',caseQty:c.caseQty||null,
+    untracked:isUntracked(c.id),
     layers:LAYERS.filter(l=>l.kind==='component'&&l.tid===String(c.id)),_src:c}));
   D.components.forEach(c=>{const x=c._src;if(x&&x._sig===undefined)
     x._sig=[c.name,c.kind,c.tag,c.caseQty].join('|');});
@@ -11698,51 +11783,127 @@ function togRow(id){openRows[id]=!openRows[id];vProducts();}
 /* ═══════════════ PRODUCT DETAIL ═══════════════ */
 function openProduct(id){
   const p=prod(id),a=avail(p),cg=cogOf(p,1);
-  const hist=D.log.filter(l=>l.k==='ship'&&l.txt.includes(p.name));
-  let stockPane='';
-  if(p.type==='bundle'){
-    stockPane=`<table class="ltab"><thead><tr><th>Component</th><th>Per unit</th><th>On hand</th><th>On order</th><th>Avg cost</th><th>Units</th></tr></thead><tbody>
-    ${p.recipe.map(r=>{const c=comp(r.c);const can=Math.floor(onHand(c)/r.q);
-      return `<tr class="${a.limiter===c.id?'used':''}"><td>${esc(c.name)} ${c.kind==='packaging'?'<span class="chip packaging">Pack</span>':''}</td>
-      <td>×${r.q}</td><td>${fmt(onHand(c))}</td><td>${onOrder(c)?fmt(onOrder(c)):'—'}</td><td>${gbp(avgCost(c))}</td>
-      <td style="color:${can?'var(--text)':'var(--red)'}">${fmt(can)}</td></tr>`;}).join('')}
-    </tbody></table>`;
+  const isB=p.type==='bundle';
+  const lim=a.limiter?comp(a.limiter):null;
+  const cw=coverWeeks(p);
+
+  /* what a full delivery would unlock */
+  const potential=isB
+    ? (p.recipe.length?Math.min(...p.recipe.map(r=>{const c=comp(r.c);return c?(c.untracked?1e9:Math.floor((onHand(c)+onOrder(c))/r.q)):0;})):0)
+    : onHand(p)+onOrder(p);
+  const unlock=Math.max(0,potential-(a.n||0));
+
+  /* everything on its way in */
+  const inbound=[];
+  if(isB)p.recipe.forEach(r=>{const c=comp(r.c);if(!c||c.untracked)return;
+    (c.layers||[]).filter(l=>!l.arr).forEach(l=>inbound.push({name:c.name,l,per:r.q}));});
+  else (p.layers||[]).filter(l=>!l.arr).forEach(l=>inbound.push({name:p.name,l,per:1}));
+  inbound.sort((x,y)=>(x.l.date||'').localeCompare(y.l.date||''));
+
+  const stockVal=isB
+    ? p.recipe.reduce((t,r)=>{const c=comp(r.c);return t+(c&&!c.untracked?arrLayers(c).reduce((v,l)=>v+l.rem*l.cost,0)*0:0);},0)
+    : arrLayers(p).reduce((v,l)=>v+l.rem*l.cost,0);
+
+  const hist=D.log.filter(l=>l.k==='ship'&&l.txt.includes(p.name)).slice(0,8);
+
+  const stat=(k,v,col,sub)=>`<div class="dstat">
+    <div class="k">${k}</div><div class="v" ${col?`style="color:${col}"`:''}>${v}</div>
+    ${sub?`<div class="s">${sub}</div>`:''}</div>`;
+
+  /* ── what it's made of, or what stock it holds ── */
+  let made='';
+  if(isB){
+    made=p.recipe.length?`<table class="dtab"><thead><tr>
+        <th class="l">Component</th><th>Per unit</th><th>On hand</th><th>On order</th>
+        <th>Makes</th><th>Cover</th><th>Avg cost</th></tr></thead><tbody>
+      ${p.recipe.map(r=>{const c=comp(r.c);if(!c)return'';
+        const h=onHand(c),can=c.untracked?'∞':fmt(Math.floor(h/r.q));
+        const ccv=compCover(c);const isLim=a.limiter===c.id;
+        return `<tr class="${isLim?'lim':''}" onclick="LV3.cm('lav3Ov1');LV3.openComp('${c.id}')" style="cursor:pointer">
+          <td class="l"><b>${esc(c.name)}</b>
+            <span class="chip ${c.kind}">${c.kind==='packaging'?'Pack':'Comp'}</span>
+            ${c.untracked?'<span class="chip">not tracked</span>':''}
+            ${isLim?'<span class="chip bad">limits build</span>':''}</td>
+          <td>×${fmt(r.q)}</td>
+          <td><b style="color:${h?'var(--grn)':'var(--red)'}">${c.untracked?'—':fmt(h)}</b></td>
+          <td>${onOrder(c)?`<b style="color:var(--blu)">${fmt(onOrder(c))}</b>`:'—'}</td>
+          <td>${can}</td>
+          <td>${ccv===null?'—':ccv.toFixed(1)+'w'}</td>
+          <td>${c.untracked?'—':(avgCost(c)>0?gbp(avgCost(c)):'<span class="dim">n/a</span>')}</td></tr>`;}).join('')}
+      </tbody></table>`
+      :`<div class="empty">No components yet.<div style="margin-top:9px">
+        <button class="btn pri" onclick="LV3.cm('lav3Ov1');LV3.editProduct('${p.id}')">Add its components</button></div></div>`;
   }else{
-    stockPane=`<table class="ltab"><thead><tr><th>Batch</th><th>Bought</th><th>Qty</th><th>Left</th><th>Cost</th><th>Status</th></tr></thead><tbody>
-    ${(p.layers||[]).map(l=>`<tr class="${l.rem===0&&l.arr?'spent':''}"><td>${esc(l.sup)}</td><td>${dshort(l.date)}</td><td>${fmt(l.qty)}</td>
-      <td>${l.arr?fmt(l.rem):'—'}</td><td>${gbp(l.cost)}</td>
-      <td>${l.arr?(l.rem?'<span class="chip ok">in stock</span>':'<span class="chip vat">used up</span>'):'<span class="chip info">on order</span>'}</td></tr>`).join('')}
-    </tbody></table>`;
+    const ls=(p.layers||[]).slice().sort((x,y)=>x.date.localeCompare(y.date));
+    made=ls.length?`<table class="dtab"><thead><tr>
+        <th class="l">Batch</th><th>Bought</th><th>Qty</th><th>Left</th><th>Unit</th><th>Value</th><th>Status</th></tr></thead><tbody>
+      ${ls.map(l=>{const nextOut=l.arr&&l.rem>0&&arrLayers(p).filter(x=>x.rem>0)[0]===l;
+        return `<tr class="${l.arr&&!l.rem?'spent':''} ${nextOut?'lim':''}">
+        <td class="l">${esc(l.sup||'—')}${l.oid&&l.oid!=='—'?`<div class="pmeta">${esc(l.oid)}</div>`:''}</td>
+        <td>${dshort(l.date)}</td><td>${fmt(l.qty)}</td><td>${l.arr?fmt(l.rem):'—'}</td>
+        <td>${l.cost>0?gbp(l.cost):'<span class="dim">n/a</span>'}</td>
+        <td>${l.arr?gbp(l.rem*l.cost):'—'}</td>
+        <td>${!l.arr?'<span class="chip info">On order</span>':nextOut?'<span class="chip warn">Next out</span>'
+          :l.rem?'<span class="chip ok">In stock</span>':'<span class="chip">Used up</span>'}</td></tr>`;}).join('')}
+      </tbody></table>`:'<div class="empty">No stock batches yet.</div>';
   }
+
   $('lav3Mod1').className='mod wide';
   $('lav3Mod1').innerHTML=`
-  <div class="mh"><h3>${esc(p.name)}</h3><span class="chip ${p.type}">${typeLabel(p.type)}</span>
+  <div class="mh"><h3>${esc(p.name)}</h3>
+    <span class="chip ${p.type}">${typeLabel(p.type)}</span>
     <span class="chip vat">${p.vat}% VAT</span>
-    <span class="pmeta" style="margin:0">${p.asin}${p.sku?' · '+esc(p.sku):''}</span><button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
+    <span class="pmeta" style="margin:0">${p.asin}${p.sku?' · '+esc(p.sku):''}</span>
+    <button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
+
   <div class="mb">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:13px">
-      <div class="stat"><div class="k">${p.type==='bundle'?'Buildable now':'In stock'}</div><div class="v" style="color:${a.n?'var(--grn)':'var(--red)'}">${fmt(a.n)}</div></div>
-      <div class="stat"><div class="k">Unlocked by arrivals</div><div class="v" style="color:var(--blu)">+${fmt(Math.max(0,(p.type==='bundle'
-        ?(p.recipe.length?Math.min(...p.recipe.map(r=>{const c=comp(r.c);return c?Math.floor((onHand(c)+onOrder(c))/r.q):0;})):0)
-        :onHand(p)+onOrder(p))-(a.n||0)))}</div></div>
-      <div class="stat"><div class="k">Shipped 30d</div><div class="v">${fmt(p.ship30)}</div></div>
-      <div class="stat"><div class="k">COG / unit</div><div class="v" style="color:var(--accent)">${gbp(cg.per)}</div></div>
+    <div class="dstats">
+      ${stat(isB?'Buildable now':'In stock',fmt(a.n),a.n?'var(--grn)':'var(--red)',
+        lim&&!a.n?`out of ${esc(lim.name)}`:lim?`${esc(lim.name)} limits it`:'')}
+      ${stat('Unlocked by arrivals','+'+fmt(unlock),unlock?'var(--blu)':null,
+        inbound.length?`${inbound.length} delivery${inbound.length===1?'':'s'} due`:'nothing on order')}
+      ${stat('Shipped 30d',fmt(p.ship30),null,p.lastSent?'last sent '+ago(p.lastSent):'never sent')}
+      ${stat('Cover',cw===null?'—':cw.toFixed(1)+'w',cw===null?null:(cw<(D.settings.lowWeeks||2)?'var(--amb)':'var(--grn)'),
+        p.ship30?`at ${fmt(Math.round(p.ship30/4.35))}/week`:'no demand')}
+      ${stat('COG / unit',cg.per>0?gbp(cg.per):'—','var(--accent)',cg.batches>1?`${cg.batches} price batches`:'')}
+      ${stat(isB?'Sendable value':'Stock value',gbp(cg.per*(a.n||0)||stockVal),null,'at what you paid')}
     </div>
-    <div class="lab" style="margin-bottom:6px">${p.type==='bundle'?'Made from':'Stock batches — oldest used first'}</div>
-    ${stockPane}
-    <div class="lab" style="margin:16px 0 6px">Cost of one unit — oldest stock first</div>
+
+    <div class="dsec"><span class="lab">${isB?'Made from':'Stock batches — oldest used first'}</span>
+      ${isB?`<button class="btn sm" onclick="LV3.cm('lav3Ov1');LV3.editProduct('${p.id}')">Edit recipe</button>`:''}</div>
+    ${made}
+
+    ${inbound.length?`<div class="dsec"><span class="lab">On the way in</span>
+        <button class="btn sm" onclick="LV3.cm('lav3Ov1');LV3.openDeliveries()">Deliveries</button></div>
+      <table class="dtab"><thead><tr><th class="l">Item</th><th class="l">Supplier</th><th>Ordered</th><th>Qty</th><th>Unit</th><th>Waiting</th></tr></thead><tbody>
+      ${inbound.map(x=>{const d=Math.floor((TODAY-new Date(x.l.date))/864e5);
+        return `<tr><td class="l">${esc(x.name)}</td><td class="l">${esc(x.l.sup||'—')}</td>
+        <td>${dshort(x.l.date)}</td><td><b style="color:var(--blu)">${fmt(x.l.qty)}</b></td>
+        <td>${x.l.cost>0?gbp(x.l.cost):'<span class="dim">n/a</span>'}</td>
+        <td>${d>=21?`<b style="color:var(--red)">${d}d</b>`:d+'d'}</td></tr>`;}).join('')}
+      </tbody></table>`:''}
+
+    <div class="dsec"><span class="lab">Cost of one unit — oldest stock first</span></div>
     <div class="cogbox">
-      ${cg.lines.map(l=>`<div class="cogrow" ${l.pack?'style="opacity:.6"':''}><span>${esc(l.name)}${l.q>1?` ×${l.q}`:''}${l.pack?' <span class="chip packaging" style="opacity:.85">not in COG</span>':''}</span><b>${l.pack?'—':gbp(l.value)}</b></div>`).join('')}
+      ${cg.lines.map(l=>`<div class="cogrow" ${l.pack?'style="opacity:.6"':''}>
+        <span>${esc(l.name)}${l.q>1?` ×${fmt(l.q)}`:''}${l.pack?' <span class="chip packaging">not in COG</span>':''}</span>
+        <b>${l.pack?'—':(l.parts.length?l.parts.map(pt=>`${fmt(pt.take)}@${pt.cost>0?gbp(pt.cost):'—'}`).join(' + '):'<span style="color:var(--red)">no stock</span>')}</b></div>`).join('')}
       <div class="cogtot"><span>Total COG</span><span class="mono" style="color:var(--accent)">${gbp(cg.per)}</span></div></div>
-    ${cg.lines.some(l=>l.pack)?'<div class="pmeta" style="margin-top:5px">Packaging is deducted from stock but left out of COG.</div>':''}
-    <div class="lab" style="margin:16px 0 6px">Shipment history</div>
-    ${hist.length?hist.map(h=>`<div class="att" style="padding:7px 0"><span class="dot" style="background:var(--purple)"></span>
-      <span class="tx">${esc(h.txt)}<span class="s">${ago(h.t.slice(0,10))} · ${esc(h.who)}</span></span></div>`).join('')
-      :'<div class="pmeta">No Lavarion shipments recorded for this product yet.</div>'}
+    ${cg.lines.some(l=>l.pack)?'<div class="pmeta" style="margin-top:6px">Packaging is deducted from stock but left out of COG.</div>':''}
+
+    <div class="dsec"><span class="lab">Shipment history</span></div>
+    ${hist.length?hist.map(h=>`<div class="att" style="padding:9px 0">
+        <span class="dot" style="background:var(--vio)"></span>
+        <span class="tx">${esc(h.txt)}<span class="s">${ago(h.t.slice(0,10))} · ${esc(h.who)}</span></span></div>`).join('')
+      :`<div class="pmeta">Nothing sent yet${p.ship30?` — the ${fmt(p.ship30)} in "shipped 30d" came from the Shipments page before this log started.`:'.'}</div>`}
   </div>
-  <div class="mf"><button class="btn dgr" onclick="LV3.delProduct('${p.id}')">Delete</button>
-    <div class="sp"><button class="btn" onclick="LV3.editProduct('${p.id}')">Edit</button>
-    <button class="btn pri" onclick="LV3.cm('lav3Ov1');LV3.openShip('${p.id}')">Ship units</button></div></div>`;
+
+  <div class="mf">
+    <button class="btn dgr" onclick="LV3.delProduct('${p.id}')">Delete</button>
+    <button class="btn" onclick="LV3.setArchived('product','${p.id}',true)">Archive</button>
+    <div class="sp">
+      <button class="btn" onclick="LV3.cm('lav3Ov1');LV3.editProduct('${p.id}')">Edit</button>
+      <button class="btn pri" onclick="LV3.cm('lav3Ov1');LV3.openShip('${p.id}')">Ship units</button></div></div>`;
   om('lav3Ov1');
 }
 
@@ -12193,9 +12354,13 @@ function pickKind(k){
 }
 function saveComp(id){
   const name=$('c-name').value.trim();if(!name){toast('Name required','er');return;}
-  const obj={name,kind:window._ck||'component',tag:$('c-tag').value,caseQty:parseInt($('c-case').value)||null,
-    untracked:!!($('c-untracked')||{}).checked};
-  if(id){Object.assign(comp(id),obj);}else{D.components.push({id:'c'+Date.now(),layers:[],...obj});}
+  const untracked=!!($('c-untracked')||{}).checked;
+  const obj={name,kind:window._ck||'component',tag:$('c-tag').value,caseQty:parseInt($('c-case').value)||null,untracked};
+  const cid=id||('c'+Date.now());
+  D.settings.untracked=D.settings.untracked||{};
+  if(untracked)D.settings.untracked[String(cid)]=true;else delete D.settings.untracked[String(cid)];
+  savePrefs();
+  if(id){Object.assign(comp(id),obj);}else{D.components.push({id:cid,layers:[],...obj});}
   logIt('edit',(id?'Updated component ':'Added component ')+name);
   cm('lav3Ov2');cm('lav3Ov1');render();toast(id?'Component updated':'Component added','ok');
 }
@@ -12477,6 +12642,64 @@ function fillRest(){
 function clearAlloc(){snap();setAlloc(LINKP,[]);cm('lav3Ov2');render();toastUndo('Unlinked');}
 
 
+
+/* ── LOG AN ORDER ────────────────────────────────────────────────────────
+   Until the purchase sheet feeds this automatically, there has to be a way
+   to say "I've ordered 600 gloves". That creates an on-order batch, which is
+   what Deliveries receives against. */
+function openLogOrder(prefill){
+  const opts=D.components.filter(c=>!c.archived).map(c=>({id:c.id,name:c.name,k:'component'}))
+    .concat(D.products.filter(p=>!p.archived&&p.type!=='bundle').map(p=>({id:p.id,name:p.name,k:'product'})));
+  $('lav3Mod2').className='mod';
+  $('lav3Mod2').innerHTML=`
+    <div class="mh"><h3>Log an order</h3><span class="pmeta" style="margin:0">something you've bought that hasn't arrived</span>
+      <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+    <div class="mb">
+      <div class="frow"><span class="lab">What did you order?</span>
+        <input class="in" id="lo-find" placeholder="Type to filter…" oninput="LV3.loFilter(this.value)" style="margin-bottom:6px">
+        <select class="in" id="lo-to">
+          <optgroup label="Components">${opts.filter(o=>o.k==='component').map(o=>`<option value="${o.id}" ${prefill===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</optgroup>
+          <optgroup label="Finished product stock">${opts.filter(o=>o.k==='product').map(o=>`<option value="${o.id}" ${prefill===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</optgroup>
+        </select></div>
+      <div class="g2 frow">
+        <div><span class="lab">Quantity</span><input class="in mono" id="lo-qty" type="number" min="1" placeholder="600"></div>
+        <div><span class="lab">Unit cost <span style="text-transform:none;font-weight:600">(inc VAT, optional)</span></span>
+          <input class="in mono" id="lo-cost" type="number" step="0.01" min="0" placeholder="0.42"></div></div>
+      <div class="g2 frow">
+        <div><span class="lab">Supplier</span><input class="in" id="lo-sup" placeholder="Alibaba, Superdrug…"></div>
+        <div><span class="lab">Order ref <span style="text-transform:none;font-weight:600">(optional)</span></span>
+          <input class="in mono" id="lo-ref" placeholder="PO-104"></div></div>
+      <div class="g2 frow">
+        <div><span class="lab">Date ordered</span><input class="in" id="lo-date" type="date" value="${dayISO()}"></div>
+        <div><span class="lab">Where will it land</span>
+          <select class="in" id="lo-loc">${(D.settings.locations||'Warehouse').split(',').map(l=>`<option>${esc(l.trim())}</option>`).join('')}</select></div></div>
+      <div class="note info">It shows as <b>on order</b> until you receive it in Deliveries. Leave the cost blank if you don't know it yet — it can be set later.</div>
+    </div>
+    <div class="mf"><div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
+      <button class="btn pri" onclick="LV3.saveOrder()">Log order</button></div></div>`;
+  om('lav3Ov2');setTimeout(()=>{const q=$('lo-qty');if(q)q.focus();},60);
+}
+function loFilter(q){
+  q=(q||'').toLowerCase();
+  const sel=$('lo-to');if(!sel)return;
+  [...sel.querySelectorAll('option')].forEach(o=>{o.style.display=!q||o.textContent.toLowerCase().includes(q)?'':'none';});
+  const first=[...sel.querySelectorAll('option')].find(o=>o.style.display!=='none');
+  if(first&&q)sel.value=first.value;
+}
+function saveOrder(){
+  const id=$('lo-to').value,qty=parseInt($('lo-qty').value)||0;
+  if(!id||qty<1){toast('Pick something and enter a quantity','er');return;}
+  const o=comp(id)||prod(id);if(!o){toast('Not found','er');return;}
+  snap();
+  (o.layers=o.layers||[]).push({id:'O'+Date.now(),date:$('lo-date').value||dayISO(),qty,rem:0,
+    cost:parseFloat($('lo-cost').value)||0,sup:($('lo-sup').value||'').trim()||'—',
+    oid:($('lo-ref').value||'').trim()||'—',loc:$('lo-loc').value||'Warehouse',arr:0,src:'manual',
+    note:parseFloat($('lo-cost').value)>0?'':'price missing'});
+  logIt('order',`Ordered ${fmt(qty)} × ${o.name}${$('lo-sup').value?' from '+$('lo-sup').value:''}`);
+  save();cm('lav3Ov2');render();
+  toastUndo(`${fmt(qty)} × ${o.name} logged as on order`,'ok');
+}
+
 /* ═══════════════ DELIVERIES ═══════════════
    Everything ordered and not yet arrived, in one place. Works off stock
    batches, so it covers migrated orders, purchase-sheet rows and anything
@@ -12515,11 +12738,14 @@ function openDeliveries(){
         <div id="dlv-n-${i}" style="font-size:11.5px;text-align:right;color:var(--text2)"></div>
       </div>`;}).join('')}
     </div>`
-    :`<div class="empty">Nothing on order.<div class="pmeta" style="margin-top:8px">Batches appear here as soon as something is ordered and not yet marked arrived.</div></div>`;
+    :`<div class="empty">Nothing on order.
+        <div class="pmeta" style="margin-top:8px;margin-bottom:12px">Log what you've bought and it'll sit here until it turns up.</div>
+        <button class="btn pri" onclick="LV3.openLogOrder()">+ Log an order</button></div>`;
   $('lav3Mod1').className='mod wide';
   $('lav3Mod1').innerHTML=`
     <div class="mh"><h3>Deliveries</h3>
       <span class="pmeta" style="margin:0">${fmt(open.length)} open order${open.length===1?'':'s'}</span>
+      <button class="btn sm pri" style="margin-left:auto" onclick="LV3.openLogOrder()">+ Log an order</button>
       <button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
     <div class="mb">${body}</div>
     <div class="mf"><span id="dlvSum" class="pmeta" style="margin:0"></span>
@@ -13106,6 +13332,7 @@ async function boot(){
   hydrate();
   paint();
 }
+const isUntracked=id=>!!(D.settings&&D.settings.untracked&&D.settings.untracked[String(id)]);
 const COL=k=>{const c=(D.settings&&D.settings.cols)||{};return c[k]!==false;};
 function paint(){
   if(!document.getElementById('lav3View'))return;
@@ -13132,7 +13359,7 @@ const API={go,render:paint,boot,
   openLink,saveAlloc,clearAlloc,quickLink,addAllocRow,allocSum,useSuggestion,fillRest,
   openBulkComp,bcPreview,bcSave,openBulkProd,bpPreview,bpSave,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,copySql,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openDeliveries,dlvSum,dlvReceive,ack,ackClear,compOptions,setCol,setPref,
+  openData,exportCsv,copySql,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,saveOrder,openDeliveries,dlvSum,dlvReceive,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
