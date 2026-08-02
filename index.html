@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v1.10.0</title>
+<title>BDL PrepHub v1.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -227,6 +227,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .sb-head{width:100%;height:52px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #1e1e1c;flex-shrink:0;}
 .sb.open .sb-head{justify-content:space-between;padding:0 12px;}
 .sb-logo{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;display:none;letter-spacing:-.2px;}
+.sb-logo .ver{font-size:9px;font-weight:700;color:var(--accent);background:rgba(96,165,250,.14);border:1px solid rgba(96,165,250,.3);border-radius:4px;padding:1px 5px;margin-left:6px;letter-spacing:.2px;vertical-align:2px;}
 .sb-logo em{color:#3a3a38;font-style:normal;font-size:10px;margin-left:5px;font-weight:400;}
 .sb.open .sb-logo{display:block;}
 .sb-tog{width:28px;height:28px;border-radius:5px;background:#1e1e1c;border:none;color:#555;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1113,6 +1114,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v1.1</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1146,7 +1148,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v1.1</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -11219,7 +11221,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='lav3 · 2026-08-02 · b24';
+const BUILD='v1.1 · lav3 · 2026-08-02 · b24';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
