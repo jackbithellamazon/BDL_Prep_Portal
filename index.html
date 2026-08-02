@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v1.1</title>
+<title>BDL PrepHub v1.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -737,6 +737,70 @@ html.light-mode{
   font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1,'zero' 0;}
 #page-lavarion .kpi .s,.lav3 .kpi .s{font-size:11.5px;color:var(--text3);margin-top:5px;line-height:1.4;}
 #page-lavarion .panel,.lav3 .panel{background:var(--bg2);border:1px solid var(--border);border-radius:11px;margin-bottom:14px;}
+
+
+
+#page-lavarion .rcPick,.lav3 .rcPick{display:flex;gap:6px;align-items:center;min-width:0;}
+#page-lavarion .rcPick .rc-find,.lav3 .rcPick .rc-find{flex:1;min-width:0;}
+#page-lavarion .rrow.unmatched .rc-find,.lav3 .rrow.unmatched .rc-find{border-color:var(--amb);}
+#page-lavarion .rc-make,.lav3 .rc-make{flex:0 0 auto;border-color:var(--amb);color:var(--amb);}
+/* mixed-COG block */
+#page-lavarion .mixWrap,.lav3 .mixWrap{margin-bottom:13px;}
+#page-lavarion .mixHead,.lav3 .mixHead{display:flex;gap:12px;align-items:flex-start;background:rgba(248,113,113,.1);
+  border:1px solid rgba(248,113,113,.4);border-left:4px solid var(--red);border-radius:10px;padding:13px 15px;margin-bottom:11px;}
+#page-lavarion .mixIcon,.lav3 .mixIcon{flex:0 0 26px;height:26px;border-radius:50%;background:var(--red);color:#1a0808;
+  display:flex;align-items:center;justify-content:center;font:800 15px var(--num);}
+#page-lavarion .mixT,.lav3 .mixT{font:800 14.5px var(--num);color:var(--red);margin-bottom:3px;}
+#page-lavarion .mixS,.lav3 .mixS{font-size:12.5px;color:var(--text);line-height:1.55;}
+#page-lavarion .mixFix,.lav3 .mixFix{border:1px solid var(--border);border-radius:10px;background:var(--bg2);padding:13px 15px;margin-bottom:11px;}
+#page-lavarion .mixFixT,.lav3 .mixFixT{font:800 11px var(--num);letter-spacing:.7px;text-transform:uppercase;color:var(--text2);margin-bottom:11px;}
+#page-lavarion .mixFixR,.lav3 .mixFixR{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+#page-lavarion .mixOpt,.lav3 .mixOpt{flex:1 1 220px;min-width:0;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px 13px;}
+#page-lavarion .mixOpt .k,.lav3 .mixOpt .k{font:700 10px var(--num);letter-spacing:.6px;text-transform:uppercase;color:var(--text2);margin-bottom:5px;}
+#page-lavarion .mixOpt .v,.lav3 .mixOpt .v{font:800 26px var(--num);color:var(--grn);line-height:1;}
+#page-lavarion .mixOpt .v span,.lav3 .mixOpt .v span{font-size:12px;font-weight:600;color:var(--text2);margin-left:5px;}
+#page-lavarion .mixOpt .s,.lav3 .mixOpt .s{font-size:11.5px;color:var(--text);margin-top:7px;}
+#page-lavarion .mixOpt .btn,.lav3 .mixOpt .btn{margin-top:10px;width:100%;}
+#page-lavarion .mixOpt+.mixArrow+.mixOpt .v,.lav3 .mixOpt+.mixArrow+.mixOpt .v{color:var(--amb);}
+#page-lavarion .mixArrow,.lav3 .mixArrow{flex:0 0 auto;font:700 11px var(--num);color:var(--text2);text-transform:uppercase;letter-spacing:.6px;}
+#page-lavarion .mixWhy,.lav3 .mixWhy{border:1px solid var(--border);border-radius:10px;background:var(--bg2);padding:12px 0 12px;margin-bottom:11px;}
+#page-lavarion .mixWhy .lab,.lav3 .mixWhy .lab{padding:0 12px;}
+#page-lavarion .mixOv,.lav3 .mixOv{display:flex;gap:14px;align-items:center;justify-content:space-between;
+  border:1px dashed var(--border);border-radius:9px;padding:11px 14px;font-size:12.5px;color:var(--text);}
+#page-lavarion .mixOv.on,.lav3 .mixOv.on{border:1px solid var(--amb);border-style:solid;background:rgba(251,191,36,.09);}
+#page-lavarion .mixOv .btn,.lav3 .mixOv .btn{flex:0 0 auto;}
+@media(max-width:720px){#page-lavarion .mixArrow,.lav3 .mixArrow{display:none;}}
+#page-lavarion .mixHead.ovr,.lav3 .mixHead.ovr{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.42);border-left-color:var(--amb);}
+#page-lavarion .mixHead.ovr .mixIcon,.lav3 .mixHead.ovr .mixIcon{background:var(--amb);color:#1a1405;}
+#page-lavarion .mixHead.ovr .mixT,.lav3 .mixHead.ovr .mixT{color:var(--amb);}
+/* bulk-setup modals */
+#page-lavarion .bkTabs,.lav3 .bkTabs{display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:4px;margin-bottom:14px;}
+#page-lavarion .bkTab,.lav3 .bkTab{flex:1;padding:9px 12px;border:0;background:transparent;color:var(--text2);font:600 12.5px var(--num);border-radius:6px;cursor:pointer;}
+#page-lavarion .bkTab:hover,.lav3 .bkTab:hover{color:var(--text);background:rgba(255,255,255,.05);}
+#page-lavarion .bkTab.on,.lav3 .bkTab.on{background:var(--accent);color:#0b0d10;}
+#page-lavarion .bkGrid,.lav3 .bkGrid{width:100%;border-collapse:separate;border-spacing:0 6px;}
+#page-lavarion .bkGrid th,.lav3 .bkGrid th{font:700 10px var(--num);letter-spacing:.6px;text-transform:uppercase;color:var(--text2);text-align:right;padding:0 8px 4px;}
+#page-lavarion .bkGrid th.l,.lav3 .bkGrid th.l{text-align:left;}
+#page-lavarion .bkGrid td,.lav3 .bkGrid td{padding:0 3px;vertical-align:middle;}
+#page-lavarion .bkGrid .in,.lav3 .bkGrid .in{width:100%;margin:0;}
+#page-lavarion .bkGrid .in.num,.lav3 .bkGrid .in.num{text-align:right;}
+#page-lavarion .bkX,.lav3 .bkX{width:28px;height:30px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);border-radius:6px;cursor:pointer;font-size:11px;line-height:1;}
+#page-lavarion .bkX:hover,.lav3 .bkX:hover{border-color:var(--red);color:var(--red);background:rgba(248,113,113,.09);}
+#page-lavarion .bkAdd,.lav3 .bkAdd{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;}
+#page-lavarion .bkSum,.lav3 .bkSum{background:rgba(96,165,250,.09);border:1px solid rgba(96,165,250,.26);border-radius:8px;padding:9px 12px;font:600 12.5px var(--num);color:var(--text);margin-bottom:10px;}
+#page-lavarion .bkSum b,.lav3 .bkSum b{color:var(--accent);font-size:15px;}
+#page-lavarion .bkNil,.lav3 .bkNil{border:1px dashed var(--border);border-radius:8px;padding:16px;text-align:center;color:var(--text2);font-size:12.5px;}
+#page-lavarion .brCard,.lav3 .brCard{border:1px solid var(--border);border-radius:10px;background:var(--bg2);padding:12px;margin-bottom:10px;}
+#page-lavarion .brHead,.lav3 .brHead{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+#page-lavarion .brHead .in,.lav3 .brHead .in{flex:1;font-weight:600;}
+#page-lavarion .brParts,.lav3 .brParts{display:flex;flex-direction:column;gap:6px;padding-left:14px;border-left:2px solid var(--accent);}
+#page-lavarion .brPart,.lav3 .brPart{display:flex;gap:7px;align-items:center;}
+#page-lavarion .brPart .in,.lav3 .brPart .in{flex:1;margin:0;}
+#page-lavarion .brPart .in.num,.lav3 .brPart .in.num{flex:0 0 74px;text-align:right;}
+#page-lavarion .brX,.lav3 .brX{color:var(--text2);font-size:13px;font-weight:700;}
+#page-lavarion .brParts .btn,.lav3 .brParts .btn{align-self:flex-start;margin-top:2px;}
+#page-lavarion .brTag,.lav3 .brTag{display:inline-block;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:5px;padding:2px 7px;margin:2px 0 2px 4px;font-size:11.5px;color:var(--text);}
+#page-lavarion .brTag.miss,.lav3 .brTag.miss{border-color:var(--amb);color:var(--amb);background:rgba(251,191,36,.1);}
 #page-lavarion .panel.stick>.ph,.lav3 .panel.stick>.ph{background:var(--bg3);}
 #page-lavarion .ph,.lav3 .ph{display:flex;align-items:center;gap:11px;padding:13px 15px 11px;
   border-bottom:1px solid var(--border);background:transparent;}
@@ -1114,7 +1178,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v1.1</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v1.2</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1148,7 +1212,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v1.1</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v1.2</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -5195,7 +5259,7 @@ async function confirmLavShipMulti(){
     const cost=parseFloat(document.getElementById('lsl-cost-'+idx)?.value)||0;
     if(asin&&units>0){
       const a=lavAsins.find(x=>x.asin===asin);
-      lines.push({shipId:_lavShipId,asin,sku:a?.sku||'',prod:a?.prod||asin,units,cost,date:todayISO()});
+      lines.push({shipId:_lavShipId,asin,sku:a?.sku||'',prod:a?.prod||asin,units,cost,date:shipDateFor(_lavShipId)});
     }
   });
   if(!lines.length){toast('Add at least one ASIN with units','er');return;}
@@ -6928,12 +6992,31 @@ function remainingToShip(r){
 // The row's primary shipId/ship/allShipIds are kept in sync so older code paths
 // and the prep-sheet display continue to work, while shipSegments stays the
 // authoritative breakdown for the shipments page.
+// A shipment's date belongs to the shipment, not to the day you touched it.
+// Adding an ASIN to (or editing) an existing FBA shipment must NOT drag that
+// shipment forward to today — a 27 July shipment stays 27 July forever.
+// Returns the earliest date already recorded against this shipId, or today if
+// it is genuinely a brand-new shipment.
+function shipDateFor(shipId){
+  if(!shipId)return todayISO();
+  const found=[];
+  (rows||[]).forEach(r=>{
+    (r.shipSegments||[]).forEach(sg=>{if(sg.shipId===shipId&&sg.date)found.push(sg.date);});
+    if(r.shipId===shipId&&r.sentDate)found.push(r.sentDate);
+    if((r.allShipIds||[]).includes(shipId)&&r.sentDate)found.push(r.sentDate);
+  });
+  (lavShipments||[]).forEach(x=>{if(x.shipId===shipId&&x.date)found.push(x.date);});
+  (returnShipments||[]).forEach(x=>{if(x.shipId===shipId&&x.date)found.push(x.date);});
+  return found.length?found.sort()[0]:todayISO();
+}
+
 function addSegment(r,shipId,units,type){
   if(!shipId||!(units>0))return;
   const segs=normaliseSegments(r).slice();
-  const existing=segs.find(s=>s.shipId===shipId&&(s.date||'')===todayISO());
+  const sdate=shipDateFor(shipId);
+  const existing=segs.find(s=>s.shipId===shipId&&(s.date||'')===sdate);
   if(existing){existing.units+=units;if(type)existing.type=type;}
-  else segs.push({shipId,units,date:todayISO(),type:type||r.shipType||'Standard'});
+  else segs.push({shipId,units,date:sdate,type:type||r.shipType||'Standard'});
   r.shipSegments=segs;
   // Keep legacy mirrors in sync.
   const ids=r.allShipIds||[];
@@ -6970,7 +7053,7 @@ function openSendModal(r,isPartial,allowExtra){
       if(!(sendQty>0)){toast('Enter a quantity greater than 0','er');return;}
       // Record this shipment as its own segment — never merge into a prior one.
       addSegment(r,shipId,sendQty,type);
-      r.sentDate=todayISO();r.sentAt=getNowUK();
+      r.sentDate=shipDateFor(shipId);r.sentAt=getNowUK();
       // Fully sent only when nothing is left to ship.
       if(remainingToShip(r)>0){
         r.status='Part Sent';r.sent='No';
@@ -7324,7 +7407,7 @@ function doAllShipped(id){
   }
   const finalise=(shipId,type)=>{
     addSegment(r,shipId,remaining>0?remaining:sendableQty(r),type);
-    r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
+    r.status='Sent to Amazon';r.sent='Yes';r.sentDate=shipDateFor(shipId);r.sentAt=getNowUK();
     r._dirty=true;saveRow(r);
     logAudit('All Shipped',`${r.sku} → ${shipId} (${remaining>0?remaining:sendableQty(r)}u)`);
     renderPrep();toast('All shipped ✓ — '+r.sku.split('_')[0]);
@@ -7384,7 +7467,7 @@ function doBulkAllShipped(){
           if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
           const remain=remainingToShip(r);
           if(remain>0)addSegment(r,shipId,remain,type);
-          r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
+          r.status='Sent to Amazon';r.sent='Yes';r.sentDate=shipDateFor(shipId);r.sentAt=getNowUK();
           r._dirty=true;saveRow(r);logAudit('Bulk All Shipped',`${r.sku} → ${shipId} (${type})`);
         }
       });
@@ -7412,7 +7495,7 @@ function doBulkShipId(){
       else{ // already fully allocated — just (re)stamp the primary id/type
         const ids=r.allShipIds||[];if(!ids.includes(shipId))ids.push(shipId);r.allShipIds=ids;r.shipId=shipId;
       }
-      r.status='Sent to Amazon';r.sent='Yes';r.sentDate=todayISO();r.sentAt=getNowUK();
+      r.status='Sent to Amazon';r.sent='Yes';r.sentDate=shipDateFor(shipId);r.sentAt=getNowUK();
       r._dirty=true;saveRow(r);logAudit('Bulk Shipment ID',`${r.sku} → ${shipId} (${shipType})`);
     }
   });
@@ -9136,7 +9219,8 @@ function dbToClaim(d){
   };
 }
 function dbToLav(d){
-  return{uuid:d.id,id:d.id,asin:d.asin||'',sku:d.sku||'',prod:d.product_name||'',cost:d.cost||0,total:d.total_stock||0,dg:d.dg||'No',vat:(d.vat!=null&&d.vat!=='')?String(d.vat):'20',notes:d.notes||'',archived:!!d.archived};
+  return{uuid:d.id,id:d.id,asin:d.asin||'',sku:d.sku||'',prod:d.product_name||'',cost:d.cost||0,total:d.total_stock||0,dg:d.dg||'No',vat:(d.vat!=null&&d.vat!=='')?String(d.vat):'20',notes:d.notes||'',
+    ptype:d.product_type||'bundle',   // bundle vs private label — was written but never read back, so type edits looked like they didn't savearchived:!!d.archived};
 }
 function dbToLavShip(d){
   return{uuid:d.id,shipId:d.ship_id||'',asin:d.asin||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:d.sent_date||''};
@@ -10196,7 +10280,7 @@ async function confirmRetShip(){
     const cost=parseFloat(document.getElementById(`rsl-cost-${idx}`)?.value)||0;
     if(sku&&units>0){
       const r=returnSkus.find(x=>x.sku===sku);
-      lines.push({shipId:_retShipId,sku,prod:r?.prod||sku,asin:r?.asin||'',units,cost,date:todayISO()});
+      lines.push({shipId:_retShipId,sku,prod:r?.prod||sku,asin:r?.asin||'',units,cost,date:shipDateFor(_retShipId)});
     }
   });
   if(!lines.length){toast('Select a SKU and enter units > 0','er');return;}
@@ -11221,7 +11305,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v1.1 · lav3 · 2026-08-02 · b24';
+const BUILD='v1.2 · lav3 · 2026-08-02 · b25';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -11476,10 +11560,19 @@ function saveProductSrc(p){
   saveProductType(a);
   saveCompsRecipes();   // debounced — recipes live in lavarion_recipes
 }
+let _ptypeWarned=false;
 async function saveProductType(a){
   if(!a.uuid)return;
   const r=await sb.from('lavarion_asins').update({product_type:a.ptype||'bundle'}).eq('id',a.uuid);
-  if(r.error&&!/product_type/.test((r.error.message||'')+(r.error.details||'')))console.warn('[lav3] ptype',r.error);
+  if(!r.error)return;
+  const missing=/product_type/.test((r.error.message||'')+(r.error.details||''));
+  if(missing){
+    /* Silently swallowing this is why "I changed it to private label and it
+       didn't save" kept happening — say so instead. */
+    if(!_ptypeWarned){_ptypeWarned=true;
+      toast('Product type can\'t save — run the database update in Settings → Database','er');}
+    console.warn('[lav3] product_type column missing — run the migration');
+  }else console.warn('[lav3] ptype',r.error);
 }
 function saveComponentSrc(c){
   const s=c._src;if(!s)return;
@@ -11558,6 +11651,42 @@ function fifo(o,qty){
     out.push({layer:l,take,cost:l.cost});need-=take;
   }
   return{parts:out,short:need,got:qty-need,value:out.reduce((s,x)=>s+x.take*x.cost,0)};
+}
+
+/* ── ONE SHIPMENT, ONE COG ────────────────────────────────────────────────
+   Blending two purchase prices into one average makes every figure downstream
+   an approximation. So a shipment must draw from a single price. Layers that
+   happen to have cost the same are treated as one run — it is the price that
+   matters, not how many delivery lines it arrived on.
+   Oldest run always goes first. Packaging is ignored here: it never counts
+   toward COG, so its price can change without making the shipment "mixed". */
+function priceRuns(o){
+  const runs=[];
+  for(const l of arrLayers(o)){
+    if(l.rem<=0)continue;
+    const last=runs[runs.length-1];
+    if(last&&Math.abs(last.cost-l.cost)<0.0001){last.qty+=l.rem;last.lines++;}
+    else runs.push({cost:l.cost,qty:l.rem,date:l.date,sup:l.sup||'',oid:l.oid||'',lines:1});
+  }
+  return runs;
+}
+/* What can go out at a single price, and what would be mixed if we sent `units`. */
+function cogCheck(p,units){
+  const items=[];
+  if(p.type!=='bundle')items.push({o:p,per:1,name:p.name,isComp:false});
+  else p.recipe.forEach(r=>{const c=comp(r.c);
+    if(!c||c.untracked||c.kind==='packaging')return;   // packaging never affects COG
+    items.push({o:c,per:r.q,name:c.name,isComp:true});});
+  let cleanMax=Infinity;const mixed=[];
+  items.forEach(it=>{
+    const runs=priceRuns(it.o),first=runs[0];
+    const canClean=first?Math.floor(first.qty/it.per):0;
+    if(canClean<cleanMax)cleanMax=canClean;
+    const need=it.per*units;
+    if(first&&runs.length>1&&need>first.qty)
+      mixed.push({...it,need,runs,atFirst:first.qty,canClean});
+  });
+  return{mixed,cleanMax:items.length?(cleanMax===Infinity?0:cleanMax):units,items};
 }
 
 /* availability: bundles are limited by components, everything else by own stock */
@@ -11679,11 +11808,11 @@ function vOverview(){
         <span class="tx"><b>Add your components</b><span class="s">Every part and box that goes into a bundle — paste the lot in one go.</span></span>
         <button class="btn ${s1?'':'pri'}" onclick="LV3.openBulkComp()">Bulk add components</button></div>
       <div class="setup ${s2?'done':''}"><span class="n">${s2?'✓':'2'}</span>
-        <span class="tx"><b>Add your products</b><span class="s">All 28 Lavarion ASINs, each tagged bundle, private label or single.</span></span>
+        <span class="tx"><b>Add your products</b><span class="s">Every Lavarion ASIN, each tagged bundle or private label.</span></span>
         <button class="btn ${s2?'':(s1?'pri':'')}" onclick="LV3.openBulkProd()">Bulk add products</button></div>
       <div class="setup ${s3?'done':''}"><span class="n">${s3?'✓':'3'}</span>
-        <span class="tx"><b>Fill the recipe grid</b><span class="s">Products down the side, components across the top — type the quantities once.</span></span>
-        <button class="btn ${s3?'':(s2?'pri':'')}" onclick="LV3.openMatrix()">Open recipe grid</button></div>
+        <span class="tx"><b>Set what each bundle is made of</b><span class="s">Pick the parts for a bundle and how many go into one unit. Do several at a time.</span></span>
+        <button class="btn ${s3?'':(s2?'pri':'')}" onclick="LV3.openBulkRecipe()">Bulk recipes</button></div>
       <div class="setup"><span class="n">4</span>
         <span class="tx"><b>Link the purchase sheet</b><span class="s">Stock and cost then arrive on their own from Lavarion Q1–Q4.</span></span>
         <button class="btn" onclick="LV3.go('settings')">Settings</button></div>
@@ -11806,8 +11935,9 @@ function vProducts(){
       <div class="seg">${[['all','All'],['bundle','Bundles'],['pl','Private label'],['blocked','Out of stock']]
         .concat(archP.length?[['archived','Archived']]:[])
         .map(([k,l])=>`<button class="${pFilter===k?'on':''}" onclick="LV3.setFilter('p','${k}')">${l}<span class="cnt">${fmt(counts[k])}</span></button>`).join('')}</div>
-      <input class="srch" placeholder="Search product, ASIN, SKU…" value="${esc(Q)}" oninput="Q=this.value.toLowerCase();LV3.vProducts()">
-      <div class="r"><button class="btn" onclick="LV3.openMatrix()" title="Fill every bundle's components on one grid">Recipe grid</button>
+      <input class="srch" placeholder="Search product, ASIN, SKU…" value="${esc(Q)}" oninput="LV3.setQ(this.value)">
+      <div class="r"><button class="btn" onclick="LV3.openBulkRecipe()" title="Set several bundles' components in one go">Bulk recipes</button>
+        <button class="btn" onclick="LV3.openMatrix()" title="Fill every bundle's components on one grid">Recipe grid</button>
         <button class="btn" onclick="LV3.openBulkProd()">Bulk add</button>
         <button class="btn pri" onclick="LV3.editProduct(null)">+ Add product</button></div>
     </div>
@@ -12166,20 +12296,52 @@ function compOptions(sel,filter){
     <optgroup label="Packaging">${D.components.filter(c=>c.kind==='packaging'&&(hit(c)||c.id===sel))
       .map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join('')}</optgroup>`;
 }
-function rcSearch(inp){
-  const row=inp.closest('.rrow');const sel=row.querySelector('.rc-c');
-  const keep=sel.value;
-  sel.innerHTML=`<option value="">Select component…</option>`+compOptions(keep,inp.value)+`<option value="__new">+ Create a new component…</option>`;
-  sel.value=keep;recipePreview();
+/* One box, not two. Click it to see every component; type to narrow it down.
+   The list only grows over time, so scrolling was never going to hold up. */
+function compDatalist(){
+  let dl=document.getElementById('lav3CompList');
+  if(!dl){dl=document.createElement('datalist');dl.id='lav3CompList';document.body.appendChild(dl);}
+  const live=D.components.filter(c=>!c.archived);
+  dl.innerHTML=live.filter(c=>c.kind!=='packaging').map(c=>`<option value="${esc(c.name)}"></option>`).join('')
+    +live.filter(c=>c.kind==='packaging').map(c=>`<option value="${esc(c.name)}" label="packaging"></option>`).join('');
+  return dl.id;
+}
+function _compByExact(n){const k=(n||'').toLowerCase().replace(/\s+/g,' ').trim();if(!k)return null;
+  const live=D.components.filter(c=>!c.archived);
+  return live.find(c=>c.name.toLowerCase().replace(/\s+/g,' ').trim()===k)
+      ||live.find(c=>c.name.toLowerCase().includes(k))||null;}
+/* kept so older markup and the harness keep working */
+function rcSearch(inp){rcPick(inp);}
+function rcPick(inp){
+  const row=inp.closest('.rrow');const hid=row.querySelector('.rc-c');
+  const c=_compByExact(inp.value);
+  hid.value=c?c.id:'';
+  row.classList.toggle('unmatched',!c&&!!inp.value.trim());
+  const mk=row.querySelector('.rc-make');
+  if(mk)mk.style.display=(!c&&inp.value.trim())?'':'none';
+  recipePreview();
+}
+/* typed a name that doesn't exist yet — make it, right here */
+function rcMake(btn){
+  const row=btn.closest('.rrow');const inp=row.querySelector('.rc-find');
+  const name=(inp.value||'').trim();if(!name)return;
+  if(_compByExact(name)){rcPick(inp);return;}
+  const c={id:'c'+Date.now(),name,kind:/box|sleeve|bag|card|label|wrap|tissue/i.test(name)?'packaging':'component',
+    tag:'complementary',caseQty:null,layers:[]};
+  D.components.push(c);save();compDatalist();
+  inp.value=c.name;rcPick(inp);
+  toast(`"${c.name}" created${c.kind==='packaging'?' as packaging':''} — no stock yet`,'ok');
 }
 function addRecipeRow(cid,q){
+  compDatalist();
+  const c=cid?comp(cid):null;
   const d=document.createElement('div');d.className='rrow';
-  d.innerHTML=`<div style="display:flex;flex-direction:column;gap:5px;min-width:0">
-      <input class="in rc-find" placeholder="Type to filter components…" oninput="LV3.rcSearch(this)" style="padding:5px 8px;font-size:11.5px">
-      <select class="in rc-c" onchange="LV3.rcChange(this)">
-      <option value="">Select component…</option>${compOptions(cid,'')}
-      <option value="__new">+ Create a new component…</option></select></div>
-    <input class="in mono rc-q" type="number" min="1" value="${q||1}" style="text-align:center" oninput="LV3.recipePreview()">
+  d.innerHTML=`<div class="rcPick">
+      <input class="in rc-find" list="lav3CompList" autocomplete="off" placeholder="Search or pick a component…"
+             value="${c?esc(c.name):''}" oninput="LV3.rcPick(this)" onchange="LV3.rcPick(this)">
+      <input type="hidden" class="rc-c" value="${c?c.id:''}">
+      <button class="btn sm rc-make" style="display:none" onclick="LV3.rcMake(this)">Create it</button></div>
+    <input class="in num rc-q" type="number" min="1" value="${q||1}" style="text-align:center" oninput="LV3.recipePreview()">
     <span class="rcinfo"></span>
     <button class="btn sm dgr" title="Remove" onclick="this.parentElement.remove();LV3.recipePreview()">✕</button>`;
   $('recipeRows').appendChild(d);
@@ -12313,11 +12475,20 @@ function delProduct(id){
 
 /* ═══════════════ SHIP FLOW ═══════════════ */
 let SHIP=null;
-function openShip(id){SHIP={id,units:Math.min(50,Math.max(1,avail(prod(id)).n||1))};drawShip();om('lav3Ov1');}
+function openShip(id){
+  const p=prod(id);
+  /* default to what can go out at one price — the normal, clean shipment */
+  const clean=cogCheck(p,1).cleanMax;
+  const start=clean>0?Math.min(clean,avail(p).n||clean):Math.max(1,avail(p).n||1);
+  SHIP={id,units:Math.max(1,start),override:false,reason:''};
+  drawShip();om('lav3Ov1');}
 function drawShip(){
   const p=prod(SHIP.id),a=avail(p),n=SHIP.units;
   const cg=cogOf(p,n);
+  const chk=cogCheck(p,n);
   const blocked=cg.blocked.length>0;
+  const mixed=!blocked&&chk.mixed.length>0;      // stock is fine, but prices would mix
+  const stopped=blocked||(mixed&&!SHIP.override);
   $('lav3Mod1').className='mod wide';
   $('lav3Mod1').innerHTML=`
   <div class="mh"><h3>Ship — ${esc(p.name)}</h3><span class="chip ${p.type}">${typeLabel(p.type)}</span><button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
@@ -12325,24 +12496,98 @@ function drawShip(){
     <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:13px;flex-wrap:wrap">
       <div style="width:150px"><span class="lab">Units to send</span>
         <input class="in mono" id="shipQty" type="number" min="1" value="${n}" style="font-size:18px;text-align:center;font-weight:700"
-          oninput="SHIP.units=parseInt(this.value)||0;LV3.drawShip();document.getElementById('shipQty').focus()"></div>
-      <div style="width:190px"><span class="lab">FBA shipment ID</span><input class="in mono" id="shipId" placeholder="FBA15…" value="${esc(SHIP.fba||'')}" oninput="SHIP.fba=this.value.toUpperCase();this.value=SHIP.fba"></div>
+          oninput="LV3.shipQty(this.value)"></div>
+      <div style="width:190px"><span class="lab">FBA shipment ID</span><input class="in mono" id="shipId" placeholder="FBA15…" value="${esc(SHIP.fba||'')}" oninput="LV3.shipFba(this)"></div>
       <div class="stat" style="margin-left:auto;min-width:170px">
         <div class="k">${p.type==='bundle'?'You can build':'In stock'}</div>
         <div class="v" style="color:${a.n?'var(--green)':'var(--red)'}">${fmt(a.n)}</div></div>
     </div>
-    ${blocked?shipBlock(p,cg,n):shipOk(p,cg,n)}
+    ${blocked?shipBlock(p,cg,n):(mixed?shipMixed(p,chk,n):'')}
+    ${stopped?'':shipOk(p,cg,n,mixed)}
   </div>
   <div class="mf">
-    ${blocked?`<span class="pmeta" style="margin:0">Fix the shortfall or lower the quantity.</span>`:`<span class="pmeta" style="margin:0">Components come off oldest-first the moment you send.</span>`}
+    ${blocked?`<span class="pmeta" style="margin:0">Fix the shortfall or lower the quantity.</span>`
+      :mixed&&!SHIP.override?`<span class="pmeta" style="margin:0;color:var(--red);font-weight:700">Blocked — this would mix two costs in one shipment.</span>`
+      :SHIP.override?`<span class="pmeta" style="margin:0;color:var(--amb);font-weight:700">Override on — mixed costs will be recorded against this shipment.</span>`
+      :`<span class="pmeta" style="margin:0">Stock comes off oldest-first the moment you send.</span>`}
     <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov1')">Cancel</button>
-    <button class="btn pri" ${blocked||n<1?'disabled':''} onclick="LV3.doShip()">Send ${fmt(n)} &amp; deduct</button></div></div>`;
+    <button class="btn ${SHIP.override?'warn':'pri'}" ${stopped||n<1?'disabled':''} onclick="LV3.doShip()">Send ${fmt(n)} &amp; deduct</button></div></div>`;
 }
-function shipOk(p,cg,n){
+/* The block screen. It has to say three things without being read twice:
+   what stops it, what to send instead, and how to get out of it anyway. */
+function chkRuns(p,n){const m=cogCheck(p,n).mixed;return m.length?Math.max(...m.map(x=>x.runs.length)):1;}
+function shipMixed(p,chk,n){
+  const worst=chk.mixed[0];
+  const clean=chk.cleanMax;
+  return `<div class="mixWrap">
+    <div class="mixHead${SHIP.override?' ovr':''}">
+      <span class="mixIcon">!</span>
+      <div><div class="mixT">${SHIP.override?'Override on — sending two costs as one':'Blocked — this would send two different costs in one shipment'}</div>
+        <div class="mixS">${SHIP.override
+          ?`These ${fmt(n)} units will go out with an averaged cost of what you actually paid. It is recorded as an override in the log.`
+          :`${fmt(n)} units can't come from one purchase price. Amazon gets one COG per shipment, so send each price separately.`}</div></div>
+    </div>
+
+    <div class="mixFix">
+      <div class="mixFixT">Send this instead</div>
+      <div class="mixFixR">
+        <div class="mixOpt">
+          <div class="k">Now, at one price</div>
+          <div class="v">${fmt(clean)}<span> units</span></div>
+          <div class="s">@ ${gbp(worst.runs[0].cost)} · bought ${dshort(worst.runs[0].date)}${worst.runs[0].sup?' · '+esc(worst.runs[0].sup):''}</div>
+          <button class="btn pri sm" ${clean<1?'disabled':''} onclick="LV3.shipSetQty(${clean})">Send ${fmt(clean)} instead</button>
+        </div>
+        <div class="mixArrow">then</div>
+        <div class="mixOpt">
+          <div class="k">Next shipment</div>
+          <div class="v">${fmt(Math.max(0,n-clean))}<span> units</span></div>
+          <div class="s">@ ${gbp(worst.runs[1].cost)} · bought ${dshort(worst.runs[1].date)}${worst.runs[1].sup?' · '+esc(worst.runs[1].sup):''}</div>
+          <div class="pmeta" style="margin:6px 0 0">Send it as its own FBA shipment with its own COG.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mixWhy">
+      <div class="lab" style="margin-bottom:6px">Why it's blocked</div>
+      <table class="ltab" style="margin:0"><thead><tr><th style="padding-left:12px">Component</th><th>Per unit</th><th>Needed</th><th>At oldest price</th><th style="padding-right:12px">Would also take</th></tr></thead><tbody>
+      ${chk.mixed.map(m=>`<tr>
+        <td style="padding-left:12px"><b>${esc(m.name)}</b></td>
+        <td>×${fmt(m.per)}</td>
+        <td>${fmt(m.need)}</td>
+        <td><b style="color:var(--grn)">${fmt(m.atFirst)}</b> @ ${gbp(m.runs[0].cost)}</td>
+        <td style="padding-right:12px"><b style="color:var(--amb)">${fmt(Math.min(m.need-m.atFirst,m.runs[1].qty))}</b> @ ${gbp(m.runs[1].cost)}</td></tr>`).join('')}
+      </tbody></table>
+      <div class="pmeta" style="margin:8px 12px 0">Oldest stock always goes first. Batches that cost the same are treated as one — only a genuine price change blocks a shipment.</div>
+    </div>
+
+    ${SHIP.override?`
+      <div class="mixOv on">
+        <div><b style="color:var(--amb)">Override on</b> — this shipment will go out with a blended cost and be flagged in the log.
+          <div class="pmeta" style="margin:4px 0 0">Reason: ${esc(SHIP.reason||'—')}</div></div>
+        <button class="btn sm" onclick="LV3.shipOverride(false)">Turn override off</button>
+      </div>`:`
+      <div class="mixOv">
+        <div><b>Really need to send them together?</b>
+          <div class="pmeta" style="margin:4px 0 0">Only for fixing a mistake — for example the units are already inside one Amazon shipment. It records a blended cost, which is less accurate.</div></div>
+        <button class="btn warn sm" onclick="LV3.shipOverride(true)">Override the block</button>
+      </div>`}
+  </div>`;
+}
+function shipSetQty(n){SHIP.units=Math.max(1,n);SHIP.override=false;SHIP.reason='';drawShip();}
+function shipOverride(on){
+  if(!on){SHIP.override=false;SHIP.reason='';drawShip();return;}
+  const why=prompt('This sends two different costs in one shipment, which makes the COG an average rather than what you actually paid.\n\nWhy does it have to go out mixed?');
+  if(why===null)return;
+  if(!why.trim()){toast('A reason is needed to override','er');return;}
+  SHIP.override=true;SHIP.reason=why.trim();drawShip();
+  toast('Override on — this will be flagged in the log','er');
+}
+
+function shipOk(p,cg,n,mixed){
   const costLines=cg.lines.filter(l=>!l.pack).length;   // packaging isn't a cost line
-  const blended=cg.batches>costLines;
+  const blended=!!mixed;                                 // only a real price mix counts
   return `<div class="panel" style="margin-bottom:11px">
-    <div class="ph"><span class="t">Cost of this shipment</span><span class="sub">oldest stock first${blended?` · ${cg.batches} batches used`:''}</span>
+    <div class="ph"><span class="t">Cost of this shipment</span><span class="sub">oldest stock first${blended?` · two prices averaged`:''}</span>
       <div class="r"><button class="btn sm" onclick="LV3.copyCog('${cg.per.toFixed(2)}')">Copy £${cg.per.toFixed(2)}</button></div></div>
     <table class="ltab" style="margin:0"><thead><tr><th style="padding-left:12px">Component</th><th>Per unit</th><th>Needed</th><th>Batches used</th><th style="padding-right:12px">Cost</th></tr></thead><tbody>
     ${cg.lines.map(l=>`<tr ${l.pack?'style="opacity:.62"':''}><td style="padding-left:12px">${esc(l.name)}${l.pack?' <span class="chip packaging">not in COG</span>':''}</td><td>${l.q?'×'+l.q:''}</td><td>${fmt(l.need)}</td>
@@ -12352,9 +12597,11 @@ function shipOk(p,cg,n){
     <div style="display:flex;align-items:center;gap:16px;padding:10px 12px;border-top:1px solid var(--border);background:var(--bg3)">
       <span class="lab">COG per unit</span><span class="num" style="font-size:20px;color:var(--accent)">${gbp(cg.per)}</span>
       <span class="lab" style="margin-left:10px">Shipment total</span><span class="num" style="font-size:16px">${gbp(cg.total)}</span>
-      ${blended?`<span class="chip warn" style="margin-left:auto">${cg.batches} price batches — blended</span>`:''}
+      ${blended?`<span class="chip bad" style="margin-left:auto">blended across ${chkRuns(p,n)} prices</span>`
+        :`<span class="chip ok" style="margin-left:auto">single price</span>`}
     </div></div>
-  ${blended?`<div class="note">This shipment eats through more than one purchase batch, so the unit cost is a <b>weighted average</b> of the batches it consumes — that single number is what goes into Amazon. The exact batches are recorded against the shipment, so profit stays accurate later.</div>`:''}`;
+  ${blended?`<div class="note bad">This figure is a <b>weighted average</b> of two different purchase prices. It is not what you paid for any one unit — it is only here because the block was overridden.</div>`
+    :`<div class="note">Every unit in this shipment came from the same purchase price, so this COG is exactly what you paid.</div>`}`;
 }
 function shipBlock(p,cg,n){
   return `<div class="note bad" style="margin-bottom:12px">
@@ -12390,13 +12637,17 @@ function copyCog(v){navigator.clipboard&&navigator.clipboard.writeText(v);toast(
 function doShip(){
   const p=prod(SHIP.id),n=SHIP.units,cg=cogOf(p,n);
   if(cg.blocked.length||n<1){toast('Blocked','er');return;}
+  const chk=cogCheck(p,n);
+  if(chk.mixed.length&&!SHIP.override){toast('Blocked — mixed costs. Send '+fmt(chk.cleanMax)+' instead, or override.','er');return;}
   snap();
   /* consume FIFO for real */
   if(p.type!=='bundle'){fifo(p,n).parts.forEach(pt=>{pt.layer.rem-=pt.take;});}
   else p.recipe.forEach(r=>{const c=comp(r.c);fifo(c,r.q*n).parts.forEach(pt=>{pt.layer.rem-=pt.take;});});
   p.ship30=(p.ship30||0)+n;p.lastSent=TODAY.toISOString().slice(0,10);
-  logIt('ship',`Sent ${n} × ${p.name} to ${SHIP.fba||'FBA (no ID)'} — COG ${gbp(cg.per)}/unit${cg.batches>cg.lines.length?` (${cg.batches} batches)`:''}`);
-  cm('lav3Ov1');render();toastUndo(`Sent ${fmt(n)} × ${p.name} — COG ${gbp(cg.per)}/unit`,'ok');
+  const mixNote=chk.mixed.length?` — MIXED COSTS, override: ${SHIP.reason||'no reason given'}`:'';
+  logIt('ship',`Sent ${n} × ${p.name} to ${SHIP.fba||'FBA (no ID)'} — COG ${gbp(cg.per)}/unit${mixNote}`);
+  cm('lav3Ov1');render();
+  toastUndo(`Sent ${fmt(n)} × ${p.name} — COG ${gbp(cg.per)}/unit${chk.mixed.length?' (blended — overridden)':''}`,chk.mixed.length?'er':'ok');
 }
 
 /* ═══════════════ COMPONENTS ═══════════════ */
@@ -12415,7 +12666,7 @@ function vComponents(){
       <div class="seg">${[['all','All'],['component','Components'],['packaging','Packaging'],['low','Running low']]
         .concat(archC.length?[['archived','Archived']]:[])
         .map(([k,l])=>`<button class="${cFilter===k?'on':''}" onclick="LV3.setFilter('c','${k}')">${l}<span class="cnt">${fmt(counts[k])}</span></button>`).join('')}</div>
-      <input class="srch" placeholder="Search components…" value="${esc(Q)}" oninput="Q=this.value.toLowerCase();LV3.vComponents()">
+      <input class="srch" placeholder="Search components…" value="${esc(Q)}" oninput="LV3.setQ(this.value)">
       <div class="r"><button class="btn" onclick="LV3.openBulkComp()">Bulk add</button>
         <button class="btn pri" onclick="LV3.editComp(null)">+ Add component</button></div>
     </div>
@@ -12512,7 +12763,15 @@ function editComp(id){
       <input type="checkbox" id="c-untracked" ${c.untracked?'checked':''} style="margin-top:2px">
       <span>Don't track stock for this one
         <span class="pmeta" style="margin-top:2px">For things you always have and share with OA — poly bags, tape, labels. It still shows in the recipe, but never blocks a build and never counts toward COG.</span></span></label>
-    <div class="note info">Stock isn't typed here — it comes from purchase-sheet batches. Use <b>Correct stock</b> if a physical count disagrees.</div>
+    ${id?`<div class="note info">Stock comes from batches — each delivery keeps its own price. Use <b>Correct stock</b> if a physical count disagrees, or <b>Log an order</b> for a new delivery.</div>`
+      :`<div class="panel" style="margin-top:4px">
+        <div class="ph"><span class="t">What you have right now</span><span class="sub">optional — this becomes its first batch</span></div>
+        <div class="g2" style="padding:12px">
+          <div><span class="lab">Units in stock</span><input class="in num" id="c-open-qty" type="number" min="0" placeholder="0"></div>
+          <div><span class="lab">What they cost each</span><input class="in num" id="c-open-cost" type="number" step="0.01" min="0" placeholder="0.00"></div>
+        </div>
+        <div class="pmeta" style="padding:0 12px 12px">Every later delivery is added as its own batch at its own price. <b>On hand</b> always shows the total across all batches — order 30, 40, 10 and 20 and it reads 100.</div>
+      </div>`}
   </div>
   <div class="mf">${id?`<button class="btn dgr" onclick="LV3.delComp('${id}')">Delete</button>`:''}
     <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
@@ -12520,7 +12779,28 @@ function editComp(id){
   window._ck=c.kind;om('lav3Ov2');setTimeout(()=>pickKind(c.kind||'component'),0);
 }
 function setCol(k,on){D.settings.cols=D.settings.cols||{};D.settings.cols[k]=!!on;savePrefs();render();}
-function setPref(k,v){D.settings[k]=v;savePrefs();render();}
+function setPref(k,v){
+  D.settings[k]=v;savePrefs();
+  /* Re-rendering on every keystroke steals the caret, so text fields save quietly. */
+  if(typeof v==='string')return;
+  render();
+}
+/* One search box, one place it is handled. These used to be inline handlers
+   poking module-scope variables, which silently did nothing from the page. */
+function setQ(v){
+  Q=(v||'').toLowerCase();
+  render();
+  const box=document.querySelector('#page-lavarion .srch, .lav3 .srch');
+  if(box){box.value=v;box.focus();
+    try{box.setSelectionRange(v.length,v.length);}catch(e){}}
+  /* jump back to the top so the first match is on screen, not below the fold */
+  const sc=document.querySelector('#page-lavarion .wrap, .lav3 .wrap')||document.scrollingElement;
+  if(sc&&sc.scrollTop>0)sc.scrollTo({top:0,behavior:'smooth'});
+  else window.scrollTo({top:0,behavior:'smooth'});
+}
+function shipQty(v){SHIP.units=parseInt(v)||0;SHIP.override=false;SHIP.reason='';drawShip();
+  const q=document.getElementById('shipQty');if(q){q.focus();try{q.setSelectionRange(q.value.length,q.value.length);}catch(e){}}}
+function shipFba(el){SHIP.fba=(el.value||'').toUpperCase();el.value=SHIP.fba;}
 function savePrefs(){
   try{sb.from('app_settings').upsert({key:'lavarion_prefs',value:JSON.stringify(D.settings)},{onConflict:'key'})
     .then(r=>{if(r.error)console.warn('prefs save',r.error);});}catch(e){}
@@ -12558,9 +12838,22 @@ function saveComp(id){
   D.settings.untracked=D.settings.untracked||{};
   if(untracked)D.settings.untracked[String(cid)]=true;else delete D.settings.untracked[String(cid)];
   savePrefs();
-  if(id){Object.assign(comp(id),obj);}else{D.components.push({id:cid,layers:[],...obj});}
-  logIt('edit',(id?'Updated component ':'Added component ')+name);
-  cm('lav3Ov2');cm('lav3Ov1');render();toast(id?'Component updated':'Component added','ok');
+  let opened=0;
+  if(id){Object.assign(comp(id),obj);}
+  else{
+    const layers=[];
+    /* Whatever is on the shelf today becomes batch one, at the price paid for it.
+       Every later delivery lands as its own batch — on hand is always the sum. */
+    const oq=parseInt(($('c-open-qty')||{}).value)||0;
+    const oc=parseFloat(($('c-open-cost')||{}).value)||0;
+    if(oq>0){opened=oq;
+      layers.push({id:'O'+Date.now(),date:TODAY.toISOString().slice(0,10),qty:oq,rem:oq,cost:oc,
+        sup:'Opening stock',oid:'—',loc:'Warehouse',arr:1});}
+    D.components.push({id:cid,layers,...obj});
+  }
+  logIt('edit',(id?'Updated component ':'Added component ')+name+(opened?` — opening stock ${fmt(opened)}`:''));
+  cm('lav3Ov2');cm('lav3Ov1');render();
+  toast(id?'Component updated':(opened?`Component added — ${fmt(opened)} in stock`:'Component added'),'ok');
 }
 function delComp(id){
   const c=comp(id),uses=usedIn(id);
@@ -12674,7 +12967,7 @@ function vPurchases(){
     <div class="ph">
       <div class="seg">${[['all','All',D.purchases.length],['todo','To allocate',unl.length],['part','Part done',part.length],['done','Allocated',done]]
         .map(([k,l,n])=>`<button class="${uFilter===k?'on':''}" onclick="LV3.setFilter('u','${k}')">${l}<span class="cnt">${fmt(n)}</span></button>`).join('')}</div>
-      <div class="r"><input class="srch" placeholder="Search purchases…" value="${esc(Q)}" oninput="Q=this.value.toLowerCase();LV3.vPurchases()">
+      <div class="r"><input class="srch" placeholder="Search purchases…" value="${esc(Q)}" oninput="LV3.setQ(this.value)">
       <button class="btn" onclick="LV3.toast('Purchases sync runs from Settings → Sheet sync')">Sync now</button></div></div>
     ${rows.length?`<table><thead><tr>
       <th class="l" style="width:82px">Date</th><th class="l" style="width:250px">Name on sheet</th><th style="width:66px">Qty</th>
@@ -12994,40 +13287,103 @@ function dlvReceive(){
    every recipe on one grid. */
 function splitLine(l){return l.split(/\t|\s*\|\s*/).map(x=>x.trim()).filter((x,i)=>i===0||x!=='');}
 
-function openBulkComp(){
-  $('lav3Mod2').className='mod';
+
+/* Two ways in: type it (the default — nobody should have to learn a pipe
+   format to add three components) or paste a block from the sheet. Both feed
+   the same preview and the same save. */
+let _bulkMode={comp:'type',prod:'type',rec:'type'};
+
+function bulkTabs(which,fn){
+  const m=_bulkMode[which];
+  return `<div class="bkTabs">
+    <button class="bkTab ${m==='type'?'on':''}" onclick="LV3.${fn}('type')">Type them in</button>
+    <button class="bkTab ${m==='paste'?'on':''}" onclick="LV3.${fn}('paste')">Paste from a sheet</button>
+  </div>`;
+}
+
+/* ── components ── */
+function openBulkComp(){_bulkMode.comp='type';_bcDraft=[{},{},{}];drawBulkComp();om('lav3Ov2');}
+function bcMode(m){_bcDraft=bcReadDraft();_bulkMode.comp=m;drawBulkComp();
+  setTimeout(()=>{const el=m==='paste'?$('bcTxt'):document.getElementById('bc-n-0');if(el)el.focus();},40);}
+let _bcDraft=[];
+function bcReadDraft(){
+  if(_bulkMode.comp!=='type')return _bcDraft;
+  const out=[];document.querySelectorAll('[id^="bc-n-"]').forEach(el=>{
+    const i=el.id.split('-').pop();
+    out.push({name:el.value.trim(),
+      pack:document.getElementById('bc-k-'+i)?.value==='packaging',
+      qty:document.getElementById('bc-q-'+i)?.value||'',
+      cost:document.getElementById('bc-c-'+i)?.value||''});
+  });return out;
+}
+function bcAddRow(n){_bcDraft=bcReadDraft();for(let k=0;k<(n||1);k++)_bcDraft.push({});drawBulkComp();
+  setTimeout(()=>document.getElementById('bc-n-'+(_bcDraft.length-(n||1)))?.focus(),40);}
+function bcDelRow(i){_bcDraft=bcReadDraft();_bcDraft.splice(i,1);if(!_bcDraft.length)_bcDraft=[{}];drawBulkComp();}
+function drawBulkComp(){
+  const typing=_bulkMode.comp==='type';
+  $('lav3Mod2').className='mod wide';
   $('lav3Mod2').innerHTML=`
-  <div class="mh"><h3>Bulk add components</h3><button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+  <div class="mh"><h3>Add several components</h3>
+    <span class="pmeta" style="margin:0">parts and packaging that go into your bundles</span>
+    <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
   <div class="mb">
-    <div class="note info" style="margin-bottom:10px">One per line. Paste straight from the sheet — columns can be separated by tabs or <b>|</b>.<br>
-      <span class="mono" style="font-size:12px;color:var(--text2)">Name | on hand | unit cost | packaging</span><br>
-      Only the name is required. Add <b>packaging</b> at the end for boxes and sleeves.</div>
-    <textarea class="in mono" id="bcTxt" rows="11" style="resize:vertical;line-height:1.6"
-      placeholder="Exfoliating Glove | 118 | 0.44&#10;Self Tan Mitt | 96 | 0.58&#10;Gift Box — Medium | 392 | 0.31 | packaging&#10;Dove MD Tanning Lotion 75ml" oninput="LV3.bcPreview()"></textarea>
-    <div id="bcOut" style="margin-top:10px"></div>
+    ${bulkTabs('comp','bcMode')}
+    ${typing?`
+      <table class="bkGrid"><thead><tr>
+        <th class="l">Component name</th><th style="width:150px">Kind</th>
+        <th style="width:110px">On hand</th><th style="width:120px">Unit cost £</th><th style="width:34px"></th>
+      </tr></thead><tbody>
+      ${_bcDraft.map((r,i)=>`<tr>
+        <td><input class="in" id="bc-n-${i}" value="${esc(r.name||'')}" placeholder="${i===0?'Exfoliating Glove':''}"
+             oninput="LV3.bcPreview()" onkeydown="if(event.key==='Enter'){event.preventDefault();LV3.bcAddRow()}"></td>
+        <td><select class="in" id="bc-k-${i}" onchange="LV3.bcPreview()">
+              <option value="component" ${r.pack?'':'selected'}>Component</option>
+              <option value="packaging" ${r.pack?'selected':''}>Packaging</option></select></td>
+        <td><input class="in num" id="bc-q-${i}" type="number" min="0" value="${r.qty||''}" placeholder="0" oninput="LV3.bcPreview()"></td>
+        <td><input class="in num" id="bc-c-${i}" type="number" step="0.01" min="0" value="${r.cost||''}" placeholder="0.00" oninput="LV3.bcPreview()"></td>
+        <td><button class="bkX" title="Remove this line" onclick="LV3.bcDelRow(${i})">&#10005;</button></td></tr>`).join('')}
+      </tbody></table>
+      <div class="bkAdd"><button class="btn sm" onclick="LV3.bcAddRow()">+ Add line</button>
+        <button class="btn sm" onclick="LV3.bcAddRow(5)">+ 5 lines</button>
+        <span class="pmeta" style="margin:0">On hand and cost are optional — you can leave them blank and receive stock later.</span></div>
+    `:`
+      <div class="note info" style="margin-bottom:10px">Copy the cells straight out of the sheet and paste below — one component per line.
+        Columns can be separated by tabs or <b>|</b>, in this order:<br>
+        <b style="color:var(--text)">Name &nbsp;|&nbsp; on hand &nbsp;|&nbsp; unit cost &nbsp;|&nbsp; packaging</b><br>
+        Only the name is needed. Put <b>packaging</b> at the end for boxes and sleeves.</div>
+      <textarea class="in" id="bcTxt" rows="9" style="resize:vertical;line-height:1.7"
+        placeholder="Exfoliating Glove | 118 | 0.44&#10;Self Tan Mitt | 96 | 0.58&#10;Gift Box — Medium | 392 | 0.31 | packaging&#10;Dove MD Tanning Lotion 75ml" oninput="LV3.bcPreview()"></textarea>
+    `}
+    <div id="bcOut" style="margin-top:12px"></div>
   </div>
   <div class="mf"><div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
     <button class="btn pri" onclick="LV3.bcSave()">Add components</button></div></div>`;
-  om('lav3Ov2');setTimeout(()=>$('bcTxt').focus(),50);
+  bcPreview();
+  if(typing)setTimeout(()=>document.getElementById('bc-n-0')?.focus(),50);
 }
 function bcParse(){
-  return ($('bcTxt').value||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
+  const mk=(name,qty,cost,pack)=>({name,qty:parseInt(qty)||0,cost:parseFloat(cost)||0,pack:!!pack,
+    dupe:!!D.components.find(c=>c.name.toLowerCase()===(name||'').toLowerCase())});
+  if(_bulkMode.comp==='type')
+    return bcReadDraft().filter(r=>r.name).map(r=>mk(r.name,r.qty,r.cost,r.pack));
+  return (($('bcTxt')||{}).value||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
     const p=splitLine(l);
     const pack=p.some(x=>/^pack(aging)?$/i.test(x));
     const rest=p.filter(x=>!/^pack(aging)?$/i.test(x));
-    return{name:rest[0],qty:parseInt(rest[1])||0,cost:parseFloat(rest[2])||0,pack,
-      dupe:!!D.components.find(c=>c.name.toLowerCase()===(rest[0]||'').toLowerCase())};
+    return mk(rest[0],rest[1],rest[2],pack);
   }).filter(r=>r.name);
 }
 function bcPreview(){
   const rows=bcParse(),n=rows.filter(r=>!r.dupe).length,d=rows.length-n;
   const odd=rows.filter(r=>!r.dupe&&r.cost>50).length;
-  $('bcOut').innerHTML=rows.length?`<div class="lab" style="margin-bottom:5px">${fmt(n)} new${d?` · ${d} already exist (skipped)`:''}${odd?` · <b style="color:var(--amb)">${odd} unit cost${odd===1?'':'s'} over £50 — check the columns</b>`:''}</div>
-    <table class="ltab"><thead><tr><th>Component</th><th>Kind</th><th>On hand</th><th>Unit cost</th></tr></thead><tbody>
+  const el=$('bcOut');if(!el)return;
+  if(!rows.length){el.innerHTML=`<div class="bkNil">Nothing to add yet — ${_bulkMode.comp==='type'?'fill in a name above':'paste your lines above'}.</div>`;return;}
+  el.innerHTML=`<div class="bkSum"><b>${fmt(n)}</b> will be added${d?` · <span style="color:var(--amb)">${d} already exist and will be skipped</span>`:''}${odd?` · <span style="color:var(--amb)">${odd} unit cost${odd===1?'':'s'} over £50 — check the columns</span>`:''}</div>
+    ${_bulkMode.comp==='paste'?`<table class="ltab"><thead><tr><th>Component</th><th>Kind</th><th>On hand</th><th>Unit cost</th></tr></thead><tbody>
     ${rows.slice(0,60).map(r=>`<tr ${r.dupe?'style="opacity:.4"':''}><td>${esc(r.name)}${r.dupe?' <span class="chip vat">exists</span>':''}</td>
       <td>${r.pack?'<span class="chip packaging">Packaging</span>':'<span class="chip component">Component</span>'}</td>
       <td>${r.qty?fmt(r.qty):'—'}</td><td>${r.cost?gbp(r.cost):'—'}</td></tr>`).join('')}
-    </tbody></table>`:'';
+    </tbody></table>`:(d?`<div class="pmeta">Already-existing names are skipped, so nothing gets duplicated.</div>`:'')}`;
 }
 function bcSave(){
   const rows=bcParse().filter(r=>!r.dupe);
@@ -13039,46 +13395,96 @@ function bcSave(){
     D.components.push(c);
   });
   logIt('edit',`Bulk added ${rows.length} components`);
-  cm('lav3Ov2');render();toast(`${rows.length} components added`,'ok');
+  cm('lav3Ov2');render();toast(`${rows.length} component${rows.length===1?'':'s'} added`,'ok');
 }
 
-function openBulkProd(){
-  $('lav3Mod2').className='mod';
+/* ── products ── */
+let _bpDraft=[];
+function openBulkProd(){_bulkMode.prod='type';_bpDraft=[{},{},{}];drawBulkProd();om('lav3Ov2');}
+function bpMode(m){_bpDraft=bpReadDraft();_bulkMode.prod=m;drawBulkProd();
+  setTimeout(()=>{const el=m==='paste'?$('bpTxt'):document.getElementById('bp-a-0');if(el)el.focus();},40);}
+function bpReadDraft(){
+  if(_bulkMode.prod!=='type')return _bpDraft;
+  const out=[];document.querySelectorAll('[id^="bp-a-"]').forEach(el=>{
+    const i=el.id.split('-').pop();
+    out.push({asin:el.value.trim().toUpperCase(),
+      sku:document.getElementById('bp-s-'+i)?.value.trim()||'',
+      name:document.getElementById('bp-p-'+i)?.value.trim()||'',
+      type:document.getElementById('bp-t-'+i)?.value||'bundle',
+      vat:document.getElementById('bp-v-'+i)?.value||'20'});
+  });return out;
+}
+function bpAddRow(n){_bpDraft=bpReadDraft();for(let k=0;k<(n||1);k++)_bpDraft.push({});drawBulkProd();
+  setTimeout(()=>document.getElementById('bp-a-'+(_bpDraft.length-(n||1)))?.focus(),40);}
+function bpDelRow(i){_bpDraft=bpReadDraft();_bpDraft.splice(i,1);if(!_bpDraft.length)_bpDraft=[{}];drawBulkProd();}
+function drawBulkProd(){
+  const typing=_bulkMode.prod==='type';
+  $('lav3Mod2').className='mod wide';
   $('lav3Mod2').innerHTML=`
-  <div class="mh"><h3>Bulk add products</h3><button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+  <div class="mh"><h3>Add several products</h3>
+    <span class="pmeta" style="margin:0">Lavarion ASINs — bundles you build, or private label that arrives finished</span>
+    <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
   <div class="mb">
-    <div class="note info" style="margin-bottom:10px">One per line, tabs or <b>|</b> between columns.<br>
-      <span class="mono" style="font-size:12px;color:var(--text2)">ASIN | SKU | Product name | type | VAT</span><br>
-      Type is <b>bundle</b>, <b>pl</b> or <b>single</b> — defaults to bundle. VAT defaults to 20.</div>
-    <textarea class="in mono" id="bpTxt" rows="11" style="resize:vertical;line-height:1.6"
-      placeholder="B0DW5HPRWB | LAV-DOVEMD-BDL | Dove 75ml MD Bundle | bundle&#10;B0G8R16QMB | LAV-WED30 | Wedding Cones 30 | pl&#10;B0GJ68VNM2 | LAV-GFBOX | GF Biscuit Hamper | bundle | 0" oninput="LV3.bpPreview()"></textarea>
-    <div id="bpOut" style="margin-top:10px"></div>
+    ${bulkTabs('prod','bpMode')}
+    ${typing?`
+      <table class="bkGrid"><thead><tr>
+        <th class="l" style="width:150px">ASIN</th><th class="l" style="width:170px">SKU</th><th class="l">Product name</th>
+        <th style="width:150px">Type</th><th style="width:90px">VAT %</th><th style="width:34px"></th>
+      </tr></thead><tbody>
+      ${_bpDraft.map((r,i)=>`<tr>
+        <td><input class="in" id="bp-a-${i}" value="${esc(r.asin||'')}" placeholder="${i===0?'B0DW5HPRWB':''}"
+             style="text-transform:uppercase" oninput="LV3.bpPreview()"></td>
+        <td><input class="in" id="bp-s-${i}" value="${esc(r.sku||'')}" placeholder="${i===0?'LAV-DOVEMD':''}" oninput="LV3.bpPreview()"></td>
+        <td><input class="in" id="bp-p-${i}" value="${esc(r.name||'')}" placeholder="${i===0?'Dove 75ml MD Bundle':''}"
+             oninput="LV3.bpPreview()" onkeydown="if(event.key==='Enter'){event.preventDefault();LV3.bpAddRow()}"></td>
+        <td><select class="in" id="bp-t-${i}" onchange="LV3.bpPreview()">
+              <option value="bundle" ${r.type==='pl'?'':'selected'}>Bundle — we build it</option>
+              <option value="pl" ${r.type==='pl'?'selected':''}>Private label — arrives finished</option></select></td>
+        <td><input class="in num" id="bp-v-${i}" type="number" min="0" max="20" value="${r.vat!=null&&r.vat!==''?r.vat:'20'}" oninput="LV3.bpPreview()"></td>
+        <td><button class="bkX" title="Remove this line" onclick="LV3.bpDelRow(${i})">&#10005;</button></td></tr>`).join('')}
+      </tbody></table>
+      <div class="bkAdd"><button class="btn sm" onclick="LV3.bpAddRow()">+ Add line</button>
+        <button class="btn sm" onclick="LV3.bpAddRow(5)">+ 5 lines</button>
+        <span class="pmeta" style="margin:0">Components come next — add the products first, then use <b>Bulk recipes</b>.</span></div>
+    `:`
+      <div class="note info" style="margin-bottom:10px">One product per line, tabs or <b>|</b> between columns:<br>
+        <b style="color:var(--text)">ASIN &nbsp;|&nbsp; SKU &nbsp;|&nbsp; Product name &nbsp;|&nbsp; type &nbsp;|&nbsp; VAT</b><br>
+        Type is <b>bundle</b> or <b>pl</b> — it defaults to bundle. VAT defaults to 20.</div>
+      <textarea class="in" id="bpTxt" rows="9" style="resize:vertical;line-height:1.7"
+        placeholder="B0DW5HPRWB | LAV-DOVEMD-BDL | Dove 75ml MD Bundle | bundle&#10;B0G8R16QMB | LAV-WED30 | Wedding Cones 30 | pl&#10;B0GJ68VNM2 | LAV-GFBOX | GF Biscuit Hamper | bundle | 0" oninput="LV3.bpPreview()"></textarea>
+    `}
+    <div id="bpOut" style="margin-top:12px"></div>
   </div>
   <div class="mf"><div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
     <button class="btn pri" onclick="LV3.bpSave()">Add products</button></div></div>`;
-  om('lav3Ov2');setTimeout(()=>$('bpTxt').focus(),50);
+  bpPreview();
+  if(typing)setTimeout(()=>document.getElementById('bp-a-0')?.focus(),50);
 }
 function bpParse(){
-  return ($('bpTxt').value||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
+  const mk=(asin,sku,name,type,vat)=>({asin:(asin||'').toUpperCase(),sku:sku||'',name:name||sku||asin,
+    type:type==='pl'?'pl':'bundle',vat:String(vat==null||vat===''?'20':vat).replace('%',''),
+    bad:!/^B0[A-Z0-9]{8}$/.test((asin||'').toUpperCase()),
+    dupe:!!D.products.find(x=>x.asin===(asin||'').toUpperCase())});
+  if(_bulkMode.prod==='type')
+    return bpReadDraft().filter(r=>r.asin).map(r=>mk(r.asin,r.sku,r.name,r.type,r.vat));
+  return (($('bpTxt')||{}).value||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
     const p=splitLine(l);
-    const asin=(p[0]||'').toUpperCase();
     const t=(p[3]||'bundle').toLowerCase();
-    const type=t.startsWith('p')?'pl':t.startsWith('s')?'single':'bundle';
-    return{asin,sku:p[1]||'',name:p[2]||p[1]||asin,type,vat:(p[4]||'20').replace('%',''),
-      bad:!/^B0[A-Z0-9]{8}$/.test(asin),
-      dupe:!!D.products.find(x=>x.asin===asin)};
+    return mk(p[0],p[1],p[2],t.startsWith('p')?'pl':'bundle',p[4]);
   }).filter(r=>r.asin);
 }
 function bpPreview(){
   const rows=bpParse(),n=rows.filter(r=>!r.dupe).length,d=rows.length-n,bad=rows.filter(r=>r.bad&&!r.dupe).length;
-  $('bpOut').innerHTML=rows.length?`<div class="lab" style="margin-bottom:5px">${fmt(n)} new${d?` · ${d} already exist (skipped)`:''}${bad?` · <b style="color:var(--amb)">${bad} ASIN${bad===1?" doesn't":"s don't"} look right</b>`:''}</div>
-    <table class="ltab"><thead><tr><th>ASIN</th><th>Product</th><th>Type</th><th>VAT</th></tr></thead><tbody>
+  const el=$('bpOut');if(!el)return;
+  if(!rows.length){el.innerHTML=`<div class="bkNil">Nothing to add yet — ${_bulkMode.prod==='type'?'enter an ASIN above':'paste your lines above'}.</div>`;return;}
+  el.innerHTML=`<div class="bkSum"><b>${fmt(n)}</b> will be added${d?` · <span style="color:var(--amb)">${d} already exist and will be skipped</span>`:''}${bad?` · <span style="color:var(--amb)">${bad} ASIN${bad===1?" doesn't":"s don't"} look right</span>`:''}</div>
+    ${_bulkMode.prod==='paste'?`<table class="ltab"><thead><tr><th>ASIN</th><th>Product</th><th>Type</th><th>VAT</th></tr></thead><tbody>
     ${rows.slice(0,60).map(r=>`<tr ${r.dupe?'style="opacity:.4"':''}>
-      <td>${esc(r.asin)}${r.bad&&!r.dupe?' <span class="chip warn" title="Amazon ASINs are B0 followed by 8 characters — check this one">check</span>':''}</td>
+      <td>${esc(r.asin)}${r.dupe?' <span class="chip vat">exists</span>':''}${r.bad&&!r.dupe?' <span class="chip warn">check</span>':''}</td>
       <td style="text-align:right">${esc(r.name)}</td>
       <td><span class="chip ${r.type}">${typeLabel(r.type)}</span></td><td>${r.vat}%</td></tr>`).join('')}
-    </tbody></table>
-    ${bad?`<div class="note" style="margin-top:10px">Rows marked <b>check</b> don't match the usual ASIN shape (B0 + 8 characters). They'll still be added — just make sure they're right.</div>`:''}`:'';
+    </tbody></table>`:''}
+    ${bad?`<div class="note" style="margin-top:10px">Lines marked <b>check</b> don't match the usual ASIN shape (B0 followed by 8 characters). They'll still be added — just make sure they're right.</div>`:''}`;
 }
 function bpSave(){
   const rows=bpParse().filter(r=>!r.dupe);
@@ -13086,7 +13492,156 @@ function bpSave(){
   rows.forEach((r,i)=>D.products.push({id:'pr'+Date.now()+'_'+i,asin:r.asin,sku:r.sku,name:r.name,type:r.type,vat:r.vat,
     recipe:[],layers:[],ship30:0,lastSent:null}));
   logIt('edit',`Bulk added ${rows.length} products`);
-  cm('lav3Ov2');render();toast(`${rows.length} products added — now fill the recipe grid`,'ok');
+  cm('lav3Ov2');render();toast(`${rows.length} product${rows.length===1?'':'s'} added — now set their recipes`,'ok');
+}
+
+/* ── BULK RECIPES ──────────────────────────────────────────────────────────
+   The grid is fine for tweaking one number, but hopeless for filling 26
+   bundles from scratch. This does a whole product per line:
+     Dove 75ml MD | Dove Lotion 75ml x1 | Exfoliating Glove x1 | Gift Box x1
+   Components are matched on name (case and spacing ignored). Anything it
+   can't find is offered as "create these too" rather than silently dropped. */
+let _brDraft=[];
+function openBulkRecipe(){
+  if(!D.products.filter(p=>!p.archived).length){toast('Add some products first','er');return;}
+  _bulkMode.rec='type';_brDraft=[{}];drawBulkRecipe();om('lav3Ov2');
+}
+function brMode(m){_brDraft=brReadDraft();_bulkMode.rec=m;drawBulkRecipe();}
+function brReadDraft(){
+  if(_bulkMode.rec!=='type')return _brDraft;
+  const out=[];document.querySelectorAll('[id^="br-p-"]').forEach(el=>{
+    const i=el.id.split('-').pop();
+    const parts=[];
+    document.querySelectorAll(`[id^="br-c-${i}-"]`).forEach(cs=>{
+      const k=cs.id.split('-').pop();
+      parts.push({c:cs.value,q:document.getElementById(`br-q-${i}-${k}`)?.value||'1'});
+    });
+    out.push({p:el.value,parts:parts.length?parts:[{c:'',q:'1'}]});
+  });return out;
+}
+function brAddProd(){_brDraft=brReadDraft();_brDraft.push({});drawBulkRecipe();}
+function brDelProd(i){_brDraft=brReadDraft();_brDraft.splice(i,1);if(!_brDraft.length)_brDraft=[{}];drawBulkRecipe();}
+function brAddPart(i){_brDraft=brReadDraft();const d=_brDraft[i];d.parts=(d.parts||[]).concat([{c:'',q:'1'}]);drawBulkRecipe();}
+function brDelPart(i,k){_brDraft=brReadDraft();_brDraft[i].parts.splice(k,1);if(!_brDraft[i].parts.length)_brDraft[i].parts=[{c:'',q:'1'}];drawBulkRecipe();}
+function _compByName(n){const k=(n||'').toLowerCase().replace(/\s+/g,' ').trim();
+  return D.components.find(c=>c.name.toLowerCase().replace(/\s+/g,' ').trim()===k);}
+function _prodByRef(n){const k=(n||'').toLowerCase().trim();if(!k)return null;
+  return D.products.find(p=>p.asin.toLowerCase()===k)||D.products.find(p=>(p.sku||'').toLowerCase()===k)
+    ||D.products.find(p=>p.name.toLowerCase()===k)||D.products.find(p=>p.name.toLowerCase().includes(k));}
+function drawBulkRecipe(){
+  const typing=_bulkMode.rec==='type';
+  const comps=D.components.filter(c=>!c.archived).sort((a,b)=>a.name.localeCompare(b.name));
+  const prods=D.products.filter(p=>!p.archived&&p.type==='bundle').sort((a,b)=>a.name.localeCompare(b.name));
+  $('lav3Mod2').className='mod wide';
+  $('lav3Mod2').innerHTML=`
+  <div class="mh"><h3>Bulk recipes</h3>
+    <span class="pmeta" style="margin:0">what goes into each bundle, and how many of it</span>
+    <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+  <div class="mb">
+    ${bulkTabs('rec','brMode')}
+    ${typing?`
+      ${_brDraft.map((d,i)=>{const parts=d.parts&&d.parts.length?d.parts:[{c:'',q:'1'}];
+        return `<div class="brCard">
+        <div class="brHead">
+          <select class="in" id="br-p-${i}" onchange="LV3.brPreview()">
+            <option value="">Choose a bundle…</option>
+            ${prods.map(p=>`<option value="${p.id}" ${d.p===p.id?'selected':''}>${esc(p.name)} — ${p.asin}${p.recipe.length?` (${p.recipe.length} part${p.recipe.length===1?'':'s'} already)`:''}</option>`).join('')}
+          </select>
+          <button class="bkX" title="Remove this bundle" onclick="LV3.brDelProd(${i})">&#10005;</button>
+        </div>
+        <div class="brParts">
+          ${parts.map((pt,k)=>`<div class="brPart">
+            <select class="in" id="br-c-${i}-${k}" onchange="LV3.brPreview()">
+              <option value="">Choose a component…</option>
+              ${comps.map(c=>`<option value="${c.id}" ${pt.c===c.id?'selected':''}>${esc(c.name)}${c.kind==='packaging'?' (packaging)':''}</option>`).join('')}
+            </select>
+            <span class="brX">×</span>
+            <input class="in num" id="br-q-${i}-${k}" type="number" min="1" value="${pt.q||1}" oninput="LV3.brPreview()">
+            <button class="bkX" title="Remove this part" onclick="LV3.brDelPart(${i},${k})">&#10005;</button>
+          </div>`).join('')}
+          <button class="btn sm" onclick="LV3.brAddPart(${i})">+ Add a part</button>
+        </div></div>`;}).join('')}
+      <div class="bkAdd"><button class="btn sm pri" onclick="LV3.brAddProd()">+ Another bundle</button>
+        <span class="pmeta" style="margin:0">Saving replaces that bundle's whole recipe — leave a bundle out and it isn't touched.</span></div>
+    `:`
+      <div class="note info" style="margin-bottom:10px">One bundle per line. Start with the product (name, ASIN or SKU), then each component after a <b>|</b>.
+        Put the quantity after the component with an <b>x</b> — leave it off and it means one.<br>
+        <b style="color:var(--text)">Dove 75ml MD | Dove Lotion 75ml x1 | Exfoliating Glove x1 | Gift Box — Medium</b><br>
+        Component names are matched loosely, so capitals and extra spaces don't matter.</div>
+      <textarea class="in" id="brTxt" rows="9" style="resize:vertical;line-height:1.7"
+        placeholder="Dove 75ml MD | Dove MD Tanning Lotion 75ml | Exfoliating Glove | Self Tan Mitt | Gift Box — Medium&#10;Wedding 60 | Lavarion Wedding Cones (30pc) x2 | Gift Box — Medium" oninput="LV3.brPreview()"></textarea>
+    `}
+    <div id="brOut" style="margin-top:12px"></div>
+  </div>
+  <div class="mf">
+    <div id="brMake"></div>
+    <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
+    <button class="btn pri" onclick="LV3.brSave()">Save recipes</button></div></div>`;
+  brPreview();
+}
+function brParse(){
+  if(_bulkMode.rec==='type'){
+    return brReadDraft().filter(d=>d.p).map(d=>{
+      const p=D.products.find(x=>x.id===d.p);
+      return{p,ref:p?p.name:'',parts:(d.parts||[]).filter(pt=>pt.c).map(pt=>{
+        const c=D.components.find(x=>x.id===pt.c);
+        return{c,name:c?c.name:'',q:Math.max(1,parseInt(pt.q)||1)};})};
+    });
+  }
+  return (($('brTxt')||{}).value||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
+    const p=splitLine(l);
+    const ref=p[0];
+    const parts=p.slice(1).map(seg=>{
+      const m=seg.match(/^(.*?)\s*[x×*]\s*(\d+)$/i);
+      const name=(m?m[1]:seg).trim(),q=m?parseInt(m[2]):1;
+      return{c:_compByName(name),name,q:Math.max(1,q||1)};
+    }).filter(x=>x.name);
+    return{p:_prodByRef(ref),ref,parts};
+  }).filter(r=>r.ref);
+}
+function brPreview(){
+  const rows=brParse(),el=$('brOut');if(!el)return;
+  const mk=$('brMake');
+  if(!rows.length){el.innerHTML=`<div class="bkNil">Nothing yet — ${_bulkMode.rec==='type'?'pick a bundle above':'paste your lines above'}.</div>`;if(mk)mk.innerHTML='';return;}
+  const missing=[...new Set(rows.flatMap(r=>r.parts.filter(pt=>!pt.c).map(pt=>pt.name)))];
+  const noProd=rows.filter(r=>!r.p).length;
+  const ok=rows.filter(r=>r.p&&r.parts.length).length;
+  el.innerHTML=`<div class="bkSum"><b>${fmt(ok)}</b> recipe${ok===1?'':'s'} will be set${noProd?` · <span style="color:var(--red)">${noProd} product${noProd===1?'':'s'} not recognised</span>`:''}${missing.length?` · <span style="color:var(--amb)">${missing.length} component${missing.length===1?'':'s'} not found</span>`:''}</div>
+    <table class="ltab"><thead><tr><th>Bundle</th><th>Makes one unit from</th><th style="width:90px">Replaces</th></tr></thead><tbody>
+    ${rows.slice(0,40).map(r=>`<tr>
+      <td>${r.p?esc(r.p.name)+` <span class="pmeta" style="margin:0">${r.p.asin}</span>`:`<span style="color:var(--red)">${esc(r.ref)} — not found</span>`}</td>
+      <td style="text-align:right">${r.parts.length?r.parts.map(pt=>pt.c
+        ?`<span class="brTag">${esc(pt.c.name)}${pt.q>1?` ×${pt.q}`:''}</span>`
+        :`<span class="brTag miss">${esc(pt.name)}${pt.q>1?` ×${pt.q}`:''}</span>`).join(' '):'<span class="dim">no parts</span>'}</td>
+      <td>${r.p&&r.p.recipe.length?`<span class="chip warn">${r.p.recipe.length} part${r.p.recipe.length===1?'':'s'}</span>`:'—'}</td></tr>`).join('')}
+    </tbody></table>
+    ${noProd?`<div class="note" style="margin-top:10px">Products in red weren't matched. Check the name against the Products page, or use the ASIN instead — those lines will be skipped.</div>`:''}`;
+  if(mk)mk.innerHTML=missing.length
+    ?`<button class="btn warn" onclick="LV3.brMakeMissing()">Create ${missing.length} missing component${missing.length===1?'':'s'}</button>`:'';
+}
+function brMakeMissing(){
+  const rows=brParse();
+  const missing=[...new Set(rows.flatMap(r=>r.parts.filter(pt=>!pt.c).map(pt=>pt.name)))];
+  if(!missing.length)return;
+  missing.forEach((n,i)=>D.components.push({id:'c'+Date.now()+'_'+i,name:n,kind:/box|sleeve|bag|card|label|wrap/i.test(n)?'packaging':'component',
+    tag:'complementary',caseQty:null,layers:[]}));
+  logIt('edit',`Created ${missing.length} components from bulk recipes`);
+  save();toast(`${missing.length} component${missing.length===1?'':'s'} created — no stock yet`,'ok');
+  drawBulkRecipe();
+}
+function brSave(){
+  const rows=brParse().filter(r=>r.p&&r.parts.length);
+  if(!rows.length){toast('Nothing to save','er');return;}
+  const stillMissing=rows.some(r=>r.parts.some(pt=>!pt.c));
+  if(stillMissing&&!confirm('Some components were not found and will be left out. Create them first, or carry on without them?'))return;
+  let n=0;
+  rows.forEach(r=>{
+    const recipe=r.parts.filter(pt=>pt.c).map(pt=>({c:pt.c.id,q:pt.q}));
+    if(!recipe.length)return;
+    r.p.recipe=recipe;n++;
+  });
+  logIt('edit',`Bulk recipes — ${n} bundle${n===1?'':'s'} set`);
+  cm('lav3Ov2');render();toast(`${n} recipe${n===1?'':'s'} saved`,'ok');
 }
 
 /* ── RECIPE GRID: every bundle × every component on one screen ── */
@@ -13386,13 +13941,15 @@ function vGuide(){
           <div class="gbody">
             ${P('Say we hold two batches of Dove lotion: <b>20 bought at £1.87</b> and <b>100 bought at £1.89</b>.')}
             <div class="gex">
-              <div class="gexrow"><span>Send 70 bundles</span><span></span></div>
-              <div class="gexrow"><span>uses the older batch first</span><span><b>20</b> @ £1.87 = £37.40</span></div>
-              <div class="gexrow"><span>then the newer one</span><span><b>50</b> @ £1.89 = £94.50</span></div>
-              <div class="gexrow tot"><span>cost per unit</span><span><b>£1.884</b></span></div>
+              <div class="gexrow"><span>You try to send 70</span><span><b style="color:var(--red)">blocked</b></span></div>
+              <div class="gexrow"><span>send the older batch first</span><span><b>20</b> @ £1.87 — COG <b>£1.87</b></span></div>
+              <div class="gexrow"><span>then a second shipment</span><span><b>50</b> @ £1.89 — COG <b>£1.89</b></span></div>
+              <div class="gexrow tot"><span>two shipments, two exact costs</span><span><b>no averaging</b></span></div>
             </div>
-            ${P('Stock is <b>always</b> used oldest first. That is why the same product can cost slightly different amounts week to week — it is not a bug, it is what we actually paid.',
-                'When a shipment spans more than one price the page blends them into a single number for Amazon and records which batches were used, so the profit figure stays right months later.',
+            ${P('Stock is <b>always</b> used oldest first, and <b>one shipment carries one cost</b>. If the units you are sending would come from two different purchase prices, the page stops you and offers to send the older price on its own.',
+                'That is why the same product can cost slightly different amounts week to week — it is not a bug, it is exactly what we paid. Keeping them apart means every profit figure is real rather than an average.',
+                'Batches that happened to cost <b>the same</b> are treated as one, so only a genuine price change ever blocks a shipment.',
+                'There is an <b>override</b> for the odd time units have already gone into one Amazon shipment by mistake. It asks for a reason, records a blended cost and flags it in the log. Use it to fix a mistake, never as the normal route.',
                 '<b>Packaging is left out of the cost</b> on purpose — boxes, sleeves and poly bags come off stock but do not count toward COG.')}
           </div></div>
 
@@ -13466,8 +14023,8 @@ function vSettings(){
       <div class="panel">
         <div class="ph"><span class="t">Purchase sheet</span><span class="sub">where stock and cost come from</span></div>
         <div style="padding:12px">
-          <div class="frow"><span class="lab">Spreadsheet</span><input class="in mono" value="${esc(D.settings.sheet)}" oninput="D.settings.sheet=this.value"></div>
-          <div class="frow"><span class="lab">Tabs to read</span><input class="in" value="${esc(D.settings.tabs)}" oninput="D.settings.tabs=this.value"></div>
+          <div class="frow"><span class="lab">Spreadsheet</span><input class="in mono" value="${esc(D.settings.sheet)}" oninput="LV3.setPref('sheet',this.value)"></div>
+          <div class="frow"><span class="lab">Tabs to read</span><input class="in" value="${esc(D.settings.tabs)}" oninput="LV3.setPref('tabs',this.value)"></div>
           ${LOCAL_FILE?`<div class="note bad" style="margin-bottom:10px">You're running this from a file on your Mac,
             so anything that reads the Google Sheet is blocked by the browser. Everything else works normally —
             open the hosted version when you need to sync.</div>`:''}
@@ -13477,7 +14034,7 @@ function vSettings(){
       <div class="panel">
         <div class="ph"><span class="t">Stock locations</span></div>
         <div style="padding:12px">
-          <div class="frow"><span class="lab">Locations</span><input class="in" value="${esc(D.settings.locations)}" oninput="D.settings.locations=this.value"></div>
+          <div class="frow"><span class="lab">Locations</span><input class="in" value="${esc(D.settings.locations)}" oninput="LV3.setPref('locations',this.value)"></div>
           <div class="note">Recorded per batch and shown in component detail. Availability is pooled across locations — a mitt at the prep centre still counts toward what you can build.</div>
         </div>
       </div>
@@ -13514,7 +14071,7 @@ function vSettings(){
       <div class="panel">
         <div class="ph"><span class="t">Cover target</span></div>
         <div style="padding:12px">
-          <div class="frow"><span class="lab">Weeks of cover to aim for</span><input class="in mono" type="number" value="${D.settings.coverWeeks}" oninput="D.settings.coverWeeks=parseInt(this.value)||4;LV3.save()"></div>
+          <div class="frow"><span class="lab">Weeks of cover to aim for</span><input class="in mono" type="number" value="${D.settings.coverWeeks}" oninput="LV3.setPref('coverWeeks',parseInt(this.value)||4)"></div>
           <div class="note">Anything under 2 weeks shows amber, zero shows red.</div>
         </div>
       </div>
@@ -13528,8 +14085,9 @@ function vSettings(){
           <b>Private label</b> and <b>single</b> products arrive finished — availability is their own stock.<br><br>
           <b style="color:var(--text)">Stock</b> arrives as batches from the purchase sheet, each with its own price.
           Sending always eats the <b>oldest batch first</b>, so COG follows the real order of purchases.<br><br>
-          <b style="color:var(--text)">COG</b> is worked out for you. If a shipment spans more than one batch, the unit cost
-          is the weighted average of what it actually consumed — one number for Amazon, with the batches recorded underneath.<br><br>
+          <b style="color:var(--text)">COG</b> is worked out for you, and a shipment may only carry <b>one</b> cost. If what you are
+          sending would span two purchase prices it is blocked, with the option to send the older price on its own — or to
+          override it deliberately, with a reason, if the units are already inside one Amazon shipment.<br><br>
           <b style="color:var(--text)">Sending</b> is blocked when there isn't enough stock, and tells you exactly what's missing
           and where the number came from, so it can be checked against the sheet.
         </div>
@@ -13701,11 +14259,12 @@ function paint(){
 
 /* everything the page's inline handlers need */
 const API={go,render:paint,boot,
-  openProduct,editProduct,setType,addRecipeRow,rcChange,rcSearch,recipePreview,copyRecipe,saveProduct,delProduct,togRow,setArchived,
-  openShip,drawShip,doShip,copyCog,selOne,selAll,selClear,selType,selVat,
+  openProduct,editProduct,setType,addRecipeRow,rcChange,rcSearch,rcPick,rcMake,recipePreview,copyRecipe,saveProduct,delProduct,togRow,setArchived,
+  openShip,drawShip,doShip,copyCog,shipSetQty,shipOverride,shipQty,shipFba,setQ,selOne,selAll,selClear,selType,selVat,
   openComp,editComp,saveComp,delComp,pickKind,markArrived,openAdjust,doAdjust,
   openLink,saveAlloc,clearAlloc,quickLink,addAllocRow,allocSum,useSuggestion,fillRest,
-  openBulkComp,bcPreview,bcSave,openBulkProd,bpPreview,bpSave,
+  openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
+  openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
   openData,exportCsv,copySql,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,saveOrder,openDeliveries,dlvSum,dlvReceive,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
