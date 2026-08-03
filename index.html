@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v5.0</title>
+<title>BDL PrepHub v5.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1000,6 +1000,15 @@ html.light-mode{
 #page-lavarion .chip.branded,.lav3 .chip.branded{background:rgba(192,132,252,.14);color:#c084fc;border:1px solid rgba(192,132,252,.32);}
 #page-lavarion .chip.private-label,.lav3 .chip.private-label{background:rgba(56,189,248,.13);color:#38bdf8;border:1px solid rgba(56,189,248,.3);}
 #page-lavarion .chip.complementary,.lav3 .chip.complementary{background:rgba(148,163,184,.12);color:var(--text2);border:1px solid var(--border2);}
+
+#page-lavarion .mdHead,.lav3 .mdHead{display:grid;grid-template-columns:1fr 250px 30px;gap:9px;padding:0 0 6px;
+  font:700 9.5px var(--num);letter-spacing:.6px;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .mdRow,.lav3 .mdRow{display:grid;grid-template-columns:1fr 250px 30px;gap:9px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);}
+#page-lavarion .mdRow:last-of-type,.lav3 .mdRow:last-of-type{border-bottom:0;}
+#page-lavarion .mdDays,.lav3 .mdDays{display:flex;gap:6px;align-items:center;}
+#page-lavarion .mdDays .in,.lav3 .mdDays .in{width:64px;text-align:center;}
+
+#page-lavarion .etaDM,.lav3 .etaDM{width:58px;text-align:center;padding:5px 4px;font-size:11.5px;font-family:var(--num);}
 /* mixed-COG block */
 #page-lavarion .mixWrap,.lav3 .mixWrap{margin-bottom:13px;}
 #page-lavarion .mixHead,.lav3 .mixHead{display:flex;gap:12px;align-items:flex-start;background:rgba(248,113,113,.1);
@@ -1465,7 +1474,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v5.0</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v5.4</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1499,7 +1508,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v5.0</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v5.4</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -2755,9 +2764,15 @@ function shiftWeek(by){
   const next=WEEK_OFFSET+by;
   if(next<0||next>25)return;                 // no future, and half a year back is plenty
   WEEK_OFFSET=next;
-  renderStats();
+  redrawWeek();
 }
-function thisWeekNow(){WEEK_OFFSET=0;renderStats();}
+function thisWeekNow(){WEEK_OFFSET=0;redrawWeek();}
+/* Weekly Activity is drawn by renderDashboard, not renderStats — calling the
+   wrong one is why the arrows appeared to do nothing at all. */
+function redrawWeek(){
+  try{if(typeof renderDashboard==='function')renderDashboard();}catch(e){console.warn('week redraw',e);}
+  try{if(typeof renderStats==='function')renderStats();}catch(e){}
+}
 function getWeekRange(off){
   const back=(off===undefined?WEEK_OFFSET:off)*7;
   const n=new Date();const d=n.getDay()||7;
@@ -3899,8 +3914,15 @@ function _adminItems(){
     const reason=isStuck?`Late — ${days} days in transit (threshold: 20 days)`:(expOverdue?`Past expected date (${expStr}) — confirm arrival`:(ta||'Needs follow-up'));
     const cogs=parseSKU(r.sku).cogs||0;
     const units=r.exp||r.ship||0;
+    /* "Nothing has turned up" and "half of it turned up" are different jobs:
+       one is chasing a whole order, the other is chasing a shortfall. The queue
+       treated both as simply late, so the VA had to open the row to find out. */
+    const got=parseInt(r.rcvd)||0;
+    const partArrived=got>0&&got<units;
+    const missing=partArrived?units-got:0;
     out.push({rid:r.uuid||r.id,sku:r.sku,asin:r.asin,prod:r.prod,sup:r.sup,oid:r.oid,date:r.date,
-      days,isStuck,ta,reason,sev,col,value:cogs*units});
+      acct:r.acct||'',units,got,partArrived,missing,
+      days,isStuck,ta,reason,sev,col,value:cogs*(partArrived?missing:units)});
   });
   out.sort((a,b)=>b.sev-a.sev||b.days-a.days);
   return out;
@@ -4185,16 +4207,19 @@ function renderAdmin(){
   if(items.length){
     html+=`<div style="background:var(--bg2);border:1px solid var(--border);border-left:4px solid #ef4444;border-radius:8px;overflow:hidden;margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(239,68,68,.06);">
-        <div style="font-size:13px;font-weight:800;color:var(--text);">⏱ Transit Follow-Up — ${items.length} to chase</div>
+        <div style="font-size:13px;font-weight:800;color:var(--text);">⏱ Transit Follow-Up — ${items.length} to chase${(()=>{
+          const pa=items.filter(x=>x.partArrived).length;
+          return pa?` <span style="font-size:11px;font-weight:700;color:#fbbf24;">· ${pa} part arrived</span>`:'';})()}</div>
         <div style="font-size:10px;font-weight:700;color:#f87171;background:rgba(239,68,68,.12);padding:3px 10px;border-radius:10px;">VA action required</div>
       </div>
       <table style="width:100%;border-collapse:collapse;">
         <thead><tr style="background:var(--bg3);">
           <th class="th-left" style="font-size:9px;color:var(--text3);text-align:left;padding:7px 10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;width:230px;">Product</th>
           <th class="th-left" style="font-size:9px;color:var(--text3);text-align:left;padding:7px 6px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;width:150px;">Supplier / Order</th>
+          <th class="th-left" style="font-size:9px;color:var(--text3);text-align:left;padding:7px 6px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;width:96px;">Account</th>
           <th style="font-size:9px;color:var(--text3);text-align:left;padding:7px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Flag</th>
           <th style="font-size:9px;color:var(--text3);text-align:left;padding:7px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;width:150px;">Set Status</th>
-          <th style="font-size:9px;color:var(--text3);text-align:left;padding:7px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Note <span style="text-transform:none;letter-spacing:0;color:var(--text3);font-weight:600;">— what's happening with it</span></th>
+          <th style="font-size:9px;color:var(--text3);text-align:left;padding:7px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Chase note <span style="text-transform:none;letter-spacing:0;color:var(--text3);font-weight:600;">— what the supplier said</span></th>
           <th style="font-size:9px;color:var(--text3);text-align:right;padding:7px 14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;"></th>
         </tr></thead>
         <tbody>
@@ -4203,16 +4228,26 @@ function renderAdmin(){
           return`<tr style="border-top:1px solid var(--border);">
             <td style="padding:9px 10px;border-left:3px solid ${i.col};">
               <div style="font-size:12px;font-weight:600;color:var(--text);max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(i.prod||'').replace(/"/g,'&quot;')}">${i.prod||i.sku}</div>
-              <div style="display:flex;gap:10px;margin-top:3px;flex-wrap:wrap;align-items:center;">
-                ${i.asin?`<span class="s-asin" onclick="copyVal('${i.asin}',this)" style="font-size:10px;">${i.asin}</span>`:''}
-                ${i.sku?`<span class="s-sku" onclick="copyVal('${(i.sku||'').replace(/'/g,"\\'")}',this)" style="font-size:10px;">${i.sku}</span>`:''}
+              <div style="display:flex;gap:8px;margin-top:3px;align-items:center;min-width:0;">
+                ${i.asin?`<span class="s-asin" onclick="copyVal('${i.asin}',this)" style="font-size:10px;flex:0 0 auto;">${i.asin}</span>`:''}
+                ${i.sku?`<span class="s-sku" onclick="copyVal('${(i.sku||'').replace(/'/g,"\\'")}',this)" style="font-size:9.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(i.sku||'').replace(/"/g,'&quot;')}">${i.sku}</span>`:''}
               </div>
             </td>
             <td style="padding:9px 6px;">
               <div style="font-size:11px;color:var(--text2);font-weight:600;">${i.sup||'—'}</div>
-              <div style="font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:2px;">${i.oid||'no order id'} · ${i.date||''}</div>
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:2px;">${i.oid||'no order id'}</div>
+              <div style="font-size:9px;color:var(--text3);margin-top:1px;">ordered ${i.date||'—'}${i.units?` · ${i.units}u`:''}</div>
+            </td>
+            <td style="padding:9px 6px;">
+              ${i.acct
+                ? `<span style="display:inline-block;font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(148,163,184,.14);color:var(--text2);border:1px solid var(--border2);">${i.acct}</span>`
+                : '<span style="font-size:10px;color:var(--text3);">—</span>'}
             </td>
             <td style="padding:9px 8px;">
+              ${i.partArrived?`<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+                <span style="font-size:10px;font-weight:800;color:#fbbf24;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);border-radius:4px;padding:3px 8px;white-space:nowrap;">Part arrived — ${i.got} of ${i.units}</span>
+                <span style="font-size:10px;color:var(--text3);">chase the missing ${i.missing}</span>
+              </div>`:''}
               <span style="display:inline-block;font-size:10px;font-weight:700;color:${i.col};background:${i.col}1f;border:1px solid ${i.col}55;border-radius:4px;padding:3px 9px;white-space:nowrap;">${i.reason}</span>
             </td>
             <td style="padding:9px 8px;">${_adminTransitSelect(i)}</td>
@@ -8207,29 +8242,7 @@ function renderShipments(){
     ${sc('Prep Cost inc. VAT',fmtGBP2(sumPrep),'#fbbf24')}
   </div>`;
 
-  const _shipTotals=(()=>{
-    /* .tbl-wrap is flex:1, so a short list leaves a large empty area below it.
-       Rather than shrink the container, fill it with the one thing you would
-       otherwise add up by hand — and make it follow the filters. */
-    if(!shipments.length)return '';
-    const t={ships:shipments.length,units:0,value:0,boxes:0,skus:0,lav:0};
-    shipments.forEach(x=>{t.units+=x.units||0;t.value+=x.value||0;t.boxes+=x.boxes||0;
-      t.skus+=x.skus.length+(x.lavSkus||[]).length+(x.retSkus||[]).length;
-      t.lav+=(x.lavSkus||[]).reduce((a,y)=>a+(y.units||0),0);});
-    const cell=(k,v,col)=>`<div style="min-width:96px"><div style="font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--text3)">${k}</div>
-      <div style="font-family:var(--mono);font-size:15px;font-weight:800;color:${col||'var(--text)'};margin-top:2px">${v}</div></div>`;
-    return `<div style="margin-top:14px;padding:13px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;
-      display:flex;gap:26px;align-items:center;flex-wrap:wrap;">
-      <div style="font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);min-width:100px">Showing</div>
-      ${cell('Shipments',fmt(t.ships),'var(--blue)')}
-      ${cell('Units',fmt(t.units),'var(--green)')}
-      ${cell('COG value',fmtGBP2(t.value),'var(--amber)')}
-      ${cell('SKU lines',fmt(t.skus))}
-      ${cell('Boxes',fmt(t.boxes))}
-      ${t.lav?cell('Lavarion units',fmt(t.lav),'var(--purple)'):''}
-      <div style="flex:1;min-width:150px;text-align:right;font-size:10.5px;color:var(--text3);line-height:1.5">
-        Totals for what is on screen — change the dates or the search and these follow.</div>
-    </div>`;})();
+
   w.innerHTML=summaryBar+shipments.map(s=>{
     const dateDisp=s.date?new Date(s.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
     const sfUrl=`https://app.sellerfuse.com/shipment-manager?search=${encodeURIComponent(s.id)}`;
@@ -8383,7 +8396,7 @@ function renderShipments(){
         </table>
       </div>
     </div>`;
-  }).join('')+_shipTotals;
+  }).join('');
 }
 
 
@@ -9981,7 +9994,12 @@ async function saveLavAsin(a){
   if(missingCol(res,'archived')) res=await run({...base,vat:a.vat||''}); // archived col absent
   if(missingCol(res,'vat'))      res=await run({...base,archived:!!a.archived}); // vat col absent
   if(missingCol(res,'vat')||missingCol(res,'archived')) res=await run(base); // neither col
-  if(!a.uuid&&res.data)a.uuid=res.data.id;
+  if(!a.uuid&&res.data){
+    /* same story as components — the product's stock batches follow its id */
+    const oldId=String(a.id);
+    a.uuid=res.data.id;a.id=res.data.id;
+    if(typeof adoptId==='function')adoptId('product',oldId,res.data.id);
+  }
   if(res.error){setSyncStatus('error');console.warn('saveLavAsin failed',res.error);toast('Lavarion save failed — check connection','er');return;}
   setSyncStatus('synced');
 }
@@ -11905,7 +11923,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v5.0 · lav3 · 2026-08-03 · b65';
+const BUILD='v5.4 · lav3 · 2026-08-03 · b69';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -11968,6 +11986,34 @@ async function loadCompsRecipes(){
 }
 let _crT=null;
 function saveCompsRecipes(){clearTimeout(_crT);_crT=setTimeout(pushCompsRecipes,600);}
+/* A row created in the UI gets a temporary id ("c1785…"). Supabase then hands
+   back a permanent one, and after the next reload the component IS that id —
+   but its stock batches and build-list lines still point at the temporary one,
+   so they orphan and the stock silently disappears. Whether it survived came
+   down to whether a reload happened first, which is why it only failed
+   sometimes. Re-point everything the moment the real id arrives. */
+function adoptId(kind,oldId,newId){
+  if(!oldId||!newId||String(oldId)===String(newId))return;
+  const o=String(oldId),nu=String(newId);
+  let moved=0;
+  LAYERS.forEach(l=>{
+    if(l.kind===kind&&String(l.tid)===o){l.tid=nu;l._dirty=1;moved++;}
+  });
+  if(kind==='component'){
+    Object.keys(RECIPES).forEach(k=>{
+      (RECIPES[k]||[]).forEach(r=>{if(String(r.c)===o)r.c=nu;});
+    });
+    D.products.forEach(p=>(p.recipe||[]).forEach(r=>{if(String(r.c)===o)r.c=nu;}));
+    if(D.settings.untracked&&D.settings.untracked[o]){
+      D.settings.untracked[nu]=true;delete D.settings.untracked[o];savePrefs();}
+    if(D.settings.aliases){Object.keys(D.settings.aliases).forEach(k=>{
+      if(String(D.settings.aliases[k])===o)D.settings.aliases[k]=nu;});}
+  }
+  D.purchases.forEach(p=>(p.alloc||[]).forEach(a=>{if(String(a.to)===o)a.to=nu;}));
+  const model=kind==='component'?D.components:D.products;
+  const m=model.find(x=>String(x.id)===o);if(m)m.id=nu;
+  if(moved){_dirty=true;clearTimeout(_pt);_pt=setTimeout(pushNow,400);}
+}
 async function pushCompsRecipes(){
   if(!_crLoadedOK){console.warn('[lav3] refusing to save — components never loaded');return;}
   _writing++;
@@ -11982,7 +12028,11 @@ async function pushCompsRecipes(){
       }else{
         let r=await sb.from('lavarion_components').insert(row).select('id').single();
         if(r.error&&/kind|tag/i.test(r.error.message||''))r=await sb.from('lavarion_components').insert(strip(row)).select('id').single();
-        if(!r.error)c.uuid=r.data.id;
+        if(!r.error){
+          const oldId=String(c.id);
+          c.uuid=r.data.id;c.id=r.data.id;
+          adoptId('component',oldId,r.data.id);   // batches and build lists follow the id
+        }
       }
     }
     /* pruning is only ever safe when we hold the full loaded set — and never
@@ -12161,7 +12211,16 @@ async function pushNow(){
       const row={sheet_tab:p.tab||'',bought_on:p.date,name:p.name,qty:p.qty,buy_price:p.price,supplier:p.sup,
         order_ref:p.oid,location:p.loc,arrived:!!p.arr,alloc:JSON.stringify(p.alloc||[])};
       if(p.uuid){const r=await sb.from('lavarion_purchases').update(row).eq('id',p.uuid);if(r.error)throw r.error;}
-      else{const r=await sb.from('lavarion_purchases').insert(row).select('id').single();if(!r.error)p.uuid=r.data.id;}
+      else{const r=await sb.from('lavarion_purchases').insert(row).select('id').single();
+        if(!r.error){
+          /* the batches this purchase created are tagged with its id — if the id
+             changes underneath them they orphan, and re-allocating would leave
+             the old stock behind as a duplicate */
+          const oldTag='P:'+p.id;
+          p.uuid=r.data.id;p.id=r.data.id;
+          const newTag='P:'+r.data.id;
+          LAYERS.forEach(l=>{if(l.src===oldTag){l.src=newTag;l._dirty=1;}});
+        }}
     }
     _dirty=false;                          // only now is everything genuinely written
     status('synced');
@@ -12361,7 +12420,12 @@ function cogOf(p,units){
       if(f.short>0)blocked.push({o:c,need,have:need-f.short,short:f.short});
     }
   }
-  return{lines,total,per:units?total/units:0,blocked,
+  /* A COG built from parts you do not have is a fiction. Always Size 2 needs
+     two Always Ultra and only one is on the shelf — costing it off that one
+     gave £2.63 for a unit that cannot be made. If anything is short, there is
+     no cost to show. */
+  const short=blocked.length>0;
+  return{lines,total,per:(short||!units)?0:total/units,blocked,short,
     batches:lines.filter(l=>!l.pack).reduce((s,l)=>s+l.parts.length,0)};
 }
 
@@ -12720,8 +12784,11 @@ function vOverview(){
         ${blocked.length?`<div style="padding:9px 12px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text3)">
           <b style="color:var(--red)">${blocked.length}</b> hidden because they can't be sent — ${blocked.map(b=>esc(b.name)).join(', ')}</div>`:''}
       </div>
-
-      ${D.log.length?`<div class="panel">
+      </div>
+    </div>
+    <!-- full width: the two columns are rarely the same height, and a
+         half-empty left column was just dead space -->
+    ${D.log.length?`<div class="panel">
         <div class="ph"><span class="t">Recent movement</span><span class="sub">every in and out</span></div>
         ${D.log.slice(0,_logAll?40:9).map(l=>{const col=l.k==='ship'?'var(--purple)':l.k==='recv'?'var(--green)':l.k==='adj'?'var(--amber)':'var(--blue)';
           return `<div class="att"><span class="dot" style="background:${col}"></span>
@@ -12729,7 +12796,6 @@ function vOverview(){
         ${D.log.length>9?`<div class="att" style="justify-content:center">
           <button class="btn sm" onclick="LV3.toggleLog()">${_logAll?'Show less':'Show more'}</button></div>`:''}
       </div>`:''}
-    </div>
   </div>`;
 }
 const typeLabel=t=>t==='bundle'?'Bundle':t==='pl'?'Private label':'Single';   // 'single' kept only for legacy rows
@@ -13086,7 +13152,9 @@ function prodRow(p){
          units sent — showing it in confident amber made a guess look like a fact. */
       return `<span class="num" style="color:${!real?'var(--text3)':gap>0?'var(--amber)':'var(--green)'}">${real?'':'≈'}${fmt(t)}</span>
         <div class="tsub ${!real?'prov':gap>0?'gap':'ok'}">${!real?'guess — not real sales':gap>0?`send ${fmt(gap)} more`:'covered'}</div>`;})()}</td>`:''}
-    ${COL('pCog')?`<td><span class="num" style="color:var(--accent)">${cg.per?gbp(cg.per):'—'}</span>${cg.batches>1?`<div class="pmeta">${cg.batches} batch${cg.batches===1?'':'es'}</div>`:''}</td>`:''}
+    ${COL('pCog')?`<td>${cg.short
+      ? `<span class="dim" style="font-size:12px">—</span><div class="pmeta" style="text-align:center;color:var(--amb)">parts missing</div>`
+      : `<span class="num" style="color:var(--accent)">${cg.per?gbp(cg.per):'—'}</span>${cg.batches>1?`<div class="pmeta">${cg.batches} batch${cg.batches===1?'':'es'}</div>`:''}`}</td>`:''}
     <td class="acts" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:flex-end">
       ${p.archived?`<button class="btn sm go" onclick="LV3.setArchived('product','${p.id}',false)">Restore</button>`
         :`<button class="btn sm go" onclick="LV3.openShip('${p.id}')">Ship</button>
@@ -13120,7 +13188,9 @@ function prodRow(p){
     <div class="lab" style="margin-bottom:6px">Cost of one unit — oldest stock first</div>
     ${c1.lines.map(l=>`<div class="cogrow" ${l.pack?'style="opacity:.6"':''}><span>${esc(l.name)}${l.q>1?` ×${l.q}`:''}${l.pack?' <span class="chip packaging" style="opacity:.85">not in COG</span>':''}</span>
       <b>${l.pack?'—':(l.parts.length?l.parts.map(pt=>`${fmt(pt.take)}@${pt.cost>0?gbp(pt.cost):'—'}`).join(' + '):'<span style="color:var(--red)">no stock</span>')}</b></div>`).join('')}
-    <div class="cogtot"><span>COG per unit</span><span class="mono" style="color:var(--accent)">${gbp(c1.per)}</span></div></div>`;
+    <div class="cogtot"><span>COG per unit</span>${c1.short
+      ? `<span style="color:var(--amb);font-size:12px;font-weight:700">not until every part is in stock</span>`
+      : `<span class="mono" style="color:var(--accent)">${gbp(c1.per)}</span>`}</div></div>`;
   return main+`<tr class="sub-row"><td colspan="${4+['pIncoming','pOrdered','pSold','pTarget','pCog'].filter(COL).length}" style="padding:0"><div class="rbox"><div class="rgrid"><div>${inner}</div><div>${cogHtml}</div></div>
     <div style="margin-top:9px;display:flex;gap:6px"><button class="btn sm" onclick="LV3.editProduct('${p.id}')">Edit build list</button>
     <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Full detail</button></div></div></td></tr>`;
@@ -13244,7 +13314,8 @@ function openProduct(id){
         sold30(p)!=null?`we sent ${fmt(p.ship30)} in`:'not entered — add it on the Products list')}
       ${stat(`${D.settings.targetDays||60}d target`,target60(p)?fmt(target60(p)):'—',null,(()=>{const t=target60(p);if(!t)return'needs a sold figure';
         const gap=t-(avail(p).n||0);return gap>0?`${fmt(gap)} short of it`:'covered';})())}
-      ${stat('COG / unit',cg.per>0?gbp(cg.per):'—','var(--accent)',cg.batches>1?`${cg.batches} price batches`:'')}
+      ${stat('COG / unit',cg.short?'—':(cg.per>0?gbp(cg.per):'—'),cg.short?'var(--amb)':'var(--accent)',
+        cg.short?'needs every part in stock':(cg.batches>1?`${cg.batches} price batches`:''))}
       ${stat(isB?'Sendable value':'Stock value',gbp(cg.per*(a.n||0)||stockVal),null,'at what you paid')}
     </div>
 
@@ -13267,7 +13338,9 @@ function openProduct(id){
       ${cg.lines.map(l=>`<div class="cogrow" ${l.pack?'style="opacity:.6"':''}>
         <span>${esc(l.name)}${l.q>1?` ×${fmt(l.q)}`:''}${l.pack?' <span class="chip packaging">not in COG</span>':''}</span>
         <b>${l.pack?'—':(l.parts.length?l.parts.map(pt=>`${fmt(pt.take)}@${pt.cost>0?gbp(pt.cost):'—'}`).join(' + '):'<span style="color:var(--red)">no stock</span>')}</b></div>`).join('')}
-      <div class="cogtot"><span>Total COG</span><span class="mono" style="color:var(--accent)">${gbp(cg.per)}</span></div></div>
+      <div class="cogtot"><span>Total COG</span>${cg.short
+        ? `<span style="color:var(--amb);font-size:12px;font-weight:700">not until every part is in stock</span>`
+        : `<span class="mono" style="color:var(--accent)">${gbp(cg.per)}</span>`}</div></div>
     ${cg.lines.some(l=>l.pack)?'<div class="pmeta" style="margin-top:6px">Packaging is deducted from stock but left out of COG.</div>':''}
 
     <div class="dsec"><span class="lab">Shipment history</span></div>
@@ -13737,7 +13810,7 @@ function shipOk(p,cg,n,mixed){
 }
 function shipBlock(p,cg,n){
   return `<div class="note bad" style="margin-bottom:12px">
-    <div style="font-size:13.5px;font-weight:800;color:var(--red);margin-bottom:4px">Can't send ${fmt(n)} units</div>
+    <div style="font-size:13.5px;font-weight:800;color:var(--red);margin-bottom:4px">Can't send ${fmt(n)} unit${n===1?'':'s'}</div>
     ${p.type==='bundle'?`There are only enough components for <b>${fmt(avail(p).n)}</b>.`:`There are only <b>${fmt(onHand(p))}</b> in stock.`}
     Lower the quantity, receive a delivery, or correct the stock if the count is wrong.</div>
   ${cg.blocked.map(b=>{
@@ -13980,11 +14053,11 @@ function editComp(id){
     ${id?`<div class="note info">Stock comes from batches — each delivery keeps its own price. Use <b>Correct stock</b> if a physical count disagrees, or <b>Log an order</b> for a new delivery.</div>`
       :`<div class="panel" style="margin-top:4px">
         <div class="ph"><span class="t">What you have right now</span><span class="sub">optional — this becomes its first batch</span></div>
-        <div class="g2" style="padding:12px">
+        <div class="g2" id="c-open-grid" style="padding:12px">
           <div><span class="lab">Units in stock</span><input class="in num" id="c-open-qty" type="number" min="0" placeholder="0"></div>
-          <div><span class="lab">What they cost each</span><input class="in num" id="c-open-cost" type="number" step="0.01" min="0" placeholder="0.00"></div>
+          <div id="c-open-cost-wrap"><span class="lab">What they cost each</span><input class="in num" id="c-open-cost" type="number" step="0.01" min="0" placeholder="0.00"></div>
         </div>
-        <div class="pmeta" style="padding:0 12px 12px">Every later delivery is added as its own batch at its own price. <b>On hand</b> always shows the total across all batches — order 30, 40, 10 and 20 and it reads 100.</div>
+        <div class="pmeta" id="c-open-hint" style="padding:0 12px 12px">Every later delivery is added as its own batch at its own price. <b>On hand</b> always shows the total across all batches — order 30, 40, 10 and 20 and it reads 100.</div>
       </div>`}
   </div>
   <div class="mf">${id?`<button class="btn dgr" onclick="LV3.delComp('${id}')">Delete</button>`:''}
@@ -14043,6 +14116,15 @@ function pickKind(k){
   window._ck=k;
   [...document.querySelectorAll('#ckSeg button')].forEach((b,i)=>b.classList.toggle('on',['component','packaging'][i]===k));
   const cat=$('ckCat');if(cat)cat.style.display=k==='packaging'?'none':'';   // packaging just needs a name
+  /* packaging never reaches COG, so asking what it cost is a question with no
+     consequence — just how many there are */
+  const pack=k==='packaging';
+  const costWrap=$('c-open-cost-wrap');if(costWrap)costWrap.style.display=pack?'none':'';
+  const grid=$('c-open-grid');if(grid)grid.style.gridTemplateColumns=pack?'1fr':'1fr 1fr';
+  const hint=$('c-open-hint');
+  if(hint)hint.innerHTML=pack
+    ? 'Packaging is deducted from stock but never counts toward COG, so there is no price to enter.'
+    : 'Every later delivery is added as its own batch at its own price. <b>On hand</b> always shows the total across all batches — order 30, 40, 10 and 20 and it reads 100.';
 }
 function saveComp(id){
   const name=$('c-name').value.trim();if(!name){toast('Name required','er');return;}
@@ -14188,10 +14270,10 @@ function openAddBatch(oid,kind){
       <table class="ltab" style="margin-bottom:13px"><thead><tr><th>Bought</th><th>Supplier</th><th>Left</th><th>Unit</th></tr></thead><tbody>
       ${ls.map(l=>`<tr><td>${dshort(l.date)}</td><td>${esc(l.sup||'—')}</td><td>${fmt(l.rem)}</td><td>${l.cost>0?gbp(l.cost):'<span class="dim">no price</span>'}</td></tr>`).join('')}
       </tbody></table>`:''}
-    <div class="g2 frow">
+    <div class="${o.kind==='packaging'?'frow':'g2 frow'}">
       <div><span class="lab">How many</span><input class="in num" id="ab-qty" type="number" min="1" placeholder="10" style="font-size:17px;text-align:center"></div>
-      <div><span class="lab">What they cost each <span style="text-transform:none;font-weight:600">(inc VAT)</span></span>
-        <input class="in num" id="ab-cost" type="number" step="0.01" min="0" placeholder="0.00" style="font-size:17px;text-align:center"></div>
+      ${o.kind==='packaging'?'':`<div><span class="lab">What they cost each <span style="text-transform:none;font-weight:600">(inc VAT)</span></span>
+        <input class="in num" id="ab-cost" type="number" step="0.01" min="0" placeholder="0.00" style="font-size:17px;text-align:center"></div>`}
     </div>
     <div class="g2 frow">
       <div><span class="lab">Supplier</span><input class="in" id="ab-sup" placeholder="Superdrug, Alibaba…"></div>
@@ -14226,7 +14308,7 @@ function abPreview(oid,kind){
   box.innerHTML=`On hand goes from <b>${fmt(now)}</b> to <b style="color:var(--grn)">${fmt(now+q)}</b>${c?` · this batch is worth <b>${gbp(q*c)}</b>`:''}.
     ${older?`It sits <b>behind ${fmt(older)}</b> older batch${older===1?'':'es'} in the queue.`
       :'<b>It is the oldest batch</b>, so it goes out first.'}
-    ${!c?'<br><span style="color:var(--amb)">No price — it will not count toward COG until you set one.</span>':''}`;
+    ${(!c&&o.kind!=='packaging')?'<br><span style="color:var(--amb)">No price — it will not count toward COG until you set one.</span>':''}`;
 }
 function doAddBatch(oid,kind){
   const o=(kind==='component'?comp(oid):prod(oid));if(!o)return;
@@ -14346,7 +14428,9 @@ function parseSheetRows(rows,tab){
     if(!spend)spend=price*qty;
     if(spend<=0)return;
     out.push({tab,date:iso,name,qty,price:price||0,spend,
-      mismatch:(price&&qty&&spend&&Math.abs(price*qty-spend)>0.02)?spend:0,
+      /* the sheet rounds to whole figures deliberately, so Spent differing from
+         price × qty is expected — Spent is what actually left the account */
+      mismatch:0,
       sup:get('bought from')||'—',oid:get('order id')||'—',
       acct:get('account')||'',invoice:get('link to invoice')||'',notes:get('notes')||''});
   });
@@ -14559,7 +14643,7 @@ function reviewOrders(){
   return Object.values(by).map(o=>{
     o.date=o.lines.map(l=>l.date).sort()[0];
     o.units=o.lines.reduce((t,l)=>t+l.qty,0);
-    o.value=o.lines.reduce((t,l)=>t+l.qty*l.price,0);
+    o.value=o.lines.reduce((t,l)=>t+(l.spend||l.qty*l.price),0);
     o.sugs=o.lines.map(l=>suggestFor(l));
     o.ready=o.sugs.filter(x=>x&&x.sure).length;
     return o;
@@ -14613,13 +14697,12 @@ function reviewPanel(){
             </div>
             ${o.lines.map((p,ix)=>{
               const sug=o.sugs[ix];const t=sug?(comp(sug.id)||prod(sug.id)):null;
-              const total=p.qty*p.price;
+              const total=p.spend||(p.qty*p.price);
               return `<div class="rvLine ${t?'':'nomatch'}">
                 <div class="rvName">${esc(p.name)}</div>
                 <div class="rvNum">${fmt(p.qty)}</div>
                 <div class="rvNum">${gbp(p.price)}</div>
-                <div class="rvNum">${gbp(total)}
-                  ${p.mismatch?`<span class="rvFlag" title="Buy Price × Qty is ${gbp(total)} but the sheet's Spent column says ${gbp(p.mismatch)}">sheet: ${gbp(p.mismatch)}</span>`:''}</div>
+                <div class="rvNum">${gbp(p.spend||total)}</div>
                 <div class="rvTo">${t
                   ? `<span class="brTag ${sug.sure?'':'maybe'}">${esc(t.name)}</span><span class="rvWhy">${esc(sug.why)}</span>`
                   : `<span class="rvNone">nothing matches</span>`}</div>
@@ -14704,7 +14787,7 @@ function vPurchases(){
     .filter(p=>!Q||(p.name+p.sup+p.oid).toLowerCase().includes(Q))
     .slice().sort((a,b)=>b.date.localeCompare(a.date));
   const done=D.purchases.filter(p=>['full','split'].includes(allocState(p).k)).length;
-  const spend=D.purchases.reduce((s,p)=>s+p.price*p.qty,0);
+  const spend=D.purchases.reduce((s,p)=>s+(p.spend||p.price*p.qty),0);
   /* A purchase has a life: it arrives from the sheet, someone says what it is,
      it sits on order, then it lands. Four unrelated tiles hid that. This is the
      same journey left to right, and each step jumps to the panel that handles it. */
@@ -14955,10 +15038,66 @@ const SHIPMODE_DEFAULTS=[
 /* The day ranges are yours to set — what sea freight from your supplier really
    takes is something only you know, and it changes. Settings overrides these. */
 Object.defineProperty(window,'__lavModes',{value:1,configurable:true});
+/* The list of methods is yours as well as the timings — different suppliers,
+   different routes. Held in settings, so nothing to migrate. */
+function shipModes(){
+  const custom=D.settings.modes;
+  if(Array.isArray(custom)&&custom.length)return custom;
+  return SHIPMODE_DEFAULTS.map(m=>({k:m.k,label:m.label,lo:m.lo,hi:m.hi,hint:m.hint}));
+}
 function modeDays(k){
+  const m=shipModes().find(x=>x.k===k);
+  if(m)return{lo:m.lo,hi:m.hi};
+  const base=SHIPMODE_DEFAULTS.find(x=>x.k===k)||SHIPMODE_DEFAULTS[0];
   const d=(D.settings.modeDays||{})[k];
-  const base=SHIPMODE_DEFAULTS.find(m=>m.k===k)||SHIPMODE_DEFAULTS[0];
   return{lo:(d&&d.lo!=null)?d.lo:base.lo,hi:(d&&d.hi!=null)?d.hi:base.hi};
+}
+/* the editor works on a draft so nothing changes until Save is pressed */
+let _modeDraft=null;
+function modeDraft(){
+  if(!_modeDraft)_modeDraft=JSON.parse(JSON.stringify(shipModes()));
+  return _modeDraft;
+}
+function modeEdit(i,field,v){
+  const d=modeDraft();if(!d[i])return;
+  d[i][field]=(field==='label')?v:(Math.max(0,parseInt(v)||0));
+  if(d[i].hi<d[i].lo)d[i].hi=d[i].lo;
+  markModesDirty();
+}
+function modeAdd(){
+  const d=modeDraft();
+  d.push({k:'m'+Date.now().toString(36),label:'New method',lo:3,hi:10,hint:''});
+  _modesDirty=true;render();
+}
+function modeRemove(i){
+  const d=modeDraft();
+  if(d.length<=1){toast('Keep at least one method','er');return;}
+  const gone=d[i];
+  const inUse=(function(){let n=0;
+    D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{if(l.mode===gone.k&&!l.arr)n++;}));
+    return n;})();
+  if(inUse&&!confirm(`${inUse} order${inUse===1?' is':'s are'} still using "${gone.label}". Remove it anyway?\nThose keep the dates they were given.`))return;
+  d.splice(i,1);_modesDirty=true;render();
+}
+let _modesDirty=false;
+function markModesDirty(){
+  _modesDirty=true;
+  const b=document.getElementById('modeSaveBtn');
+  if(b){b.disabled=false;b.textContent='Save changes';b.classList.add('pri');}
+}
+function modesSave(){
+  const d=modeDraft();
+  if(d.some(m=>!(m.label||'').trim())){toast('Every method needs a name','er');return;}
+  D.settings.modes=d.map(m=>({k:m.k,label:m.label.trim(),lo:m.lo,hi:m.hi,hint:m.hint||''}));
+  savePrefs();
+  _modesDirty=false;_modeDraft=null;
+  render();toast('Delivery times saved','ok');
+}
+function modesReset(){
+  if(!confirm('Put the delivery methods back to the built-in list?'))return;
+  delete D.settings.modes;delete D.settings.modeDays;
+  savePrefs();_modeDraft=null;_modesDirty=false;
+  render();toast('Back to the defaults','ok');
 }
 function setModeDays(k,which,v){
   D.settings.modeDays=D.settings.modeDays||{};
@@ -14969,9 +15108,13 @@ function setModeDays(k,which,v){
     D.settings.modeDays[k].hi=D.settings.modeDays[k].lo;
   savePrefs();
 }
-Object.defineProperty(window,'SHIPMODES_LIVE',{get(){return SHIPMODE_DEFAULTS.map(m=>Object.assign({},m,modeDays(m.k)));},configurable:true});
-const SHIPMODES=SHIPMODE_DEFAULTS;
-const shipMode=k=>{const b=SHIPMODE_DEFAULTS.find(m=>m.k===k);return b?Object.assign({},b,modeDays(k)):null;};
+const SHIPMODES=SHIPMODE_DEFAULTS;               // kept for anything still naming it
+const shipMode=k=>{
+  const m=shipModes().find(x=>x.k===k);
+  if(m)return m;
+  const b=SHIPMODE_DEFAULTS.find(x=>x.k===k);
+  return b?Object.assign({},b,modeDays(k)):null;
+};
 function openLogOrder(prefill){
   /* "Log the order" on a buy suggestion pre-picks the part and the quantity */
   const sugg=prefill?buyLine(comp(prefill)):null;
@@ -15002,7 +15145,7 @@ function openLogOrder(prefill){
           <select class="in" id="lo-loc">${(D.settings.locations||'Warehouse').split(',').map(l=>`<option>${esc(l.trim())}</option>`).join('')}</select></div></div>
       <div class="g2 frow">
         <div><span class="lab">How is it coming</span>
-          <select class="in" id="lo-ship" onchange="LV3.loEta(1)">${SHIPMODES.map(m=>`<option value="${m.k}">${m.label}</option>`).join('')}</select>
+          <select class="in" id="lo-ship" onchange="LV3.loEta(1)">${shipModes().map(m=>`<option value="${m.k}">${m.label}</option>`).join('')}</select>
           <div class="pmeta" id="lo-shipHint" style="margin-top:5px"></div></div>
         <div><span class="lab">How long does it usually take</span>
           <div style="display:flex;gap:6px;align-items:center">
@@ -15142,6 +15285,29 @@ function modeChip(l){
   return `<span class="mchip m-${m.k}">${esc(short)}</span>`;
 }
 /* Change the method or the window on an order that's already been logged. */
+/* Native date inputs always render dd/mm/yyyy and eat half the row. Two small
+   dd/mm boxes are all anyone types — the year is worked out from the order
+   date, rolling into next year when a long lead time crosses December. */
+const dmOf=iso=>{if(!iso)return '';const p=String(iso).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}`:'';};
+function dmToIso(txt,anchorIso){
+  const m=String(txt||'').trim().match(/^(\d{1,2})\s*[\/\-. ]\s*(\d{1,2})$/);
+  if(!m)return '';
+  const dd=+m[1],mm=+m[2];
+  if(dd<1||dd>31||mm<1||mm>12)return '';
+  const a=anchorIso?new Date(anchorIso+'T00:00:00'):new Date();
+  let yr=a.getFullYear();
+  /* an expected date before the order date means it has rolled into next year */
+  const cand=new Date(yr,mm-1,dd);
+  if(cand<a)yr++;
+  return `${yr}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+}
+function setEtaDM(kind,oid,lid,field,txt){
+  const o=kind==='component'?comp(oid):prod(oid);if(!o)return;
+  const l=(o.layers||[]).find(x=>x.id===lid);if(!l)return;
+  const iso=dmToIso(txt,l.date);
+  if(!iso&&String(txt||'').trim()){toast('Use day/month, like 14/09','er');render();return;}
+  setEta(kind,oid,lid,field,iso);
+}
 function setEta(kind,oid,lid,field,v){
   const o=kind==='component'?comp(oid):prod(oid);if(!o)return;
   const l=(o.layers||[]).find(x=>x.id===lid);if(!l)return;
@@ -15449,12 +15615,15 @@ function deliveriesPanel(){
         <td><span class="pmeta" style="margin:0">${dshort(l.date)}</span></td>
         <td class="l" onclick="event.stopPropagation()">
           <select class="in etaSel" onchange="LV3.setEta('${x.kind}','${x.o.id}','${l.id}','mode',this.value)">
-            ${SHIPMODES.map(m=>`<option value="${m.k}" ${((l.mode||'courier')===m.k)?'selected':''}>${esc(m.label.split('—')[0].trim())}</option>`).join('')}
+            ${shipModes().map(m=>`<option value="${m.k}" ${((l.mode||'courier')===m.k)?'selected':''}>${esc(m.label.split('—')[0].trim())}</option>`).join('')}
           </select></td>
         <td class="l" onclick="event.stopPropagation()">
-          <div style="display:flex;gap:4px;align-items:center">
-            <input class="in etaDate" type="date" value="${l.eta1||''}" onchange="LV3.setEta('${x.kind}','${x.o.id}','${l.id}','eta1',this.value)">
-            <input class="in etaDate" type="date" value="${l.eta2||''}" onchange="LV3.setEta('${x.kind}','${x.o.id}','${l.id}','eta2',this.value)">
+          <div style="display:flex;gap:5px;align-items:center">
+            <input class="in etaDM" value="${dmOf(l.eta1)}" placeholder="dd/mm" title="Earliest it might arrive"
+              onchange="LV3.setEtaDM('${x.kind}','${x.o.id}','${l.id}','eta1',this.value)">
+            <span class="pmeta" style="margin:0">–</span>
+            <input class="in etaDM" value="${dmOf(l.eta2)}" placeholder="dd/mm" title="Latest it should arrive"
+              onchange="LV3.setEtaDM('${x.kind}','${x.o.id}','${l.id}','eta2',this.value)">
           </div>
           <div class="pmeta" style="margin:4px 0 0;color:${e.col};font-weight:700">${e.sub||e.txt}</div></td>
         <td class="acts" onclick="event.stopPropagation()">
@@ -16596,18 +16765,28 @@ function vSettings(){
         </div>
       </div>
       <div class="panel">
-        <div class="ph"><span class="t">How long deliveries take</span><span class="sub">your lead times, not guesses</span></div>
+        <div class="ph"><span class="t">How long deliveries take</span><span class="sub">your methods and your timings</span>
+          <div class="r">
+            <button class="btn sm" onclick="LV3.modeAdd()">+ Add a method</button>
+            <button class="btn sm" onclick="LV3.modesReset()" title="Back to the built-in list">Reset</button>
+            <button class="btn sm ${_modesDirty?'pri':''}" id="modeSaveBtn" ${_modesDirty?'':'disabled'} onclick="LV3.modesSave()">${_modesDirty?'Save changes':'Saved'}</button>
+          </div></div>
         <div style="padding:12px">
-          <div class="pmeta" style="margin-bottom:8px">Used to work out the expected window when an order is logged or linked.
-            Change them here and every new order follows — anything already on order keeps the dates it was given.</div>
-          ${SHIPMODES.map(m=>{const d=modeDays(m.k);return `<div class="mdRow">
-            <span class="nm">${esc(m.label)}</span>
-            <input class="in num" type="number" min="0" value="${d.lo}" onchange="LV3.setModeDays('${m.k}','lo',this.value)">
-            <span class="pmeta" style="margin:0">to</span>
-            <input class="in num" type="number" min="0" value="${d.hi}" onchange="LV3.setModeDays('${m.k}','hi',this.value)">
-            <span class="pmeta" style="margin:0;width:34px">days</span></div>`;}).join('')}
-          <div class="note info" style="margin-top:11px">Sea freight from China is the one worth getting right — it is the difference
-            between ordering in good time and running out. Set it to what your supplier actually does.</div>
+          <div class="pmeta" style="margin-bottom:9px">Used to work out the expected window when an order is logged or linked.
+            Nothing changes until you press <b>Save changes</b> — and anything already on order keeps the dates it was given.</div>
+          <div class="mdHead"><span>Method</span><span>Usually takes</span><span></span></div>
+          ${modeDraft().map((m,i)=>`<div class="mdRow">
+            <input class="in" value="${esc(m.label)}" oninput="LV3.modeEdit(${i},'label',this.value)" placeholder="What to call it">
+            <span class="mdDays">
+              <input class="in num" type="number" min="0" value="${m.lo}" onchange="LV3.modeEdit(${i},'lo',this.value)">
+              <span class="pmeta" style="margin:0">to</span>
+              <input class="in num" type="number" min="0" value="${m.hi}" onchange="LV3.modeEdit(${i},'hi',this.value)">
+              <span class="pmeta" style="margin:0">days</span>
+            </span>
+            <button class="bkX" title="Remove this method" onclick="LV3.modeRemove(${i})">&#10005;</button>
+          </div>`).join('')}
+          <div class="note info" style="margin-top:11px">Sea freight from China is the one worth getting right — it is the
+            difference between ordering in good time and running out.</div>
         </div>
       </div>
 
@@ -16889,7 +17068,7 @@ const API={go,render:paint,boot,
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setModeDays,markChased,writeOffShort,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,writeOffShort,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
