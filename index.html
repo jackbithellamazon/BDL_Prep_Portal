@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v4.9</title>
+<title>BDL PrepHub v5.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -996,6 +996,10 @@ html.light-mode{
 #page-lavarion .hTxt,.lav3 .hTxt{flex:1;min-width:0;font-size:12.5px;color:var(--text);line-height:1.45;}
 #page-lavarion .hWho,.lav3 .hWho{flex:0 0 auto;text-align:right;font:600 11px var(--num);color:var(--text2);}
 #page-lavarion .hWho i,.lav3 .hWho i{display:block;font-style:normal;font-size:10px;color:var(--text3);margin-top:1px;}
+
+#page-lavarion .chip.branded,.lav3 .chip.branded{background:rgba(192,132,252,.14);color:#c084fc;border:1px solid rgba(192,132,252,.32);}
+#page-lavarion .chip.private-label,.lav3 .chip.private-label{background:rgba(56,189,248,.13);color:#38bdf8;border:1px solid rgba(56,189,248,.3);}
+#page-lavarion .chip.complementary,.lav3 .chip.complementary{background:rgba(148,163,184,.12);color:var(--text2);border:1px solid var(--border2);}
 /* mixed-COG block */
 #page-lavarion .mixWrap,.lav3 .mixWrap{margin-bottom:13px;}
 #page-lavarion .mixHead,.lav3 .mixHead{display:flex;gap:12px;align-items:flex-start;background:rgba(248,113,113,.1);
@@ -1461,7 +1465,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v4.9</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v5.0</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1495,7 +1499,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v4.9</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v5.0</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -11901,7 +11905,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v4.9 · lav3 · 2026-08-03 · b64';
+const BUILD='v5.0 · lav3 · 2026-08-03 · b65';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -13131,7 +13135,8 @@ function rowMenu(ev,kind,id){
   let m=document.getElementById('lav3RowMenu');
   if(!m){m=document.createElement('div');m.id='lav3RowMenu';m.className='rowmenu';document.body.appendChild(m);}
   const items=kind==='component'
-    ? [['Edit component',`LV3.editComp('${id}')`,''],
+    ? [['Add a batch',`LV3.openAddBatch('${id}','component')`,''],
+       ['Edit component',`LV3.editComp('${id}')`,''],
        ['Correct stock',`LV3.openAdjust('component','${id}')`,''],
        ['Archive',`LV3.setArchived('component','${id}',true)`,''],
        ['Delete for good',`LV3.delComp('${id}')`,'dgr']]
@@ -13804,15 +13809,25 @@ function vComponents(){
   const liveC=D.components.filter(c=>!c.archived);
   const archC=D.components.filter(c=>c.archived);
 
-  const counts={all:liveC.length,component:0,packaging:0,low:0,archived:archC.length};
-  liveC.forEach(c=>{counts[c.kind]++;if(compShort60(c)>0)counts.low++;});
+  const counts={all:liveC.length,component:0,packaging:0,low:0,archived:archC.length,
+    branded:0,'private-label':0,complementary:0};
+  liveC.forEach(c=>{counts[c.kind]++;if(compShort60(c)>0)counts.low++;
+    const t=c.tag||'complementary';if(counts[t]!==undefined)counts[t]++;});
   const basisC=cFilter==='archived'?archC:liveC;
-  let rows=sortComponents(basisC.filter(c=>(cFilter==='all'||cFilter==='archived'||(cFilter==='low'?compShort60(c)>0:c.kind===cFilter))
-    &&(!Q||c.name.toLowerCase().includes(Q))));
+  const TAGS=['branded','private-label','complementary'];
+  let rows=sortComponents(basisC.filter(c=>{
+    if(cFilter==='all'||cFilter==='archived')return !Q||c.name.toLowerCase().includes(Q);
+    const hit=cFilter==='low'?compShort60(c)>0
+      :TAGS.includes(cFilter)?((c.tag||'complementary')===cFilter)
+      :c.kind===cFilter;
+    return hit&&(!Q||c.name.toLowerCase().includes(Q));
+  }));
   $('lav3View').innerHTML=`
   <div class="panel stick">
     <div class="ph">
-      <div class="seg">${[['all','All'],['component','Components'],['packaging','Packaging'],['low','Short for '+(D.settings.targetDays||60)+' days']]
+      <div class="seg">${[['all','All'],['component','Components'],['packaging','Packaging'],
+          ['branded','Branded'],['private-label','Private label'],['complementary','Complementary'],
+          ['low','Short for '+(D.settings.targetDays||60)+' days']]
         .concat(archC.length?[['archived','Archived']]:[])
         .map(([k,l])=>`<button class="${cFilter===k?'on':''}" onclick="LV3.setFilter('c','${k}')">${l}<span class="cnt">${fmt(counts[k])}</span></button>`).join('')}</div>
       <input class="srch" placeholder="Search components…" value="${esc(Q)}" oninput="LV3.setQ(this.value)">
@@ -13838,6 +13853,7 @@ function vComponents(){
         <td class="l"><div class="pname" style="font-size:12.5px">${esc(c.name)}</div>
           <div style="margin-top:4px;display:flex;gap:5px;align-items:center">
             <span class="chip ${c.kind}">${c.kind==='packaging'?'Packaging':'Component'}</span>
+            ${c.kind!=='packaging'?`<span class="chip ${esc(c.tag||'complementary')}">${({branded:'Branded','private-label':'Private label',complementary:'Complementary'})[c.tag||'complementary']}</span>`:''}
             ${c.untracked?'<span class="chip">not tracked</span>':''}
             ${c.caseQty?`<span class="pmeta" style="margin:0">case of ${fmt(c.caseQty)}</span>`:''}</div></td>
         <td><span class="num" style="color:${col}">${fmt(h)}</span>
@@ -13914,7 +13930,11 @@ function openComp(id){
         <div class="v" style="color:${compShort60(c)>0?'var(--amb)':'var(--grn)'}">${compNeed60(c)?fmt(compNeed60(c)):'—'}</div>
         <div class="pmeta" style="margin:3px 0 0">${compNeed60(c)?(compShort60(c)>0?`${fmt(compShort60(c))} short, counting what's on order`:'covered'):'no product needs it yet'}</div></div>
     </div>
-    <div class="lab" style="margin-bottom:6px">Stock batches — consumed oldest first</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span class="lab" style="margin:0">Stock batches — consumed oldest first</span>
+      <button class="btn sm pri" style="margin-left:auto" title="Backstock you already hold at a different price"
+        onclick="LV3.openAddBatch('${c.id}','component')">+ Add a batch</button>
+    </div>
     <table class="ltab"><thead><tr><th>Supplier</th><th>Bought</th><th>Order</th><th>Qty</th><th>Left</th><th>Unit</th><th>Where</th><th>Status</th></tr></thead><tbody>
     ${ls.map((l,i)=>{const nextOut=l.arr&&l.rem>0&&arrLayers(c).filter(x=>x.rem>0)[0]===l;
       return `<tr class="${l.arr&&l.rem===0?'spent':''} ${nextOut?'used':''}"><td>${esc(l.sup)}</td><td>${dshort(l.date)}</td>
@@ -14144,6 +14164,88 @@ function markArrived(kind,oid,lid){
       if(x.src==='P:'+ps.id&&!x.arr){x.arr=1;x.rem=x.qty;}}));}
   render();if($('lav3Ov1').classList.contains('on')){kind==='component'?openComp(oid):openProduct(oid);}
   toastUndo(`${fmt(l.qty)} × ${o.name} received into stock`,'ok');
+}
+/* ── ADD A BATCH ──────────────────────────────────────────────────────────
+   Backstock that is already on the shelf at a price of its own. Correcting the
+   count would fold it into an existing batch at the wrong cost, and logging a
+   delivery would say it is still coming — neither is true. This puts the units
+   straight in as their own priced batch, which is what FIFO needs. */
+function openAddBatch(oid,kind){
+  kind=kind||'component';
+  const o=kind==='component'?comp(oid):prod(oid);
+  if(!o)return;
+  const ls=arrLayers(o).filter(l=>l.rem>0);
+  $('lav3Mod2').className='mod';
+  $('lav3Mod2').innerHTML=`
+  <div class="mh"><h3>Add a batch — ${esc(o.name)}</h3>
+    <span class="pmeta" style="margin:0">stock already here, at its own price</span>
+    <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+  <div class="mb">
+    <div class="note info" style="margin-bottom:12px">Use this for backstock you already hold that was bought at a
+      different price. It goes straight in as usable stock — nothing to receive.<br>
+      Still on its way? Use <b>+ Order</b> instead. Miscount on an existing batch? Use <b>Correct stock</b>.</div>
+    ${ls.length?`<div class="lab" style="margin-bottom:5px">Batches it already has</div>
+      <table class="ltab" style="margin-bottom:13px"><thead><tr><th>Bought</th><th>Supplier</th><th>Left</th><th>Unit</th></tr></thead><tbody>
+      ${ls.map(l=>`<tr><td>${dshort(l.date)}</td><td>${esc(l.sup||'—')}</td><td>${fmt(l.rem)}</td><td>${l.cost>0?gbp(l.cost):'<span class="dim">no price</span>'}</td></tr>`).join('')}
+      </tbody></table>`:''}
+    <div class="g2 frow">
+      <div><span class="lab">How many</span><input class="in num" id="ab-qty" type="number" min="1" placeholder="10" style="font-size:17px;text-align:center"></div>
+      <div><span class="lab">What they cost each <span style="text-transform:none;font-weight:600">(inc VAT)</span></span>
+        <input class="in num" id="ab-cost" type="number" step="0.01" min="0" placeholder="0.00" style="font-size:17px;text-align:center"></div>
+    </div>
+    <div class="g2 frow">
+      <div><span class="lab">Supplier</span><input class="in" id="ab-sup" placeholder="Superdrug, Alibaba…"></div>
+      <div><span class="lab">Order ref <span style="text-transform:none;font-weight:600">(optional)</span></span><input class="in" id="ab-ref" placeholder="PO-104"></div>
+    </div>
+    <div class="g2 frow">
+      <div><span class="lab">When it was bought</span><input class="in" id="ab-date" type="date" value="${dayISO()}" max="${dayISO()}">
+        <div class="pmeta" style="margin-top:4px">Oldest stock goes out first, so this decides where it sits in the queue.</div></div>
+      <div><span class="lab">Where it is</span>
+        <select class="in" id="ab-loc">${(D.settings.locations||'Warehouse').split(',').map(l=>`<option>${esc(l.trim())}</option>`).join('')}</select></div>
+    </div>
+    <div class="frow"><span class="lab">Note <span style="text-transform:none;font-weight:600">(optional)</span></span>
+      <input class="in" id="ab-note" placeholder="e.g. found in the back, older stock"></div>
+    <div id="ab-preview" class="note" style="margin:0"></div>
+  </div>
+  <div class="mf"><div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
+    <button class="btn pri" onclick="LV3.doAddBatch('${oid}','${kind}')">Add the batch</button></div></div>`;
+  om('lav3Ov2');
+  ['ab-qty','ab-cost','ab-date'].forEach(id=>{const el=$(id);if(el)el.oninput=()=>abPreview(oid,kind);});
+  abPreview(oid,kind);
+  setTimeout(()=>{const q=$('ab-qty');if(q)q.focus();},60);
+}
+function abPreview(oid,kind){
+  const o=(kind==='component'?comp(oid):prod(oid));if(!o)return;
+  const box=$('ab-preview');if(!box)return;
+  const q=parseInt(($('ab-qty')||{}).value)||0;
+  const c=parseFloat(($('ab-cost')||{}).value)||0;
+  const d=($('ab-date')||{}).value||dayISO();
+  if(!q){box.innerHTML='<span class="pmeta" style="margin:0">Enter how many and it will show what changes.</span>';return;}
+  const now=onHand(o);
+  const older=arrLayers(o).filter(l=>l.rem>0&&l.date<d).length;
+  box.innerHTML=`On hand goes from <b>${fmt(now)}</b> to <b style="color:var(--grn)">${fmt(now+q)}</b>${c?` · this batch is worth <b>${gbp(q*c)}</b>`:''}.
+    ${older?`It sits <b>behind ${fmt(older)}</b> older batch${older===1?'':'es'} in the queue.`
+      :'<b>It is the oldest batch</b>, so it goes out first.'}
+    ${!c?'<br><span style="color:var(--amb)">No price — it will not count toward COG until you set one.</span>':''}`;
+}
+function doAddBatch(oid,kind){
+  const o=(kind==='component'?comp(oid):prod(oid));if(!o)return;
+  const qty=parseInt(($('ab-qty')||{}).value)||0;
+  if(qty<1){toast('Enter how many','er');const q=$('ab-qty');if(q)q.focus();return;}
+  const cost=parseFloat(($('ab-cost')||{}).value)||0;
+  const date=($('ab-date')||{}).value||dayISO();
+  const sup=(($('ab-sup')||{}).value||'').trim()||'Backstock';
+  const ref=(($('ab-ref')||{}).value||'').trim()||'—';
+  const loc=($('ab-loc')||{}).value||'Warehouse';
+  const note=(($('ab-note')||{}).value||'').trim();
+  snap();
+  (o.layers=o.layers||[]).push({id:newId('B'),date,qty,rem:qty,cost,sup,oid:ref,loc,arr:1,
+    src:'backstock',note:note||(cost>0?'':'price missing'),
+    recvOn:dayISO(),recvBy:(window.currentUserName||'Becki')});
+  logIt('recv',`Batch added: ${fmt(qty)} × ${o.name}${cost>0?' @ '+gbp(cost):' (no price)'} — ${sup}${note?' · '+note:''}`);
+  save();cm('lav3Ov2');render();
+  if($('lav3Ov1').classList.contains('on')){kind==='component'?openComp(oid):openProduct(oid);}
+  toastUndo(`${fmt(qty)} added${cost>0?` at ${gbp(cost)}`:''} — now ${fmt(onHand(o))} on hand`,'ok');
 }
 function openAdjust(kind,oid){
   const o=kind==='component'?comp(oid):prod(oid);
@@ -16782,7 +16884,7 @@ function paint(){
 const API={go,render:paint,boot,
   openProduct,editProduct,setType,setSold30,rowMenu,closeRowMenu,dupeAsins,setSort,saveProductForce,addRecipeRow,rcChange,rcSearch,rcPick,rcMake,recipePreview,copyRecipe,saveProduct,delProduct,togRow,setArchived,
   openShip,drawShip,doShip,copyCog,shipSetQty,shipOverride,shipQty,shipFba,setQ,selOne,selAll,selClear,selType,selVat,
-  openComp,editComp,saveComp,delComp,pickKind,selArchive,selDelete,cselOne,cselAll,cselClear,cselKind,cselTrack,cselArchive,cselDelete,markArrived,openAdjust,doAdjust,
+  openComp,editComp,saveComp,delComp,pickKind,openAddBatch,abPreview,doAddBatch,selArchive,selDelete,cselOne,cselAll,cselClear,cselKind,cselTrack,cselArchive,cselDelete,markArrived,openAdjust,doAdjust,
   openLink,saveAlloc,clearAlloc,quickLink,guessMode,forgetAlias,pFilter,togglePurchAll,syncPurchases,applyAllSuggestions,dropReview,clearReview,linkOrder,dropOrder,addAllocRow,allocSum,useSuggestion,fillRest,
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
