@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v4.5</title>
+<title>BDL PrepHub v4.9</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1352,6 +1352,37 @@ html.light-mode{
 #lav3Toast.er{border-color:var(--red-br);color:#ffd9d9;}
 #lav3Toast.ok{border-color:var(--grn-br);color:#d6ffe6;}
 
+
+/* Sarah's notebook */
+.notesPanel{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+.notesHead{display:flex;align-items:baseline;gap:10px;padding:11px 15px;background:var(--bg3);border-bottom:1px solid var(--border);}
+.notesHead .nTitle{font-size:14px;font-weight:800;color:var(--text);}
+.notesHead .nSub{flex:1;font-size:11px;color:var(--text3);}
+.notesHead .nRefresh{padding:5px 11px;background:var(--bg2);border:1px solid var(--border2);color:var(--text2);
+  border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;}
+.notesHead .nRefresh:hover{border-color:var(--accent);color:var(--accent);}
+.noteNew{display:flex;gap:8px;align-items:flex-start;padding:12px 15px;border-bottom:1px solid var(--border);}
+.noteNew textarea{flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:8px;color:var(--text);
+  padding:9px 11px;font:inherit;font-size:13px;line-height:1.5;resize:vertical;min-height:44px;}
+.noteNew textarea:focus{outline:none;border-color:var(--accent);}
+.noteAdd{flex:0 0 auto;padding:10px 16px;background:var(--accent);border:0;color:#0b0d10;border-radius:8px;
+  font-size:12.5px;font-weight:800;cursor:pointer;}
+.noteHead{padding:8px 15px;font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
+  color:var(--text3);background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);}
+.noteHead span{color:var(--accent);margin-left:5px;}
+.noteHead.muted span{color:var(--text3);}
+.noteRow{display:flex;gap:11px;align-items:flex-start;padding:11px 15px;border-bottom:1px solid var(--border);}
+.noteRow:last-child{border-bottom:0;}
+.noteRow.done .noteTxt{text-decoration:line-through;color:var(--text3);}
+.noteTick{flex:0 0 20px;height:20px;margin-top:1px;border-radius:5px;border:1.5px solid var(--border2);
+  background:var(--bg);color:#0b0d10;font-size:12px;font-weight:800;cursor:pointer;line-height:1;}
+.noteRow.done .noteTick{background:var(--green,#4ade80);border-color:var(--green,#4ade80);}
+.noteBody{flex:1;min-width:0;}
+.noteTxt{font-size:13px;color:var(--text);line-height:1.5;word-break:break-word;}
+.noteMeta{font-size:10.5px;color:var(--text3);margin-top:3px;}
+.noteDel{flex:0 0 auto;background:none;border:0;color:var(--text3);font-size:12px;cursor:pointer;padding:2px 4px;}
+.noteDel:hover{color:#f87171;}
+.noteEmpty{padding:16px 15px;font-size:12.5px;color:var(--text3);}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
 </head>
@@ -1430,7 +1461,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v4.5</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v4.9</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1464,7 +1495,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v4.5</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v4.9</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -2713,9 +2744,20 @@ function copyMigrationSql(btn){
 }
 
 // ── DATE HELPERS ──────────────────────────────────────────────────────────────
-function getWeekRange(){
+/* Which week the dashboard is looking at. 0 = this week, 1 = last week, and so
+   on — the weekly panel can step back without moving anything else. */
+let WEEK_OFFSET=0;
+function shiftWeek(by){
+  const next=WEEK_OFFSET+by;
+  if(next<0||next>25)return;                 // no future, and half a year back is plenty
+  WEEK_OFFSET=next;
+  renderStats();
+}
+function thisWeekNow(){WEEK_OFFSET=0;renderStats();}
+function getWeekRange(off){
+  const back=(off===undefined?WEEK_OFFSET:off)*7;
   const n=new Date();const d=n.getDay()||7;
-  const mon=new Date(n);mon.setDate(n.getDate()-d+1);mon.setHours(0,0,0,0);
+  const mon=new Date(n);mon.setDate(n.getDate()-d+1-back);mon.setHours(0,0,0,0);
   const sun=new Date(mon);sun.setDate(mon.getDate()+6);sun.setHours(23,59,59,999);
   return{s:mon,e:sun};
 }
@@ -2756,13 +2798,24 @@ function unitsSentInRange(s,e){
 function sentRollup(start,end){
   const toD=v=>typeof v==='string'?new Date(v+'T00:00:00.000Z'):v; // UTC midnight avoids BST offset issues
   const s=toD(start),e=toD(end);
-  const inRange=allSentRows().filter(r=>{const d=r.isoDate?new Date(r.isoDate):null;return d&&d>=s&&d<=e;});
+  const all=allSentRows();
+  const inRange=all.filter(r=>{const d=r.isoDate?new Date(r.isoDate):null;return d&&d>=s&&d<=e;});
+  /* A shipment belongs to the month it WENT, which is the date of its earliest
+     line — the same date the Shipments page shows. Counting it wherever any of
+     its lines land meant a 30 July shipment with a line added in August was
+     counted as an August shipment while its units stayed in July. */
+  const firstSent={};
+  all.forEach(r=>{if(!r.shipId||!r.isoDate)return;
+    if(!firstSent[r.shipId]||r.isoDate<firstSent[r.shipId])firstSent[r.shipId]=r.isoDate;});
+  const inWindow=iso=>{const d=iso?new Date(iso+'T00:00:00.000Z'):null;return d&&d>=s&&d<=e;};
+  const shipIds=new Set(inRange.map(r=>r.shipId).filter(sid=>sid&&inWindow(firstSent[sid])));
   return{
     units:inRange.reduce((a,r)=>a+(r.units||0),0),
     value:inRange.reduce((a,r)=>a+(r.cogValue||0),0),
     skus:inRange.length,                                   // SKU lines (incl. lav + returns)
     asins:new Set(inRange.map(r=>r.asin).filter(Boolean)).size,
-    shipments:new Set(inRange.map(r=>r.shipId).filter(Boolean)).size,
+    shipments:shipIds.size,
+    shipIds,
     rows:inRange,
   };
 }
@@ -3849,6 +3902,46 @@ function _adminItems(){
   return out;
 }
 
+/* A note against one chased row. Free text, saved to Supabase on the row
+   itself, so Jack reads exactly what Sarah wrote without asking. Saves when
+   she clicks away or presses Enter — no button to forget. */
+function _transitNote(i){
+  const r=rows.find(x=>x.uuid===String(i.rid)||String(x.id)===String(i.rid));
+  const val=(r&&r.notes)?r.notes:'';
+  const who=(r&&r.notesBy)?r.notesBy:'';
+  const when=(r&&r.notesAt)?r.notesAt:'';
+  const stamp=when?`${esc(who||'')} · ${new Date(when).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})} ${new Date(when).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`:'';
+  return`<div style="display:flex;flex-direction:column;gap:2px;min-width:190px;">
+    <textarea id="tn-${i.rid}" rows="${val?(val.length>60?3:2):1}" placeholder="Add a note…"
+      onfocus="this.rows=4;this.style.borderColor='var(--accent)'"
+      onblur="this.rows=this.value?(this.value.length>60?3:2):1;this.style.borderColor='var(--border2)';saveTransitNote('${i.rid}',this.value)"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur();}"
+      style="width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);
+        padding:5px 7px;font:inherit;font-size:11px;line-height:1.45;resize:vertical;">${esc(val)}</textarea>
+    ${stamp?`<div style="font-size:9px;color:var(--text3);">${stamp}</div>`:''}
+  </div>`;
+}
+async function saveTransitNote(rid,val){
+  const r=rows.find(x=>x.uuid===String(rid)||String(x.id)===String(rid));
+  if(!r)return;
+  const txt=(val||'').trim();
+  if((r.notes||'')===txt)return;                 // nothing changed — don't churn the database
+  r.notes=txt;
+  r.notesBy=txt?(window.currentUserName||'Sarah'):'';
+  r.notesAt=txt?new Date().toISOString():'';
+  r._dirty=true;
+  try{
+    /* the app's own row save — it already copes with columns that may not
+       exist yet and keeps the sync badge honest */
+    await saveRow(r);
+    toast('Note saved');
+    logAudit('Note',`${r.sku||r.asin||''} — ${txt.slice(0,60)}`);
+  }catch(e){
+    console.warn('[note] save',e);
+    toast('Note didn\'t save — check the connection','er');
+  }
+  renderAdmin();
+}
 function _adminTransitSelect(i){
   const opts=['','On Its Way','Delayed','Awaiting Update','Chasing Supplier','Late — Needs Chasing','Urgent — Chase Now'];
   const bg={'Urgent — Chase Now':'rgba(239,68,68,.2)','Late — Needs Chasing':'rgba(239,68,68,.15)','Delayed':'rgba(251,146,60,.15)','Chasing Supplier':'rgba(251,146,60,.12)','Awaiting Update':'rgba(251,146,60,.1)','On Its Way':'rgba(34,197,94,.08)'}[i.ta]||'var(--bg3)';
@@ -3904,6 +3997,123 @@ function _claimChaseInfo(c){
   }
   return{txt:'Contacted (date unknown)',col:'#fbbf24',days:4};
 }
+
+// ── SARAH'S NOTEBOOK ────────────────────────────────────────────────────────
+// A shared pad between Sarah and Jack. It lives in Supabase, not this browser,
+// so whatever she writes is readable from anywhere — and it survives a cleared
+// cache, a new laptop, or someone else opening the app.
+let ADMIN_NOTES=[];
+let _notesLoaded=false,_notesBusy=false;
+
+async function loadAdminNotes(){
+  try{
+    const r=await sb.from('app_settings').select('value').eq('key','admin_notes').maybeSingle();
+    if(r&&r.data&&r.data.value){
+      const v=JSON.parse(r.data.value);
+      if(Array.isArray(v))ADMIN_NOTES=v;
+    }
+    _notesLoaded=true;
+  }catch(e){console.warn('[notes] load',e);}
+}
+async function saveAdminNotes(){
+  // read-modify-write: Sarah and Jack can both be looking at this, and a blind
+  // overwrite would silently bin whatever the other one just wrote
+  try{
+    const r=await sb.from('app_settings').select('value').eq('key','admin_notes').maybeSingle();
+    let remote=[];
+    if(r&&r.data&&r.data.value){try{remote=JSON.parse(r.data.value)||[];}catch(e){}}
+    const byId={};
+    remote.forEach(x=>{byId[x.id]=x;});
+    ADMIN_NOTES.forEach(x=>{
+      const ex=byId[x.id];
+      if(!ex||(x.edited||'')>=(ex.edited||''))byId[x.id]=x;   // newest edit wins
+    });
+    ADMIN_NOTES=Object.values(byId)
+      .filter(x=>!x.deleted)
+      .sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+    const res=await sb.from('app_settings')
+      .upsert({key:'admin_notes',value:JSON.stringify(ADMIN_NOTES)},{onConflict:'key'});
+    if(res.error)throw res.error;
+    setSyncStatus&&setSyncStatus('synced');
+    return true;
+  }catch(e){
+    console.warn('[notes] save',e);
+    toast('Note didn\'t save — check the connection','er');
+    return false;
+  }
+}
+function noteAuthor(){return window.currentUserName||'Sarah';}
+async function addAdminNote(){
+  const box=document.getElementById('noteInput');
+  const txt=(box?box.value:'').trim();
+  if(!txt){toast('Write something first','er');if(box)box.focus();return;}
+  if(_notesBusy)return; _notesBusy=true;
+  const now=new Date().toISOString();
+  ADMIN_NOTES.unshift({id:'n'+Date.now().toString(36)+Math.floor(Math.random()*1296).toString(36),
+    txt,by:noteAuthor(),at:now,edited:now,done:false});
+  if(box)box.value='';
+  await saveAdminNotes();
+  _notesBusy=false;
+  renderAdminNotes();
+  logAudit&&logAudit('Note added',txt.slice(0,80));
+}
+async function toggleAdminNote(id){
+  const nt=ADMIN_NOTES.find(x=>x.id===id);if(!nt)return;
+  nt.done=!nt.done;
+  nt.doneBy=nt.done?noteAuthor():'';
+  nt.doneAt=nt.done?new Date().toISOString():'';
+  nt.edited=new Date().toISOString();
+  renderAdminNotes();
+  await saveAdminNotes();
+}
+async function deleteAdminNote(id){
+  const nt=ADMIN_NOTES.find(x=>x.id===id);if(!nt)return;
+  if(!confirm('Delete this note?\n\n"'+nt.txt.slice(0,90)+'"'))return;
+  nt.deleted=true;nt.edited=new Date().toISOString();
+  ADMIN_NOTES=ADMIN_NOTES.filter(x=>x.id!==id);
+  renderAdminNotes();
+  await saveAdminNotes();
+}
+async function refreshAdminNotes(){
+  await loadAdminNotes();
+  renderAdminNotes();
+  toast('Notes refreshed');
+}
+function noteAgo(iso){
+  if(!iso)return '';
+  const then=new Date(iso),mins=Math.round((Date.now()-then.getTime())/60000);
+  if(mins<1)return 'just now';
+  if(mins<60)return mins+'m ago';
+  const hrs=Math.round(mins/60);
+  if(hrs<24)return hrs+'h ago';
+  const days=Math.round(hrs/24);
+  if(days<8)return days+'d ago';
+  return then.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+}
+function renderAdminNotes(){
+  const el=document.getElementById('adminNotesBody');
+  if(!el)return;
+  const open=ADMIN_NOTES.filter(x=>!x.done);
+  const done=ADMIN_NOTES.filter(x=>x.done).slice(0,15);
+  const row=nt=>`<div class="noteRow ${nt.done?'done':''}">
+    <button class="noteTick" title="${nt.done?'Put it back on the list':'Mark it done'}" onclick="toggleAdminNote('${nt.id}')">${nt.done?'✓':''}</button>
+    <div class="noteBody">
+      <div class="noteTxt">${esc(nt.txt).replace(/\n/g,'<br>')}</div>
+      <div class="noteMeta">${esc(nt.by||'')} · ${noteAgo(nt.at)}${nt.done&&nt.doneBy?` · done by ${esc(nt.doneBy)} ${noteAgo(nt.doneAt)}`:''}</div>
+    </div>
+    <button class="noteDel" title="Delete" onclick="deleteAdminNote('${nt.id}')">✕</button>
+  </div>`;
+  el.innerHTML=`
+    <div class="noteNew">
+      <textarea id="noteInput" rows="2" placeholder="What needs doing, what you've done, anything Jack should know…"
+        onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey))addAdminNote()"></textarea>
+      <button class="noteAdd" onclick="addAdminNote()">Add note</button>
+    </div>
+    ${open.length?`<div class="noteHead">To do <span>${open.length}</span></div>${open.map(row).join('')}`
+      :'<div class="noteEmpty">Nothing outstanding. Anything you add here, Jack can read.</div>'}
+    ${done.length?`<div class="noteHead muted">Done <span>${done.length}</span></div>${done.map(row).join('')}`:''}`;
+}
+
 function renderAdmin(){
   const wrap=document.getElementById('adminWrap');
   if(!wrap)return;
@@ -3925,6 +4135,14 @@ function renderAdmin(){
   const allClear=totalToDo===0&&openIssues.length===0;
 
   let html=`
+    <div class="notesPanel">
+      <div class="notesHead">
+        <span class="nTitle">Notes</span>
+        <span class="nSub">shared with Jack · saved online, not on this computer</span>
+        <button class="nRefresh" title="Check for anything Jack has added" onclick="refreshAdminNotes()">Refresh</button>
+      </div>
+      <div id="adminNotesBody"></div>
+    </div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
       <div>
         <div style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:.01em;">Sarah's Admin — Follow-Up Queue</div>
@@ -3968,24 +4186,25 @@ function renderAdmin(){
       </div>
       <table style="width:100%;border-collapse:collapse;">
         <thead><tr style="background:var(--bg3);">
-          <th class="th-left" style="font-size:9px;color:var(--text3);text-align:left;padding:7px 14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Product</th>
-          <th class="th-left" style="font-size:9px;color:var(--text3);text-align:left;padding:7px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Supplier / Order</th>
+          <th class="th-left" style="font-size:9px;color:var(--text3);text-align:left;padding:7px 10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;width:230px;">Product</th>
+          <th class="th-left" style="font-size:9px;color:var(--text3);text-align:left;padding:7px 6px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;width:150px;">Supplier / Order</th>
           <th style="font-size:9px;color:var(--text3);text-align:left;padding:7px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Flag</th>
-          <th style="font-size:9px;color:var(--text3);text-align:left;padding:7px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Set Status</th>
+          <th style="font-size:9px;color:var(--text3);text-align:left;padding:7px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;width:150px;">Set Status</th>
+          <th style="font-size:9px;color:var(--text3);text-align:left;padding:7px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Note <span style="text-transform:none;letter-spacing:0;color:var(--text3);font-weight:600;">— what's happening with it</span></th>
           <th style="font-size:9px;color:var(--text3);text-align:right;padding:7px 14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;"></th>
         </tr></thead>
         <tbody>
         ${items.map(i=>{
           const jumpTerm=(i.oid||i.sku||'').replace(/'/g,"\\'");
           return`<tr style="border-top:1px solid var(--border);">
-            <td style="padding:9px 14px;border-left:3px solid ${i.col};">
-              <div style="font-size:12px;font-weight:600;color:var(--text);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(i.prod||'').replace(/"/g,'&quot;')}">${i.prod||i.sku}</div>
+            <td style="padding:9px 10px;border-left:3px solid ${i.col};">
+              <div style="font-size:12px;font-weight:600;color:var(--text);max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(i.prod||'').replace(/"/g,'&quot;')}">${i.prod||i.sku}</div>
               <div style="display:flex;gap:10px;margin-top:3px;flex-wrap:wrap;align-items:center;">
                 ${i.asin?`<span class="s-asin" onclick="copyVal('${i.asin}',this)" style="font-size:10px;">${i.asin}</span>`:''}
                 ${i.sku?`<span class="s-sku" onclick="copyVal('${(i.sku||'').replace(/'/g,"\\'")}',this)" style="font-size:10px;">${i.sku}</span>`:''}
               </div>
             </td>
-            <td style="padding:9px 8px;">
+            <td style="padding:9px 6px;">
               <div style="font-size:11px;color:var(--text2);font-weight:600;">${i.sup||'—'}</div>
               <div style="font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:2px;">${i.oid||'no order id'} · ${i.date||''}</div>
             </td>
@@ -3993,6 +4212,7 @@ function renderAdmin(){
               <span style="display:inline-block;font-size:10px;font-weight:700;color:${i.col};background:${i.col}1f;border:1px solid ${i.col}55;border-radius:4px;padding:3px 9px;white-space:nowrap;">${i.reason}</span>
             </td>
             <td style="padding:9px 8px;">${_adminTransitSelect(i)}</td>
+            <td style="padding:7px 8px;">${_transitNote(i)}</td>
             <td style="padding:9px 14px;text-align:right;white-space:nowrap;">
               <button onclick="gsJump('prep','${jumpTerm}')" style="padding:4px 9px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;margin-right:4px;">View in Prep</button>
               <button onclick="snoozeChase('${i.rid}')" title="Mark as chased — hides it for 4 days, then it returns if still not received. UK staff marking it received clears it for good." style="padding:4px 9px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">✓ Chased (4d)</button>
@@ -4088,6 +4308,9 @@ function renderAdmin(){
   }
 
   wrap.innerHTML=html;
+  /* the pad is part of this page, so draw it — and fetch once per session */
+  if(!_notesLoaded){loadAdminNotes().then(renderAdminNotes);}
+  renderAdminNotes();
 }
 
 // Visual status pipeline — replaces the bare dropdown. Click a step to move
@@ -4989,9 +5212,21 @@ function renderDashboard(){
       <!-- Col 1: Weekly Activity + Stock vs Lavarion -->
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
-          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
-            <div style="font-size:12px;font-weight:700;color:#f1f5f9;letter-spacing:.01em;">Weekly Activity</div>
-            <div style="font-size:11px;color:#9aa7ba;">${weekDays.filter(d=>!d.isFuture&&d.units>0).length} active day${weekDays.filter(d=>!d.isFuture&&d.units>0).length===1?'':'s'}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#f1f5f9;letter-spacing:.01em;">Weekly Activity</div>
+              <div style="font-size:10.5px;color:#6b7280;margin-top:2px;">${(()=>{const{s:a,e:b}=getWeekRange();
+                const f=d=>d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+                return WEEK_OFFSET===0?'this week · '+f(a)+' – '+f(b)
+                  :WEEK_OFFSET===1?'last week · '+f(a)+' – '+f(b)
+                  :WEEK_OFFSET+' weeks ago · '+f(a)+' – '+f(b);})()}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:#9aa7ba;">${weekDays.filter(d=>!d.isFuture&&d.units>0).length} active day${weekDays.filter(d=>!d.isFuture&&d.units>0).length===1?'':'s'}</span>
+              <button onclick="shiftWeek(1)" title="The week before" style="width:26px;height:26px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:6px;font-size:13px;cursor:pointer;line-height:1;">‹</button>
+              ${WEEK_OFFSET>0?`<button onclick="thisWeekNow()" title="Back to this week" style="padding:0 9px;height:26px;background:var(--bg3);border:1px solid var(--border2);color:var(--accent);border-radius:6px;font-size:10.5px;font-weight:800;cursor:pointer;">This week</button>`:''}
+              <button onclick="shiftWeek(-1)" ${WEEK_OFFSET===0?'disabled':''} title="The week after" style="width:26px;height:26px;background:var(--bg3);border:1px solid var(--border2);color:${WEEK_OFFSET===0?'var(--text3)':'var(--text2)'};border-radius:6px;font-size:13px;cursor:${WEEK_OFFSET===0?'default':'pointer'};line-height:1;opacity:${WEEK_OFFSET===0?'.4':'1'};">›</button>
+            </div>
           </div>
           ${(()=>{
             // Cohesive, slightly-muted palette. Each metric keeps ONE consistent
@@ -7968,6 +8203,29 @@ function renderShipments(){
     ${sc('Prep Cost inc. VAT',fmtGBP2(sumPrep),'#fbbf24')}
   </div>`;
 
+  const _shipTotals=(()=>{
+    /* .tbl-wrap is flex:1, so a short list leaves a large empty area below it.
+       Rather than shrink the container, fill it with the one thing you would
+       otherwise add up by hand — and make it follow the filters. */
+    if(!shipments.length)return '';
+    const t={ships:shipments.length,units:0,value:0,boxes:0,skus:0,lav:0};
+    shipments.forEach(x=>{t.units+=x.units||0;t.value+=x.value||0;t.boxes+=x.boxes||0;
+      t.skus+=x.skus.length+(x.lavSkus||[]).length+(x.retSkus||[]).length;
+      t.lav+=(x.lavSkus||[]).reduce((a,y)=>a+(y.units||0),0);});
+    const cell=(k,v,col)=>`<div style="min-width:96px"><div style="font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--text3)">${k}</div>
+      <div style="font-family:var(--mono);font-size:15px;font-weight:800;color:${col||'var(--text)'};margin-top:2px">${v}</div></div>`;
+    return `<div style="margin-top:14px;padding:13px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+      display:flex;gap:26px;align-items:center;flex-wrap:wrap;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);min-width:100px">Showing</div>
+      ${cell('Shipments',fmt(t.ships),'var(--blue)')}
+      ${cell('Units',fmt(t.units),'var(--green)')}
+      ${cell('COG value',fmtGBP2(t.value),'var(--amber)')}
+      ${cell('SKU lines',fmt(t.skus))}
+      ${cell('Boxes',fmt(t.boxes))}
+      ${t.lav?cell('Lavarion units',fmt(t.lav),'var(--purple)'):''}
+      <div style="flex:1;min-width:150px;text-align:right;font-size:10.5px;color:var(--text3);line-height:1.5">
+        Totals for what is on screen — change the dates or the search and these follow.</div>
+    </div>`;})();
   w.innerHTML=summaryBar+shipments.map(s=>{
     const dateDisp=s.date?new Date(s.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
     const sfUrl=`https://app.sellerfuse.com/shipment-manager?search=${encodeURIComponent(s.id)}`;
@@ -8121,7 +8379,7 @@ function renderShipments(){
         </table>
       </div>
     </div>`;
-  }).join('');
+  }).join('')+_shipTotals;
 }
 
 
@@ -11643,7 +11901,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v4.5 · lav3 · 2026-08-03 · b60';
+const BUILD='v4.9 · lav3 · 2026-08-03 · b64';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
