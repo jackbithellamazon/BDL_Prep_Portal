@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v7.2</title>
+<title>BDL PrepHub v7.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1261,6 +1261,12 @@ html.light-mode{
 #page-lavarion .plNote span,.lav3 .plNote span{font-size:12px;color:var(--text2);line-height:1.55;}
 #page-lavarion .plBtns,.lav3 .plBtns{display:flex;gap:7px;margin-top:4px;}
 #page-lavarion .uiList,.lav3 .uiList{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+#page-lavarion .ovBars,.lav3 .ovBars{display:grid;gap:7px;}
+#page-lavarion .ovBar,.lav3 .ovBar{display:grid;grid-template-columns:minmax(0,240px) 1fr 40px;gap:11px;align-items:center;font-size:12.5px;}
+#page-lavarion .ovTrack,.lav3 .ovTrack{height:8px;border-radius:5px;background:var(--bg4);overflow:hidden;}
+#page-lavarion .ovFill,.lav3 .ovFill{display:block;height:100%;background:var(--amb);}
+#page-lavarion .ovN,.lav3 .ovN{text-align:right;font:800 13px var(--num);color:var(--amb);}
+#page-lavarion .ovL,.lav3 .ovL{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);}
 #page-lavarion .supGrid,.lav3 .supGrid{display:grid;gap:7px;}
 #page-lavarion .supRow,.lav3 .supRow{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:11px;align-items:center;
   padding:6px;border-radius:6px;border-bottom:1px solid var(--border);}
@@ -1801,7 +1807,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v7.2</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v7.4</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1835,7 +1841,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v7.2</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v7.4</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -12327,7 +12333,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v7.2 · lav3 · 2026-08-05 · b87';
+const BUILD='v7.4 · lav3 · 2026-08-05 · b89';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -13099,13 +13105,36 @@ function openOrderPlan(pid){
 function atAmz(p){const m=D.settings.atAmz||{};const v=m[p.asin];return (v===0||v)?v:null;}
 function atAmzAge(p){const at=(D.settings.atAmzAt||{})[p.asin];return at?daysSince(at):null;}
 function sold30(p){const m=D.settings.sold30||{};const v=m[p.asin];return (v===0||v)?v:null;}
+/* the month a figure describes — entered in August, it is July's number */
+function lastFullMonth(d){
+  const t=d?new Date(d):new Date(TODAY);
+  const y=t.getFullYear(),m=t.getMonth();          // 0-based
+  const pm=m===0?11:m-1, py=m===0?y-1:y;
+  return `${py}-${String(pm+1).padStart(2,'0')}`;
+}
 function setSold30(asin,v){
   D.settings.sold30=D.settings.sold30||{};
   D.settings.sold30At=D.settings.sold30At||{};
+  D.settings.soldHist=D.settings.soldHist||{};
   const n=parseInt(v);
-  if(n>0||n===0){D.settings.sold30[asin]=n;D.settings.sold30At[asin]=dayISO();}
+  if(n>0||n===0){
+    D.settings.sold30[asin]=n;D.settings.sold30At[asin]=dayISO();
+    /* Keep every month, keyed by the month it describes. Holding one number
+       meant "two months" could only ever be last month doubled — a projection
+       dressed up as a total. Two real months make a real sum. */
+    (D.settings.soldHist[asin]=D.settings.soldHist[asin]||{})[lastFullMonth()]=n;
+  }
   else{delete D.settings.sold30[asin];delete D.settings.sold30At[asin];}
   savePrefs();render();
+}
+/* Last two full months added together — only when we genuinely have both.
+   Returns {n, real} so the UI never has to guess whether it is a fact. */
+function sold60(p){
+  const h=(D.settings.soldHist||{})[p.asin]||{};
+  const keys=Object.keys(h).sort().slice(-2);
+  if(keys.length>=2)return{n:h[keys[0]]+h[keys[1]],real:true,months:keys};
+  const one=sold30(p);
+  return one==null?{n:null,real:false,months:[]}:{n:one*2,real:false,months:keys};
 }
 /* Everything downstream leans on this one typed number, so how old it is
    matters as much as what it says. */
@@ -14661,6 +14690,16 @@ function doShip(){
     if(typeof renderShipments==='function')setTimeout(renderShipments,0);
     if(typeof renderDashboard==='function')setTimeout(renderDashboard,0);
   }catch(e){console.warn('[lav3] shipment record',e);}
+  /* The reason was only ever written into a log line, which cannot be counted.
+     Stored as a record so Settings can answer "how often, and why". */
+  if(chk.mixed.length&&SHIP.override){
+    D.settings.overrides=D.settings.overrides||[];
+    D.settings.overrides.unshift({on:dayISO(),by:(window.currentUserName||'Becki'),
+      shipId:fba,prod:p.name,units:n,k:SHIP.reasonK||'other',why:SHIP.reason||'',
+      cost:Number(cg.per.toFixed(4))});
+    D.settings.overrides=D.settings.overrides.slice(0,300);
+    savePrefs();
+  }
   const mixNote=chk.mixed.length?` — MIXED COSTS, override: ${SHIP.reason||'no reason given'}`:'';
   logIt('ship',`Sent ${n} × ${p.name} to ${fba} — COG ${gbp(cg.per)}/unit${mixNote}`);
   cm('lav3Ov1');render();
@@ -15729,8 +15768,10 @@ function vRestocks(){
       </div>
       <div class="rsFacts">
         <div class="rsFact"><span class="k">Sold last month</span><span class="v">${sold!=null?fmt(sold):'—'}</span></div>
-        <div class="rsFact"><span class="k">Two months at that rate</span><span class="v">${sold!=null?fmt(sold*2):'—'}</span>
-          <span class="s">${sold!=null?'estimate':'needs a sales figure'}</span></div>
+        ${(()=>{const s2=sold60(p);
+          return `<div class="rsFact"><span class="k">Last two months</span>
+            <span class="v">${s2.n==null?'—':fmt(s2.n)}</span>
+            <span class="s">${s2.n==null?'needs a sales figure':s2.real?`${s2.months.join(' + ')} — actual`:'estimate — only one month in'}</span></div>`;})()}
         <div class="rsFact"><span class="k">At Amazon</span><span class="v">${at==null?'—':fmt(at)}</span>
           <span class="s">${at==null?'never counted':(atAmzAge(p)===0?'counted today':`${atAmzAge(p)}d ago`)}</span></div>
         <div class="rsFact"><span class="k">Backstock here</span><span class="v">${fmt(have)}</span></div>
@@ -15747,7 +15788,8 @@ function vRestocks(){
         </div></div>
       <div class="rsPick"><label class="rsLbl">Quick</label>
         <div class="rsQuick">${[25,50,100,250,500].map(n=>`<button class="rsChip ${n===RS_QTY?'on':''}" onclick="LV3.rsQty(${n})">${fmt(n)}</button>`).join('')}
-        ${sold!=null?`<button class="rsChip" title="Two months at last month's rate" onclick="LV3.rsQty(${sold*2})">2 months (${fmt(sold*2)})</button>`:''}</div></div>
+        ${(()=>{const s2=sold60(p);return s2.n==null?'':
+          `<button class="rsChip" title="${s2.real?'Both months added up':"Twice last month — only one month's data in"}" onclick="LV3.rsQty(${s2.n})">2 months (${fmt(s2.n)})</button>`;})()}</div></div>
     </div>
 
     ${!plan.length?`<div class="panel"><div class="rsEmpty">
@@ -15933,6 +15975,41 @@ function setSupplierMode(key,mode){
 let _supQ='',_supAll=false;
 function supFind(v){_supQ=v||'';render();}
 function supToggleAll(){_supAll=!_supAll;render();}
+/* How often the mixed-COG block gets overridden, and why. A control nobody can
+   audit is not a control — if one reason dominates, that is a process problem to
+   fix rather than a button to keep pressing. */
+function overridePanel(){
+  const list=D.settings.overrides||[];
+  if(!list.length)return '';
+  const by={};
+  list.forEach(o=>{const k=o.k||'other';(by[k]=by[k]||{n:0,units:0,label:(OV_REASONS.find(r=>r[0]===k)||[])[1]||k}).n++;by[k].units+=o.units||0;});
+  const ranked=Object.entries(by).sort((a,b)=>b[1].n-a[1].n);
+  const last30=list.filter(o=>daysSince(o.on)<=30).length;
+  return `<div class="panel">
+    <div class="ph"><span class="t">Mixed-cost overrides</span>
+      <span class="sub">${fmt(list.length)} recorded · ${fmt(last30)} in the last 30 days</span>
+      ${last30>=5?`<span class="chip bad">happening often</span>`:''}</div>
+    <div style="padding:12px">
+      <div class="pmeta" style="margin-bottom:10px">Every time the block was overridden and a shipment went out with two
+        costs averaged. A handful is normal. A pattern means something upstream needs fixing, not a button pressing.</div>
+      <div class="ovBars">
+        ${ranked.map(([k,v])=>`<div class="ovBar">
+          <span class="ovL">${esc(v.label)}</span>
+          <span class="ovTrack"><span class="ovFill" style="width:${Math.round(v.n/list.length*100)}%"></span></span>
+          <span class="ovN">${fmt(v.n)}</span></div>`).join('')}
+      </div>
+      <div class="dsec" style="margin-top:14px"><span class="lab">Most recent</span></div>
+      <table><thead><tr><th>When</th><th class="l">Shipment</th><th class="l">Product</th><th>Units</th><th class="l">Reason</th><th class="l">Who</th></tr></thead><tbody>
+      ${list.slice(0,12).map(o=>`<tr>
+        <td class="mono">${dshort(o.on)}</td>
+        <td class="l mono">${esc(o.shipId||'—')}</td>
+        <td class="l">${esc(o.prod||'—')}</td>
+        <td class="mono">${fmt(o.units||0)}</td>
+        <td class="l">${esc(o.why||'—')}</td>
+        <td class="l">${esc(o.by||'—')}</td></tr>`).join('')}
+      </tbody></table>
+    </div></div>`;
+}
 function supplierPanel(){
   const sups=knownSuppliers();
   if(!sups.length)return '';
@@ -16017,6 +16094,18 @@ function healthCheck(){
     `${fmt(noPrice.length)} thing${noPrice.length===1?'':'s'} hold stock with no price on it`,
     `${esc(noPrice.slice(0,3).map(x=>x.name).join(', '))}${noPrice.length>3?` +${noPrice.length-3} more`:''} — COG cannot be worked out until the batch has a cost.`,
     "go('components')",'');
+
+  const sl=(typeof shortLines==='function')?shortLines():[];
+  const decide=sl.filter(x=>shortState(x.l).k==='decide');
+  const noreply=sl.filter(x=>shortState(x.l).k==='noreply');
+  add('decide',decide.length,
+    `${fmt(decide.length)} shortfall${decide.length===1?'':'s'} ${decide.length===1?'has':'have'} been open 21 days`,
+    `${esc(decide.slice(0,3).map(x=>x.o.name).join(', '))}${decide.length>3?` +${decide.length-3} more`:''} — stop chasing and decide: refund, write off, or it was a miscount.`,
+    "go('purchases')",'');
+  add('noreply',noreply.length,
+    `${fmt(noreply.length)} chase${noreply.length===1?'':'s'} had no reply by the date set`,
+    'Chase again or close it — the reply-by date has passed.',
+    "go('purchases')",'');
 
   const seen={},dups=[];
   D.products.filter(x=>!x.archived&&x.asin).forEach(x=>{
@@ -16620,6 +16709,8 @@ function shortLines(){
       if(l.short&&!l.arr&&!l.writtenOff&&l.qty>0)out.push({o,l});
     });
   });
+  /* oldest first, always. Sorting by value would teach everyone to ignore the
+     small ones, and the small ones are exactly how it becomes a habit. */
   return out.sort((a,b)=>(a.l.shortOn||'').localeCompare(b.l.shortOn||''));
 }
 /* ── WHAT TO BUY ──────────────────────────────────────────────────────────
@@ -16813,12 +16904,19 @@ function shortPanel(){
         <td><span class="num b" style="color:var(--red)">${fmt(l.qty)}</span></td>
         <td><span class="num">${l.cost>0?gbp(l.qty*l.cost):'—'}</span></td>
         <td class="l">${esc(l.sup||'—')}</td>
-        <td class="l">${l.chased
-          ? `<span style="color:${chased>=7?'var(--amb)':'var(--grn)'};font-weight:700;font-size:12px">chased ${chased===0?'today':chased+'d ago'}</span>`
-          : `<span style="color:var(--red);font-weight:700;font-size:12px">not chased yet</span>`}</td>
+        <td class="l">${(()=>{const st=shortState(l);
+          return `<span style="color:${st.col};font-weight:700;font-size:12px">${st.label}</span>
+            <div class="pmeta" style="margin:2px 0 0">${
+              st.k==='decide'?`${age} days old — chase it again or close it off`
+              :st.k==='noreply'?`reply was due ${dshort(l.replyBy)}`
+              :l.chased?`chased ${chased===0?'today':chased+'d ago'}${l.replyBy?` · reply due ${dshort(l.replyBy)}`:''}`
+              :'nobody has asked yet'}</div>`;})()}</td>
         <td class="acts">
-          <button class="btn sm" title="Record that you've asked the supplier about it" onclick="LV3.markChased('${x.o.id}','${l.id}')">Chased</button>
+          <button class="btn sm" title="Record that you've asked — sets a reply-by date three working days out"
+            onclick="LV3.markChased('${x.o.id}','${l.id}')">${l.chased?'Chased again':'Chased'}</button>
           <button class="btn sm go" title="It turned up after all" onclick="LV3.markArrived('${comp(x.o.id)?'component':'product'}','${x.o.id}','${l.id}')">Arrived</button>
+          <button class="btn sm" title="Money back — closes it without writing off stock" onclick="LV3.shortEnd('${x.o.id}','${l.id}','refund')">Refunded</button>
+          <button class="btn sm" title="It was on the shelf all along" onclick="LV3.shortEnd('${x.o.id}','${l.id}','miscount')">Miscount</button>
           <button class="btn sm dgr" title="Accept it's never coming" onclick="LV3.writeOffShort('${x.o.id}','${l.id}')">Write off</button>
         </td></tr>`;}).join('')}
     </tbody></table>
@@ -16826,12 +16924,52 @@ function shortPanel(){
       These are still counted as <b>on order</b>, so they still show as incoming. Write one off and it stops counting.</div>
   </div>`;
 }
+/* Three working days from today — the only extra thing anyone has to think
+   about when they chase, and the thing that stops a shortfall drifting. */
+function replyByDate(days){
+  const d=new Date(TODAY);let left=days||3;
+  while(left>0){d.setDate(d.getDate()+1);const w=d.getDay();if(w!==0&&w!==6)left--;}
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+/* Where a shortfall is up to. Age is measured from the day it was noticed and
+   NEVER from its value — £1 missing and £400 missing hit the same wall on the
+   same day, because a supplier who is casual about £1 is the problem either way. */
+function shortState(l){
+  const age=daysSince(l.shortOn||l.date);
+  if(age>=21)return{k:'decide',label:'Needs a decision',col:'var(--red)',ord:0};
+  if(l.replyBy&&l.replyBy<dayISO())return{k:'noreply',label:'No reply',col:'var(--red)',ord:1};
+  if(!l.chased)return{k:'new',label:'Not chased yet',col:'var(--amb)',ord:2};
+  return{k:'waiting',label:'Waiting on them',col:'var(--text2)',ord:3};
+}
 function markChased(oid,lid){
   const o=comp(oid)||prod(oid);if(!o)return;
   const l=(o.layers||[]).find(x=>x.id===lid);if(!l)return;
   l.chased=dayISO();l.chasedBy=(window.currentUserName||'Becki');
-  logIt('edit',`Chased ${o.name} — ${fmt(l.qty)} short from ${l.sup||'supplier'}`);
-  save();render();toast('Chase recorded','ok');
+  l.replyBy=replyByDate(3);
+  logIt('edit',`Chased ${o.name} — ${fmt(l.qty)} short from ${l.sup||'supplier'}, reply due ${dshort(l.replyBy)}`);
+  save();render();toast(`Chase recorded — reply due ${dshort(l.replyBy)}`,'ok');
+}
+/* The endings. Without them "resolved" only ever meant somebody deleted the row,
+   and you lost the one thing worth knowing: which suppliers actually make good. */
+function shortEnd(oid,lid,kind){
+  const o=comp(oid)||prod(oid);if(!o)return;
+  const l=(o.layers||[]).find(x=>x.id===lid);if(!l)return;
+  const who=(window.currentUserName||'Becki');
+  const words={refund:'Refunded or credited',miscount:'Miscount — it was here all along'};
+  const val=l.cost>0?gbp(l.qty*l.cost):'';
+  confirmBox(kind==='refund'?'Money back?':'Was it a miscount?',
+    `<div style="margin-bottom:10px"><b>${fmt(l.qty)} × ${esc(o.name)}</b> from <b>${esc(l.sup||'the supplier')}</b>${val?` — ${val}`:''}.</div>
+     <div class="pmeta" style="margin:0">${kind==='refund'
+       ? 'This closes the shortfall and stops it counting as incoming. Record it once the credit is actually confirmed.'
+       : 'This closes the shortfall and stops it counting as incoming. The stock was never missing, so nothing is written off.'}</div>`,
+    ()=>{
+      snap();
+      l.short=0;l.writtenOff=1;
+      l.shortEnd={k:kind,on:dayISO(),by:who};
+      logIt('edit',`${words[kind]} — ${fmt(l.qty)} × ${o.name} from ${l.sup||'supplier'}${val?' ('+val+')':''} · ${who}`);
+      save();render();
+      toastUndo(kind==='refund'?'Recorded as refunded':'Recorded as a miscount','ok');
+    },{ok:kind==='refund'?'Yes, it was refunded':'Yes, it was a miscount'});
 }
 function writeOffShort(oid,lid){
   const o=comp(oid)||prod(oid);if(!o)return;
@@ -18130,6 +18268,7 @@ function vSettings(){
           <div class="note info">Reading only, and it goes through the same server-side helper this app already uses for the prep sheet — no key sits in this page and nothing here can change a cell.</div>
         </div>
       </div>
+      ${overridePanel()}
       ${supplierPanel()}
 
       <div class="panel">
@@ -18450,7 +18589,7 @@ const API={go,render:paint,boot,
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,writeOffShort,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,openOrderPlan,atAmz,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsFind,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsFind,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
