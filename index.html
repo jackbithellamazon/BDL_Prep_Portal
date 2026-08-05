@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v6.4</title>
+<title>BDL PrepHub v6.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -802,7 +802,13 @@ html.light-mode{
 #page-lavarion thead th.acts,.lav3 thead th.acts{z-index:13;background:var(--bg3);}
 #page-lavarion td.acts .btn.sm,.lav3 td.acts .btn.sm{padding:4px 7px;font-size:10.5px;}
 #page-lavarion .sub-row td,.lav3 .sub-row td{position:static;}
+/* The actions column is pinned to the right edge and its width was set when a
+   row had two buttons. Adding + Batch and + Product pushed the rest under the
+   pin, so half of them could not be seen or clicked. It sizes to its contents
+   now and the row makes space for it. */
 #page-lavarion td.acts>div,.lav3 td.acts>div{flex-wrap:nowrap;white-space:nowrap;}
+#page-lavarion td.acts,#page-lavarion th.acts,.lav3 td.acts,.lav3 th.acts{
+  width:1%;white-space:nowrap;padding-left:12px;padding-right:12px;}
 #page-lavarion td.acts .btn,.lav3 td.acts .btn{flex:0 0 auto;white-space:nowrap;}
 
 @media(max-width:1100px){
@@ -1144,21 +1150,42 @@ html.light-mode{
 #page-lavarion .ppStack>#revPanel,.lav3 .ppStack>#revPanel{order:2;}
 #page-lavarion .ppStack>#buyPanel,.lav3 .ppStack>#buyPanel{order:9;}
 /* restocks */
-#page-lavarion .rsTop,.lav3 .rsTop{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;padding:13px 15px;
-  border-bottom:1px solid var(--border);}
-#page-lavarion .rsField,.lav3 .rsField{display:grid;gap:5px;}
-#page-lavarion .rsField .in,.lav3 .rsField .in{min-width:260px;}
-#page-lavarion .rsQty,.lav3 .rsQty{min-width:110px!important;text-align:center;font:800 16px var(--num);}
-#page-lavarion .rsQuick,.lav3 .rsQuick{display:flex;gap:6px;margin-bottom:2px;}
-#page-lavarion .rsSum,.lav3 .rsSum{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;
-  background:var(--border);border-bottom:1px solid var(--border);}
-#page-lavarion .rsStat,.lav3 .rsStat{background:var(--bg2);padding:12px 15px;display:grid;gap:3px;}
-#page-lavarion .rsStat .k,.lav3 .rsStat .k{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);}
-#page-lavarion .rsStat .v,.lav3 .rsStat .v{font:900 22px var(--num);color:var(--text);line-height:1.1;}
-#page-lavarion .rsStat .s,.lav3 .rsStat .s{font-size:11px;color:var(--text2);opacity:.85;}
-#page-lavarion .rsStat.bad .v,.lav3 .rsStat.bad .v{color:var(--amb);}
-#page-lavarion .rsStat.ok .v,.lav3 .rsStat.ok .v{color:var(--grn);}
+/* Restocks — the controls are the page, so they get to look like it */
+#page-lavarion .rsBar,.lav3 .rsBar{display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;
+  background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:15px 18px;margin-bottom:14px;}
+#page-lavarion .rsPick,.lav3 .rsPick{display:grid;gap:6px;}
+#page-lavarion .rsLbl,.lav3 .rsLbl{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .rsSel,.lav3 .rsSel{min-width:340px;font-size:14px;font-weight:600;padding:9px 11px;}
+#page-lavarion .rsStep,.lav3 .rsStep{display:flex;align-items:stretch;border:1px solid var(--border2);border-radius:9px;overflow:hidden;}
+#page-lavarion .rsPm,.lav3 .rsPm{width:38px;background:var(--bg3);border:none;color:var(--text2);font-size:18px;font-weight:800;cursor:pointer;}
+#page-lavarion .rsPm:hover,.lav3 .rsPm:hover{background:var(--bg4);color:var(--accent);}
+#page-lavarion .rsQty,.lav3 .rsQty{width:104px;text-align:center;font:900 19px var(--num);background:var(--bg);
+  border:none;border-left:1px solid var(--border2);border-right:1px solid var(--border2);color:var(--text);padding:8px 4px;}
+#page-lavarion .rsQty:focus,.lav3 .rsQty:focus{outline:none;}
+#page-lavarion .rsQuick,.lav3 .rsQuick{display:flex;gap:6px;}
+#page-lavarion .rsChip,.lav3 .rsChip{padding:8px 13px;border-radius:8px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font:700 12.5px var(--num);cursor:pointer;}
+#page-lavarion .rsChip:hover,.lav3 .rsChip:hover{border-color:var(--accent);color:var(--accent);}
+#page-lavarion .rsChip.on,.lav3 .rsChip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+#page-lavarion .rsCards,.lav3 .rsCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:14px;}
+#page-lavarion .rsCard,.lav3 .rsCard{background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--border2);
+  border-radius:11px;padding:14px 16px;display:grid;gap:4px;}
+#page-lavarion .rsCard .k,.lav3 .rsCard .k{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .rsCard .v,.lav3 .rsCard .v{font:900 30px var(--num);color:var(--text);line-height:1;}
+#page-lavarion .rsCard .s,.lav3 .rsCard .s{font-size:11.5px;color:var(--text2);opacity:.9;}
+#page-lavarion .rsCard.bad,.lav3 .rsCard.bad{border-top-color:var(--amb);}
+#page-lavarion .rsCard.bad .v,.lav3 .rsCard.bad .v{color:var(--amb);}
+#page-lavarion .rsCard.ok,.lav3 .rsCard.ok{border-top-color:var(--grn);}
+#page-lavarion .rsCard.ok .v,.lav3 .rsCard.ok .v{color:var(--grn);}
+#page-lavarion .rsCard.warn,.lav3 .rsCard.warn{border-top-color:var(--amb);}
 #page-lavarion .rsTbl tr.short td,.lav3 .rsTbl tr.short td{background:rgba(255,170,51,.07);}
+#page-lavarion .rsTbl tbody tr:hover td,.lav3 .rsTbl tbody tr:hover td{background:var(--bg3);}
+#page-lavarion .rsCases,.lav3 .rsCases{text-align:center;}
+#page-lavarion .rsBig,.lav3 .rsBig{font:900 22px var(--num);color:var(--amb);line-height:1;}
+#page-lavarion .rsEmpty,.lav3 .rsEmpty{padding:48px 24px;text-align:center;display:grid;gap:9px;justify-items:center;}
+#page-lavarion .rsEmT,.lav3 .rsEmT{font-size:16px;font-weight:800;color:var(--text);}
+#page-lavarion .rsEmB,.lav3 .rsEmB{font-size:13px;color:var(--text2);max-width:520px;line-height:1.6;}
+#page-lavarion .rsEmBtns,.lav3 .rsEmBtns{display:flex;gap:8px;margin-top:6px;}
 #page-lavarion .plNote,.lav3 .plNote{border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.06);
   border-radius:9px;padding:12px 14px;display:grid;gap:6px;}
 #page-lavarion .plNote b,.lav3 .plNote b{font-size:12.5px;color:var(--amb);}
@@ -1697,7 +1724,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v6.4</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v6.6</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1731,7 +1758,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v6.4</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v6.6</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -12222,7 +12249,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v6.4 · lav3 · 2026-08-05 · b79';
+const BUILD='v6.6 · lav3 · 2026-08-05 · b81';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -14482,7 +14509,7 @@ function vComponents(){
       <th class="l" style="width:230px">Component</th><th style="width:80px">On hand</th>
       ${COL('cOnOrder')?'<th style="width:78px">On order</th>':''}
       ${COL('cOrdered')?'<th style="width:92px">Ordered</th>':''}
-      ${COL('cUsed')?'<th class="l" style="width:200px">Used in</th>':''}<th class="acts" style="width:104px"></th>
+      ${COL('cUsed')?'<th class="l" style="width:200px">Used in</th>':''}<th class="acts" style="width:280px"></th>
     </tr></thead><tbody>
     ${rows.length?rows.map(c=>{
       const h=onHand(c),oo=onOrder(c),nx=nextIn(c),need=compNeed60(c),short=compShort60(c),old=arrLayers(c).filter(l=>l.rem>0)[0];
@@ -15443,42 +15470,74 @@ function restockPlan(p,target){
 }
 function vRestocks(){
   const bundles=D.products.filter(x=>x.type==='bundle'&&!x.archived).sort((a,b)=>a.name.localeCompare(b.name));
-  if(!RS_PROD&&bundles.length)RS_PROD=bundles[0].id;
+  const withList=bundles.filter(b=>(b.recipe||[]).length);
+  /* Landing on a product with no build list showed an empty page and made the
+     whole thing look broken. Start on something that actually has parts. */
+  if(!RS_PROD||!prod(RS_PROD)||!(prod(RS_PROD).recipe||[]).length)RS_PROD=(withList[0]||bundles[0]||{}).id||'';
   const p=prod(RS_PROD);
   const plan=restockPlan(p,RS_QTY);
   const short=plan.filter(x=>!x.ok);
   const spend=short.reduce((t,x)=>t+x.buying*(avgCostOf(x.c)||0),0);
   const canBuildNow=p?(avail(p).n||0):0;
+  const cases=short.reduce((t,x)=>t+x.cases,0);
+
+  const picker=`<div class="rsPick">
+    <label class="rsLbl">Build which product</label>
+    <select class="in rsSel" onchange="LV3.rsSet(this.value)">
+      ${bundles.map(b=>`<option value="${b.id}" ${b.id===RS_PROD?'selected':''}>${esc(b.name)}${(b.recipe||[]).length?` — ${b.recipe.length} part${b.recipe.length===1?'':'s'}`:' — no build list'}</option>`).join('')}
+    </select>
+  </div>
+  <div class="rsPick">
+    <label class="rsLbl">How many</label>
+    <div class="rsStep">
+      <button class="rsPm" onclick="LV3.rsQty(${Math.max(0,RS_QTY-25)})" title="25 fewer">−</button>
+      <input class="rsQty" type="number" min="0" value="${RS_QTY}" onchange="LV3.rsQty(this.value)">
+      <button class="rsPm" onclick="LV3.rsQty(${RS_QTY+25})" title="25 more">+</button>
+    </div>
+  </div>
+  <div class="rsPick">
+    <label class="rsLbl">&nbsp;</label>
+    <div class="rsQuick">${[25,50,100,250,500].map(n=>`<button class="rsChip ${n===RS_QTY?'on':''}" onclick="LV3.rsQty(${n})">${fmt(n)}</button>`).join('')}</div>
+  </div>`;
+
+  if(!bundles.length){
+    $('lav3View').innerHTML=`<div class="panel"><div class="rsEmpty">
+      <div class="rsEmT">No bundles yet</div>
+      <div class="rsEmB">Restocks works out what to buy for a bundle. Add one and give it a build list first.</div>
+      <button class="btn pri" onclick="LV3.editProduct(null)">Add a product</button></div></div>`;
+    return;
+  }
+
   $('lav3View').innerHTML=`
-    <div class="panel">
-      <div class="ph"><span class="t">What to order</span>
-        <span class="sub">pick a bundle, say how many you want to build</span></div>
-      <div class="rsTop">
-        <div class="rsField"><span class="lab">Product</span>
-          <select class="in" onchange="LV3.rsSet(this.value)">
-            ${bundles.map(b=>`<option value="${b.id}" ${b.id===RS_PROD?'selected':''}>${esc(b.name)}</option>`).join('')}
-          </select></div>
-        <div class="rsField"><span class="lab">How many to build</span>
-          <input class="in num rsQty" type="number" min="0" value="${RS_QTY}" onchange="LV3.rsQty(this.value)"></div>
-        <div class="rsQuick">${[25,50,100,200,500].map(n=>`<button class="btn sm ${n===RS_QTY?'pri':''}" onclick="LV3.rsQty(${n})">${n}</button>`).join('')}</div>
-      </div>
-      ${!p?'<div class="empty" style="padding:22px">No bundles yet.</div>'
-        :!plan.length?`<div class="empty" style="padding:22px"><b>${esc(p.name)}</b> has no build list, so there is nothing to work out.
-          <div style="margin-top:10px"><button class="btn pri" onclick="LV3.editProduct('${p.id}')">Add its components</button></div></div>`
-        :`<div class="rsSum">
-          ${(()=>{const n=short.length;return `<div class="rsStat ${n?'bad':'ok'}"><span class="k">${n?'Needs ordering':'Nothing to order'}</span>
-            <span class="v">${n?fmt(n)+' of '+fmt(plan.length):'all '+fmt(plan.length)+' parts'}</span>
-            <span class="s">${n?'parts short for this build':'enough here or already coming'}</span></div>`;})()}
-          <div class="rsStat"><span class="k">Cases to buy</span><span class="v">${fmt(short.reduce((t,x)=>t+x.cases,0))}</span>
-            <span class="s">rounded up — part cases can't be ordered</span></div>
-          <div class="rsStat"><span class="k">Roughly</span><span class="v">${gbp(spend)}</span>
-            <span class="s">at what you last paid</span></div>
-          <div class="rsStat"><span class="k">Buildable today</span><span class="v">${fmt(canBuildNow)}</span>
-            <span class="s">without ordering anything</span></div>
+    <div class="rsBar">${picker}</div>
+    ${!plan.length?`<div class="panel"><div class="rsEmpty">
+        <div class="rsEmT">${esc(p.name)} has no build list</div>
+        <div class="rsEmB">Nothing can be worked out until the app knows what goes into it. Add its parts and how many
+          of each go in one finished unit — then this page does the rest.</div>
+        <div class="rsEmBtns">
+          <button class="btn pri" onclick="LV3.editProduct('${p.id}')">Add its components</button>
+          ${withList.length?`<button class="btn" onclick="LV3.rsSet('${withList[0].id}')">Try ${esc(withList[0].name)} instead</button>`:''}
         </div>
+      </div></div>`
+    :`<div class="rsCards">
+        <div class="rsCard ${short.length?'bad':'ok'}">
+          <span class="k">${short.length?'Needs ordering':'Nothing to order'}</span>
+          <span class="v">${short.length?fmt(short.length):'0'}</span>
+          <span class="s">${short.length?`of ${fmt(plan.length)} parts are short`:`all ${fmt(plan.length)} parts covered`}</span></div>
+        <div class="rsCard ${cases?'warn':''}"><span class="k">Cases to buy</span><span class="v">${fmt(cases)}</span>
+          <span class="s">rounded up — you can't buy part of a case</span></div>
+        <div class="rsCard"><span class="k">Roughly costs</span><span class="v">${gbp(spend)}</span>
+          <span class="s">at what you last paid</span></div>
+        <div class="rsCard"><span class="k">Buildable today</span><span class="v">${fmt(canBuildNow)}</span>
+          <span class="s">of the ${fmt(RS_QTY)} you asked for</span></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="t">Every part in ${esc(p.name)}</span>
+          <span class="sub">to build ${fmt(RS_QTY)}</span>
+          ${short.length?`<span class="chip bad">${fmt(short.length)} to order</span>`:'<span class="chip ok">all covered</span>'}</div>
         <table class="rsTbl"><thead><tr>
           <th class="l">Component</th><th>In one</th><th>Need</th><th>In stock</th><th>On order</th>
-          <th>Case qty</th><th>Short</th><th>Cases</th><th class="l">Status</th></tr></thead><tbody>
+          <th>Case size</th><th>Still short</th><th>Order</th><th class="l">Status</th></tr></thead><tbody>
         ${plan.map(x=>`<tr class="${x.ok?'':'short'}">
           <td class="l"><span class="pname">${esc(x.c.name)}</span>
             <div class="pmeta">${x.kind}${x.c.sup?' · '+esc(x.c.sup):''}</div></td>
@@ -15486,20 +15545,24 @@ function vRestocks(){
           <td class="mono b">${fmt(x.need)}</td>
           <td class="mono" style="color:${x.stock?'var(--text)':'var(--red)'}">${fmt(x.stock)}</td>
           <td class="mono">${x.coming?`<span style="color:var(--blu)">${fmt(x.coming)}</span>`:'<span class="dim">—</span>'}</td>
-          <td class="mono">${x.caseQty>1?fmt(x.caseQty):'<span class="dim">1</span>'}</td>
+          <td class="mono">${x.caseQty>1?fmt(x.caseQty):'<span class="dim">singles</span>'}</td>
           <td class="mono" style="color:${x.shortfall?'var(--amb)':'var(--text3)'}">${x.shortfall?fmt(x.shortfall):'—'}</td>
-          <td class="mono b" style="font-size:15px;color:${x.cases?'var(--amb)':'var(--grn)'}">${x.cases?fmt(x.cases):'0'}</td>
+          <td class="rsCases">${x.cases
+            ? `<span class="rsBig">${fmt(x.cases)}</span><div class="pmeta">${x.caseQty>1?`case${x.cases===1?'':'s'}`:'units'}</div>`
+            : '<span class="dim">—</span>'}</td>
           <td class="l">${x.ok
             ? '<span class="chip ok">Enough stock</span>'
-            : `<span class="chip bad">Order required</span>${x.caseQty>1&&x.buying>x.shortfall?`<div class="pmeta">${fmt(x.cases)} case${x.cases===1?'':'s'} = ${fmt(x.buying)} units, ${fmt(x.buying-x.shortfall)} spare</div>`:''}`}</td>
+            : `<span class="chip bad">Order required</span>${x.caseQty>1&&x.buying>x.shortfall?`<div class="pmeta">${fmt(x.buying)} units · ${fmt(x.buying-x.shortfall)} spare</div>`:''}
+               <button class="btn sm" style="margin-top:5px" onclick="LV3.openLogOrder('${x.c.id}')">Log the order</button>`}</td>
         </tr>`).join('')}
         </tbody></table>
         <div class="pmeta" style="padding:10px 14px;border-top:1px solid var(--border)">
-          Worked out as <b>need − what's in stock − what's already on order</b>, then divided by the case size and
-          rounded up. Change a case size on the component itself and this moves with it.
-        </div>`}
-    </div>`;
+          <b>need − in stock − already on order</b>, divided by the case size and rounded up. Change a case size on the
+          component and this moves with it.
+        </div>
+      </div>`}`;
 }
+
 function vPurchases(){
   const unl=D.purchases.filter(p=>allocState(p).k==='none');
   const part=D.purchases.filter(p=>allocState(p).k==='part');
