@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v5.4</title>
+<title>BDL PrepHub v5.9</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -284,6 +284,28 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .pa-cell .pa-none{color:var(--text3);}
 .stat{flex:1;padding:10px 10px;text-align:center;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--border);border-radius:8px;transition:all .2s;cursor:pointer;min-width:100px;display:flex;flex-direction:column;justify-content:center;align-items:center;}
 .stat:hover{border-color:var(--accent);box-shadow:0 0 12px rgba(245,158,11,.2);}
+/* tiles that open the shipments behind the number say so on hover */
+.stat-go:hover{transform:translateY(-1px);}
+.stat-go:active{transform:translateY(0);}
+/* shipments still missing a box count — the prep bill is wrong until they have one */
+.nbBanner{margin:8px 0 0;padding:9px 12px;border:1px solid var(--red);border-left:4px solid var(--red);
+  border-radius:8px;background:rgba(248,113,113,.07);}
+.nbTop{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12px;color:var(--text);}
+.nbTop b{font-size:12.5px;font-weight:800;color:var(--red);}
+.nbDot{font-size:13px;color:var(--red);line-height:1;}
+.nbSub{font-size:11px;color:var(--text3);}
+.nbGo{margin-left:auto;font-size:11px;font-weight:700;padding:4px 11px;border-radius:6px;cursor:pointer;
+  background:var(--red);border:1px solid var(--red);color:#1a1113;}
+.nbGo:hover{filter:brightness(1.12);}
+.nbChips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.nbChip{display:inline-flex;align-items:center;gap:7px;padding:3px 9px;border-radius:6px;cursor:pointer;
+  background:var(--bg2);border:1px solid var(--red);color:var(--text);}
+.nbChip:hover{background:rgba(248,113,113,.16);}
+.nbId{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--accent);}
+.nbDate{font-size:10.5px;color:var(--text3);font-family:var(--mono);}
+.nbMore{align-self:center;font-size:11px;color:var(--text3);}
+/* the shipment you were sent to, so you can see which one it is */
+.nbFlash{box-shadow:0 0 0 3px var(--amber);transition:box-shadow .25s;}
 .stat-label{font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-weight:800;white-space:nowrap;}
 .stat-val{font-size:32px;font-weight:900;font-family:var(--mono);line-height:1;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;letter-spacing:-.5px;}
 .sv-blue{color:var(--blue);}
@@ -907,7 +929,10 @@ html.light-mode{
 #page-lavarion .mdRow,.lav3 .mdRow{display:flex;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
 #page-lavarion .mdRow:last-child,.lav3 .mdRow:last-child{border-bottom:0;}
 #page-lavarion .mdRow .nm,.lav3 .mdRow .nm{flex:1;font-size:12.5px;color:var(--text);}
-#page-lavarion .mdRow input,.lav3 .mdRow input{width:64px;text-align:center;padding:5px 6px;}
+/* Only the day boxes are 64px. This rule used to hit EVERY input in the row,
+   which squashed the method name to 64px too — "Sea freight from China" showed
+   as "Sea freig" while the column it sat in stayed half empty. */
+#page-lavarion .mdRow .mdDays input,.lav3 .mdRow .mdDays input{width:64px;text-align:center;padding:5px 6px;}
 
 #page-lavarion select.srt,.lav3 select.srt{width:auto;min-width:150px;padding:6px 9px;font-size:12px;flex:0 0 auto;}
 
@@ -988,7 +1013,7 @@ html.light-mode{
 #page-lavarion .hDay,.lav3 .hDay{border-bottom:1px solid var(--border);}
 #page-lavarion .hDay:last-child,.lav3 .hDay:last-child{border-bottom:0;}
 #page-lavarion .hDayHead,.lav3 .hDayHead{display:flex;gap:10px;align-items:baseline;padding:9px 14px;
-  background:var(--bg3);font:800 12px var(--num);color:var(--text);position:sticky;top:var(--lavTh,99px);z-index:10;}
+  background:var(--bg3);font:800 12px var(--num);color:var(--text);position:sticky;top:var(--lavTh,103px);z-index:10;}
 #page-lavarion .hDayHead span,.lav3 .hDayHead span{font:600 11px var(--num);color:var(--text3);}
 #page-lavarion .hRow,.lav3 .hRow{display:flex;gap:11px;align-items:center;padding:8px 14px;border-top:1px solid var(--border);}
 #page-lavarion .hDot,.lav3 .hDot{flex:0 0 18px;height:18px;border-radius:50%;color:#0b0d10;
@@ -1007,6 +1032,10 @@ html.light-mode{
 #page-lavarion .mdRow:last-of-type,.lav3 .mdRow:last-of-type{border-bottom:0;}
 #page-lavarion .mdDays,.lav3 .mdDays{display:flex;gap:6px;align-items:center;}
 #page-lavarion .mdDays .in,.lav3 .mdDays .in{width:64px;text-align:center;}
+/* the name field fills its column instead of leaving it half empty */
+#page-lavarion .mdRow>.in,.lav3 .mdRow>.in{width:100%;text-align:left;}
+#page-lavarion .mdRow:hover,.lav3 .mdRow:hover{background:var(--bg3);}
+#page-lavarion .mdRow,.lav3 .mdRow{border-radius:6px;padding-left:6px;padding-right:6px;}
 
 #page-lavarion .etaDM,.lav3 .etaDM{width:58px;text-align:center;padding:5px 4px;font-size:11.5px;font-family:var(--num);}
 /* mixed-COG block */
@@ -1075,10 +1104,13 @@ html.light-mode{
 #page-lavarion table,.lav3 table{width:100%;border-collapse:collapse;}
 #page-lavarion thead th,.lav3 thead th{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
   color:var(--accent);text-align:center;padding:10px;background:var(--bg3);white-space:nowrap;}
-#page-lavarion .panel.stick thead th,.lav3 .panel.stick thead th{position:sticky;top:var(--lavTh,99px);z-index:18;
+#page-lavarion .panel.stick thead th,.lav3 .panel.stick thead th{position:sticky;top:var(--lavTh,103px);z-index:18;
   box-shadow:inset 0 -1px 0 var(--border2);}
-/* the filter strip freezes under the tab bar; the header row sits under that */
-#page-lavarion .panel.stick>.ph,.lav3 .panel.stick>.ph{position:sticky;top:var(--lavPh,52px);z-index:20;}
+/* The filter strip freezes under the tab bar; the header row sits under that.
+   The fallbacks are the real measurements for a single-line tab bar (47px) and
+   an unwrapped filter strip (47+56) — JS overrides them within a frame, but a
+   wrong fallback is what a stalled measurement fell back TO, so they match. */
+#page-lavarion .panel.stick>.ph,.lav3 .panel.stick>.ph{position:sticky;top:var(--lavPh,47px);z-index:20;}
 #page-lavarion .mod thead th,.lav3 .mod thead th{position:static;}
 #page-lavarion .cols2 thead th,.lav3 .cols2 thead th{position:static;}
 #page-lavarion thead th.l,.lav3 thead th.l{text-align:left;}
@@ -1175,6 +1207,15 @@ html.light-mode{
   font-family:var(--sans);letter-spacing:-.005em;}
 /* only identifiers stay monospaced */
 #page-lavarion .pmeta.mono,.lav3 .pmeta.mono{font-family:var(--num);letter-spacing:.03em;font-variant-numeric:tabular-nums;}
+/* The little grey captions under each number sat on one unbreakable line in a
+   90px column, so they ran straight under the neighbouring cell and the sticky
+   actions column on the right: "parts missing" lost its last letters and
+   "guess — not real sales" spilled across two columns. They wrap inside their
+   own cell now, and the number columns have a floor so wrapping stays sensible
+   rather than one word per line. */
+#page-lavarion td .tsub,.lav3 td .tsub,
+#page-lavarion td .pmeta,.lav3 td .pmeta{white-space:normal;line-height:1.25;}
+#page-lavarion .panel.stick td:not(.l):not(.acts),.lav3 .panel.stick td:not(.l):not(.acts){min-width:96px;}
 #page-lavarion .lab,.lav3 .lab{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:0;}
 #page-lavarion .num,.lav3 .num{font-family:var(--num);font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1,'zero' 0;
   font-size:15px;font-weight:600;letter-spacing:-.02em;}
@@ -1347,6 +1388,26 @@ html.light-mode{
   font-variant-numeric:tabular-nums;font-feature-settings:'zero' 0;}
 #page-lavarion .mxc:focus,.lav3 .mxc:focus{outline:none;border-color:var(--accent);background:var(--bg3);}
 #page-lavarion .alrow,.lav3 .alrow{display:grid;grid-template-columns:minmax(0,1fr) 84px 30px;gap:9px 9px;align-items:center;margin-bottom:11px;}
+/* type-to-search picker for "where did these units go" */
+#page-lavarion .alpick,.lav3 .alpick{position:relative;min-width:0;}
+#page-lavarion .alpick .in,.lav3 .alpick .in{width:100%;}
+#page-lavarion .alrow.unmatched .al-find,.lav3 .alrow.unmatched .al-find{border-color:var(--red);}
+/* min-width so a long part name is still readable when the column is narrow */
+#page-lavarion .alpop,.lav3 .alpop{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;min-width:300px;z-index:80;
+  max-height:290px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border2);border-radius:9px;
+  box-shadow:0 18px 44px rgba(0,0,0,.6);padding:4px;}
+#page-lavarion .alpop.on,.lav3 .alpop.on{display:block;}
+#page-lavarion .alopt,.lav3 .alopt{display:flex;width:100%;align-items:center;gap:9px;padding:7px 9px;border:none;
+  background:none;color:var(--text);cursor:pointer;border-radius:6px;text-align:left;font-size:12.5px;}
+#page-lavarion .alopt:hover,.lav3 .alopt:hover,
+#page-lavarion .alopt.first,.lav3 .alopt.first{background:var(--bg3);}
+#page-lavarion .alopt .alnm,.lav3 .alopt .alnm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-lavarion .altag,.lav3 .altag{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 6px;border-radius:5px;flex:0 0 auto;}
+#page-lavarion .altag.t-component,.lav3 .altag.t-component{background:rgba(96,165,250,.14);color:#60a5fa;}
+#page-lavarion .altag.t-packaging,.lav3 .altag.t-packaging{background:rgba(148,163,184,.14);color:var(--text2);}
+#page-lavarion .altag.t-product,.lav3 .altag.t-product{background:rgba(52,211,153,.14);color:#34d399;}
+#page-lavarion .alnone,.lav3 .alnone{padding:9px;font-size:12px;color:var(--text3);}
 #page-lavarion .alwhere,.lav3 .alwhere{grid-column:1 / -1;font-size:11.5px;color:var(--text3);line-height:1.5;margin-top:-3px;}
 #page-lavarion .alwhere b,.lav3 .alwhere b{font-weight:600;}
 #page-lavarion .albar,.lav3 .albar{height:6px;border-radius:3px;background:var(--bg5);overflow:hidden;display:flex;margin:9px 0 6px;}
@@ -1474,7 +1535,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v5.4</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v5.9</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1508,7 +1569,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v5.4</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v5.9</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -1604,6 +1665,7 @@ html.light-mode{
   <!-- PREP PAGE -->
   <div class="page" id="page-prep">
     <div class="stats" id="prepStats"></div>
+    <div id="noBoxBanner"></div>
     <div class="toolbar" style="flex-direction:column;align-items:stretch;gap:6px;padding:8px 12px;">
       <!-- Row 1: Search -->
       <div class="search-box" style="width:100%;position:relative;">
@@ -1755,6 +1817,7 @@ html.light-mode{
         <span style="font-size:10px;color:var(--text3);font-weight:600;">Date:</span>
         <button id="shipDateBtn-today" onclick="setShipDateFilter('today')" class="sdBtn">Today</button>
         <button id="shipDateBtn-yesterday" onclick="setShipDateFilter('yesterday')" class="sdBtn">Yesterday</button>
+        <button id="shipDateBtn-week" onclick="setShipDateFilter('week')" class="sdBtn">This Week</button>
         <button id="shipDateBtn-7d" onclick="setShipDateFilter('7d')" class="sdBtn">7 Days</button>
         <button id="shipDateBtn-mtd" onclick="setShipDateFilter('mtd')" class="sdBtn sdBtn-active">MTD</button>
         <button id="shipDateBtn-ytd" onclick="setShipDateFilter('ytd')" class="sdBtn">YTD</button>
@@ -2805,6 +2868,17 @@ function allSentRows(){
   completed.forEach(r=>out.push({...r,isoDate:r.dsISO,units:r.shi||0,cogValue:parseSKU(r.sku).cogs*(r.shi||0),kind:'completed'}));
   lavShipments.filter(s=>s.date).forEach(s=>out.push({isoDate:s.date,units:s.units||0,sku:s.sku||'',asin:s.asin||'',shipId:s.shipId||'',cogValue:(s.cost||0)*(s.units||0),kind:'lav'}));
   returnShipments.filter(s=>s.date).forEach(s=>out.push({isoDate:s.date,units:s.units||0,sku:s.sku||'',asin:s.asin||'',shipId:s.shipId||'',cogValue:0,kind:'return'}));
+  /* One shipment, one date. SKU lines get added to an FBA shipment for days
+     after it was created, and counting those units on the day they were TYPED
+     is what made the header disagree with the shipments page — 229 units for
+     the month against 199 in the list below it, because a shipment opened in
+     July kept collecting lines in August. Units now land on the day the
+     shipment actually went, which is the date the shipments page shows: its
+     earliest line. Separate shipments still count on their own days. */
+  const shipDay={};
+  out.forEach(r=>{if(!r.shipId||!r.isoDate)return;
+    if(!shipDay[r.shipId]||r.isoDate<shipDay[r.shipId])shipDay[r.shipId]=r.isoDate;});
+  out.forEach(r=>{if(r.shipId&&shipDay[r.shipId])r.isoDate=shipDay[r.shipId];});
   return out;
 }
 function unitsSentInRange(s,e){
@@ -2856,7 +2930,10 @@ function renderStats(){
   const{s:ms,e:me}=getMonthRange();
   const weekRoll=sentRollup(ws,we);
   const sentWeek=weekRoll.units;
-  const sentMonth=unitsSentInRange(ms,me);
+  /* the month used a different function to the week, so the two tiles could not
+     be checked against each other — both go through sentRollup now */
+  const monthRoll=sentRollup(ms,me);
+  const sentMonth=monthRoll.units;
   const totalSent=allSentRows().reduce((a,r)=>a+(r.units||0),0);
   
   const inTransitSkus=inTransitRows.length;
@@ -2867,11 +2944,16 @@ function renderStats(){
   const sentTodayUnits=todayRoll.units;
   const sentTodaySkus=todayRoll.skus;
 
-  const mk=(label,val,sub,col)=>`<div class="stat" style="border-top:3px solid ${col};">
+  /* `go` turns a tile into a link to the shipments it is counting. "How have I
+     sent 199 units this week?" is answerable in one click instead of an
+     argument with the number. */
+  const mk=(label,val,sub,col,go)=>`<div class="stat${go?' stat-go':''}" style="border-top:3px solid ${col};"${
+      go?` onclick="jumpToShipments('${go}')" title="Show these shipments"`:''}>
     <div style="font-size:9px;font-weight:800;color:${col};text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">${label}</div>
     <div style="font-size:26px;font-weight:900;font-family:var(--mono);color:${col};line-height:1;">${val}</div>
     <div style="font-size:10px;color:#8b9bb3;margin-top:3px;">${sub}</div>
   </div>`;
+  const shipWord=n=>`${n} shipment${n===1?'':'s'}`;
 
   const lavWeekUnits=lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).reduce((a,s)=>a+(s.units||0),0);
   const lavMonthUnits=lavShipments.filter(s=>s.date&&new Date(s.date)>=ms&&new Date(s.date)<=me).reduce((a,s)=>a+(s.units||0),0);
@@ -2881,9 +2963,55 @@ function renderStats(){
   document.getElementById('prepStats').innerHTML=
     mk('In Transit',inTransitUnits+' units',`${inTransitSkus} SKUs · ${inTransitAsins} ASINs · ${fmtGBP2(inTransitValue)} COG`,'#38bdf8')+
     mk('COG In Transit',fmtGBP2(inTransitValue),`stock value locked in transit`,'#fbbf24')+
-    mk('Sent Today',sentTodayUnits+' units',`${sentTodaySkus} SKU lines · ${fmtGBP2(valueToday)} COG`,'#4ade80')+
-    mk('Sent This Week',sentWeekUnits+' units',`${sentWeekSkus} SKU lines · ${sentWeekAsins} ASINs`,'#a78bfa')+
-    mk('Sent This Month',totalSentMonth+' units',`units sent since 1st`,'#34d399');
+    mk('Sent Today',sentTodayUnits+' units',`${shipWord(todayRoll.shipments)} · ${sentTodaySkus} SKU lines · ${fmtGBP2(valueToday)} COG`,'#4ade80','today')+
+    mk('Sent This Week',sentWeekUnits+' units',`${shipWord(weekRoll.shipments)} · ${sentWeekSkus} SKU lines · ${sentWeekAsins} ASINs`,'#a78bfa','week')+
+    mk('Sent This Month',totalSentMonth+' units',`${shipWord(monthRoll.shipments)} · ${monthRoll.skus} SKU lines · ${monthRoll.asins} ASINs`,'#34d399','mtd');
+  renderNoBoxBanner();
+}
+
+/* A shipment with no box count can't be costed — every box carries a charge, so
+   the prep bill for that shipment is understated until someone types the number.
+   The shipments page already flags it, but only if you happen to be looking at
+   the right period. This sits on the prep sheet where the day starts. */
+function renderNoBoxBanner(){
+  const el=document.getElementById('noBoxBanner');
+  if(!el)return;
+  const day={};
+  allSentRows().forEach(r=>{if(!r.shipId||!r.isoDate)return;
+    if(!day[r.shipId]||r.isoDate<day[r.shipId])day[r.shipId]=r.isoDate;});
+  const missing=Object.keys(day).filter(sid=>!(shipBoxes[sid]>0))
+    .sort((a,b)=>String(day[b]).localeCompare(String(day[a])));
+  if(!missing.length){el.innerHTML='';return;}
+  const dshort=iso=>{const p=String(iso).split('-');return p.length===3?`${p[2]}/${p[1]}`:iso;};
+  const show=missing.slice(0,8);
+  const more=missing.length-show.length;
+  el.innerHTML=`<div class="nbBanner">
+    <div class="nbTop">
+      <span class="nbDot">⚠</span>
+      <b>${missing.length} shipment${missing.length===1?'':'s'} ${missing.length===1?'has':'have'} no box count</b>
+      <span class="nbSub">prep cost is understated until the boxes are entered</span>
+      <button class="nbGo" onclick="jumpToShipments('all')">Open shipments</button>
+    </div>
+    <div class="nbChips">
+      ${show.map(sid=>`<button class="nbChip" onclick="openShipment('${String(sid).replace(/'/g,"\\'")}')" title="Go to this shipment">
+        <span class="nbId">${sid}</span><span class="nbDate">${dshort(day[sid])}</span></button>`).join('')}
+      ${more>0?`<span class="nbMore">+${more} older</span>`:''}
+    </div>
+  </div>`;
+}
+/* Jump straight to one shipment and make it obvious which one — the period
+   filter is widened to All first, or the row you were sent to might not be in
+   the list you land on. */
+function openShipment(sid){
+  jumpToShipments('all');
+  setTimeout(()=>{
+    const el=document.getElementById('ship-'+String(sid).replace(/[^a-z0-9]/gi,'_'));
+    if(!el)return;
+    el.classList.add('open');
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.classList.add('nbFlash');
+    setTimeout(()=>el.classList.remove('nbFlash'),1800);
+  },140);
 }
 
 // ── BUNDLE COLUMN VISIBILITY ──────────────────────────────────────────────────
@@ -11249,10 +11377,17 @@ function toggleShipLavFilter(){
   renderShipments();
 }
 
+/* Jump to the shipments behind a headline number, with the right period already
+   selected — the tiles on the prep sheet call this. */
+function jumpToShipments(range){
+  const btn=document.querySelector('.sb-item[onclick*="shipments"]');
+  if(btn)goPage('shipments',btn);
+  setShipDateFilter(range||'mtd');
+}
 function setShipDateFilter(v){
   _shipDateFilter=v;
   // Update button styles
-  ['today','yesterday','7d','mtd','ytd','all'].forEach(k=>{
+  ['today','yesterday','week','7d','mtd','ytd','all'].forEach(k=>{
     const btn=document.getElementById('shipDateBtn-'+k);
     if(btn){btn.classList.toggle('sdBtn-active',k===v);}
   });
@@ -11267,6 +11402,10 @@ function getShipDateRange(){
   }
   if(_shipDateFilter==='today')return{s:todayStr,e:todayStr};
   if(_shipDateFilter==='yesterday')return{s:yesterdayISO(),e:yesterdayISO()};
+  /* Monday to today — the same week the "Sent This Week" tile counts, so the
+     two can be checked against each other. "7 Days" is a rolling window and
+     deliberately answers a different question. */
+  if(_shipDateFilter==='week'){const{s}=getWeekRange(0);return{s:localISO(s),e:todayStr};}
   if(_shipDateFilter==='7d'){const d=new Date();d.setDate(d.getDate()-6);return{s:localISO(d),e:todayStr};}
   if(_shipDateFilter==='mtd'){const s=new Date(now.getFullYear(),now.getMonth(),1);return{s:localISO(s),e:todayStr};}
   if(_shipDateFilter==='ytd'){return{s:`${now.getFullYear()}-01-01`,e:todayStr};}
@@ -11923,7 +12062,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v5.4 · lav3 · 2026-08-03 · b69';
+const BUILD='v5.9 · lav3 · 2026-08-04 · b74';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -12518,7 +12657,7 @@ function go(t){TAB=t;Q='';render();window.scrollTo(0,0);}
    matters is where it actually is, which changes with the app header above it —
    so measure its real bottom edge, and keep measuring as the page scrolls.
    Anything else leaves a band where rows scroll past in the open. */
-let _stickRaf=0,_stickRO=null;
+let _stickRaf=0,_stickRO=null,_stickBusy=0;
 /* Where the filter bar and column headings pin. #page-lavarion has
    overflow-y:auto, so it is its own scrollport and these offsets are measured
    from IT, not the window.
@@ -12534,15 +12673,20 @@ function syncSticky(){
   if(!root)return;
   const bar=root.querySelector('.lav3bar');
   if(!bar)return;
-  const h=Math.round(bar.getBoundingClientRect().height);
-  if(!h)return;
-  const cs=getComputedStyle(bar);
-  const stuckAt=(cs.position==='sticky'||cs.position==='fixed')?(parseFloat(cs.top)||0):0;
-  const phTop=stuckAt+h;
+  const barBox=bar.getBoundingClientRect();
+  if(!barBox.height)return;              // page hidden — nothing to measure yet
+  /* Where the bar's bottom edge ACTUALLY sits inside the scrollport. Reading the
+     CSS `top` and adding the height assumed the bar was stuck; if it has scrolled
+     away (it un-sticks on narrow windows) that guess is too big and everything
+     below it hangs in mid-air. Clamped at 0 so the bars never pin off-screen. */
+  const phTop=Math.max(0,Math.round(barBox.bottom-root.getBoundingClientRect().top));
   if(root.style.getPropertyValue('--lavPh')!==phTop+'px')
     root.style.setProperty('--lavPh',phTop+'px');
   const ph=root.querySelector('.panel.stick>.ph');
-  const phH=Math.round(ph?ph.getBoundingClientRect().height:0)||47;
+  /* floor, not round: a filter strip 55.5px tall rounded up to 56 pinned the
+     headings half a pixel BELOW its bottom edge, and rows showed through the
+     hairline. Rounding down overlaps instead, and the strip sits on top. */
+  const phH=Math.floor(ph?ph.getBoundingClientRect().height:0)||47;
   const thTop=phTop+phH;
   if(root.style.getPropertyValue('--lavTh')!==thTop+'px')
     root.style.setProperty('--lavTh',thTop+'px');
@@ -12558,14 +12702,24 @@ function watchStickyBars(bar,ph){
     if(ph)_stickRO.observe(ph);
   }catch(e){}
 }
+/* This used to defer the measurement to requestAnimationFrame behind a latch.
+   requestAnimationFrame does not fire while the tab is in the background, so if
+   the first call happened before the page was on screen the latch stayed shut
+   and EVERY later call returned immediately. The offsets were never written at
+   all, both bars fell back to their hardcoded CSS values (52px / 99px) against a
+   47px tab bar, and rows scrolled through the leftover band. That is the gap.
+   Measuring is two getBoundingClientRect calls and only writes when a number
+   really changed, so it is cheap enough to just do. */
 function stickWatch(){
-  if(_stickRaf)return;
-  _stickRaf=requestAnimationFrame(()=>{_stickRaf=0;syncSticky();});
+  if(_stickBusy)return;                 // re-entrancy only; always released below
+  _stickBusy=1;
+  try{syncSticky();}catch(e){}
+  _stickBusy=0;
 }
 window.addEventListener('resize',stickWatch,{passive:true});
 document.addEventListener('scroll',stickWatch,{passive:true,capture:true});
-if(document.fonts&&document.fonts.ready)document.fonts.ready.then(stickWatch).catch(()=>{});
-document.addEventListener('scroll',stickWatch,{passive:true,capture:true});
+/* a tab measured while hidden measures nothing — redo it when it comes forward */
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)stickWatch();});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(stickWatch).catch(()=>{});
 
 /* ═══════════════ OVERVIEW ═══════════════ */
@@ -12616,7 +12770,7 @@ function workList(){
     s:'Send more, or buy more parts',btn:'Show me',go:"go('products')"});
   if(noSold)jobs.push({sev:3,n:noSold,
     t:`${fmt(noSold)} product${noSold===1?'':'s'} ${noSold===1?'has':'have'} no sales figure`,
-    s:'Targets are guesses until Sold 30d is filled in',btn:'Fill them in',go:"go('products')"});
+    s:'Targets are guesses until last month\u2019s sales are in',btn:'Show me',go:"go('products')"});
   else if(stale)jobs.push({sev:3,n:stale,
     t:`${fmt(stale)} sales figure${stale===1?'':'s'} over a month old`,
     s:'Worth refreshing from Seller Central',btn:'Update',go:"go('products')"});
@@ -12765,7 +12919,7 @@ function vOverview(){
     <div>
       <div class="panel">
         <div class="ph"><span class="t">What we can send today</span><span class="sub">${sendableProds.length} of ${live.length} products${blocked.length?` · ${blocked.length} can't be sent`:''}</span></div>
-        ${sendableProds.length?`<table><thead><tr><th class="l">Product</th><th>Available</th><th>Sold 30d</th><th>${D.settings.targetDays||60}d target</th></tr></thead><tbody>
+        ${sendableProds.length?`<table><thead><tr><th class="l">Product</th><th>Available</th><th>Sold last month</th><th>${D.settings.targetDays||60}d target</th></tr></thead><tbody>
         ${sendableProds.slice().sort((a,b)=>{
           const ga=(target60(a)||0)-(avail(a).n||0),gb=(target60(b)||0)-(avail(b).n||0);return gb-ga;}).map(p=>{
           const a=avail(p),tgt=target60(p),gap=tgt?Math.max(0,tgt-(a.n||0)):0;
@@ -12779,7 +12933,7 @@ function vOverview(){
           <td class="mono" style="font-size:12px;color:var(--text2)">${sold30(p)!=null?fmt(sold30(p)):'<span class="dim">not set</span>'}</td>
           <td style="width:112px">${tgt?`<div class="bar"><i style="width:${pct}%;background:${col}"></i></div>
             <div class="pmeta" style="text-align:center">${gap>0?`send ${fmt(gap)} more`:'covered'}</div>`
-            :'<span class="dim" style="font-size:11.5px">enter Sold 30d</span>'}</td></tr>`;}).join('')}
+            :'<span class="dim" style="font-size:11.5px">no sales figure</span>'}</td></tr>`;}).join('')}
         </tbody></table>`:'<div class="empty">Nothing can be sent right now — everything is out of stock.</div>'}
         ${blocked.length?`<div style="padding:9px 12px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text3)">
           <b style="color:var(--red)">${blocked.length}</b> hidden because they can't be sent — ${blocked.map(b=>esc(b.name)).join(', ')}</div>`:''}
@@ -12901,7 +13055,7 @@ function vProducts(){
       <th class="l" style="min-width:190px">Product</th><th style="width:104px">Available</th>
       ${COL('pIncoming')?'<th style="width:132px">Incoming</th>':''}
       ${COL('pOrdered')?'<th style="width:84px">Ordered</th>':''}
-      ${COL('pSold')?'<th style="width:96px" title="Units sold on Amazon in the last 30 days. Type it in from Seller Central — everything else is worked out from it.">Sold 30d</th>':''}
+      ${COL('pSold')?'<th style="width:110px" title="Units sold on Amazon last full month. Comes in from outside the hub — everything else is worked out from it.">Sold last month</th>':''}
       ${COL('pTarget')?`<th style="width:112px" title="How many units should be sitting at Amazon: ${D.settings.targetDays||60} days at the current sale rate.">${D.settings.targetDays||60}d target</th>`:''}
       ${COL('pCog')?'<th style="width:86px">COG / unit</th>':''}<th class="acts" style="width:132px"></th>
     </tr></thead><tbody>
@@ -13134,17 +13288,17 @@ function prodRow(p){
         +(oo?`<div class="pmeta" style="margin-top:3px">unlocks +${fmt(oo)}</div>`:'');})()}</td>`:''}
     ${COL('pOrdered')?`<td>${nn?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(nn.date)}</span><div class="pmeta">${esc(nn.sup.split('—')[0].trim())}</div>`:'<span class="dim">—</span>'}</td>`:''}
     ${COL('pSold')?`<td onclick="event.stopPropagation()">
-      <input class="in num sold30 ${sold30(p)==null?'unset':''}" type="number" min="0" placeholder="type it"
-        value="${sold30(p)!=null?sold30(p):''}"
-        title="Units sold on Amazon in the last 30 days — take it from Seller Central"
-        onchange="LV3.setSold30('${p.asin}',this.value)">
+      ${/* Read-only. The figure is coming from elsewhere, so a box anyone can
+            type into would only ever disagree with the real number. */''}
+      ${sold30(p)!=null
+        ? `<span class="mono b" style="font-size:14px">${fmt(sold30(p))}</span>`
+        : `<span class="dim" style="font-size:14px">—</span>`}
       <div class="sldSub">${(()=>{
-        if(sold30(p)==null)return p.ship30?`<span class="est">using sent ${fmt(p.ship30)}</span>`:'<span class="est">no figure</span>';
+        if(sold30(p)==null)return p.ship30?`<span class="est">using sent ${fmt(p.ship30)}</span>`:'<span class="est">not in yet</span>';
         const age=sold30Age(p);
-        if(age==null)return 'from Seller Central';
-        if(age>=30)return `<span style="color:var(--red)">${age}d old — refresh</span>`;
-        if(age>=14)return `<span style="color:var(--amb)">${age}d old</span>`;
-        return age===0?'set today':`set ${age}d ago`;})()}</div></td>`:''}
+        if(age==null)return 'last full month';
+        if(age>=45)return `<span style="color:var(--red)">${age}d old</span>`;
+        return `set ${age}d ago`;})()}</div></td>`:''}
     ${COL('pTarget')?`<td>${(()=>{const t=target60(p);
       if(!t)return `<span class="dim">—</span><div class="tsub prov">needs a figure</div>`;
       const have=avail(p).n||0,gap=t-have,real=sold30(p)!=null;
@@ -13310,8 +13464,8 @@ function openProduct(id){
         lim&&!a.n?`out of ${esc(lim.name)}`:lim?`${esc(lim.name)} limits it`:'')}
       ${stat('Unlocked by arrivals','+'+fmt(unlock),unlock?'var(--blu)':null,
         inbound.length?`${inbound.length} delivery${inbound.length===1?'':'s'} due`:'nothing on order')}
-      ${stat('Sold 30d',sold30(p)!=null?fmt(sold30(p)):'—',sold30(p)?'var(--grn)':null,
-        sold30(p)!=null?`we sent ${fmt(p.ship30)} in`:'not entered — add it on the Products list')}
+      ${stat('Sold last month',sold30(p)!=null?fmt(sold30(p)):'—',sold30(p)?'var(--grn)':null,
+        sold30(p)!=null?`we sent ${fmt(p.ship30)} in`:'not in yet — comes from outside the hub')}
       ${stat(`${D.settings.targetDays||60}d target`,target60(p)?fmt(target60(p)):'—',null,(()=>{const t=target60(p);if(!t)return'needs a sold figure';
         const gap=t-(avail(p).n||0);return gap>0?`${fmt(gap)} short of it`:'covered';})())}
       ${stat('COG / unit',cg.short?'—':(cg.per>0?gbp(cg.per):'—'),cg.short?'var(--amb)':'var(--accent)',
@@ -14436,7 +14590,13 @@ function parseSheetRows(rows,tab){
   });
   return out;
 }
+/* the review list starts folded — see reviewPanel */
+let _revOpen=false;
+function revToggle(){_revOpen=!_revOpen;render();}
 const purchKey=r=>[r.date,(r.oid||'—').toLowerCase(),r.name.toLowerCase(),r.qty].join('|');
+/* the same line WITHOUT its name — used to spot a rename on the sheet instead
+   of treating it as a new purchase */
+const purchId=r=>[r.date,(r.oid||'—').toLowerCase(),r.qty,Number(r.price||0).toFixed(4)].join('|');
 
 /* Its own call rather than borrowing the prep-sheet helper — one less thing
    that breaks if that code moves. Supabase fetches Google server-side, so no
@@ -14500,13 +14660,36 @@ async function syncPurchases(){
       return;
     }
     const have=new Set(D.purchases.map(purchKey));
-    let added=0,updated=0;
+    const claimed=new Set();
+    let added=0,updated=0,renamed=0;
     all.forEach(r=>{
       const k=purchKey(r);
       if(have.has(k)){
-        const ex=D.purchases.find(x=>purchKey(x)===k);
+        const ex=D.purchases.find(x=>purchKey(x)===k&&!claimed.has(x.id))||D.purchases.find(x=>purchKey(x)===k);
+        if(ex)claimed.add(ex.id);
         if(ex&&(ex.price!==r.price||ex.sup!==r.sup)){ex.price=r.price;ex.sup=r.sup;updated++;}
         if(ex){ex.spend=r.spend;ex.mismatch=r.mismatch;}
+        return;
+      }
+      /* Renamed on the sheet. A row's identity WAS its name, so changing
+         "Borders Biscuit Assortment" to "Borders Assorted Biscuits" read as a
+         brand new purchase: the new one was added and the old one left sitting
+         there, which is how one order showed up twice. Same day, same order,
+         same quantity, same price is the same line — rename it in place.
+         Only acted on when exactly ONE line matches, so two different products
+         bought in the same quantity at the same price are never merged. */
+      const idk=purchId(r);
+      const cand=D.purchases.filter(x=>purchId(x)===idk&&!claimed.has(x.id));
+      if(cand.length===1){
+        const ex=cand[0];
+        claimed.add(ex.id);
+        if(ex.name!==r.name){
+          logIt('edit',`Purchase renamed on the sheet — “${ex.name}” is now “${r.name}”`);
+          ex.name=r.name;renamed++;
+        }
+        ex.sup=r.sup;ex.acct=r.acct;ex.invoice=r.invoice;ex.notes=r.notes;
+        ex.spend=r.spend;ex.mismatch=r.mismatch;
+        have.add(purchKey(ex));
         return;
       }
       have.add(k);added++;
@@ -14517,7 +14700,7 @@ async function syncPurchases(){
     PURCH=D.purchases;
     save();
     const un=D.purchases.filter(x=>allocState(x).k==='none').length;
-    say(`<b style="color:var(--grn)">${fmt(added)} new</b>${updated?` · ${fmt(updated)} price${updated===1?'':'s'} refreshed`:''} · ${fmt(all.length)} row${all.length===1?'':'s'} read
+    say(`<b style="color:var(--grn)">${fmt(added)} new</b>${updated?` · ${fmt(updated)} price${updated===1?'':'s'} refreshed`:''}${renamed?` · <b style="color:var(--blu)">${fmt(renamed)} renamed on the sheet</b>`:''} · ${fmt(all.length)} row${all.length===1?'':'s'} read
       ${un?` · <b style="color:var(--amb)">${fmt(un)} waiting to be linked</b>`:''}
       ${skipped?`<br><span class="pmeta" style="margin:0">${fmt(skipped)} row${skipped===1?'':'s'} before ${dshort(from)} left out — that stock is covered by the physical count.</span>`:''}
       ${ahead?`<br><span style="color:var(--amb)">${fmt(ahead)} row${ahead===1?'':'s'} dated years in the future left out — check the date column on the sheet, it's usually a typo.</span>`:''}
@@ -14657,13 +14840,22 @@ function reviewPanel(){
   const lines=orders.reduce((t,o)=>t+o.lines.length,0);
   const value=orders.reduce((t,o)=>t+o.value,0);
   const ready=orders.filter(o=>o.ready===o.lines.length).length;
-  return `<div class="panel">
-    <div class="ph"><span class="t">To review</span>
+  /* Folded away by default. It is a long list you work through when you sit
+     down to it, not something that should be in the way every time Purchases
+     is opened. The header still says exactly what is waiting. */
+  const revHead=`<span class="t">To review</span>
       <span class="sub">${fmt(orders.length)} order${orders.length===1?'':'s'} · ${fmt(lines)} line${lines===1?'':'s'} · ${gbp(value)}</span>
-      ${ready?`<span class="chip info">${fmt(ready)} ready to go</span>`:''}
-      <div class="r">
+      ${ready?`<span class="chip info">${fmt(ready)} ready to go</span>`:''}`;
+  if(!_revOpen)return `<div class="panel">
+    <div class="ph" style="cursor:pointer" onclick="LV3.revToggle()">${revHead}
+      <div class="r"><button class="btn sm" onclick="event.stopPropagation();LV3.revToggle()">Show the list</button></div>
+    </div></div>`;
+  return `<div class="panel">
+    <div class="ph" style="cursor:pointer" onclick="LV3.revToggle()">${revHead}
+      <div class="r" onclick="event.stopPropagation()">
         ${ready?`<button class="btn sm pri" onclick="LV3.applyAllSuggestions()">Link all ${fmt(ready)}</button>`:''}
         <button class="btn sm dgr" title="Empty this list — the sheet is untouched and a re-sync brings it back" onclick="LV3.clearReview()">Clear list</button>
+        <button class="btn sm" onclick="LV3.revToggle()">Hide</button>
       </div></div>
     <div class="rvWrap">
       ${orders.map(o=>{
@@ -14944,15 +15136,62 @@ function openLink(pid){
   $('alRows').innerHTML='';
   (cur.length?cur:[{to:'',qty:LINKP.qty}]).forEach(a=>addAllocRow(a.to,a.qty));
 }
+/* Everything a purchase can be allocated to, in one list. Kept as a function so
+   a component added five minutes ago is in it. */
+function allocTargets(){
+  const out=[];
+  D.components.filter(c=>!c.archived).forEach(c=>out.push({id:c.id,name:c.name,
+    tag:c.kind==='packaging'?'packaging':'component'}));
+  D.products.filter(x=>x.type!=='bundle'&&!x.archived).forEach(x=>out.push({id:x.id,name:x.name,tag:'product'}));
+  return out;
+}
+const allocLabel=id=>{const t=allocTargets().find(x=>String(x.id)===String(id));return t?t.name:'';};
+/* A dropdown of forty-odd parts is a scroll, not a choice — Becki could only
+   hunt down the list for the one she wanted. Type-to-search, with the id held
+   separately so two parts sharing a name can't be confused for each other. */
+function alFind(inp){
+  const row=inp.closest('.alrow');if(!row)return;
+  const pop=row.querySelector('.alpop'),hid=row.querySelector('.al-to');
+  const q=(inp.value||'').toLowerCase().trim();
+  const all=allocTargets();
+  const hits=(q?all.filter(t=>t.name.toLowerCase().includes(q)):all).slice(0,50);
+  if(!hits.length){pop.innerHTML=`<div class="alnone">Nothing matches “${esc(inp.value)}”</div>`;pop.classList.add('on');
+    hid.value='';row.classList.add('unmatched');allocSum();return;}
+  pop.innerHTML=hits.map((t,i)=>`<button type="button" class="alopt${i===0?' first':''}" onclick="LV3.alPick(this,'${t.id}')">
+    <span class="alnm">${esc(t.name)}</span><span class="altag t-${t.tag}">${t.tag}</span></button>`).join('');
+  pop.classList.add('on');
+  /* an exact typed name still counts as chosen, so tabbing straight past works */
+  const exact=all.find(t=>t.name.toLowerCase()===q);
+  hid.value=exact?exact.id:'';
+  row.classList.toggle('unmatched',!!q&&!exact);
+  allocSum();
+}
+function alPick(btn,id){
+  const row=btn.closest('.alrow');if(!row)return;
+  row.querySelector('.al-to').value=id;
+  row.querySelector('.al-find').value=allocLabel(id);
+  row.querySelector('.alpop').classList.remove('on');
+  row.classList.remove('unmatched');
+  allocSum();
+}
+function alKey(ev,inp){
+  const row=inp.closest('.alrow');if(!row)return;
+  const pop=row.querySelector('.alpop');
+  if(ev.key==='Escape'){pop.classList.remove('on');return;}
+  if(ev.key==='Enter'){const f=pop.querySelector('.alopt');if(f){ev.preventDefault();f.click();}}
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('.alpick'))return;
+  document.querySelectorAll('.alpop.on').forEach(p=>p.classList.remove('on'));
+});
 function addAllocRow(to,qty){
   const d=document.createElement('div');d.className='alrow';
-  d.innerHTML=`<select class="in al-to" onchange="LV3.allocSum()">
-      <option value="">Choose where these units go…</option>
-      <optgroup label="Components (used inside bundles)">
-        ${D.components.map(c=>`<option value="${c.id}" ${c.id===to?'selected':''}>${esc(c.name)}${c.kind==='packaging'?' — packaging':''}</option>`).join('')}</optgroup>
-      <optgroup label="Finished product stock">
-        ${D.products.filter(x=>x.type!=='bundle').map(x=>`<option value="${x.id}" ${x.id===to?'selected':''}>${esc(x.name)}</option>`).join('')}</optgroup>
-    </select>
+  d.innerHTML=`<div class="alpick">
+      <input class="in al-find" value="${esc(allocLabel(to))}" placeholder="Type to search — part, packaging or product…"
+        autocomplete="off" oninput="LV3.alFind(this)" onfocus="LV3.alFind(this)" onkeydown="LV3.alKey(event,this)">
+      <input type="hidden" class="al-to" value="${to||''}">
+      <div class="alpop"></div>
+    </div>
     <input class="in mono al-q" type="number" min="0" value="${qty!=null?qty:''}" placeholder="qty" style="text-align:center" oninput="LV3.allocSum()">
     <button class="btn sm dgr" title="Remove" onclick="this.parentElement.remove();LV3.allocSum()">✕</button>
     <div class="alwhere"></div>`;
@@ -14961,14 +15200,20 @@ function addAllocRow(to,qty){
 function useSuggestion(id){
   const rows=[...document.querySelectorAll('#alRows .alrow')];
   const empty=rows.find(r=>!r.querySelector('.al-to').value);
-  if(empty){empty.querySelector('.al-to').value=id;if(!empty.querySelector('.al-q').value)empty.querySelector('.al-q').value=unallocLive();}
+  if(empty){
+    empty.querySelector('.al-to').value=id;
+    const f=empty.querySelector('.al-find');if(f)f.value=allocLabel(id);   // keep the box and the id in step
+    empty.classList.remove('unmatched');
+    if(!empty.querySelector('.al-q').value)empty.querySelector('.al-q').value=unallocLive();
+  }
   else addAllocRow(id,unallocLive());
   allocSum();
 }
 function readAlloc(){return [...document.querySelectorAll('#alRows .alrow')]
   .map(r=>({to:r.querySelector('.al-to').value,qty:parseInt(r.querySelector('.al-q').value)||0}));}
-function unallocLive(){return Math.max(0,LINKP.qty-readAlloc().reduce((s,a)=>s+a.qty,0));}
+function unallocLive(){return LINKP?Math.max(0,LINKP.qty-readAlloc().reduce((s,a)=>s+a.qty,0)):0;}
 function allocSum(){
+  if(!LINKP)return;              // rows can outlive the modal that opened them
   /* explain what each chosen destination actually feeds — this is where the
      "a scraper is in five bundles" question gets answered */
   document.querySelectorAll('#alRows .alrow').forEach(r=>{
@@ -15257,6 +15502,23 @@ function inboundAll(){
   const out=[];
   D.components.forEach(c=>(c.layers||[]).filter(l=>!l.arr&&!l.writtenOff).forEach(l=>out.push({o:c,l,kind:'component'})));
   D.products.forEach(p=>(p.layers||[]).filter(l=>!l.arr&&!l.writtenOff).forEach(l=>out.push({o:p,l,kind:'product'})));
+  /* Anything on order without a window gets one, worked out from who sold it
+     and how long that method usually takes, counted from the order date. An
+     order logged by hand arrived here with the method box showing the first
+     option and Expected reading "no date set" — which meant it could never be
+     late, never be chased, and never appear in the follow-up queue. Typing over
+     either date marks it touched and the typed dates win from then on. */
+  let filled=0;
+  out.forEach(({l})=>{
+    if(l.eta1||l.eta2||l._etaTouched||!l.date)return;
+    if(!l.mode)l.mode=guessMode(l.sup);
+    const m=shipMode(l.mode)||SHIPMODES[0];
+    if(!m)return;
+    const add=n=>{const x=new Date(l.date);x.setDate(x.getDate()+n);
+      return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;};
+    l.eta1=add(m.lo);l.eta2=add(m.hi);l._etaGuess=1;filled++;
+  });
+  if(filled)save();
   return out.sort((a,b)=>(a.l.date||'').localeCompare(b.l.date||''));
 }
 function inboundCount(){return inboundAll().length;}
@@ -15275,9 +15537,12 @@ function etaState(l){
   const end=e2||e1;
   const days=Math.round((new Date(end)-new Date(t))/864e5);
   const range=e1&&e2&&e1!==e2?`${dshort(e1)} – ${dshort(e2)}`:dshort(end);
-  if(days<0)return{txt:range,col:'var(--red)',k:'late',sub:`${Math.abs(days)} day${Math.abs(days)===1?'':'s'} overdue`};
-  if(days<=7)return{txt:range,col:'var(--amb)',k:'soon',sub:days===0?'due today':`due in ${days} day${days===1?'':'s'}`};
-  return{txt:range,col:'var(--grn)',k:'ok',sub:`in ${days} days`};
+  /* an auto-filled window says so, so nobody chases a supplier over a date the
+     app guessed rather than one they were given */
+  const est=l._etaGuess?' · estimated':'';
+  if(days<0)return{txt:range,col:'var(--red)',k:'late',sub:`${Math.abs(days)} day${Math.abs(days)===1?'':'s'} overdue`+est};
+  if(days<=7)return{txt:range,col:'var(--amb)',k:'soon',sub:(days===0?'due today':`due in ${days} day${days===1?'':'s'}`)+est};
+  return{txt:range,col:'var(--grn)',k:'ok',sub:`in ${days} days`+est};
 }
 function modeChip(l){
   const m=shipMode(l.mode);if(!m)return'';
@@ -15438,9 +15703,17 @@ function historyPanel(){
     </div>
   </div>`;
 }
+/* The buy list is sorted worst-first, so the first handful IS the job. Showing
+   all 32 meant scrolling past thirty rows nobody was going to act on today to
+   reach the rest of the page. */
+let _buyAll=false;
+const BUY_SHOW=8;
+function buyToggle(){_buyAll=!_buyAll;render();}
 function buyPanel(){
   const list=buyList();
   if(!list.length)return '';
+  const shown=_buyAll?list:list.slice(0,BUY_SHOW);
+  const hidden=list.length-shown.length;
   const late=list.filter(x=>x.urgency==='late').length;
   const now=list.filter(x=>x.urgency==='now').length;
   const spend=list.reduce((t,x)=>t+x.qty*(avgCostOf(x.c)||0),0);
@@ -15460,7 +15733,7 @@ function buyPanel(){
       <th style="width:108px">Order about</th>
       <th class="acts" style="width:104px"></th>
     </tr></thead><tbody>
-    ${list.map(x=>{
+    ${shown.map(x=>{
       const col=x.urgency==='late'?'var(--red)':x.urgency==='now'?'var(--amb)':x.urgency==='soon'?'var(--blu)':'var(--text2)';
       const when=x.slack<0?`${fmt(-x.slack)}d overdue`:x.slack===0?'today':`in ${fmt(x.slack)}d`;
       return `<tr>
@@ -15478,6 +15751,10 @@ function buyPanel(){
         <td class="acts"><button class="btn sm ${x.urgency==='late'?'warn':'pri'}" onclick="LV3.openLogOrder('${x.c.id}')">Log the order</button></td>
       </tr>`;}).join('')}
     </tbody></table>
+    ${(hidden>0||_buyAll)?`<div style="padding:8px 14px;border-top:1px solid var(--border);text-align:center">
+      <button class="btn sm" onclick="LV3.buyToggle()">${_buyAll
+        ? `Show just the ${BUY_SHOW} most urgent`
+        : `Show all ${fmt(list.length)} — ${fmt(hidden)} more below this`}</button></div>`:''}
     <div class="pmeta" style="padding:9px 14px;border-top:1px solid var(--border)">
       Worked out from what each part is used for over ${D.settings.targetDays||60} days, minus what you have and what is already coming,
       then set against how long that supplier takes. Change a lead time in <b>Settings</b> and these dates move with it.
@@ -17068,7 +17345,7 @@ const API={go,render:paint,boot,
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,writeOffShort,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,writeOffShort,buyToggle,revToggle,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
