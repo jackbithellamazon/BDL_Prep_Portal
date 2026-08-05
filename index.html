@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v6.1</title>
+<title>BDL PrepHub v6.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1037,6 +1037,12 @@ html.light-mode{
 #page-lavarion .chip.complementary,.lav3 .chip.complementary{background:rgba(148,163,184,.12);color:var(--text2);border:1px solid var(--border2);}
 
 /* deliveries: arrived-and-counting on top, still-on-the-way grouped by when */
+/* a wide, tall sheet — 19 deliveries in a narrow box is a scroll, not a view */
+#page-lavarion .mod.xl,.lav3 .mod.xl,.mod.xl{max-width:1280px;width:94vw;height:88vh;display:flex;flex-direction:column;}
+.mod.xl .mb{flex:1;min-height:0;overflow:auto;}
+/* one loud button per ORDER, quiet ones per line — a wall of green reads as noise */
+#page-lavarion .hereBtn,.lav3 .hereBtn{border:1px solid var(--grn);background:transparent;color:var(--grn);font-weight:700;}
+#page-lavarion .hereBtn:hover,.lav3 .hereBtn:hover{background:var(--grn);color:#0b1210;}
 #page-lavarion .dvSecHead,.lav3 .dvSecHead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 9px;}
 #page-lavarion .dvSecHead b,.lav3 .dvSecHead b{font-size:13px;color:var(--text);}
 #page-lavarion .dvSecHead span,.lav3 .dvSecHead span{font-size:11.5px;color:var(--text3);}
@@ -1064,6 +1070,101 @@ html.light-mode{
 #page-lavarion .dvNm,.lav3 .dvNm{min-width:0;}
 #page-lavarion .dvEta,.lav3 .dvEta{font-size:12px;font-weight:700;text-align:right;}
 #page-lavarion .dvQty,.lav3 .dvQty{text-align:right;}
+/* target column as a button */
+#page-lavarion .tgtBtn,.lav3 .tgtBtn{display:flex;flex-direction:column;gap:2px;align-items:center;width:100%;
+  padding:5px 6px;border-radius:7px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer;transition:.12s;}
+#page-lavarion .tgtBtn:hover,.lav3 .tgtBtn:hover{border-color:var(--accent);background:var(--bg3);}
+#page-lavarion .tgtN,.lav3 .tgtN{font:800 15px var(--num);color:var(--text);}
+#page-lavarion .tgtS,.lav3 .tgtS{font-size:10.5px;font-weight:700;color:var(--text3);}
+#page-lavarion .tgtBtn.gap,.lav3 .tgtBtn.gap{border-color:rgba(251,191,36,.4);}
+#page-lavarion .tgtBtn.gap .tgtN,.lav3 .tgtBtn.gap .tgtN{color:var(--amb);}
+#page-lavarion .tgtBtn.gap .tgtS,.lav3 .tgtBtn.gap .tgtS{color:var(--amb);}
+#page-lavarion .tgtBtn.ok .tgtN,.lav3 .tgtBtn.ok .tgtN{color:var(--grn);}
+#page-lavarion .tgtBtn.prov .tgtN,.lav3 .tgtBtn.prov .tgtN{color:var(--text3);}
+#page-lavarion .tgtBtn.prov .tgtS,.lav3 .tgtBtn.prov .tgtS{font-style:italic;font-weight:600;}
+/* order plan popup */
+#page-lavarion .opBox,.lav3 .opBox{border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+#page-lavarion .opRow,.lav3 .opRow{display:grid;grid-template-columns:minmax(0,1fr) 110px minmax(0,1fr);gap:10px;
+  align-items:baseline;padding:10px 14px;border-bottom:1px solid var(--border);}
+#page-lavarion .opRow:last-child,.lav3 .opRow:last-child{border-bottom:0;}
+#page-lavarion .opK,.lav3 .opK{font-size:12.5px;color:var(--text2);}
+#page-lavarion .opV,.lav3 .opV{font:800 17px var(--num);text-align:right;color:var(--text);}
+#page-lavarion .opS,.lav3 .opS{font-size:11px;color:var(--text3);}
+#page-lavarion .opAct,.lav3 .opAct{margin-top:12px;}
+#page-lavarion .opDo,.lav3 .opDo{display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:10px;
+  border:1px solid var(--amb);background:rgba(251,191,36,.08);}
+#page-lavarion .opDo b,.lav3 .opDo b{font-size:14px;color:var(--text);}
+#page-lavarion .opDo span,.lav3 .opDo span{font-size:11.5px;color:var(--text3);}
+#page-lavarion .opDo .btn,.lav3 .opDo .btn{margin-left:auto;}
+#page-lavarion .opDo.ok,.lav3 .opDo.ok{border-color:var(--grn);background:rgba(52,211,153,.08);}
+#page-lavarion .opDo.none,.lav3 .opDo.none{border-color:var(--border2);background:var(--bg3);}
+#page-lavarion .opTbl,.lav3 .opTbl{width:100%;}
+#page-lavarion .opTbl tr.short td,.lav3 .opTbl tr.short td{background:rgba(251,191,36,.06);}
+/* paste-in screens */
+#page-lavarion .pasteWrap,.lav3 .pasteWrap{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;}
+@media(max-width:900px){#page-lavarion .pasteWrap,.lav3 .pasteWrap{grid-template-columns:1fr;}}
+#page-lavarion .pasteSide,.lav3 .pasteSide{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:13px 15px;}
+#page-lavarion .pasteSteps,.lav3 .pasteSteps{margin:7px 0 10px;padding-left:18px;font-size:12.5px;line-height:1.7;color:var(--text2);}
+#page-lavarion .pasteBox,.lav3 .pasteBox{width:100%;min-height:180px;font-family:var(--num);font-size:12.5px;
+  line-height:1.6;padding:11px 12px;resize:vertical;}
+#page-lavarion .pasteOut,.lav3 .pasteOut{margin-top:11px;display:grid;gap:9px;}
+#page-lavarion .pasteGrp,.lav3 .pasteGrp{border:1px solid var(--border);border-radius:9px;padding:10px 12px;}
+#page-lavarion .pasteGrp b,.lav3 .pasteGrp b{font-size:12.5px;}
+#page-lavarion .pasteGrp.ok,.lav3 .pasteGrp.ok{border-color:rgba(52,211,153,.35);}
+#page-lavarion .pasteGrp.ok b,.lav3 .pasteGrp.ok b{color:var(--grn);}
+#page-lavarion .pasteGrp.bad,.lav3 .pasteGrp.bad{border-color:rgba(248,113,113,.4);}
+#page-lavarion .pasteGrp.bad b,.lav3 .pasteGrp.bad b{color:var(--red);}
+#page-lavarion .pasteGrp.warn,.lav3 .pasteGrp.warn{border-color:rgba(251,191,36,.35);}
+#page-lavarion .pasteGrp.warn b,.lav3 .pasteGrp.warn b{color:var(--amb);}
+#page-lavarion .pasteList,.lav3 .pasteList{margin-top:7px;max-height:210px;overflow:auto;}
+#page-lavarion .pasteRow,.lav3 .pasteRow{display:grid;grid-template-columns:minmax(0,1fr) 70px 110px;gap:10px;
+  padding:4px 0;font-size:12px;border-top:1px solid var(--border);}
+#page-lavarion .pasteRow .pn,.lav3 .pasteRow .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-lavarion .pasteRow .pq,.lav3 .pasteRow .pq{text-align:right;font-family:var(--num);font-weight:800;}
+#page-lavarion .pasteRow .pd,.lav3 .pasteRow .pd{text-align:right;color:var(--text3);}
+/* COG breakdown, as columns */
+#page-lavarion .cogHead,.lav3 .cogHead{display:grid;grid-template-columns:minmax(0,1fr) 62px 120px 82px;gap:10px;
+  padding:0 0 5px;font:700 9.5px var(--num);letter-spacing:.6px;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .cogHead span:not(:first-child),.lav3 .cogHead span:not(:first-child){text-align:right;}
+#page-lavarion .cogrow4,.lav3 .cogrow4{display:grid;grid-template-columns:minmax(0,1fr) 62px 120px 82px;gap:10px;
+  padding:6px 0;border-top:1px solid var(--border);font-size:12.5px;align-items:baseline;}
+#page-lavarion .cogrow4.pk,.lav3 .cogrow4.pk{opacity:.62;}
+#page-lavarion .cogrow4 .cgN,.lav3 .cogrow4 .cgN{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-lavarion .cogrow4 .cgQ,.lav3 .cogrow4 .cgQ,
+#page-lavarion .cogrow4 .cgU,.lav3 .cogrow4 .cgU,
+#page-lavarion .cogrow4 .cgL,.lav3 .cogrow4 .cgL{text-align:right;}
+/* the private-label explanation — says what is true, and what to do next */
+/* Purchases reads top to bottom the way the job runs: read the sheet, say what
+   the new lines are, then decide what to buy. "What to buy" is the last step,
+   not the first thing in your face. */
+#page-lavarion .ppStack,.lav3 .ppStack{display:flex;flex-direction:column;gap:14px;}
+#page-lavarion .ppStack>*,.lav3 .ppStack>*{order:5;margin-bottom:0;}
+#page-lavarion .ppStack>.ppFlow,.lav3 .ppStack>.ppFlow{order:0;}
+#page-lavarion .ppStack>#allPurch,.lav3 .ppStack>#allPurch{order:1;}
+#page-lavarion .ppStack>#revPanel,.lav3 .ppStack>#revPanel{order:2;}
+#page-lavarion .ppStack>#buyPanel,.lav3 .ppStack>#buyPanel{order:9;}
+/* restocks */
+#page-lavarion .rsTop,.lav3 .rsTop{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;padding:13px 15px;
+  border-bottom:1px solid var(--border);}
+#page-lavarion .rsField,.lav3 .rsField{display:grid;gap:5px;}
+#page-lavarion .rsField .in,.lav3 .rsField .in{min-width:260px;}
+#page-lavarion .rsQty,.lav3 .rsQty{min-width:110px!important;text-align:center;font:800 16px var(--num);}
+#page-lavarion .rsQuick,.lav3 .rsQuick{display:flex;gap:6px;margin-bottom:2px;}
+#page-lavarion .rsSum,.lav3 .rsSum{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;
+  background:var(--border);border-bottom:1px solid var(--border);}
+#page-lavarion .rsStat,.lav3 .rsStat{background:var(--bg2);padding:12px 15px;display:grid;gap:3px;}
+#page-lavarion .rsStat .k,.lav3 .rsStat .k{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .rsStat .v,.lav3 .rsStat .v{font:900 22px var(--num);color:var(--text);line-height:1.1;}
+#page-lavarion .rsStat .s,.lav3 .rsStat .s{font-size:11px;color:var(--text2);opacity:.85;}
+#page-lavarion .rsStat.bad .v,.lav3 .rsStat.bad .v{color:var(--amb);}
+#page-lavarion .rsStat.ok .v,.lav3 .rsStat.ok .v{color:var(--grn);}
+#page-lavarion .rsTbl tr.short td,.lav3 .rsTbl tr.short td{background:rgba(255,170,51,.07);}
+#page-lavarion .plNote,.lav3 .plNote{border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.06);
+  border-radius:9px;padding:12px 14px;display:grid;gap:6px;}
+#page-lavarion .plNote b,.lav3 .plNote b{font-size:12.5px;color:var(--amb);}
+#page-lavarion .plNote span,.lav3 .plNote span{font-size:12px;color:var(--text2);line-height:1.55;}
+#page-lavarion .plBtns,.lav3 .plBtns{display:flex;gap:7px;margin-top:4px;}
+#page-lavarion .uiList,.lav3 .uiList{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
 #page-lavarion .supGrid,.lav3 .supGrid{display:grid;gap:7px;}
 #page-lavarion .supRow,.lav3 .supRow{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:11px;align-items:center;
   padding:6px;border-radius:6px;border-bottom:1px solid var(--border);}
@@ -1268,7 +1369,14 @@ html.light-mode{
 #page-lavarion .num.r,.lav3 .num.r{color:var(--red);}
 #page-lavarion .num.a,.lav3 .num.a{color:var(--amb);}
 #page-lavarion .num.b,.lav3 .num.b{color:var(--blu);}
-#page-lavarion .dim,.lav3 .dim{color:var(--text2);opacity:.75;}
+/* Dimmed used to mean "hard to read". It now means slightly quieter, full stop —
+   grey-on-near-black at 75% was illegible on a bright screen. */
+#page-lavarion .dim,.lav3 .dim{color:var(--text2);opacity:1;}
+#page-lavarion .sldSub .est,.lav3 .sldSub .est{color:var(--text2);opacity:.85;font-style:normal;}
+#page-lavarion .tsub.prov,.lav3 .tsub.prov{color:var(--text2);opacity:.85;font-style:normal;font-weight:600;}
+#page-lavarion .pmeta,.lav3 .pmeta{color:var(--text2);}
+/* column headings wrap instead of being sliced — "Sold last mont" was a clip */
+#page-lavarion .panel.stick thead th,.lav3 .panel.stick thead th{white-space:normal;line-height:1.25;}
 #page-lavarion .chip,.lav3 .chip{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap;
   border:1px solid var(--border3);color:var(--text2);background:var(--bg4);letter-spacing:0;}
 #page-lavarion .chip.zzz,.lav3 .chip.zzz,#page-lavarion .chip.pl,.lav3 .chip.pl,#page-lavarion .chip.single,.lav3 .chip.single,#page-lavarion .chip.component,.lav3 .chip.component,#page-lavarion .chip.packaging,.lav3 .chip.packaging,#page-lavarion .chip.vat,.lav3 .chip.vat{background:var(--bg3);color:var(--text2);border-color:var(--border2);}
@@ -1589,7 +1697,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v6.1</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v6.4</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1623,7 +1731,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v6.1</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v6.4</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -12114,7 +12222,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v6.1 · lav3 · 2026-08-05 · b76';
+const BUILD='v6.4 · lav3 · 2026-08-05 · b79';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -12624,6 +12732,209 @@ function cogOf(p,units){
    figure is typed in per ASIN and kept in settings, and everything that used
    to key off "shipped 30d" now prefers it when it's there.
    60-day target = twice the 30-day sale rate: what should be sitting at Amazon. */
+/* Units sitting at Amazon right now. Counted by hand off Seller Central every
+   week or two and pasted in as a batch — see openAtAmz. Kept beside the sold
+   figure because the two are read together: what is there, and how fast it goes. */
+/* ── STOCK AT AMAZON ─────────────────────────────────────────────────────────
+   Twenty-nine boxes typed one at a time is how a figure ends up half filled in
+   and three weeks old. One paste, straight out of Seller Central, everything
+   stamped with today's date — and it says up front what it matched and what it
+   could not, because a silent miss is worse than no figure at all. */
+let _amzRows=[];
+/* Put a part straight into a product's build list without hunting for the
+   product first — the question is nearly always "what is this for". */
+function openUseIn(cid){
+  const c=comp(cid);if(!c)return;
+  const used=usedIn(cid);
+  const opts=D.products.filter(x=>x.type==='bundle'&&!x.archived&&!used.some(u=>u.id===x.id));
+  $('lav3Mod2').className='mod';
+  $('lav3Mod2').innerHTML=`
+    <div class="mh"><h3>Use ${esc(c.name)} in a product</h3>
+      <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+    <div class="mb">
+      ${used.length?`<div class="dsec"><span class="lab">Already in ${used.length} product${used.length===1?'':'s'}</span></div>
+        <div class="uiList">${used.map(u=>`<span class="chip">${esc(u.name)}</span>`).join('')}</div>`:''}
+      ${opts.length?`<div class="frow" style="margin-top:11px"><span class="lab">Add it to</span>
+        <select class="in" id="uiProd">${opts.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div>
+      <div class="frow"><span class="lab">How many in one finished unit</span>
+        <input class="in num" id="uiQty" type="number" min="1" value="1" style="width:96px;text-align:center"></div>
+      <div class="note info">This only changes what the product is made of from now on. Past shipments keep the cost they were sent at.</div>`
+      :`<div class="pmeta" style="padding:6px 2px">Every bundle already uses this part.</div>`}
+    </div>
+    <div class="mf"><div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
+      ${opts.length?`<button class="btn pri" onclick="LV3.saveUseIn('${cid}')">Add to build list</button>`:''}</div></div>`;
+  om('lav3Ov2');
+}
+function saveUseIn(cid){
+  const pid=($('uiProd')||{}).value, q=Math.max(1,parseInt(($('uiQty')||{}).value)||1);
+  const p=prod(pid),c=comp(cid);
+  if(!p||!c){toast('Pick a product','er');return;}
+  snap();
+  p.recipe=p.recipe||[];
+  const ex=p.recipe.find(r=>String(r.c)===String(cid));
+  if(ex)ex.q=q; else p.recipe.push({c:cid,q});
+  saveLavAsin&&0;
+  save();logIt('edit',`${c.name} added to ${p.name} (×${q})`);
+  cm('lav3Ov2');render();
+  toastUndo(`${esc(c.name)} added to ${esc(p.name)}`,'ok');
+}
+function openAtAmz(){
+  _amzRows=[];
+  $('lav3Mod2').className='mod wide';
+  $('lav3Mod2').innerHTML=`
+    <div class="mh"><h3>Stock at Amazon</h3>
+      <span class="pmeta" style="margin:0">paste it straight out of Seller Central</span>
+      <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+    <div class="mb">
+      <div class="pasteWrap">
+        <div class="pasteSide">
+          <div class="lab">How</div>
+          <ol class="pasteSteps">
+            <li>Seller Central → <b>Inventory</b></li>
+            <li>Select the ASIN and available columns</li>
+            <li>Copy the rows and paste them in</li>
+          </ol>
+          <div class="pmeta">Any order, any separator — comma, tab or spaces. It finds the ASIN or SKU
+            on each line and takes the first number after it. Lines it cannot place are listed back to you
+            rather than dropped.</div>
+          <div class="note info" style="margin-top:10px">Nothing is saved until you press <b>Save counts</b>.</div>
+        </div>
+        <div class="pasteMain">
+          <textarea id="amzIn" class="in pasteBox" spellcheck="false"
+            placeholder="B0DW5HPRWB   90&#10;B0DW4Y68XZ, 42&#10;LAV-WED30 8"
+            oninput="LV3.amzParse(this.value)"></textarea>
+          <div id="amzOut" class="pasteOut"></div>
+        </div>
+      </div>
+    </div>
+    <div class="mf"><span id="amzSum" class="pmeta" style="margin:0">Nothing pasted yet</span>
+      <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
+      <button class="btn pri" id="amzGo" disabled onclick="LV3.amzSave()">Save counts</button></div></div>`;
+  om('lav3Ov2');
+  setTimeout(()=>{const t=$('amzIn');if(t)t.focus();},60);
+}
+function amzParse(txt){
+  const live=D.products.filter(x=>!x.archived);
+  const byAsin={},bySku={};
+  live.forEach(x=>{if(x.asin)byAsin[String(x.asin).toUpperCase()]=x;
+    if(x.sku)bySku[String(x.sku).toUpperCase()]=x;});
+  const seen={};
+  _amzRows=String(txt||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>{
+    const up=line.toUpperCase();
+    /* find the identifier anywhere on the line, then the first number AFTER it —
+       Seller Central rows carry prices and dates that would otherwise be read
+       as the quantity */
+    let hit=null,at=-1;
+    (up.match(/[A-Z0-9][A-Z0-9\-_.]{4,}/g)||[]).forEach(tok=>{
+      if(hit)return;
+      const p=byAsin[tok]||bySku[tok];
+      if(p){hit=p;at=up.indexOf(tok)+tok.length;}
+    });
+    if(!hit)return{line,err:'no ASIN or SKU on this line'};
+    const rest=line.slice(at);
+    const m=rest.match(/-?\d[\d,]*/);
+    if(!m)return{line,err:'no number after '+(hit.asin||hit.sku)};
+    const qty=parseInt(String(m[0]).replace(/,/g,''),10);
+    if(!(qty>=0))return{line,err:'that number does not read as units'};
+    if(seen[hit.id])return{line,err:hit.name+' is on more than one line'};
+    seen[hit.id]=1;
+    return{line,p:hit,qty};
+  });
+  const ok=_amzRows.filter(r=>r.p),bad=_amzRows.filter(r=>!r.p);
+  const missing=live.filter(x=>!seen[x.id]);
+  const out=$('amzOut');
+  if(out)out.innerHTML=!_amzRows.length?'':`
+    ${ok.length?`<div class="pasteGrp ok"><b>${fmt(ok.length)} matched</b>
+      <div class="pasteList">${ok.map(r=>{const was=atAmz(r.p);
+        const d=was==null?null:r.qty-was;
+        return `<div class="pasteRow"><span class="pn">${esc(r.p.name)}</span>
+          <span class="pq">${fmt(r.qty)}</span>
+          <span class="pd">${was==null?'first count':d===0?'no change':`${d>0?'+':''}${fmt(d)}`}</span></div>`;}).join('')}</div></div>`:''}
+    ${bad.length?`<div class="pasteGrp bad"><b>${fmt(bad.length)} could not be placed</b>
+      <div class="pasteList">${bad.map(r=>`<div class="pasteRow"><span class="pn">${esc(r.line.slice(0,60))}</span>
+        <span class="pd" style="color:var(--red)">${esc(r.err)}</span></div>`).join('')}</div></div>`:''}
+    ${missing.length?`<div class="pasteGrp warn"><b>${fmt(missing.length)} product${missing.length===1?'':'s'} not in this paste</b>
+      <div class="pmeta" style="margin:6px 0 0">Their last count is left exactly as it was — nothing is zeroed.
+        ${esc(missing.slice(0,6).map(x=>x.name).join(', '))}${missing.length>6?` +${missing.length-6} more`:''}</div></div>`:''}`;
+  const sum=$('amzSum');
+  if(sum)sum.innerHTML=ok.length
+    ? `<b style="color:var(--grn)">${fmt(ok.length)}</b> to save · ${fmt(ok.reduce((t,r)=>t+r.qty,0))} units at Amazon${bad.length?` · <b style="color:var(--red)">${fmt(bad.length)} skipped</b>`:''}`
+    : (_amzRows.length?'<span style="color:var(--red)">Nothing on those lines matched a product</span>':'Nothing pasted yet');
+  const go=$('amzGo');if(go){go.disabled=!ok.length;go.style.opacity=ok.length?'1':'.45';}
+}
+function amzSave(){
+  const ok=_amzRows.filter(r=>r.p);
+  if(!ok.length){toast('Nothing to save','er');return;}
+  snap();
+  D.settings.atAmz=D.settings.atAmz||{};
+  D.settings.atAmzAt=D.settings.atAmzAt||{};
+  const today=dayISO();
+  ok.forEach(r=>{D.settings.atAmz[r.p.asin]=r.qty;D.settings.atAmzAt[r.p.asin]=today;});
+  savePrefs();save();
+  logIt('edit',`Stock at Amazon counted — ${ok.length} product${ok.length===1?'':'s'}, ${ok.reduce((t,r)=>t+r.qty,0)} units`);
+  cm('lav3Ov2');render();
+  toastUndo(`${fmt(ok.length)} count${ok.length===1?'':'s'} saved`,'ok');
+}
+/* What to send and what to buy for one product, in one place — the number on the
+   target column is only useful if you can act on it. */
+function openOrderPlan(pid){
+  const p=prod(pid);if(!p)return;
+  const t=target60(p)||0, at=atAmz(p), have=avail(p).n||0;
+  const cover=(at||0)+have, gap=Math.max(0,t-cover);
+  const canSend=Math.min(have,gap||have);
+  const stillShort=Math.max(0,gap-have);
+  const cg=cogOf(p,1);
+  const need=[];
+  if(p.type==='bundle'&&stillShort>0){
+    (p.recipe||[]).forEach(r=>{const c=comp(r.c);if(!c||c.untracked)return;
+      const wanted=r.q*stillShort, hold=onHand(c), coming=onOrder(c);
+      const buy=Math.max(0,wanted-hold-coming);
+      need.push({c,wanted,hold,coming,buy});});
+  }
+  const row=(k,v,sub,col)=>`<div class="opRow"><span class="opK">${k}</span>
+    <span class="opV" ${col?`style="color:${col}"`:''}>${v}</span>${sub?`<span class="opS">${sub}</span>`:''}</div>`;
+  $('lav3Mod2').className='mod';
+  $('lav3Mod2').innerHTML=`
+    <div class="mh"><h3>${esc(p.name)}</h3>
+      <span class="pmeta" style="margin:0">${D.settings.targetDays||60}-day plan</span>
+      <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+    <div class="mb">
+      ${sold30(p)==null?`<div class="note bad" style="margin:0 0 11px"><b>No sales figure yet.</b>
+        Everything below is worked back from what you have sent, not from what actually sold — treat it as a rough shape.</div>`:''}
+      <div class="opBox">
+        ${row('Target for '+(D.settings.targetDays||60)+' days',fmt(t),sold30(p)!=null?`${fmt(sold30(p))} sold last month`:'estimated')}
+        ${row('At Amazon now',at==null?'never counted':fmt(at),atAmzAge(p)!=null?`counted ${atAmzAge(p)}d ago`:'',at==null?'var(--text3)':atAmzAge(p)>=14?'var(--amb)':'')}
+        ${row('Backstock here',fmt(have),p.type==='bundle'?'buildable from parts':'on the shelf')}
+        ${row('Shortfall',gap?fmt(gap):'none',gap?'against the target':'covered',gap?'var(--amb)':'var(--grn)')}
+      </div>
+      <div class="opAct">
+        ${gap?(have>0
+          ? `<div class="opDo"><b>Send ${fmt(canSend)} now</b><span>you can build ${fmt(have)} today</span>
+             <button class="btn go" onclick="LV3.cm('lav3Ov2');LV3.openShip('${p.id}')">Ship units</button></div>`
+          : `<div class="opDo none"><b>Nothing to send</b><span>no backstock — it all has to be bought first</span></div>`)
+        : `<div class="opDo ok"><b>Nothing to do</b><span>${fmt(cover)} against a target of ${fmt(t)}</span></div>`}
+      </div>
+      ${stillShort>0?`<div class="dsec"><span class="lab">To cover the other ${fmt(stillShort)} you need</span></div>
+        ${need.length?`<table class="opTbl"><thead><tr><th class="l">Part</th><th>Per unit</th><th>Needed</th><th>Have</th><th>Coming</th><th>Buy</th></tr></thead><tbody>
+        ${need.map(n=>`<tr class="${n.buy>0?'short':''}">
+          <td class="l">${esc(n.c.name)}</td>
+          <td class="mono">×${fmt(n.wanted/stillShort)}</td>
+          <td class="mono">${fmt(n.wanted)}</td>
+          <td class="mono" style="color:${n.hold?'var(--text)':'var(--red)'}">${fmt(n.hold)}</td>
+          <td class="mono">${n.coming?fmt(n.coming):'—'}</td>
+          <td class="mono b" style="color:${n.buy>0?'var(--amb)':'var(--grn)'}">${n.buy>0?fmt(n.buy):'enough'}</td></tr>`).join('')}
+        </tbody></table>`:`<div class="pmeta" style="padding:4px 2px">No build list, so there is nothing to work out. Add one first.</div>`}`:''}
+      ${cg.short?`<div class="note bad" style="margin:11px 0 0"><b>COG is unknown.</b>
+        ${esc(cg.blocked.map(b=>b.name).slice(0,3).join(', '))}${cg.blocked.length>3?` +${cg.blocked.length-3} more`:''}
+        ${cg.blocked.length===1?'has':'have'} no priced stock, so this cannot be costed until ${cg.blocked.length===1?'it turns':'they turn'} up.</div>`:''}
+    </div>
+    <div class="mf"><span class="pmeta" style="margin:0">${cg.short?'COG unavailable':`COG ${gbp(cg.per)} per unit`}</span>
+      <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Close</button>
+      <button class="btn" onclick="LV3.cm('lav3Ov2');LV3.openProduct('${p.id}')">Full detail</button></div></div>`;
+  om('lav3Ov2');
+}
+function atAmz(p){const m=D.settings.atAmz||{};const v=m[p.asin];return (v===0||v)?v:null;}
+function atAmzAge(p){const at=(D.settings.atAmzAt||{})[p.asin];return at?daysSince(at):null;}
 function sold30(p){const m=D.settings.sold30||{};const v=m[p.asin];return (v===0||v)?v:null;}
 function setSold30(asin,v){
   D.settings.sold30=D.settings.sold30||{};
@@ -12693,11 +13004,12 @@ function render(){
     b.innerHTML='Deliveries'+(n?` <span class="chip info" style="margin-left:5px">${fmt(n)}</span>`:'');},0);
   const t=[['overview','Overview',''],['products','Products',D.products.length],
            ['components','Components',D.components.length],
+           ['restocks','Restocks',''],
            ['purchases','Purchases',(()=>{const n=D.purchases.filter(x=>allocState(x).k==='none').length;return n?'· '+n+' to link':'';})()],
            ['history','History',(D.log||[]).length?fmt((D.log||[]).length):''],
            ['settings','Settings','']];   // How it works retired — the pages explain themselves now
   $('lav3Tabs').innerHTML=t.map(([k,l,c])=>`<button class="${TAB===k?'on':''}" onclick="LV3.go('${k}')">${l}${c!==''?`<span class="cnt">${c}</span>`:''}</button>`).join('');
-  ({overview:vOverview,products:vProducts,components:vComponents,purchases:vPurchases,history:vHistory,settings:vSettings,guide:vGuide})[TAB]();
+  ({overview:vOverview,products:vProducts,components:vComponents,restocks:vRestocks,purchases:vPurchases,history:vHistory,settings:vSettings,guide:vGuide})[TAB]();
   stickWatch();          // after layout, not mid-render
   save();
 }
@@ -13099,20 +13411,23 @@ function vProducts(){
       ${sortPicker('p',pSort,P_SORTS)}
       <div class="r"><button class="btn" onclick="LV3.openBulkRecipe()" title="Set several bundles' build lists in one go">Bulk build lists</button>
         <button class="btn" onclick="LV3.openMatrix()" title="Fill every bundle's build list on one grid">Build list grid</button>
+        <button class="btn" onclick="LV3.openAtAmz()" title="Paste this week's Seller Central count for every ASIN at once">Stock at Amazon</button>
         <button class="btn" onclick="LV3.openBulkProd()">Bulk add</button>
         <button class="btn pri" onclick="LV3.editProduct(null)">+ Add product</button></div>
     </div>
     <div id="selBar"></div>
     <table><thead><tr>
       <th style="width:30px;text-align:center"><input type="checkbox" onclick="LV3.selAll(this.checked)"></th>
-      <th class="l" style="min-width:190px">Product</th><th style="width:104px">Available</th>
+      <th class="l" style="min-width:190px">Product</th>
+      <th style="width:104px" title="Counted by hand off Seller Central. Paste the whole list in one go with Stock at Amazon.">At Amazon</th>
+      <th style="width:104px" title="What you hold here — buildable from parts, or on the shelf for a private-label product.">Backstock</th>
       ${COL('pIncoming')?'<th style="width:132px">Incoming</th>':''}
       ${COL('pOrdered')?'<th style="width:84px">Ordered</th>':''}
       ${COL('pSold')?'<th style="width:110px" title="Units sold on Amazon last full month. Comes in from outside the hub — everything else is worked out from it.">Sold last month</th>':''}
       ${COL('pTarget')?`<th style="width:112px" title="How many units should be sitting at Amazon: ${D.settings.targetDays||60} days at the current sale rate.">${D.settings.targetDays||60}d target</th>`:''}
       ${COL('pCog')?'<th style="width:86px">COG / unit</th>':''}<th class="acts" style="width:132px"></th>
     </tr></thead><tbody>
-    ${rows.length?rows.map(p=>prodRow(p)).join(''):`<tr><td colspan="${4+['pIncoming','pOrdered','pSold','pTarget','pCog'].filter(COL).length}" class="empty">${D.products.length?'Nothing matches this filter.':
+    ${rows.length?rows.map(p=>prodRow(p)).join(''):`<tr><td colspan="${5+['pIncoming','pOrdered','pSold','pTarget','pCog'].filter(COL).length}" class="empty">${D.products.length?'Nothing matches this filter.':
    'No products yet.<div style="margin-top:10px;display:flex;gap:7px;justify-content:center"><button class="btn pri" onclick="LV3.openBulkProd()">Bulk add products</button><button class="btn" onclick="LV3.editProduct(null)">Add one</button></div>'}</td></tr>`}
     </tbody></table>
   </div>
@@ -13324,8 +13639,13 @@ function prodRow(p){
         ${lim&&a.n===0?`<div class="blocked">out of ${esc(lim.name)}${onOrder(lim)?` · ${fmt(onOrder(lim))} on order`:' · nothing on order'}</div>`
           :lim?`<div class="pmeta" style="color:var(--amb)">${esc(lim.name)} limits it</div>`:''}
       </div></td>
+    <td onclick="event.stopPropagation()">${(()=>{const v=atAmz(p),age=atAmzAge(p);
+      if(v==null)return `<span class="dim" style="font-size:14px">—</span><div class="sldSub"><span class="est">never counted</span></div>`;
+      const stale=age!=null&&age>=14;
+      return `<span class="mono b" style="font-size:14px;color:${v===0?'var(--red)':stale?'var(--amb)':'var(--text)'}">${fmt(v)}</span>
+        <div class="sldSub">${age==null?'counted':stale?`<span style="color:var(--amb)">${age}d old</span>`:age===0?'counted today':`${age}d ago`}</div>`;})()}</td>
     <td><span class="num" style="color:${col}">${a.kind==='norecipe'?'—':fmt(a.n)}</span>
-      <div class="pmeta">${a.kind==='build'?'buildable':a.kind==='norecipe'?'no build list':'in stock'}</div>
+      <div class="pmeta">${a.kind==='build'?'buildable':a.kind==='norecipe'?'on the shelf':'in stock'}</div>
       </td>
     ${COL('pIncoming')?`<td style="text-align:${(p.type==='bundle'?p.recipe.some(r=>{const c=comp(r.c);return c&&!c.untracked&&onOrder(c);}):onOrder(p))?'left':'center'}">${(()=>{
       const inc=[];
@@ -13352,15 +13672,17 @@ function prodRow(p){
         if(age==null)return 'last full month';
         if(age>=45)return `<span style="color:var(--red)">${age}d old</span>`;
         return `set ${age}d ago`;})()}</div></td>`:''}
-    ${COL('pTarget')?`<td>${(()=>{const t=target60(p);
+    ${COL('pTarget')?`<td onclick="event.stopPropagation()">${(()=>{const t=target60(p);
       if(!t)return `<span class="dim">—</span><div class="tsub prov">needs a figure</div>`;
-      const have=avail(p).n||0,gap=t-have,real=sold30(p)!=null;
-      /* Until someone types the real sales figure this is only an estimate off
-         units sent — showing it in confident amber made a guess look like a fact. */
-      return `<span class="num" style="color:${!real?'var(--text3)':gap>0?'var(--amber)':'var(--green)'}">${real?'':'≈'}${fmt(t)}</span>
-        <div class="tsub ${!real?'prov':gap>0?'gap':'ok'}">${!real?'guess — not real sales':gap>0?`send ${fmt(gap)} more`:'covered'}</div>`;})()}</td>`:''}
+      /* The target is now measured against what is AT AMAZON, plus what you hold
+         here, because that is the real question: is there enough in front of the
+         customer for the next 60 days. Backstock only counts once it is sent. */
+      const at=atAmz(p),have=avail(p).n||0,cover=(at||0)+have,gap=t-cover,real=sold30(p)!=null;
+      return `<button class="tgtBtn ${!real?'prov':gap>0?'gap':'ok'}" onclick="LV3.openOrderPlan('${p.id}')" title="What to send and what to order">
+        <span class="tgtN">${real?'':'≈'}${fmt(t)}</span>
+        <span class="tgtS">${!real?'guess — no sales yet':gap>0?`${fmt(gap)} short`:'covered'}</span></button>`;})()}</td>`:''}
     ${COL('pCog')?`<td>${cg.short
-      ? `<span class="dim" style="font-size:12px">—</span><div class="pmeta" style="text-align:center;color:var(--amb)">parts missing</div>`
+      ? `<span class="dim" style="font-size:12px">—</span><div class="pmeta" style="text-align:center;color:var(--amb)">${p.type==='bundle'?'parts missing':'no stock yet'}</div>`
       : `<span class="num" style="color:var(--accent)">${cg.per?gbp(cg.per):'—'}</span>${cg.batches>1?`<div class="pmeta">${cg.batches} batch${cg.batches===1?'':'es'}</div>`:''}`}</td>`:''}
     <td class="acts" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:flex-end">
       ${p.archived?`<button class="btn sm go" onclick="LV3.setArchived('product','${p.id}',false)">Restore</button>`
@@ -13391,16 +13713,52 @@ function prodRow(p){
       </tbody></table>`:'<div class="pmeta">No stock on hand.</div>'}`;
   }
   const c1=cogOf(p,1);
-  const cogHtml=`<div class="cogbox">
+  /* A private-label product is bought in finished: its cost is simply what the
+     last batch cost, and it has no parts at all. Showing it the bundle way — a
+     one-line "recipe" of itself, reading "no stock · not until every part is in
+     stock" — made an empty shelf look like a broken build list. Say what is
+     actually true and what to do about it. */
+  const isPL=p.type!=='bundle';
+  const cogHtml=isPL?`<div class="cogbox">
+    <div class="lab" style="margin-bottom:6px">What this cost</div>
+    ${(()=>{const ls=arrLayers(p).filter(l=>l.rem>0);
+      if(!ls.length)return `<div class="plNote">
+        <b>Nothing in stock yet — so there is no cost to show.</b>
+        <span>This is bought in finished, so its COG is whatever you paid for the batch. Nothing is missing and
+        nothing is broken: book a batch in, or link the purchase on the Purchases tab, and the figure appears.</span>
+        <div class="plBtns">
+          <button class="btn sm pri" onclick="event.stopPropagation();LV3.openAddBatch('${p.id}','product')">+ Add a batch</button>
+          <button class="btn sm" onclick="event.stopPropagation();LV3.go('purchases')">Go to Purchases</button>
+        </div></div>`;
+      const val=ls.reduce((t,l)=>t+l.rem*l.cost,0),qty=ls.reduce((t,l)=>t+l.rem,0);
+      return `<div class="cogHead"><span>Batch</span><span>Left</span><span>Unit cost</span><span>Value</span></div>
+        ${ls.map((l,i)=>`<div class="cogrow4">
+          <span class="cgN">${i===0?'<span class="chip warn">next out</span> ':''}${esc(l.sup||'—')}</span>
+          <span class="cgQ mono">${fmt(l.rem)}</span>
+          <span class="cgU mono">${gbp(l.cost)}</span>
+          <span class="cgL mono b">${gbp(l.rem*l.cost)}</span></div>`).join('')}
+        <div class="cogtot"><span>Next unit out costs</span><span class="mono" style="color:var(--accent)">${gbp(ls[0].cost)}</span></div>
+        <div class="pmeta" style="margin-top:5px">${fmt(qty)} units on hand worth ${gbp(val)} — each unit keeps the price of the batch it came from.</div>`;})()}
+  </div>`:`<div class="cogbox">
     <div class="lab" style="margin-bottom:6px">Cost of one unit — oldest stock first</div>
-    ${c1.lines.map(l=>`<div class="cogrow" ${l.pack?'style="opacity:.6"':''}><span>${esc(l.name)}${l.q>1?` ×${l.q}`:''}${l.pack?' <span class="chip packaging" style="opacity:.85">not in COG</span>':''}</span>
-      <b>${l.pack?'—':(l.parts.length?l.parts.map(pt=>`${fmt(pt.take)}@${pt.cost>0?gbp(pt.cost):'—'}`).join(' + '):'<span style="color:var(--red)">no stock</span>')}</b></div>`).join('')}
+    <div class="cogHead"><span>Part</span><span>In one</span><span>Unit cost</span><span>Line</span></div>
+    ${c1.lines.map(l=>{const line=l.pack?0:l.parts.reduce((t,pt)=>t+pt.take*pt.cost,0);
+      return `<div class="cogrow4${l.pack?' pk':''}">
+      <span class="cgN">${esc(l.name)}${l.pack?' <span class="chip packaging">not in COG</span>':''}</span>
+      <span class="cgQ mono">×${fmt(l.q||1)}</span>
+      <span class="cgU mono">${l.pack?'—':(l.parts.length?l.parts.map(pt=>pt.cost>0?gbp(pt.cost):'—').join(' + '):'<span style="color:var(--red)">no stock</span>')}</span>
+      <span class="cgL mono b">${l.pack?'—':(l.parts.length?gbp(line):'—')}</span></div>`;}).join('')}
     <div class="cogtot"><span>COG per unit</span>${c1.short
       ? `<span style="color:var(--amb);font-size:12px;font-weight:700">not until every part is in stock</span>`
       : `<span class="mono" style="color:var(--accent)">${gbp(c1.per)}</span>`}</div></div>`;
-  return main+`<tr class="sub-row"><td colspan="${4+['pIncoming','pOrdered','pSold','pTarget','pCog'].filter(COL).length}" style="padding:0"><div class="rbox"><div class="rgrid"><div>${inner}</div><div>${cogHtml}</div></div>
-    <div style="margin-top:9px;display:flex;gap:6px"><button class="btn sm" onclick="LV3.editProduct('${p.id}')">Edit build list</button>
-    <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Full detail</button></div></div></td></tr>`;
+  return main+`<tr class="sub-row"><td colspan="${5+['pIncoming','pOrdered','pSold','pTarget','pCog'].filter(COL).length}" style="padding:0"><div class="rbox"><div class="rgrid"><div>${inner}</div><div>${cogHtml}</div></div>
+    <div style="margin-top:9px;display:flex;gap:6px">
+    ${isPL?`<button class="btn sm" onclick="LV3.openAddBatch('${p.id}','product')">+ Add a batch</button>
+            <button class="btn sm" onclick="LV3.editProduct('${p.id}')">Edit product</button>`
+          :`<button class="btn sm" onclick="LV3.editProduct('${p.id}')">Edit build list</button>`}
+    <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Full detail</button>
+    <button class="btn sm" style="margin-left:auto" onclick="LV3.setArchived('product','${p.id}',true)">Archive</button>
+    <button class="btn sm dgr" onclick="LV3.delProduct('${p.id}')">Delete</button></div></div></td></tr>`;
 }
 /* Four buttons per row never fitted, and the one that fell off the edge was
    always Ship. Two stay visible; the rest live behind ⋯ in a menu anchored to
@@ -13540,13 +13898,16 @@ function openProduct(id){
         <td>${d>=21?`<b style="color:var(--red)">${d}d</b>`:d+'d'}</td></tr>`;}).join('')}
       </tbody></table>`:''}
 
-    <div class="dsec"><span class="lab">Cost of one unit — oldest stock first</span></div>
+    ${p.type!=='bundle'&&!arrLayers(p).filter(l=>l.rem>0).length?`<div class="note bad" style="margin:0 0 12px">
+      <b>No stock, so no cost — this is not a missing build list.</b> A private-label product is bought in finished:
+      its COG is whatever the batch cost. Book one in with <b>+ Add a batch</b>, or link the purchase on Purchases.</div>`:''}
+    <div class="dsec"><span class="lab">${p.type!=='bundle'?'What this cost':'Cost of one unit — oldest stock first'}</span></div>
     <div class="cogbox">
       ${cg.lines.map(l=>`<div class="cogrow" ${l.pack?'style="opacity:.6"':''}>
         <span>${esc(l.name)}${l.q>1?` ×${fmt(l.q)}`:''}${l.pack?' <span class="chip packaging">not in COG</span>':''}</span>
         <b>${l.pack?'—':(l.parts.length?l.parts.map(pt=>`${fmt(pt.take)}@${pt.cost>0?gbp(pt.cost):'—'}`).join(' + '):'<span style="color:var(--red)">no stock</span>')}</b></div>`).join('')}
       <div class="cogtot"><span>Total COG</span>${cg.short
-        ? `<span style="color:var(--amb);font-size:12px;font-weight:700">not until every part is in stock</span>`
+        ? `<span style="color:var(--amb);font-size:12px;font-weight:700">${p.type==='bundle'?'not until every part is in stock':'nothing in stock yet'}</span>`
         : `<span class="mono" style="color:var(--accent)">${gbp(cg.per)}</span>`}</div></div>
     ${cg.lines.some(l=>l.pack)?'<div class="pmeta" style="margin-top:6px">Packaging is deducted from stock but left out of COG.</div>':''}
 
@@ -14146,7 +14507,9 @@ function vComponents(){
         <td class="acts" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:flex-end">
           ${c.archived?`<button class="btn sm go" onclick="LV3.setArchived('component','${c.id}',false)">Restore</button>`
             :`<button class="btn sm" onclick="LV3.openAdjust('component','${c.id}')">Adjust</button>
-              <button class="btn sm dots" title="More" onclick="LV3.rowMenu(event,'component','${c.id}')">⋯</button>`}</div></td></tr>`;}).join('')
+              <button class="btn sm" title="Book in stock you already have" onclick="LV3.openAddBatch('${c.id}','component')">+ Batch</button>
+              <button class="btn sm" title="Put this part into a product's build list" onclick="LV3.openUseIn('${c.id}')">+ Product</button>
+              <button class="btn sm dots" title="Archive, correct stock or delete" onclick="LV3.rowMenu(event,'component','${c.id}')">⋯</button>`}</div></td></tr>`;}).join('')
       :`<tr><td colspan="${4+['cOnOrder','cOrdered','cUsed'].filter(COL).length}" class="empty">${D.components.length?'Nothing matches this filter.':
    'No components yet.<div style="margin-top:10px;display:flex;gap:7px;justify-content:center"><button class="btn pri" onclick="LV3.openBulkComp()">Bulk add components</button><button class="btn" onclick="LV3.editComp(null)">Add one</button></div>'}</td></tr>`}
     </tbody></table>
@@ -14927,11 +15290,11 @@ function reviewPanel(){
   const revHead=`<span class="t">To review</span>
       <span class="sub">${fmt(orders.length)} order${orders.length===1?'':'s'} · ${fmt(lines)} line${lines===1?'':'s'} · ${gbp(value)}</span>
       ${ready?`<span class="chip info">${fmt(ready)} ready to go</span>`:''}`;
-  if(!_revOpen)return `<div class="panel">
+  if(!_revOpen)return `<div class="panel" id="revPanel">
     <div class="ph" style="cursor:pointer" onclick="LV3.revToggle()">${revHead}
       <div class="r"><button class="btn sm" onclick="event.stopPropagation();LV3.revToggle()">Show the list</button></div>
     </div></div>`;
-  return `<div class="panel">
+  return `<div class="panel" id="revPanel">
     <div class="ph" style="cursor:pointer" onclick="LV3.revToggle()">${revHead}
       <div class="r" onclick="event.stopPropagation()">
         ${ready?`<button class="btn sm pri" onclick="LV3.applyAllSuggestions()">Link all ${fmt(ready)}</button>`:''}
@@ -15052,6 +15415,91 @@ function applyAllSuggestions(){
       toastUndo(`${fmt(n)} purchase${n===1?'':'s'} linked`,'ok');
     },{ok:`Link ${fmt(withSug.length)}`});
 }
+/* ── RESTOCKS ────────────────────────────────────────────────────────────────
+   Pick a bundle, say how many you want to build, and it works out every part:
+   how many are needed, what is already here, what is already coming, and how
+   many CASES to order for the rest. Cases round up, because half a case is not
+   a thing you can buy. Nobody should be doing this on paper. */
+let RS_PROD='',RS_QTY=50;
+function rsSet(id){RS_PROD=id;render();}
+function rsQty(v){RS_QTY=Math.max(0,parseInt(v)||0);render();}
+function restockPlan(p,target){
+  if(!p||p.type!=='bundle')return[];
+  return (p.recipe||[]).map(r=>{
+    const c=comp(r.c);if(!c)return null;
+    const per=r.q||1;
+    const need=per*target;
+    const stock=onHand(c)||0;
+    const coming=onOrder(c)||0;
+    /* what is already here and already paid for both count — ordering on top of
+       them is how you end up with a shelf full of the same part */
+    const shortfall=Math.max(0,need-stock-coming);
+    const caseQty=parseInt(c.caseQty)||0;
+    const cases=shortfall>0?(caseQty>1?Math.ceil(shortfall/caseQty):shortfall):0;
+    const buying=caseQty>1?cases*caseQty:cases;
+    return{c,per,need,stock,coming,shortfall,caseQty,cases,buying,
+      ok:shortfall===0,kind:c.kind==='packaging'?'Packaging':'Component'};
+  }).filter(Boolean).sort((a,b)=>b.shortfall-a.shortfall||a.c.name.localeCompare(b.c.name));
+}
+function vRestocks(){
+  const bundles=D.products.filter(x=>x.type==='bundle'&&!x.archived).sort((a,b)=>a.name.localeCompare(b.name));
+  if(!RS_PROD&&bundles.length)RS_PROD=bundles[0].id;
+  const p=prod(RS_PROD);
+  const plan=restockPlan(p,RS_QTY);
+  const short=plan.filter(x=>!x.ok);
+  const spend=short.reduce((t,x)=>t+x.buying*(avgCostOf(x.c)||0),0);
+  const canBuildNow=p?(avail(p).n||0):0;
+  $('lav3View').innerHTML=`
+    <div class="panel">
+      <div class="ph"><span class="t">What to order</span>
+        <span class="sub">pick a bundle, say how many you want to build</span></div>
+      <div class="rsTop">
+        <div class="rsField"><span class="lab">Product</span>
+          <select class="in" onchange="LV3.rsSet(this.value)">
+            ${bundles.map(b=>`<option value="${b.id}" ${b.id===RS_PROD?'selected':''}>${esc(b.name)}</option>`).join('')}
+          </select></div>
+        <div class="rsField"><span class="lab">How many to build</span>
+          <input class="in num rsQty" type="number" min="0" value="${RS_QTY}" onchange="LV3.rsQty(this.value)"></div>
+        <div class="rsQuick">${[25,50,100,200,500].map(n=>`<button class="btn sm ${n===RS_QTY?'pri':''}" onclick="LV3.rsQty(${n})">${n}</button>`).join('')}</div>
+      </div>
+      ${!p?'<div class="empty" style="padding:22px">No bundles yet.</div>'
+        :!plan.length?`<div class="empty" style="padding:22px"><b>${esc(p.name)}</b> has no build list, so there is nothing to work out.
+          <div style="margin-top:10px"><button class="btn pri" onclick="LV3.editProduct('${p.id}')">Add its components</button></div></div>`
+        :`<div class="rsSum">
+          ${(()=>{const n=short.length;return `<div class="rsStat ${n?'bad':'ok'}"><span class="k">${n?'Needs ordering':'Nothing to order'}</span>
+            <span class="v">${n?fmt(n)+' of '+fmt(plan.length):'all '+fmt(plan.length)+' parts'}</span>
+            <span class="s">${n?'parts short for this build':'enough here or already coming'}</span></div>`;})()}
+          <div class="rsStat"><span class="k">Cases to buy</span><span class="v">${fmt(short.reduce((t,x)=>t+x.cases,0))}</span>
+            <span class="s">rounded up — part cases can't be ordered</span></div>
+          <div class="rsStat"><span class="k">Roughly</span><span class="v">${gbp(spend)}</span>
+            <span class="s">at what you last paid</span></div>
+          <div class="rsStat"><span class="k">Buildable today</span><span class="v">${fmt(canBuildNow)}</span>
+            <span class="s">without ordering anything</span></div>
+        </div>
+        <table class="rsTbl"><thead><tr>
+          <th class="l">Component</th><th>In one</th><th>Need</th><th>In stock</th><th>On order</th>
+          <th>Case qty</th><th>Short</th><th>Cases</th><th class="l">Status</th></tr></thead><tbody>
+        ${plan.map(x=>`<tr class="${x.ok?'':'short'}">
+          <td class="l"><span class="pname">${esc(x.c.name)}</span>
+            <div class="pmeta">${x.kind}${x.c.sup?' · '+esc(x.c.sup):''}</div></td>
+          <td class="mono">×${fmt(x.per)}</td>
+          <td class="mono b">${fmt(x.need)}</td>
+          <td class="mono" style="color:${x.stock?'var(--text)':'var(--red)'}">${fmt(x.stock)}</td>
+          <td class="mono">${x.coming?`<span style="color:var(--blu)">${fmt(x.coming)}</span>`:'<span class="dim">—</span>'}</td>
+          <td class="mono">${x.caseQty>1?fmt(x.caseQty):'<span class="dim">1</span>'}</td>
+          <td class="mono" style="color:${x.shortfall?'var(--amb)':'var(--text3)'}">${x.shortfall?fmt(x.shortfall):'—'}</td>
+          <td class="mono b" style="font-size:15px;color:${x.cases?'var(--amb)':'var(--grn)'}">${x.cases?fmt(x.cases):'0'}</td>
+          <td class="l">${x.ok
+            ? '<span class="chip ok">Enough stock</span>'
+            : `<span class="chip bad">Order required</span>${x.caseQty>1&&x.buying>x.shortfall?`<div class="pmeta">${fmt(x.cases)} case${x.cases===1?'':'s'} = ${fmt(x.buying)} units, ${fmt(x.buying-x.shortfall)} spare</div>`:''}`}</td>
+        </tr>`).join('')}
+        </tbody></table>
+        <div class="pmeta" style="padding:10px 14px;border-top:1px solid var(--border)">
+          Worked out as <b>need − what's in stock − what's already on order</b>, then divided by the case size and
+          rounded up. Change a case size on the component itself and this moves with it.
+        </div>`}
+    </div>`;
+}
 function vPurchases(){
   const unl=D.purchases.filter(p=>allocState(p).k==='none');
   const part=D.purchases.filter(p=>allocState(p).k==='part');
@@ -15071,6 +15519,7 @@ function vPurchases(){
   const step=(k,v,s,col,go,alert)=>`<div class="ppStep ${alert?'alert':''}" onclick="LV3.${go}">
     <div class="k">${k}</div><div class="v" ${col?`style="color:${col}"`:''}>${v}</div><div class="s">${s}</div></div>`;
   $('lav3View').innerHTML=`
+  <div class="ppStack">
   <div class="ppFlow">
     ${step('To review',fmt(orders.length),orders.length?`${fmt(orders.reduce((t,o)=>t+o.lines.length,0))} lines · ${gbp(orders.reduce((t,o)=>t+o.value,0))}`:'all linked',
       orders.length?'var(--amb)':'var(--text3)',"go('purchases')",orders.length)}
@@ -15125,7 +15574,8 @@ function vPurchases(){
     </tbody></table>`:`<div class="empty">${D.purchases.length?'Nothing in this view.':'No purchase rows yet.<div class="pmeta" style="margin-top:8px">Rows appear here once the sheet is synced — Lavarion Q1&ndash;Q4.</div>'}</div>`}
   </div>
   <div class="note info">Nothing is ever linked for you. Sheet names won't always match ("Dove MD Tanning Lotion 75ml" vs "Dove MD 75"), so you decide where every unit goes and can change it whenever things move around.<br>
-  <b>A part used in several bundles only needs one allocation</b> — put the whole purchase on that component and every bundle draws from the same pool. Split a purchase only when the units genuinely go to <i>different</i> things.</div>`;
+  <b>A part used in several bundles only needs one allocation</b> — put the whole purchase on that component and every bundle draws from the same pool. Split a purchase only when the units genuinely go to <i>different</i> things.</div>
+  </div>`;
 }
 function quickLink(pid,to){
   const p=D.purchases.find(x=>x.id===pid);
@@ -15858,7 +16308,7 @@ function buyPanel(){
   const late=list.filter(x=>x.urgency==='late').length;
   const now=list.filter(x=>x.urgency==='now').length;
   const spend=list.reduce((t,x)=>t+x.qty*(avgCostOf(x.c)||0),0);
-  return `<div class="panel">
+  return `<div class="panel" id="buyPanel">
     <div class="ph"><span class="t">What to buy</span>
       <span class="sub">${fmt(list.length)} part${list.length===1?'':'s'} worth ordering${spend?` · about ${gbp(spend)}`:''}</span>
       ${late?`<span class="chip bad">${fmt(late)} already late</span>`:''}
@@ -16014,6 +16464,7 @@ function deliveriesPanel(){
       <th style="width:78px">Ordered</th>
       <th class="l" style="width:158px">How</th>
       <th class="l" style="width:190px">Expected</th>
+      <th style="width:96px" title="How many actually turned up — change it if only part of the order came">Arrived</th>
       <th class="acts" style="width:96px"></th></tr></thead><tbody>
     ${open.map(x=>{const l=x.l,e=etaState(l);
       return `<tr>
@@ -16127,7 +16578,7 @@ function openDeliveries(){
                   if(u.uses.length)return `· makes ~${fmt(u.adds)} more ${esc(u.uses[0].name)}`;return'';})()}</div></div>
             <div class="dvEta" style="color:${e.col}">${e.txt}<div class="pmeta" style="margin:0">${e.sub||''}</div></div>
             <div class="dvQty"><span class="num">${fmt(x.l.qty)}</span><div class="pmeta" style="margin:0">ordered</div></div>
-            <button class="btn sm go" onclick="LV3.dlvArrived('${x.l.id}')">It's here</button>
+            <button class="btn sm hereBtn" onclick="LV3.dlvArrived('${x.l.id}')">It's here</button>
           </div>`;}).join('')}
       </div>`).join('')}
     </div>`;}).join('');
@@ -16216,7 +16667,7 @@ function openDeliveries(){
             <button class="btn pri" onclick="LV3.cm('lav3Ov1');LV3.openLogOrder()">+ Log an order</button>
             <button class="btn" onclick="LV3.cm('lav3Ov1');LV3.go('purchases')">Go to Purchases</button>
           </div></div>`;})();
-  $('lav3Mod1').className='mod wide';
+  $('lav3Mod1').className='mod xl';
   $('lav3Mod1').innerHTML=`
     <div class="mh"><h3>Deliveries</h3>
       ${(open.length||waiting.length)?`<span class="pmeta" style="margin:0">${open.length?`<b style="color:var(--grn)">${fmt(open.length)} to count in</b> · `:''}${fmt(waiting.length)} on the way${late?` · <b style="color:var(--red)">${fmt(late)} overdue</b>`:''}</span>
@@ -17560,7 +18011,7 @@ const API={go,render:paint,boot,
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,writeOffShort,buyToggle,revToggle,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,writeOffShort,buyToggle,revToggle,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,openAtAmz,amzParse,amzSave,openOrderPlan,atAmz,openUseIn,saveUseIn,rsSet,rsQty,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
