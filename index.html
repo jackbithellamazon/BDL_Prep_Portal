@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v7.7</title>
+<title>BDL PrepHub v8.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1276,6 +1276,19 @@ html.light-mode{
 #page-lavarion .rsCard.ok .v,.lav3 .rsCard.ok .v{color:var(--grn);}
 #page-lavarion .rsCard.warn,.lav3 .rsCard.warn{border-top-color:var(--amb);}
 #page-lavarion .rsTbl tr.short td,.lav3 .rsTbl tr.short td{background:rgba(255,170,51,.07);}
+/* the component column was clipping names mid-word — "Pedigree Tasty Minis
+   Beef & Che". A part you cannot read is a part you cannot check. */
+#page-lavarion .rsTbl td.l,.lav3 .rsTbl td.l{white-space:normal;min-width:220px;padding-left:16px;}
+#page-lavarion .rsTbl td.l .pname,.lav3 .rsTbl td.l .pname{white-space:normal;line-height:1.35;display:block;}
+#page-lavarion .rsTbl th,.lav3 .rsTbl th{padding-left:12px;padding-right:12px;}
+#page-lavarion .rsTbl th.l,.lav3 .rsTbl th.l{padding-left:16px;}
+#page-lavarion .rsTbl td,.lav3 .rsTbl td{padding-top:12px;padding-bottom:12px;}
+/* the facts strip was crammed into the top-right corner */
+#page-lavarion .rsFacts,.lav3 .rsFacts{display:grid;grid-template-columns:repeat(4,minmax(120px,auto));
+  gap:10px 26px;margin-left:auto;}
+@media(max-width:1100px){#page-lavarion .rsFacts,.lav3 .rsFacts{grid-template-columns:repeat(2,1fr);margin-left:0;width:100%;}}
+#page-lavarion .rsHead,.lav3 .rsHead{gap:24px;}
+#page-lavarion .rsBar,.lav3 .rsBar{gap:28px;}
 #page-lavarion .rsTbl tbody tr:hover td,.lav3 .rsTbl tbody tr:hover td{background:var(--bg3);}
 #page-lavarion .rsCases,.lav3 .rsCases{text-align:center;}
 #page-lavarion .rsBig,.lav3 .rsBig{font:900 22px var(--num);color:var(--amb);line-height:1;}
@@ -1835,7 +1848,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v7.7</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v8.0</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1869,7 +1882,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v7.7</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v8.0</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -12361,7 +12374,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v7.7 · lav3 · 2026-08-05 · b92';
+const BUILD='v8.0 · lav3 · 2026-08-05 · b95';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -15639,19 +15652,26 @@ function reviewPanel(){
               const sug=o.sugs[ix];const t=sug?(comp(sug.id)||prod(sug.id)):null;
               const total=p.spend||(p.qty*p.price);
               const isBroken=allocState(p).k==='broken';
+              const twin=dupTwin(p);
               return `<div class="rvLine ${isBroken?'broken':t?'':'nomatch'}">
                 <div class="rvName">${esc(p.name)}
                   ${isBroken?'<span class="chip bad" title="This was linked once, but the part it pointed at has changed. Pick it again.">link broken</span>':''}</div>
                 <div class="rvNum">${fmt(p.qty)}</div>
                 <div class="rvNum">${gbp(p.price)}</div>
                 <div class="rvNum">${gbp(p.spend||total)}</div>
-                <div class="rvTo">${t
+                <div class="rvTo">${twin
+                  ? `<span class="rvNone" style="color:var(--red)">already on order as <b>${esc(twin.name)}</b></span>
+                     <span class="rvWhy">this is a leftover copy — do not link it</span>`
+                  : t
                   ? `<span class="brTag ${sug.sure?'':'maybe'}">${esc(t.name)}</span><span class="rvWhy">${esc(sug.why)}</span>`
                   : `<span class="rvNone">nothing matches</span>`}</div>
                 <div class="rvBtns">
-                  ${t?`<button class="btn sm go" onclick="LV3.quickLink('${p.id}','${sug.id}')">Link</button>
-                       <button class="btn sm" onclick="LV3.openLink('${p.id}')">Change</button>`
-                     :`<button class="btn sm pri" onclick="LV3.openLink('${p.id}')">Pick one</button>`}
+                  ${twin
+                    ? `<button class="btn sm dgr" title="Same day, same quantity, same supplier as one already on order — linking it would book stock you never bought"
+                         onclick="LV3.dropReview('${p.id}')">Remove the copy</button>`
+                    : t?`<button class="btn sm go" onclick="LV3.quickLink('${p.id}','${sug.id}')">Link</button>
+                         <button class="btn sm" onclick="LV3.openLink('${p.id}')">Change</button>`
+                       :`<button class="btn sm pri" onclick="LV3.openLink('${p.id}')">Pick one</button>`}
                   <button class="btn sm dots" title="Remove this line" onclick="LV3.dropReview('${p.id}')">&#10005;</button>
                 </div>
               </div>`;}).join('')}
@@ -16119,9 +16139,20 @@ function healthCheck(){
      wallpaper. */
   const add=(k,n,label,detail,go,fix,sev)=>{if(n>0)issues.push({k,n,label,detail,go,fix,sev:sev||'warn'});};
 
-  const broken=D.purchases.filter(p=>(p.alloc||[]).length&&(p.alloc||[]).some(a=>!targetOf(a.to)));
+  const dupes=staleDupes();
+  const dupIds=new Set(dupes.map(x=>x.p.id));
+  add('dupe',dupes.length,
+    `${fmt(dupes.length)} leftover cop${dupes.length===1?'y':'ies'} of a purchase you already have`,
+    `${esc(dupes.slice(0,4).map(x=>x.p.name).join(', '))}${dupes.length>4?` +${dupes.length-4} more`:''} —
+     same day, same quantity, same price, same supplier as one already on order. A rename on the sheet used to leave
+     these behind. <b>Do not link them</b> — that would book stock you never bought. Remove them instead.`,
+    "showReview()",'LV3.dropDupes()','warn');
+
+  /* leftovers are excluded here so the same row is not offered as both
+     "match it" and "delete it" — one of those answers is wrong */
+  const broken=D.purchases.filter(p=>(p.alloc||[]).length&&(p.alloc||[]).some(a=>!targetOf(a.to))&&!dupIds.has(p.id));
   add('links',broken.length,
-    `${fmt(broken.length)} purchase${broken.length===1?'':'s'} you bought are not showing as on order`,
+    `${fmt(broken.length)} purchase${broken.length===1?'':'s'} ${broken.length===1?'is':'are'} not showing as on order`,
     `${esc(broken.slice(0,4).map(p=>p.name).join(', '))}${broken.length>4?` +${broken.length-4} more`:''}.
      Somebody said what these were, but the part they were pointed at has since changed, so the stock never appeared.
      <b>Repair</b> tries to match them back up by name. Anything it cannot match goes to <b>Purchases → To review</b> for you to pick by hand.`,
@@ -16191,24 +16222,34 @@ function showReview(){
    the matcher could not place gets a search box and a Save, in the same dialog. */
 let _fxRows=[];
 function openFixLinks(){
-  _fxRows=D.purchases.filter(p=>(p.alloc||[]).length&&(p.alloc||[]).some(a=>!targetOf(a.to)))
+  const ghosts=ghostAllocs();
+  _fxRows=D.purchases.filter(p=>
+      ((p.alloc||[]).length&&(p.alloc||[]).some(a=>!targetOf(a.to)))
+      || ghosts.some(g=>g.id===p.id))
     .map(p=>{
       /* offer the closest name up front — the maybe-match it was not confident
          enough to apply on its own is still the right starting point */
+      /* whatever the old automatic pass would have chosen, offered rather than
+         applied — including the link it already has, for a ghost whose target is
+         fine and whose stock simply went missing */
       let guess='';
-      try{const sug=suggestFor(p);if(sug&&sug.id&&targetOf(sug.id))guess=sug.id;}catch(e){}
-      return{p,to:'',guess};
+      const live=(p.alloc||[]).find(a=>targetOf(a.to));
+      if(live)guess=live.to;
+      if(!guess){try{const sug=suggestFor(p);if(sug&&sug.sure&&sug.id&&targetOf(sug.id))guess=sug.id;}catch(e){}}
+      let maybe='';
+      if(!guess){try{const sug=suggestFor(p);if(sug&&sug.id&&targetOf(sug.id))maybe=sug.id;}catch(e){}}
+      return{p,to:guess||'',guess:guess||maybe,sure:!!guess};
     });
   if(!_fxRows.length){toast('Nothing left to fix','ok');return;}
   $('lav3Mod2').className='mod xl';
   $('lav3Mod2').innerHTML=`
-    <div class="mh"><h3>Match these to a component</h3>
-      <span class="pmeta" style="margin:0">${fmt(_fxRows.length)} the app could not place on its own</span>
+    <div class="mh"><h3>Check these before anything changes</h3>
+      <span class="pmeta" style="margin:0">${fmt(_fxRows.length)} to review · nothing is applied until you press the button</span>
       <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
     <div class="mb">
-      <div class="amzHelp">These were bought and linked once, but the part they pointed at has changed, so their stock
-        never appeared. Say what each one is and it goes straight back on order. Start typing — it searches every
-        component, packaging item and product.</div>
+      <div class="amzHelp">These purchases are not showing as on order. Where the app is confident it has
+        <b>filled in its suggestion</b> — read it, change it if it is wrong, clear it if you would rather leave the
+        purchase alone. <b>Nothing is saved until you press the button</b>, and nothing is ever written to the sheet.</div>
       <div class="fxList">
         ${_fxRows.map((r,i)=>`<div class="fxRow" id="fxRow-${i}">
           <div class="fxWhat">
@@ -16217,18 +16258,20 @@ function openFixLinks(){
           </div>
           <div class="fxPick">
             <input class="in fxIn" id="fxIn-${i}" autocomplete="off" placeholder="Type a component…"
+              value="${r.to?esc(allocLabel(r.to)):''}"
               oninput="LV3.fxFind(${i},this.value)" onfocus="LV3.fxFind(${i},this.value)">
             <div class="fxPop" id="fxPop-${i}"></div>
-            ${r.guess?`<button class="btn sm go" style="margin-top:6px" onclick="LV3.fxPick(${i},'${r.guess}')">
-              Looks like <b>${esc(allocLabel(r.guess))}</b> — use it</button>`:''}
+            ${(r.guess&&!r.to)?`<button class="btn sm go" style="margin-top:6px" onclick="LV3.fxPick(${i},'${r.guess}')">
+              Closest is <b>${esc(allocLabel(r.guess))}</b> — use it</button>`:''}
+            ${r.to?`<button class="btn sm" style="margin-top:6px" onclick="LV3.fxClear(${i})">Leave this one alone</button>`:''}
           </div>
-          <span class="fxState" id="fxState-${i}">not set</span>
+          <span class="fxState${r.to?' ok':''}" id="fxState-${i}">${r.to?'suggested':'not set'}</span>
         </div>`).join('')}
       </div>
     </div>
     <div class="mf"><span id="fxSum" class="pmeta" style="margin:0">Nothing matched yet</span>
       <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Close</button>
-      <button class="btn pri" id="fxGo" disabled onclick="LV3.fxSaveAll()">Put them on order</button></div></div>`;
+      <button class="btn pri" id="fxGo" disabled onclick="LV3.fxSaveAll()">Apply what I have checked</button></div></div>`;
   om('lav3Ov2');
   setTimeout(()=>{const e=document.getElementById('fxIn-0');if(e)e.focus();},60);
   fxSum();
@@ -16254,6 +16297,14 @@ function fxPick(i,id){
   const row=document.getElementById('fxRow-'+i);if(row)row.classList.add('done');
   fxSum();
 }
+function fxClear(i){
+  const r=_fxRows[i];if(!r)return;
+  r.to='';
+  const inp=document.getElementById('fxIn-'+i);if(inp)inp.value='';
+  const st=document.getElementById('fxState-'+i);if(st){st.textContent='left alone';st.className='fxState';}
+  const row=document.getElementById('fxRow-'+i);if(row)row.classList.remove('done');
+  fxSum();
+}
 function fxSum(){
   const n=_fxRows.filter(r=>r.to).length;
   const el=$('fxSum');
@@ -16273,10 +16324,14 @@ function fxSaveAll(){
 }
 function fixHealth(kind){
   if(kind!=='links')return;
+  /* Show the work, do not do the work. */
+  openFixLinks();
+}
+function _unusedRepairReport(){
   const before=D.purchases.filter(p=>(p.alloc||[]).length&&(p.alloc||[]).some(a=>!targetOf(a.to)));
-  const r=repairAllocLinks();
-  const after=D.purchases.filter(p=>(p.alloc||[]).length&&(p.alloc||[]).some(a=>!targetOf(a.to)));
-  _revOpen=true;                       // if any are left, put them in front of him
+  const r={fixed:0};
+  const after=before;
+  _revOpen=true;
   render();
   /* Silence after pressing a button is exactly the fault this banner exists to
      catch. Say what was fixed, what was not, and what to do about the rest. */
@@ -16322,6 +16377,96 @@ function paintHealth(){
    every check that only asked "does the link resolve" waved it through. So ask
    the only question that matters: does the stock this purchase should have
    created actually exist? */
+/* A leftover from the old rename bug. Before the sync learned to spot a rename,
+   correcting a name on the sheet ADDED a second purchase and left the original
+   behind — "Replacemen Foam Nozzles" and "Replacement Foam Nozzles", same day,
+   same 60, same £0.20, same supplier. One of them is real and already linked;
+   the other is a ghost of a typo. Linking it would book 60 units of stock that
+   were never bought, so it must be offered as something to REMOVE, never as
+   something to match. */
+/* One purchase, asked about a single row. The sweep below uses it too, so the
+   banner and the row can never disagree. */
+/* Numbers alone are NOT enough to call two rows the same purchase. Pure Gusto
+   order 6102771 has Lotus Biscoff Minis 300 @ £0.05 and Bonito Vanilla Spoons
+   300 @ £0.05 — same day, same supplier, same quantity, same price, same order,
+   and two completely different products. Matching on figures would have offered
+   to delete a real purchase. The names have to be near-identical too: this is
+   only ever meant to catch a TYPO that was later corrected. */
+function nameClose(a,b){
+  const norm=x=>(x||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  const A=norm(a),B=norm(b);
+  if(!A||!B)return false;
+  if(A===B)return true;
+  /* Word overlap alone said "Galaxy Hot Chocolate Sachet" and "Luxury Hot
+     Chocolate Sachet" were the same thing, and so were Dove MD and Dove LM.
+     Those differ by exactly one word — and that word is the whole product.
+     So the rule is narrower: everything must match EXCEPT one word on each side,
+     and those two words must be a typo of each other, not two different words. */
+  const wa=A.split(' ').filter(Boolean),wb=B.split(' ').filter(Boolean);
+  const ra=wa.filter(w=>!wb.includes(w)),rb=wb.filter(w=>!wa.includes(w));
+  if(!ra.length&&!rb.length)return true;                 // only spacing/case differed
+  if(ra.length>1||rb.length>1)return false;              // more than one word apart
+  if(ra.length!==rb.length)return false;                 // an extra word is a different product
+  return typoOf(ra[0],rb[0]);
+}
+/* edit distance, with a threshold that scales — one slip in a long word is a
+   typo, one slip in a two-letter code (MD vs LM) is a different product */
+function typoOf(a,b){
+  a=String(a||'');b=String(b||'');
+  if(a===b)return true;
+  const allow=Math.max(1,Math.floor(Math.max(a.length,b.length)/7));
+  if(Math.abs(a.length-b.length)>allow)return false;
+  if(Math.min(a.length,b.length)<5)return false;         // short words are never "close enough"
+  const m=a.length,n=b.length;
+  let prev=Array.from({length:n+1},(_,j)=>j),cur=new Array(n+1),pp=new Array(n+1).fill(0);
+  for(let i=1;i<=m;i++){
+    cur[0]=i;
+    for(let j=1;j<=n;j++){
+      cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+      /* a swapped pair of letters is one slip, not two — "Mulitpack" for
+         "Multipack" is the single most common way a name gets mistyped */
+      if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])cur[j]=Math.min(cur[j],(pp[j-2]||0)+1);
+    }
+    pp=prev.slice();
+    [prev,cur]=[cur,prev];
+  }
+  return prev[n]<=allow;
+}
+function dupTwin(p){
+  const norm=x=>(x||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const st=allocState(p).k;
+  if(st!=='none'&&st!=='broken')return null;
+  return D.purchases.find(q=>q.id!==p.id
+    && (q.alloc||[]).length && (q.alloc||[]).every(a=>targetOf(a.to))
+    && q.date===p.date
+    && (parseInt(q.qty)||0)===(parseInt(p.qty)||0)
+    && norm(q.sup)===norm(p.sup)
+    /* a penny of slack: the sheet stores the total, so 60 for £11.97 comes back
+       as £0.1995 on one row and £0.20 on the other. Same purchase. */
+    && Math.abs((+q.price||0)-(+p.price||0))<0.02
+    && nameClose(q.name,p.name))||null;
+}
+function staleDupes(){
+  const norm=x=>(x||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const linked=D.purchases.filter(p=>(p.alloc||[]).length&&(p.alloc||[]).every(a=>targetOf(a.to)));
+  return D.purchases.map(p=>({p,twin:dupTwin(p)})).filter(x=>x.twin);
+}
+function dropDupes(){
+  const list=staleDupes();
+  if(!list.length){toast('No leftovers found','ok');return;}
+  confirmBox('Remove these leftovers?',
+    `<div style="margin-bottom:10px">Each of these is the same purchase you already have linked — same day, same
+      quantity, same price, same supplier. They are what a rename on the sheet used to leave behind.</div>
+     ${list.map(x=>`<div class="pmeta" style="margin:4px 0">
+       <b>${esc(x.p.name)}</b> — ${fmt(x.p.qty)} @ ${gbp(x.p.price)} · ${esc(x.p.sup||'—')}
+       <div style="opacity:.8">already on order as <b>${esc(x.twin.name)}</b></div></div>`).join('')}
+     <div class="note bad" style="margin:10px 0 0">Linking one of these instead would book
+       <b>${fmt(list.reduce((t,x)=>t+(parseInt(x.p.qty)||0),0))} units</b> of stock that were never bought.
+       The sheet is not touched.</div>`,
+    ()=>{list.forEach(x=>dropReview(x.p.id));
+      toast(`${fmt(list.length)} leftover${list.length===1?'':'s'} removed`,'ok');},
+    {danger:true,ok:`Remove ${fmt(list.length)}`});
+}
 function ghostAllocs(){
   return D.purchases.filter(p=>{
     const a=(p.alloc||[]).filter(x=>targetOf(x.to));
@@ -17297,6 +17442,8 @@ function dlvArrivedOrder(key){
   save();openDeliveries();
 }
 /* which week a delivery falls in, so the list reads as "what is coming and when" */
+let _dlvPast=false;
+function dlvPast(){_dlvPast=!_dlvPast;openDeliveries();}
 function dlvBucket(l){
   const e=l.eta2||l.eta1;
   if(!e)return{k:'none',label:'No date given',ord:5};
@@ -17391,6 +17538,36 @@ function openDeliveries(){
         <div id="dlv-n-${i}" style="font-size:11.5px;text-align:right;color:var(--text2)"></div>
       </div>`;}).join('')}
     </div>`:''}
+    ${(()=>{
+      /* Everything received, newest first. "Did that Superdrug box ever land?"
+         was a question this screen could not answer — you had to go hunting
+         through History. Folded by default so it never gets in the way of the
+         two live jobs above it. */
+      const done=[];
+      D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{
+        if(l.arr&&l.recvOn)done.push({o,l});}));
+      done.sort((a,b)=>String(b.l.recvOn).localeCompare(String(a.l.recvOn)));
+      if(!done.length)return '';
+      const units=done.reduce((t,x)=>t+(x.l.qty||0),0);
+      const val=done.reduce((t,x)=>t+(x.l.qty||0)*(x.l.cost||0),0);
+      const show=_dlvPast?done.slice(0,80):[];
+      return `<div class="dvSecHead" style="margin-top:${(open.length||waiting.length)?'18px':'0'};cursor:pointer"
+          onclick="LV3.dlvPast()">
+          <b>Already received</b>
+          <span>${fmt(done.length)} line${done.length===1?'':'s'} · ${fmt(units)} units · ${gbp(val)}</span>
+          <span class="dvHint">${_dlvPast?'click to hide':'click to see what has already landed'}</span></div>
+        ${_dlvPast?`<div class="dvGrp"><div class="dvGrpHead"><span class="dvDot" style="background:var(--grn)"></span>
+          <b>Most recent first</b><span class="dvGrpSub">showing ${fmt(show.length)} of ${fmt(done.length)}</span></div>
+          ${show.map(x=>`<div class="dvRow">
+            <div class="dvNm"><span class="pname">${esc(x.o.name)}</span>
+              <div class="pmeta">${fmt(x.l.qty)} units${x.l.cost>0?' @ '+gbp(x.l.cost):''}${x.l.sup?' · '+esc(x.l.sup):''}${x.l.oid&&x.l.oid!=='—'?' · '+esc(x.l.oid):''}</div></div>
+            <div class="dvEta" style="color:var(--grn)">landed ${dshort(x.l.recvOn)}
+              <div class="pmeta" style="margin:0">${x.l.recvBy?'by '+esc(x.l.recvBy):''}${x.l.short?' · was short':''}</div></div>
+            <div class="dvQty"><span class="num">${fmt(x.l.rem)}</span><div class="pmeta" style="margin:0">left</div></div>
+            <span></span>
+          </div>`).join('')}
+          ${done.length>show.length?`<div class="pmeta" style="padding:9px 12px">${fmt(done.length-show.length)} older not shown — the full record is on the History tab.</div>`:''}
+        </div>`:''}`;})()}
     ${waiting.length?`<div class="dvSecHead" style="margin-top:${open.length?'16px':'0'}"><b>Still on its way</b>
       <span>${fmt(waiting.length)} line${waiting.length===1?'':'s'} · ${fmt(gunits(waiting))} units · ${gbp(gval(waiting))}</span>
       <span class="dvHint">Whoever is in the unit presses <b>It's here</b> the moment a box lands — counting it in is the step above.</span></div>
@@ -18758,8 +18935,10 @@ async function boot(){
   await loadCloud();
   await migrateOld();
   hydrate();
-  /* after hydrate, so ids are the real ones — see repairAllocLinks */
-  try{repairAllocLinks();}catch(e){console.warn('link repair',e);}
+  /* Nothing is repaired on load any more. Quietly re-pointing links is how this
+     went wrong in the first place: the app decided, nobody saw it, and when it
+     decided wrongly there was no trace. It flags what it found and a person
+     approves it — see openFixLinks. */
   paint();
 }
 const isUntracked=id=>!!(D.settings&&D.settings.untracked&&D.settings.untracked[String(id)]);
@@ -18791,7 +18970,7 @@ const API={go,render:paint,boot,
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,showReview,ghostAllocs,openFixLinks,fxFind,fxPick,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsFind,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,showReview,ghostAllocs,staleDupes,dropDupes,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsFind,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
