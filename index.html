@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v7.4</title>
+<title>BDL PrepHub v7.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1204,8 +1204,36 @@ html.light-mode{
 /* Restocks — the controls are the page, so they get to look like it */
 #page-lavarion .mixOv.ask,.lav3 .mixOv.ask{align-items:flex-start;gap:14px;border-color:var(--amb);background:rgba(255,170,51,.07);}
 /* the health banner — deliberately loud, deliberately hard to ignore */
-#page-lavarion .hlth,.lav3 .hlth{margin:0 20px 0;border:1px solid var(--red);border-left:4px solid var(--red);
-  border-radius:10px;background:rgba(248,113,113,.07);overflow:hidden;}
+#page-lavarion .fxList,.lav3 .fxList{display:grid;gap:8px;}
+#page-lavarion .fxRow,.lav3 .fxRow{display:grid;grid-template-columns:minmax(0,1fr) 360px 74px;gap:14px;align-items:start;
+  padding:11px 13px;border:1px solid var(--border);border-radius:10px;background:var(--bg2);}
+#page-lavarion .fxRow.done,.lav3 .fxRow.done{border-color:var(--grn);background:rgba(85,255,85,.05);}
+#page-lavarion .fxWhat,.lav3 .fxWhat{min-width:0;}
+#page-lavarion .fxPick,.lav3 .fxPick{position:relative;}
+#page-lavarion .fxIn,.lav3 .fxIn{width:100%;}
+#page-lavarion .fxPop,.lav3 .fxPop{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:90;
+  max-height:280px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border2);border-radius:9px;
+  box-shadow:0 18px 44px rgba(0,0,0,.6);padding:4px;}
+#page-lavarion .fxPop.on,.lav3 .fxPop.on{display:block;}
+#page-lavarion .fxState,.lav3 .fxState{font:700 11px var(--num);color:var(--text3);text-align:right;padding-top:9px;}
+#page-lavarion .fxState.ok,.lav3 .fxState.ok{color:var(--grn);}
+/* ten seconds of unmistakable, then back to normal */
+#page-lavarion .flashHi,.lav3 .flashHi{
+  animation:flashHi 1.1s ease-in-out 0s 9;
+  border-radius:11px;}
+@keyframes flashHi{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,170,51,0);}
+  50%{box-shadow:0 0 0 4px rgba(255,170,51,.85),0 0 26px rgba(255,170,51,.35);}
+}
+#page-lavarion .rvLine.broken,.lav3 .rvLine.broken{background:rgba(248,113,113,.10);}
+#page-lavarion .hlth,.lav3 .hlth{margin:0 20px 0;border:1px solid var(--amb);border-left:4px solid var(--amb);
+  border-radius:10px;background:rgba(255,170,51,.06);overflow:hidden;}
+#page-lavarion .hlth.bad,.lav3 .hlth.bad{border-color:var(--red);background:rgba(248,113,113,.07);}
+#page-lavarion .hlth .hlthTop b,.lav3 .hlth .hlthTop b{color:var(--amb);}
+#page-lavarion .hlth.bad .hlthTop b,.lav3 .hlth.bad .hlthTop b{color:var(--red);}
+#page-lavarion .hlth .hlthDot,.lav3 .hlth .hlthDot{background:var(--amb);}
+#page-lavarion .hlth.bad .hlthDot,.lav3 .hlth.bad .hlthDot{background:var(--red);}
+#page-lavarion .hlthRow.warn .hlthN,.lav3 .hlthRow.warn .hlthN{color:var(--amb);}
 #page-lavarion .hlthTop,.lav3 .hlthTop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   padding:10px 14px;border-bottom:1px solid rgba(248,113,113,.25);}
 #page-lavarion .hlthTop b,.lav3 .hlthTop b{font-size:13px;color:var(--red);}
@@ -1807,7 +1835,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v7.4</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v7.7</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1841,7 +1869,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v7.4</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v7.7</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -12333,7 +12361,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v7.4 · lav3 · 2026-08-05 · b89';
+const BUILD='v7.7 · lav3 · 2026-08-05 · b92';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -13363,7 +13391,7 @@ function vOverview(){
   const stockVal=D.components.reduce((s,c)=>s+arrLayers(c).reduce((a,l)=>a+l.rem*l.cost,0),0)
                 +live.reduce((s,p)=>s+arrLayers(p).reduce((a,l)=>a+l.rem*l.cost,0),0);
   const sendable=live.reduce((s,p)=>{const a=avail(p);return s+(a.n||0);},0);
-  const unlinked=D.purchases.filter(p=>allocState(p).k==='none').length;
+  const unlinked=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k)).length;
 
   const RAIL={'var(--grn)':'c-grn','var(--red)':'c-red','var(--blu)':'c-blue','var(--amb)':'c-amb','var(--vio)':'c-vio','var(--accent)':'c-acc'};
   const kpi=(k,v,s,col,click)=>`<div class="kpi ${RAIL[col]||'c-acc'} ${click?'clk':''}" ${click?`onclick="${click}"`:''}>
@@ -15508,7 +15536,10 @@ function dropReview(pid){
   toastUndo(`${p.name} removed from the list`,'ok');
 }
 function clearReview(){
-  const todo=D.purchases.filter(p=>allocState(p).k==='none');
+  /* A broken link is work waiting, same as an unlinked purchase. Excluding it
+   meant the health banner said "5 purchases" and there was nowhere on the whole
+   app you could actually see or fix those five. */
+  const todo=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k));
   if(!todo.length){toast('Nothing to clear','er');return;}
   confirmBox(`Clear ${fmt(todo.length)} line${todo.length===1?'':'s'} from the list?`,
     `<div style="margin-bottom:10px">This empties the review list. Nothing already linked is touched, and
@@ -15531,7 +15562,10 @@ function reviewOrders(){
   /* The sheet writes one line per product but they arrive as one order — the
      order ref proves it. Grouping by it is what makes Purchases and Deliveries
      line up: link an order here, receive that same order there. */
-  const todo=D.purchases.filter(p=>allocState(p).k==='none');
+  /* A broken link is work waiting, same as an unlinked purchase. Excluding it
+   meant the health banner said "5 purchases" and there was nowhere on the whole
+   app you could actually see or fix those five. */
+  const todo=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k));
   const by={};
   todo.forEach(p=>{
     const k=(p.oid&&p.oid!=='—')?('o:'+p.oid.toLowerCase()) : ('x:'+p.id);
@@ -15604,8 +15638,10 @@ function reviewPanel(){
             ${o.lines.map((p,ix)=>{
               const sug=o.sugs[ix];const t=sug?(comp(sug.id)||prod(sug.id)):null;
               const total=p.spend||(p.qty*p.price);
-              return `<div class="rvLine ${t?'':'nomatch'}">
-                <div class="rvName">${esc(p.name)}</div>
+              const isBroken=allocState(p).k==='broken';
+              return `<div class="rvLine ${isBroken?'broken':t?'':'nomatch'}">
+                <div class="rvName">${esc(p.name)}
+                  ${isBroken?'<span class="chip bad" title="This was linked once, but the part it pointed at has changed. Pick it again.">link broken</span>':''}</div>
                 <div class="rvNum">${fmt(p.qty)}</div>
                 <div class="rvNum">${gbp(p.price)}</div>
                 <div class="rvNum">${gbp(p.spend||total)}</div>
@@ -15629,7 +15665,10 @@ function reviewPanel(){
   </div>`;
 }
 function _orderLines(key){
-  const todo=D.purchases.filter(p=>allocState(p).k==='none');
+  /* A broken link is work waiting, same as an unlinked purchase. Excluding it
+   meant the health banner said "5 purchases" and there was nowhere on the whole
+   app you could actually see or fix those five. */
+  const todo=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k));
   const byRef=todo.filter(p=>(p.oid||'').toLowerCase()===String(key).toLowerCase()&&p.oid&&p.oid!=='—');
   return byRef.length?byRef:todo.filter(p=>p.id===key);
 }
@@ -15665,7 +15704,10 @@ function dropOrder(key){
 }
 /* accept every suggestion at once — still a deliberate click, just one of them */
 function applyAllSuggestions(){
-  const todo=D.purchases.filter(p=>allocState(p).k==='none');
+  /* A broken link is work waiting, same as an unlinked purchase. Excluding it
+   meant the health banner said "5 purchases" and there was nowhere on the whole
+   app you could actually see or fix those five. */
+  const todo=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k));
   const withSug=todo.map(p=>({p,s:suggestFor(p)})).filter(x=>x.s&&x.s.sure);
   if(!withSug.length){toast('No suggestions to accept','er');return;}
   confirmBox(`Accept ${fmt(withSug.length)} suggestion${withSug.length===1?'':'s'}?`,
@@ -15838,7 +15880,7 @@ function vRestocks(){
 }
 
 function vPurchases(){
-  const unl=D.purchases.filter(p=>allocState(p).k==='none');
+  const unl=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k));
   const part=D.purchases.filter(p=>allocState(p).k==='part');
   const rows=D.purchases
     .filter(p=>uFilter==='all'||(uFilter==='todo'?allocState(p).k==='none':uFilter==='part'?allocState(p).k==='part':allocState(p).k==='full'||allocState(p).k==='split'))
@@ -16070,13 +16112,27 @@ function rememberMode(sup,mode){
    and a red banner that will not go away until it is dealt with. */
 function healthCheck(){
   const issues=[];
-  const add=(k,n,label,detail,go,fix)=>{if(n>0)issues.push({k,n,label,detail,go,fix});};
+  /* Not everything deserves red. Red is for something quietly wrong with the
+     numbers — a cost that cannot be worked out, a product that can never be
+     built. Amber is for work waiting: a link to re-point, a shortfall to decide.
+     Red used to mean "five names do not match", which is how a warning becomes
+     wallpaper. */
+  const add=(k,n,label,detail,go,fix,sev)=>{if(n>0)issues.push({k,n,label,detail,go,fix,sev:sev||'warn'});};
 
   const broken=D.purchases.filter(p=>(p.alloc||[]).length&&(p.alloc||[]).some(a=>!targetOf(a.to)));
   add('links',broken.length,
-    `${fmt(broken.length)} purchase${broken.length===1?'':'s'} linked to something that no longer exists`,
-    'Their stock never reaches On order. Repair matches them back up by name.',
-    "go('purchases')",'LV3.fixHealth(\'links\')');
+    `${fmt(broken.length)} purchase${broken.length===1?'':'s'} you bought are not showing as on order`,
+    `${esc(broken.slice(0,4).map(p=>p.name).join(', '))}${broken.length>4?` +${broken.length-4} more`:''}.
+     Somebody said what these were, but the part they were pointed at has since changed, so the stock never appeared.
+     <b>Repair</b> tries to match them back up by name. Anything it cannot match goes to <b>Purchases → To review</b> for you to pick by hand.`,
+    "showReview()",'LV3.fixHealth(\'links\')','warn');
+
+  const ghosts=ghostAllocs();
+  add('ghost',ghosts.length,
+    `${fmt(ghosts.length)} purchase${ghosts.length===1?'':'s'} say linked but their stock does not exist`,
+    `${esc(ghosts.slice(0,4).map(p=>p.name).join(', '))}${ghosts.length>4?` +${ghosts.length-4} more`:''} —
+     the link is fine but the stock it should have created is missing, so nothing shows on order. Repair rebuilds it.`,
+    "showReview()",'LV3.fixHealth(\'links\')','bad');
 
   const deadParts=[];
   D.products.forEach(p=>(p.recipe||[]).forEach(r=>{if(!comp(r.c))deadParts.push(p);}));
@@ -16084,7 +16140,7 @@ function healthCheck(){
   add('recipe',dp.length,
     `${fmt(dp.length)} build list${dp.length===1?'':'s'} point at a deleted component`,
     `${esc(dp.slice(0,3).map(x=>x.name).join(', '))}${dp.length>3?` +${dp.length-3} more`:''} — those products can never be costed or built.`,
-    "go('products')",'');
+    "go('products')",'','bad');
 
   const noPrice=[];
   D.components.concat(D.products).forEach(o=>{
@@ -16093,7 +16149,7 @@ function healthCheck(){
   add('price',noPrice.length,
     `${fmt(noPrice.length)} thing${noPrice.length===1?'':'s'} hold stock with no price on it`,
     `${esc(noPrice.slice(0,3).map(x=>x.name).join(', '))}${noPrice.length>3?` +${noPrice.length-3} more`:''} — COG cannot be worked out until the batch has a cost.`,
-    "go('components')",'');
+    "go('components')",'','bad');
 
   const sl=(typeof shortLines==='function')?shortLines():[];
   const decide=sl.filter(x=>shortState(x.l).k==='decide');
@@ -16118,13 +16174,125 @@ function healthCheck(){
 
   return issues;
 }
+/* Being told "it is in To review" while already standing on that page is not
+   help. Go there, open it, scroll to it, and light it up long enough to find. */
+function showReview(){
+  _revOpen=true;TAB='purchases';render();
+  setTimeout(()=>{
+    const el=document.getElementById('revPanel');
+    if(!el)return;
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.classList.add('flashHi');
+    setTimeout(()=>el.classList.remove('flashHi'),10000);
+  },160);
+}
+/* Fix them here. Being handed a list and told to go somewhere else and repeat
+   the work is not a repair — it is a to-do list with extra steps. Every purchase
+   the matcher could not place gets a search box and a Save, in the same dialog. */
+let _fxRows=[];
+function openFixLinks(){
+  _fxRows=D.purchases.filter(p=>(p.alloc||[]).length&&(p.alloc||[]).some(a=>!targetOf(a.to)))
+    .map(p=>{
+      /* offer the closest name up front — the maybe-match it was not confident
+         enough to apply on its own is still the right starting point */
+      let guess='';
+      try{const sug=suggestFor(p);if(sug&&sug.id&&targetOf(sug.id))guess=sug.id;}catch(e){}
+      return{p,to:'',guess};
+    });
+  if(!_fxRows.length){toast('Nothing left to fix','ok');return;}
+  $('lav3Mod2').className='mod xl';
+  $('lav3Mod2').innerHTML=`
+    <div class="mh"><h3>Match these to a component</h3>
+      <span class="pmeta" style="margin:0">${fmt(_fxRows.length)} the app could not place on its own</span>
+      <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+    <div class="mb">
+      <div class="amzHelp">These were bought and linked once, but the part they pointed at has changed, so their stock
+        never appeared. Say what each one is and it goes straight back on order. Start typing — it searches every
+        component, packaging item and product.</div>
+      <div class="fxList">
+        ${_fxRows.map((r,i)=>`<div class="fxRow" id="fxRow-${i}">
+          <div class="fxWhat">
+            <span class="pname">${esc(r.p.name)}</span>
+            <div class="pmeta">${fmt(r.p.qty)} @ ${gbp(r.p.price)} · ${esc(r.p.sup||'—')}${r.p.oid&&r.p.oid!=='—'?' · '+esc(r.p.oid):''} · ${dshort(r.p.date)}</div>
+          </div>
+          <div class="fxPick">
+            <input class="in fxIn" id="fxIn-${i}" autocomplete="off" placeholder="Type a component…"
+              oninput="LV3.fxFind(${i},this.value)" onfocus="LV3.fxFind(${i},this.value)">
+            <div class="fxPop" id="fxPop-${i}"></div>
+            ${r.guess?`<button class="btn sm go" style="margin-top:6px" onclick="LV3.fxPick(${i},'${r.guess}')">
+              Looks like <b>${esc(allocLabel(r.guess))}</b> — use it</button>`:''}
+          </div>
+          <span class="fxState" id="fxState-${i}">not set</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="mf"><span id="fxSum" class="pmeta" style="margin:0">Nothing matched yet</span>
+      <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Close</button>
+      <button class="btn pri" id="fxGo" disabled onclick="LV3.fxSaveAll()">Put them on order</button></div></div>`;
+  om('lav3Ov2');
+  setTimeout(()=>{const e=document.getElementById('fxIn-0');if(e)e.focus();},60);
+  fxSum();
+}
+function fxFind(i,v){
+  const pop=document.getElementById('fxPop-'+i);if(!pop)return;
+  const q=(v||'').toLowerCase().trim();
+  const all=allocTargets();
+  const hits=(q?all.filter(t=>t.name.toLowerCase().includes(q)):all).slice(0,40);
+  pop.innerHTML=hits.length
+    ? hits.map(t=>`<button type="button" class="alopt" onclick="LV3.fxPick(${i},'${t.id}')">
+        <span class="alnm">${esc(t.name)}</span><span class="altag t-${t.tag}">${t.tag}</span></button>`).join('')
+    : `<div class="alnone">Nothing matches “${esc(v)}” — add it in Components first</div>`;
+  pop.classList.add('on');
+}
+function fxPick(i,id){
+  const r=_fxRows[i];if(!r)return;
+  r.to=id;
+  const inp=document.getElementById('fxIn-'+i);if(inp)inp.value=allocLabel(id);
+  const pop=document.getElementById('fxPop-'+i);if(pop)pop.classList.remove('on');
+  const st=document.getElementById('fxState-'+i);
+  if(st){st.textContent='ready';st.className='fxState ok';}
+  const row=document.getElementById('fxRow-'+i);if(row)row.classList.add('done');
+  fxSum();
+}
+function fxSum(){
+  const n=_fxRows.filter(r=>r.to).length;
+  const el=$('fxSum');
+  if(el)el.innerHTML=n?`<b style="color:var(--grn)">${fmt(n)}</b> of ${fmt(_fxRows.length)} matched · ${fmt(_fxRows.reduce((t,r)=>t+(r.to?r.p.qty:0),0))} units going back on order`
+    :'Nothing matched yet';
+  const go=$('fxGo');if(go){go.disabled=!n;go.style.opacity=n?'1':'.45';}
+}
+function fxSaveAll(){
+  const ready=_fxRows.filter(r=>r.to);
+  if(!ready.length){toast('Match at least one first','er');return;}
+  snap();
+  let done=0;
+  ready.forEach(r=>{try{setAlloc(r.p,[{to:r.to,qty:r.p.qty}]);done++;}catch(e){console.warn('fx',e);}});
+  save();cm('lav3Ov2');render();
+  logIt('edit',`${done} broken purchase link${done===1?'':'s'} matched by hand`);
+  toastUndo(`${fmt(done)} put back on order`,'ok');
+}
 function fixHealth(kind){
-  if(kind==='links'){
-    const r=repairAllocLinks();
-    render();
-    toast(r.fixed?`${fmt(r.fixed)} link${r.fixed===1?'':'s'} repaired — their stock is back on order`
-                 :'Nothing could be matched automatically — open To review and pick manually',r.fixed?'ok':'er');
-  }
+  if(kind!=='links')return;
+  const before=D.purchases.filter(p=>(p.alloc||[]).length&&(p.alloc||[]).some(a=>!targetOf(a.to)));
+  const r=repairAllocLinks();
+  const after=D.purchases.filter(p=>(p.alloc||[]).length&&(p.alloc||[]).some(a=>!targetOf(a.to)));
+  _revOpen=true;                       // if any are left, put them in front of him
+  render();
+  /* Silence after pressing a button is exactly the fault this banner exists to
+     catch. Say what was fixed, what was not, and what to do about the rest. */
+  confirmBox(after.length?'Some could not be matched':'All repaired',
+    `${r.fixed?`<div style="margin-bottom:10px"><b style="color:var(--grn)">${fmt(r.fixed)} repaired.</b>
+       Their stock is back on order and shows in Deliveries.</div>`:''}
+     ${after.length?`<div class="note bad" style="margin:0 0 10px">
+       <b>${fmt(after.length)} could not be matched automatically.</b>
+       The purchase is called something the components list does not have, so the app will not guess.
+       <div style="margin-top:7px">${after.slice(0,8).map(p=>`<div class="pmeta" style="margin:2px 0">${esc(p.name)} — ${fmt(p.qty)} @ ${gbp(p.price)} · ${esc(p.sup||'—')}</div>`).join('')}</div></div>
+       <div><b>What to do:</b> they are now listed in <b>Purchases → To review</b>. For each one press
+       <b>Pick one</b>, type the component it should go to, and save. If the component does not exist yet,
+       add it in <b>Components</b> first — then it will match.</div>`
+     :'<div>Nothing left to fix.</div>'}`,
+    ()=>{if(after.length)openFixLinks();else showReview();},
+    {ok:after.length?`Match ${fmt(after.length)} now`:'Done'});
 }
 function paintHealth(){
   const el=document.getElementById('lav3Health');
@@ -16133,11 +16301,14 @@ function paintHealth(){
   try{issues=healthCheck();}catch(e){console.warn('health',e);return;}
   if(!issues.length){el.innerHTML='';return;}
   const total=issues.reduce((t,i)=>t+i.n,0);
-  el.innerHTML=`<div class="hlth">
-    <div class="hlthTop"><span class="hlthDot">!</span>
-      <b>${fmt(total)} thing${total===1?'':'s'} need${total===1?'s':''} attention</b>
-      <span class="hlthSub">these are quiet faults — nothing on screen would tell you otherwise</span></div>
-    ${issues.map(i=>`<div class="hlthRow">
+  const worst=issues.some(i=>i.sev==='bad')?'bad':'warn';
+  el.innerHTML=`<div class="hlth ${worst}">
+    <div class="hlthTop"><span class="hlthDot">${worst==='bad'?'!':'i'}</span>
+      <b>${fmt(total)} thing${total===1?'':'s'} to sort out</b>
+      <span class="hlthSub">${worst==='bad'
+        ? 'some of these make the numbers wrong until they are dealt with'
+        : 'nothing is broken — this is work waiting, and none of it shows anywhere else'}</span></div>
+    ${issues.map(i=>`<div class="hlthRow ${i.sev}">
       <span class="hlthN">${fmt(i.n)}</span>
       <div class="hlthTxt"><b>${i.label}</b><span>${i.detail}</span></div>
       <div class="hlthBtns">
@@ -16145,6 +16316,22 @@ function paintHealth(){
         ${i.go?`<button class="btn sm" onclick="LV3.${i.go}">Show me</button>`:''}
       </div></div>`).join('')}
   </div>`;
+}
+/* The Kingdom Coffee hole, level two. A purchase can point at a component that
+   EXISTS and still have no stock behind it — the batch was skipped or lost, and
+   every check that only asked "does the link resolve" waved it through. So ask
+   the only question that matters: does the stock this purchase should have
+   created actually exist? */
+function ghostAllocs(){
+  return D.purchases.filter(p=>{
+    const a=(p.alloc||[]).filter(x=>targetOf(x.to));
+    if(!a.length)return false;
+    const want=a.reduce((t,x)=>t+(parseInt(x.qty)||0),0);
+    let have=0;
+    const tag='P:'+p.id;
+    D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{if(l.src===tag)have+=l.qty||0;}));
+    return have<want;         // linked on paper, missing in stock
+  });
 }
 function repairAllocLinks(){
   const byName={};
@@ -16156,7 +16343,17 @@ function repairAllocLinks(){
     let changed=false;
     a.forEach(x=>{
       if(targetOf(x.to))return;
-      const hit=byName[_norm(p.name)];
+      /* Exact names only was too strict. "Dove MD Tanning Lotion 75ml" on the
+         sheet is "Dove MD 75ml Tanning Lotion" here — same part, different word
+         order — and "Replacement Foam Nozzles" is the singular plus an s. Fall
+         back to the same word-overlap matcher the review queue already uses, and
+         only accept it when that matcher is SURE. Anything less stays broken and
+         goes to a human. */
+      let hit=byName[_norm(p.name)];
+      if(!hit){
+        try{const sug=suggestFor(p);
+          if(sug&&sug.sure&&sug.id)hit=targetOf(sug.id)||null;}catch(e){}
+      }
       if(hit){x.to=hit.id;changed=true;fixed++;}
       else broke++;
     });
@@ -16164,6 +16361,11 @@ function repairAllocLinks(){
       /* rebuilding the allocation is what actually recreates the stock batch */
       try{setAlloc(p,a.map(x=>({to:x.to,qty:x.qty})));}catch(e){console.warn('repair',e);}
     }
+  });
+  /* and the ghosts: linked, targets fine, stock missing — rebuild those too */
+  ghostAllocs().forEach(p=>{
+    try{setAlloc(p,(p.alloc||[]).map(x=>({to:x.to,qty:x.qty})));fixed++;}
+    catch(e){console.warn('ghost rebuild',e);}
   });
   if(fixed){
     save();
@@ -18589,7 +18791,7 @@ const API={go,render:paint,boot,
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsFind,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,showReview,ghostAllocs,openFixLinks,fxFind,fxPick,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsFind,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
