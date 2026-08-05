@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v7.0</title>
+<title>BDL PrepHub v7.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1151,6 +1151,32 @@ html.light-mode{
 #page-lavarion .ppStack>#buyPanel,.lav3 .ppStack>#buyPanel{order:9;}
 /* restocks */
 /* Restocks — start on a question, not on a random product */
+/* incoming, at a glance */
+#page-lavarion .incN,.lav3 .incN{font:800 16px var(--num);color:var(--blu);}
+#page-lavarion .incS,.lav3 .incS{font-size:10.5px;color:var(--text2);opacity:.9;margin-top:2px;}
+#page-lavarion .incU,.lav3 .incU{font-size:10.5px;color:var(--grn);margin-top:2px;}
+/* stock-at-Amazon, one ASIN at a time */
+#page-lavarion .segs,.lav3 .segs{display:flex;gap:0;border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
+#page-lavarion .seg,.lav3 .seg{padding:6px 13px;background:var(--bg3);border:none;color:var(--text2);
+  font:700 11.5px var(--num);cursor:pointer;}
+#page-lavarion .seg.on,.lav3 .seg.on{background:var(--accent);color:var(--accent-ink);}
+#page-lavarion .amzHelp,.lav3 .amzHelp{font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:12px;
+  padding:10px 13px;border-left:3px solid var(--blu);background:var(--bg3);border-radius:0 8px 8px 0;}
+#page-lavarion .amzGrid,.lav3 .amzGrid{border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+#page-lavarion .amzHead,.lav3 .amzHead,#page-lavarion .amzRow,.lav3 .amzRow{
+  display:grid;grid-template-columns:minmax(0,1fr) 130px 100px 110px 78px;gap:12px;align-items:center;padding:8px 14px;}
+#page-lavarion .amzHead,.lav3 .amzHead{background:var(--bg3);font:800 9.5px var(--num);letter-spacing:.07em;
+  text-transform:uppercase;color:var(--text3);}
+#page-lavarion .amzRow,.lav3 .amzRow{border-top:1px solid var(--border);}
+#page-lavarion .amzRow:hover,.lav3 .amzRow:hover{background:var(--bg3);}
+#page-lavarion .amzRow.done,.lav3 .amzRow.done{background:rgba(85,255,85,.06);}
+#page-lavarion .amzNm,.lav3 .amzNm{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-lavarion .amzAsin,.lav3 .amzAsin{font-size:11.5px;color:var(--text2);}
+#page-lavarion .amzWas,.lav3 .amzWas{font-size:12.5px;color:var(--text2);font-family:var(--num);}
+#page-lavarion .amzAge,.lav3 .amzAge{font-size:10px;color:var(--text3);margin-left:5px;}
+#page-lavarion .amzQ,.lav3 .amzQ{width:100%;text-align:center;font:800 15px var(--num);padding:7px 6px;}
+#page-lavarion .amzQ:focus,.lav3 .amzQ:focus{border-color:var(--accent);outline:none;}
+#page-lavarion .amzSas,.lav3 .amzSas{text-align:center;text-decoration:none;}
 #page-lavarion .rsStart,.lav3 .rsStart{max-width:640px;margin:40px auto 0;text-align:center;}
 #page-lavarion .rsStartT,.lav3 .rsStartT{font-size:22px;font-weight:800;color:var(--text);margin-bottom:8px;}
 #page-lavarion .rsStartB,.lav3 .rsStartB{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:18px;}
@@ -1578,7 +1604,15 @@ html.light-mode{
    table, so the bottom two thirds of the right-hand side was empty. Multi-column
    lets the panels fall into whichever side has room, and break-inside stops a
    panel being sliced in half across the gap. */
+/* Three tracks on a wide screen, two on a laptop, one on a narrow window. A
+   fixed two-column grid left a band of nothing down the right on a 1920 screen. */
 #page-lavarion .cols2,.lav3 .cols2{display:block;column-count:2;column-gap:14px;}
+@media(min-width:1560px){#page-lavarion .cols2,.lav3 .cols2{column-count:3;}}
+/* and no single panel is allowed to run the length of the page — a list that
+   long is a page of its own, not the front door */
+#page-lavarion .cols2 .panel>.att,.lav3 .cols2 .panel>.att,
+#page-lavarion .cols2 .panel>div:not(.ph),.lav3 .cols2 .panel>div:not(.ph){max-height:none;}
+#page-lavarion .cols2 .panel,.lav3 .cols2 .panel{max-height:520px;overflow:auto;}
 #page-lavarion .cols2>*,.lav3 .cols2>*{break-inside:avoid;-webkit-column-break-inside:avoid;
   display:block;margin:0 0 14px;width:100%;}
 #page-lavarion .cols2.one,.lav3 .cols2.one{column-count:1;}
@@ -1767,7 +1801,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v7.0</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v7.2</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1801,7 +1835,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v7.0</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v7.2</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -12293,7 +12327,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v7.0 · lav3 · 2026-08-05 · b85';
+const BUILD='v7.2 · lav3 · 2026-08-05 · b87';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -12865,15 +12899,43 @@ function saveUseIn(cid){
   cm('lav3Ov2');render();
   toastUndo(`${esc(c.name)} added to ${esc(p.name)}`,'ok');
 }
+let _amzMode='grid';
+function amzMode(m){_amzMode=m;openAtAmz();}
+const SAS_DEFAULT='https://sas.selleramp.com/sas/lookup?search_term={ASIN}&asin={ASIN}';
+/* every {ASIN}, not just the first — SAS wants it twice */
+const sasUrl=asin=>String(D.settings.sasUrl||SAS_DEFAULT).split('{ASIN}').join(encodeURIComponent(asin||''));
 function openAtAmz(){
   _amzRows=[];
-  $('lav3Mod2').className='mod wide';
+  const live=D.products.filter(x=>!x.archived&&x.asin)
+    .sort((a,b)=>a.name.localeCompare(b.name));
+  $('lav3Mod2').className='mod xl';
   $('lav3Mod2').innerHTML=`
     <div class="mh"><h3>Stock at Amazon</h3>
-      <span class="pmeta" style="margin:0">paste it straight out of Seller Central</span>
+      <span class="pmeta" style="margin:0">${fmt(live.length)} ASINs · today's count</span>
+      <div class="segs" style="margin-left:auto">
+        <button class="seg ${_amzMode==='grid'?'on':''}" onclick="LV3.amzMode('grid')">One by one</button>
+        <button class="seg ${_amzMode==='paste'?'on':''}" onclick="LV3.amzMode('paste')">Paste a list</button>
+      </div>
       <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
     <div class="mb">
-      <div class="pasteWrap">
+    ${_amzMode==='grid'?`
+      <div class="amzHelp">Open <b>SAS</b> next to an ASIN, read the number, type it, then press <b>Tab</b> to drop to the next one.
+        Leave anything you don't check blank — blank is left exactly as it was, it is not a zero.</div>
+      <div class="amzGrid">
+        <div class="amzHead"><span>Product</span><span>ASIN</span><span>Last count</span><span>Now</span><span></span></div>
+        ${live.map((x,i)=>{const was=atAmz(x),age=atAmzAge(x);
+          return `<div class="amzRow" id="amzRow-${i}">
+            <span class="amzNm">${esc(x.name)}</span>
+            <span class="amzAsin mono">${esc(x.asin)}</span>
+            <span class="amzWas">${was==null?'<span class="dim">never</span>'
+              :`${fmt(was)}<span class="amzAge">${age===0?'today':age+'d'}</span>`}</span>
+            <input class="in num amzQ" type="number" min="0" inputmode="numeric" data-i="${i}" data-asin="${esc(x.asin)}"
+              placeholder="—" oninput="LV3.amzGridSum()">
+            <a class="btn sm amzSas" href="${sasUrl(x.asin)}" target="_blank" rel="noopener"
+              title="Open this ASIN in SAS">SAS ↗</a>
+          </div>`;}).join('')}
+      </div>`
+    :`<div class="pasteWrap">
         <div class="pasteSide">
           <div class="lab">How</div>
           <ol class="pasteSteps">
@@ -12881,10 +12943,8 @@ function openAtAmz(){
             <li>Select the ASIN and available columns</li>
             <li>Copy the rows and paste them in</li>
           </ol>
-          <div class="pmeta">Any order, any separator — comma, tab or spaces. It finds the ASIN or SKU
-            on each line and takes the first number after it. Lines it cannot place are listed back to you
-            rather than dropped.</div>
-          <div class="note info" style="margin-top:10px">Nothing is saved until you press <b>Save counts</b>.</div>
+          <div class="pmeta">Any order, any separator. It finds the ASIN or SKU on each line and takes the first
+            number after it. Lines it cannot place are listed back to you rather than dropped.</div>
         </div>
         <div class="pasteMain">
           <textarea id="amzIn" class="in pasteBox" spellcheck="false"
@@ -12892,61 +12952,77 @@ function openAtAmz(){
             oninput="LV3.amzParse(this.value)"></textarea>
           <div id="amzOut" class="pasteOut"></div>
         </div>
-      </div>
+      </div>`}
     </div>
-    <div class="mf"><span id="amzSum" class="pmeta" style="margin:0">Nothing pasted yet</span>
+    <div class="mf"><span id="amzSum" class="pmeta" style="margin:0">Nothing entered yet</span>
       <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
       <button class="btn pri" id="amzGo" disabled onclick="LV3.amzSave()">Save counts</button></div></div>`;
   om('lav3Ov2');
-  setTimeout(()=>{const t=$('amzIn');if(t)t.focus();},60);
+  setTimeout(()=>{const t=document.getElementById(_amzMode==='grid'?'':'amzIn');
+    const first=document.querySelector('.amzQ');
+    if(_amzMode==='grid'&&first)first.focus(); else if(t)t.focus();},60);
+  if(_amzMode==='grid')amzGridSum();
 }
+/* the grid builds the same _amzRows the paste box does, so Save is one path */
+function amzGridSum(){
+  const byAsin={};
+  D.products.forEach(x=>{if(x.asin)byAsin[String(x.asin).toUpperCase()]=x;});
+  _amzRows=[];
+  document.querySelectorAll('.amzQ').forEach(el=>{
+    const v=el.value.trim();
+    const row=el.closest('.amzRow');
+    if(row)row.classList.toggle('done',v!=='');
+    if(v==='')return;
+    const n=parseInt(v,10);
+    const p=byAsin[String(el.dataset.asin||'').toUpperCase()];
+    if(!p||!(n>=0))return;
+    _amzRows.push({p,qty:n,line:p.asin+' '+n});
+  });
+  const sum=$('amzSum');
+  if(sum)sum.innerHTML=_amzRows.length
+    ? `<b style="color:var(--grn)">${fmt(_amzRows.length)}</b> counted · ${fmt(_amzRows.reduce((t,r)=>t+r.qty,0))} units at Amazon · the rest are left as they were`
+    : 'Nothing entered yet';
+  const go=$('amzGo');if(go){go.disabled=!_amzRows.length;go.style.opacity=_amzRows.length?'1':'.45';}
+}
+/* paste mode — same _amzRows, same Save path as the grid */
 function amzParse(txt){
   const live=D.products.filter(x=>!x.archived);
   const byAsin={},bySku={};
   live.forEach(x=>{if(x.asin)byAsin[String(x.asin).toUpperCase()]=x;
     if(x.sku)bySku[String(x.sku).toUpperCase()]=x;});
   const seen={};
-  _amzRows=String(txt||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>{
+  _amzRows=String(txt||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(line=>{
     const up=line.toUpperCase();
-    /* find the identifier anywhere on the line, then the first number AFTER it —
-       Seller Central rows carry prices and dates that would otherwise be read
-       as the quantity */
     let hit=null,at=-1;
     (up.match(/[A-Z0-9][A-Z0-9\-_.]{4,}/g)||[]).forEach(tok=>{
       if(hit)return;
-      const p=byAsin[tok]||bySku[tok];
-      if(p){hit=p;at=up.indexOf(tok)+tok.length;}
-    });
+      const pr=byAsin[tok]||bySku[tok];
+      if(pr){hit=pr;at=up.indexOf(tok)+tok.length;}});
     if(!hit)return{line,err:'no ASIN or SKU on this line'};
-    const rest=line.slice(at);
-    const m=rest.match(/-?\d[\d,]*/);
+    const m=line.slice(at).match(/-?\d[\d,]*/);
     if(!m)return{line,err:'no number after '+(hit.asin||hit.sku)};
     const qty=parseInt(String(m[0]).replace(/,/g,''),10);
     if(!(qty>=0))return{line,err:'that number does not read as units'};
     if(seen[hit.id])return{line,err:hit.name+' is on more than one line'};
     seen[hit.id]=1;
-    return{line,p:hit,qty};
-  });
+    return{line,p:hit,qty};});
   const ok=_amzRows.filter(r=>r.p),bad=_amzRows.filter(r=>!r.p);
   const missing=live.filter(x=>!seen[x.id]);
   const out=$('amzOut');
   if(out)out.innerHTML=!_amzRows.length?'':`
     ${ok.length?`<div class="pasteGrp ok"><b>${fmt(ok.length)} matched</b>
-      <div class="pasteList">${ok.map(r=>{const was=atAmz(r.p);
-        const d=was==null?null:r.qty-was;
-        return `<div class="pasteRow"><span class="pn">${esc(r.p.name)}</span>
-          <span class="pq">${fmt(r.qty)}</span>
+      <div class="pasteList">${ok.map(r=>{const was=atAmz(r.p);const d=was==null?null:r.qty-was;
+        return `<div class="pasteRow"><span class="pn">${esc(r.p.name)}</span><span class="pq">${fmt(r.qty)}</span>
           <span class="pd">${was==null?'first count':d===0?'no change':`${d>0?'+':''}${fmt(d)}`}</span></div>`;}).join('')}</div></div>`:''}
     ${bad.length?`<div class="pasteGrp bad"><b>${fmt(bad.length)} could not be placed</b>
       <div class="pasteList">${bad.map(r=>`<div class="pasteRow"><span class="pn">${esc(r.line.slice(0,60))}</span>
         <span class="pd" style="color:var(--red)">${esc(r.err)}</span></div>`).join('')}</div></div>`:''}
-    ${missing.length?`<div class="pasteGrp warn"><b>${fmt(missing.length)} product${missing.length===1?'':'s'} not in this paste</b>
-      <div class="pmeta" style="margin:6px 0 0">Their last count is left exactly as it was — nothing is zeroed.
-        ${esc(missing.slice(0,6).map(x=>x.name).join(', '))}${missing.length>6?` +${missing.length-6} more`:''}</div></div>`:''}`;
+    ${missing.length?`<div class="pasteGrp warn"><b>${fmt(missing.length)} not in this paste</b>
+      <div class="pmeta" style="margin:6px 0 0">Their last count is left exactly as it was — nothing is zeroed.</div></div>`:''}`;
   const sum=$('amzSum');
   if(sum)sum.innerHTML=ok.length
-    ? `<b style="color:var(--grn)">${fmt(ok.length)}</b> to save · ${fmt(ok.reduce((t,r)=>t+r.qty,0))} units at Amazon${bad.length?` · <b style="color:var(--red)">${fmt(bad.length)} skipped</b>`:''}`
-    : (_amzRows.length?'<span style="color:var(--red)">Nothing on those lines matched a product</span>':'Nothing pasted yet');
+    ? `<b style="color:var(--grn)">${fmt(ok.length)}</b> to save · ${fmt(ok.reduce((t,r)=>t+r.qty,0))} units${bad.length?` · <b style="color:var(--red)">${fmt(bad.length)} skipped</b>`:''}`
+    : (_amzRows.length?'<span style="color:var(--red)">Nothing on those lines matched a product</span>':'Nothing entered yet');
   const go=$('amzGo');if(go){go.disabled=!ok.length;go.style.opacity=ok.length?'1':'.45';}
 }
 function amzSave(){
@@ -13038,7 +13114,11 @@ function sold30Age(p){
   return at?daysSince(at):null;
 }
 function demand30(p){const s=sold30(p);return s!=null?s:(p.ship30||0);}   // sales if known, else what we sent
-function target60(p){const d=demand30(p);if(!d)return null;
+/* No guessing. The target used to fall back to units SENT when no sales figure
+   was in, and dressed it up as "≈776 · guess". A made-up number in an orange box
+   gets acted on like a real one. Until last month's sales are in, there is no
+   target — the column says so and waits. */
+function target60(p){const d=sold30(p);if(d==null||!d)return null;
   const days=D.settings.targetDays||60;
   return Math.round(d/30*days);}
 /* weekly usage from shipped-30d -> cover in weeks */
@@ -13093,7 +13173,8 @@ function render(){
            ['components','Components',D.components.length],
            ['restocks','Restocks',''],
            ['purchases','Purchases',(()=>{const n=D.purchases.filter(x=>allocState(x).k==='none').length;return n?'· '+n+' to link':'';})()],
-           ['history','History',(D.log||[]).length?fmt((D.log||[]).length):''],
+           ['history','History',''],   // the count was noise — nobody acts on "301"
+
            ['settings','Settings','']];   // How it works retired — the pages explain themselves now
   $('lav3Tabs').innerHTML=t.map(([k,l,c])=>`<button class="${TAB===k?'on':''}" onclick="LV3.go('${k}')">${l}${c!==''?`<span class="cnt">${c}</span>`:''}</button>`).join('');
   ({overview:vOverview,products:vProducts,components:vComponents,restocks:vRestocks,purchases:vPurchases,history:vHistory,settings:vSettings,guide:vGuide})[TAB]();
@@ -13305,8 +13386,12 @@ function vOverview(){
     ${kpi('Stock value',gbp(stockVal),'on hand, at what you paid','var(--accent)',"go('components')")}
   </div>
 
+  ${/* Every panel is a direct child of the flow. Wrapping them in two fixed
+       column divs meant CSS could not balance them: five panels stacked on the
+       left, one short table on the right, and two thirds of the right-hand side
+       empty. With the wrappers gone each panel falls into whichever column has
+       room. */''}
   <div class="cols2${(!sendableProds.length&&!D.log.length)?' one':''}">
-    <div>
       <div class="panel">
         <div class="ph"><span class="t" style="color:${(blocked.length||oosComps.length)?'var(--red)':'var(--text)'}">Out of stock</span>
           <span class="sub">${(blocked.length||oosComps.length)?'nothing can be sent until these are back':'nothing is out of stock'}</span>
@@ -13367,9 +13452,6 @@ function vOverview(){
           <td><button class="btn sm go" onclick="LV3.markArrived('${x.type}','${x.o.id}','${x.l.id}')">Arrived</button></td></tr>`;}).join('')}
         </tbody></table>`:''}
       </div>`:''}
-    </div>
-
-    <div>
       <div class="panel">
         <div class="ph"><span class="t">What we can send today</span><span class="sub">${sendableProds.length} of ${live.length} products${blocked.length?` · ${blocked.length} can't be sent`:''}</span></div>
         ${sendableProds.length?`<table><thead><tr><th class="l">Product</th><th>Available</th><th>Sold last month</th><th>${D.settings.targetDays||60}d target</th></tr></thead><tbody>
@@ -13735,18 +13817,23 @@ function prodRow(p){
     <td><span class="num" style="color:${col}">${a.kind==='norecipe'?'—':fmt(a.n)}</span>
       <div class="pmeta">${a.kind==='build'?'buildable':a.kind==='norecipe'?'on the shelf':'in stock'}</div>
       </td>
-    ${COL('pIncoming')?`<td style="text-align:${(p.type==='bundle'?p.recipe.some(r=>{const c=comp(r.c);return c&&!c.untracked&&onOrder(c);}):onOrder(p))?'left':'center'}">${(()=>{
+    ${COL('pIncoming')?`<td>${(()=>{
+      /* This column used to print a paragraph per line — two product names, two
+         dates — in a 130px cell, so it wrapped, clipped and told you nothing at
+         a glance. What you want to know is HOW MANY are coming and WHEN the
+         first lands. The detail is one click away in the expanded row. */
       const inc=[];
       if(p.type==='bundle')p.recipe.forEach(r=>{const c=comp(r.c);if(!c||c.untracked)return;
         (c.layers||[]).filter(l=>!l.arr).forEach(l=>inc.push({n:c.name,q:l.qty,d:l.date}));});
       else (p.layers||[]).filter(l=>!l.arr).forEach(l=>inc.push({n:p.name,q:l.qty,d:l.date}));
       if(!inc.length)return '<span class="dim">—</span>';
       inc.sort((a,b)=>(a.d||'').localeCompare(b.d||''));
-      return inc.slice(0,2).map(x=>`<div style="font-size:11.5px;line-height:1.35;margin-bottom:3px">
-        <b style="color:var(--blu)">${fmt(x.q)}</b> ${esc(x.n)}
-        <span class="pmeta" style="margin:0;display:block">ordered ${dshort(x.d)}</span></div>`).join('')
-        +(inc.length>2?`<span class="chip" style="font-size:10px">+${inc.length-2} more</span>`:'')
-        +(oo?`<div class="pmeta" style="margin-top:3px">unlocks +${fmt(oo)}</div>`:'');})()}</td>`:''}
+      const units=inc.reduce((t,x)=>t+(x.q||0),0);
+      const names=[...new Set(inc.map(x=>x.n))];
+      const tip=inc.map(x=>`${fmt(x.q)} ${x.n} — ordered ${dshort(x.d)}`).join('\n');
+      return `<span class="incN" title="${esc(tip)}">${fmt(units)}</span>
+        <div class="incS">${inc.length===1?esc(names[0].slice(0,18)):`${fmt(inc.length)} lines`} · from ${dshort(inc[0].d)}</div>
+        ${oo?`<div class="incU">unlocks +${fmt(oo)}</div>`:''}`;})()}</td>`:''}
     ${COL('pOrdered')?`<td>${nn?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(nn.date)}</span><div class="pmeta">${esc(nn.sup.split('—')[0].trim())}</div>`:'<span class="dim">—</span>'}</td>`:''}
     ${COL('pSold')?`<td onclick="event.stopPropagation()">
       ${/* Read-only. The figure is coming from elsewhere, so a box anyone can
@@ -13755,20 +13842,20 @@ function prodRow(p){
         ? `<span class="mono b" style="font-size:14px">${fmt(sold30(p))}</span>`
         : `<span class="dim" style="font-size:14px">—</span>`}
       <div class="sldSub">${(()=>{
-        if(sold30(p)==null)return p.ship30?`<span class="est">using sent ${fmt(p.ship30)}</span>`:'<span class="est">not in yet</span>';
+        if(sold30(p)==null)return '<span class="est">not in yet</span>';
         const age=sold30Age(p);
         if(age==null)return 'last full month';
         if(age>=45)return `<span style="color:var(--red)">${age}d old</span>`;
         return `set ${age}d ago`;})()}</div></td>`:''}
     ${COL('pTarget')?`<td onclick="event.stopPropagation()">${(()=>{const t=target60(p);
-      if(!t)return `<span class="dim">—</span><div class="tsub prov">needs a figure</div>`;
+      if(!t)return `<span class="dim">—</span><div class="tsub prov">waiting on sales data</div>`;
       /* The target is now measured against what is AT AMAZON, plus what you hold
          here, because that is the real question: is there enough in front of the
          customer for the next 60 days. Backstock only counts once it is sent. */
       const at=atAmz(p),have=avail(p).n||0,cover=(at||0)+have,gap=t-cover,real=sold30(p)!=null;
-      return `<button class="tgtBtn ${!real?'prov':gap>0?'gap':'ok'}" onclick="LV3.openOrderPlan('${p.id}')" title="What to send and what to order">
-        <span class="tgtN">${real?'':'≈'}${fmt(t)}</span>
-        <span class="tgtS">${!real?'guess — no sales yet':gap>0?`${fmt(gap)} short`:'covered'}</span></button>`;})()}</td>`:''}
+      return `<button class="tgtBtn ${gap>0?'gap':'ok'}" onclick="LV3.openOrderPlan('${p.id}')" title="What to send and what to order">
+        <span class="tgtN">${fmt(t)}</span>
+        <span class="tgtS">${gap>0?`${fmt(gap)} short`:'covered'}</span></button>`;})()}</td>`:''}
     ${COL('pCog')?`<td>${cg.short
       ? (cg.noPrice
         ? `<span style="font-size:12px;color:var(--red)">!</span><div class="pmeta" style="text-align:center;color:var(--red);font-weight:700">price missing</div>`
@@ -15843,19 +15930,33 @@ function setSupplierMode(key,mode){
   save();render();
   toast(touched?`${fmt(touched)} order${touched===1?'':'s'} re-dated`:'Saved','ok');
 }
+let _supQ='',_supAll=false;
+function supFind(v){_supQ=v||'';render();}
+function supToggleAll(){_supAll=!_supAll;render();}
 function supplierPanel(){
   const sups=knownSuppliers();
   if(!sups.length)return '';
   const modes=shipModes();
   const set=Object.keys(D.settings.supplierModes||{}).length;
+  /* A hundred suppliers is a scroll, not a settings page. Show the ones that
+     have been set by hand plus the busiest handful; everything else is one
+     search away. */
+  const q=_supQ.toLowerCase().trim();
+  const setKeys=D.settings.supplierModes||{};
+  const filtered=q?sups.filter(x=>x.name.toLowerCase().includes(q))
+    :_supAll?sups
+    :sups.filter(x=>setKeys[x.key]).concat(sups.filter(x=>!setKeys[x.key]).slice(0,8));
+  const hidden=sups.length-filtered.length;
   return `<div class="panel">
     <div class="ph"><span class="t">Who ships how</span>
-      <span class="sub">${fmt(sups.length)} supplier${sups.length===1?'':'s'} · ${fmt(set)} set by hand</span></div>
+      <span class="sub">${fmt(sups.length)} supplier${sups.length===1?'':'s'} · ${fmt(set)} set by hand</span>
+      <div class="r"><input class="in" style="width:220px" placeholder="Search suppliers…" value="${esc(_supQ)}"
+        oninput="LV3.supFind(this.value)"></div></div>
     <div style="padding:12px">
       <div class="pmeta" style="margin-bottom:9px">Set a supplier's method once and every order from them is dated
         automatically — the ones already on order get re-dated too, unless someone typed a date on them.</div>
       <div class="supGrid">
-        ${sups.map(x=>{
+        ${filtered.map(x=>{
           const cur=(D.settings.supplierModes||{})[x.key]||'';
           const auto=guessMode(x.name);
           return `<div class="supRow">
@@ -15865,6 +15966,9 @@ function supplierPanel(){
               ${modes.map(m=>`<option value="${m.k}" ${cur===m.k?'selected':''}>${esc(m.label.split('—')[0].trim())} · ${m.lo}–${m.hi}d</option>`).join('')}
             </select></div>`;}).join('')}
       </div>
+      ${!q&&hidden>0?`<div style="text-align:center;padding:9px 0 0">
+        <button class="btn sm" onclick="LV3.supToggleAll()">${_supAll?'Show fewer':`Show all ${fmt(sups.length)} — ${fmt(hidden)} more`}</button></div>`:''}
+      ${q&&!filtered.length?`<div class="pmeta" style="padding:8px 2px">No supplier matches “${esc(_supQ)}”.</div>`:''}
     </div>
   </div>`;
 }
@@ -18074,6 +18178,10 @@ function vSettings(){
             ${[['cOnOrder','On order'],['cOrdered','Ordered date'],['cUsed','Used in']]
               .map(([k,l])=>`<label><input type="checkbox" ${COL(k)?'checked':''} onchange="LV3.setCol('${k}',this.checked)"> ${l}</label>`).join('')}
           </div>
+          <div class="lab" style="margin:14px 0 7px">SAS lookup link</div>
+          <input class="in" value="${esc(D.settings.sasUrl||SAS_DEFAULT)}" oninput="LV3.setPref('sasUrl',this.value)">
+          <div class="pmeta" style="margin-top:5px">Used by the SAS button on the stock count screen.
+            <b>{ASIN}</b> is swapped for the ASIN, in every place it appears.</div>
           <div class="lab" style="margin:14px 0 7px">Oldest stock is decided by</div>
           <select class="in" onchange="LV3.setPref('fifoBy',this.value)">
             <option value="arrival" ${(D.settings.fifoBy||'arrival')==='arrival'?'selected':''}>The date it arrived — recommended</option>
@@ -18342,7 +18450,7 @@ const API={go,render:paint,boot,
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,writeOffShort,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,openAtAmz,amzParse,amzSave,openOrderPlan,atAmz,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsFind,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,writeOffShort,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,openOrderPlan,atAmz,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsFind,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
