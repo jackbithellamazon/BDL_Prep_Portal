@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v8.7</title>
+<title>BDL PrepHub v9.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -847,6 +847,147 @@ html.light-mode{
 #page-lavarion tr.picked>td.acts,.lav3 tr.picked>td.acts{background:rgba(96,165,250,.09);}
 
 /* duplicate-ASIN warning */
+/* Where the sales figures came from and which month they are. Not a banner —
+   a caption. It is on screen every time the column is, because a number that
+   does not say its month is the one that gets acted on a month late. */
+#page-lavarion .salesBar,.lav3 .salesBar{display:flex;gap:11px;align-items:center;margin-bottom:11px;
+  background:var(--panel2,rgba(255,255,255,.03));border:1px solid var(--border);border-left:4px solid var(--accent);
+  border-radius:9px;padding:9px 13px;font-size:12.5px;line-height:1.5;}
+#page-lavarion .salesBar.warn,.lav3 .salesBar.warn{background:rgba(251,191,36,.09);
+  border-color:rgba(251,191,36,.4);border-left-color:var(--amb);}
+#page-lavarion .salesBar .sbDot,.lav3 .salesBar .sbDot{flex:0 0 8px;height:8px;border-radius:50%;background:var(--accent);}
+#page-lavarion .salesBar.warn .sbDot,.lav3 .salesBar.warn .sbDot{background:var(--amb);}
+#page-lavarion .salesBar .sbTxt,.lav3 .salesBar .sbTxt{flex:1;min-width:0;color:var(--text);}
+#page-lavarion .salesBar .sbTxt b,.lav3 .salesBar .sbTxt b{color:var(--text);font-weight:800;}
+#page-lavarion .salesBar.warn .sbTxt b,.lav3 .salesBar.warn .sbTxt b{color:var(--amb);}
+#page-lavarion .salesBar .sbTxt span,.lav3 .salesBar .sbTxt span{color:var(--text2);}
+#page-lavarion .sldFix,.lav3 .sldFix{background:none;border:0;padding:0;cursor:pointer;font:700 10px var(--font);
+  color:var(--amb);text-decoration:underline;text-underline-offset:2px;}
+/* Amazon titles run to 200 characters. Left alone they turn a reference list
+   into a wall — one line each, full name on hover. */
+#page-lavarion .hbChips,.lav3 .hbChips{margin-top:8px;max-height:186px;overflow-y:auto;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:5px;padding-right:4px;}
+#page-lavarion .hbChip,.lav3 .hbChip{display:flex;gap:8px;align-items:center;justify-content:space-between;
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 8px;
+  font-size:11px;color:var(--text2);}
+#page-lavarion .hbChip i,.lav3 .hbChip i{flex:1;min-width:0;font-style:normal;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .hbChip b,.lav3 .hbChip b{flex:0 0 auto;font:800 11px var(--num);color:var(--text);}
+/* The ASIN is what actually gets linked, so it reads first and it reads loud */
+#page-lavarion .hbAs,.lav3 .hbAs{font:800 11px var(--num);color:var(--accent);letter-spacing:.4px;
+  margin-right:7px;display:inline-block;}
+#page-lavarion .hbChip .hbAs,.lav3 .hbChip .hbAs{margin-right:0;flex:0 0 auto;}
+/* Sortable headings. The heading IS the button — no extra icon column, no
+   change in row height, and the arrow only appears on the one in use. */
+/* Not flex — the arrow has to stay welded to the end of the label. As a flex
+   item it broke onto its own line the moment a heading wrapped ("COG / UNIT"),
+   leaving an orphan arrow under the column. */
+#page-lavarion th .thSort,.lav3 th .thSort{background:none;border:0;padding:0;margin:0;cursor:pointer;
+  font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;text-align:inherit;
+  display:block;width:100%;}
+#page-lavarion th.l .thSort,.lav3 th.l .thSort{text-align:left;}
+#page-lavarion th .thSort:hover,.lav3 th .thSort:hover{color:var(--text);}
+#page-lavarion th .thSort.on,.lav3 th .thSort.on{color:var(--accent);}
+#page-lavarion th .thArr,.lav3 th .thArr{font-size:8.5px;opacity:.35;letter-spacing:0;margin-left:4px;
+  display:inline;white-space:nowrap;}
+#page-lavarion th .thSort:hover .thArr,.lav3 th .thSort:hover .thArr{opacity:.8;}
+#page-lavarion th .thSort.on .thArr,.lav3 th .thSort.on .thArr{opacity:1;}
+#page-lavarion th .thSort .thSub,.lav3 th .thSort .thSub{display:block;}
+/* An ASIN is the one thing that joins this app to the hub and to Seller Central,
+   so it is never just text — it is always one click from the clipboard. */
+#page-lavarion .asinC,.lav3 .asinC{background:none;border:0;padding:0 3px 0 0;margin:0;cursor:pointer;
+  font:inherit;color:inherit;letter-spacing:inherit;position:relative;border-radius:3px;}
+#page-lavarion .asinC:hover,.lav3 .asinC:hover{color:var(--accent);background:rgba(245,158,11,.12);
+  box-shadow:0 0 0 3px rgba(245,158,11,.12);}
+#page-lavarion .asinC:after,.lav3 .asinC:after{content:'⧉';font-size:9px;opacity:0;margin-left:4px;}
+#page-lavarion .asinC:hover:after,.lav3 .asinC:hover:after{opacity:.9;}
+/* what the next price run does to the cost, part by part */
+#page-lavarion .nxList,.lav3 .nxList{margin-top:9px;display:flex;flex-direction:column;gap:4px;}
+#page-lavarion .nxRow,.lav3 .nxRow{display:flex;align-items:center;gap:8px;font-size:11.5px;
+  background:rgba(255,255,255,.04);border-radius:6px;padding:5px 9px;}
+#page-lavarion .nxNm,.lav3 .nxNm{flex:1;min-width:0;font-weight:700;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .nxQ,.lav3 .nxQ{color:var(--text3);flex:0 0 auto;}
+#page-lavarion .nxP,.lav3 .nxP{font:800 12px var(--num);color:var(--text2);flex:0 0 auto;}
+#page-lavarion .nxP.up,.lav3 .nxP.up{color:var(--red);}
+#page-lavarion .nxP.down,.lav3 .nxP.down{color:var(--grn);}
+#page-lavarion .nxArr,.lav3 .nxArr{color:var(--text3);flex:0 0 auto;}
+/* the slack in the Components table now shows every product a part is in,
+   and each one opens it — it was "+2 more" in a column of empty space */
+#page-lavarion .useWrap,.lav3 .useWrap{display:flex;flex-wrap:wrap;gap:4px;}
+#page-lavarion .useChip,.lav3 .useChip{background:var(--bg4);border:1px solid var(--border);border-radius:5px;
+  padding:2px 7px;font:600 11px var(--font);color:var(--text2);cursor:pointer;max-width:100%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .useChip:hover,.lav3 .useChip:hover{border-color:var(--accent);color:var(--accent);}
+/* evidence for "not selling yet", taken from what this app already knows */
+#page-lavarion .hbWhy,.lav3 .hbWhy{margin-top:5px;display:inline-block;font:700 10.5px var(--font);
+  padding:2px 8px;border-radius:20px;}
+#page-lavarion .hbWhy.k-new,.lav3 .hbWhy.k-new{background:rgba(148,163,184,.16);color:#cbd5e1;}
+#page-lavarion .hbWhy.k-ordered,.lav3 .hbWhy.k-ordered{background:rgba(96,165,250,.16);color:#93c5fd;}
+#page-lavarion .hbWhy.k-sent,.lav3 .hbWhy.k-sent{background:rgba(251,191,36,.16);color:var(--amb);}
+/* Restocks, compacted: one strip instead of three stacked blocks */
+#page-lavarion .rsTop,.lav3 .rsTop{display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:11px 15px;margin-bottom:10px;}
+#page-lavarion .rsTop .rsWho,.lav3 .rsTop .rsWho{min-width:170px;}
+#page-lavarion .rsTop .rsWhoN,.lav3 .rsTop .rsWhoN{font:800 15px var(--font);color:var(--text);line-height:1.2;}
+#page-lavarion .rsTop .rsWhoM,.lav3 .rsTop .rsWhoM{font-size:11px;color:var(--text3);margin-top:2px;}
+#page-lavarion .rsTop .rsFacts,.lav3 .rsTop .rsFacts{display:flex;gap:18px;margin:0;flex-wrap:wrap;}
+#page-lavarion .rsTop .rsFact .v,.lav3 .rsTop .rsFact .v{font-size:16px;}
+#page-lavarion .rsTop .rsFact .k,.lav3 .rsTop .rsFact .k{font-size:9px;}
+#page-lavarion .rsTop .rsFact .s,.lav3 .rsTop .rsFact .s{font-size:9.5px;}
+#page-lavarion .rsBuild,.lav3 .rsBuild{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;}
+#page-lavarion .rsBuild .rsLbl,.lav3 .rsBuild .rsLbl{font:800 9px var(--font);letter-spacing:.07em;
+  text-transform:uppercase;color:var(--text3);}
+#page-lavarion .rsSum,.lav3 .rsSum{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+#page-lavarion .rsS,.lav3 .rsS{flex:1 1 168px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;
+  background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:8px 12px;
+  font:600 11.5px var(--font);color:var(--text2);}
+#page-lavarion .rsS b,.lav3 .rsS b{font:800 20px var(--num);color:var(--text);line-height:1;}
+#page-lavarion .rsS i,.lav3 .rsS i{flex:0 0 100%;font-style:normal;font-size:10px;color:var(--text3);}
+#page-lavarion .rsS.bad,.lav3 .rsS.bad{border-color:rgba(248,113,113,.4);}
+#page-lavarion .rsS.bad b,.lav3 .rsS.bad b{color:var(--red);}
+#page-lavarion .rsS.warn,.lav3 .rsS.warn{border-color:rgba(251,191,36,.4);}
+#page-lavarion .rsS.warn b,.lav3 .rsS.warn b{color:var(--amb);}
+#page-lavarion .rsS.ok,.lav3 .rsS.ok{border-color:rgba(74,222,128,.35);}
+#page-lavarion .rsS.ok b,.lav3 .rsS.ok b{color:var(--grn);}
+#page-lavarion .rsS.shared,.lav3 .rsS.shared{border-color:rgba(245,158,11,.45);}
+#page-lavarion .rsS.shared b,.lav3 .rsS.shared b{color:var(--accent);}
+/* several bundles at once — one compact row each */
+#page-lavarion .rsPicks,.lav3 .rsPicks{background:var(--bg2);border:1px solid var(--border);
+  border-radius:11px;padding:11px 14px;margin-bottom:10px;}
+#page-lavarion .rsPicksH,.lav3 .rsPicksH{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding-bottom:9px;border-bottom:1px solid var(--border);}
+#page-lavarion .rsPicksH .t,.lav3 .rsPicksH .t{font:800 13.5px var(--font);color:var(--text);}
+#page-lavarion .rsPicksH .sub,.lav3 .rsPicksH .sub{font-size:11.5px;color:var(--text3);}
+#page-lavarion .rsPicksAdd,.lav3 .rsPicksAdd{display:flex;gap:7px;align-items:center;margin-left:auto;}
+#page-lavarion .rsPicksAdd .rsSearch,.lav3 .rsPicksAdd .rsSearch{width:250px;position:relative;}
+#page-lavarion .rsPick2,.lav3 .rsPick2{display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:9px 0;border-bottom:1px solid var(--border);}
+#page-lavarion .rsPick2:last-child,.lav3 .rsPick2:last-child{border-bottom:0;padding-bottom:0;}
+#page-lavarion .rsPick2.noList,.lav3 .rsPick2.noList{opacity:.55;}
+#page-lavarion .rsP2N,.lav3 .rsP2N{min-width:170px;flex:1 1 170px;}
+#page-lavarion .rsP2N .nm,.lav3 .rsP2N .nm{display:block;font:800 13px var(--font);color:var(--text);}
+#page-lavarion .rsP2N .mt,.lav3 .rsP2N .mt{display:block;font-size:10.5px;color:var(--text3);margin-top:1px;}
+#page-lavarion .rsP2F,.lav3 .rsP2F{display:flex;gap:15px;flex-wrap:wrap;}
+#page-lavarion .rsP2F span,.lav3 .rsP2F span{display:grid;gap:0;}
+#page-lavarion .rsP2F i,.lav3 .rsP2F i{font-style:normal;font:800 8.5px var(--font);letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text3);}
+#page-lavarion .rsP2F b,.lav3 .rsP2F b{font:800 14px var(--num);color:var(--text);line-height:1.15;}
+#page-lavarion .rsP2B,.lav3 .rsP2B{display:flex;gap:6px;align-items:center;margin-left:auto;}
+/* which bundles want a part, and how many each */
+#page-lavarion .rsFrom,.lav3 .rsFrom{display:flex;flex-wrap:wrap;gap:4px;}
+#page-lavarion .rsFromC,.lav3 .rsFromC{display:inline-flex;align-items:baseline;gap:5px;background:var(--bg4);
+  border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-size:10.5px;color:var(--text2);
+  max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .rsFromC b,.lav3 .rsFromC b{font:800 11px var(--num);color:var(--accent);flex:0 0 auto;}
+/* the count's own date and time — it is not always "now" */
+#page-lavarion .amzWhen,.lav3 .amzWhen{display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:11px;}
+#page-lavarion .amzWhen .k,.lav3 .amzWhen .k{font:800 10px var(--font);letter-spacing:.07em;
+  text-transform:uppercase;color:var(--text2);}
+#page-lavarion .amzWhen input,.lav3 .amzWhen input{width:auto;flex:0 0 auto;font:700 12.5px var(--num);}
+#page-lavarion .amzWhen .pmeta,.lav3 .amzWhen .pmeta{flex:1;min-width:210px;}
+/* end sales css */
 #page-lavarion .dupbar,.lav3 .dupbar{display:flex;gap:13px;align-items:flex-start;margin-bottom:13px;
   background:rgba(248,113,113,.11);border:1px solid rgba(248,113,113,.45);border-left:5px solid var(--red);
   border-radius:10px;padding:13px 15px;}
@@ -1045,6 +1186,9 @@ html.light-mode{
 /* deliveries: arrived-and-counting on top, still-on-the-way grouped by when */
 /* a wide, tall sheet — 19 deliveries in a narrow box is a scroll, not a view */
 #page-lavarion .mod.xl,.lav3 .mod.xl,.mod.xl{max-width:1280px;width:94vw;height:88vh;display:flex;flex-direction:column;}
+/* A wide dialog does not have to be a TALL one. When there is little to review,
+   88vh of empty box under three lines of text is the dead space. */
+#page-lavarion .mod.xl.fit,.lav3 .mod.xl.fit,.mod.xl.fit{height:auto;max-height:88vh;}
 .mod.xl .mb{flex:1;min-height:0;overflow:auto;}
 /* one loud button per ORDER, quiet ones per line — a wall of green reads as noise */
 #page-lavarion .hereBtn,.lav3 .hereBtn{border:1px solid var(--grn);background:transparent;color:var(--grn);font-weight:700;}
@@ -1082,10 +1226,25 @@ html.light-mode{
 #page-lavarion .tgtBtn:hover,.lav3 .tgtBtn:hover{border-color:var(--accent);background:var(--bg3);}
 #page-lavarion .tgtN,.lav3 .tgtN{font:800 15px var(--num);color:var(--text);}
 #page-lavarion .tgtS,.lav3 .tgtS{font-size:10.5px;font-weight:700;color:var(--text3);}
+/* how short it is, not merely that it is short */
+#page-lavarion .tgtBtn.bad,.lav3 .tgtBtn.bad{border-color:rgba(248,113,113,.45);}
+#page-lavarion .tgtBtn.bad .tgtN,.lav3 .tgtBtn.bad .tgtN,
+#page-lavarion .tgtBtn.bad .tgtS,.lav3 .tgtBtn.bad .tgtS{color:var(--red);}
 #page-lavarion .tgtBtn.gap,.lav3 .tgtBtn.gap{border-color:rgba(251,191,36,.4);}
 #page-lavarion .tgtBtn.gap .tgtN,.lav3 .tgtBtn.gap .tgtN{color:var(--amb);}
 #page-lavarion .tgtBtn.gap .tgtS,.lav3 .tgtBtn.gap .tgtS{color:var(--amb);}
+#page-lavarion .tgtBtn.near,.lav3 .tgtBtn.near{border-color:rgba(125,211,252,.4);}
+#page-lavarion .tgtBtn.near .tgtN,.lav3 .tgtBtn.near .tgtN,
+#page-lavarion .tgtBtn.near .tgtS,.lav3 .tgtBtn.near .tgtS{color:#7dd3fc;}
+#page-lavarion .tgtBtn.ok,.lav3 .tgtBtn.ok{border-color:rgba(74,222,128,.35);}
 #page-lavarion .tgtBtn.ok .tgtN,.lav3 .tgtBtn.ok .tgtN{color:var(--grn);}
+#page-lavarion .tgtBar,.lav3 .tgtBar{display:block;width:100%;height:3px;border-radius:2px;
+  background:rgba(255,255,255,.09);overflow:hidden;margin-top:2px;}
+#page-lavarion .tgtBar i,.lav3 .tgtBar i{display:block;height:100%;border-radius:2px;background:currentColor;}
+#page-lavarion .tgtBtn.bad .tgtBar i,.lav3 .tgtBtn.bad .tgtBar i{background:var(--red);}
+#page-lavarion .tgtBtn.gap .tgtBar i,.lav3 .tgtBtn.gap .tgtBar i{background:var(--amb);}
+#page-lavarion .tgtBtn.near .tgtBar i,.lav3 .tgtBtn.near .tgtBar i{background:#7dd3fc;}
+#page-lavarion .tgtBtn.ok .tgtBar i,.lav3 .tgtBtn.ok .tgtBar i{background:var(--grn);}
 #page-lavarion .tgtBtn.prov .tgtN,.lav3 .tgtBtn.prov .tgtN{color:var(--text3);}
 #page-lavarion .tgtBtn.prov .tgtS,.lav3 .tgtBtn.prov .tgtS{font-style:italic;font-weight:600;}
 /* order plan popup */
@@ -1153,7 +1312,10 @@ html.light-mode{
 /* Restocks — start on a question, not on a random product */
 /* incoming, at a glance */
 #page-lavarion .incN,.lav3 .incN{font:800 16px var(--num);color:var(--blu);}
-#page-lavarion .incS,.lav3 .incS{font-size:10.5px;color:var(--text2);opacity:.9;margin-top:2px;}
+#page-lavarion .incS,.lav3 .incS{font-size:10.5px;color:var(--text2);opacity:.9;margin-top:2px;
+  white-space:normal;line-height:1.3;}
+#page-lavarion .thSub,.lav3 .thSub{font-size:9px;font-weight:600;letter-spacing:0;text-transform:none;
+  color:var(--text3);margin-top:3px;font-style:italic;}
 #page-lavarion .incU,.lav3 .incU{font-size:10.5px;color:var(--grn);margin-top:2px;}
 /* stock-at-Amazon, one ASIN at a time */
 #page-lavarion .segs,.lav3 .segs{display:flex;gap:0;border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
@@ -1283,6 +1445,13 @@ html.light-mode{
 #page-lavarion .rsTbl th,.lav3 .rsTbl th{padding-left:12px;padding-right:12px;}
 #page-lavarion .rsTbl th.l,.lav3 .rsTbl th.l{padding-left:16px;}
 #page-lavarion .rsTbl td,.lav3 .rsTbl td{padding-top:12px;padding-bottom:12px;}
+/* Five columns and three rows do not need 100px of row height. The numbers are
+   what matter, so they stay large; the padding around them does not. */
+#page-lavarion .rsTbl.tight td,.lav3 .rsTbl.tight td{padding-top:7px;padding-bottom:7px;}
+#page-lavarion .rsTbl.tight td.l,.lav3 .rsTbl.tight td.l{min-width:0;}
+#page-lavarion .rsTbl.tight .pmeta,.lav3 .rsTbl.tight .pmeta{margin-top:1px;line-height:1.35;}
+#page-lavarion .rsTbl.tight .rsBig,.lav3 .rsTbl.tight .rsBig{font-size:19px;}
+#page-lavarion .rsTbl.tight td.mono,.lav3 .rsTbl.tight td.mono{font-size:14px;}
 /* the facts strip was crammed into the top-right corner */
 #page-lavarion .rsFacts,.lav3 .rsFacts{display:grid;grid-template-columns:repeat(4,minmax(120px,auto));
   gap:10px 26px;margin-left:auto;}
@@ -1393,8 +1562,15 @@ html.light-mode{
 #page-lavarion table,.lav3 table{width:100%;border-collapse:collapse;}
 #page-lavarion thead th,.lav3 thead th{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
   color:var(--accent);text-align:center;padding:10px;background:var(--bg3);white-space:nowrap;}
-#page-lavarion .panel.stick thead th,.lav3 .panel.stick thead th{position:sticky;top:var(--lavTh,103px);z-index:18;
-  box-shadow:inset 0 -1px 0 var(--border2);}
+/* The heading was #1a1917 sitting over rows at #131311 — barely a shade apart,
+   separated by one hairline. A row half-clipped underneath it does not read as
+   "behind the header", it reads as the header being see-through. It is opaque;
+   it just never LOOKED solid. So: a distinctly lighter surface, a hard rule
+   under it, and a real shadow so it sits above the page rather than in it. */
+#page-lavarion .panel.stick thead th,.lav3 .panel.stick thead th{position:sticky;top:var(--lavTh,103px);z-index:24;
+  background:var(--bg4);
+  box-shadow:inset 0 -2px 0 var(--border2), 0 7px 11px -7px rgba(0,0,0,.9);}
+#page-lavarion .panel.stick thead th.acts,.lav3 .panel.stick thead th.acts{z-index:24;background:var(--bg4);}
 /* The filter strip freezes under the tab bar; the header row sits under that.
    The fallbacks are the real measurements for a single-line tab bar (47px) and
    an unwrapped filter strip (47+56) — JS overrides them within a frame, but a
@@ -1800,28 +1976,36 @@ html.light-mode{
 
 
 /* ══════════ SYNC PANEL — Sync Now shouldn't be a spinning icon and hope ══════════ */
-#syncPanel{position:fixed;right:20px;bottom:20px;z-index:8000;width:310px;background:var(--bg2);
-  border:1px solid var(--border2);border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.6);
-  padding:14px 16px;display:none;font-family:var(--sans);}
-#syncPanel.on{display:block;}
-#syncPanel .sp-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+/* A 310px box with a scrolling log for a job that takes four seconds was more
+   screen than the job deserved, and the growing list made it look stuck. One
+   compact line: what it is doing right now, a hairline of progress, gone when
+   it finishes. */
+#syncPanel{position:fixed;right:20px;bottom:20px;z-index:8000;max-width:340px;background:var(--bg2);
+  border:1px solid var(--border2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);
+  padding:9px 13px 8px;display:none;font-family:var(--sans);
+  opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;}
+#syncPanel.on{display:block;opacity:1;transform:none;}
+#syncPanel .sp-top{display:flex;align-items:center;gap:9px;margin-bottom:7px;}
 #syncPanel .sp-spin{width:15px;height:15px;border-radius:50%;border:2px solid rgba(245,158,11,.25);
   border-top-color:var(--accent);animation:spSpin .8s linear infinite;flex-shrink:0;}
 @keyframes spSpin{to{transform:rotate(360deg);}}
 #syncPanel.done .sp-spin{border-color:#55ff55;border-top-color:#55ff55;animation:none;}
 #syncPanel.err  .sp-spin{border-color:#ff5555;border-top-color:#ff5555;animation:none;}
-#syncPanel .sp-title{font-size:13px;font-weight:650;color:var(--text);}
-#syncPanel .sp-x{margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;}
-#syncPanel .sp-bar{height:3px;border-radius:2px;background:var(--bg4);overflow:hidden;margin-bottom:10px;}
+#syncPanel .sp-title{font-size:12.5px;font-weight:650;color:var(--text);white-space:nowrap;}
+#syncPanel .sp-x{margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0 0 0 8px;}
+#syncPanel .sp-bar{height:2px;border-radius:2px;background:var(--bg4);overflow:hidden;margin-bottom:0;}
 #syncPanel .sp-fill{height:100%;width:30%;background:var(--accent);border-radius:2px;
   animation:spSlide 1.4s ease-in-out infinite;}
 @keyframes spSlide{0%{margin-left:-30%;}100%{margin-left:100%;}}
 #syncPanel.done .sp-fill,#syncPanel.err .sp-fill{animation:none;width:100%;}
 #syncPanel.done .sp-fill{background:#55ff55;}
 #syncPanel.err .sp-fill{background:#ff5555;}
-#syncPanel .sp-log{font-size:12px;color:var(--text2);line-height:1.5;max-height:96px;overflow-y:auto;}
-#syncPanel .sp-log div{padding:2px 0;}
-#syncPanel .sp-log .cur{color:var(--text);font-weight:600;}
+/* only the line that is happening NOW — the history of a four-second job is
+   not information, it is noise that makes it look hung */
+#syncPanel .sp-log{font-size:11.5px;color:var(--text2);line-height:1.45;margin-bottom:7px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#syncPanel .sp-log div{display:none;padding:0;}
+#syncPanel .sp-log div.cur{display:block;color:var(--text2);font-weight:500;}
 /* ══════════ BOOT LOADER — covers the blank gap between sign-in and data ══════════ */
 #bootLoad{position:fixed;inset:0;z-index:9000;background:var(--bg);display:none;
   flex-direction:column;align-items:center;justify-content:center;gap:22px;
@@ -1848,7 +2032,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v8.7</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v9.4</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1864,9 +2048,9 @@ html.light-mode{
 <!-- Everything below is wrapped so it can be hidden until login succeeds. -->
 <div id="syncPanel">
   <div class="sp-top"><span class="sp-spin"></span><span class="sp-title" id="spTitle">Syncing</span>
-    <button class="sp-x" onclick="SyncUI.hide()">&#10005;</button></div>
-  <div class="sp-bar"><div class="sp-fill"></div></div>
+    <button class="sp-x" title="Hide — the sync carries on" onclick="SyncUI.hide()">&#10005;</button></div>
   <div class="sp-log" id="spLog"></div>
+  <div class="sp-bar"><div class="sp-fill"></div></div>
 </div>
 <div id="bootLoad">
   <div class="bl-mark">
@@ -1882,7 +2066,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v8.7</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v9.4</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -9217,13 +9401,13 @@ const SyncUI={
     document.getElementById('spLog').innerHTML='<div class="cur">Starting…</div>';
     clearTimeout(this._t);},
   step(msg){const l=document.getElementById('spLog');if(!l||!msg)return;
-    [...l.querySelectorAll('.cur')].forEach(e=>e.classList.remove('cur'));
+    l.innerHTML='';                       // one line, replaced — not a growing list
     const d=document.createElement('div');d.className='cur';d.textContent=msg;
-    l.appendChild(d);l.scrollTop=l.scrollHeight;},
+    l.appendChild(d);},
   done(msg){const p=document.getElementById('syncPanel');if(!p)return;
     p.classList.add('done');document.getElementById('spTitle').textContent='Sync finished';
     if(msg)this.step(msg);
-    clearTimeout(this._t);this._t=setTimeout(()=>this.hide(),4000);},
+    clearTimeout(this._t);this._t=setTimeout(()=>this.hide(),1600);},
   fail(msg){const p=document.getElementById('syncPanel');if(!p)return;
     p.classList.add('err');document.getElementById('spTitle').textContent='Sync problem';
     this.step(msg||'Something went wrong — check Settings');
@@ -9243,6 +9427,7 @@ async function triggerManualSync(){
   const spinTimer=setInterval(()=>{_spinAngle+=30;if(icon)icon.style.transform=`rotate(${_spinAngle}deg)`;},50);
   let _syncErr=null;
   try{await runSheetSync(true);}catch(e){_syncErr=e;}finally{
+    _ssBusy=false;                      // a throw must never leave sync jammed shut
     if(_syncErr)SyncUI.fail(_syncErr.message);else SyncUI.done('Up to date');
     clearInterval(spinTimer);
     if(icon){icon.style.transform='rotate(0deg)';}
@@ -9280,7 +9465,17 @@ function exportBackup(){
     logAudit('Backup exported',counts);
   }catch(e){toast('Backup failed: '+e.message,'er');}
 }
+let _ssBusy=false;
 async function runSheetSync(manual){
+  /* No guard here meant the two-minute timer fired again while a slow sync was
+     still working, and the runs stacked — each one writing into the same little
+     progress box, which is why it looked like it ran fifty times and never
+     finished. One at a time; a background trigger that lands mid-run is simply
+     skipped, because the run already in flight is reading the same sheet. */
+  if(_ssBusy){
+    if(manual)toast('Already syncing — give it a second','er');
+    return;
+  }
   if(LOCAL_FILE){
     if(manual){
       try{SyncUI.show('Sync unavailable');SyncUI.fail(_sheetsBlockedMsg());}catch(e){}
@@ -9291,9 +9486,11 @@ async function runSheetSync(manual){
   }
   if(!_ssConfig.enabled&&!manual){return;}
   if(!_ssLeader&&!manual){return;} // only leader polls
+  _ssBusy=true;
+  /* released in the finally at the end of this function */
   // Run all active sources
   const activeSources=_ssSources.filter(s=>s.active&&s.url);
-  if(!activeSources.length&&!_ssConfig.url){if(manual)toast('No sync sources configured — add one in Settings','er');return;}
+  if(!activeSources.length&&!_ssConfig.url){_ssBusy=false;if(manual)toast('No sync sources configured — add one in Settings','er');return;}
   // Fall back to legacy single config if no sources defined yet
   const sources=activeSources.length?activeSources:[{url:_ssConfig.url,tab:_ssConfig.tab,col:_ssConfig.col||'Added To Prep Portal',label:'Primary'}];
   let totalAdded=0,totalUpdated=0,totalDeactivated=0,totalReactivated=0,totalErrors=0;
@@ -9505,6 +9702,7 @@ async function runSheetSync(manual){
   if(manual&&!anyChange&&!totalErrors)toast('Sheet is up to date — no new rows');
   if(_ssBC)_ssBC.postMessage({type:'synced',lastRun:nowStr,log:logMsg});
   if(totalAdded>0)autoEanSweep();   // newly-synced rows → auto-fetch EANs (cache-first, token-safe)
+  _ssBusy=false;
   restartSheetSyncTimer();
 }
 
@@ -12396,7 +12594,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v8.7 · lav3 · 2026-08-06 · b102';
+const BUILD='v9.4 · lav3 · 2026-08-06 · b109';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -12885,6 +13083,28 @@ function priceRuns(o){
   }
   return runs;
 }
+/* What a unit will cost once the stock at today's price is gone. Stock is
+   eaten oldest-batch-first, so the next price is already known — it is sitting
+   in the next price run. Worth seeing before it lands in the margin. */
+function nextCog(p){
+  const items=[];
+  if(p.type!=='bundle')items.push({o:p,per:1});
+  else (p.recipe||[]).forEach(r=>{const c=comp(r.c);
+    if(!c||c.untracked||c.kind==='packaging')return;      // packaging is never costed
+    items.push({o:c,per:r.q});});
+  if(!items.length)return null;
+  let now=0,next=0,changed=false;const changes=[];
+  for(const it of items){
+    const runs=priceRuns(it.o);
+    if(!runs.length)return null;                          // nothing priced — no honest answer
+    const a=runs[0].cost,b=runs.length>1?runs[1].cost:runs[0].cost;
+    now+=a*it.per;next+=b*it.per;
+    if(runs.length>1&&Math.abs(a-b)>0.0001){changed=true;
+      changes.push({name:it.o.name,from:a,to:b,left:runs[0].qty,per:it.per});}
+  }
+  if(!changed)return null;                                // the price is not going anywhere
+  return{now,next,diff:next-now,after:cogCheck(p,1).cleanMax,changes};
+}
 /* What can go out at a single price, and what would be mixed if we sent `units`. */
 function cogCheck(p,units){
   const items=[];
@@ -12999,24 +13219,50 @@ function saveUseIn(cid){
   toastUndo(`${esc(c.name)} added to ${esc(p.name)}`,'ok');
 }
 let _amzMode='grid';
-function amzMode(m){_amzMode=m;openAtAmz();}
+function amzMode(m){_amzMode=m;openAtAmz(true);}
+/* A count is true at the moment it was READ off Seller Central, which is not
+   the moment the Save button gets pressed — 29 ASINs takes a while and things
+   sell in between. So the count carries its own date and time, it defaults to
+   now, and it can be corrected. */
+const localDT=d=>`${localDay(d)}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+let _amzWhen='';
+function amzWhen(v){_amzWhen=v||'';}
+function whenTxt(iso,short){
+  if(!iso)return '';
+  const s=String(iso);
+  const d=new Date(s.length>10?s:s+'T00:00:00');
+  if(isNaN(d.getTime()))return s.slice(0,10);
+  const day=`${d.getDate()} ${MONTHNM[d.getMonth()]}`;
+  if(s.length<=10)return day;                      // an older count, date only
+  const hm=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  return short?hm:`${day} ${hm}`;
+}
 const SAS_DEFAULT='https://sas.selleramp.com/sas/lookup?search_term={ASIN}&asin={ASIN}';
 /* every {ASIN}, not just the first — SAS wants it twice */
 const sasUrl=asin=>String(D.settings.sasUrl||SAS_DEFAULT).split('{ASIN}').join(encodeURIComponent(asin||''));
-function openAtAmz(){
+function openAtAmz(keepWhen){
   _amzRows=[];
+  if(!keepWhen||!_amzWhen)_amzWhen=localDT(new Date());
   const live=D.products.filter(x=>!x.archived&&x.asin)
     .sort((a,b)=>a.name.localeCompare(b.name));
   $('lav3Mod2').className='mod xl';
   $('lav3Mod2').innerHTML=`
     <div class="mh"><h3>Stock at Amazon</h3>
-      <span class="pmeta" style="margin:0">${fmt(live.length)} ASINs · today's count</span>
+      <span class="pmeta" style="margin:0">${fmt(live.length)} ASINs</span>
       <div class="segs" style="margin-left:auto">
         <button class="seg ${_amzMode==='grid'?'on':''}" onclick="LV3.amzMode('grid')">One by one</button>
         <button class="seg ${_amzMode==='paste'?'on':''}" onclick="LV3.amzMode('paste')">Paste a list</button>
       </div>
       <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
     <div class="mb">
+      <div class="amzWhen">
+        <span class="k">Counted at</span>
+        <input class="in" type="datetime-local" id="amzWhenIn" value="${esc(_amzWhen)}"
+          onchange="LV3.amzWhen(this.value)">
+        <button class="btn sm" onclick="LV3.amzWhen('${esc(localDT(new Date()))}');document.getElementById('amzWhenIn').value='${esc(localDT(new Date()))}'">Now</button>
+        <span class="pmeta" style="margin:0">These counts are stamped with this time, not the time you press Save.
+          If you read them off Seller Central earlier, set it back — otherwise everything downstream thinks the numbers are fresher than they are.</span>
+      </div>
     ${_amzMode==='grid'?`
       <div class="amzHelp">Open <b>SAS</b> next to an ASIN, read the number, type it, then press <b>Tab</b> to drop to the next one.
         Leave anything you don't check blank — blank is left exactly as it was, it is not a zero.</div>
@@ -13025,9 +13271,9 @@ function openAtAmz(){
         ${live.map((x,i)=>{const was=atAmz(x),age=atAmzAge(x);
           return `<div class="amzRow" id="amzRow-${i}">
             <span class="amzNm">${esc(x.name)}</span>
-            <span class="amzAsin mono">${esc(x.asin)}</span>
+            <span class="amzAsin mono">${asinBtn(x.asin)}</span>
             <span class="amzWas">${was==null?'<span class="dim">never</span>'
-              :`${fmt(was)}<span class="amzAge">${age===0?'today':age+'d'}</span>`}</span>
+              :`${fmt(was)}<span class="amzAge">${esc(whenTxt((D.settings.atAmzAt||{})[x.asin]))||(age===0?'today':age+'d')}</span>`}</span>
             <input class="in num amzQ" type="number" min="0" inputmode="numeric" data-i="${i}" data-asin="${esc(x.asin)}"
               placeholder="—" oninput="LV3.amzGridSum()"
               onkeydown="if(event.key==='Enter'){event.preventDefault();const n=document.querySelector('.amzQ[data-i=&quot;${i+1}&quot;]');if(n){n.focus();n.select();}}">
@@ -13131,10 +13377,11 @@ function amzSave(){
   snap();
   D.settings.atAmz=D.settings.atAmz||{};
   D.settings.atAmzAt=D.settings.atAmzAt||{};
-  const today=dayISO();
-  ok.forEach(r=>{D.settings.atAmz[r.p.asin]=r.qty;D.settings.atAmzAt[r.p.asin]=today;});
+  /* the time the count was TAKEN, which the person can correct — not save-time */
+  const when=_amzWhen||localDT(new Date());
+  ok.forEach(r=>{D.settings.atAmz[r.p.asin]=r.qty;D.settings.atAmzAt[r.p.asin]=when;});
   savePrefs();save();
-  logIt('edit',`Stock at Amazon counted — ${ok.length} product${ok.length===1?'':'s'}, ${ok.reduce((t,r)=>t+r.qty,0)} units`);
+  logIt('edit',`Stock at Amazon counted ${whenTxt(when)} — ${ok.length} product${ok.length===1?'':'s'}, ${ok.reduce((t,r)=>t+r.qty,0)} units`);
   cm('lav3Ov2');render();
   toastUndo(`${fmt(ok.length)} count${ok.length===1?'':'s'} saved`,'ok');
 }
@@ -13162,11 +13409,13 @@ function openOrderPlan(pid){
       <span class="pmeta" style="margin:0">${D.settings.targetDays||60}-day plan</span>
       <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
     <div class="mb">
-      ${sold30(p)==null?`<div class="note bad" style="margin:0 0 11px"><b>No sales figure yet.</b>
-        Everything below is worked back from what you have sent, not from what actually sold — treat it as a rough shape.</div>`:''}
+      ${sold30(p)==null?`<div class="note bad" style="margin:0 0 11px"><b>No sales figure for this one.</b>
+        The BDL hub's monthly report has no units against ${esc(p.asin||'this ASIN')}, so everything below is worked back from what you have
+        sent rather than what actually sold — treat it as a rough shape.
+        <button class="btn sm warn" style="margin-top:7px" onclick="LV3.cm('lav3Ov2');LV3.openHubReview()">Sort the sales link</button></div>`:''}
       <div class="opBox">
-        ${row('Target for '+(D.settings.targetDays||60)+' days',fmt(t),sold30(p)!=null?`${fmt(sold30(p))} sold last month`:'estimated')}
-        ${row('At Amazon now',at==null?'never counted':fmt(at),atAmzAge(p)!=null?`counted ${atAmzAge(p)}d ago`:'',at==null?'var(--text3)':atAmzAge(p)>=14?'var(--amb)':'')}
+        ${row('Target for '+(D.settings.targetDays||60)+' days',fmt(t),sold30(p)!=null?`${fmt(sold30(p))} sold in ${ymName(hubMonth().ym)}`:'estimated')}
+        ${row('At Amazon now',at==null?'never counted':fmt(at),atAmzAge(p)!=null?`counted ${whenTxt((D.settings.atAmzAt||{})[p.asin])||atAmzAge(p)+'d ago'}`:'',at==null?'var(--text3)':atAmzAge(p)>=14?'var(--amb)':'')}
         ${row('Backstock here',fmt(have),p.type==='bundle'?'buildable from parts':'on the shelf')}
         ${row('Shortfall',gap?fmt(gap):'none',gap?'against the target':'covered',gap?'var(--amb)':'var(--grn)')}
       </div>
@@ -13198,7 +13447,130 @@ function openOrderPlan(pid){
 }
 function atAmz(p){const m=D.settings.atAmz||{};const v=m[p.asin];return (v===0||v)?v:null;}
 function atAmzAge(p){const at=(D.settings.atAmzAt||{})[p.asin];return at?daysSince(at):null;}
-function sold30(p){const m=D.settings.sold30||{};const v=m[p.asin];return (v===0||v)?v:null;}
+/* ═══════════════ SALES — READ FROM THE BDL HUB ═══════════════
+   "Sold last month" is not typed in here and never should be. The Amazon
+   numbers are reconciled once a month in the Ads & Monthly Report hub, and that
+   is the only place they are worked out. This reads that hub's report directly.
+
+   READ ONLY. Nothing here writes so much as a byte back to the hub — the same
+   arrangement the hub already has pointing the other way at this app.
+
+   The report is written up by hand around the 5th–6th of the month, so for the
+   first week LAST month genuinely is not in there yet. That is normal and must
+   not be dressed up as a fault. What must never happen is the other thing:
+   quietly serving a two-month-old figure under a heading that says "last
+   month". Every number on screen carries the month it belongs to. */
+const HUB_SB={url:'https://ffbdazepqrsyurhouxif.supabase.co',
+  key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmYmRhemVwcXJzeXVyaG91eGlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTM5MjIsImV4cCI6MjA5MDQ2OTkyMn0.BAuodLUDGzO9A7IfoRRn0HZ1MgWOXNPeYKPDBNaNWeg'};
+const HUB_CACHE='lv3_hub_sales';
+const MONTHNM=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let HUB={state:'idle',months:{},order:[],at:null,err:'',cached:false};
+
+async function hubGet(){
+  const r=await fetch(HUB_SB.url+'/rest/v1/settings?id=eq.monthly_report_v1&select=value',
+    {headers:{apikey:HUB_SB.key,Authorization:'Bearer '+HUB_SB.key}});
+  if(!r.ok)throw new Error('the hub said '+r.status);
+  const j=await r.json();
+  const v=j&&j[0]&&j[0].value;
+  const raw=typeof v==='string'?JSON.parse(v):v;
+  if(!raw||!Array.isArray(raw.months))throw new Error('the monthly report is not in the shape this expects');
+  return raw;
+}
+function hubIngest(raw,cached){
+  const months={},order=[];
+  (raw.months||[]).forEach(m=>{
+    const ym=m.ym||m.id;if(!ym)return;
+    const by={};
+    (m.rows||[]).forEach(row=>{
+      const a=String(row.asin||'').trim().toUpperCase();if(!a)return;
+      /* units is total units sold. adUnits is only the PPC-attributed slice —
+         never use that one here, it would undercount every product. */
+      by[a]={units:(row.units===0||row.units)?row.units:null,name:row.name||''};
+    });
+    months[ym]={ym,label:m.label||ym,by,rows:(m.rows||[]).length};
+    order.push(ym);
+  });
+  order.sort();
+  HUB={state:order.length?'ok':'none',months,order,at:raw._at||null,err:'',cached:!!cached};
+}
+async function hubLoad(force){
+  if(HUB.state==='loading')return HUB;
+  if(HUB.state==='ok'&&!HUB.cached&&!force)return HUB;
+  HUB.state='loading';
+  try{
+    const raw=await hubGet();
+    raw._at=new Date().toISOString();
+    hubIngest(raw,false);
+    try{localStorage.setItem(HUB_CACHE,JSON.stringify(raw));}catch(e){}
+  }catch(e){
+    /* Being offline is not the same as selling nothing. Fall back to the last
+       copy we saw and say plainly that it is a copy — showing nothing would
+       empty every target on the page and read as a collapse in sales. */
+    let used=false;
+    try{const c=localStorage.getItem(HUB_CACHE);
+      if(c){hubIngest(JSON.parse(c),true);used=true;}}catch(e2){}
+    if(!used)HUB={state:'err',months:{},order:[],at:null,err:String(e.message||e),cached:false};
+    else HUB.err=String(e.message||e);
+  }
+  return HUB;
+}
+function hubRefresh(){
+  toast('Reading the hub…');
+  hubLoad(true).then(()=>{
+    const good=HUB.state==='ok'&&!HUB.cached;
+    paint();
+    toast(good?`Sales in — ${ymName(hubMonth().ym)}`:'Could not reach the hub',good?'ok':'er');
+  });
+}
+const ymName=ym=>{if(!ym)return '—';const p=String(ym).split('-');
+  return (MONTHNM[+p[1]-1]||p[1])+' '+p[0];};
+/* Which month the page is actually showing, and whether it is the one we asked
+   for. The status is the whole point: 'ok' we have last month; 'due' last month
+   is not in yet but it is only the first week, which is expected; 'late' it
+   should have been in by now. */
+function hubMonth(){
+  const want=lastFullMonth();
+  if(HUB.state==='loading')return{ym:HUB.order[HUB.order.length-1]||null,want,status:'loading'};
+  if(!HUB.order.length)return{ym:null,want,status:HUB.state==='err'?'off':'none'};
+  if(HUB.months[want])return{ym:want,want,status:'ok'};
+  return{ym:HUB.order[HUB.order.length-1],want,status:TODAY.getDate()<=7?'due':'late'};
+}
+/* Same product, a different ASIN on each system — a relist, or a parent/child
+   split. Set by hand in the review. Never guessed: a wrong guess here puts one
+   product's sales against another and every target downstream is wrong. */
+const hubAsin=p=>((D.settings.hubMap||{})[p.asin])||p.asin;
+const hubSkipped=p=>!!((D.settings.hubSkip||{})[p.asin]);
+function hubUnits(p,ym){
+  const m=HUB.months[ym||hubMonth().ym];if(!m)return null;
+  const row=m.by[String(hubAsin(p)||'').toUpperCase()];
+  if(!row)return null;
+  return row.units;                     // may be null — in the report, but no figure
+}
+const hubHas=p=>HUB.order.some(ym=>!!HUB.months[ym].by[String(hubAsin(p)||'').toUpperCase()]);
+/* every ASIN the hub has ever reported, with its newest figure — the pick list */
+function hubAll(){
+  const out={};
+  HUB.order.forEach(ym=>{const M=HUB.months[ym];
+    Object.keys(M.by).forEach(a=>{const r=M.by[a];
+      if(!out[a])out[a]={asin:a,name:''};
+      if(r.name)out[a].name=r.name;
+      if(r.units===0||r.units)out[a].last={ym,n:r.units};});});
+  return Object.values(out).sort((x,y)=>(x.name||x.asin).localeCompare(y.name||y.asin));
+}
+
+/* The hub is the source. Anything typed in before the two were joined up is
+   kept as a fallback so no work is lost, but it can never override a real
+   figure from the hub. */
+function sold30(p){
+  const h=hubUnits(p);
+  if(h===0||h)return h;
+  const m=D.settings.sold30||{};const v=m[p.asin];return (v===0||v)?v:null;
+}
+function soldSrc(p){
+  const h=hubUnits(p);
+  if(h===0||h)return 'hub';
+  const m=D.settings.sold30||{};const v=m[p.asin];return (v===0||v)?'manual':null;
+}
 /* the month a figure describes — entered in August, it is July's number */
 function lastFullMonth(d){
   const t=d?new Date(d):new Date(TODAY);
@@ -13224,13 +13596,228 @@ function setSold30(asin,v){
 /* Last two full months added together — only when we genuinely have both.
    Returns {n, real} so the UI never has to guess whether it is a fact. */
 function sold60(p){
+  /* The hub carries every month back to January, so the moment it is connected
+     two real months exist — no more doubling one month and calling it two.
+     They must be the two CONSECUTIVE most recent months, not simply the last
+     two the product happens to appear in: skipping a gap would add June to
+     April and label it "two months". */
+  const cur=hubMonth().ym;
+  if(cur){
+    const upto=HUB.order.filter(y=>y<=cur).slice(-2);
+    if(upto.length===2){
+      const a=hubUnits(p,upto[0]),b=hubUnits(p,upto[1]);
+      if((a===0||a)&&(b===0||b))return{n:a+b,real:true,months:upto};
+    }
+  }
   const h=(D.settings.soldHist||{})[p.asin]||{};
   const keys=Object.keys(h).sort().slice(-2);
   if(keys.length>=2)return{n:h[keys[0]]+h[keys[1]],real:true,months:keys};
   const one=sold30(p);
   return one==null?{n:null,real:false,months:[]}:{n:one*2,real:false,months:keys};
 }
-/* Everything downstream leans on this one typed number, so how old it is
+/* ── what needs a human to look at it ──
+   Deliberately no automatic matching. Two ASINs that look alike are not the
+   same product, and a wrong link here feeds a wrong target into ordering. It
+   lists what it found and waits. */
+/* Why a product has no sales figure is usually already knowable from what this
+   app holds: have we ever sent it in, is anything on order, was it only just
+   set up. "Not selling yet" should be something you can see, not something you
+   have to take on faith. */
+function noSaleWhy(p){
+  const sent=p.ship30||0,everSent=sent>0||!!p.lastSent;
+  const onOrd=p.type==='bundle'
+    ? (p.recipe||[]).reduce((t,r)=>{const c=comp(r.c);return t+(c?onOrder(c):0);},0)
+    : onOrder(p);
+  if(!everSent&&onOrd>0)return{k:'ordered',txt:`nothing sent in yet · ${fmt(onOrd)} on order`};
+  if(!everSent)return{k:'new',txt:'never been sent in — nothing to sell yet'};
+  if(everSent&&p.lastSent)return{k:'sent',txt:`we sent ${fmt(sent)} in · last on ${dshort(p.lastSent)}`};
+  return{k:'sent',txt:`we sent ${fmt(sent)} in`};
+}
+function hubReview(){
+  const live=D.products.filter(p=>!p.archived);
+  const cur=hubMonth().ym;
+  const missing=[],blank=[],ok=[],skipped=[];
+  live.forEach(p=>{
+    if(hubSkipped(p)){skipped.push(p);return;}
+    if(!p.asin){missing.push({p,why:'no ASIN on this product'});return;}
+    if(!hubHas(p)){missing.push({p,why:'not in the report at all'});return;}
+    const u=hubUnits(p,cur);
+    if(u===0||u)ok.push(p);
+    else blank.push({p,why:'in the report, but no figure for '+ymName(cur)});
+  });
+  const known=new Set(live.map(p=>String(hubAsin(p)||'').toUpperCase()));
+  const extra=hubAll().filter(h=>!known.has(h.asin));
+  return{missing,blank,ok,skipped,extra,cur};
+}
+let _hbRows=[];
+function openHubReview(){
+  const rv=hubReview();
+  _hbRows=rv.missing.concat(rv.blank).map(r=>({asin:r.p.asin,name:r.p.name,why:r.why,to:'',
+    ev:noSaleWhy(r.p),blank:rv.blank.some(b=>b.p===r.p)}));
+  const M=hubMonth();
+  $('lav3Mod2').className='mod xl fit';
+  $('lav3Mod2').innerHTML=`
+    <div class="mh"><h3>Sales that need a look</h3>
+      <span class="pmeta" style="margin:0">${ymName(M.ym)} · ${fmt(rv.ok.length)} product${rv.ok.length===1?'':'s'} already have a figure · nothing is saved until you press the button</span>
+      <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+    <div class="mb">
+      <div class="amzHelp"><b>The ASIN is what joins the two apps.</b> The titles are written differently in each —
+        that is fine and expected — but the ASIN is identical, so a product with no figure has almost always
+        simply <b>not sold yet</b>. Mark it and it stops asking.
+        <div style="margin-top:7px">The link below is for the rare case where the hub carries the same product under a
+        <b>different ASIN</b> — a relist, or a parent/child split. <b>Match on the ASIN, never the name.</b>
+        Two separate listings can read almost the same (“Gluten Free Biscuit &amp; Snack Hamper” and
+        “Gluten Free Snack Bundle” are different products), and linking the wrong one puts one product's sales
+        against another and every target after it is wrong.</div>
+        <div style="margin-top:7px"><b>Nothing here changes the hub.</b> This app only ever reads it.</div></div>
+      ${_hbRows.length?`<div class="fxList">
+        ${_hbRows.map((r,i)=>`<div class="fxRow" id="hbRow-${i}">
+          <div class="fxWhat">
+            <span class="pname">${esc(r.name)}</span>
+            <div class="pmeta mono">${asinBtn(r.asin)} · ${esc(r.why)}</div>
+            <div class="hbWhy k-${r.ev.k}">${esc(r.ev.txt)}</div>
+          </div>
+          <div class="fxPick">
+            <input class="in fxIn" id="hbIn-${i}" autocomplete="off" placeholder="Paste the hub's ASIN, or search by name…"
+              oninput="LV3.hbFind(${i},this.value)" onfocus="LV3.hbFind(${i},this.value)">
+            <div class="fxPop" id="hbPop-${i}"></div>
+            <button class="btn sm" style="margin-top:6px" onclick="LV3.hbSkip(${i})">Not selling yet — stop asking</button>
+          </div>
+          <span class="fxState" id="hbState-${i}">${r.blank?'no figure':'not linked'}</span>
+        </div>`).join('')}
+      </div>`:`<div class="note good" style="margin:0">Every product has a sales figure for ${ymName(M.ym)}. Nothing to do.</div>`}
+      ${rv.extra.length?`<div class="note info" style="margin-top:12px"><b>${fmt(rv.extra.length)} ASIN${rv.extra.length===1?'':'s'} in the hub ${rv.extra.length===1?'is':'are'} not on this page.</b>
+        They sell on Amazon but nothing here is built for them — that is fine if they are not Lavarion.
+        <div class="hbChips">${rv.extra.map(h=>
+          `<span class="hbChip" title="${esc(h.asin)} — ${esc(h.name||'')}"><b class="hbAs">${esc(h.asin)}</b><i>${esc(h.name||'')}</i><b>${h.last?fmt(h.last.n):'—'}</b></span>`).join('')}</div></div>`:''}
+      ${rv.skipped.length?`<div class="note" style="margin-top:12px"><b>${fmt(rv.skipped.length)} marked as not selling yet.</b>
+        <div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:5px">${rv.skipped.map(p=>
+          `<button class="btn sm" onclick="LV3.hbUnskip('${esc(p.asin)}')">${esc(p.name)} — start asking again</button>`).join('')}</div></div>`:''}
+    </div>
+    <div class="mf"><span class="pmeta" id="hbSum" style="margin:0">${fmt(_hbRows.length)} waiting</span>
+      <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Close</button>
+        <button class="btn pri" onclick="LV3.hbSaveAll()">Save the links</button></div></div>`;
+  om('lav3Ov2');
+}
+function hbFind(i,v){
+  const pop=document.getElementById('hbPop-'+i);if(!pop)return;
+  const q=(v||'').toLowerCase().trim();
+  const all=hubAll();
+  const hits=(q?all.filter(h=>(h.name+' '+h.asin).toLowerCase().includes(q)):all).slice(0,40);
+  /* The ASIN leads, not the name. Amazon titles are near-identical across
+     genuinely different products — "Gluten Free Biscuit & Snack Hamper" and
+     "Gluten Free Snack Bundle" are two separate listings — so a name is a way
+     to FIND the row, never proof it is the right one. */
+  pop.innerHTML=hits.length
+    ? hits.map(h=>`<button type="button" class="alopt" onclick="LV3.hbPick(${i},'${esc(h.asin)}')">
+        <span class="alnm"><b class="hbAs">${esc(h.asin)}</b>${esc(h.name||'')}</span>
+        <span class="altag t-comp">${h.last?`${fmt(h.last.n)} · ${ymName(h.last.ym)}`:'no figure'}</span></button>`).join('')
+    : `<div class="alnone">No ASIN in the hub matches “${esc(v)}”</div>`;
+  pop.classList.add('on');
+}
+function hbPick(i,asin){
+  const r=_hbRows[i];if(!r)return;
+  r.to=asin;r.skip=false;
+  const h=hubAll().find(x=>x.asin===asin);
+  /* Show the ASIN it is actually linked to, not just the friendly name — the
+     ASIN is the thing being saved and the thing worth double-checking. */
+  const inp=document.getElementById('hbIn-'+i);if(inp)inp.value=asin+(h&&h.name?' — '+h.name:'');
+  const pop=document.getElementById('hbPop-'+i);if(pop)pop.classList.remove('on');
+  const st=document.getElementById('hbState-'+i);
+  if(st){st.innerHTML=`→ <b class="hbAs">${esc(asin)}</b>`;st.className='fxState ok';}
+  const row=document.getElementById('hbRow-'+i);if(row)row.classList.add('done');
+  hbSum();
+}
+function hbSkip(i){
+  const r=_hbRows[i];if(!r)return;
+  r.skip=true;r.to='';
+  const st=document.getElementById('hbState-'+i);
+  if(st){st.textContent='not selling';st.className='fxState ok';}
+  const row=document.getElementById('hbRow-'+i);if(row)row.classList.add('done');
+  hbSum();
+}
+function hbSum(){
+  const n=_hbRows.filter(r=>r.to||r.skip).length;
+  const el=document.getElementById('hbSum');
+  if(el)el.textContent=n?`${fmt(n)} ready · ${fmt(_hbRows.length-n)} still waiting`:`${fmt(_hbRows.length)} waiting`;
+}
+function hbUnskip(asin){
+  if(D.settings.hubSkip)delete D.settings.hubSkip[asin];
+  savePrefs();openHubReview();paint();
+}
+/* Two of our products pointed at ONE hub ASIN is the worst outcome this screen
+   can produce: both read the same units, both get a target built on sales that
+   only one of them made, and nothing on the page looks wrong. Caught here
+   before it saves, and caught again in the health check for anything already
+   set. */
+function hubClashes(){
+  const live=D.products.filter(p=>!p.archived&&p.asin&&!hubSkipped(p));
+  const by={};
+  live.forEach(p=>{const a=String(hubAsin(p)||'').toUpperCase();if(a)(by[a]=by[a]||[]).push(p);});
+  return Object.keys(by)
+    /* a shared raw ASIN is already reported by the duplicate-ASIN banner — this
+       is only about links somebody set by hand */
+    .filter(a=>by[a].length>1&&by[a].some(p=>(D.settings.hubMap||{})[p.asin]))
+    .map(a=>({asin:a,list:by[a]}));
+}
+function hbSaveAll(){
+  const ready=_hbRows.filter(r=>r.to||r.skip);
+  if(!ready.length){toast('Nothing picked yet','er');return;}
+  D.settings.hubMap=D.settings.hubMap||{};
+  D.settings.hubSkip=D.settings.hubSkip||{};
+  /* what each hub ASIN is already spoken for by, ignoring the rows being saved */
+  const editing=new Set(ready.map(r=>r.asin));
+  const taken={};
+  D.products.filter(p=>!p.archived&&p.asin&&!editing.has(p.asin)&&!hubSkipped(p))
+    .forEach(p=>{const a=String(hubAsin(p)||'').toUpperCase();if(a)taken[a]=p;});
+  const clash=[];
+  ready.filter(r=>r.to).forEach(r=>{
+    const a=String(r.to).toUpperCase();
+    if(taken[a])clash.push({r,other:taken[a]});
+    else taken[a]=({name:r.name});
+  });
+  if(clash.length){
+    toast(`${esc(clash[0].r.name)} points at the same ASIN as ${esc(clash[0].other.name)}`,'er');
+    clash.forEach(c=>{
+      const i=_hbRows.indexOf(c.r);
+      const st=document.getElementById('hbState-'+i);
+      if(st){st.innerHTML=`already used by <b>${esc(c.other.name)}</b>`;st.className='fxState';}
+      const row=document.getElementById('hbRow-'+i);if(row)row.classList.remove('done');
+      c.r.to='';
+      const inp=document.getElementById('hbIn-'+i);if(inp)inp.value='';
+    });
+    hbSum();
+    return;                       // nothing saves — a half-applied batch is worse
+  }
+  let links=0,skips=0;
+  ready.forEach(r=>{
+    if(!r.asin)return;
+    if(r.skip){D.settings.hubSkip[r.asin]=true;delete D.settings.hubMap[r.asin];skips++;}
+    else{D.settings.hubMap[r.asin]=r.to;delete D.settings.hubSkip[r.asin];links++;}
+  });
+  savePrefs();cm('lav3Ov2');paint();
+  toast(`${links?`${fmt(links)} linked`:''}${links&&skips?' · ':''}${skips?`${fmt(skips)} set aside`:''}`,'ok');
+}
+/* the caption under the Sold column — never a bare number without its month */
+function salesStrip(){
+  const M=hubMonth(),rv=(HUB.state==='ok')?hubReview():null;
+  const todo=rv?(rv.missing.length+rv.blank.length):0;
+  const bad=M.status==='off'||M.status==='none'||M.status==='late'||HUB.cached;
+  let msg;
+  if(M.status==='loading')msg='<b>Reading sales from the BDL hub…</b>';
+  else if(M.status==='off')msg=`<b>Cannot reach the BDL hub.</b> <span>No sales figures, so no targets. ${esc(HUB.err)}</span>`;
+  else if(M.status==='none')msg='<b>The hub has no monthly report yet.</b>';
+  else if(M.status==='due')msg=`<b>Showing ${ymName(M.ym)}.</b> <span>${ymName(M.want)} is written up in the hub around the 6th — it is not late.</span>`;
+  else if(M.status==='late')msg=`<b>Still showing ${ymName(M.ym)}.</b> <span>${ymName(M.want)} should be in the hub by now — every target on this page is running a month behind until it is.</span>`;
+  else msg=`<b>Sales from the BDL hub · ${ymName(M.ym)}.</b> <span>${fmt(rv?rv.ok.length:0)} product${(rv&&rv.ok.length===1)?'':'s'} with a figure.</span>`;
+  if(HUB.cached&&M.status!=='off')msg+=' <span>Working from the last copy that came down — the hub did not answer.</span>';
+  return `<div class="salesBar${bad?' warn':''}">
+    <span class="sbDot"></span>
+    <div class="sbTxt">${msg}</div>
+    ${todo?`<button class="btn sm warn" onclick="LV3.openHubReview()">${fmt(todo)} to review</button>`:''}
+    <button class="btn sm" onclick="LV3.hubRefresh()">Refresh</button></div>`;
+}
+/* Everything downstream leans on this one number, so how old it is
    matters as much as what it says. */
 function sold30Age(p){
   const at=(D.settings.sold30At||{})[p.asin];
@@ -13432,6 +14019,20 @@ function workList(){
     t:`${fmt(stale)} sales figure${stale===1?'':'s'} over a month old`,
     s:'Worth refreshing from Seller Central',btn:'Update',go:"go('products')"});
 
+  /* The health banner and this list were two answers to the same question,
+     sitting one above the other. Everything the banner found belongs here —
+     the banner still shows on the other tabs, where this list is not. */
+  try{
+    healthCheck().forEach(i=>jobs.push({
+      sev:i.sev==='bad'?1:2,
+      t:i.label,
+      s:String(i.detail||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim(),
+      btn:i.fix?(i.btn||'Repair'):'Show me',
+      go:i.fix?null:i.go,
+      fix:i.fix||null}));
+  }catch(e){console.warn('worklist health',e);}
+  jobs.sort((a,b)=>a.sev-b.sev);
+
   if(!jobs.length)return `<div class="wl done">
     <span class="wlTick">✓</span>
     <div><b>Nothing needs doing</b><span>Everything is linked, received and in stock. Come back after the next sync.</span></div></div>`;
@@ -13442,7 +14043,7 @@ function workList(){
     ${jobs.map(j=>`<div class="wlRow s${j.sev}">
       <span class="wlDot"></span>
       <div class="wlTxt"><b>${j.t}</b><span>${j.s}</span></div>
-      <button class="btn sm ${j.sev===1?'warn':''}" onclick="LV3.${j.go}">${j.btn}</button>
+      <button class="btn sm ${j.sev===1?'warn':''}" onclick="${j.fix?j.fix:'LV3.'+j.go}">${esc(j.btn)}</button>
     </div>`).join('')}
   </div>`;
 }
@@ -13649,27 +14250,76 @@ function dupeBanner(){
    moves under anyone unexpectedly. */
 let pSort=(typeof localStorage!=='undefined'&&localStorage.getItem('lav3_pSort'))||'name';
 let cSort=(typeof localStorage!=='undefined'&&localStorage.getItem('lav3_cSort'))||'name';
+let pDir=+((typeof localStorage!=='undefined'&&localStorage.getItem('lav3_pDir'))||1)||1;
+let cDir=+((typeof localStorage!=='undefined'&&localStorage.getItem('lav3_cDir'))||1)||1;
 function setSort(which,v){
-  if(which==='p'){pSort=v;try{localStorage.setItem('lav3_pSort',v);}catch(e){}}
-  else{cSort=v;try{localStorage.setItem('lav3_cSort',v);}catch(e){}}
+  if(which==='p'){pSort=v;pDir=1;try{localStorage.setItem('lav3_pSort',v);localStorage.setItem('lav3_pDir','1');}catch(e){}}
+  else{cSort=v;cDir=1;try{localStorage.setItem('lav3_cSort',v);localStorage.setItem('lav3_cDir','1');}catch(e){}}
   render();
 }
+/* Click the heading to sort by it; click it again to turn it round. The
+   dropdown stays — it names the sorts a heading cannot ("furthest below
+   target") — but nobody looks for a dropdown when there is a column right
+   there. */
+function sortCol(which,k){
+  if(which==='p'){pDir=(pSort===k)?-pDir:1;pSort=k;
+    try{localStorage.setItem('lav3_pSort',k);localStorage.setItem('lav3_pDir',String(pDir));}catch(e){}}
+  else{cDir=(cSort===k)?-cDir:1;cSort=k;
+    try{localStorage.setItem('lav3_cSort',k);localStorage.setItem('lav3_cDir',String(cDir));}catch(e){}}
+  render();
+}
+/* the heading itself: a button, with an arrow only on the one in use */
+/* The ASIN is the join key between this app, the BDL hub and Seller Central —
+   the titles differ everywhere, the ASIN never does. So it always copies. */
+function copyAsin(a,ev){
+  if(ev&&ev.stopPropagation)ev.stopPropagation();
+  if(!a){toast('No ASIN on this one','er');return;}
+  const done=()=>toast(a+' copied','ok');
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(a).then(done,()=>fallback());}
+    else fallback();
+  }catch(e){fallback();}
+  function fallback(){
+    try{const t=document.createElement('textarea');t.value=a;t.style.position='fixed';t.style.opacity='0';
+      document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();done();}
+    catch(e2){toast('Could not copy — select it by hand','er');}
+  }
+}
+const asinBtn=(a,cls)=>a
+  ? `<button class="asinC ${cls||''}" title="Copy ${esc(a)}" onclick="LV3.copyAsin('${esc(a)}',event)">${esc(a)}</button>`
+  : '<span class="dim">no ASIN</span>';
+const sortTh=(which,k,label,sub)=>{
+  const on=(which==='p'?pSort:cSort)===k, dir=(which==='p'?pDir:cDir);
+  return `<button class="thSort${on?' on':''}" onclick="event.stopPropagation();LV3.sortCol('${which}','${k}')"
+    title="Sort by this${on?' — click again to reverse':''}">${label}<span class="thArr">${on?(dir>0?'▲':'▼'):'↕'}</span>
+    ${sub?`<span class="thSub">${sub}</span>`:''}</button>`;
+};
 const P_SORTS=[['name','Name A–Z'],['short','Furthest below target'],['avail','Least available'],
-               ['sold','Best selling'],['cog','Highest COG'],['incoming','Most incoming']];
+               ['atamz','Least at Amazon'],['sold','Best selling'],['cog','Highest COG'],['incoming','Most incoming']];
 const C_SORTS=[['name','Name A–Z'],['short','Furthest short'],['low','Least on hand'],
                ['used','Used in most'],['order','Most on order']];
+const incOf=p=>p.type==='bundle'
+  ? p.recipe.reduce((t,r)=>{const c=comp(r.c);return t+(c?onOrder(c):0);},0) : onOrder(p);
 function sortProducts(rows){
   const by={
     name:(a,b)=>a.name.localeCompare(b.name),
     short:(a,b)=>{const ga=(target60(a)||0)-(avail(a).n||0),gb=(target60(b)||0)-(avail(b).n||0);return gb-ga;},
     avail:(a,b)=>(avail(a).n||0)-(avail(b).n||0),
+    atamz:(a,b)=>(atAmz(a)||0)-(atAmz(b)||0),
     sold:(a,b)=>demand30(b)-demand30(a),
     cog:(a,b)=>(cogOf(b,1).per||0)-(cogOf(a,1).per||0),
-    incoming:(a,b)=>{const f=p=>p.type==='bundle'
-      ? p.recipe.reduce((t,r)=>{const c=comp(r.c);return t+(c?onOrder(c):0);},0) : onOrder(p);
-      return f(b)-f(a);}
+    incoming:(a,b)=>incOf(b)-incOf(a)
   };
-  return rows.slice().sort(by[pSort]||by.name);
+  /* A blank is not a small number. "Never counted" and "no sales figure" sink to
+     the bottom whichever way the column is turned, rather than pretending to be
+     a zero and topping a "least at Amazon" sort. */
+  const blank={atamz:p=>atAmz(p)==null,sold:p=>sold30(p)==null,
+    short:p=>!target60(p),cog:p=>cogOf(p,1).short};
+  const isBlank=blank[pSort],f=by[pSort]||by.name;
+  return rows.slice().sort((a,b)=>{
+    if(isBlank){const na=isBlank(a),nb=isBlank(b);if(na!==nb)return na?1:-1;}
+    return pDir*f(a,b);
+  });
 }
 function sortComponents(rows){
   const by={
@@ -13679,7 +14329,8 @@ function sortComponents(rows){
     used:(a,b)=>usedIn(b.id).length-usedIn(a.id).length,
     order:(a,b)=>onOrder(b)-onOrder(a)
   };
-  return rows.slice().sort(by[cSort]||by.name);
+  const f=by[cSort]||by.name;
+  return rows.slice().sort((a,b)=>cDir*f(a,b));
 }
 const sortPicker=(which,val,opts)=>`<select class="in srt" title="Change the order" onchange="LV3.setSort('${which}',this.value)">
   ${opts.map(([k,l])=>`<option value="${k}" ${val===k?'selected':''}>${l}</option>`).join('')}</select>`;
@@ -13695,6 +14346,7 @@ function vProducts(){
 
   $('lav3View').innerHTML=`
   ${dupeBanner()}
+  ${salesStrip()}
   <div class="panel stick">
     <div class="ph">
       <div class="seg">${[['all','All'],['bundle','Bundles'],['pl','Private label'],['blocked','Out of stock']]
@@ -13711,14 +14363,19 @@ function vProducts(){
     <div id="selBar"></div>
     <table><thead><tr>
       <th style="width:30px;text-align:center"><input type="checkbox" onclick="LV3.selAll(this.checked)"></th>
-      <th class="l" style="min-width:190px">Product</th>
-      <th style="width:104px" title="Counted by hand off Seller Central. Paste the whole list in one go with Stock at Amazon.">At Amazon</th>
-      <th style="width:104px" title="What you hold here — buildable from parts, or on the shelf for a private-label product.">Backstock</th>
-      ${COL('pIncoming')?'<th style="width:132px">Incoming</th>':''}
+      ${/* No percentage width here. A % column collapses when the table is
+           squeezed, and the dead space was never this column being too wide —
+           it was the name DIV inside it capped at 290px while the cell stretched. */''}
+      <th class="l" style="min-width:300px">${sortTh('p','name','Product')}</th>
+      <th style="width:104px" title="Counted by hand off Seller Central. Use Stock at Amazon to enter them all in one go.">${sortTh('p','atamz','At Amazon',D.products.filter(x=>!x.archived).every(x=>atAmz(x)==null)?'never counted':'')}</th>
+      <th style="width:104px" title="What you hold here — buildable from parts, or on the shelf for a private-label product.">${sortTh('p','avail','Backstock')}</th>
+      ${/* Incoming is the flexible column now — it holds the longest text and was
+           the one clipping mid-word, while Product sat on 500px of nothing. */''}
+      ${COL('pIncoming')?`<th style="width:190px">${sortTh('p','incoming','Incoming')}</th>`:''}
       ${COL('pOrdered')?'<th style="width:84px">Ordered</th>':''}
-      ${COL('pSold')?'<th style="width:110px" title="Units sold on Amazon last full month. Comes in from outside the hub — everything else is worked out from it.">Sold last month</th>':''}
-      ${COL('pTarget')?`<th style="width:112px" title="How many units should be sitting at Amazon: ${D.settings.targetDays||60} days at the current sale rate.">${D.settings.targetDays||60}d target</th>`:''}
-      ${COL('pCog')?'<th style="width:86px">COG / unit</th>':''}<th class="acts" style="width:132px"></th>
+      ${COL('pSold')?`<th style="width:110px" title="Total units sold on Amazon, read straight from the BDL hub's monthly report. Nothing is typed in here and this app never writes back to the hub.">${sortTh('p','sold','Sold',(()=>{const M=hubMonth();return M.ym?esc(ymName(M.ym)):'last month';})())}</th>`:''}
+      ${COL('pTarget')?`<th style="width:112px" title="How many units should be sitting at Amazon: ${D.settings.targetDays||60} days at the rate it sold last month. Without a sales figure this stays empty rather than guessing.">${sortTh('p','short',(D.settings.targetDays||60)+'d target',D.products.filter(x=>!x.archived).every(x=>sold30(x)==null)?(HUB.state==='loading'?'reading the hub…':'no sales in'):'')}</th>`:''}
+      ${COL('pCog')?`<th style="width:86px">${sortTh('p','cog','COG / unit')}</th>`:''}<th class="acts" style="width:132px"></th>
     </tr></thead><tbody>
     ${rows.length?rows.map(p=>prodRow(p)).join(''):`<tr><td colspan="${5+['pIncoming','pOrdered','pSold','pTarget','pCog'].filter(COL).length}" class="empty">${D.products.length?'Nothing matches this filter.':
    'No products yet.<div style="margin-top:10px;display:flex;gap:7px;justify-content:center"><button class="btn pri" onclick="LV3.openBulkProd()">Bulk add products</button><button class="btn" onclick="LV3.editProduct(null)">Add one</button></div>'}</td></tr>`}
@@ -13924,19 +14581,22 @@ function prodRow(p){
     <td style="text-align:center" onclick="event.stopPropagation()">
       <input type="checkbox" ${SEL.has(p.id)?'checked':''} onclick="LV3.selOne('${p.id}',this.checked)"></td>
     <td class="l"><span class="chev">&#9654;</span>
-      <div style="display:inline-block;vertical-align:middle;max-width:290px">
+      <div style="display:inline-block;vertical-align:middle;max-width:none">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span class="pname">${esc(p.name)}</span>
           <span class="chip ${p.type}">${typeLabel(p.type)}</span></div>
-        <div class="pmeta mono">${p.asin}${p.sku?' · '+esc(p.sku):''}${p.type==='bundle'?' · '+p.recipe.length+' part'+(p.recipe.length===1?'':'s'):''}</div>
+        <div class="pmeta mono" onclick="event.stopPropagation()">${asinBtn(p.asin)}${p.sku?' · '+esc(p.sku):''}${p.type==='bundle'?' · '+p.recipe.length+' part'+(p.recipe.length===1?'':'s'):''}</div>
         ${lim&&a.n===0?`<div class="blocked">out of ${esc(lim.name)}${onOrder(lim)?` · ${fmt(onOrder(lim))} on order`:' · nothing on order'}</div>`
           :lim?`<div class="pmeta" style="color:var(--amb)">${esc(lim.name)} limits it</div>`:''}
       </div></td>
     <td onclick="event.stopPropagation()">${(()=>{const v=atAmz(p),age=atAmzAge(p);
-      if(v==null)return `<span class="dim" style="font-size:14px">—</span><div class="sldSub"><span class="est">never counted</span></div>`;
+      if(v==null)return `<span class="dim" style="font-size:14px">—</span>`;
       const stale=age!=null&&age>=14;
       return `<span class="mono b" style="font-size:14px;color:${v===0?'var(--red)':stale?'var(--amb)':'var(--text)'}">${fmt(v)}</span>
-        <div class="sldSub">${age==null?'counted':stale?`<span style="color:var(--amb)">${age}d old</span>`:age===0?'counted today':`${age}d ago`}</div>`;})()}</td>
+        <div class="sldSub" title="${esc(whenTxt((D.settings.atAmzAt||{})[p.asin]))}">${age==null?'counted'
+          :stale?`<span style="color:var(--amb)">${age}d old</span>`
+          :age===0?esc(whenTxt((D.settings.atAmzAt||{})[p.asin],true)||'today')
+          :`${age}d ago`}</div>`;})()}</td>
     <td><span class="num" style="color:${col}">${a.kind==='norecipe'?'—':fmt(a.n)}</span>
       <div class="pmeta">${a.kind==='build'?'buildable':a.kind==='norecipe'?'on the shelf':'in stock'}</div>
       </td>
@@ -13965,20 +14625,30 @@ function prodRow(p){
         ? `<span class="mono b" style="font-size:14px">${fmt(sold30(p))}</span>`
         : `<span class="dim" style="font-size:14px">—</span>`}
       <div class="sldSub">${(()=>{
-        if(sold30(p)==null)return '<span class="est">not in yet</span>';
+        /* Blank is not zero. Zero says it did not sell; blank says we do not
+           know — and the two lead to opposite decisions. */
+        const src=soldSrc(p);
+        if(!src)return hubSkipped(p)?'<span class="est">not selling yet</span>'
+          :`<button class="sldFix" onclick="event.stopPropagation();LV3.openHubReview()">no figure — check</button>`;
+        if(src==='hub')return esc(ymName(hubMonth().ym));
         const age=sold30Age(p);
-        if(age==null)return 'last full month';
-        if(age>=45)return `<span style="color:var(--red)">${age}d old</span>`;
-        return `set ${age}d ago`;})()}</div></td>`:''}
+        return `<span class="est">typed in${age!=null?` ${age}d ago`:''}</span>`;})()}</div></td>`:''}
     ${COL('pTarget')?`<td onclick="event.stopPropagation()">${(()=>{const t=target60(p);
-      if(!t)return `<span class="dim">—</span><div class="tsub prov">waiting on sales data</div>`;
+      if(!t)return `<span class="dim">—</span>`;
       /* The target is now measured against what is AT AMAZON, plus what you hold
          here, because that is the real question: is there enough in front of the
          customer for the next 60 days. Backstock only counts once it is sent. */
       const at=atAmz(p),have=avail(p).n||0,cover=(at||0)+have,gap=t-cover,real=sold30(p)!=null;
-      return `<button class="tgtBtn ${gap>0?'gap':'ok'}" onclick="LV3.openOrderPlan('${p.id}')" title="What to send and what to order">
+      /* One shade of amber for everything short said nothing: 8 units short of
+         74 and 690 short of 690 are not the same problem. Colour follows how
+         much of the target is actually covered. */
+      const pct=t?Math.round(cover/t*100):0;
+      const k=gap<=0?'ok':pct>=75?'near':pct>=35?'gap':'bad';
+      return `<button class="tgtBtn ${k}" onclick="LV3.openOrderPlan('${p.id}')"
+        title="${fmt(cover)} of ${fmt(t)} covered — ${fmt(at||0)} at Amazon + ${fmt(have)} here. Click for what to send and what to order.">
         <span class="tgtN">${fmt(t)}</span>
-        <span class="tgtS">${gap>0?`${fmt(gap)} short`:'covered'}</span></button>`;})()}</td>`:''}
+        <span class="tgtS">${gap>0?`${fmt(gap)} short`:'covered'}</span>
+        <span class="tgtBar"><i style="width:${Math.max(2,Math.min(100,pct))}%"></i></span></button>`;})()}</td>`:''}
     ${COL('pCog')?`<td>${cg.short
       ? (cg.noPrice
         ? `<span style="font-size:12px;color:var(--red)">!</span><div class="pmeta" style="text-align:center;color:var(--red);font-weight:700">price missing</div>`
@@ -14176,7 +14846,7 @@ function openProduct(id){
   <div class="mh"><h3>${esc(p.name)}</h3>
     <span class="chip ${p.type}">${typeLabel(p.type)}</span>
     <span class="chip vat">${p.vat}% VAT</span>
-    <span class="pmeta" style="margin:0">${p.asin}${p.sku?' · '+esc(p.sku):''}</span>
+    <span class="pmeta" style="margin:0">${asinBtn(p.asin)}${p.sku?' · '+esc(p.sku):''}</span>
     <button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
 
   <div class="mb">
@@ -14186,13 +14856,30 @@ function openProduct(id){
       ${stat('Unlocked by arrivals','+'+fmt(unlock),unlock?'var(--blu)':null,
         inbound.length?`${inbound.length} delivery${inbound.length===1?'':'s'} due`:'nothing on order')}
       ${stat('Sold last month',sold30(p)!=null?fmt(sold30(p)):'—',sold30(p)?'var(--grn)':null,
-        sold30(p)!=null?`we sent ${fmt(p.ship30)} in`:'not in yet — comes from outside the hub')}
+        sold30(p)!=null?`${ymName(hubMonth().ym)} · we sent ${fmt(p.ship30)} in`:'no figure in the BDL hub for this ASIN')}
       ${stat(`${D.settings.targetDays||60}d target`,target60(p)?fmt(target60(p)):'—',null,(()=>{const t=target60(p);if(!t)return'needs a sold figure';
         const gap=t-(avail(p).n||0);return gap>0?`${fmt(gap)} short of it`:'covered';})())}
       ${stat('COG / unit',cg.short?'—':(cg.per>0?gbp(cg.per):'—'),cg.short?'var(--amb)':'var(--accent)',
         cg.short?'needs every part in stock':(cg.batches>1?`${cg.batches} price batches`:''))}
-      ${stat(isB?'Sendable value':'Stock value',gbp(cg.per*(a.n||0)||stockVal),null,'at what you paid')}
+      ${(()=>{const nx=nextCog(p);
+        if(!nx)return stat(isB?'Sendable value':'Stock value',gbp(cg.per*(a.n||0)||stockVal),null,'at what you paid');
+        const up=nx.diff>0;
+        return `${stat('COG after that',gbp(nx.next),up?'var(--red)':'var(--grn)',
+          `${up?'+':''}${gbp(nx.diff)} a unit · in ${fmt(nx.after)} unit${nx.after===1?'':'s'}`)}
+          ${stat(isB?'Sendable value':'Stock value',gbp(cg.per*(a.n||0)||stockVal),null,'at what you paid')}`;})()}
     </div>
+    ${(()=>{const nx=nextCog(p);if(!nx)return '';
+      const up=nx.diff>0;
+      return `<div class="note ${up?'warn':'good'}" style="margin:0 0 13px">
+        <b>The cost changes after the next ${fmt(nx.after)} unit${nx.after===1?'':'s'}.</b>
+        Stock goes out oldest batch first, so once today's price runs out this becomes
+        <b>${gbp(nx.next)}</b> a unit — ${up?'up':'down'} ${gbp(Math.abs(nx.diff))}.
+        <div class="nxList">${nx.changes.map(c=>`<div class="nxRow">
+          <span class="nxNm">${esc(c.name)}</span>
+          <span class="nxQ">${fmt(c.left)} left at</span>
+          <span class="nxP">${gbp(c.from)}</span>
+          <span class="nxArr">→</span>
+          <span class="nxP ${c.to>c.from?'up':'down'}">${gbp(c.to)}</span></div>`).join('')}</div></div>`;})()}
 
     <div class="dsec"><span class="lab">${isB?'Made from':'Stock batches — oldest used first'}</span>
       ${isB?`<button class="btn sm" onclick="LV3.cm('lav3Ov1');LV3.editProduct('${p.id}')">Edit build list</button>`:''}</div>
@@ -14834,10 +15521,14 @@ function vComponents(){
     <div id="cselBar"></div>
     <table><thead><tr>
       <th style="width:30px;text-align:center"><input type="checkbox" onclick="LV3.cselAll(this.checked)"></th>
-      <th class="l" style="width:230px">Component</th><th style="width:80px">On hand</th>
-      ${COL('cOnOrder')?'<th style="width:78px">On order</th>':''}
-      ${COL('cOrdered')?'<th style="width:92px">Ordered</th>':''}
-      ${COL('cUsed')?'<th class="l" style="width:200px">Used in</th>':''}<th class="acts" style="width:280px"></th>
+      ${/* Every column had a fixed width and none of them added up to the table,
+           so the browser inflated all seven proportionally — that is where the
+           dead space came from. Now only "Used in" is free, so the slack goes
+           to the one column that has something to say with it. */''}
+      <th class="l" style="width:250px">${sortTh('c','name','Component')}</th><th style="width:84px">${sortTh('c','low','On hand')}</th>
+      ${COL('cOnOrder')?`<th style="width:84px">${sortTh('c','order','On order')}</th>`:''}
+      ${COL('cOrdered')?'<th style="width:96px">Ordered</th>':''}
+      ${COL('cUsed')?`<th class="l" style="min-width:200px">${sortTh('c','used','Used in')}</th>`:''}<th class="acts" style="width:250px"></th>
     </tr></thead><tbody>
     ${rows.length?rows.map(c=>{
       const h=onHand(c),oo=onOrder(c),nx=nextIn(c),need=compNeed60(c),short=compShort60(c),old=arrLayers(c).filter(l=>l.rem>0)[0];
@@ -14856,8 +15547,8 @@ function vComponents(){
           <div class="pmeta">${arrLayers(c).filter(l=>l.rem>0).length} batch${arrLayers(c).filter(l=>l.rem>0).length===1?'':'es'}</div></td>
         ${COL('cOnOrder')?`<td><span class="num ${oo?'b':'dim'}">${oo?fmt(oo):'—'}</span></td>`:''}
         ${COL('cOrdered')?`<td>${nx?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(nx.date)}</span><div class="pmeta">${esc(nx.sup.split('—')[0].trim())}</div>`:'<span class="dim">—</span>'}</td>`:''}
-        ${COL('cUsed')?`<td class="l">${uses.length?`<div style="font-weight:600;font-size:12.5px">${fmt(uses.length)} product${uses.length===1?'':'s'}</div>
-          <div class="pmeta" style="white-space:normal" title="${esc(uses.map(u=>u.name).join(', '))}">${esc(uses.slice(0,2).map(u=>u.name).join(', '))}${uses.length>2?` +${uses.length-2} more`:''}</div>`
+        ${COL('cUsed')?`<td class="l">${uses.length?`<div class="useWrap">${uses.map(u=>
+            `<button class="useChip" title="Open ${esc(u.name)}" onclick="event.stopPropagation();LV3.openProduct('${u.id}')">${esc(u.name)}</button>`).join('')}</div>`
           :'<span class="dim">not used yet</span>'}</td>`:''}
         <td class="acts" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:flex-end">
           ${c.archived?`<button class="btn sm go" onclick="LV3.setArchived('component','${c.id}',false)">Restore</button>`
@@ -15028,7 +15719,7 @@ function savePrefs(){
       let remote={};
       try{const r=await sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle();
         if(r&&r.data&&r.data.value)remote=JSON.parse(r.data.value)||{};}catch(e){}
-      const MAPS=['supplierModes','sold30','sold30At','untracked','aliases','modeDays'];
+      const MAPS=['supplierModes','sold30','sold30At','untracked','aliases','modeDays','hubMap','hubSkip','atAmz','atAmzAt'];
       const merged={...remote,...D.settings};
       MAPS.forEach(k=>{
         const a=remote[k],b=D.settings[k];
@@ -15591,13 +16282,17 @@ function suggestFor(p){
    looks right, but it is always a click, never automatic. */
 /* Practice runs and bad syncs need an undo. Removing here only forgets the row;
    nothing on the sheet changes, and syncing again fetches it afresh. */
-function dropReview(pid){
+/* quiet: the caller is removing a batch and has already taken ONE snapshot.
+   Snapshotting per row meant Undo after "remove 5 leftovers" put back exactly
+   one of them — an Undo that only half works is worse than none. */
+function dropReview(pid,quiet){
   const p=D.purchases.find(x=>x.id===pid);if(!p)return;
-  snap();
+  if(!quiet)snap();
   D.purchases=D.purchases.filter(x=>x.id!==pid);
   PURCH=D.purchases;
   if(p.uuid)sb.from('lavarion_purchases').delete().eq('id',p.uuid)
     .then(r=>{if(r.error)console.warn('[lav3] drop purchase',r.error);});
+  if(quiet)return;
   save();render();
   toastUndo(`${p.name} removed from the list`,'ok');
 }
@@ -15805,9 +16500,44 @@ function applyAllSuggestions(){
    how many are needed, what is already here, what is already coming, and how
    many CASES to order for the rest. Cases round up, because half a case is not
    a thing you can buy. Nobody should be doing this on paper. */
-let RS_PROD='',RS_QTY=50,RS_Q='';
-function rsSet(id){RS_PROD=id;render();}
-function rsQty(v){RS_QTY=Math.max(0,parseInt(v)||0);render();}
+/* Bundles share parts. Planning them one at a time meant working out the same
+   component three times and adding it up by hand — and worse, each pass saw the
+   whole of stock, so three bundles each "covered" by the same 90 gloves looked
+   fine and were not. Picking several at once counts every part ONCE against
+   what is actually on the shelf. */
+let RS_PICKS={},RS_Q='';
+function rsDefaultQty(p){const s=sold60(p);return (s&&s.real&&s.n>0)?s.n:50;}
+function rsSet(id){
+  const p=prod(id);if(!p)return;
+  if(!RS_PICKS[id])RS_PICKS[id]=rsDefaultQty(p);
+  RS_Q='';render();
+}
+function rsQty(id,v){RS_PICKS[id]=Math.max(0,parseInt(v)||0);render();}
+function rsDrop(id){delete RS_PICKS[id];render();}
+function rsPicked(){return Object.keys(RS_PICKS).map(id=>prod(id)).filter(Boolean);}
+/* Every part across every picked bundle, added up, with stock counted once. */
+function restockPlanMulti(){
+  const byComp={};
+  rsPicked().forEach(p=>{
+    if(p.type!=='bundle')return;
+    const target=RS_PICKS[p.id]||0;
+    (p.recipe||[]).forEach(r=>{
+      const c=comp(r.c);if(!c)return;
+      const per=r.q||1;
+      const e=byComp[c.id]||(byComp[c.id]={c,need:0,from:[],kind:c.kind==='packaging'?'Packaging':'Component'});
+      e.need+=per*target;
+      e.from.push({p,per,qty:target,need:per*target});
+    });
+  });
+  return Object.values(byComp).map(e=>{
+    const stock=onHand(e.c)||0,coming=onOrder(e.c)||0;
+    const shortfall=Math.max(0,e.need-stock-coming);
+    const caseQty=parseInt(e.c.caseQty)||0;
+    const cases=shortfall>0?(caseQty>1?Math.ceil(shortfall/caseQty):shortfall):0;
+    const buying=caseQty>1?cases*caseQty:cases;
+    return{...e,stock,coming,shortfall,caseQty,cases,buying,ok:shortfall===0,shared:e.from.length>1};
+  }).sort((a,b)=>b.shortfall-a.shortfall||a.c.name.localeCompare(b.c.name));
+}
 function restockPlan(p,target){
   if(!p||p.type!=='bundle')return[];
   return (p.recipe||[]).map(r=>{
@@ -15826,11 +16556,11 @@ function restockPlan(p,target){
       ok:shortfall===0,kind:c.kind==='packaging'?'Packaging':'Component'};
   }).filter(Boolean).sort((a,b)=>b.shortfall-a.shortfall||a.c.name.localeCompare(b.c.name));
 }
-function rsClear(){RS_PROD='';RS_Q='';render();}
+function rsClear(){RS_PICKS={};RS_Q='';render();}
 function rsFind(v){RS_Q=v;const box=document.getElementById('rsPop');if(box)box.innerHTML=rsHits(v);}
 function rsHits(v){
   const q=(v||'').toLowerCase().trim();
-  const list=D.products.filter(x=>x.type==='bundle'&&!x.archived)
+  const list=D.products.filter(x=>x.type==='bundle'&&!x.archived&&!RS_PICKS[x.id])
     .filter(x=>!q||x.name.toLowerCase().includes(q)||String(x.asin||'').toLowerCase().includes(q)||String(x.sku||'').toLowerCase().includes(q))
     .sort((a,b)=>((b.recipe||[]).length?1:0)-((a.recipe||[]).length?1:0)||a.name.localeCompare(b.name))
     .slice(0,40);
@@ -15849,16 +16579,16 @@ function vRestocks(){
       <button class="btn pri" onclick="LV3.editProduct(null)">Add a product</button></div></div>`;
     return;
   }
-  const p=prod(RS_PROD);
+  const picks=rsPicked();
 
   /* Nothing is picked until you pick it. Landing on whatever happened to be
      first meant the page opened showing numbers for a product nobody asked
      about — and looked broken when that one had no build list. */
-  if(!p){
+  if(!picks.length){
     $('lav3View').innerHTML=`<div class="rsStart">
       <div class="rsStartT">What do you want to build?</div>
-      <div class="rsStartB">Pick a bundle and say how many. It works out every part, what you already have,
-        what is already on its way, and how many cases to order for the rest.</div>
+      <div class="rsStartB">Pick one bundle or several. It adds up every part across all of them, counts what you
+        already have and what is on its way <b>once</b>, and tells you how many cases to order for the rest.</div>
       <div class="rsSearch big">
         <input class="in rsIn" id="rsIn" autocomplete="off" placeholder="Type a product, ASIN or SKU…"
           value="${esc(RS_Q||'')}" oninput="LV3.rsFind(this.value)">
@@ -15869,87 +16599,131 @@ function vRestocks(){
     return;
   }
 
-  const plan=restockPlan(p,RS_QTY);
+  const plan=restockPlanMulti();
   const short=plan.filter(x=>!x.ok);
   const spend=short.reduce((t,x)=>t+x.buying*(avgCostOf(x.c)||0),0);
-  const cases=short.reduce((t,x)=>t+x.cases,0);
-  const sold=sold30(p), at=atAmz(p), have=avail(p).n||0;
+  /* "366 cases" for three parts that do not come in cases was simply wrong.
+     Cases and loose units are different things and are counted separately. */
+  const nCases=short.filter(x=>x.caseQty>1).reduce((t,x)=>t+x.cases,0);
+  const nLoose=short.filter(x=>x.caseQty<=1).reduce((t,x)=>t+x.buying,0);
+  const shared=plan.filter(x=>x.shared);
+  const noList=picks.filter(x=>!(x.recipe||[]).length);
+  const totalUnits=picks.reduce((t,x)=>t+(RS_PICKS[x.id]||0),0);
+  const multi=picks.length>1;
 
   $('lav3View').innerHTML=`
-    <div class="rsHead">
-      <div class="rsWho">
-        <div class="rsWhoN">${esc(p.name)}</div>
-        <div class="rsWhoM">${p.asin||''}${p.sku?' · '+esc(p.sku):''} · ${(p.recipe||[]).length} part${(p.recipe||[]).length===1?'':'s'}</div>
+    <div class="rsPicks">
+      <div class="rsPicksH">
+        <span class="t">Building ${fmt(picks.length)} product${picks.length===1?'':'s'}</span>
+        <span class="sub">${fmt(totalUnits)} units in total</span>
+        <div class="rsPicksAdd">
+          <div class="rsSearch">
+            <input class="in rsIn" id="rsIn" autocomplete="off" placeholder="Add another bundle…"
+              value="${esc(RS_Q||'')}" oninput="LV3.rsFind(this.value)" onfocus="LV3.rsFind(this.value)">
+            <div class="rsPop${RS_Q?' on':''}" id="rsPop">${rsHits(RS_Q||'')}</div>
+          </div>
+          <button class="btn sm" onclick="LV3.rsClear()" title="Start again">Clear all</button>
+        </div>
       </div>
-      <div class="rsFacts">
-        <div class="rsFact"><span class="k">Sold last month</span><span class="v">${sold!=null?fmt(sold):'—'}</span></div>
-        ${(()=>{const s2=sold60(p);
-          return `<div class="rsFact"><span class="k">Last two months</span>
-            <span class="v">${s2.n==null?'—':fmt(s2.n)}</span>
-            <span class="s">${s2.n==null?'needs a sales figure':s2.real?`${s2.months.join(' + ')} — actual`:'estimate — only one month in'}</span></div>`;})()}
-        <div class="rsFact"><span class="k">At Amazon</span><span class="v">${at==null?'—':fmt(at)}</span>
-          <span class="s">${at==null?'never counted':(atAmzAge(p)===0?'counted today':`${atAmzAge(p)}d ago`)}</span></div>
-        <div class="rsFact"><span class="k">Backstock here</span><span class="v">${fmt(have)}</span></div>
-      </div>
-      <button class="btn" onclick="LV3.rsClear()" title="Start again with a different product">Change product</button>
+      ${picks.map(x=>{
+        const s2=sold60(x),sold=sold30(x),at=atAmz(x),have=avail(x).n||0,q=RS_PICKS[x.id]||0;
+        return `<div class="rsPick2${(x.recipe||[]).length?'':' noList'}">
+          <div class="rsP2N">
+            <span class="nm">${esc(x.name)}</span>
+            <span class="mt">${asinBtn(x.asin)} · ${(x.recipe||[]).length} part${(x.recipe||[]).length===1?'':'s'}</span>
+          </div>
+          <div class="rsP2F">
+            <span><i>Sold ${esc(ymName(hubMonth().ym))}</i><b>${sold!=null?fmt(sold):'—'}</b></span>
+            <span><i>Two months</i><b>${s2.n==null?'—':fmt(s2.n)}</b></span>
+            <span><i>At Amazon</i><b>${at==null?'—':fmt(at)}</b></span>
+            <span><i>Backstock</i><b>${fmt(have)}</b></span>
+          </div>
+          <div class="rsP2B">
+            <button class="rsPm" onclick="LV3.rsQty('${x.id}',${Math.max(0,q-25)})">&minus;</button>
+            <input class="rsQty" type="number" min="0" value="${q}" onchange="LV3.rsQty('${x.id}',this.value)">
+            <button class="rsPm" onclick="LV3.rsQty('${x.id}',${q+25})">+</button>
+            ${s2.n==null?'':`<button class="rsChip ${s2.n===q?'on':''}"
+              title="${s2.real?'Both months added up':"Twice last month — only one month's data in"}"
+              onclick="LV3.rsQty('${x.id}',${s2.n})">2mo ${fmt(s2.n)}</button>`}
+            <button class="btn sm dots" title="Take this one out" onclick="LV3.rsDrop('${x.id}')">&#10005;</button>
+          </div>
+        </div>`;}).join('')}
     </div>
 
-    <div class="rsBar">
-      <div class="rsPick"><label class="rsLbl">How many to build</label>
-        <div class="rsStep">
-          <button class="rsPm" onclick="LV3.rsQty(${Math.max(0,RS_QTY-25)})">−</button>
-          <input class="rsQty" type="number" min="0" value="${RS_QTY}" onchange="LV3.rsQty(this.value)">
-          <button class="rsPm" onclick="LV3.rsQty(${RS_QTY+25})">+</button>
-        </div></div>
-      <div class="rsPick"><label class="rsLbl">Quick</label>
-        <div class="rsQuick">${[25,50,100,250,500].map(n=>`<button class="rsChip ${n===RS_QTY?'on':''}" onclick="LV3.rsQty(${n})">${fmt(n)}</button>`).join('')}
-        ${(()=>{const s2=sold60(p);return s2.n==null?'':
-          `<button class="rsChip" title="${s2.real?'Both months added up':"Twice last month — only one month's data in"}" onclick="LV3.rsQty(${s2.n})">2 months (${fmt(s2.n)})</button>`;})()}</div></div>
-    </div>
+    ${noList.length?`<div class="note bad" style="margin:0 0 10px"><b>${esc(noList.map(x=>x.name).join(', '))}
+      ${noList.length===1?'has':'have'} no build list.</b> Nothing can be worked out for
+      ${noList.length===1?'it':'them'} until the app knows what goes in — ${noList.length===1?'it is':'they are'}
+      not counted in anything below.
+      ${noList.map(x=>`<button class="btn sm warn" style="margin:7px 7px 0 0" onclick="LV3.editProduct('${x.id}')">Add parts to ${esc(x.name)}</button>`).join('')}</div>`:''}
 
     ${!plan.length?`<div class="panel"><div class="rsEmpty">
-        <div class="rsEmT">${esc(p.name)} has no build list</div>
-        <div class="rsEmB">Nothing can be worked out until the app knows what goes into it.</div>
-        <div class="rsEmBtns">
-          <button class="btn pri" onclick="LV3.editProduct('${p.id}')">Add its components</button>
-          <button class="btn" onclick="LV3.rsClear()">Pick another product</button></div>
+        <div class="rsEmT">Nothing to work out yet</div>
+        <div class="rsEmB">None of the products picked have a build list.</div>
       </div></div>`
-    :`<div class="rsCards">
-        <div class="rsCard ${short.length?'bad':'ok'}"><span class="k">${short.length?'Needs ordering':'Nothing to order'}</span>
-          <span class="v">${short.length?fmt(short.length):'0'}</span>
-          <span class="s">${short.length?`of ${fmt(plan.length)} parts are short`:`all ${fmt(plan.length)} parts covered`}</span></div>
-        <div class="rsCard ${cases?'warn':''}"><span class="k">Cases to buy</span><span class="v">${fmt(cases)}</span>
-          <span class="s">rounded up — you can't buy part of a case</span></div>
-        <div class="rsCard"><span class="k">Roughly costs</span><span class="v">${gbp(spend)}</span>
-          <span class="s">at what you last paid</span></div>
-        <div class="rsCard"><span class="k">Buildable today</span><span class="v">${fmt(have)}</span>
-          <span class="s">of the ${fmt(RS_QTY)} you asked for</span></div>
+    :`<div class="rsSum">
+        <span class="rsS ${short.length?'bad':'ok'}"><b>${short.length?fmt(short.length):'0'}</b>
+          ${short.length?'to order':'nothing to order'}<i>of ${fmt(plan.length)} parts</i></span>
+        ${(()=>{
+          if(!nCases&&!nLoose)return `<span class="rsS ok"><b>0</b>to buy<i>everything is covered</i></span>`;
+          if(nCases&&nLoose)return `<span class="rsS warn"><b>${fmt(nCases)}</b>cases<i>plus ${fmt(nLoose)} loose units</i></span>`;
+          if(nCases)return `<span class="rsS warn"><b>${fmt(nCases)}</b>cases<i>rounded up — you can't buy part of a case</i></span>`;
+          return `<span class="rsS warn"><b>${fmt(nLoose)}</b>units<i>none of these come in cases</i></span>`;})()}
+        <span class="rsS"><b>${gbp(spend)}</b>roughly<i>at what you last paid</i></span>
+        ${multi
+          ? `<span class="rsS ${shared.length?'shared':''}"><b>${fmt(shared.length)}</b>shared parts<i>counted once, not once each</i></span>`
+          : `<span class="rsS"><b>${fmt(avail(picks[0]).n||0)}</b>buildable now<i>of the ${fmt(totalUnits)} asked for</i></span>`}
       </div>
       <div class="panel">
-        <div class="ph"><span class="t">Every part in ${esc(p.name)}</span><span class="sub">to build ${fmt(RS_QTY)}</span>
-          ${short.length?`<span class="chip bad">${fmt(short.length)} to order</span>`:'<span class="chip ok">all covered</span>'}</div>
-        <table class="rsTbl"><thead><tr>
-          <th class="l">Component</th><th>In one</th><th>Need</th><th>In stock</th><th>On order</th>
-          <th>Case size</th><th>Still short</th><th>Order</th><th class="l">Status</th></tr></thead><tbody>
-        ${plan.map(x=>`<tr class="${x.ok?'':'short'}">
+        <div class="ph"><span class="t">Every part${multi?` across ${fmt(picks.length)} products`:` in ${esc(picks[0].name)}`}</span>
+          <span class="sub">to build ${fmt(totalUnits)} unit${totalUnits===1?'':'s'}</span>
+          ${short.length?`<span class="chip bad">${fmt(short.length)} to order</span>`:'<span class="chip ok">all covered</span>'}
+          ${short.length?`<div class="r"><button class="btn sm pri" onclick="LV3.rsLogAll()"
+            title="Open the order form for each part that needs one, in turn">Log all ${fmt(short.length)} orders</button></div>`:''}</div>
+        ${/* Nine columns for a five-column question. "In one" and "Case size" are
+             facts about the part, so they sit with the part. "Still short" and
+             "Order" were the same number twice whenever nothing came in cases. */''}
+        <table class="rsTbl tight"><thead><tr>
+          <th class="l">Part</th>${multi?'<th class="l">Needed by</th>':''}
+          <th>Need</th><th>Have</th><th>To order</th><th class="l" style="width:120px"></th>
+        </tr></thead><tbody>
+        ${plan.map(x=>{
+          const per=x.from[0]?x.from[0].per:1;
+          const spare=x.buying-x.shortfall;
+          return `<tr class="${x.ok?'':'short'}">
           <td class="l"><span class="pname">${esc(x.c.name)}</span>
-            <div class="pmeta">${x.kind}${x.c.sup?' · '+esc(x.c.sup):''}</div></td>
-          <td class="mono">×${fmt(x.per)}</td>
+            <div class="pmeta">${x.kind}${multi?'':` · ×${fmt(per)} each`}${x.caseQty>1?` · case of ${fmt(x.caseQty)}`:' · singles'}${x.shared?' · <b style="color:var(--accent)">shared</b>':''}</div></td>
+          ${multi?`<td class="l"><div class="rsFrom">${x.from.map(f=>
+              `<span class="rsFromC" title="${esc(f.p.name)} — ${fmt(f.per)} each &times; ${fmt(f.qty)} = ${fmt(f.need)}">
+                ${esc(f.p.name)}<b>${fmt(f.need)}</b></span>`).join('')}</div></td>`:''}
           <td class="mono b">${fmt(x.need)}</td>
-          <td class="mono" style="color:${x.stock?'var(--text)':'var(--red)'}">${fmt(x.stock)}</td>
-          <td class="mono">${x.coming?`<span style="color:var(--blu)">${fmt(x.coming)}</span>`:'<span class="dim">—</span>'}</td>
-          <td class="mono">${x.caseQty>1?fmt(x.caseQty):'<span class="dim">singles</span>'}</td>
-          <td class="mono" style="color:${x.shortfall?'var(--amb)':'var(--text3)'}">${x.shortfall?fmt(x.shortfall):'—'}</td>
-          <td class="rsCases">${x.cases?`<span class="rsBig">${fmt(x.cases)}</span><div class="pmeta">${x.caseQty>1?`case${x.cases===1?'':'s'}`:'units'}</div>`:'<span class="dim">—</span>'}</td>
-          <td class="l">${x.ok?'<span class="chip ok">Enough stock</span>'
-            :`<span class="chip bad">Order required</span>${x.caseQty>1&&x.buying>x.shortfall?`<div class="pmeta">${fmt(x.buying)} units · ${fmt(x.buying-x.shortfall)} spare</div>`:''}
-              <button class="btn sm" style="margin-top:5px" onclick="LV3.openLogOrder('${x.c.id}')">Log the order</button>`}</td>
-        </tr>`).join('')}
+          <td class="mono"><span style="color:${x.stock?'var(--text)':'var(--red)'}">${fmt(x.stock)}</span>
+            ${x.coming?`<div class="pmeta" style="color:var(--blu)">+${fmt(x.coming)} coming</div>`:''}</td>
+          <td class="rsCases">${x.ok
+            ? '<span class="chip ok">covered</span>'
+            : `<span class="rsBig">${fmt(x.cases)}</span>
+               <div class="pmeta">${x.caseQty>1?`case${x.cases===1?'':'s'} · ${fmt(x.buying)} units${spare>0?` · ${fmt(spare)} spare`:''}`:'units'}</div>`}</td>
+          <td class="l">${x.ok?'':`<button class="btn sm" onclick="LV3.openLogOrder('${x.c.id}')">Log the order</button>`}</td>
+        </tr>`;}).join('')}
         </tbody></table>
-        <div class="pmeta" style="padding:10px 14px;border-top:1px solid var(--border)">
-          <b>need − in stock − already on order</b>, divided by the case size and rounded up.
+        <div class="pmeta" style="padding:9px 14px;border-top:1px solid var(--border)">
+          <b>need &minus; what you have &minus; what is already on order</b>${plan.some(x=>x.caseQty>1)?', divided by the case size and rounded up':''}.
+          ${multi?'Stock and on-order count <b>once per part</b>, not once per product — that is the point of picking several.':''}
         </div>
       </div>`}`;
+}
+/* Walk the shortages one at a time rather than making the person hunt down the
+   row again after each order form closes. */
+function rsLogAll(){
+  const short=restockPlanMulti().filter(x=>!x.ok);
+  if(!short.length){toast('Nothing needs ordering','ok');return;}
+  _rsQueue=short.map(x=>x.c.id);
+  rsNextOrder();
+}
+let _rsQueue=[];
+function rsNextOrder(){
+  const id=_rsQueue.shift();
+  if(!id){toast('That is every part done','ok');render();return;}
+  openLogOrder(id);
 }
 
 function vPurchases(){
@@ -16190,7 +16964,9 @@ function healthCheck(){
      built. Amber is for work waiting: a link to re-point, a shortfall to decide.
      Red used to mean "five names do not match", which is how a warning becomes
      wallpaper. */
-  const add=(k,n,label,detail,go,fix,sev)=>{if(n>0)issues.push({k,n,label,detail,go,fix,sev:sev||'warn'});};
+  /* btn: what the button is about to do, in its own words. "Repair" on every
+     single issue told you nothing about what was going to happen. */
+  const add=(k,n,label,detail,go,fix,sev,btn)=>{if(n>0)issues.push({k,n,label,detail,go,fix,sev:sev||'warn',btn:btn||'Repair'});};
 
   const dupes=staleDupes();
   const dupIds=new Set(dupes.map(x=>x.p.id));
@@ -16217,6 +16993,38 @@ function healthCheck(){
     `${esc(ghosts.slice(0,4).map(p=>p.name).join(', '))}${ghosts.length>4?` +${ghosts.length-4} more`:''} —
      the link is fine but the stock it should have created is missing, so nothing shows on order. Repair rebuilds it.`,
     "showReview()",'LV3.fixHealth(\'links\')','bad');
+
+  /* A missing sales figure is not a wrong number, so it is never red — but it
+     does stop a target being worked out, which is work waiting on somebody. */
+  if(HUB.state==='ok'){
+    const rv=hubReview(),n=rv.missing.length+rv.blank.length;
+    add('sales',n,
+      `${fmt(n)} product${n===1?' has':'s have'} no sales figure for ${ymName(rv.cur)}`,
+      `${esc(rv.missing.concat(rv.blank).slice(0,4).map(x=>x.p.name).join(', '))}${n>4?` +${n-4} more`:''}.
+       The hub's monthly report has no units against ${n===1?'it':'them'}, so ${n===1?'it has':'they have'} no ${D.settings.targetDays||60}-day target.
+       Usually the hub knows the product under a different ASIN — point it at the right one, or mark it as not selling yet.`,
+      "openHubReview()",'LV3.openHubReview()','warn','Review them');
+
+    /* This one IS red: the figures on screen are wrong, not merely missing. */
+    const cl=hubClashes();
+    add('salesClash',cl.length,
+      `${fmt(cl.length)} sales link${cl.length===1?'':'s'} ${cl.length===1?'points':'point'} two products at the same ASIN`,
+      `${esc(cl.slice(0,3).map(c=>c.list.map(p=>p.name).join(' + ')).join('; '))}${cl.length>3?` +${cl.length-3} more`:''}.
+       They are both reading one product's units, so both their ${D.settings.targetDays||60}-day targets are built on sales only one of them made.
+       Open the review and point the wrong one somewhere else, or mark it as not selling yet.`,
+      "openHubReview()",'LV3.openHubReview()','bad','Review them');
+  }
+  const M_=hubMonth();
+  add('salesLate',M_.status==='late'?1:0,
+    `Sales are still showing ${ymName(M_.ym)}`,
+    `${ymName(M_.want)} has not been written up in the BDL hub yet, so every target on the Products page is
+     working off month-old sales. Nothing here is wrong — it is just behind. Once the hub's monthly report is done it comes in on its own.`,
+    "go('products')",'LV3.hubRefresh()','warn','Read the hub again');
+  add('salesOff',(M_.status==='off'||M_.status==='none')?1:0,
+    `No sales figures — the BDL hub did not answer`,
+    `Without last month's units there are no targets and the order plan cannot work anything out.
+     ${esc(HUB.err||'')} Try again; if it keeps failing the hub itself may be down.`,
+    "go('products')",'LV3.hubRefresh()','warn','Try again');
 
   const deadParts=[];
   D.products.forEach(p=>(p.recipe||[]).forEach(r=>{if(!comp(r.c))deadParts.push(p);}));
@@ -16405,6 +17213,9 @@ function _unusedRepairReport(){
 function paintHealth(){
   const el=document.getElementById('lav3Health');
   if(!el)return;
+  /* Overview folds all of this into "What needs doing" — showing both was the
+     same list twice, one above the other. */
+  if(TAB==='overview'){el.innerHTML='';return;}
   let issues=[];
   try{issues=healthCheck();}catch(e){console.warn('health',e);return;}
   if(!issues.length){el.innerHTML='';return;}
@@ -16420,7 +17231,7 @@ function paintHealth(){
       <span class="hlthN">${fmt(i.n)}</span>
       <div class="hlthTxt"><b>${i.label}</b><span>${i.detail}</span></div>
       <div class="hlthBtns">
-        ${i.fix?`<button class="btn sm warn" onclick="${i.fix}">Repair</button>`:''}
+        ${i.fix?`<button class="btn sm warn" onclick="${i.fix}">${esc(i.btn||'Repair')}</button>`:''}
         ${i.go?`<button class="btn sm" onclick="LV3.${i.go}">Show me</button>`:''}
       </div></div>`).join('')}
   </div>`;
@@ -16516,8 +17327,11 @@ function dropDupes(){
      <div class="note bad" style="margin:10px 0 0">Linking one of these instead would book
        <b>${fmt(list.reduce((t,x)=>t+(parseInt(x.p.qty)||0),0))} units</b> of stock that were never bought.
        The sheet is not touched.</div>`,
-    ()=>{list.forEach(x=>dropReview(x.p.id));
-      toast(`${fmt(list.length)} leftover${list.length===1?'':'s'} removed`,'ok');},
+    ()=>{
+      snap();                                   // one snapshot for the whole batch
+      list.forEach(x=>dropReview(x.p.id,true));
+      save();render();
+      toastUndo(`${fmt(list.length)} leftover${list.length===1?'':'s'} removed`,'ok');},
     {danger:true,ok:`Remove ${fmt(list.length)}`});
 }
 function ghostAllocs(){
@@ -18736,6 +19550,38 @@ function vHistory(){
     Deleting a product or component does <b>not</b> remove its history — these lines are written at the time and stay whatever happens to the item.
   </div>`;
 }
+/* Where the sales figures come from, in plain terms, plus the one button that
+   matters. Deliberately says READS in bold — the first question anyone asks
+   about two systems talking is which one can change the other. */
+function salesPanel(){
+  const M=hubMonth(),rv=HUB.state==='ok'?hubReview():null;
+  const todo=rv?(rv.missing.length+rv.blank.length):0;
+  const when=HUB.at?new Date(HUB.at):null;
+  return `<div class="panel">
+    <div class="ph"><span class="t">Sales figures</span><span class="sub">read from the BDL hub</span>
+      <div class="r"><button class="btn sm" onclick="LV3.hubRefresh()">Read it again</button>
+        ${todo?`<button class="btn sm warn" onclick="LV3.openHubReview()">${fmt(todo)} to review</button>`:''}</div></div>
+    <div style="padding:12px">
+      <div class="frow"><span class="lab">Showing</span>
+        <div style="font:800 15px var(--num);color:${M.status==='ok'?'var(--grn)':'var(--amb)'}">${esc(ymName(M.ym))}</div>
+        <div class="pmeta" style="margin-top:4px">${
+          M.status==='ok'?'Last full month, as it should be.'
+          :M.status==='due'?`${esc(ymName(M.want))} is not in the hub yet. It is written up around the 6th, so this is normal — the page keeps using ${esc(ymName(M.ym))} and says so.`
+          :M.status==='late'?`<b style="color:var(--amb)">${esc(ymName(M.want))} should be in the hub by now.</b> Every target is a month behind until the monthly report is done.`
+          :M.status==='loading'?'Reading…'
+          :`<b style="color:var(--amb)">Nothing came back.</b> ${esc(HUB.err||'')}`}</div></div>
+      <div class="frow"><span class="lab">Products with a figure</span>
+        <div style="font:800 15px var(--num)">${rv?`${fmt(rv.ok.length)} of ${fmt(rv.ok.length+todo)}`:'—'}</div>
+        <div class="pmeta" style="margin-top:4px">${todo?`${fmt(todo)} have none — usually the hub knows them under a different ASIN. <b>Review</b> to point them at the right one.`
+          :'Every live product is matched.'}</div></div>
+      <div class="frow"><span class="lab">Months held</span>
+        <div class="pmeta">${HUB.order.length?`${fmt(HUB.order.length)} — ${esc(ymName(HUB.order[0]))} to ${esc(ymName(HUB.order[HUB.order.length-1]))}. Two full months make the real two-month figure, so nothing has to be doubled.`:'none yet'}</div></div>
+      <div class="note info">This <b>reads</b> the hub's monthly report and nothing else. It cannot write to it, change it, or
+        delete from it — the sales numbers are worked out in one place and only one place.
+        ${when?`Last read ${esc(dshort(localDay(when)))} at ${esc(String(when.getHours()).padStart(2,'0'))}:${esc(String(when.getMinutes()).padStart(2,'0'))}${HUB.cached?' — from the saved copy, the hub did not answer':''}.`:''}</div>
+    </div>
+  </div>`;
+}
 function vSettings(){
   $('lav3View').innerHTML=`
   <div class="cols2">
@@ -18753,6 +19599,7 @@ function vSettings(){
           <div class="note info">Reading only, and it goes through the same server-side helper this app already uses for the prep sheet — no key sits in this page and nothing here can change a cell.</div>
         </div>
       </div>
+      ${salesPanel()}
       ${overridePanel()}
       ${supplierPanel()}
 
@@ -19054,6 +19901,10 @@ async function boot(){
      decided wrongly there was no trace. It flags what it found and a person
      approves it — see openFixLinks. */
   paint();
+  /* Sales come from the hub, over the network, so they are not held up behind
+     the page drawing. The page appears with the sold column reading "reading
+     the hub…", then fills in. */
+  hubLoad().then(()=>{try{paint();}catch(e){}}).catch(e=>console.warn('hub sales',e));
 }
 const isUntracked=id=>!!(D.settings&&D.settings.untracked&&D.settings.untracked[String(id)]);
 const COL=k=>{const c=(D.settings&&D.settings.cols)||{};return c[k]!==false;};
@@ -19084,7 +19935,9 @@ const API={go,render:paint,boot,
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,setHWho,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,showReview,ghostAllocs,staleDupes,dropDupes,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsFind,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,setHWho,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,showReview,ghostAllocs,staleDupes,dropDupes,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
+  hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
+  sortCol,amzWhen,localDT,copyAsin,nextCog,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,restockPlanMulti,rsLogAll,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
