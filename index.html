@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v5.9</title>
+<title>BDL PrepHub v6.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1026,6 +1026,13 @@ html.light-mode{
 #page-lavarion .chip.private-label,.lav3 .chip.private-label{background:rgba(56,189,248,.13);color:#38bdf8;border:1px solid rgba(56,189,248,.3);}
 #page-lavarion .chip.complementary,.lav3 .chip.complementary{background:rgba(148,163,184,.12);color:var(--text2);border:1px solid var(--border2);}
 
+#page-lavarion .supGrid,.lav3 .supGrid{display:grid;gap:7px;}
+#page-lavarion .supRow,.lav3 .supRow{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:11px;align-items:center;
+  padding:6px;border-radius:6px;border-bottom:1px solid var(--border);}
+#page-lavarion .supRow:last-child,.lav3 .supRow:last-child{border-bottom:0;}
+#page-lavarion .supRow:hover,.lav3 .supRow:hover{background:var(--bg3);}
+#page-lavarion .supNm,.lav3 .supNm{font-size:12.5px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .supRow .in,.lav3 .supRow .in{width:100%;}
 #page-lavarion .mdHead,.lav3 .mdHead{display:grid;grid-template-columns:1fr 250px 30px;gap:9px;padding:0 0 6px;
   font:700 9.5px var(--num);letter-spacing:.6px;text-transform:uppercase;color:var(--text3);}
 #page-lavarion .mdRow,.lav3 .mdRow{display:grid;grid-template-columns:1fr 250px 30px;gap:9px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);}
@@ -1535,7 +1542,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v5.9</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v6.0</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1569,7 +1576,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v5.9</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v6.0</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -1858,6 +1865,7 @@ html.light-mode{
               onkeydown="if(event.key==='Escape'){this.value='';LV3.gsRun('');this.blur();}">
             <div id="gsOut"></div>
           </div>
+          <button class="btn sm" id="lavSyncTop" onclick="LV3.syncPurchases()" title="Read the purchase sheet again — nothing is ever written back to it">Sync sheet</button>
           <button class="btn sm" id="dlvBtn" onclick="LV3.openDeliveries()">Deliveries</button>
           <button class="btn sm" onclick="LV3.openData()">Data</button>
         </div>
@@ -12062,7 +12070,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v5.9 · lav3 · 2026-08-04 · b74';
+const BUILD='v6.0 · lav3 · 2026-08-04 · b75';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -14242,9 +14250,34 @@ function setQ(v){
 function shipQty(v){SHIP.units=parseInt(v)||0;SHIP.override=false;SHIP.reason='';drawShip();
   const q=document.getElementById('shipQty');if(q){q.focus();try{q.setSelectionRange(q.value.length,q.value.length);}catch(e){}}}
 function shipFba(el){SHIP.fba=(el.value||'').toUpperCase();el.value=SHIP.fba;}
+/* Settings live in Supabase so everyone sees the same hub — but this used to
+   write the WHOLE settings object straight over whatever was there. Two people
+   with the page open meant last-save-wins on every setting at once: Becki set a
+   supplier's method, Jack changed a column, and one of them silently lost it.
+   That is why the two pages drifted apart. Read first, merge, then write — the
+   maps (supplier methods, sales figures, aliases) are combined key by key so a
+   save can only ever add to what the other person did. */
+let _prefsQ=null;
 function savePrefs(){
-  try{sb.from('app_settings').upsert({key:'lavarion_prefs',value:JSON.stringify(D.settings)},{onConflict:'key'})
-    .then(r=>{if(r.error)console.warn('prefs save',r.error);});}catch(e){}
+  if(_prefsQ)return _prefsQ;                   // collapse a burst into one round trip
+  _prefsQ=(async()=>{
+    try{
+      let remote={};
+      try{const r=await sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle();
+        if(r&&r.data&&r.data.value)remote=JSON.parse(r.data.value)||{};}catch(e){}
+      const MAPS=['supplierModes','sold30','sold30At','untracked','aliases','modeDays'];
+      const merged={...remote,...D.settings};
+      MAPS.forEach(k=>{
+        const a=remote[k],b=D.settings[k];
+        if(a&&typeof a==='object'&&b&&typeof b==='object')merged[k]={...a,...b};
+      });
+      D.settings=merged;
+      await sb.from('app_settings').upsert({key:'lavarion_prefs',value:JSON.stringify(merged)},{onConflict:'key'})
+        .then(r=>{if(r&&r.error)console.warn('prefs save',r.error);});
+    }catch(e){console.warn('prefs save',e);}
+    finally{_prefsQ=null;}
+  })();
+  return _prefsQ;
 }
 /* movement log + "dealt with" ticks — small, so they ride along in app_settings */
 let _stateT=null;
@@ -14635,8 +14668,11 @@ async function lavFetchCsv(sheetId,tab){
 }
 async function syncPurchases(){
   if(_syncing)return;_syncing=true;
-  const btn=document.getElementById('purchSyncBtn');
-  if(btn){btn.disabled=true;btn.textContent='Reading the sheet…';}
+  /* the same job can be started from the Purchases page or the top bar, so both
+     buttons have to show it running */
+  const btns=['purchSyncBtn','lavSyncTop'].map(i=>document.getElementById(i)).filter(Boolean);
+  btns.forEach(b=>{b.dataset.was=b.textContent;b.disabled=true;b.textContent='Reading the sheet…';});
+  const btn=btns[0]||null;
   const say=t=>{_syncMsg=t;const el=document.getElementById('purchSyncNote');if(el)el.innerHTML=t;};
   try{
     const id=lavSheetId(),from=D.settings.purchFrom||'2026-08-01';
@@ -14713,8 +14749,8 @@ async function syncPurchases(){
     console.warn('[lav3] purchase sync',e);
   }finally{
     _syncing=false;
-    const b=document.getElementById('purchSyncBtn');
-    if(b){b.disabled=false;b.textContent='Sync the purchase sheet';}
+    ['purchSyncBtn','lavSyncTop'].forEach(i=>{const b=document.getElementById(i);
+      if(b){b.disabled=false;b.textContent=b.dataset.was||(i==='lavSyncTop'?'Sync sheet':'Sync the purchase sheet');}});
   }
 }
 
@@ -15068,6 +15104,66 @@ function guessMode(sup){
   if(/amazon|ebay|superdrug|boots|tesco|asda|savers|wilko|argos|home ?bargains|b&m/.test(s))return 'courier';
   if(/wholesal|direct|supplies|trading|cash ?and ?carry|stax/.test(s))return 'road';
   return 'courier';
+}
+/* Every supplier the hub has ever seen, with the method it uses. Superdrug is
+   always a courier and Alibaba is always sea freight, so the expected window
+   should never have to be typed twice for the same supplier — set it once here
+   and every future order from them is dated automatically. */
+function knownSuppliers(){
+  const seen={};
+  /* "Opening stock" is the stocktake, not somebody who ships to us */
+  const notReal=/^(opening stock|stocktake|—|-|n\/a|unknown)$/i;
+  const add=n=>{const k=(n||'').trim();if(!k||notReal.test(k))return;const lk=k.toLowerCase();
+    if(!seen[lk])seen[lk]={name:k,key:lk,orders:0};seen[lk].orders++;};
+  D.purchases.forEach(p=>add(p.sup));
+  D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>add(l.sup)));
+  Object.keys(D.settings.supplierModes||{}).forEach(k=>{if(!seen[k])seen[k]={name:k,key:k,orders:0};});
+  return Object.values(seen).sort((a,b)=>b.orders-a.orders||a.name.localeCompare(b.name));
+}
+/* Changing a supplier's method re-dates everything still on order from them
+   that nobody has typed a date on — the whole point of setting it. */
+function setSupplierMode(key,mode){
+  D.settings.supplierModes=D.settings.supplierModes||{};
+  if(mode)D.settings.supplierModes[key]=mode; else delete D.settings.supplierModes[key];
+  savePrefs();
+  const m=shipMode(mode)||null;
+  let touched=0;
+  D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{
+    if(l.arr||l.writtenOff||l._etaTouched)return;
+    if((l.sup||'').toLowerCase().trim()!==key)return;
+    l.mode=mode||guessMode(l.sup);
+    const mm=shipMode(l.mode);if(!mm||!l.date)return;
+    const add=n=>{const x=new Date(l.date);x.setDate(x.getDate()+n);
+      return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;};
+    l.eta1=add(mm.lo);l.eta2=add(mm.hi);l._etaGuess=1;touched++;
+  }));
+  save();render();
+  toast(touched?`${fmt(touched)} order${touched===1?'':'s'} re-dated`:'Saved','ok');
+}
+function supplierPanel(){
+  const sups=knownSuppliers();
+  if(!sups.length)return '';
+  const modes=shipModes();
+  const set=Object.keys(D.settings.supplierModes||{}).length;
+  return `<div class="panel">
+    <div class="ph"><span class="t">Who ships how</span>
+      <span class="sub">${fmt(sups.length)} supplier${sups.length===1?'':'s'} · ${fmt(set)} set by hand</span></div>
+    <div style="padding:12px">
+      <div class="pmeta" style="margin-bottom:9px">Set a supplier's method once and every order from them is dated
+        automatically — the ones already on order get re-dated too, unless someone typed a date on them.</div>
+      <div class="supGrid">
+        ${sups.map(x=>{
+          const cur=(D.settings.supplierModes||{})[x.key]||'';
+          const auto=guessMode(x.name);
+          return `<div class="supRow">
+            <div class="supNm">${esc(x.name)}<div class="pmeta">${x.orders?`${fmt(x.orders)} order${x.orders===1?'':'s'}`:'no orders yet'}</div></div>
+            <select class="in" onchange="LV3.setSupplierMode('${esc(x.key).replace(/'/g,"\\'")}',this.value)">
+              <option value="">Work it out (${esc((modes.find(m=>m.k===auto)||{label:auto}).label.split('—')[0].trim())})</option>
+              ${modes.map(m=>`<option value="${m.k}" ${cur===m.k?'selected':''}>${esc(m.label.split('—')[0].trim())} · ${m.lo}–${m.hi}d</option>`).join('')}
+            </select></div>`;}).join('')}
+      </div>
+    </div>
+  </div>`;
 }
 function rememberMode(sup,mode){
   const s=(sup||'').toLowerCase().trim();if(!s)return;
@@ -17041,6 +17137,8 @@ function vSettings(){
           <div class="note info">Reading only, and it goes through the same server-side helper this app already uses for the prep sheet — no key sits in this page and nothing here can change a cell.</div>
         </div>
       </div>
+      ${supplierPanel()}
+
       <div class="panel">
         <div class="ph"><span class="t">How long deliveries take</span><span class="sub">your methods and your timings</span>
           <div class="r">
@@ -17345,7 +17443,7 @@ const API={go,render:paint,boot,
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,writeOffShort,buyToggle,revToggle,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,writeOffShort,buyToggle,revToggle,setSupplierMode,knownSuppliers,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
