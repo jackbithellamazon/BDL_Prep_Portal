@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v6.0</title>
+<title>BDL PrepHub v6.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -701,7 +701,15 @@ html.light-mode{
   #page-lavarion .lav3acts,.lav3 .lav3acts{margin-left:0;width:100%;}
   #page-lavarion .gs input,.lav3 .gs input{width:100%;}
 }
-#page-lavarion .wrap,.lav3 .wrap{padding:16px 18px 60px;max-width:1620px;}
+/* No max-width. It was capped at 1620px, so on a 1920 screen the page stopped
+   short with a band of empty space down the right and the last column of every
+   table was squeezed — "Sold last month" came out as "SOLD LAST MONT". The page
+   fills whatever it is given now. */
+#page-lavarion .wrap,.lav3 .wrap{padding:16px 20px 60px;max-width:none;}
+/* and a table that is still wider than its panel scrolls inside it rather than
+   having its right-hand column clipped off */
+#page-lavarion .panel>table,.lav3 .panel>table{min-width:100%;}
+#page-lavarion .tblScroll,.lav3 .tblScroll{overflow-x:auto;}
 #lav3Toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg4);
   border:1px solid var(--border2);border-radius:9px;padding:11px 17px;font-size:12.5px;z-index:2000;opacity:0;
   transition:.22s;box-shadow:0 12px 34px rgba(0,0,0,.55);display:flex;align-items:center;gap:14px;color:var(--text);}
@@ -742,7 +750,9 @@ html.light-mode{
   border-bottom-width:2px;font-weight:700;}
 #page-lavarion .tabs button.on .cnt,.lav3 .tabs button.on .cnt{color:var(--accent);}
 #page-lavarion .tabs .cnt,.lav3 .tabs .cnt{font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:7px;font-variant-numeric:tabular-nums;}
-#page-lavarion .wrap,.lav3 .wrap{padding:18px 20px 64px;max-width:1620px;}
+/* a second copy of this rule further down the sheet was re-applying the cap and
+   undoing the fix above — both are fluid now */
+#page-lavarion .wrap,.lav3 .wrap{padding:18px 20px 64px;max-width:none;}
 #page-lavarion .kpis,.lav3 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:10px;margin-bottom:16px;}
 #page-lavarion .kpi,.lav3 .kpi{background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--border2);
   border-radius:11px;padding:13px 15px;transition:background .12s;}
@@ -1026,6 +1036,34 @@ html.light-mode{
 #page-lavarion .chip.private-label,.lav3 .chip.private-label{background:rgba(56,189,248,.13);color:#38bdf8;border:1px solid rgba(56,189,248,.3);}
 #page-lavarion .chip.complementary,.lav3 .chip.complementary{background:rgba(148,163,184,.12);color:var(--text2);border:1px solid var(--border2);}
 
+/* deliveries: arrived-and-counting on top, still-on-the-way grouped by when */
+#page-lavarion .dvSecHead,.lav3 .dvSecHead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 9px;}
+#page-lavarion .dvSecHead b,.lav3 .dvSecHead b{font-size:13px;color:var(--text);}
+#page-lavarion .dvSecHead span,.lav3 .dvSecHead span{font-size:11.5px;color:var(--text3);}
+#page-lavarion .dvHint,.lav3 .dvHint{flex-basis:100%;font-size:11.5px;color:var(--text3);}
+#page-lavarion .dvCount,.lav3 .dvCount{border:1px solid var(--grn);border-radius:9px;overflow:auto;max-height:40vh;
+  background:rgba(52,211,153,.04);}
+#page-lavarion .dvGrp,.lav3 .dvGrp{margin-bottom:12px;border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+#page-lavarion .dvGrpHead,.lav3 .dvGrpHead{display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--bg3);}
+#page-lavarion .dvGrpHead b,.lav3 .dvGrpHead b{font-size:12.5px;}
+#page-lavarion .dvGrpSub,.lav3 .dvGrpSub{margin-left:auto;font-size:11.5px;color:var(--text3);}
+#page-lavarion .dvDot,.lav3 .dvDot{width:8px;height:8px;border-radius:50%;background:var(--text3);flex:0 0 auto;}
+#page-lavarion .dv-late .dvDot,.lav3 .dv-late .dvDot{background:var(--red);}
+#page-lavarion .dv-late .dvGrpHead,.lav3 .dv-late .dvGrpHead{background:rgba(248,113,113,.12);}
+#page-lavarion .dv-today .dvDot,.lav3 .dv-today .dvDot{background:var(--amb);}
+#page-lavarion .dv-week .dvDot,.lav3 .dv-week .dvDot{background:var(--blu);}
+#page-lavarion .dv-next .dvDot,.lav3 .dv-next .dvDot{background:var(--grn);}
+#page-lavarion .dvOrd,.lav3 .dvOrd{border-top:1px solid var(--border);}
+#page-lavarion .dvOrdHead,.lav3 .dvOrdHead{display:flex;align-items:center;gap:9px;padding:7px 12px;background:var(--bg2);}
+#page-lavarion .dvOrdHead b,.lav3 .dvOrdHead b{font-size:12px;}
+#page-lavarion .dvOrdHead span,.lav3 .dvOrdHead span{font-size:11px;color:var(--text3);}
+#page-lavarion .dvOrdHead .btn,.lav3 .dvOrdHead .btn{margin-left:auto;}
+#page-lavarion .dvRow,.lav3 .dvRow{display:grid;grid-template-columns:minmax(0,1fr) 190px 90px 110px;gap:11px;
+  align-items:center;padding:9px 12px;border-top:1px solid var(--border);}
+#page-lavarion .dvRow:hover,.lav3 .dvRow:hover{background:var(--bg3);}
+#page-lavarion .dvNm,.lav3 .dvNm{min-width:0;}
+#page-lavarion .dvEta,.lav3 .dvEta{font-size:12px;font-weight:700;text-align:right;}
+#page-lavarion .dvQty,.lav3 .dvQty{text-align:right;}
 #page-lavarion .supGrid,.lav3 .supGrid{display:grid;gap:7px;}
 #page-lavarion .supRow,.lav3 .supRow{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:11px;align-items:center;
   padding:6px;border-radius:6px;border-bottom:1px solid var(--border);}
@@ -1357,7 +1395,15 @@ html.light-mode{
 #page-lavarion .att .tx .s,.lav3 .att .tx .s{display:block;font-size:11.5px;color:var(--text2);margin-top:3px;}
 #page-lavarion .subhead,.lav3 .subhead{padding:8px 15px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:11px;
   color:var(--text3);font-weight:500;}
-#page-lavarion .cols2,.lav3 .cols2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+/* Two columns that FLOW instead of two fixed buckets. As a grid, the left
+   column collected five stacked panels and the right one held a single short
+   table, so the bottom two thirds of the right-hand side was empty. Multi-column
+   lets the panels fall into whichever side has room, and break-inside stops a
+   panel being sliced in half across the gap. */
+#page-lavarion .cols2,.lav3 .cols2{display:block;column-count:2;column-gap:14px;}
+#page-lavarion .cols2>*,.lav3 .cols2>*{break-inside:avoid;-webkit-column-break-inside:avoid;
+  display:block;margin:0 0 14px;width:100%;}
+#page-lavarion .cols2.one,.lav3 .cols2.one{column-count:1;}
 #page-lavarion .cols2.one,.lav3 .cols2.one{grid-template-columns:1fr;}
 #page-lavarion .cols2>*,.lav3 .cols2>*{min-width:0;}
 .panel{max-width:100%;}
@@ -1366,14 +1412,15 @@ html.light-mode{
 #page-lavarion .panel,.lav3 .panel{max-width:100%;}
 #page-lavarion .panel>table,.lav3 .panel>table{table-layout:fixed;width:100%;}
 #page-lavarion .panel td,.lav3 .panel td{overflow:hidden;}
-#page-lavarion .cols2 .panel,.lav3 .cols2 .panel{min-width:0;overflow:hidden;}
+/* auto, not hidden — hidden silently sliced the last column off a wide table */
+#page-lavarion .cols2 .panel,.lav3 .cols2 .panel{min-width:0;overflow:auto;}
 #page-lavarion .panel>table,.lav3 .panel>table{border-radius:0 0 11px 11px;}
 #page-lavarion .cols2 table,.lav3 .cols2 table{table-layout:fixed;width:100%;}
 #page-lavarion .cols2 td,.lav3 .cols2 td{overflow:hidden;text-overflow:ellipsis;}
 #page-lavarion .att .tx,.lav3 .att .tx{min-width:0;overflow-wrap:anywhere;}
 
 .cols2.one{grid-template-columns:1fr;}
-@media(max-width:1080px){#page-lavarion .cols2,.lav3 .cols2{grid-template-columns:1fr;}}
+@media(max-width:1080px){#page-lavarion .cols2,.lav3 .cols2{column-count:1;}}
 #page-lavarion .setup,.lav3 .setup{display:flex;gap:13px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);}
 #page-lavarion .setup:last-child,.lav3 .setup:last-child{border-bottom:none;}
 #page-lavarion .setup .n,.lav3 .setup .n{width:24px;height:24px;border-radius:7px;background:var(--bg4);border:1px solid var(--border2);color:var(--text3);
@@ -1542,7 +1589,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v6.0</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v6.1</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1576,7 +1623,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v6.0</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v6.1</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -2876,17 +2923,14 @@ function allSentRows(){
   completed.forEach(r=>out.push({...r,isoDate:r.dsISO,units:r.shi||0,cogValue:parseSKU(r.sku).cogs*(r.shi||0),kind:'completed'}));
   lavShipments.filter(s=>s.date).forEach(s=>out.push({isoDate:s.date,units:s.units||0,sku:s.sku||'',asin:s.asin||'',shipId:s.shipId||'',cogValue:(s.cost||0)*(s.units||0),kind:'lav'}));
   returnShipments.filter(s=>s.date).forEach(s=>out.push({isoDate:s.date,units:s.units||0,sku:s.sku||'',asin:s.asin||'',shipId:s.shipId||'',cogValue:0,kind:'return'}));
-  /* One shipment, one date. SKU lines get added to an FBA shipment for days
-     after it was created, and counting those units on the day they were TYPED
-     is what made the header disagree with the shipments page — 229 units for
-     the month against 199 in the list below it, because a shipment opened in
-     July kept collecting lines in August. Units now land on the day the
-     shipment actually went, which is the date the shipments page shows: its
-     earliest line. Separate shipments still count on their own days. */
-  const shipDay={};
-  out.forEach(r=>{if(!r.shipId||!r.isoDate)return;
-    if(!shipDay[r.shipId]||r.isoDate<shipDay[r.shipId])shipDay[r.shipId]=r.isoDate;});
-  out.forEach(r=>{if(r.shipId&&shipDay[r.shipId])r.isoDate=shipDay[r.shipId];});
+  /* Units stay on the date of the line that carries them. An earlier attempt
+     re-dated every line to its shipment's earliest date so the month tile would
+     agree with the shipments page — but this function pools OA rows, completed
+     rows, Lavarion and returns, and the shipments page derives its date from a
+     narrower set. When the two disagreed a whole shipment moved off today and
+     "Sent today" read 8 units against 40 on the shipments page. Correct daily
+     numbers matter more than the month tile matching to the unit, so the remap
+     is gone until both can be driven from one shared shipment-date map. */
   return out;
 }
 function unitsSentInRange(s,e){
@@ -12070,7 +12114,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v6.0 · lav3 · 2026-08-04 · b75';
+const BUILD='v6.1 · lav3 · 2026-08-05 · b76';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -12644,13 +12688,14 @@ document.addEventListener('click',e=>{if(!e.target.closest('.gs')){const b=$('gs
 
 /* ═══════════════ TABS + ROUTER ═══════════════ */
 function render(){
+  if(TAB==='guide')TAB='overview';        // the tab is gone; anyone parked on it lands home
   setTimeout(()=>{const b=$('dlvBtn');if(!b)return;const n=inboundCount();
     b.innerHTML='Deliveries'+(n?` <span class="chip info" style="margin-left:5px">${fmt(n)}</span>`:'');},0);
   const t=[['overview','Overview',''],['products','Products',D.products.length],
            ['components','Components',D.components.length],
            ['purchases','Purchases',(()=>{const n=D.purchases.filter(x=>allocState(x).k==='none').length;return n?'· '+n+' to link':'';})()],
            ['history','History',(D.log||[]).length?fmt((D.log||[]).length):''],
-           ['settings','Settings',''],['guide','How it works','']];
+           ['settings','Settings','']];   // How it works retired — the pages explain themselves now
   $('lav3Tabs').innerHTML=t.map(([k,l,c])=>`<button class="${TAB===k?'on':''}" onclick="LV3.go('${k}')">${l}${c!==''?`<span class="cnt">${c}</span>`:''}</button>`).join('');
   ({overview:vOverview,products:vProducts,components:vComponents,purchases:vPurchases,history:vHistory,settings:vSettings,guide:vGuide})[TAB]();
   stickWatch();          // after layout, not mid-render
@@ -16011,21 +16056,87 @@ function deliveriesPanel(){
        <div class="pmeta" style="margin-top:7px">Log what's been bought and it sits here with its expected dates until it turns up.</div></div>`}
   </div>`;
 }
+/* Two jobs, not one. Whoever is in the unit says "this turned up" the moment a
+   box lands — that is all they know and all they should have to do. Counting it
+   in is a separate job, done against the box, and only that second step turns it
+   into usable stock. Doing both in one action meant a delivery either sat
+   unrecorded until someone had time to count it, or got waved through at the
+   ordered quantity and the shortfall was never noticed. */
+function dlvArrived(lid,on){
+  let hit=null;
+  D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{if(l.id===lid)hit={o,l};}));
+  if(!hit)return;
+  const who=(window.currentUserName||'Becki');
+  if(on===false){delete hit.l.arrivedOn;delete hit.l.arrivedBy;}
+  else{hit.l.arrivedOn=dayISO();hit.l.arrivedBy=who;
+    logIt('recv',`Arrived — ${hit.o.name}${hit.l.sup?' from '+hit.l.sup:''} · marked by ${who}, not counted yet`);}
+  save();openDeliveries();
+}
+function dlvArrivedOrder(key){
+  (window._dlvWait||[]).forEach(x=>{
+    const k=(x.l.oid&&x.l.oid!=='—')?x.l.oid:('#'+x.l.id);
+    if(k!==key)return;
+    x.l.arrivedOn=dayISO();x.l.arrivedBy=(window.currentUserName||'Becki');
+  });
+  save();openDeliveries();
+}
+/* which week a delivery falls in, so the list reads as "what is coming and when" */
+function dlvBucket(l){
+  const e=l.eta2||l.eta1;
+  if(!e)return{k:'none',label:'No date given',ord:5};
+  const d=Math.round((new Date(e+'T00:00:00Z')-new Date(dayISO()+'T00:00:00Z'))/864e5);
+  if(d<0)return{k:'late',label:'Overdue',ord:0};
+  if(d===0)return{k:'today',label:'Due today',ord:1};
+  if(d<=7)return{k:'week',label:'This week',ord:2};
+  if(d<=14)return{k:'next',label:'Next week',ord:3};
+  return{k:'later',label:'Later',ord:4};
+}
 function openDeliveries(){
-  const open=inboundAll().slice().sort((a,b)=>{
+  const all=inboundAll().slice().sort((a,b)=>{
     const ea=(a.l.eta2||a.l.eta1||'9999'),eb=(b.l.eta2||b.l.eta1||'9999');
     return ea.localeCompare(eb)||(a.l.date||'').localeCompare(b.l.date||'');});
-  window._dlv=open;
-  const late=open.filter(x=>etaState(x.l).k==='late').length;
-  const body=open.length?`
-    <div class="dlvHow">
-      <div><b>1</b> Tick what turned up</div>
-      <div><b>2</b> Change <i>received</i> if only part of it came</div>
-      <div><b>3</b> Say when it landed if it wasn't today</div>
-      <div><b>4</b> Receive selected — it becomes usable stock</div>
-    </div>
-    ${late?`<div class="note bad" style="margin-bottom:11px"><b>${fmt(late)} overdue.</b> Anything past its expected window is at the top and marked in red — chase it or push the dates out.</div>`:''}
-    <div style="max-height:52vh;overflow:auto;border:1px solid var(--border);border-radius:9px">
+  const open=all.filter(x=>x.l.arrivedOn);        // arrived, waiting to be counted in
+  const waiting=all.filter(x=>!x.l.arrivedOn);    // still out there
+  window._dlv=open;window._dlvWait=waiting;
+  const late=waiting.filter(x=>etaState(x.l).k==='late').length;
+  const gval=list=>list.reduce((t,x)=>t+(x.l.qty||0)*(x.l.cost||0),0);
+  const gunits=list=>list.reduce((t,x)=>t+(x.l.qty||0),0);
+
+  /* section 2 — everything still out there, grouped by when it is due */
+  const groups={};
+  waiting.forEach(x=>{const b=dlvBucket(x.l);(groups[b.k]=groups[b.k]||{...b,rows:[]}).rows.push(x);});
+  const waitHtml=Object.values(groups).sort((a,b)=>a.ord-b.ord).map(g=>{
+    const byOrd={};
+    g.rows.forEach(x=>{const k=(x.l.oid&&x.l.oid!=='—')?x.l.oid:('#'+x.l.id);
+      (byOrd[k]=byOrd[k]||{key:k,sup:x.l.sup||'—',date:x.l.date,rows:[]}).rows.push(x);});
+    return `<div class="dvGrp dv-${g.k}">
+      <div class="dvGrpHead"><span class="dvDot"></span><b>${g.label}</b>
+        <span class="dvGrpSub">${fmt(g.rows.length)} line${g.rows.length===1?'':'s'} · ${fmt(gunits(g.rows))} units · ${gbp(gval(g.rows))}</span></div>
+      ${Object.values(byOrd).map(o=>`<div class="dvOrd">
+        <div class="dvOrdHead">
+          <b>${esc(o.sup)}</b>
+          <span>${o.key.startsWith('#')?'no order ref':'order '+esc(o.key)} · ordered ${dshort(o.date)}</span>
+          <button class="btn sm go" onclick="LV3.dlvArrivedOrder('${esc(o.key).replace(/'/g,"\\'")}')">Whole order arrived</button>
+        </div>
+        ${o.rows.map(x=>{const e=etaState(x.l);
+          return `<div class="dvRow">
+            <div class="dvNm"><span class="pname">${esc(x.o.name)}</span>
+              <div class="pmeta">${fmt(x.l.qty)} units${x.l.cost>0?' @ '+gbp(x.l.cost):''}
+                ${(()=>{const u=unlocks(x);
+                  if(u.blocked.length)return `· <b style="color:var(--grn)">unblocks ${esc(u.blocked[0].name)}</b>`;
+                  if(u.uses.length)return `· makes ~${fmt(u.adds)} more ${esc(u.uses[0].name)}`;return'';})()}</div></div>
+            <div class="dvEta" style="color:${e.col}">${e.txt}<div class="pmeta" style="margin:0">${e.sub||''}</div></div>
+            <div class="dvQty"><span class="num">${fmt(x.l.qty)}</span><div class="pmeta" style="margin:0">ordered</div></div>
+            <button class="btn sm go" onclick="LV3.dlvArrived('${x.l.id}')">It's here</button>
+          </div>`;}).join('')}
+      </div>`).join('')}
+    </div>`;}).join('');
+
+  const body=(open.length||waiting.length)?`
+    ${open.length?`<div class="dvSecHead"><b>Arrived — waiting to be counted in</b>
+      <span>${fmt(open.length)} line${open.length===1?'':'s'} · ${fmt(gunits(open))} units · ${gbp(gval(open))}</span>
+      <span class="dvHint">Count what is actually in the box, then <b>Receive selected</b>. Anything short stays on order to chase.</span></div>
+    <div class="dvCount">
     ${open.map((x,i)=>{
       const days=Math.floor((TODAY-new Date(x.l.date))/864e5);
       const late=days>=21;
@@ -16059,11 +16170,16 @@ function openDeliveries(){
             style="width:70px;text-align:center;padding:6px" oninput="LV3.dlvSum()"></div>
         <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
           <span class="pmeta" style="margin:0">landed</span>
-          <input class="in" type="date" id="dlv-d-${i}" value="${dayISO()}" max="${dayISO()}"
+          <input class="in" type="date" id="dlv-d-${i}" value="${x.l.arrivedOn||dayISO()}" max="${dayISO()}"
             style="width:120px;padding:5px 6px;font-size:11px" onchange="LV3.dlvSum()"></div>
         <div id="dlv-n-${i}" style="font-size:11.5px;text-align:right;color:var(--text2)"></div>
       </div>`;}).join('')}
-    </div>`
+    </div>`:''}
+    ${waiting.length?`<div class="dvSecHead" style="margin-top:${open.length?'16px':'0'}"><b>Still on its way</b>
+      <span>${fmt(waiting.length)} line${waiting.length===1?'':'s'} · ${fmt(gunits(waiting))} units · ${gbp(gval(waiting))}</span>
+      <span class="dvHint">Whoever is in the unit presses <b>It's here</b> the moment a box lands — counting it in is the step above.</span></div>
+    ${late?`<div class="note bad" style="margin:0 0 10px"><b>${fmt(late)} past its expected date.</b> Chase it, or set the supplier's method in Settings so the dates are right next time.</div>`:''}
+    ${waitHtml}`:''}`
     :(()=>{
         const waiting=reviewOrders();
         /* Empty here almost always means the purchases exist but nobody has said
@@ -16102,15 +16218,16 @@ function openDeliveries(){
           </div></div>`;})();
   $('lav3Mod1').className='mod wide';
   $('lav3Mod1').innerHTML=`
-    <div class="mh"><h3>Receive a delivery</h3>
-      ${open.length?`<span class="pmeta" style="margin:0">${fmt(open.length)} waiting${late?` · <b style="color:var(--red)">${fmt(late)} overdue</b>`:''}</span>
+    <div class="mh"><h3>Deliveries</h3>
+      ${(open.length||waiting.length)?`<span class="pmeta" style="margin:0">${open.length?`<b style="color:var(--grn)">${fmt(open.length)} to count in</b> · `:''}${fmt(waiting.length)} on the way${late?` · <b style="color:var(--red)">${fmt(late)} overdue</b>`:''}</span>
         <button class="btn sm" style="margin-left:auto" onclick="LV3.openLogOrder()">+ Log an order</button>`:''}
       <button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
     <div class="mb">${body}</div>
     ${open.length?`<div class="mf"><span id="dlvSum" class="pmeta" style="margin:0"></span>
       <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov1')">Cancel</button>
       <button class="btn go" id="dlvGo" onclick="LV3.dlvReceive()">Receive selected</button></div></div>`
-     :`<div class="mf"><div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov1')">Close</button></div></div>`}`;
+     :`<div class="mf"><span class="pmeta" style="margin:0">${waiting.length?'Nothing has been marked as arrived yet.':''}</span>
+       <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov1')">Close</button></div></div>`}`;
   om('lav3Ov1');dlvSum();
 }
 /* tick every line of one order at once — an order arrives as one box */
@@ -17443,7 +17560,7 @@ const API={go,render:paint,boot,
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,writeOffShort,buyToggle,revToggle,setSupplierMode,knownSuppliers,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,writeOffShort,buyToggle,revToggle,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
