@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v8.0</title>
+<title>BDL PrepHub v8.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1848,7 +1848,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v8.0</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v8.2</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -1882,7 +1882,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v8.0</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v8.2</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -12374,7 +12374,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v8.0 · lav3 · 2026-08-05 · b95';
+const BUILD='v8.2 · lav3 · 2026-08-05 · b97';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -12560,7 +12560,8 @@ async function loadCloud(){
     LAYERS=(lr.data||[]).map(d=>({uuid:d.id,id:d.id,kind:d.target_kind,tid:String(d.target_id||''),
       date:(d.bought_on||'').slice(0,10),qty:d.qty||0,rem:d.remaining||0,cost:Number(d.unit_cost)||0,
       sup:d.supplier||'',oid:d.order_ref||'',loc:d.location||'Warehouse',arr:d.arrived?1:0,
-      src:d.source||'',note:d.note||''}));
+      src:d.source||'',note:d.note||'',
+      ...(d.meta&&typeof d.meta==='object'?d.meta:{})}));
     _layersLoadedCount=LAYERS.length;
     const pr=await sb.from('lavarion_purchases').select('*').order('bought_on',{ascending:false});
     if(pr.error)throw pr.error;
@@ -12606,8 +12607,21 @@ async function migrateOld(){
 }
 
 /* ── persistence ────────────────────────────────────────────────────────── */
+/* Everything the delivery and chase process records — the shipping method, the
+   expected window, who marked it arrived, when it was counted in, whether it
+   came up short and how that ended — had nowhere to go. The table only had the
+   twelve core columns, so all of it was rebuilt or lost on every refresh: the
+   How dropdown reset to Courier, expected dates were re-guessed, and a chase
+   with a reply-by date vanished. One jsonb column carries the lot, so adding a
+   field later never needs another migration. */
+const LAYER_META=['mode','eta1','eta2','_etaTouched','_etaGuess',
+  'arrivedOn','arrivedBy','recvOn','recvBy',
+  'short','shortQty','shortOn','shortBy','chased','chasedBy','replyBy','shortEnd','writtenOff',
+  'manual','why','whoAdded','leadLo','leadHi'];
+function layerMeta(l){const m={};LAYER_META.forEach(k=>{if(l[k]!==undefined&&l[k]!=='')m[k]=l[k];});return m;}
 function layerRow(l){return{target_kind:l.kind,target_id:String(l.tid),bought_on:l.date,qty:l.qty,remaining:l.rem,
-  unit_cost:l.cost,supplier:l.sup,order_ref:l.oid,location:l.loc,arrived:!!l.arr,source:l.src||'',note:l.note||''};}
+  unit_cost:l.cost,supplier:l.sup,order_ref:l.oid,location:l.loc,arrived:!!l.arr,source:l.src||'',note:l.note||'',
+  meta:layerMeta(l)};}
 let _layerErr=false;
 async function insertLayer(l){
   l.id=l.id||newId('L');
@@ -16521,7 +16535,16 @@ function repairAllocLinks(){
 }
 function setAlloc(p,alloc){
   const tag='P:'+p.id;
-  D.components.concat(D.products).forEach(o=>{if(o.layers)o.layers=o.layers.filter(l=>l.src!==tag);});
+  /* Keep what already exists. This used to DELETE every layer belonging to the
+     purchase and build fresh ones with arrived:0 — so anything that had been
+     received went back to "on order", and because the new layer had no uuid it
+     was inserted again alongside the old row. Re-running an allocation for any
+     reason silently undid a receipt. Existing layers are now updated in place,
+     keeping their uuid, their arrived flag and what is left of them. */
+  const keep={};
+  D.components.concat(D.products).forEach(o=>{if(!o.layers)return;
+    o.layers.forEach(l=>{if(l.src===tag)keep[l.id]=l;});
+    o.layers=o.layers.filter(l=>l.src!==tag);});
   p.alloc=alloc.filter(a=>a.to&&(parseInt(a.qty)||0)>0).map(a=>({to:a.to,qty:parseInt(a.qty)}));
   delete p.link;
   let missed=0;
@@ -16536,9 +16559,31 @@ function setAlloc(p,alloc){
     const m=shipMode(mode)||SHIPMODES[0];
     const add=nd=>{const x=new Date(p.date);x.setDate(x.getDate()+nd);
       return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;};
-    (o.layers=o.layers||[]).push({id:'P'+p.id+'_'+i,src:tag,date:p.date,qty:a.qty,rem:p.arr?a.qty:0,cost:p.price,
+    const lid='P'+p.id+'_'+i;
+    const was=keep[lid];
+    if(was){
+      /* it already exists — only the things the allocation actually owns change */
+      was.date=p.date;was.qty=a.qty;was.cost=p.price;was.sup=p.sup;was.oid=p.oid;
+      if(!was.arr)was.rem=0;                       // still on order: nothing on the shelf
+      else if(was.rem>a.qty)was.rem=a.qty;         // received: keep what is left of it
+      was.loc=p.loc==='Home'?'Warehouse':p.loc;
+      if(!was.mode)was.mode=mode;
+      if(!was.eta1)was.eta1=add(m.lo);
+      if(!was.eta2)was.eta2=add(m.hi);
+      (o.layers=o.layers||[]).push(was);
+      delete keep[lid];
+      return;
+    }
+    (o.layers=o.layers||[]).push({id:lid,src:tag,date:p.date,qty:a.qty,rem:p.arr?a.qty:0,cost:p.price,
       sup:p.sup,oid:p.oid,loc:p.loc==='Home'?'Warehouse':p.loc,arr:p.arr?1:0,
       mode,eta1:add(m.lo),eta2:add(m.hi)});
+  });
+  /* a layer the new allocation no longer covers, but which has already been
+     received, is real stock — put it back rather than lose it */
+  Object.values(keep).forEach(l=>{
+    if(!l.arr)return;
+    const o=targetOf(l.tid)||targetOf((l.tid||'').toString());
+    if(o)(o.layers=o.layers||[]).push(l);
   });
   logIt('edit',`Purchase “${p.name}” allocated: ${p.alloc.length?p.alloc.map(a=>fmt(a.qty)+' → '+((targetOf(a.to)||{}).name||'MISSING')).join(', '):'nothing'}`);
   if(missed){
@@ -18257,6 +18302,9 @@ ALTER TABLE lavarion_asins      ADD COLUMN IF NOT EXISTS product_type text DEFAU
 ALTER TABLE lavarion_components ADD COLUMN IF NOT EXISTS kind text DEFAULT 'component';
 ALTER TABLE lavarion_components ADD COLUMN IF NOT EXISTS tag  text;
 
+-- everything the deliveries and chase process records, in one column
+ALTER TABLE lavarion_stock_layers ADD COLUMN IF NOT EXISTS meta jsonb DEFAULT '{}'::jsonb;
+
 -- 3. stock held as FIFO batches (the core of the rewrite)
 CREATE TABLE IF NOT EXISTS lavarion_stock_layers (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -18272,6 +18320,7 @@ CREATE TABLE IF NOT EXISTS lavarion_stock_layers (
   arrived     boolean DEFAULT false,
   source      text,                       -- purchase row this came from
   note        text,                       -- reason, for stock corrections
+  meta        jsonb DEFAULT '{}'::jsonb,   -- method, expected window, arrival, chase, shortfall
   created_at  timestamptz DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS lav_layers_fifo
