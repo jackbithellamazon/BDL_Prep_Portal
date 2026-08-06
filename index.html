@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v10.2</title>
+<title>BDL PrepHub v10.5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -522,6 +522,23 @@ tbody tr:hover .row-acts{opacity:1;}
 .brTag{justify-self:end;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
   border:1px solid;border-radius:20px;padding:1px 8px;white-space:nowrap;}
 .brNote{margin-top:7px;font-size:11px;color:var(--text3);line-height:1.5;}
+/* Searching an ASIN: what THAT thing did, above the whole-shipment totals */
+.hitStrip{background:var(--bg2);border:1px solid var(--border);border-left:4px solid var(--accent);
+  border-radius:8px;margin-bottom:10px;overflow:hidden;}
+.hitHead{display:flex;align-items:center;gap:14px;padding:11px 15px;border-bottom:1px solid var(--border);}
+.hitHead b{display:block;font-size:13.5px;color:var(--text);font-weight:800;}
+.hitHead span{display:block;font-size:11.5px;color:var(--text2);margin-top:2px;}
+.hitHead>div:first-child{flex:1;min-width:0;}
+.hitTot{flex:0 0 auto;text-align:right;}
+.hitTot b{font:800 24px var(--mono);color:var(--accent);line-height:1;}
+.hitTot i{display:block;font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--text3);margin-top:3px;}
+.hitRows{display:flex;flex-direction:column;}
+.hitRow{display:grid;grid-template-columns:92px minmax(0,1fr) 74px;gap:12px;align-items:center;
+  padding:6px 15px;font-size:12px;border-top:1px solid rgba(255,255,255,.04);}
+.hitRow .hd{color:var(--text2);font-weight:700;}
+.hitRow .hs{font-family:var(--mono);font-size:11.5px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hitRow .hu{text-align:right;font:800 13px var(--mono);color:var(--text);}
 /* Transit Follow-Up. Order references and dates were 9px in the dimmest grey
    on the palette — at that size the antialiasing eats the strokes and it reads
    as blurred rather than small. This is the VA's working queue; the reference
@@ -2105,7 +2122,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v10.2</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v10.5</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -2139,7 +2156,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v10.2</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v10.5</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -2606,25 +2623,126 @@ html.light-mode{
         <div style="font-size:10px;color:var(--text3);margin-bottom:10px;line-height:1.5;">
           One-time setup — run both lines in your Supabase SQL editor. <code style="font-family:var(--mono);color:var(--accent);">ship_segments</code> lets a single SKU split across multiple shipments (8→FBA1, 2→FBA2) without merging. <code style="font-family:var(--mono);color:var(--accent);">archived</code> powers <b>Archive Sent</b>: archiving now <b>hides</b> rows from the prep sheet but <b>keeps them</b> on the Shipments page and in your stats. <code style="font-family:var(--mono);color:var(--accent);">vat</code> stores each product's VAT status (0% / 5% / 20%) for VAT-free flagging. The app works without these, but archived/split/VAT state won't survive a refresh until the columns exist.
         </div>
-        <pre id="migrationSql" style="background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:10px;color:var(--text2);overflow-x:auto;white-space:pre;line-height:1.5;margin-bottom:8px;">ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS ship_segments text DEFAULT '[]';
+        <pre id="migrationSql" style="background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:10px;color:var(--text2);overflow-x:auto;white-space:pre;line-height:1.5;margin-bottom:8px;">-- Every column this app writes, for every table it writes to.
+-- Safe to run any time: ADD COLUMN IF NOT EXISTS never alters a column that
+-- already exists, so this only ever fills gaps. Nothing is dropped or retyped.
+
+-- Make sure every table exists before altering it. On a database that already
+-- has them these are no-ops; they only matter on a fresh project.
+CREATE TABLE IF NOT EXISTS prep_rows          (id uuid primary key default gen_random_uuid());
+CREATE TABLE IF NOT EXISTS actions            (id uuid primary key default gen_random_uuid());
+CREATE TABLE IF NOT EXISTS lavarion_shipments (id uuid primary key default gen_random_uuid());
+CREATE TABLE IF NOT EXISTS lavarion_asins     (id uuid primary key default gen_random_uuid());
+CREATE TABLE IF NOT EXISTS returns_skus       (id uuid primary key default gen_random_uuid());
+CREATE TABLE IF NOT EXISTS returns_shipments  (id uuid primary key default gen_random_uuid());
+CREATE TABLE IF NOT EXISTS ship_boxes         (id uuid primary key default gen_random_uuid());
+CREATE TABLE IF NOT EXISTS audit_log          (id uuid primary key default gen_random_uuid());
+
+-- prep_rows ------------------------------------------------------------------
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS local_id integer;
 ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
-ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS sheet_sync_id text;
-ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS vat text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS date_ddmm text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS order_id text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS supplier text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS account text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS product_name text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS asin text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS sku text DEFAULT '';
 ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS ean text DEFAULT '';
-ALTER TABLE lavarion_asins ADD COLUMN IF NOT EXISTS vat text DEFAULT '20';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS dg text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS vat text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS sas_url text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS expected_qty integer DEFAULT 0;
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS bundle text DEFAULT 'No';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS bundle_qty text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS sub_save text DEFAULT 'No';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS status text DEFAULT 'In-Transit';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS qty_received integer DEFAULT 0;
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS issue_type text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS issue_qty integer DEFAULT 0;
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS shipped_qty integer DEFAULT 0;
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS ship_id text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS all_ship_ids text DEFAULT '[]';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS ship_segments text DEFAULT '[]';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS ship_type text DEFAULT 'Standard';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS sent text DEFAULT 'No';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS sent_date text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS sent_at text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS reimburse text DEFAULT 'No';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS priority text DEFAULT 'No';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS notes text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS note_by text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS note_at timestamptz;
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS va_note text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS transit_action text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS expected_delivery text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS chase_snooze_until timestamptz;
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS imported_from text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS sheet_sync_id text;
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS sheet_row text;
+
+-- actions (claims) ------------------------------------------------------------
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS local_id integer;
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS prep_row_id text;
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS date_ddmm text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS order_id text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS supplier text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS account text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS product_name text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS asin text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS sku text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS issue_type text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS status text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS expected_qty numeric DEFAULT 0;
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS received_qty numeric DEFAULT 0;
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS difference numeric DEFAULT 0;
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS cost_per_unit numeric DEFAULT 0;
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS claim_value numeric DEFAULT 0;
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS contact_log text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS notes text DEFAULT '';
 ALTER TABLE actions ADD COLUMN IF NOT EXISTS va_note text DEFAULT '';
 ALTER TABLE actions ADD COLUMN IF NOT EXISTS jack_note text DEFAULT '';
 ALTER TABLE actions ADD COLUMN IF NOT EXISTS reimbursed text DEFAULT 'No';
 ALTER TABLE actions ADD COLUMN IF NOT EXISTS reimburse_note text DEFAULT '';
-ALTER TABLE actions ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
-ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS chase_snooze_until timestamptz;
-ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS note_by text DEFAULT '';
-ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS note_at timestamptz;
-ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS sent_at text DEFAULT '';
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS raised_at timestamptz;
+
+-- shipments, returns, boxes, audit --------------------------------------------
+ALTER TABLE lavarion_shipments ADD COLUMN IF NOT EXISTS ship_id text DEFAULT '';
+ALTER TABLE lavarion_shipments ADD COLUMN IF NOT EXISTS sent_date text DEFAULT '';
+ALTER TABLE lavarion_shipments ADD COLUMN IF NOT EXISTS units integer DEFAULT 0;
+ALTER TABLE lavarion_shipments ADD COLUMN IF NOT EXISTS cost numeric DEFAULT 0;
+ALTER TABLE lavarion_asins ADD COLUMN IF NOT EXISTS vat text DEFAULT '20';
+ALTER TABLE lavarion_asins ADD COLUMN IF NOT EXISTS product_type text DEFAULT '';
+ALTER TABLE returns_skus ADD COLUMN IF NOT EXISTS sku text DEFAULT '';
+ALTER TABLE returns_skus ADD COLUMN IF NOT EXISTS asin text DEFAULT '';
+ALTER TABLE returns_skus ADD COLUMN IF NOT EXISTS product_name text DEFAULT '';
+ALTER TABLE returns_skus ADD COLUMN IF NOT EXISTS cog numeric DEFAULT 0;
+ALTER TABLE returns_skus ADD COLUMN IF NOT EXISTS units integer DEFAULT 1;
+ALTER TABLE returns_skus ADD COLUMN IF NOT EXISTS notes text DEFAULT '';
+ALTER TABLE returns_shipments ADD COLUMN IF NOT EXISTS ship_id text DEFAULT '';
+ALTER TABLE returns_shipments ADD COLUMN IF NOT EXISTS sku text DEFAULT '';
+ALTER TABLE returns_shipments ADD COLUMN IF NOT EXISTS product_name text DEFAULT '';
+ALTER TABLE returns_shipments ADD COLUMN IF NOT EXISTS date text DEFAULT '';
+ALTER TABLE returns_shipments ADD COLUMN IF NOT EXISTS sent_date text DEFAULT '';
+ALTER TABLE returns_shipments ADD COLUMN IF NOT EXISTS units integer DEFAULT 0;
+ALTER TABLE returns_shipments ADD COLUMN IF NOT EXISTS cost numeric DEFAULT 0;
+ALTER TABLE ship_boxes ADD COLUMN IF NOT EXISTS ship_id text DEFAULT '';
+ALTER TABLE ship_boxes ADD COLUMN IF NOT EXISTS ship_type text DEFAULT 'Standard';
+ALTER TABLE ship_boxes ADD COLUMN IF NOT EXISTS boxes integer DEFAULT 0;
+ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS user_col text DEFAULT '';
+ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS user_init text DEFAULT '';
+ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS user_role text DEFAULT '';
+
 CREATE UNIQUE INDEX IF NOT EXISTS prep_rows_sheet_sync_id_key ON prep_rows (sheet_sync_id) WHERE sheet_sync_id IS NOT NULL;
+
+-- app_settings is key/value, so it is created rather than altered.
+-- Postgres has no CREATE POLICY IF NOT EXISTS, so drop-then-create is the
+-- idempotent form. Safe to re-run.
 CREATE TABLE IF NOT EXISTS app_settings (key text primary key, value text);
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK (true);</pre>
+DROP POLICY IF EXISTS "app_settings_all" ON app_settings;
+CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK (true);</pre>
         <button onclick="copyMigrationSql(this)" style="padding:6px 14px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">⎘ Copy SQL</button>
       </div>
 
@@ -8907,6 +9025,7 @@ function renderShipments(){
   /* The date window always applies — but if a search finds nothing inside it,
      we check the other dates and say so rather than showing an empty page. */
   const _allDated=shipments.slice();
+  let _shipElsewhere=0;   // matches outside the chosen dates — reported on the page, not in the strip
   if(dateFrom&&dateTo){
     shipments=shipments.filter(s=>{
       const lo=((s.minDate||s.date)||'').slice(0,10);
@@ -8936,10 +9055,13 @@ function renderShipments(){
     else{
       const inPeriod=shipments.filter(_match).length;
       const elsewhere=_allDated.filter(_match).length-inPeriod;
-      _dateEl.innerHTML=(!inPeriod&&elsewhere)
-        ? `<span style="color:var(--amber);font-weight:700">Nothing in this period — ${elsewhere} match${elsewhere===1?'':'es'} in other dates</span>
-           <button onclick="setShipDateFilter('all')" style="margin-left:6px;background:var(--btn-amber-bg);border:1px solid var(--btn-amber-border);color:var(--btn-amber-text);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;">Search all dates</button>`
-        : (elsewhere?`<span style="color:var(--text3)">+${elsewhere} outside this period</span>`:'');
+      /* This message used to live in the filter strip, where it did not fit —
+         it overflowed the search box and got clipped, so the one thing you
+         needed to read was the one thing you could not. Only the short hint
+         stays here; the real message is rendered on the page, in the empty
+         state, which is where you are already looking. */
+      _shipElsewhere=(!inPeriod&&elsewhere)?elsewhere:0;
+      _dateEl.innerHTML=(inPeriod&&elsewhere)?`<span style="color:var(--text3)">+${elsewhere} outside this period</span>`:'';
     }
   }
   if(q)shipments=shipments.filter(s=>
@@ -8953,8 +9075,55 @@ function renderShipments(){
   
 
   if(!shipments.length){
-    w.innerHTML=`<div class="empty"><div class="empty-ico">📦</div><div class="empty-t">No shipments found for this period</div></div>`;
+    w.innerHTML=`<div class="empty"><div class="empty-ico">📦</div>
+      ${_shipElsewhere
+        ? `<div class="empty-t">Nothing for “${esc(q)}” in this period</div>
+           <div style="font-size:13px;color:var(--text2);margin-top:7px;line-height:1.6">
+             It was sent <b style="color:var(--amber)">${_shipElsewhere} time${_shipElsewhere===1?'':'s'}</b> outside the dates you have picked.</div>
+           <button onclick="setShipDateFilter('all')"
+             style="margin-top:13px;background:var(--btn-amber-bg);border:1px solid var(--btn-amber-border);color:var(--btn-amber-text);border-radius:7px;padding:8px 16px;font-size:13px;font-weight:800;cursor:pointer;">Show all dates</button>`
+        : q
+        ? `<div class="empty-t">Nothing matches “${esc(q)}”</div>
+           <div style="font-size:13px;color:var(--text2);margin-top:7px;">No shipment on record has that ASIN, SKU or FBA ID.</div>`
+        : `<div class="empty-t">No shipments found for this period</div>`}
+    </div>`;
     return;
+  }
+
+  /* Searching an ASIN and being shown whole-shipment totals answers the wrong
+     question. What you want is: this thing — when did it go and how many. The
+     bar below still totals the shipments; this totals the SEARCH. */
+  const _hd=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):'—';
+  let _hitStrip='';
+  if(q){
+    const hits=[];
+    shipments.forEach(s=>{
+      const add=(u,name)=>{if(u>0)hits.push({date:s.minDate||s.date,ship:s.id,units:u,name});};
+      s.skus.forEach(r=>{if(((r.sku||'')+(r.asin||'')+(r.prod||'')+(r.sup||'')).toLowerCase().includes(q))
+        add(r._segUnits||r.ship||r.exp||0, r.prod||r.sku);});
+      s.lavSkus.forEach(l=>{if(((l.sku||'')+(l.asin||'')+(l.prod||'')).toLowerCase().includes(q))
+        add(l.units||0, l.prod||l.sku);});
+      (s.retSkus||[]).forEach(r=>{if(((r.sku||'')+(r.asin||'')+(r.prod||'')).toLowerCase().includes(q))
+        add(r.units||0, r.prod||r.sku);});
+    });
+    if(hits.length){
+      hits.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+      const tot=hits.reduce((a,h)=>a+h.units,0);
+      const first=hits[0].date, last=hits[hits.length-1].date;
+      const nm=[...new Set(hits.map(h=>h.name))][0]||q;
+      _hitStrip=`<div class="hitStrip">
+        <div class="hitHead">
+          <div><b>${esc(String(nm).slice(0,60))}</b>
+            <span>${fmt(tot)} unit${tot===1?'':'s'} across ${hits.length} shipment${hits.length===1?'':'s'}${
+              first&&last?` · ${_hd(first)}${first!==last?' → '+_hd(last):''}`:''}</span></div>
+          <div class="hitTot"><b>${fmt(tot)}</b><i>units sent</i></div>
+        </div>
+        <div class="hitRows">${hits.map(h=>`<div class="hitRow">
+          <span class="hd">${_hd(h.date)}</span>
+          <span class="hs">${esc(h.ship)}</span>
+          <span class="hu">${fmt(h.units)}</span></div>`).join('')}</div>
+      </div>`;
+    }
   }
 
   // ── SUMMARY BAR ──────────────────────────────────────────────────────────────
@@ -8990,7 +9159,7 @@ function renderShipments(){
   </div>`;
 
 
-  w.innerHTML=summaryBar+shipments.map(s=>{
+  w.innerHTML=_hitStrip+summaryBar+shipments.map(s=>{
     const dateDisp=s.date?new Date(s.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
     const sfUrl=`https://app.sellerfuse.com/shipment-manager?search=${encodeURIComponent(s.id)}`;
     const skuCount=s.skus.length+(s.lavSkus||[]).length+(s.retSkus||[]).length;
@@ -10632,19 +10801,35 @@ let _missingColWarned=false;
    the shape of every data-loss bug in this app: it still works, and nobody is
    told what stopped being saved. So it now stays on screen until it is fixed,
    names the fields, and hands over the SQL. */
+/* A warning that covers the horizontal scrollbar has replaced one problem with
+   another. It sits ABOVE the bottom edge, not on it, and folds down to a small
+   tab that stays visible — so it can never be dismissed and forgotten, but it
+   also never sits on top of something you need to use. */
+let _missColMin=false;
+function _missingColFold(){_missColMin=!_missColMin;_paintMissingCols();}
 function _paintMissingCols(){
   let el=document.getElementById('missingColBar');
   if(!_missingCols.size){if(el)el.remove();return;}
   if(!el){
     el=document.createElement('div');
     el.id='missingColBar';
-    el.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:9998;background:#2a0f0f;'
-      +'border-top:2px solid #ef4444;padding:11px 16px;display:flex;gap:13px;align-items:center;'
-      +'font:600 12.5px var(--sans,system-ui);color:#fecaca;box-shadow:0 -8px 22px rgba(0,0,0,.5);';
     document.body.appendChild(el);
   }
   const cols=[...(_missingCols)];
   const sql=cols.map(c=>`ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS ${c} text DEFAULT '';`).join('\n');
+  const base='position:fixed;right:16px;z-index:9998;background:#2a0f0f;border:1px solid #ef4444;'
+    +'font:600 12.5px var(--sans,system-ui);color:#fecaca;box-shadow:0 10px 26px rgba(0,0,0,.6);';
+  if(_missColMin){
+    /* folded: a small tab clear of the scrollbar, still impossible to miss */
+    el.style.cssText=base+'bottom:34px;border-radius:8px;padding:7px 12px;display:flex;gap:9px;align-items:center;cursor:pointer;';
+    el.title='Show what is not being saved';
+    el.onclick=()=>_missingColFold();
+    el.innerHTML=`<span style="font-size:14px">&#9888;</span>
+      <span><b style="color:#fff">${cols.length}</b> field${cols.length===1?'':'s'} not saving</span>`;
+    return;
+  }
+  el.style.cssText=base+'left:16px;bottom:34px;border-radius:9px;padding:11px 15px;display:flex;gap:13px;align-items:center;';
+  el.onclick=null; el.title='';
   el.innerHTML=`<span style="font-size:17px;flex:0 0 auto">&#9888;</span>
     <div style="flex:1;min-width:0;line-height:1.5">
       <b style="color:#fff">${cols.length} field${cols.length===1?' is':'s are'} not being saved.</b>
@@ -10653,7 +10838,9 @@ function _paintMissingCols(){
       ${cols.length===1?'it':'them'} is lost on refresh. Run the SQL in Settings → Database.
     </div>
     <button onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(sql)});this.textContent='Copied'"
-      style="flex:0 0 auto;background:#ef4444;border:0;color:#fff;border-radius:6px;padding:6px 13px;font-weight:800;cursor:pointer;font-size:12px">Copy the SQL</button>`;
+      style="flex:0 0 auto;background:#ef4444;border:0;color:#fff;border-radius:6px;padding:6px 13px;font-weight:800;cursor:pointer;font-size:12px">Copy the SQL</button>
+    <button onclick="_missingColFold()" title="Fold it away — it stays as a small tab until the SQL is run"
+      style="flex:0 0 auto;background:none;border:1px solid rgba(255,255,255,.25);color:#fecaca;border-radius:6px;padding:6px 11px;font-weight:700;cursor:pointer;font-size:12px">Fold away</button>`;
 }
 function _missingColInErr(err){
   if(!err)return null;
@@ -12835,7 +13022,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v10.2 · lav3 · 2026-08-06 · b117';
+const BUILD='v10.5 · lav3 · 2026-08-06 · b120';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
