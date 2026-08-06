@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v9.4</title>
+<title>BDL PrepHub v9.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -965,7 +965,19 @@ html.light-mode{
   padding:9px 0;border-bottom:1px solid var(--border);}
 #page-lavarion .rsPick2:last-child,.lav3 .rsPick2:last-child{border-bottom:0;padding-bottom:0;}
 #page-lavarion .rsPick2.noList,.lav3 .rsPick2.noList{opacity:.55;}
-#page-lavarion .rsP2N,.lav3 .rsP2N{min-width:170px;flex:1 1 170px;}
+#page-lavarion .rsP2N,.lav3 .rsP2N{min-width:170px;flex:1 1 170px;display:flex;gap:9px;align-items:flex-start;}
+/* a log folds away until it is needed */
+#page-lavarion .rsChev,.lav3 .rsChev{background:none;border:0;padding:0;cursor:pointer;color:var(--text3);
+  font-size:11px;line-height:1.5;flex:0 0 auto;}
+#page-lavarion .rsChev:hover,.lav3 .rsChev:hover{color:var(--accent);}
+#page-lavarion .rsPick2.open,.lav3 .rsPick2.open{background:rgba(255,255,255,.02);border-radius:8px;
+  padding-left:8px;padding-right:8px;}
+#page-lavarion .rsLog,.lav3 .rsLog{flex:0 0 100%;margin-top:9px;border-top:1px solid var(--border);padding-top:9px;}
+#page-lavarion .rsTbl.mini,.lav3 .rsTbl.mini{font-size:12px;}
+#page-lavarion .rsTbl.mini th,.lav3 .rsTbl.mini th{font-size:9px;padding-top:5px;padding-bottom:5px;}
+#page-lavarion .rsTbl.mini td,.lav3 .rsTbl.mini td{padding-top:5px;padding-bottom:5px;}
+#page-lavarion .rsTbl.mini .pname,.lav3 .rsTbl.mini .pname{font-size:12px;}
+#page-lavarion .ph>.rsChev,.lav3 .ph>.rsChev{margin-right:2px;}
 #page-lavarion .rsP2N .nm,.lav3 .rsP2N .nm{display:block;font:800 13px var(--font);color:var(--text);}
 #page-lavarion .rsP2N .mt,.lav3 .rsP2N .mt{display:block;font-size:10.5px;color:var(--text3);margin-top:1px;}
 #page-lavarion .rsP2F,.lav3 .rsP2F{display:flex;gap:15px;flex-wrap:wrap;}
@@ -1330,6 +1342,15 @@ html.light-mode{
 #page-lavarion .amzHead,.lav3 .amzHead{background:var(--bg3);font:800 9.5px var(--num);letter-spacing:.07em;
   text-transform:uppercase;color:var(--text3);}
 #page-lavarion .amzRow,.lav3 .amzRow{border-top:1px solid var(--border);}
+/* two numbers off the same SAS panel: available, then inbound */
+#page-lavarion .amzGrid.two .amzHead,.lav3 .amzGrid.two .amzHead,
+#page-lavarion .amzGrid.two .amzRow,.lav3 .amzGrid.two .amzRow{
+  grid-template-columns:minmax(0,1fr) 130px 116px 96px 96px 78px;}
+#page-lavarion .amzI,.lav3 .amzI{border-color:rgba(96,165,250,.35)!important;}
+#page-lavarion .amzI:focus,.lav3 .amzI:focus{border-color:var(--blu)!important;}
+#page-lavarion .amzSent,.lav3 .amzSent{display:inline-block;margin-left:7px;font:700 9.5px var(--font);
+  padding:1px 7px;border-radius:20px;background:rgba(96,165,250,.16);color:#93c5fd;}
+#page-lavarion .amzInb,.lav3 .amzInb{font:700 10px var(--num);color:var(--blu);text-align:center;margin-top:1px;}
 #page-lavarion .amzRow:hover,.lav3 .amzRow:hover{background:var(--bg3);}
 #page-lavarion .amzRow.done,.lav3 .amzRow.done{background:rgba(85,255,85,.06);}
 #page-lavarion .amzNm,.lav3 .amzNm{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -2032,7 +2053,7 @@ html.light-mode{
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v9.4</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v9.6</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -2066,7 +2087,7 @@ html.light-mode{
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v9.4</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v9.6</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -12594,7 +12615,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v9.4 · lav3 · 2026-08-06 · b109';
+const BUILD='v9.6 · lav3 · 2026-08-06 · b111';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -13264,17 +13285,24 @@ function openAtAmz(keepWhen){
           If you read them off Seller Central earlier, set it back — otherwise everything downstream thinks the numbers are fresher than they are.</span>
       </div>
     ${_amzMode==='grid'?`
-      <div class="amzHelp">Open <b>SAS</b> next to an ASIN, read the number, type it, then press <b>Tab</b> to drop to the next one.
-        Leave anything you don't check blank — blank is left exactly as it was, it is not a zero.</div>
-      <div class="amzGrid">
-        <div class="amzHead"><span>Product</span><span>ASIN</span><span>Last count</span><span>Now</span><span></span></div>
-        ${live.map((x,i)=>{const was=atAmz(x),age=atAmzAge(x);
+      <div class="amzHelp">Open <b>SAS</b> next to an ASIN and copy both numbers it shows —
+        <b>Your Available Stock</b> and <b>Stock Inbound</b> — then press <b>Tab</b> to move on.
+        Leave anything you don't check blank; blank is left exactly as it was, it is not a zero.
+        <div style="margin-top:6px">Inbound counts toward the ${D.settings.targetDays||60}-day target but is kept separate,
+        because <b>3 available with 70 inbound is not the same as 73 available</b> — the first is out of stock today.</div></div>
+      <div class="amzGrid two">
+        <div class="amzHead"><span>Product</span><span>ASIN</span><span>Last count</span><span>Available</span><span>Inbound</span><span></span></div>
+        ${live.map((x,i)=>{const was=atAmz(x),wasIn=amzIn(x),age=atAmzAge(x),sent=sentSince(x);
           return `<div class="amzRow" id="amzRow-${i}">
-            <span class="amzNm">${esc(x.name)}</span>
+            <span class="amzNm">${esc(x.name)}
+              ${sent.units?`<span class="amzSent" title="We have sent this much since the last count — it should be showing as inbound, or already checked in">we sent ${fmt(sent.units)}</span>`:''}</span>
             <span class="amzAsin mono">${asinBtn(x.asin)}</span>
             <span class="amzWas">${was==null?'<span class="dim">never</span>'
-              :`${fmt(was)}<span class="amzAge">${esc(whenTxt((D.settings.atAmzAt||{})[x.asin]))||(age===0?'today':age+'d')}</span>`}</span>
+              :`${fmt(was)}${wasIn?` <span style="color:var(--blu)">+${fmt(wasIn)}</span>`:''}<span class="amzAge">${esc(whenTxt((D.settings.atAmzAt||{})[x.asin]))||(age===0?'today':age+'d')}</span>`}</span>
             <input class="in num amzQ" type="number" min="0" inputmode="numeric" data-i="${i}" data-asin="${esc(x.asin)}"
+              placeholder="—" oninput="LV3.amzGridSum()"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();const n=document.querySelector('.amzI[data-i=&quot;${i}&quot;]');if(n){n.focus();n.select();}}">
+            <input class="in num amzI" type="number" min="0" inputmode="numeric" data-i="${i}" data-asin="${esc(x.asin)}"
               placeholder="—" oninput="LV3.amzGridSum()"
               onkeydown="if(event.key==='Enter'){event.preventDefault();const n=document.querySelector('.amzQ[data-i=&quot;${i+1}&quot;]');if(n){n.focus();n.select();}}">
             <a class="btn sm amzSas" href="${sasUrl(x.asin)}" target="_blank" rel="noopener"
@@ -13286,11 +13314,13 @@ function openAtAmz(keepWhen){
           <div class="lab">How</div>
           <ol class="pasteSteps">
             <li>Seller Central → <b>Inventory</b></li>
-            <li>Select the ASIN and available columns</li>
+            <li>Show the <b>Available</b> and <b>Inbound</b> columns</li>
             <li>Copy the rows and paste them in</li>
           </ol>
-          <div class="pmeta">Any order, any separator. It finds the ASIN or SKU on each line and takes the first
-            number after it. Lines it cannot place are listed back to you rather than dropped.</div>
+          <div class="pmeta">This is the quick way — one paste does all ${fmt(live.length)} instead of ${fmt(live.length)} SAS lookups.
+            Any order, any separator. It finds the ASIN or SKU on each line, takes the <b>first number as available</b>
+            and a <b>second number, if there is one, as inbound</b>. Lines it cannot place are listed back to you
+            rather than dropped.</div>
         </div>
         <div class="pasteMain">
           <textarea id="amzIn" class="in pasteBox" spellcheck="false"
@@ -13314,19 +13344,29 @@ function amzGridSum(){
   const byAsin={};
   D.products.forEach(x=>{if(x.asin)byAsin[String(x.asin).toUpperCase()]=x;});
   _amzRows=[];
+  const inbBy={};
+  document.querySelectorAll('.amzI').forEach(el=>{
+    const v=el.value.trim();if(v==='')return;
+    const n=parseInt(v,10);if(n>=0)inbBy[el.dataset.i]=n;
+  });
   document.querySelectorAll('.amzQ').forEach(el=>{
     const v=el.value.trim();
     const row=el.closest('.amzRow');
-    if(row)row.classList.toggle('done',v!=='');
-    if(v==='')return;
-    const n=parseInt(v,10);
+    const inb=inbBy[el.dataset.i];
+    if(row)row.classList.toggle('done',v!==''||inb!=null);
     const p=byAsin[String(el.dataset.asin||'').toUpperCase()];
-    if(!p||!(n>=0))return;
-    _amzRows.push({p,qty:n,line:p.asin+' '+n});
+    if(!p)return;
+    const n=v===''?null:parseInt(v,10);
+    /* either number on its own is worth saving — inbound can change without
+       the available count moving at all */
+    if(n==null&&inb==null)return;
+    if(n!=null&&!(n>=0))return;
+    _amzRows.push({p,qty:n,inb:inb==null?null:inb,line:p.asin+' '+(n==null?'—':n)});
   });
   const sum=$('amzSum');
+  const uAv=_amzRows.reduce((t,r)=>t+(r.qty||0),0),uIn=_amzRows.reduce((t,r)=>t+(r.inb||0),0);
   if(sum)sum.innerHTML=_amzRows.length
-    ? `<b style="color:var(--grn)">${fmt(_amzRows.length)}</b> counted · ${fmt(_amzRows.reduce((t,r)=>t+r.qty,0))} units at Amazon · the rest are left as they were`
+    ? `<b style="color:var(--grn)">${fmt(_amzRows.length)}</b> counted · ${fmt(uAv)} available${uIn?` · <span style="color:var(--blu)">${fmt(uIn)} inbound</span>`:''} · the rest are left as they were`
     : 'Nothing entered yet';
   const go=$('amzGo');if(go){go.disabled=!_amzRows.length;go.style.opacity=_amzRows.length?'1':'.45';}
 }
@@ -13345,20 +13385,27 @@ function amzParse(txt){
       const pr=byAsin[tok]||bySku[tok];
       if(pr){hit=pr;at=up.indexOf(tok)+tok.length;}});
     if(!hit)return{line,err:'no ASIN or SKU on this line'};
-    const m=line.slice(at).match(/-?\d[\d,]*/);
-    if(!m)return{line,err:'no number after '+(hit.asin||hit.sku)};
-    const qty=parseInt(String(m[0]).replace(/,/g,''),10);
+    /* Seller Central's inventory export puts Available and Inbound side by
+       side, so a paste can fill both at once — which is what turns the weekly
+       job from 29 SAS lookups into one copy. First number is available; a
+       second, if there is one, is inbound. */
+    const rest=line.slice(at);
+    const nums=(rest.match(/-?\d[\d,]*/g)||[]).map(x=>parseInt(String(x).replace(/,/g,''),10)).filter(n=>n>=0);
+    if(!nums.length)return{line,err:'no number after '+(hit.asin||hit.sku)};
+    const qty=nums[0];
+    const inb=nums.length>1?nums[1]:null;
     if(!(qty>=0))return{line,err:'that number does not read as units'};
     if(seen[hit.id])return{line,err:hit.name+' is on more than one line'};
     seen[hit.id]=1;
-    return{line,p:hit,qty};});
+    return{line,p:hit,qty,inb};});
   const ok=_amzRows.filter(r=>r.p),bad=_amzRows.filter(r=>!r.p);
   const missing=live.filter(x=>!seen[x.id]);
   const out=$('amzOut');
   if(out)out.innerHTML=!_amzRows.length?'':`
     ${ok.length?`<div class="pasteGrp ok"><b>${fmt(ok.length)} matched</b>
       <div class="pasteList">${ok.map(r=>{const was=atAmz(r.p);const d=was==null?null:r.qty-was;
-        return `<div class="pasteRow"><span class="pn">${esc(r.p.name)}</span><span class="pq">${fmt(r.qty)}</span>
+        return `<div class="pasteRow"><span class="pn">${esc(r.p.name)}</span>
+          <span class="pq">${fmt(r.qty)}${r.inb?` <span style="color:var(--blu);font-size:11px">+${fmt(r.inb)}</span>`:''}</span>
           <span class="pd">${was==null?'first count':d===0?'no change':`${d>0?'+':''}${fmt(d)}`}</span></div>`;}).join('')}</div></div>`:''}
     ${bad.length?`<div class="pasteGrp bad"><b>${fmt(bad.length)} could not be placed</b>
       <div class="pasteList">${bad.map(r=>`<div class="pasteRow"><span class="pn">${esc(r.line.slice(0,60))}</span>
@@ -13379,9 +13426,14 @@ function amzSave(){
   D.settings.atAmzAt=D.settings.atAmzAt||{};
   /* the time the count was TAKEN, which the person can correct — not save-time */
   const when=_amzWhen||localDT(new Date());
-  ok.forEach(r=>{D.settings.atAmz[r.p.asin]=r.qty;D.settings.atAmzAt[r.p.asin]=when;});
+  D.settings.atAmzIn=D.settings.atAmzIn||{};
+  ok.forEach(r=>{
+    if(r.qty!=null)D.settings.atAmz[r.p.asin]=r.qty;
+    if(r.inb!=null)D.settings.atAmzIn[r.p.asin]=r.inb;
+    D.settings.atAmzAt[r.p.asin]=when;});
   savePrefs();save();
-  logIt('edit',`Stock at Amazon counted ${whenTxt(when)} — ${ok.length} product${ok.length===1?'':'s'}, ${ok.reduce((t,r)=>t+r.qty,0)} units`);
+  const uIn=ok.reduce((t,r)=>t+(r.inb||0),0);
+  logIt('edit',`Stock at Amazon counted ${whenTxt(when)} — ${ok.length} product${ok.length===1?'':'s'}, ${ok.reduce((t,r)=>t+(r.qty||0),0)} available${uIn?`, ${uIn} inbound`:''}`);
   cm('lav3Ov2');render();
   toastUndo(`${fmt(ok.length)} count${ok.length===1?'':'s'} saved`,'ok');
 }
@@ -13389,8 +13441,8 @@ function amzSave(){
    target column is only useful if you can act on it. */
 function openOrderPlan(pid){
   const p=prod(pid);if(!p)return;
-  const t=target60(p)||0, at=atAmz(p), have=avail(p).n||0;
-  const cover=(at||0)+have, gap=Math.max(0,t-cover);
+  const t=target60(p)||0, at=atAmz(p), inb=amzIn(p), have=avail(p).n||0;
+  const cover=(at||0)+(inb||0)+have, gap=Math.max(0,t-cover);
   const canSend=Math.min(have,gap||have);
   const stillShort=Math.max(0,gap-have);
   const cg=cogOf(p,1);
@@ -13415,8 +13467,11 @@ function openOrderPlan(pid){
         <button class="btn sm warn" style="margin-top:7px" onclick="LV3.cm('lav3Ov2');LV3.openHubReview()">Sort the sales link</button></div>`:''}
       <div class="opBox">
         ${row('Target for '+(D.settings.targetDays||60)+' days',fmt(t),sold30(p)!=null?`${fmt(sold30(p))} sold in ${ymName(hubMonth().ym)}`:'estimated')}
-        ${row('At Amazon now',at==null?'never counted':fmt(at),atAmzAge(p)!=null?`counted ${whenTxt((D.settings.atAmzAt||{})[p.asin])||atAmzAge(p)+'d ago'}`:'',at==null?'var(--text3)':atAmzAge(p)>=14?'var(--amb)':'')}
+        ${row('Sellable at Amazon',at==null?'never counted':fmt(at),atAmzAge(p)!=null?`counted ${whenTxt((D.settings.atAmzAt||{})[p.asin])||atAmzAge(p)+'d ago'}`:'',at==null?'var(--text3)':(amzDry(p)?'var(--amb)':atAmzAge(p)>=14?'var(--amb)':''))}
+        ${inb?row('Inbound to Amazon',fmt(inb),'sent, not checked in yet — counts toward the target','var(--blu)'):''}
         ${row('Backstock here',fmt(have),p.type==='bundle'?'buildable from parts':'on the shelf')}
+        ${(()=>{const d=amzDry(p);return d?`<div class="note bad" style="margin:9px 0 0"><b>Out on the shelf${d.days>0?` in about ${d.days} day${d.days===1?'':'s'}`:' now'}.</b>
+          Only ${fmt(d.have)} sellable at the current rate${d.coming?`, with ${fmt(d.coming)} inbound — the target is covered but the listing runs dry before it lands`:''}.</div>`:'';})()}
         ${row('Shortfall',gap?fmt(gap):'none',gap?'against the target':'covered',gap?'var(--amb)':'var(--grn)')}
       </div>
       <div class="opAct">
@@ -13446,6 +13501,35 @@ function openOrderPlan(pid){
   om('lav3Ov2');
 }
 function atAmz(p){const m=D.settings.atAmz||{};const v=m[p.asin];return (v===0||v)?v:null;}
+/* Stock Inbound off the same SAS panel — units on their way to Amazon that are
+   not yet sellable. Becki found the hole: the target counted the 3 sellable and
+   ignored the 70 landing, so it asked for a reorder of stock already in flight.
+   Kept as its OWN number, not folded into "at Amazon": 3 available + 70 inbound
+   and 73 available are the same total and completely different problems — the
+   first is out of stock right now. Merging them would have hidden that. */
+function amzIn(p){const m=D.settings.atAmzIn||{};const v=m[p.asin];return (v===0||v)?v:null;}
+/* everything Amazon has or is about to have */
+const atAmzAll=p=>{const a=atAmz(p),i=amzIn(p);return (a==null&&i==null)?null:(a||0)+(i||0);};
+/* What we have sent since the last count — the cross-check on the number typed
+   in. If we shipped 70 and SAS shows nothing inbound, that shipment is worth
+   chasing; the app already knows every shipment, so it can say so. */
+function sentSince(p){
+  const at=(D.settings.atAmzAt||{})[p.asin];
+  const rows=(typeof lavShipments!=='undefined'?lavShipments:[]).filter(x=>x.asin===p.asin);
+  if(!rows.length)return{n:0,units:0};
+  const cut=at?String(at).slice(0,10):'';
+  const after=rows.filter(x=>!cut||String(x.date||'').slice(0,10)>=cut);
+  return{n:after.length,units:after.reduce((t,x)=>t+(x.units||0),0)};
+}
+/* Out on the shelf right now, whatever is on its way. This is the thing that
+   merging the two numbers would have buried. */
+function amzDry(p){
+  const a=atAmz(p);if(a==null)return null;
+  const s=sold30(p);if(s==null||!s)return null;
+  const daysLeft=a/(s/30);
+  if(daysLeft>=10)return null;
+  return{days:Math.floor(daysLeft),have:a,coming:amzIn(p)||0};
+}
 function atAmzAge(p){const at=(D.settings.atAmzAt||{})[p.asin];return at?daysSince(at):null;}
 /* ═══════════════ SALES — READ FROM THE BDL HUB ═══════════════
    "Sold last month" is not typed in here and never should be. The Amazon
@@ -14589,11 +14673,15 @@ function prodRow(p){
         ${lim&&a.n===0?`<div class="blocked">out of ${esc(lim.name)}${onOrder(lim)?` · ${fmt(onOrder(lim))} on order`:' · nothing on order'}</div>`
           :lim?`<div class="pmeta" style="color:var(--amb)">${esc(lim.name)} limits it</div>`:''}
       </div></td>
-    <td onclick="event.stopPropagation()">${(()=>{const v=atAmz(p),age=atAmzAge(p);
-      if(v==null)return `<span class="dim" style="font-size:14px">—</span>`;
+    <td onclick="event.stopPropagation()">${(()=>{const v=atAmz(p),inb=amzIn(p),age=atAmzAge(p);
+      if(v==null&&inb==null)return `<span class="dim" style="font-size:14px">—</span>`;
       const stale=age!=null&&age>=14;
-      return `<span class="mono b" style="font-size:14px;color:${v===0?'var(--red)':stale?'var(--amb)':'var(--text)'}">${fmt(v)}</span>
-        <div class="sldSub" title="${esc(whenTxt((D.settings.atAmzAt||{})[p.asin]))}">${age==null?'counted'
+      const dry=amzDry(p);
+      return `<span class="mono b" style="font-size:14px;color:${v===0?'var(--red)':dry?'var(--amb)':stale?'var(--amb)':'var(--text)'}">${v==null?'—':fmt(v)}</span>
+        ${inb?`<div class="amzInb" title="On its way to Amazon — counted toward the target, but not sellable yet">+${fmt(inb)} inbound</div>`:''}
+        <div class="sldSub" title="${esc(whenTxt((D.settings.atAmzAt||{})[p.asin]))}">${
+          dry?`<span style="color:var(--amb)">${dry.days<=0?'out on the shelf':dry.days+'d left'}</span>`
+          :age==null?'counted'
           :stale?`<span style="color:var(--amb)">${age}d old</span>`
           :age===0?esc(whenTxt((D.settings.atAmzAt||{})[p.asin],true)||'today')
           :`${age}d ago`}</div>`;})()}</td>
@@ -14638,14 +14726,16 @@ function prodRow(p){
       /* The target is now measured against what is AT AMAZON, plus what you hold
          here, because that is the real question: is there enough in front of the
          customer for the next 60 days. Backstock only counts once it is sent. */
-      const at=atAmz(p),have=avail(p).n||0,cover=(at||0)+have,gap=t-cover,real=sold30(p)!=null;
+      /* inbound counts. Asking for a reorder of stock already on its way to
+         Amazon is how you end up double-buying. */
+      const at=atAmz(p),inb=amzIn(p),have=avail(p).n||0,cover=(at||0)+(inb||0)+have,gap=t-cover,real=sold30(p)!=null;
       /* One shade of amber for everything short said nothing: 8 units short of
          74 and 690 short of 690 are not the same problem. Colour follows how
          much of the target is actually covered. */
       const pct=t?Math.round(cover/t*100):0;
       const k=gap<=0?'ok':pct>=75?'near':pct>=35?'gap':'bad';
       return `<button class="tgtBtn ${k}" onclick="LV3.openOrderPlan('${p.id}')"
-        title="${fmt(cover)} of ${fmt(t)} covered — ${fmt(at||0)} at Amazon + ${fmt(have)} here. Click for what to send and what to order.">
+        title="${fmt(cover)} of ${fmt(t)} covered — ${fmt(at||0)} sellable at Amazon${inb?` + ${fmt(inb)} inbound`:''} + ${fmt(have)} here. Click for what to send and what to order.">
         <span class="tgtN">${fmt(t)}</span>
         <span class="tgtS">${gap>0?`${fmt(gap)} short`:'covered'}</span>
         <span class="tgtBar"><i style="width:${Math.max(2,Math.min(100,pct))}%"></i></span></button>`;})()}</td>`:''}
@@ -15719,7 +15809,7 @@ function savePrefs(){
       let remote={};
       try{const r=await sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle();
         if(r&&r.data&&r.data.value)remote=JSON.parse(r.data.value)||{};}catch(e){}
-      const MAPS=['supplierModes','sold30','sold30At','untracked','aliases','modeDays','hubMap','hubSkip','atAmz','atAmzAt'];
+      const MAPS=['supplierModes','sold30','sold30At','untracked','aliases','modeDays','hubMap','hubSkip','atAmz','atAmzIn','atAmzAt'];
       const merged={...remote,...D.settings};
       MAPS.forEach(k=>{
         const a=remote[k],b=D.settings[k];
@@ -16557,7 +16647,27 @@ function restockPlan(p,target){
   }).filter(Boolean).sort((a,b)=>b.shortfall-a.shortfall||a.c.name.localeCompare(b.c.name));
 }
 function rsClear(){RS_PICKS={};RS_Q='';render();}
-function rsFind(v){RS_Q=v;const box=document.getElementById('rsPop');if(box)box.innerHTML=rsHits(v);}
+/* The list was being filled and left hidden. On the opening screen the markup
+   hardcodes .on so it worked; once something was picked the class was only set
+   at render time, and typing never re-renders — so "Add another bundle" looked
+   completely dead. Show it here, where the typing happens. */
+function rsFind(v){
+  RS_Q=v;
+  const box=document.getElementById('rsPop');
+  if(!box)return;
+  box.innerHTML=rsHits(v);
+  box.classList.add('on');
+}
+function rsCloseFind(){const b=document.getElementById('rsPop');
+  if(b&&!document.querySelector('.rsStart'))b.classList.remove('on');}
+document.addEventListener('click',e=>{if(!e.target.closest('.rsSearch'))rsCloseFind();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')rsCloseFind();});
+/* Which restock logs are opened out. Collapsed by default — the point of a log
+   is that it sits there until the ordering is done, and eight of them expanded
+   is a page you cannot use. */
+let RS_OPEN={},RS_TBL=true;
+function rsToggle(pid){RS_OPEN[pid]=!RS_OPEN[pid];render();}
+function rsToggleTbl(){RS_TBL=!RS_TBL;render();}
 function rsHits(v){
   const q=(v||'').toLowerCase().trim();
   const list=D.products.filter(x=>x.type==='bundle'&&!x.archived&&!RS_PICKS[x.id])
@@ -16627,15 +16737,22 @@ function vRestocks(){
       </div>
       ${picks.map(x=>{
         const s2=sold60(x),sold=sold30(x),at=atAmz(x),have=avail(x).n||0,q=RS_PICKS[x.id]||0;
-        return `<div class="rsPick2${(x.recipe||[]).length?'':' noList'}">
+        const own=restockPlan(x,q),ownShort=own.filter(y=>!y.ok);
+        const open=!!RS_OPEN[x.id];
+        return `<div class="rsPick2${(x.recipe||[]).length?'':' noList'}${open?' open':''}">
           <div class="rsP2N">
-            <span class="nm">${esc(x.name)}</span>
-            <span class="mt">${asinBtn(x.asin)} · ${(x.recipe||[]).length} part${(x.recipe||[]).length===1?'':'s'}</span>
+            <button class="rsChev" onclick="LV3.rsToggle('${x.id}')"
+              title="${open?'Fold this log away':'Open this log and check the parts'}">${open?'&#9662;':'&#9656;'}</button>
+            <div>
+              <span class="nm">${esc(x.name)}</span>
+              <span class="mt">${asinBtn(x.asin)} · ${(x.recipe||[]).length} part${(x.recipe||[]).length===1?'':'s'}${
+                ownShort.length?` · <b style="color:var(--red)">${fmt(ownShort.length)} to order</b>`:(own.length?' · <b style="color:var(--grn)">all covered</b>':'')}</span>
+            </div>
           </div>
           <div class="rsP2F">
             <span><i>Sold ${esc(ymName(hubMonth().ym))}</i><b>${sold!=null?fmt(sold):'—'}</b></span>
             <span><i>Two months</i><b>${s2.n==null?'—':fmt(s2.n)}</b></span>
-            <span><i>At Amazon</i><b>${at==null?'—':fmt(at)}</b></span>
+            <span><i>At Amazon</i><b>${at==null?'—':fmt(at)}${amzIn(x)?`<span style="color:var(--blu);font-size:11px"> +${fmt(amzIn(x))}</span>`:''}</b></span>
             <span><i>Backstock</i><b>${fmt(have)}</b></span>
           </div>
           <div class="rsP2B">
@@ -16647,6 +16764,23 @@ function vRestocks(){
               onclick="LV3.rsQty('${x.id}',${s2.n})">2mo ${fmt(s2.n)}</button>`}
             <button class="btn sm dots" title="Take this one out" onclick="LV3.rsDrop('${x.id}')">&#10005;</button>
           </div>
+          ${open?`<div class="rsLog">
+            ${!own.length?`<div class="pmeta">No build list — nothing to work out for this one.</div>`
+            :`<table class="rsTbl tight mini"><thead><tr>
+                <th class="l">Part</th><th>In one</th><th>Need</th><th>Have</th><th>To order</th></tr></thead><tbody>
+              ${own.map(y=>`<tr class="${y.ok?'':'short'}">
+                <td class="l"><span class="pname">${esc(y.c.name)}</span>
+                  <div class="pmeta">${y.kind}${y.caseQty>1?` · case of ${fmt(y.caseQty)}`:' · singles'}</div></td>
+                <td class="mono">&times;${fmt(y.per)}</td>
+                <td class="mono b">${fmt(y.need)}</td>
+                <td class="mono">${fmt(y.stock)}${y.coming?`<div class="pmeta" style="color:var(--blu)">+${fmt(y.coming)}</div>`:''}</td>
+                <td class="mono">${y.ok?'<span class="chip ok">covered</span>'
+                  :`<b style="color:var(--amb)">${fmt(y.cases)}</b> ${y.caseQty>1?`case${y.cases===1?'':'s'}`:'units'}`}</td>
+              </tr>`).join('')}
+              </tbody></table>
+              ${multi?`<div class="pmeta" style="margin-top:7px">This is <b>${esc(x.name)} on its own</b>. Where a part is shared with
+                another log, the order list below counts the stock once — use that to actually buy from.</div>`:''}`}
+          </div>`:''}
         </div>`;}).join('')}
     </div>
 
@@ -16674,11 +16808,14 @@ function vRestocks(){
           : `<span class="rsS"><b>${fmt(avail(picks[0]).n||0)}</b>buildable now<i>of the ${fmt(totalUnits)} asked for</i></span>`}
       </div>
       <div class="panel">
-        <div class="ph"><span class="t">Every part${multi?` across ${fmt(picks.length)} products`:` in ${esc(picks[0].name)}`}</span>
+        <div class="ph"><button class="rsChev" onclick="LV3.rsToggleTbl()"
+            title="${RS_TBL?'Fold the order list away':'Open the order list'}">${RS_TBL?'&#9662;':'&#9656;'}</button>
+          <span class="t">What to order${multi?` — all ${fmt(picks.length)} logs`:''}</span>
           <span class="sub">to build ${fmt(totalUnits)} unit${totalUnits===1?'':'s'}</span>
           ${short.length?`<span class="chip bad">${fmt(short.length)} to order</span>`:'<span class="chip ok">all covered</span>'}
           ${short.length?`<div class="r"><button class="btn sm pri" onclick="LV3.rsLogAll()"
             title="Open the order form for each part that needs one, in turn">Log all ${fmt(short.length)} orders</button></div>`:''}</div>
+        ${!RS_TBL?'':`
         ${/* Nine columns for a five-column question. "In one" and "Case size" are
              facts about the part, so they sit with the part. "Still short" and
              "Order" were the same number twice whenever nothing came in cases. */''}
@@ -16707,8 +16844,8 @@ function vRestocks(){
         </tbody></table>
         <div class="pmeta" style="padding:9px 14px;border-top:1px solid var(--border)">
           <b>need &minus; what you have &minus; what is already on order</b>${plan.some(x=>x.caseQty>1)?', divided by the case size and rounded up':''}.
-          ${multi?'Stock and on-order count <b>once per part</b>, not once per product — that is the point of picking several.':''}
-        </div>
+          ${multi?'Stock and on-order count <b>once per part</b>, not once per product — that is the point of keeping several logs.':''}
+        </div>`}
       </div>`}`;
 }
 /* Walk the shortages one at a time rather than making the person hunt down the
@@ -19937,7 +20074,7 @@ const API={go,render:paint,boot,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
   openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,setHWho,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,showReview,ghostAllocs,staleDupes,dropDupes,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
-  sortCol,amzWhen,localDT,copyAsin,nextCog,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,restockPlanMulti,rsLogAll,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  sortCol,amzWhen,localDT,copyAsin,nextCog,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
