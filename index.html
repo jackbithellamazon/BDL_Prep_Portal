@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v20.0</title>
+<title>BDL PrepHub v20.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -677,10 +677,17 @@ tbody tr:hover .row-acts{opacity:1;}
 .srtX{margin-left:auto;flex:none;width:30px;height:30px;border-radius:8px;cursor:pointer;
   background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-size:14px;}
 .srtX:hover{background:var(--bg4);color:var(--text);}
-.srtFacts{padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg);
-  font-size:12px;font-weight:600;color:#cfc9bd;line-height:1.6;}
-.srtFacts span{color:#f0ece4;font-weight:700;}
-.srtFacts i{color:#6f6a60;font-style:normal;margin:0 8px;}
+/* These five values used to run together as one dot-separated line. They are
+   five different things — a supplier, an order number, an account, an ASIN and
+   a SKU — and two of them are long codes that look alike at a glance. Labelled,
+   nobody has to work out which is which. */
+.srtFacts{padding:9px 20px 10px;border-bottom:1px solid var(--border);background:var(--bg);
+  display:flex;flex-wrap:wrap;gap:6px 24px;}
+.srtFact{display:flex;flex-direction:column;gap:1px;min-width:0;}
+.srtFacts .srtFactL{font-size:9px;font-weight:800;color:#8a857b;
+  text-transform:uppercase;letter-spacing:.08em;line-height:1.4;}
+.srtFacts .srtFactV{font-size:12.5px;font-weight:700;color:#f0ece4;line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px;}
 .srtCopy{cursor:pointer;border-bottom:1px dashed #6f6a60;}
 .srtCopy:hover{color:var(--accent)!important;border-bottom-color:var(--accent);}
 .srtBody{padding:16px 20px 20px;overflow-y:auto;flex:1;}
@@ -1059,7 +1066,33 @@ html.light-mode{
 /* and a table that is still wider than its panel scrolls inside it rather than
    having its right-hand column clipped off */
 #page-lavarion .panel>table,.lav3 .panel>table{min-width:100%;}
-#page-lavarion .tblScroll,.lav3 .tblScroll{overflow-x:auto;}
+/* Sideways scrolling for a table wider than the window, so the last column is
+   reachable instead of clipped off the right-hand edge.
+   There is no way to have this AND a page-anchored sticky header: a box with a
+   scrolling overflow on one axis becomes a scroll container on BOTH (even
+   overflow-y:clip computes to hidden when it sits next to overflow-x:auto), so
+   position:sticky inside resolves against this box and not the page. The header
+   is therefore re-anchored to the box — it reads as an ordinary header while
+   the box is only as tall as its content. Losing a little stickiness beats
+   losing a column. */
+#page-lavarion .tblScroll,.lav3 .tblScroll{overflow-x:auto;overscroll-behavior-x:contain;}
+#page-lavarion .tblScroll table.stickHead thead th,
+.lav3 .tblScroll table.stickHead thead th{top:0;}
+#page-lavarion .tblScroll::-webkit-scrollbar,.lav3 .tblScroll::-webkit-scrollbar{height:10px;}
+#page-lavarion .tblScroll::-webkit-scrollbar-thumb,.lav3 .tblScroll::-webkit-scrollbar-thumb{
+  background:var(--border2);border-radius:5px;}
+#page-lavarion .tblScroll::-webkit-scrollbar-thumb:hover,.lav3 .tblScroll::-webkit-scrollbar-thumb:hover{
+  background:var(--text3);}
+/* Product names and the grey captions under them wrap instead of being cut off
+   mid-word — they were only told to wrap inside .rsTbl, so every other table
+   still clipped them. */
+#page-lavarion td.l .pname,.lav3 td.l .pname{white-space:normal;line-height:1.3;
+  overflow-wrap:anywhere;}
+/* break-word, NOT anywhere. `anywhere` breaks eagerly to make the column as
+   narrow as possible, which chopped the order number 10251572580 into
+   "102 / 51572580" — an order reference is the one string that must never be
+   split when it doesn't have to be. */
+#page-lavarion td .pmeta,.lav3 td .pmeta{overflow-wrap:break-word;}
 #lav3Toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg4);
   border:1px solid var(--border2);border-radius:9px;padding:11px 17px;font-size:12.5px;z-index:2000;opacity:0;
   transition:.22s;box-shadow:0 12px 34px rgba(0,0,0,.55);display:flex;align-items:center;gap:14px;color:var(--text);}
@@ -2411,12 +2444,19 @@ html.light-mode{
    both up front, and nothing else on the form appears until one is chosen —
    the old popup showed every control at once before you'd made a single
    decision, which is what made it a wall. */
-.srtPick{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;
-  max-height:460px;overflow:hidden;transition:max-height .24s cubic-bezier(.4,0,.2,1);}
-/* The collapsed height is MEASURED off the chosen card in srtPick, not guessed
-   here — a hard 52px silently cut the taller outcome names in half. This is
-   only the fallback for the split second before that runs. */
-.srtPick.picked{max-height:64px;}
+.srtPick{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+/* Nothing here animates its HEIGHT any more, and that is the whole fix.
+   This grid lives inside .srtBody, which scrolls. Animating max-height from
+   460px down to one row meant the scroll container's content shrank by ~400px
+   over a quarter of a second while the form below it was simultaneously being
+   added to the layout. The browser's scroll anchoring then corrected scrollTop
+   on every one of those frames, and scroll-behavior:smooth animated each
+   correction — which is why the refund banner ended up half-hidden under the
+   header. Measuring the collapsed height more accurately never had a chance of
+   fixing that; the animation itself was the bug.
+   Picking now swaps the grid to a single chosen row in ONE layout pass. */
+.srtPick.picked{grid-template-columns:1fr;}
+.srtPick.picked .srtCard:not(.on){display:none;}
 .srtCard{display:flex;flex-direction:column;gap:1px;text-align:left;cursor:pointer;
   padding:8px 10px;border-radius:8px;font-family:inherit;
   background:var(--bg);border:1px solid var(--border2);
@@ -2436,18 +2476,178 @@ html.light-mode{
    snapped into place. It read as a flicker because that is what it was. */
 .srtCard.on{grid-column:1/-1;order:-1;flex-direction:row;align-items:baseline;gap:10px;padding:9px 12px;}
 .srtCard.on .srtCardD,.srtCard.on .srtCardK{display:none;}
-/* fading out beats vanishing — the dialog no longer jumps under the cursor */
-.srtCard.gone{opacity:0;transform:scale(.97);pointer-events:none;}
+/* Only opacity and transform fade in — neither touches layout, so this runs on
+   the compositor and cannot move anything else on the page. */
 #srtRest{opacity:0;transform:translateY(4px);
-  transition:opacity .2s ease .06s,transform .2s ease .06s;}
+  transition:opacity .18s ease,transform .18s ease;}
 #srtRest.in{opacity:1;transform:none;}
 .srtMod{transition:none;}
-.srtBody{scroll-behavior:smooth;}
+/* Two lines that were actively causing the jump.
+   overflow-anchor:none — stop the browser silently rewriting scrollTop when the
+   content above the viewport changes height. It is trying to help; inside a
+   dialog that swaps its whole contents it just yanks the view.
+   scroll-behavior stays auto — a scroll correction should be instant and
+   invisible, not a visible animated slide. */
+.srtBody{overflow-anchor:none;scroll-behavior:auto;}
+.srtBody *{overflow-anchor:none;}
 .srtFollow{grid-template-columns:repeat(2,1fr)!important;margin-top:9px;}
 .srtSteps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px;}
 .srtSteps li{font-size:12.5px;font-weight:600;color:#ded8cd;line-height:1.5;padding-left:3px;}
 .srtSteps li::marker{color:var(--accent);font-weight:800;}
 .srtSteps li.srtNone{list-style:none;margin-left:-20px;color:#b3ada1;font-style:italic;}
+/* ── JACK'S ADMIN ──────────────────────────────────────────────────────────── */
+.jkHero{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;
+  padding:18px 20px;margin-bottom:16px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(96,165,250,.13),rgba(96,165,250,.03));
+  border:1px solid rgba(96,165,250,.32);}
+.jkHero h2{margin:0;font-size:19px;font-weight:800;color:var(--text);}
+.jkHero p{margin:5px 0 0;font-size:12.5px;font-weight:600;color:#b3ada1;}
+.jkKpis{display:flex;gap:9px;}
+.jkKpi{min-width:84px;padding:10px 14px;border-radius:11px;text-align:center;
+  background:var(--bg2);border:1px solid var(--border2);}
+.jkKpi b{display:block;font:800 22px var(--num);font-variant-numeric:tabular-nums;color:var(--text3);}
+.jkKpi span{display:block;font-size:9.5px;font-weight:800;color:#8a857b;
+  text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+.jkKpi.hot{border-color:rgba(96,165,250,.55);background:rgba(96,165,250,.12);}
+.jkKpi.hot b{color:#93c5fd;}
+.jkKpi.warn{border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.1);}
+.jkKpi.warn b{color:var(--accent);}
+.jkHd{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 12px;margin:20px 0 10px;}
+.jkHd h3{margin:0;font-size:13.5px;font-weight:800;color:var(--text);
+  display:flex;align-items:center;gap:8px;}
+.jkHd h3 b{font:800 10px var(--sans);padding:2px 8px;border-radius:9px;
+  background:rgba(96,165,250,.18);color:#93c5fd;}
+.jkHd span{font-size:11.5px;font-weight:600;color:#8a857b;}
+.jkGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:11px;}
+.jkCard{padding:13px 15px;border-radius:12px;background:var(--bg2);
+  border:1px solid var(--border2);border-left:3px solid var(--border2);}
+.jkCard.k-ask{border-left-color:#60a5fa;}
+.jkCard.k-dec{border-left-color:#c084fc;}
+.jkCard.k-qty{border-left-color:var(--accent);}
+.jkWho{font-size:10px;font-weight:800;color:#8a857b;text-transform:uppercase;letter-spacing:.07em;}
+.jkAsk{font-size:13.5px;font-weight:800;color:var(--text);margin-top:3px;line-height:1.3;}
+.jkAsk em{font-style:normal;font-size:9.5px;font-weight:800;color:#fca5a5;
+  background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.4);
+  padding:2px 7px;border-radius:8px;margin-left:6px;text-transform:uppercase;letter-spacing:.06em;}
+.jkProd{font-size:12px;font-weight:600;color:#c3bdb1;margin-top:9px;line-height:1.4;}
+.jkMeta{display:flex;flex-wrap:wrap;gap:2px 0;margin-top:6px;
+  font-size:11px;font-weight:600;color:#8a857b;}
+.jkMeta span{color:#b3ada1;}
+.jkMeta i{font-style:normal;color:#57534a;margin:0 7px;}
+.jkNote{margin-top:10px;padding:8px 11px;border-radius:9px;background:var(--bg);
+  border:1px solid var(--border2);font-size:12px;font-weight:600;color:#ded8cd;line-height:1.45;}
+.jkNote b{display:block;font-size:9.5px;font-weight:800;color:#8a857b;
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.jkNote.jkFix{background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.35);color:#f0dcae;}
+.jkNote.jkFix b{color:var(--accent);}
+.jkSteps{margin-top:9px;font-size:11.5px;font-weight:600;color:#9fd8ae;}
+.jkSteps b{display:block;font-size:9.5px;font-weight:800;color:#86efac;
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.jkSteps ul{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:3px;}
+.jkSteps li{line-height:1.4;}
+.jkSteps.open{color:#f0dcae;}
+.jkSteps.open b{color:var(--accent);}
+.jkActs{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;}
+.jkGo{padding:8px 15px;border-radius:8px;cursor:pointer;font:800 12px var(--sans);
+  background:var(--accent);border:1px solid var(--accent);color:#1a1400;}
+.jkGo:hover{filter:brightness(1.08);}
+.jkGhost{padding:8px 13px;border-radius:8px;cursor:pointer;font:700 12px var(--sans);
+  background:var(--bg3);border:1px solid var(--border2);color:var(--text2);}
+.jkGhost:hover{background:var(--bg4);color:var(--text);}
+.jkEmpty{padding:44px 20px;text-align:center;border-radius:14px;
+  background:var(--bg2);border:1px dashed var(--border2);}
+.jkEmpty b{display:block;font-size:15px;font-weight:800;color:#86efac;}
+.jkEmpty span{display:block;font-size:12.5px;font-weight:600;color:#8a857b;margin-top:5px;}
+.jkOld{margin-top:22px;padding:11px 14px;border-radius:10px;
+  background:var(--bg2);border:1px solid var(--border);
+  font-size:11.5px;font-weight:600;color:#8a857b;line-height:1.55;}
+.jkOld button{padding:0;background:none;border:none;cursor:pointer;
+  font:800 11.5px var(--sans);color:var(--accent);text-decoration:underline;text-underline-offset:2px;}
+.askOpts{display:flex;flex-direction:column;gap:6px;}
+.askOpts .srtChk{padding:9px 11px!important;font-size:12px!important;}
+/* triage, now that it knows which supplier it is looking at */
+.tfuAsk{width:100%;margin-top:8px;padding:7px 8px;border-radius:7px;cursor:pointer;
+  font:800 10.5px var(--sans);line-height:1.25;
+  background:rgba(96,165,250,.14);border:1px solid rgba(96,165,250,.45);color:#bfdbfe;}
+.tfuAsk:hover:not(:disabled){background:rgba(96,165,250,.24);}
+.tfuAsk:disabled{opacity:.4;cursor:not-allowed;}
+.tfuSelf{margin-top:8px;font-size:10px;font-weight:600;color:#8a857b;line-height:1.35;}
+/* a close-off somebody started and has not finished */
+.tfuDraftChip{margin-top:6px;padding:5px 9px;border-radius:7px;
+  background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.42);
+  font-size:10.5px;font-weight:800;color:var(--accent);line-height:1.35;}
+.tfuDraftChip span{display:block;font-weight:600;color:#d9c48d;margin-top:1px;}
+/* the steps, now ticked off as they are actually done */
+.srtSteps li.srtStep{list-style:none;margin-left:-20px;padding-left:0;}
+.srtStepChk{display:flex;gap:10px;align-items:flex-start;cursor:pointer;
+  padding:8px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--border2);
+  transition:background .12s,border-color .12s,opacity .12s;}
+.srtStepChk:hover{background:var(--bg3);border-color:var(--text3);}
+.srtStepChk input{width:16px;height:16px;flex:none;margin-top:1px;accent-color:var(--accent);cursor:pointer;}
+.srtStepChk span{font-size:12.5px;font-weight:600;color:#ded8cd;line-height:1.45;}
+.srtStep.done .srtStepChk{background:rgba(74,222,128,.09);border-color:rgba(74,222,128,.4);}
+.srtStep.done .srtStepChk span{color:#9fd8ae;}
+/* the part-finished banner */
+.srtDraft{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin-bottom:14px;
+  padding:10px 13px;border-radius:10px;
+  background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.4);}
+.srtDraft b{font-size:12.5px;font-weight:800;color:#bfdbfe;}
+.srtDraft span{font-size:11.5px;font-weight:600;color:#93c5fd;flex:1;min-width:180px;}
+.srtDraft button{padding:5px 11px;border-radius:7px;cursor:pointer;font:700 11px var(--sans);
+  background:rgba(255,255,255,.06);border:1px solid rgba(147,197,253,.45);color:#bfdbfe;}
+.srtDraft button:hover{background:rgba(255,255,255,.12);}
+/* the "use the other outcome" / "close anyway" offers in the footer message */
+.srtSwap{margin-left:10px;padding:0;background:none;border:none;cursor:pointer;
+  font:800 12px var(--sans);color:var(--accent);text-decoration:underline;text-underline-offset:2px;}
+.srtSwap:hover{filter:brightness(1.15);}
+/* what is being left undone, spelled out before it is allowed */
+.srtCfmOpen{margin-top:15px;padding:11px 13px;border-radius:10px;
+  background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.42);}
+.srtCfmOpen b{display:block;font-size:10px;font-weight:800;color:var(--accent);
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;}
+.srtCfmOpen ul{margin:0 0 8px;padding-left:17px;display:flex;flex-direction:column;gap:5px;}
+.srtCfmOpen li{font-size:12px;font-weight:600;color:#f0dcae;line-height:1.45;}
+.srtCfmOpen li::marker{color:var(--accent);}
+.srtCfmOpen span{font-size:11.5px;font-weight:600;color:#d9c48d;}
+/* the "are you sure" step that now sits in front of every closure */
+.srtCfm{width:100%;max-width:540px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:16px;padding:20px 22px 18px;box-shadow:0 32px 90px rgba(0,0,0,.65);}
+.srtCfmTtl{font-size:16px;font-weight:800;color:var(--text);line-height:1.3;}
+.srtCfmSub{font-size:12.5px;font-weight:600;color:#b3ada1;margin-top:5px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.srtCfmLab{font-size:10px;font-weight:800;color:#c9c3b7;text-transform:uppercase;
+  letter-spacing:.08em;margin:17px 0 9px;}
+.srtCfmList{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:7px;}
+.srtCfmList li{font-size:12.5px;font-weight:600;color:#ded8cd;line-height:1.45;}
+.srtCfmList li::marker{color:var(--accent);}
+/* Jack's rule, said out loud on the screen where it matters most: no history is
+   ever fully deleted. If the popup lists what goes, it must list what stays. */
+.srtCfmKeep{margin-top:15px;padding:11px 13px;border-radius:10px;
+  background:rgba(74,222,128,.09);border:1px solid rgba(74,222,128,.35);}
+.srtCfmKeep b{display:block;font-size:10px;font-weight:800;color:#86efac;
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;}
+.srtCfmKeep ul{margin:0;padding-left:17px;display:flex;flex-direction:column;gap:5px;}
+.srtCfmKeep li{font-size:12px;font-weight:600;color:#bfe9cc;line-height:1.45;}
+.srtCfmKeep li::marker{color:#86efac;}
+.srtCfmFoot{display:flex;justify-content:flex-end;gap:9px;margin-top:19px;}
+/* the searchable SKU picker that replaced the 400-entry datalist */
+.srtCombo{position:relative;}
+.srtComboList{position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:40;
+  max-height:250px;overflow-y:auto;padding:5px;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:10px;
+  box-shadow:0 18px 46px rgba(0,0,0,.6);}
+.srtComboList::-webkit-scrollbar{width:9px;}
+.srtComboList::-webkit-scrollbar-thumb{background:var(--border2);border-radius:5px;}
+.srtComboHd{font-size:9.5px;font-weight:800;color:#8a857b;text-transform:uppercase;
+  letter-spacing:.07em;padding:6px 9px 8px;}
+.srtComboOpt{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;cursor:pointer;
+  padding:7px 9px;border-radius:7px;background:none;border:none;font-family:inherit;}
+.srtComboOpt:hover,.srtComboOpt.sel{background:rgba(251,191,36,.14);}
+.srtComboSku{font:700 12px var(--num);color:var(--text);}
+.srtComboProd{font-size:11px;font-weight:600;color:#b3ada1;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.srtComboProd b{color:var(--accent);font-weight:800;}
+.srtComboNone{font-size:11.5px;font-weight:600;color:#b3ada1;padding:7px 9px 9px;}
 .srtMore{margin-top:12px;}
 .srtMore>summary{cursor:pointer;font-size:11.5px;font-weight:700;color:#b3ada1;
   padding:6px 0;list-style:none;}
@@ -2832,7 +3032,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v20.0</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v20.3</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -2866,7 +3066,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v20.0</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v20.3</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -2897,10 +3097,15 @@ html.light-mode .tfu thead th{background:#d8dde3;}
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.1 3.2a3.4 3.4 0 00-2.8-1.3c-1.7 0-2.9.9-2.9 2.3 0 3 6 1.6 6 4.7 0 1.5-1.4 2.5-3.2 2.5a3.8 3.8 0 01-3.2-1.5"/></svg>
       <span>Sarah's Admin</span>
     </button>
-    <button class="sb-item" onclick="goPage('claims',this)">
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1.6 13 12H1z"/><line x1="7" y1="5.4" x2="7" y2="8.4"/><circle cx="7" cy="10.2" r=".75" fill="currentColor" stroke="none"/></svg>
-      <span>Issues</span>
-                </button>
+    <!-- Jack's own queue. Everything live is owned by exactly one of the two of
+         them, so two queues cover it — which is why Issues came out of the
+         sidebar. Its old view is still reachable from in here for one version,
+         so nothing is lost while he checks that holds up. -->
+    <button class="sb-item" onclick="goPage('jack',this)">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="4.4" r="2.4"/><path d="M2.2 12.4a4.8 4.8 0 019.6 0"/></svg>
+      <span>Jack's Admin</span>
+      <span class="sb-badge" id="jackBadge" style="display:none;"></span>
+    </button>
     <div class="sb-sec" style="margin-top:6px;">Analytics</div>
     <button class="sb-item" onclick="goPage('insights',this)">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="8" width="3" height="5"/><rect x="5" y="5" width="3" height="8"/><rect x="9" y="2" width="3" height="11"/></svg>
@@ -3069,6 +3274,10 @@ html.light-mode .tfu thead th{background:#d8dde3;}
   <!-- SARAH'S ADMIN PAGE -->
   <div class="page" id="page-admin">
     <div id="adminWrap" style="flex:1;overflow:auto;padding:12px;min-height:0;"></div>
+  </div>
+
+  <div class="page" id="page-jack">
+    <div id="jackWrap" style="flex:1;overflow:auto;padding:12px;min-height:0;"></div>
   </div>
 
   <div class="page" id="page-claims">
@@ -4162,12 +4371,16 @@ document.addEventListener('click',e=>{
 // ── NAV / USER ────────────────────────────────────────────────────────────────
 function toggleSb(){document.getElementById('sb').classList.toggle('open');}
 function goPage(n,btn){
+  try{paintJackBadge();}catch(e){}
   document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
+  /* Issues no longer has a sidebar button of its own, so it is now reachable
+     from a link with no button to highlight. */
+  if(btn&&btn.classList)btn.classList.add('on');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+n).classList.add('active');
-  const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'Lavarion ASINs',returns:'Returns',admin:"Sarah's Admin",claims:'Issues',insights:'Insights',audit:'Audit Log',settings:'Settings'};
+  const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'Lavarion ASINs',returns:'Returns',admin:"Sarah's Admin",jack:"Jack's Admin",claims:'Issues (old view)',insights:'Insights',audit:'Audit Log',settings:'Settings'};
   document.getElementById('pageTitle').textContent=t[n]||n;
+  if(n==='jack')renderJack();
   if(n==='dashboard')renderDashboard();
   if(n==='insights')renderInsights();
   if(n==='audit'){buildAuditSeatFilter();loadAuditPage(true);}
@@ -5614,7 +5827,11 @@ function _adminItems(){
       source:r.sheetSyncId?'Sheet':(r.importedFrom||'PrepHub'),
       delivered:r.delivered||'',wrongSku:r.wrongSku||'',
       sentBack:(r.resolution&&r.resolution.state==='rejected')?r.resolution:null,
-      waiting:(r.resolution&&r.resolution.state==='proposed')?r.resolution:null,
+      /* 'asked' is Sarah handing an Amazon order over for Jack to look at — not
+         a closure she is proposing. It still locks the row: she cannot close
+         something she has just told him she cannot check. */
+      waiting:(r.resolution&&(r.resolution.state==='proposed'||r.resolution.state==='asked'))?r.resolution:null,
+      draft:srtDraft(r.uuid||r.id),
       days,isStuck,ta,reason,sev,col,value:cogs*(outstanding||units)});
   });
   /* Ordered by how close the refund window is to shutting. Age alone was
@@ -5917,6 +6134,10 @@ let WEBHOOK_CFG={url:'',on:false,checkHours:48,lastAt:'',lastOk:null,lastMsg:''}
 let ADMIN_CHECK={at:'',by:'',alertedFor:''};
 let VA_ACTIONS=[];
 let _vaStateLoaded=false;
+/* Part-finished close-offs, keyed by row id. Jack's call (08 Aug): SHARED, not
+   private — if Sarah gets half way through one he wants to see her working, and
+   a draft nobody else can see is just a note she left on her own desk. */
+let SRT_DRAFTS={};
 
 /* How something was closed. The first group is admin tidy-up; "Lost in transit"
    is the one where money is actually gone, so it is marked and shown differently
@@ -5942,10 +6163,18 @@ let RESOLUTIONS=[
   {v:'cancel-wrong-sku',t:'Cancelled — so it went out on another order',kind:'ops',ask:['sku','paid'],
    d:'This order was cancelled, so the stock shipped against a different order and SKU',
    todo:['Update Purchase Sheet','Mark order as cancelled'],sheet:'Note against the SKU: this order was cancelled, stock went out on another order'},
-  {v:'cancelled',     t:'Cancelled',                            kind:'ops', ask:['paid'],
-   d:'Never coming — nothing left to chase',todo:['Update Purchase Sheet','Mark order as cancelled','Remove outstanding quantity'],sheet:''},
-  {v:'part-cancelled',t:'Partially arrived, remainder cancelled',kind:'ops',ask:['paid'],
-   d:'Some came, the rest never will',todo:['Update Purchase Sheet','Remove outstanding quantity'],sheet:'Note against the SKU: part delivered, remainder cancelled'},
+  /* Jack, 08 Aug: a WHOLE order cancelled is not the same event as one unit of
+     ten being refunded, and the old single "Cancelled" made them the same.
+     Full: nothing arrived, none of it is coming, so it was never really a
+     purchase — off the Purchase Sheet and out of the active data whether or not
+     the money left the account. Partial: the purchase genuinely happened and
+     nine units are on a shelf, so the row stays and shows its real outcome. */
+  {v:'cancelled',     t:'Cancelled — the whole order',           kind:'ops', ask:['paid'],full:true,
+   d:'Nothing arrived and nothing is coming — the order comes off the sheet',
+   todo:['Update Purchase Sheet','Mark order as cancelled','Remove outstanding quantity'],sheet:''},
+  {v:'part-cancelled',t:'Part arrived, the rest cancelled',      kind:'ops', ask:['paid'],
+   d:'Some came, the rest never will — the row stays with its real numbers',
+   todo:['Update Purchase Sheet','Remove outstanding quantity'],sheet:'Note against the SKU: part delivered, remainder cancelled'},
   {v:'duplicate',     t:'Duplicate record',                     kind:'ops', ask:[],
    d:'The same order twice — this one is not real',todo:['Remove from Prep Sheet','Update Purchase Sheet'],sheet:'Remove the duplicate line from the Purchase Sheet'},
   {v:'gated',         t:'Gated — business decision',            kind:'gated',ask:['arrived'],
@@ -5961,9 +6190,24 @@ let RESOLUTIONS=[
   {v:'other',         t:'Something else',                       kind:'biz', ask:[],
    d:'Explain it and send it to Jack',todo:[],sheet:''}
 ];
+/* Settings can replace this whole list from the database, and any list saved
+   before today has no `full` flag on it — which would silently switch the
+   whole-order cancellation behaviour back off, with nothing on screen to say
+   so. Remember the built-in behaviour flags and re-apply them by outcome id
+   after loading: Jack's wording still wins, the code's behaviour survives. */
+const _RES_FLAGS={};
+RESOLUTIONS.forEach(r=>{_RES_FLAGS[r.v]={full:!!r.full,claim:!!r.claim};});
+function _reapplyResFlags(){
+  RESOLUTIONS.forEach(r=>{
+    const f=_RES_FLAGS[r.v];if(!f)return;
+    if(f.full&&!r.full)r.full=true;
+    if(f.claim&&!r.claim)r.claim=true;
+  });
+}
 const _resAsk=v=>(RESOLUTIONS.find(x=>x.v===v)||{}).ask||[];
 const _resTodo=v=>(RESOLUTIONS.find(x=>x.v===v)||{}).todo||[];
 const _resSheet=v=>(RESOLUTIONS.find(x=>x.v===v)||{}).sheet||'';
+const _resFull=v=>!!(RESOLUTIONS.find(x=>x.v===v)||{}).full;
 /* 30 days is the refund window on ~99% of orders. Losing it because nobody
    looked is the single most expensive thing this queue can do. */
 const REFUND_DAYS=30;
@@ -6011,15 +6255,16 @@ function _who(){return window.currentUserName||'Sarah';}
 // ── LOADING / SAVING ──────────────────────────────────────────────────────────
 async function loadVaState(){
   try{
-    const r=await sb.from('app_settings').select('key,value').in('key',['webhook_cfg','admin_checkin','va_actions','resolution_types','follow_up_types','jack_suppliers']);
+    const r=await sb.from('app_settings').select('key,value').in('key',['webhook_cfg','admin_checkin','va_actions','resolution_types','follow_up_types','jack_suppliers','srt_drafts']);
     (r.data||[]).forEach(row=>{
       let v=null;try{v=JSON.parse(row.value||'null');}catch(e){return;}
+      if(row.key==='srt_drafts'&&v&&typeof v==='object')SRT_DRAFTS=v;
       if(row.key==='webhook_cfg'&&v)WEBHOOK_CFG=Object.assign(WEBHOOK_CFG,v);
       if(row.key==='admin_checkin'&&v)ADMIN_CHECK=Object.assign(ADMIN_CHECK,v);
       if(row.key==='va_actions'&&Array.isArray(v))VA_ACTIONS=v;
       /* saved closure types replace the built-ins entirely — Jack edits them in
          Settings, so his list wins. Falls back to the defaults if empty. */
-      if(row.key==='resolution_types'&&Array.isArray(v)&&v.length)RESOLUTIONS=v;
+      if(row.key==='resolution_types'&&Array.isArray(v)&&v.length){RESOLUTIONS=v;_reapplyResFlags();}
       if(row.key==='follow_up_types'&&Array.isArray(v)&&v.length)FOLLOW_UPS=v;
       if(row.key==='jack_suppliers'&&Array.isArray(v))JACK_SUPPLIERS=v;
     });
@@ -6288,18 +6533,20 @@ function openSorted(rid,preset){
       <button class="srtX" onclick="closeSorted()">✕</button>
     </div>
     <div class="srtFacts">${(()=>{
-      const plain=v=>`<span>${esc(v)}</span>`;
-      const copy=v=>`<span class="srtCopy" onclick="copyVal('${String(v).replace(/'/g,"\\'")}',this)" title="Click to copy">${esc(v)}</span>`;
-      return [plain(r.sup||'—'),
-              r.oid?copy(r.oid):plain('no order id'),
-              r.acct?plain(r.acct):'',
-              r.sheetRow?plain('sheet line '+r.sheetRow):'',
-              r.asin?copy(r.asin):'',
-              r.sku?copy(r.sku):''].filter(Boolean).join('<i>·</i>');
+      const cell=(lab,v,cp)=>!v?'':`<div class="srtFact"><span class="srtFactL">${lab}</span>`+
+        (cp?`<span class="srtFactV srtCopy" onclick="copyVal('${String(v).replace(/'/g,"\\'")}',this)" title="Click to copy">${esc(v)}</span>`
+           :`<span class="srtFactV">${esc(v)}</span>`)+`</div>`;
+      return [cell('Supplier',r.sup||'—'),
+              cell('Order number',r.oid||'no order id',!!r.oid),
+              cell('Account',r.acct),
+              cell('Purchase Sheet line',r.sheetRow),
+              cell('ASIN',r.asin,true),
+              cell('Our SKU',r.sku,true)].filter(Boolean).join('');
     })()}
     </div>
 
     <div class="srtBody">
+      <div id="srtDraftBar" class="srtDraft" style="display:none;"></div>
       ${(()=>{
         const left=refundLeft(r.date);
         if(left===null)return'';
@@ -6337,17 +6584,27 @@ function openSorted(rid,preset){
         <div class="srtHint" id="srtPaidHint"></div>
       </div>
 
+      <!-- Only asked when the money did leave the account. "Cancelled" and
+           "refunded" are not the same thing, and the gap between them is the
+           only part of a cancellation that can quietly cost money. -->
+      <div id="srtAskRefund" style="display:none;margin-top:14px;">
+        <label class="srtLab">Has the refund actually come back?</label>
+        <select id="srtRefund" class="srtSel" onchange="srtSync()">
+          <option value="">— pick one —</option>
+          <option value="yes">Yes — the money is back in the account</option>
+          <option value="no">No — we are still owed it</option>
+        </select>
+        <div class="srtHint" id="srtRefundHint"></div>
+      </div>
+
       <div id="srtAskSku" style="display:none;margin-top:14px;">
         <label class="srtLab">Which SKU did it go out under? <span style="color:var(--text3);">optional</span></label>
-        <input list="srtSkuList" id="srtSku" class="srtSel" placeholder="Leave blank if you don't know" onchange="srtSync()" oninput="srtSync()">
-        <datalist id="srtSkuList">${(()=>{
-          /* same ASIN first — that is nearly always the row it went out on */
-          const others=rows.filter(x=>!x.archived&&x.sku&&x.sku!==r.sku);
-          const same=others.filter(x=>x.asin&&x.asin===r.asin);
-          const rest=others.filter(x=>!(x.asin&&x.asin===r.asin));
-          return same.concat(rest).slice(0,400)
-            .map(x=>`<option value="${esc(x.sku)}">${(x.asin===r.asin?'same ASIN · ':'')+esc((x.prod||'').slice(0,52))}</option>`).join('');
-        })()}</datalist>
+        <div class="srtCombo">
+          <input id="srtSku" class="srtSel" autocomplete="off" placeholder="Leave blank if you don't know"
+            oninput="srtSkuSearch()" onfocus="srtSkuSearch()" onkeydown="srtSkuKey(event)"
+            onblur="setTimeout(srtSkuShut,130)">
+          <div class="srtComboList" id="srtSkuList" style="display:none;"></div>
+        </div>
         <div class="srtHint" id="srtSkuHint"></div>
       </div>
 
@@ -6394,12 +6651,15 @@ function openSorted(rid,preset){
 
       <div id="srtNoteWrap">
         <label class="srtLab" style="margin-top:16px;">What did you find out? <span id="srtNoteReq" style="color:var(--text3);">optional</span></label>
-        <textarea id="srtNote" class="srtNote" rows="4" placeholder="What the supplier said, what you checked, what actually happened…">${esc(r.notes||'')}</textarea>
+        <textarea id="srtNote" class="srtNote" rows="4" oninput="srtSync()" placeholder="What the supplier said, what you checked, what actually happened…">${esc(r.notes||'')}</textarea>
       </div>
 
       <div id="srtFixBox" style="display:none;">
         <label class="srtLab" style="margin-top:16px;">What do you suggest we do? <span id="srtFixReq" style="color:#f87171;">required</span></label>
-        <textarea id="srtFix" class="srtNote" rows="2" placeholder="e.g. write it off, or claim the refund before the window shuts"></textarea>
+        <!-- oninput, not just onchange. Without it "Send to Jack" stayed greyed
+             out while she was looking straight at the recommendation she had
+             just typed, until she happened to click something else. -->
+        <textarea id="srtFix" class="srtNote" rows="2" oninput="srtSync()" placeholder="e.g. write it off, or claim the refund before the window shuts"></textarea>
       </div>
       </div>
       </div>
@@ -6407,46 +6667,41 @@ function openSorted(rid,preset){
 
     <div class="srtFoot">
       <div class="srtFootMsg" id="srtMsg"></div>
+      <!-- Jack: "wanna be able to save on here… if i need to go off this to
+           action xyz then come back to it". Everything typed and every step
+           ticked is kept, and the next person to open the row picks it up. -->
+      <button class="srtGhost" id="srtSaveBtn" style="display:none;" onclick="srtSaveDraft()"
+        title="Keep what you've done so far and come back to it later">Save &amp; come back</button>
       <button class="srtGhost" onclick="closeSorted()">Cancel</button>
-      <button class="srtGo" id="srtGo" onclick="submitSorted()">Close it off</button>
+      <button class="srtGo" id="srtGo" onclick="srtAskClose()">Close it off</button>
     </div>
   </div>`;
   /* Paint once, settled. Showing it first meant a frame of unstyled layout
      before the picker sized itself — the flicker on open. */
   el.style.display='flex';
   el.style.opacity='0';
-  if(preset)srtPick(preset); else srtSync();
+  _srtTicks={};
+  const _draft=srtDraft(rid);
+  if(_draft)_srtApplyDraft(_draft);
+  else if(preset)srtPick(preset);
+  else srtSync();
   requestAnimationFrame(()=>requestAnimationFrame(()=>{el.style.transition='opacity .12s';el.style.opacity='1';}));
 }
 /* Picking is a click on a card, not a dropdown — it shows what each outcome
    means and who ends up owning it before you commit to one. */
-let _srtRestT=null;
 function srtPick(v){
   const el=document.getElementById('srtWhat'); if(!el)return;
   el.value=(el.value===v)?'':v;
   const picked=el.value;
+  /* One class per card. No inline display, no timers, no measuring — CSS hides
+     the ones you didn't choose, so the swap is a single layout pass. */
   document.querySelectorAll('#sortedModal .srtCard').forEach(b=>{
-    const keep=(!picked||b.dataset.v===picked);
     b.classList.toggle('on',b.dataset.v===picked);
-    /* fade first, then take it out of the layout — collapsing eleven cards
-       instantly made the whole dialog jump under the cursor */
-    b.classList.toggle('gone',!keep);
-    if(keep){b.style.display='flex';}
-    else{setTimeout(()=>{if(b.classList.contains('gone'))b.style.display='none';},160);}
   });
   const chg=document.getElementById('srtChange');
   if(chg)chg.style.display=picked?'inline':'none';
   const grid=document.querySelector('#sortedModal .srtPick');
-  if(grid){
-    grid.classList.toggle('picked',!!picked);
-    /* Collapse to exactly the chosen card, measured. A fixed pixel height is a
-       guess about text that wraps differently on every outcome and every
-       screen width, and when the guess is short the card is cut in half. */
-    if(picked){
-      const card=grid.querySelector('.srtCard.on');
-      grid.style.maxHeight=card?(Math.ceil(card.getBoundingClientRect().height)+2)+'px':'';
-    }else grid.style.maxHeight='';
-  }
+  if(grid)grid.classList.toggle('picked',!!picked);
   /* The outcome already decides what happens next — spell it out rather than
      making her tick boxes to tell the app what it knows. */
   if(picked){
@@ -6457,53 +6712,255 @@ function srtPick(v){
   const rest=document.getElementById('srtRest');
   if(rest){
     if(picked){
-      /* The grid takes .24s to collapse. Fading the rest of the form in on the
-         next frame meant both were moving at once and the dialog grew and
-         shrank in the same breath. It waits its turn now. */
+      /* Laid out and faded in together. The fade is opacity only, so it cannot
+         move anything — there is nothing left to stagger with a timer. */
       rest.style.display='grid';
-      clearTimeout(_srtRestT);
-      _srtRestT=setTimeout(()=>{const el=document.getElementById('srtRest');if(el)el.classList.add('in');},170);
+      requestAnimationFrame(()=>{const e=document.getElementById('srtRest');if(e)e.classList.add('in');});
     }
-    else{clearTimeout(_srtRestT);rest.classList.remove('in');rest.style.display='none';}
+    else{rest.classList.remove('in');rest.style.display='none';}
   }
+  /* The card grid just shrank from eleven rows to one, so whatever the body was
+     scrolled to no longer exists. Put it back at the top deliberately, in the
+     same pass, rather than leaving the browser to guess — guessing is what left
+     the refund warning cut in half behind the header. */
+  const body=document.querySelector('#sortedModal .srtBody');
+  if(body)body.scrollTop=0;
   srtSync();
+}
+/* ── WHICH SKU DID IT GO OUT UNDER ────────────────────────────────────────────
+   This was a <datalist>. Click it with the box empty and it offered every SKU
+   in the app — four hundred of them, alphabetical, no context. Jack's point is
+   that when something ships on the wrong SKU it is nearly always the SAME ASIN,
+   so that is the only thing it offers until you type. Typing widens it to
+   everything and matches SKU, product name or ASIN, same-ASIN rows still first.
+   Free text is still accepted — the field is optional and the answer might be a
+   SKU that isn't in the app at all. */
+let _srtSkuIx=-1;
+function _srtSkuRows(q){
+  const r=_rowById(_srtRid)||{};
+  const all=rows.filter(x=>!x.archived&&x.sku&&x.sku!==r.sku);
+  const isSame=x=>!!(x.asin&&r.asin&&x.asin===r.asin);
+  const same=all.filter(isSame);
+  q=(q||'').trim().toLowerCase();
+  if(!q)return{list:same.slice(0,60),scoped:true};
+  const hit=x=>((x.sku||'')+' '+(x.prod||'')+' '+(x.asin||'')).toLowerCase().includes(q);
+  return{list:same.filter(hit).concat(all.filter(x=>!isSame(x)).filter(hit)).slice(0,60),scoped:false};
+}
+function srtSkuSearch(){
+  const inp=document.getElementById('srtSku'),box=document.getElementById('srtSkuList');
+  if(!inp||!box)return;
+  const r=_rowById(_srtRid)||{};
+  const {list,scoped}=_srtSkuRows(inp.value);
+  const n=list.length;
+  const head=scoped
+    ? (n?`${n} SKU${n===1?'':'s'} on this ASIN — type to search every SKU`
+        :`No other SKU on this ASIN — type to search every SKU`)
+    : `${n} match${n===1?'':'es'}`;
+  box.innerHTML=`<div class="srtComboHd">${head}</div>`+(n
+    ? list.map(x=>`<button type="button" class="srtComboOpt" data-sku="${esc(x.sku)}"
+        onmousedown="event.preventDefault();srtSkuTake(this.dataset.sku)">
+        <span class="srtComboSku">${esc(x.sku)}</span>
+        <span class="srtComboProd">${(x.asin&&r.asin&&x.asin===r.asin)?'<b>same ASIN</b> · ':''}${esc((x.prod||'').slice(0,60))}</span>
+      </button>`).join('')
+    : `<div class="srtComboNone">Nothing matches — you can still type it in free-hand.</div>`);
+  box.style.display='block';
+  _srtSkuIx=-1;
+  _srtComboFit();
+  srtSync();
+}
+function srtSkuTake(sku){
+  const inp=document.getElementById('srtSku');if(!inp)return;
+  inp.value=sku;srtSkuShut();srtSync();
+}
+function srtSkuShut(){const b=document.getElementById('srtSkuList');if(b)b.style.display='none';_srtSkuIx=-1;}
+function srtSkuKey(e){
+  const box=document.getElementById('srtSkuList');
+  if(!box||box.style.display==='none')return;
+  if(e.key==='Escape'){srtSkuShut();return;}
+  const opts=[...box.querySelectorAll('.srtComboOpt')];
+  if(!opts.length)return;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault();
+    _srtSkuIx=Math.max(0,Math.min(opts.length-1,_srtSkuIx+(e.key==='ArrowDown'?1:-1)));
+    opts.forEach((o,i)=>o.classList.toggle('sel',i===_srtSkuIx));
+    opts[_srtSkuIx].scrollIntoView({block:'nearest'});
+  }else if(e.key==='Enter'&&_srtSkuIx>=0){
+    e.preventDefault();srtSkuTake(opts[_srtSkuIx].dataset.sku);
+  }
+}
+/* .srtBody scrolls, and a scroll container clips. A dropdown opening past its
+   bottom edge is simply invisible, which reads as the picker being broken. */
+function _srtComboFit(){
+  const box=document.getElementById('srtSkuList'),body=document.querySelector('#sortedModal .srtBody');
+  if(!box||!body||box.style.display==='none')return;
+  const over=box.getBoundingClientRect().bottom-(body.getBoundingClientRect().bottom-10);
+  if(over>0)body.scrollTop+=over;
 }
 function srtChangePick(){
   const el=document.getElementById('srtWhat'); if(el)el.value='';
   const grid=document.querySelector('#sortedModal .srtPick');
-  if(grid){grid.classList.remove('picked');grid.style.maxHeight='';}
-  document.querySelectorAll('#sortedModal .srtCard').forEach(b=>{
-    b.style.display='flex';b.classList.remove('on');
-    requestAnimationFrame(()=>b.classList.remove('gone'));
-  });
+  if(grid)grid.classList.remove('picked');
+  document.querySelectorAll('#sortedModal .srtCard').forEach(b=>b.classList.remove('on'));
   const chg=document.getElementById('srtChange'); if(chg)chg.style.display='none';
-  const rest=document.getElementById('srtRest'); if(rest){clearTimeout(_srtRestT);rest.classList.remove('in');rest.style.display='none';}
+  const rest=document.getElementById('srtRest'); if(rest){rest.classList.remove('in');rest.style.display='none';}
+  const body=document.querySelector('#sortedModal .srtBody');
+  if(body)body.scrollTop=0;
   srtSync();
 }
 /* Plain instructions, in order, in her words — not a checklist she has to
-   interpret. Each one becomes a job in her Action Centre when she closes. */
-function _srtPaintSteps(picked,want){
-  const ol=document.getElementById('srtSteps');if(!ol)return;
+   interpret. Jack, 08 Aug: they are tick boxes now, worked through for real,
+   and the issue does not close until every one is ticked. A ticked step is
+   DONE, so it does not also become an Action Centre job — only the ones left
+   unticked under an explicit override do. That is the whole difference between
+   a list of instructions and a record of what actually happened. */
+let _srtTicks={};
+function _srtStepList(picked,want){
   const r=_rowById(_srtRid)||{};
   const paid=(document.getElementById('srtPaid')||{}).value||'';
+  const refunded=(document.getElementById('srtRefund')||{}).value||'';
+  const wentAs=((document.getElementById('srtSku')||{}).value||'').trim();
   const line=r.sheetRow?(', line '+r.sheetRow):'';
   const how={
-    'Update Purchase Sheet':'Open the Purchase Sheet'+line+' and write what happened in the notes — include this order number ('+(r.oid||'no order ref')+') and the SKU it went out under.',
+    'Update Purchase Sheet':'Open the Purchase Sheet'+line+' and write what happened in the notes — include this order number ('+(r.oid||'no order ref')+')'+(picked==='wrong-sku'||picked==='cancel-wrong-sku'?' and the SKU it went out under'+(wentAs?' ('+wentAs+')':''):'')+'.',
     'Remove from Prep Sheet':'This row comes off the active prep sheet — the app does that when you close it, and the sheet sync will no longer bring it back. The record is kept.',
     'Remove outstanding quantity':'Set the outstanding units to zero so it stops showing as on its way.',
     'Mark order as cancelled':'Mark the order cancelled on the account so nobody chases it again.',
     'Raise a claim for the loss':'Raise the claim with the supplier or Amazon before the window shuts.',
     'No further action required':'Nothing else to do.'
   };
-  const steps=(want||[]).map(t=>how[t]||t);
-  if(paid==='no')steps.push('Then remove that line from the Purchase Sheet — the money never left the account, so it was never a purchase.');
-  if(paid==='yes')steps.push('Leave the purchase on the sheet and note the refund against it — the money did leave the account.');
-  ol.innerHTML=steps.length?steps.map(x=>`<li>${esc(x)}</li>`).join('')
-    :'<li class="srtNone">Nothing else to do — closing it off is enough.</li>';
-  const hint=document.getElementById('srtTodoHint');
-  if(hint)hint.textContent=steps.length?'These land in your Action Centre when you close it off.':'';
+  const out=(want||[]).map(t=>({k:t,text:how[t]||t}));
+  if(picked==='wrong-sku'||picked==='cancel-wrong-sku')
+    out.push({k:'sku-recorded',text:'Record on the sheet which SKU it actually went out under'+(wentAs?' — '+wentAs+'.':', so the stock can be traced.')});
+  if(_resFull(picked))
+    out.push({k:'full-off',text:'Take the whole line off the Purchase Sheet. Nothing arrived and nothing is coming, so it was never really a purchase.'});
+  if(paid==='no')
+    out.push({k:'paid-no',text:'Nothing to do about the money — it never left the account.'});
+  if(paid==='yes'&&refunded==='yes')
+    out.push({k:'paid-yes',text:'Note the refund against the purchase so the money stays traceable, even though the order itself has gone.'});
+  if(paid==='yes'&&refunded==='no')
+    out.push({k:'refund-chase',text:'Chase the refund — the money left the account and has not come back. Record who you chased and when.'});
+  return out;
 }
-function closeSorted(){const el=document.getElementById('sortedModal');if(el){el.style.display='none';el.style.opacity='';el.style.transition='';}_srtRid=null;}
+function _srtPaintSteps(picked,want){
+  const ol=document.getElementById('srtSteps');if(!ol)return;
+  const steps=_srtStepList(picked,want);
+  /* Forget ticks for steps that no longer exist. Change an answer and the old
+     list is gone — carrying its ticks forward would have the form claiming
+     work was done that it is no longer even asking for. */
+  const live=new Set(steps.map(s=>s.k));
+  Object.keys(_srtTicks).forEach(k=>{if(!live.has(k))delete _srtTicks[k];});
+  ol.innerHTML=steps.length
+    ? steps.map(s=>`<li class="srtStep${_srtTicks[s.k]?' done':''}">
+        <label class="srtStepChk"><input type="checkbox" data-k="${esc(s.k)}"
+          ${_srtTicks[s.k]?'checked':''} onchange="srtTick(this)">
+        <span>${esc(s.text)}</span></label></li>`).join('')
+    : '<li class="srtNone">Nothing else to do — closing it off is enough.</li>';
+  const hint=document.getElementById('srtTodoHint');
+  if(hint){
+    const left=steps.filter(s=>!_srtTicks[s.k]).length;
+    hint.textContent=!steps.length?''
+      :left?`Tick each one off as you actually do it — ${left} still to go.`
+           :'All done — you can close it off now.';
+    hint.style.color=!steps.length?'var(--text2)':(left?'#fbbf24':'var(--green)');
+  }
+}
+function srtTick(el){
+  const k=el.dataset.k;if(!k)return;
+  if(el.checked)_srtTicks[k]=1; else delete _srtTicks[k];
+  const li=el.closest('.srtStep');if(li)li.classList.toggle('done',!!el.checked);
+  srtSync();
+}
+/* ── SAVE AND COME BACK ───────────────────────────────────────────────────────
+   Jack: "wanna be able to save on here… if i need to go off this to action xyz
+   then come back to it". Everything typed and every step ticked is kept against
+   the row, and it is SHARED — he asked to see Sarah's half-finished working, not
+   have it sit invisibly in her browser. */
+function _srtCollect(){
+  const g=id=>String((document.getElementById(id)||{}).value||'');
+  return{what:g('srtWhat'),paid:g('srtPaid'),refunded:g('srtRefund'),arrived:g('srtArrived'),
+    due:g('srtDate'),wentAs:g('srtSku').trim(),ord:g('srtOrd'),got:g('srtGot'),cx:g('srtCx'),
+    note:g('srtNote'),fix:g('srtFix'),
+    follow:FOLLOW_UPS.filter((f,n)=>{const c=document.getElementById('srtF'+n);return c&&c.checked;}),
+    ticks:Object.keys(_srtTicks),by:_who(),at:new Date().toISOString()};
+}
+/* Read-merge-write, like every other shared blob here. Both of them have the
+   page open; a blind overwrite is exactly what ate her chase notes once before.
+   Start from THEIR copy and lay ours on top, so a draft the other person began
+   since this page loaded survives — and only ever remove the one row we have
+   actually finished. */
+async function _saveDrafts(dropId){
+  try{
+    const r=await sb.from('app_settings').select('value').eq('key','srt_drafts').maybeSingle();
+    let remote={};try{remote=JSON.parse((r.data&&r.data.value)||'{}')||{};}catch(e){}
+    if(!remote||typeof remote!=='object'||Array.isArray(remote))remote={};
+    const merged=Object.assign({},remote,SRT_DRAFTS);
+    if(dropId)delete merged[String(dropId)];
+    SRT_DRAFTS=merged;
+    return await _putSetting('srt_drafts',merged);
+  }catch(e){console.warn('[prephub] draft save',e);return false;}
+}
+function srtDraft(rid){return SRT_DRAFTS[String(rid)]||null;}
+function srtDropDraft(rid){delete SRT_DRAFTS[String(rid)];return _saveDrafts(rid);}
+async function srtSaveDraft(){
+  const rid=_srtRid;if(!rid)return;
+  const d=_srtCollect();
+  if(!d.what){toast('Pick what happened first','er');return;}
+  SRT_DRAFTS[String(rid)]=d;
+  const btn=document.getElementById('srtSaveBtn');
+  if(btn){btn.disabled=true;btn.textContent='Saving…';}
+  const done=await _saveDrafts();
+  const r=_rowById(rid);
+  logAudit('Close-off saved for later',`${(r&&(r.sku||r.asin))||rid} — ${_resText(d.what)}`);
+  closeSorted();
+  if(done)toast('✓ Saved — pick it back up whenever you like');
+  try{renderAdmin();}catch(e){}
+}
+function _srtApplyDraft(d){
+  const set=(id,v)=>{const e=document.getElementById(id);if(e&&v!=null&&v!=='')e.value=v;};
+  _srtTicks={};(d.ticks||[]).forEach(k=>{_srtTicks[k]=1;});
+  set('srtPaid',d.paid);set('srtRefund',d.refunded);set('srtArrived',d.arrived);
+  set('srtDate',d.due);set('srtSku',d.wentAs);
+  set('srtOrd',d.ord);set('srtGot',d.got);set('srtCx',d.cx);
+  set('srtNote',d.note);set('srtFix',d.fix);
+  if(d.what)srtPick(d.what);
+  /* AFTER srtPick — it resets the follow-up boxes to the outcome's defaults,
+     which would quietly undo anything she had changed by hand. */
+  FOLLOW_UPS.forEach((f,n)=>{const c=document.getElementById('srtF'+n);if(c)c.checked=(d.follow||[]).includes(f);});
+  const bar=document.getElementById('srtDraftBar');
+  if(bar){
+    const mine=(d.by||'')===_who();
+    bar.innerHTML=`<b>Picked up where ${mine?'you':esc(d.by||'someone')} left off</b>
+      <span>Saved ${d.at?esc(noteAgo(d.at)):'earlier'} — everything below is as ${mine?'you':'they'} left it.</span>
+      <button type="button" onclick="srtStartAgain()">Start again</button>`;
+    bar.style.display='flex';
+  }
+  srtSync();
+}
+/* Throwing away a draft is not the same as closing an issue, but it still
+   destroys somebody's typing — so it asks, and it says whose. */
+function srtStartAgain(){
+  const rid=_srtRid;if(!rid)return;
+  const d=srtDraft(rid);
+  const who=(d&&d.by)||'someone';
+  if(!confirm(`Clear the part-finished close-off ${who===_who()?'you':who} saved and start this again?\n\nNothing else is deleted — the row, its history and the audit log are untouched.`))return;
+  srtDropDraft(rid);
+  closeSorted();
+  openSorted(rid);
+  try{renderAdmin();}catch(e){}
+}
+/* The steps still outstanding, and the ones an override would turn into jobs. */
+function _srtLeft(){
+  const what=(document.getElementById('srtWhat')||{}).value||'';
+  if(!what)return[];
+  return _srtStepList(what,_resTodo(what)).filter(s=>!_srtTicks[s.k]);
+}
+function closeSorted(){
+  const el=document.getElementById('sortedModal');
+  if(el){el.style.display='none';el.style.opacity='';el.style.transition='';}
+  srtCfmShut();srtSkuShut();          // never leave a child popup orphaned on screen
+  _srtTicks={};_srtOverride=false;
+  _srtRid=null;
+}
 function srtSync(){
   const ord=parseInt((document.getElementById('srtOrd')||{}).value)||0;
   const got=parseInt((document.getElementById('srtGot')||{}).value)||0;
@@ -6548,6 +7005,18 @@ function srtSync(){
   if(uWrap)uWrap.style.display=wantUnits?'block':'none';
 
   const paid=(document.getElementById('srtPaid')||{}).value||'';
+  /* Only worth asking once we know money left. "Cancelled" and "refunded" are
+     two different events, and the gap between them is the only part of a
+     cancellation that can quietly cost real money. */
+  const refunded=(document.getElementById('srtRefund')||{}).value||'';
+  show('srtAskRefund',ask.includes('paid')&&paid==='yes');
+  const rh=document.getElementById('srtRefundHint');
+  if(rh){
+    rh.textContent=refunded==='no'
+      ?'The order still comes off the sheet — but this is logged as money owed back, and chasing it becomes a step below.'
+      :refunded==='yes'?'Nothing outstanding. The refund gets noted against the purchase.':'';
+    rh.style.color=refunded==='no'?'#fbbf24':'var(--text2)';
+  }
   const wentAs=((document.getElementById('srtSku')||{}).value||'').trim();
   const sh=document.getElementById('srtSkuHint');
   if(sh){
@@ -6575,7 +7044,9 @@ function srtSync(){
   const fix=((document.getElementById('srtFix')||{}).value||'').trim();
   const fr=document.getElementById('srtFixReq');
   const go=document.getElementById('srtGo'),msg=document.getElementById('srtMsg');
-  const missingAsk=(ask.includes('paid')&&!paid)||(ask.includes('arrived')&&!arrived)||(kind==='date'&&!due);
+  const missingAsk=(ask.includes('paid')&&!paid)
+    ||(ask.includes('paid')&&paid==='yes'&&!refunded)
+    ||(ask.includes('arrived')&&!arrived)||(kind==='date'&&!due);
   const ticked=FOLLOW_UPS.some((f,i)=>{const c=document.getElementById('srtF'+i);return c&&c.checked;});
   /* Sarah only has to write a recommendation when Jack is the one deciding, or
      when she has not ticked anything to say what happens next. Demanding it on
@@ -6583,24 +7054,124 @@ function srtSync(){
   /* Nothing to suggest on a gated item: eBay / ungate / hold / write off is
      Jack's call and she has already told him it is here. */
   const needFix=(kind==='biz');
-  const ok=!!what&&left>=0&&(!needFix||!!fix)&&!missingAsk;
+  /* A whole-order cancellation and a partial one are different events with
+     different consequences, so the units have to agree with the outcome chosen.
+     Picking "the whole order" with 9 of 10 sitting on a shelf would take a real
+     purchase off the Purchase Sheet. */
+  const mism=(what==='cancelled'&&got>0)?'full'
+            :(what==='part-cancelled'&&got===0&&ord>0)?'part':'';
+  const todoLeft=(kind==='date')?[]:_srtLeft();
+  const ok=!!what&&left>=0&&(!needFix||!!fix)&&!missingAsk&&!mism&&!todoLeft.length;
   if(go){
     go.disabled=!ok;go.style.opacity=ok?'1':'.45';go.style.cursor=ok?'pointer':'not-allowed';
     /* nothing reaches Jack before the investigation is written down */
     go.textContent=kind==='date'?'Set the date':(kind==='ops'?'Close it off':'Send to Jack');
   }
+  const sv=document.getElementById('srtSaveBtn');
+  if(sv)sv.style.display=what?'inline-block':'none';
   if(fr){fr.textContent=needFix?'required':'optional';fr.style.color=needFix?'#f87171':'var(--text3)';}
   const fx=document.getElementById('srtFixBox');
   if(fx)fx.style.display=needFix?'block':'none';
-  if(msg)msg.textContent=!what?'Pick what happened first.'
-    :left<0?'The units don\'t add up.'
-    :missingAsk?'Answer the question above.'
-
-    :(needFix&&!fix)?'Say what you suggest we do.'
-    :kind==='date'?'Stays on the list, just not overdue until then.'
-    :kind==='gated'?'Recorded, then the gated decision goes to Jack.'
-    :kind==='ops'?'You can close this yourself — Jack is told, not asked.'
-    :'Jack gets your findings and makes the call.';
+  if(msg){
+    const plain=!what?'Pick what happened first.'
+      :left<0?'The units don\'t add up.'
+      :mism==='full'?`${got} unit${got===1?'':'s'} did arrive — that is a part cancellation, not the whole order.`
+      :mism==='part'?'Nothing arrived at all — that is the whole order cancelled.'
+      :missingAsk?'Answer the question above.'
+      :(needFix&&!fix)?'Say what you suggest we do.'
+      :todoLeft.length?`${todoLeft.length} step${todoLeft.length===1?'':'s'} still to tick off.`
+      :kind==='date'?'Stays on the list, just not overdue until then.'
+      :kind==='gated'?'Recorded, then the gated decision goes to Jack.'
+      :kind==='ops'?'You can close this yourself — Jack is told, not asked.'
+      :'Jack gets your findings and makes the call.';
+    /* Offer the switch rather than just refusing — she knows what happened, the
+       app is the one that picked the wrong word for it. */
+    const swap=mism==='full'?`<button type="button" class="srtSwap" onclick="srtPick('part-cancelled')">Use “Part arrived, the rest cancelled” →</button>`
+              :mism==='part'?`<button type="button" class="srtSwap" onclick="srtPick('cancelled')">Use “Cancelled — the whole order” →</button>`:'';
+    /* Jack, 08 Aug: a step that genuinely cannot be done yet must not trap the
+       row open forever. The override is always available, always recorded, and
+       every unticked step becomes a real job in the Action Centre. */
+    const over=(!mism&&todoLeft.length&&!missingAsk&&left>=0&&(!needFix||!!fix))
+      ?`<button type="button" class="srtSwap" onclick="srtAskClose(true)">Can’t do one of these? Close anyway →</button>`:'';
+    msg.innerHTML=esc(plain)+swap+over;
+  }
+}
+/* ── ARE YOU SURE ─────────────────────────────────────────────────────────────
+   Pressing the button used to be the last thing that happened. It takes a row
+   out of two live queues and stops the sheet sync ever bringing it back, so it
+   deserves a second press — and, more to the point, a plain list of what that
+   actually does. The list always ends with what is KEPT: no history is ever
+   fully deleted, and the popup that closes things should be the one that says
+   so loudest. */
+let _srtOverride=false,_srtOverrideWhy='';
+function srtCfmShut(){const el=document.getElementById('srtConfirm');if(el)el.style.display='none';}
+function srtAskClose(override){
+  const r=_rowById(_srtRid);if(!r)return;
+  const what=(document.getElementById('srtWhat')||{}).value||'';
+  if(!what)return;
+  const kind=_resKind(what,r);
+  /* "Still in transit" only puts a date on the row. Nothing closes, nothing
+     leaves a queue — a confirmation there is just a click tax. */
+  if(kind==='date'){submitSorted();return;}
+  const toJack=(kind!=='ops');
+  let el=document.getElementById('srtConfirm');
+  if(!el){
+    el=document.createElement('div');el.id='srtConfirm';el.className='overlay';
+    el.style.zIndex='140';document.body.appendChild(el);
+    el.addEventListener('click',e=>{if(e.target===el)srtCfmShut();});
+  }
+  const goes=toJack
+    ?['It leaves your active follow-up list straight away',
+      'Jack owns it from that moment — it shows on his side as waiting on him',
+      'Your findings and your recommendation go across with it',
+      'Nothing is closed yet. Jack decides, and he can send it back to you']
+    :['It comes off your active follow-up list',
+      'It comes off the active Prep Sheet',
+      'The sheet sync will not bring it back',
+      'Anything still to do lands in your Action Centre'];
+  const kept=['The resolution and everything you wrote is saved to history',
+              'The audit record is kept — no history is ever deleted'];
+  /* The override path. Every step left unticked becomes a real job rather than
+     quietly evaporating, and the reason is required — "close anyway" with no
+     explanation is just the old one-click close wearing a hat. */
+  const undone=override?_srtLeft():[];
+  el.innerHTML=`<div class="modal srtCfm">
+    <div class="srtCfmTtl">${undone.length?'Close it with jobs still outstanding?'
+      :toJack?'Send this to Jack?':'Are you sure you want to close this issue?'}</div>
+    <div class="srtCfmSub">${esc(_resText(what))} · ${esc(r.sku||r.asin||r.prod||'')}</div>
+    ${undone.length?`<div class="srtCfmOpen"><b>${undone.length} step${undone.length===1?'':'s'} not done</b>
+      <ul>${undone.map(s=>`<li>${esc(s.text)}</li>`).join('')}</ul>
+      <span>${undone.length===1?'It stays':'They stay'} on the books as ${undone.length===1?'a job':'jobs'} in the Action Centre — not forgotten, just not done yet.</span></div>
+      <div class="srtCfmLab">Why can’t ${undone.length===1?'it':'they'} be done now?</div>
+      <textarea id="srtCfmWhy" class="srtNote" rows="2" oninput="srtCfmCheck()"
+        placeholder="e.g. the Purchase Sheet isn’t connected yet"></textarea>`:''}
+    <div class="srtCfmLab">What happens</div>
+    <ul class="srtCfmList">${goes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+    <div class="srtCfmKeep"><b>Kept either way</b>
+      <ul>${kept.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
+    <div class="srtCfmFoot">
+      <button class="srtGhost" onclick="srtCfmShut()">Cancel</button>
+      <button class="srtGo" id="srtCfmGo" onclick="srtCfmTake(${undone.length?'true':'false'})">${
+        undone.length?'Close with jobs outstanding':toJack?'Send to Jack':'Close issue'}</button>
+    </div>
+  </div>`;
+  el.style.display='flex';
+  if(undone.length)srtCfmCheck();
+  setTimeout(()=>{const b=document.getElementById(undone.length?'srtCfmWhy':'srtCfmGo');if(b)b.focus();},50);
+}
+function srtCfmCheck(){
+  const t=document.getElementById('srtCfmWhy'),b=document.getElementById('srtCfmGo');
+  if(!t||!b)return;
+  const ok=t.value.trim().length>2;
+  b.disabled=!ok;b.style.opacity=ok?'1':'.45';b.style.cursor=ok?'pointer':'not-allowed';
+}
+function srtCfmTake(override){
+  const t=document.getElementById('srtCfmWhy');
+  if(override&&(!t||t.value.trim().length<3))return;
+  _srtOverride=!!override;
+  _srtOverrideWhy=t?t.value.trim():'';
+  srtCfmShut();
+  submitSorted();
 }
 let _srtBusy=false;
 async function submitSorted(){
@@ -6623,6 +7194,14 @@ async function submitSorted(){
   const arrived=(document.getElementById('srtArrived')||{}).value||'';
   const due=(document.getElementById('srtDate')||{}).value||'';
   const wentAs=((document.getElementById('srtSku')||{}).value||'').trim();
+  const refunded=(document.getElementById('srtRefund')||{}).value||'';
+  /* Snapshot the ticks BEFORE anything calls closeSorted — that clears them,
+     and the whole record of what was actually done would go with it. */
+  const ticks=Object.assign({},_srtTicks);
+  const stepsAll=_srtStepList(what,_resTodo(what));
+  const stepsDone=stepsAll.filter(s=>ticks[s.k]).map(s=>s.text);
+  const stepsOpen=stepsAll.filter(s=>!ticks[s.k]).map(s=>s.text);
+  const override=_srtOverride,overrideWhy=_srtOverrideWhy;
 
   /* "Still in transit" is not a closure at all — it just dates the row. */
   if(kind==='date'){
@@ -6642,7 +7221,21 @@ async function submitSorted(){
   /* Admin closes on the spot. A business decision or a gated product goes to
      Jack — but only WITH the investigation and a recommendation attached. */
   r.resolution={state:kind==='ops'?'approved':'proposed',kind,what,note,fix,followUps:follow,
-    paid,arrived,wentAs,by:_who(),at:new Date().toISOString(),claim:_resClaim(what)};
+    paid,refunded,arrived,wentAs,by:_who(),at:new Date().toISOString(),claim:_resClaim(what),
+    /* What she actually did, not just what she was told to do. stepsOpen is the
+       honest bit — the jobs that went out of this popup unfinished, and why. */
+    stepsDone,stepsOpen,override,overrideWhy};
+  /* Cancelled is not the same as refunded. If the money left and has not come
+     back, this is a live loss and Jack sees it flagged as one. */
+  if(paid==='yes'&&refunded==='no'){
+    r.resolution.claim=true;
+    if(!follow.includes('Raise a claim for the loss'))follow.push('Raise a claim for the loss');
+  }
+  /* A whole order that never arrived was never really a purchase — off the
+     active prep sheet, and the sync will not bring it back. The record stays,
+     as it always does. A PARTIAL cancellation is the opposite case: nine units
+     genuinely arrived, so that row stays exactly where it is. */
+  if(_resFull(what)&&!follow.includes('Remove from Prep Sheet'))follow.push('Remove from Prep Sheet');
   /* The units live on the row they actually shipped under. Leaving them at 0
      here is what stops the same 2 drones being counted twice in Sent This Month. */
   if(wentAs)r.wrongSku='Yes';
@@ -6672,7 +7265,12 @@ async function submitSorted(){
   if(kind==='ops'){
     r.resolution.approvedBy=_who();
     r.resolution.approvedAt=new Date().toISOString();
-    await addVaActions(r,follow,[sheetNote,fix].filter(Boolean).join(' — ')||_resText(what));
+    /* Only what is NOT already done becomes a job. A step she ticked off in the
+       popup has genuinely happened — sending it to the Action Centre anyway is
+       how a to-do list stops being believed. */
+    const jobs=stepsOpen.slice();
+    follow.forEach(f=>{if(!ticks[f]&&!jobs.some(j=>j===f||j.indexOf(f)===0))jobs.push(f);});
+    await addVaActions(r,jobs,[overrideWhy?('Left open: '+overrideWhy):'',sheetNote,fix].filter(Boolean).join(' — ')||_resText(what));
   }
   r.cancelledQty=cx;
   if(got!==(parseInt(r.rcvd)||0))r.rcvd=got;
@@ -6684,9 +7282,16 @@ async function submitSorted(){
   renderAdmin();
   try{
     await saveRow(r);
+    /* Only now. Dropping the part-finished copy before the save had actually
+       landed would throw away her working on the one occasion it still mattered
+       — the occasion where the save failed. */
+    if(srtDraft(rid))srtDropDraft(rid);
     toast(kind==='ops'?'Closed off — Jack has been told':'Sent to Jack with your findings','ok');
     logAudit(kind==='ops'?'Closed by VA':'Decision sent to Jack',
-      `${r.sku||r.asin||''} — ${_resText(what)} · ${fix}`);
+      [`${r.sku||r.asin||''} — ${_resText(what)}`,fix,
+       stepsDone.length?`${stepsDone.length} step${stepsDone.length===1?'':'s'} done`:'',
+       override?`CLOSED WITH ${stepsOpen.length} OUTSTANDING: ${overrideWhy}`:''
+      ].filter(Boolean).join(' · '));
     fireWebhook(kind==='ops'
       ? `${_who()} closed off "${r.prod||r.sku||''}" — ${_resText(what)}. ${fix}`
       : `${_who()} needs a decision on "${r.prod||r.sku||''}" — ${_resText(what)}. She suggests: ${fix}`,
@@ -6845,8 +7450,232 @@ async function ackQtyFix(rid){
 // ── WHAT IS WAITING ON WHOM ───────────────────────────────────────────────────
 function jackTodo(){
   const closures=rows.filter(r=>!r.archived&&r.resolution&&r.resolution.state==='proposed');
+  const checks=rows.filter(r=>!r.archived&&r.resolution&&r.resolution.state==='asked');
   const fixes=rows.filter(r=>!r.archived&&r.qtyFix&&!r.qtyFix.seen);
-  return{closures,fixes,n:closures.length+fixes.length};
+  return{closures,checks,fixes,n:closures.length+checks.length+fixes.length};
+}
+
+// ── JACK'S ADMIN ──────────────────────────────────────────────────────────────
+/* Jack, 08 Aug: "I absolutely hate the current Issues page… it feels messy and
+   doesn't fit how the process actually works." It was a list of problems with
+   nobody's name on it, sitting beside a queue organised by who owns things, so
+   the same row appeared twice and the two drifted apart.
+   Every live item belongs to exactly one of them. This is his half. */
+function paintJackBadge(){
+  const b=document.getElementById('jackBadge');if(!b)return;
+  const n=jackTodo().n;
+  b.textContent=n||'';b.style.display=n?'inline-flex':'none';
+}
+function renderJack(){
+  const w=document.getElementById('jackWrap');if(!w)return;
+  const{closures,checks,fixes,n}=jackTodo();
+  const head=(t,c,sub)=>`<div class="jkHd"><h3>${esc(t)}${c?`<b>${c}</b>`:''}</h3>${sub?`<span>${esc(sub)}</span>`:''}</div>`;
+  const meta=r=>[r.sup||'',r.oid||'',r.acct||'',r.asin||'',r.sku||''].filter(Boolean)
+    .map(x=>`<span>${esc(x)}</span>`).join('<i>·</i>');
+
+  /* 1 — things Sarah could not check herself. Top of the page, because she is
+     blocked until he answers and that is the most expensive kind of waiting. */
+  const checkCards=checks.map(r=>{
+    const q=r.resolution||{};
+    return`<div class="jkCard k-ask">
+      <div class="jkTop">
+        <div class="jkWho">${esc(q.by||'Sarah')} needs you to check${q.at?` · ${esc(noteAgo(q.at))}`:''}</div>
+        <div class="jkAsk">${esc(q.ask||'Check this order')}</div>
+      </div>
+      <div class="jkProd">${esc(r.prod||r.sku||'')}</div>
+      <div class="jkMeta">${meta(r)}</div>
+      ${q.note?`<div class="jkNote"><b>What ${esc(q.by||'she')} already checked</b>${esc(q.note)}</div>`:''}
+      <div class="jkActs">
+        <button class="jkGo" onclick="jackAnswerAsk('${r.uuid||r.id}')">Answer &amp; send back</button>
+        <button class="jkGhost" onclick="gsJump('prep','${String(r.oid||r.sku||'').replace(/'/g,"\\'")}')">View in Prep</button>
+      </div></div>`;}).join('');
+
+  /* 2 — closures she has proposed and cannot approve herself. */
+  const closeCards=closures.map(r=>{
+    const q=r.resolution||{};
+    return`<div class="jkCard k-dec">
+      <div class="jkTop">
+        <div class="jkWho">${esc(q.by||'Sarah')} investigated${q.at?` · ${esc(noteAgo(q.at))}`:''}</div>
+        <div class="jkAsk">${esc(_resText(q.what))}${q.claim?' <em>money at risk</em>':''}</div>
+      </div>
+      <div class="jkProd">${esc(r.prod||r.sku||'')}</div>
+      <div class="jkMeta">${meta(r)}</div>
+      ${q.note?`<div class="jkNote"><b>What she found</b>${esc(q.note)}</div>`:''}
+      ${q.fix?`<div class="jkNote jkFix"><b>She suggests</b>${esc(q.fix)}</div>`:''}
+      ${(q.stepsDone||[]).length?`<div class="jkSteps"><b>Already done</b><ul>${q.stepsDone.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>`:''}
+      ${(q.stepsOpen||[]).length?`<div class="jkSteps open"><b>Left outstanding${q.overrideWhy?' — '+esc(q.overrideWhy):''}</b><ul>${q.stepsOpen.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>`:''}
+      <div class="jkActs">
+        <button class="jkGo" onclick="approveResolution('${r.uuid||r.id}')">Approve &amp; close</button>
+        <button class="jkGhost" onclick="rejectResolution('${r.uuid||r.id}')">Send back to her</button>
+        <button class="jkGhost" onclick="gsJump('prep','${String(r.oid||r.sku||'').replace(/'/g,"\\'")}')">View in Prep</button>
+      </div></div>`;}).join('');
+
+  /* 3 — quantity corrections, which change what the sheet claims was ordered. */
+  const fixCards=fixes.map(r=>{
+    const f=r.qtyFix||{};
+    return`<div class="jkCard k-qty">
+      <div class="jkTop">
+        <div class="jkWho">${esc(f.by||'Sarah')} corrected the quantity${f.at?` · ${esc(noteAgo(f.at))}`:''}</div>
+        <div class="jkAsk">${esc(String(f.from??'?'))} → ${esc(String(f.to??'?'))} units</div>
+      </div>
+      <div class="jkProd">${esc(r.prod||r.sku||'')}</div>
+      <div class="jkMeta">${meta(r)}</div>
+      ${f.why?`<div class="jkNote"><b>Why</b>${esc(f.why)}</div>`:''}
+      <div class="jkActs"><button class="jkGo" onclick="ackQtyFix('${r.uuid||r.id}')">Seen it</button></div>
+    </div>`;}).join('');
+
+  w.innerHTML=`
+    <div class="jkHero">
+      <div>
+        <h2>Jack's Admin</h2>
+        <p>${n?`${n} thing${n===1?'':'s'} waiting on you.`:'Nothing is waiting on you. Sarah is not blocked on anything.'}</p>
+      </div>
+      <div class="jkKpis">
+        <div class="jkKpi${checks.length?' hot':''}"><b>${checks.length}</b><span>to check</span></div>
+        <div class="jkKpi${closures.length?' hot':''}"><b>${closures.length}</b><span>decisions</span></div>
+        <div class="jkKpi${fixes.length?' warn':''}"><b>${fixes.length}</b><span>qty fixes</span></div>
+      </div>
+    </div>
+    ${checks.length?head('She can’t check these herself',checks.length,'Amazon orders — she has no access, so they are yours')+`<div class="jkGrid">${checkCards}</div>`:''}
+    ${closures.length?head('Decisions waiting on you',closures.length,'She has done the investigation. You make the call.')+`<div class="jkGrid">${closeCards}</div>`:''}
+    ${fixes.length?head('Quantity corrections',fixes.length,'The sheet was wrong — not missing stock')+`<div class="jkGrid">${fixCards}</div>`:''}
+    ${!n?`<div class="jkEmpty"><b>All clear</b><span>When Sarah sends something over it lands here.</span></div>`:''}
+    <div class="jkOld">The old Issues page is still here for now —
+      <button onclick="goPage('claims',document.querySelector('.sb-item.on'))">open the old Issues view</button>.
+      Tell me if anything on it isn't covered by these two queues and I'll bring it across.</div>`;
+  paintJackBadge();
+}
+/* Answering is a real reply, not a status flip — he types what he found and it
+   goes back to her with the answer attached. */
+function jackAnswerAsk(rid){
+  const r=_rowById(rid);if(!r)return;
+  _askRid=rid;
+  const q=r.resolution||{};
+  let el=document.getElementById('askModal');
+  if(!el){
+    el=document.createElement('div');el.id='askModal';el.className='overlay';
+    el.style.zIndex='140';document.body.appendChild(el);
+    el.addEventListener('click',e=>{if(e.target===el)askShut();});
+  }
+  el.innerHTML=`<div class="modal srtCfm">
+    <div class="srtCfmTtl">What did you find?</div>
+    <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${esc(r.oid||'no order id')}</div>
+    <div class="srtCfmOpen"><b>${esc(q.by||'Sarah')} asked</b>
+      <ul><li>${esc(q.ask||'Check this order')}</li></ul>
+      ${q.note?`<span>${esc(q.note)}</span>`:''}</div>
+    <div class="srtCfmLab">Your answer</div>
+    <textarea id="askNote" class="srtNote" rows="3" oninput="jackAnsCheck()"
+      placeholder="e.g. Amazon shows it delivered on 12 July, signed for — book it in"></textarea>
+    <div class="srtCfmKeep"><b>What happens</b><ul>
+      <li>It goes straight back to ${esc(q.by||'Sarah')} with your answer on the row</li>
+      <li>She can act on it and close it off herself</li>
+      <li>The audit record is kept — no history is ever deleted</li></ul></div>
+    <div class="srtCfmFoot">
+      <button class="srtGhost" onclick="askShut()">Cancel</button>
+      <button class="srtGo" id="jkAnsGo" onclick="jackAnsSend()">Send the answer back</button>
+    </div></div>`;
+  el.style.display='flex';
+  jackAnsCheck();
+  setTimeout(()=>{const t=document.getElementById('askNote');if(t)t.focus();},50);
+}
+function jackAnsCheck(){
+  const t=document.getElementById('askNote'),b=document.getElementById('jkAnsGo');
+  if(!t||!b)return;
+  const ok=t.value.trim().length>2;
+  b.disabled=!ok;b.style.opacity=ok?'1':'.45';b.style.cursor=ok?'pointer':'not-allowed';
+}
+function jackAnsSend(){
+  const t=document.getElementById('askNote');
+  if(!t||t.value.trim().length<3)return;
+  const rid=_askRid,ans=t.value.trim();
+  askShut();
+  jackAnswered(rid,ans);
+}
+
+// ── ASK JACK TO CHECK ─────────────────────────────────────────────────────────
+/* Jack, 08 Aug: "if supplier is Amazon, Sarah often CAN'T properly check the
+   order details herself." So the triage stops pretending every supplier is the
+   same. Amazon rows get a hand-over button; everything else stays hers to
+   investigate, because she genuinely can — emails, order history, tracking,
+   contacting the supplier.
+   This is NOT a proposed closure. She is not saying what happened, she is
+   asking him to find out — so it gets its own state ('asked') and never lands
+   in the approve/reject queue. It rides in `resolution`, which already
+   round-trips to the database, so there is no migration to run. */
+let _askRid=null;
+const ASK_REASONS=[
+  'Check whether this order actually arrived',
+  'Check whether it was cancelled or refunded',
+  'I can’t see this order on the Amazon account',
+  'Gated — this one is your decision'
+];
+function askShut(){const el=document.getElementById('askModal');if(el)el.style.display='none';_askRid=null;}
+function askJackAsk(rid){
+  const r=_rowById(rid);if(!r){toast('Row not found','er');return;}
+  _askRid=rid;
+  let el=document.getElementById('askModal');
+  if(!el){
+    el=document.createElement('div');el.id='askModal';el.className='overlay';
+    el.style.zIndex='140';document.body.appendChild(el);
+    el.addEventListener('click',e=>{if(e.target===el)askShut();});
+  }
+  el.innerHTML=`<div class="modal srtCfm">
+    <div class="srtCfmTtl">Ask Jack to check this</div>
+    <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${esc(r.oid||'no order id')}</div>
+    <div class="srtCfmLab">What do you need him to check?</div>
+    <div class="askOpts">${ASK_REASONS.map((o,n)=>`<label class="srtChk">
+      <input type="radio" name="askWhy" value="${esc(o)}" ${n===0?'checked':''}><span>${esc(o)}</span></label>`).join('')}</div>
+    <div class="srtCfmLab">Anything he should know</div>
+    <textarea id="askNote" class="srtNote" rows="2"
+      placeholder="What you have already checked, who you have spoken to…">${esc(r.notes||'')}</textarea>
+    <div class="srtCfmKeep"><b>What happens</b><ul>
+      <li>This row moves to Jack — it shows as waiting on him and you can’t close it until he answers</li>
+      <li>It lands on his Admin page as a job with your name on it</li>
+      <li>He answers it, or sends it straight back to you with a note</li>
+      <li>Nothing is closed and nothing is deleted</li></ul></div>
+    <div class="srtCfmFoot">
+      <button class="srtGhost" onclick="askShut()">Cancel</button>
+      <button class="srtGo" onclick="askSend()">Send to Jack</button>
+    </div></div>`;
+  el.style.display='flex';
+}
+async function askSend(){
+  const rid=_askRid,r=_rowById(rid);if(!r)return;
+  const picked=document.querySelector('#askModal input[name="askWhy"]:checked');
+  const why=picked?picked.value:ASK_REASONS[0];
+  const note=((document.getElementById('askNote')||{}).value||'').trim();
+  r.resolution={state:'asked',kind:'check',what:'jack-check',ask:why,note,
+    by:_who(),at:new Date().toISOString()};
+  if(note){r.notes=note;r.notesBy=_who();r.notesAt=new Date().toISOString();}
+  r._dirty=true;
+  askShut();
+  renderAdmin();                 // it leaves her queue immediately
+  try{
+    await saveRow(r);
+    toast('✓ Sent to Jack — it’s on his page now');
+    logAudit('Asked Jack to check',`${r.sku||r.asin||''} — ${why}`);
+    fireWebhook(`${_who()} needs you to check "${r.prod||r.sku||''}" — ${why}${note?'. '+note:''}`,
+      {event:'asked_jack',sku:r.sku||'',asin:r.asin||'',by:_who()});
+  }catch(e){toast('Didn\'t save — check the connection','er');}
+  try{renderDashboard();}catch(e){}
+}
+/* Jack answering. Either he records what he found and it goes back to her with
+   the answer attached, or he hands it straight back untouched. */
+async function jackAnswered(rid,answer){
+  const r=_rowById(rid);if(!r||!r.resolution)return;
+  const asked=r.resolution;
+  r.resolution={state:'rejected',kind:'check',what:'jack-check',
+    ask:asked.ask||'',askedBy:asked.by||'',askedAt:asked.at||'',
+    rejectedBy:_who(),rejectNote:answer,at:new Date().toISOString()};
+  r._dirty=true;
+  try{
+    await saveRow(r);
+    logAudit('Jack answered a check',`${r.sku||r.asin||''} — ${answer}`);
+    fireWebhook(`${_who()} answered "${r.prod||r.sku||''}": ${answer}`,
+      {event:'jack_answered',sku:r.sku||'',by:_who()});
+    toast('✓ Sent back with your answer');
+  }catch(e){toast('Didn\'t save — check the connection','er');}
+  renderJack();try{renderAdmin();renderDashboard();}catch(e){}
 }
 function sarahTodo(){
   const open=VA_ACTIONS.filter(a=>!a.done);
@@ -7203,7 +8032,8 @@ function renderAdmin(){
               </div>
               ${i.sku?`<div class="s-sku" onclick="copyVal('${(i.sku||'').replace(/'/g,"\\'")}',this)" style="font-size:11px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(i.sku||'').replace(/"/g,'&quot;')}">${i.sku}</div>`:''}
               ${sentBack?`<div class="tfuBack">Sent back by ${esc(sentBack.rejectedBy||'Jack')}${sentBack.rejectNote?' — '+esc(sentBack.rejectNote):''}</div>`:''}
-              ${waiting?`<div class="tfuWait">Sent to Jack — awaiting decision${waiting.at?` · ${noteAgo(waiting.at)}`:''}<span>${esc(_resText(waiting.what))}</span></div>`:''}
+              ${waiting?`<div class="tfuWait">${waiting.state==='asked'?'Asked Jack to check':'Sent to Jack — awaiting decision'}${waiting.at?` · ${noteAgo(waiting.at)}`:''}<span>${esc(waiting.state==='asked'?(waiting.ask||'Amazon order check'):_resText(waiting.what))}</span></div>`:''}
+              ${i.draft?`<div class="tfuDraftChip" title="${esc((i.draft.by||'Someone')+' started closing this off')}">Part done — ${esc(i.draft.by||'someone')} saved it ${esc(noteAgo(i.draft.at))}<span>${esc(_resText(i.draft.what))}</span></div>`:''}
             </td>
             <td>
               <div class="tfuSup">${esc(i.sup||'—')}</div>
@@ -7241,6 +8071,13 @@ function renderAdmin(){
               <select class="tfuTri ${i.wrongSku==='Yes'?'warn':''}" onchange="setTriage('${i.rid}','wrongSku',this.value)" title="Did it go out under a different SKU? Happens a lot when another order gets cancelled.">
                 ${['','Yes','No'].map(o=>`<option value="${o}" ${i.wrongSku===o?'selected':''}>${o||'—'}</option>`).join('')}
               </select>
+              ${/* The same two dropdowns used to appear for every supplier, which
+                    quietly assumed Sarah could verify an Amazon order she has no
+                    access to. She can't — so that one gets a hand-over instead. */
+                _jackSupplier(i.sup)
+                ? `<button class="tfuAsk" ${waiting?'disabled':''} onclick="askJackAsk('${i.rid}')"
+                     title="Amazon — you can't check this order yourself. Send it to Jack.">Ask Jack to check</button>`
+                : `<div class="tfuSelf">Yours to check — emails, order history, tracking, or ask the supplier</div>`}
             </td>
             <td style="padding:8px 10px;">${_transitNote(i)}</td>
             <td>
@@ -15790,7 +16627,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v20.0 · lav3 · 2026-08-08 · b210';
+const BUILD='v20.3 · lav3 · 2026-08-08 · b213';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -15987,6 +16824,18 @@ async function loadCloud(){
       sup:d.supplier||'',oid:d.order_ref||'',loc:d.location||'Warehouse',arr:d.arrived?1:0,
       src:d.source||'',note:d.note||'',
       ...(d.meta&&typeof d.meta==='object'?d.meta:{})}));
+    /* Repair on the way in, for rows already written by the old code.
+       `qty` means "still owed" once anything has been counted in, and `ord` is
+       the original order — but ordQty() falls back to qty when ord is missing,
+       so a part-received order reported what was LEFT as what was ORDERED.
+       ord = what is still owed + what has already come in. Reading only; the
+       corrected value is written back the next time the row is saved. */
+    let _healed=0;
+    LAYERS.forEach(l=>{
+      const rc=parseInt(l.rcvd)||0;
+      if(rc>0&&!(parseInt(l.ord)||0)){l.ord=(parseInt(l.qty)||0)+rc;_healed++;}
+    });
+    if(_healed)console.warn('[lav3] repaired the ordered quantity on '+_healed+' part-received order(s)');
     _layersLoadedCount=LAYERS.length;
     const pr=await sb.from('lavarion_purchases').select('*').order('bought_on',{ascending:false});
     if(pr.error)throw pr.error;
@@ -16049,6 +16898,9 @@ const LAYER_META=['mode','eta1','eta2','_etaTouched','_etaGuess',
      every receipt that made it up. Without these a second box against the same
      order looked like a brand new order and the shortfall vanished. */
   'ord','rcvd','rcpts','repl','closed','ofOrd',
+  /* which line of its purchase's allocation this layer is. The only stable way
+     to find it again after a refresh — see setAlloc. */
+  'allocIx',
   'manual','why','whoAdded','leadLo','leadHi',
   /* a note left when stock was counted in stays OPEN until somebody deals with
      it — the order does not silently disappear just because the box arrived */
@@ -21156,10 +22008,22 @@ function setAlloc(p,alloc){
      was inserted again alongside the old row. Re-running an allocation for any
      reason silently undid a receipt. Existing layers are now updated in place,
      keeping their uuid, their arrived flag and what is left of them. */
-  const keep={};
+  /* Keyed BOTH ways on purpose. The synthetic 'P<pid>_<i>' id only survives
+     until the next refresh — hydrate overwrites l.id with the database uuid —
+     so after any reload the old lookup missed every time, built a brand new
+     layer at the allocation quantity, and threw the received one away. That is
+     how an order of 30 with 15 counted in came back as an order of 15 with no
+     receipts. allocIx is stored on the layer and persists, so it still matches
+     tomorrow. */
+  const keep={},byIx={};
   D.components.concat(D.products).forEach(o=>{if(!o.layers)return;
-    o.layers.forEach(l=>{if(l.src===tag)keep[l.id]=l;});
+    o.layers.forEach(l=>{if(l.src!==tag)return;
+      keep[l.id]=l;
+      if(l.allocIx!=null&&byIx[l.allocIx]===undefined)byIx[l.allocIx]=l;});
     o.layers=o.layers.filter(l=>l.src!==tag);});
+  /* Anything with a receipt against it, a shortfall or a note is somebody's
+     work — it is never rebuilt from scratch and never dropped. */
+  const hasHistory=l=>!!(rcvdQty(l)||(l.rcpts&&l.rcpts.length)||l.short||l.arr||l.dmg||l.note);
   p.alloc=alloc.filter(a=>a.to&&(parseInt(a.qty)||0)>0).map(a=>({to:a.to,qty:parseInt(a.qty)}));
   delete p.link;
   let missed=0;
@@ -21175,10 +22039,18 @@ function setAlloc(p,alloc){
     const add=nd=>{const x=new Date(p.date);x.setDate(x.getDate()+nd);
       return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;};
     const lid='P'+p.id+'_'+i;
-    const was=keep[lid];
+    const was=keep[lid]||byIx[i];
     if(was){
       /* it already exists — only the things the allocation actually owns change */
-      was.date=p.date;was.qty=a.qty;was.cost=p.price;was.sup=p.sup;was.oid=p.oid;
+      was.date=p.date;was.cost=p.price;was.sup=p.sup;was.oid=p.oid;
+      was.allocIx=i;
+      /* ORDERED and STILL OWED are two different numbers and the allocation only
+         owns the first. Writing a.qty straight into qty was what made a
+         part-received order forget it had ever been 30 — qty means "what is
+         still owed" the moment anything is counted in. */
+      was.ord=a.qty;
+      was.qty=Math.max(0,a.qty-rcvdQty(was));
+      if(was.short&&was.qty>0)was.shortQty=was.qty;
       if(!was.arr)was.rem=0;                       // still on order: nothing on the shelf
       else if(was.rem>a.qty)was.rem=a.qty;         // received: keep what is left of it
       was.loc=p.loc==='Home'?'Warehouse':p.loc;
@@ -21186,19 +22058,26 @@ function setAlloc(p,alloc){
       if(!was.eta1)was.eta1=add(m.lo);
       if(!was.eta2)was.eta2=add(m.hi);
       (o.layers=o.layers||[]).push(was);
-      delete keep[lid];
+      delete keep[was.id];delete byIx[i];
       return;
     }
-    (o.layers=o.layers||[]).push({id:lid,src:tag,date:p.date,qty:a.qty,rem:p.arr?a.qty:0,cost:p.price,
+    (o.layers=o.layers||[]).push({id:lid,src:tag,allocIx:i,date:p.date,
+      ord:a.qty,qty:a.qty,rem:p.arr?a.qty:0,cost:p.price,
       sup:p.sup,oid:p.oid,loc:p.loc==='Home'?'Warehouse':p.loc,arr:p.arr?1:0,
       mode,eta1:add(m.lo),eta2:add(m.hi)});
   });
   /* a layer the new allocation no longer covers, but which has already been
      received, is real stock — put it back rather than lose it */
+  /* `arr` alone was the wrong test. It is only set when an order COMPLETES, so
+     a part-received one — 15 of 30 counted in, the rest still owed, possibly
+     already raised as a shortfall with Sarah — read as "not arrived" and was
+     dropped on the floor with its receipts. Anything anybody has touched comes
+     back. */
   Object.values(keep).forEach(l=>{
-    if(!l.arr)return;
+    if(!hasHistory(l))return;
     const o=targetOf(l.tid)||targetOf((l.tid||'').toString());
     if(o)(o.layers=o.layers||[]).push(l);
+    else console.warn('[lav3] kept a received layer with no home',l.id);
   });
   logIt('edit',`Purchase “${p.name}” allocated: ${p.alloc.length?p.alloc.map(a=>fmt(a.qty)+' → '+((targetOf(a.to)||{}).name||'MISSING')).join(', '):'nothing'}`);
   if(missed){
@@ -22154,7 +23033,7 @@ function shortPanel(){
       <span class="sub">${fmt(list.length)} order${list.length===1?'':'s'} arrived light · ${fmt(units)} units · ${gbp(value)} paid for and not here</span>
       ${worst.length>1?`<span class="chip warn" title="${worst.map(w=>esc(w)+': '+fmt(bySup[w])).join(' · ')}">worst: ${esc(worst[0])}</span>`:''}
     </div>
-    <table><thead><tr>
+    <div class="tblScroll"><table><thead><tr>
       <th style="width:74px">Noticed</th>
       <th class="l" style="width:220px">What's missing</th>
       <th style="width:70px">Short</th>
@@ -22196,7 +23075,7 @@ function shortPanel(){
           <button class="btn sm" title="It was on the shelf all along" onclick="LV3.shortEnd('${x.o.id}','${l.id}','miscount')">Miscount</button>
           <button class="btn sm dgr" title="Accept it's never coming" onclick="LV3.writeOffShort('${x.o.id}','${l.id}')">Write off</button>
         </td></tr>`;}).join('')}
-    </tbody></table>
+    </tbody></table></div>
     <div class="pmeta" style="padding:9px 14px;border-top:1px solid var(--border)">
       These are still counted as <b>on order</b>, so they still show as incoming. Write one off and it stops counting.</div>
   </div>`;
@@ -22296,15 +23175,15 @@ function deliveriesPanel(){
       <div class="r"><button class="btn sm" onclick="LV3.openLogOrder()">+ Log an order</button>
         ${open.length>1?`<button class="btn sm" title="Tick several at once instead of one row at a time" onclick="LV3.openDeliveries()">Receive several</button>`:''}</div></div>
     ${open.length?`<div class="ordNote">Grouped by order — the same orders you linked above. Change the number if only part of it turned up, then press <b>Receive</b>. For a whole box at once use <b>Receive several</b>.</div>
-    <table class="stickHead"><thead><tr>
+    <div class="tblScroll"><table class="stickHead"><thead><tr>
       <th class="l" style="min-width:230px">What's coming</th>
-      <th style="width:96px" title="What was ordered, what has been counted in, and what is still owed">Ordered</th>
+      <th style="width:104px" title="The original order. This never changes as deliveries come in — what has been counted in and what is still owed are shown underneath it.">Ordered</th>
       <th style="width:82px">Unit</th>
       <th class="l" style="width:140px">Supplier</th>
       <th style="width:96px">Order date</th>
       <th class="l" style="width:158px">How</th>
       <th class="l" style="width:190px">Expected</th>
-      <th style="width:92px" title="How many actually turned up — change it if only part of the order came">Arrived</th>
+      <th style="width:104px" title="How many are being counted in RIGHT NOW. It is filled in with everything still owed — change it if only part of that has turned up. It is not a record of what has already arrived; that is under Ordered.">Arriving now</th>
       <th class="acts" style="width:96px"></th></tr></thead><tbody>
     ${open.map(x=>{const l=x.l,e=etaState(l),st=orderState(l);
       return `<tr class="ordRow st-${st.k}">
@@ -22317,9 +23196,14 @@ function deliveriesPanel(){
           ${st.why&&st.k!=='part'?`<div class="pmeta" style="margin-top:3px">${esc(st.why)}</div>`:''}</td>
         ${/* Ordered on top, then what has come in and what is still owed. The
               outstanding number is never something anybody has to work out. */''}
+        ${/* The original order, and it stays the original order. It used to fall
+              back to `qty`, which becomes "what is still owed" the moment
+              anything is counted in — so an order of 30 with 15 received
+              reported itself as an order of 15. */''}
         <td><span class="num">${fmt(ordQty(l))}</span>
           ${rcvdQty(l)?`<div class="ordSplit"><span class="ok">${fmt(rcvdQty(l))} in</span>
-            <span class="${outQty(l)?'out':''}">${fmt(outQty(l))} left</span></div>`:''}</td>
+            <span class="${outQty(l)?'out':''}">${fmt(outQty(l))} left</span></div>`
+            :`<div class="pmeta" style="margin:2px 0 0;text-align:center">ordered</div>`}</td>
         <td>${l.cost>0?`<span class="num quiet">${gbp(l.cost)}</span>`:'<span class="dim" style="font-size:11.5px">no price</span>'}</td>
         <td class="l">${esc(l.sup||'—')}
           ${(()=>{const u=unlocks(x);
@@ -22342,14 +23226,15 @@ function deliveriesPanel(){
           <div class="pmeta" style="margin:4px 0 0;color:${e.col};font-weight:700">${e.sub||e.txt}</div></td>
         <td onclick="event.stopPropagation()">
           <input class="in num rcvQty" type="number" min="0" value="${l.qty}" id="rcv-${l.id}"
-            title="How many actually turned up — change it if only part of the order came"></td>
+            title="How many are being counted in now — change it if only part of what is owed has turned up">
+          <div class="pmeta" style="margin:3px 0 0;text-align:center">of ${fmt(outQty(l))} still owed</div></td>
         <td class="acts" onclick="event.stopPropagation()">
           <button class="btn sm go" title="Count it in — asks what actually arrived before anything is booked"
             onclick="LV3.openReceive('${x.kind}','${x.o.id}','${l.id}')">${rcvdQty(l)?'Receive more':'Receive'}</button>
           ${l.short?`<button class="btn sm" style="margin-top:4px" title="More turned up after all — withdraws the shortfall and puts it back on order"
             onclick="LV3.undeclareShort('${x.o.id}','${l.id}')">More came</button>`:''}</td>
       </tr>`;}).join('')}
-    </tbody></table>`
+    </tbody></table></div>`
     :`<div class="empty">Nothing on order.
        <div class="pmeta" style="margin-top:7px">Log what's been bought and it sits here with its expected dates until it turns up.</div></div>`}
   </div>`;
