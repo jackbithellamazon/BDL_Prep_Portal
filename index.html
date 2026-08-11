@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v20.3</title>
+<title>BDL PrepHub v20.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3032,7 +3032,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v20.3</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v20.6</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3066,7 +3066,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v20.3</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v20.6</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3902,6 +3902,10 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
           <option>Overdue — No Delivery</option>
           <option>Tracking Issue</option>
           <option>Refund Required</option>
+          <!-- Becki: Amazon and some suppliers refund short units on their own.
+               Logged as a normal issue it sends Sarah chasing something already
+               settled, so this one is recorded and closed on the spot. -->
+          <option>Auto Refunded — no chase needed</option>
           <option>Mixed Issues</option>
           <option>Other</option>
         </select>
@@ -3937,6 +3941,10 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
           <option>Overdue — No Delivery</option>
           <option>Tracking Issue</option>
           <option>Refund Required</option>
+          <!-- Becki: Amazon and some suppliers refund short units on their own.
+               Logged as a normal issue it sends Sarah chasing something already
+               settled, so this one is recorded and closed on the spot. -->
+          <option>Auto Refunded — no chase needed</option>
           <option>Mixed Issues</option>
           <option>Other</option>
         </select>
@@ -4046,6 +4054,50 @@ function sellableExp(qty,bun,bqty){
     return bundles>0?bundles:q;
   }
   return q;
+}
+
+/* ── PHYSICAL ITEMS vs ASIN UNITS ───────────────────────────────────────────
+   Becki, 10 Aug: "98 bottles received does NOT mean 98 Amazon units sent. It
+   means 98 physical bottles, which represents 49 Amazon ASIN units for a
+   2-pack." She counts bottles off the pallet; Amazon is sent bundles.
+   `exp`, `ship` and `rcvd` are all ASIN units — 56 places read `rcvd` and
+   several set it straight from `exp`, so changing what it MEANS would quietly
+   corrupt every one of them. The number stays in ASIN units; the box she types
+   into is what changes, and these convert between the two.
+   Pack size is `bqty` — already on the row, already synced from the Purchase
+   Sheet. A non-bundle row is a pack of 1, so this is safe on every row. */
+/* Typing into the Qty Received box on a bundle row. Converts items → units,
+   and never silently swallows a part-pack: 93 bottles of a 2-pack is 46 units
+   and one loose bottle, and the loose one is said out loud because it is real
+   stock that cannot be sent. */
+function setRcvdItems(rid,domId,items){
+  const r=rows.find(x=>x.uuid===String(rid)||String(x.id)===String(rid));
+  if(!r)return;
+  const{units,loose,pack}=unitsFromItems(items,r);
+  uf(rid,'rcvd',units);
+  updateDiffCell(domId,units,r.exp||0);
+  const sub=document.getElementById('rcvSub-'+domId);
+  if(sub)sub.innerHTML=`<b>${units}</b> unit${units!==1?'s':''}`
+    +(loose?`<br><span style="color:var(--amber)">${loose} loose item${loose!==1?'s':''}</span>`:'');
+  if(loose)toast(`${items} items isn't a whole number of ${pack}-packs — booked in ${units} unit${units!==1?'s':''}, `
+    +`${loose} loose item${loose!==1?'s':''} left over. Raise it as an issue so it isn't forgotten.`,'er');
+  debounce('stats',renderStats);
+}
+/* One place that decides what counts as an auto refund, so the wording on the
+   dropdown can change without quietly turning the behaviour off. */
+const _isAutoRefund=t=>/auto\s*refund/i.test(String(t||''));
+function packOf(r){
+  const n=parseInt(r&&r.bqty)||0;
+  return (String((r&&r.bun)||'').trim()==='Yes'&&n>1)?n:1;
+}
+const isBundle=r=>packOf(r)>1;
+/* ASIN units → the number of individual things somebody physically handles */
+const itemsOf=(units,r)=>(parseInt(units)||0)*packOf(r);
+/* and back. Floors, because half a 2-pack cannot be sent to Amazon — the
+   leftover is reported rather than quietly rounded away. */
+function unitsFromItems(items,r){
+  const n=packOf(r), q=Math.max(0,parseInt(items)||0);
+  return{units:Math.floor(q/n),loose:q%n,pack:n};
 }
 
 // ── VAT HELPERS ───────────────────────────────────────────────────────────────
@@ -4530,18 +4582,56 @@ function copyMigrationSql(btn){
 /* Which week the dashboard is looking at. 0 = this week, 1 = last week, and so
    on — the weekly panel can step back without moving anything else. */
 let WEEK_OFFSET=0;
-function shiftWeek(by){
+function shiftWeek(by,ev){
   const next=WEEK_OFFSET+by;
   if(next<0||next>25)return;                 // no future, and half a year back is plenty
   WEEK_OFFSET=next;
+  if(ev)ev.__wkHandled=1;
   redrawWeek();
 }
-function thisWeekNow(){WEEK_OFFSET=0;redrawWeek();}
+function thisWeekNow(ev){WEEK_OFFSET=0;if(ev)ev.__wkHandled=1;redrawWeek();}
+/* A second, independent way in. The inline onclick has to find `shiftWeek` on
+   the global scope at the instant of the click; this is bound once to the
+   document and survives every redraw, so the arrows keep working even if that
+   lookup fails.
+   The two must never both act on the same press. That is marked on the EVENT
+   rather than timed — a first attempt used "did anything fire in the last 80ms"
+   and duly swallowed the second of two quick presses, which is precisely the
+   "clicking does nothing" complaint this is meant to cure. The inline handler
+   runs first (it is on the target, this is on the document), so by the time
+   this sees the event it already knows. */
+document.addEventListener('click',function(e){
+  if(e.__wkHandled)return;
+  const b=e.target&&e.target.closest?e.target.closest('[data-week]'):null;
+  if(!b||b.disabled)return;
+  const by=parseInt(b.getAttribute('data-week'));
+  if(isNaN(by))return;
+  if(by===0)thisWeekNow(e); else shiftWeek(by,e);
+});
 /* Weekly Activity is drawn by renderDashboard, not renderStats — calling the
    wrong one is why the arrows appeared to do nothing at all. */
 function redrawWeek(){
-  try{if(typeof renderDashboard==='function')renderDashboard();}catch(e){console.warn('week redraw',e);}
-  try{if(typeof renderStats==='function')renderStats();}catch(e){}
+  /* This used to swallow a failure into a console.warn, so if the redraw threw,
+     the arrow looked dead and there was nothing on screen to say why. A control
+     that silently does nothing is the worst kind of broken — if it fails now it
+     says so, and names the reason. */
+  let failed=null;
+  try{if(typeof renderDashboard==='function')renderDashboard();}
+  catch(e){failed=e;console.warn('week redraw',e);}
+  try{if(typeof renderStats==='function')renderStats();}catch(e){console.warn('week stats',e);}
+  if(failed){
+    try{toast('Couldn\'t redraw the week — '+((failed&&failed.message)||'unknown error'),'er');}catch(e){}
+    return;
+  }
+  /* Confirm the move out loud. Most weeks before this one are empty, and an
+     empty week looks a lot like a button that did nothing — which is exactly
+     what it was reported as. */
+  try{
+    const{s,e}=getWeekRange();
+    const f=d=>d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+    toast(WEEK_OFFSET===0?`Back to this week · ${f(s)} – ${f(e)}`
+      :`${WEEK_OFFSET===1?'Last week':WEEK_OFFSET+' weeks ago'} · ${f(s)} – ${f(e)}`,'ok');
+  }catch(e){}
 }
 function getWeekRange(off){
   const back=(off===undefined?WEEK_OFFSET:off)*7;
@@ -4787,10 +4877,14 @@ function renderPrepRows(data){
   const todayStr=todayISO();
   b.innerHTML=data.map(r=>{
     const diff=(r.exp||0)-(r.rcvd||0);
+    /* Said in whatever unit the person is holding. On a 2-pack, "3 short" means
+       six bottles missing off the pallet, and the tooltip says so. */
+    const _pk=packOf(r);
+    const _inItems=n=>_pk>1?` (${Math.abs(n)*_pk} item${Math.abs(n)*_pk!==1?'s':''})`:'';
     const diffEl=r.rcvd>0
-      ? (diff===0?`<span class="nt nt-ok" style="font-family:Arial,sans-serif;" title="All ${r.exp} accounted for">✓</span>`
-        : diff>0?`<span class="nt nt-bad" title="${diff} short of the ${r.exp} expected">-${diff}</span>`
-        : `<span class="nt nt-ok" title="${Math.abs(diff)} more than expected">+${Math.abs(diff)}</span>`)
+      ? (diff===0?`<span class="nt nt-ok" style="font-family:Arial,sans-serif;" title="All ${r.exp} accounted for${_pk>1?` — ${itemsOf(r.exp,r)} items`:''}">✓</span>`
+        : diff>0?`<span class="nt nt-bad" title="${diff} short of the ${r.exp} expected${_inItems(diff)}">-${diff}</span>`
+        : `<span class="nt nt-ok" title="${Math.abs(diff)} more than expected${_inItems(diff)}">+${Math.abs(diff)}</span>`)
       : `<span class="nt-wait" title="Nothing booked in yet — this is not a discrepancy">none in</span>`;
     const isSent=r.status==='Sent to Amazon';
     const canComp=isSent&&diff===0;
@@ -4904,7 +4998,19 @@ function renderPrepRows(data){
       <td><select class="ci-sel" onchange="handleStatusChange('${r.uuid||r.id}',this);" tabindex="-1">
         ${['In-Transit','Delivered','In Warehouse','Part Sent','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
       </select>${r.status==='Part Sent'?(()=>{const _left=remainingToShip(r);const _bs='display:block;margin-top:3px;width:100%;box-sizing:border-box;padding:4px 4px;border:none;border-radius:4px;font-size:9px;font-weight:800;cursor:pointer;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;background:#2563eb;color:#fff;';return `<button onclick="${_left>0?'sendMore':'sendExtra'}('${r.uuid||r.id}')" title="Send ${_left>0?'the remaining '+_left+' unit'+(_left===1?'':'s'):'another unit (none calculated as outstanding, but you can still send 1+ more)'} to a shipment ID" style="${_bs}">↗ Send more${_left>0?` (${_left})`:''}</button>`;})():''}</td>
-      <td><input class="ci ci-num" type="number" value="${r.rcvd}" onchange="uf('${r.uuid||r.id}','rcvd',+this.value);updateDiffCell(${r.id},+this.value,${r.exp||0});debounce('stats',renderStats);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1"></td>
+      <td>${isBundle(r)
+        /* A bundle row is counted in ITEMS, because that is what comes out of
+           the box. It was being typed straight into a box compared against the
+           ASIN figure — 92 bottles against 49 units — which is where Becki's
+           phantom "+43 extra" came from. */
+        ? `<input class="ci ci-num" type="number" min="0" value="${itemsOf(r.rcvd,r)}" id="rcvIt-${r.id}"
+             title="Count the individual items out of the box — ${packOf(r)} of them make one Amazon unit"
+             onchange="setRcvdItems('${r.uuid||r.id}',${r.id},+this.value)"
+             style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1">
+           <div class="expPack" id="rcvSub-${r.id}" title="Individual items counted in, and the Amazon units they make up">${
+             r.rcvd?`<b>${r.rcvd}</b> unit${r.rcvd!==1?'s':''}`:`items<br>&times;${packOf(r)} per bundle`}</div>`
+        : `<input class="ci ci-num" type="number" value="${r.rcvd}" onchange="uf('${r.uuid||r.id}','rcvd',+this.value);updateDiffCell(${r.id},+this.value,${r.exp||0});debounce('stats',renderStats);" style="${rcvdColor?'color:'+rcvdColor:''}" tabindex="-1">`
+      }</td>
       <td id="diff-${r.id}">${diffEl}</td>
       <td style="text-align:center;">
         <button onclick="openIssueModal('${r.uuid||r.id}')" id="ib-${r.id}"
@@ -5621,7 +5727,13 @@ function doClaim(){
     sup:r.sup,oid:r.oid||'',prod:r.prod||'',acct:r.acct||'',
     issT:it,exp:r.exp,rec:r.rcvd,dif,
     cost,claimValue:cost*dif,
-    cst:'Needs Attention',notes:initNote,
+    /* An auto refund is a record, not a job. The supplier has already put it
+       right, so it is filed closed and never reaches Sarah's queue — but it is
+       still on the row, still in the numbers, and still shows in history. */
+    cst:_isAutoRefund(it)?'Resolved':'Needs Attention',
+    autoRefund:_isAutoRefund(it)||undefined,
+    resolvedAt:_isAutoRefund(it)?todayISO():undefined,
+    notes:initNote,
     owner:_issueDefaults(it.includes('Gated')?'Gated':it.includes('Missing')?'Missing':it.includes('Damaged')?'Damaged':it.includes('Overdue')||it.includes('Tracking')?'Not Arrived':'Incorrect').owner,
     nextAction:_issueDefaults(it.includes('Gated')?'Gated':it.includes('Missing')?'Missing':it.includes('Damaged')?'Damaged':it.includes('Overdue')||it.includes('Tracking')?'Not Arrived':'Incorrect').na,
     nextDue:_issueDefaults(it.includes('Gated')?'Gated':it.includes('Missing')?'Missing':it.includes('Damaged')?'Damaged':it.includes('Overdue')||it.includes('Tracking')?'Not Arrived':'Incorrect').nd,
@@ -9234,15 +9346,27 @@ function renderDashboard(){
               <div style="font-size:12px;font-weight:700;color:#f1f5f9;letter-spacing:.01em;">Weekly Activity</div>
               <div style="font-size:10.5px;color:var(--text3);margin-top:2px;">${(()=>{const{s:a,e:b}=getWeekRange();
                 const f=d=>d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
-                return WEEK_OFFSET===0?'this week · '+f(a)+' – '+f(b)
-                  :WEEK_OFFSET===1?'last week · '+f(a)+' – '+f(b)
-                  :WEEK_OFFSET+' weeks ago · '+f(a)+' – '+f(b);})()}</div>
+                /* Loud when you are NOT on this week. Every week before the app
+                   went live is empty, so a past week rendered in the same quiet
+                   grey was indistinguishable from an arrow that did nothing. */
+                const lbl=WEEK_OFFSET===0?'this week':WEEK_OFFSET===1?'last week':WEEK_OFFSET+' weeks ago';
+                return WEEK_OFFSET===0?lbl+' · '+f(a)+' – '+f(b)
+                  :`<b style="color:var(--accent);font-weight:800;">${lbl}</b> · ${f(a)} – ${f(b)}`;})()}</div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
               <span style="font-size:11px;color:#9aa7ba;">${weekDays.filter(d=>!d.isFuture&&d.units>0).length} active day${weekDays.filter(d=>!d.isFuture&&d.units>0).length===1?'':'s'}</span>
-              <button onclick="shiftWeek(1)" title="The week before" style="width:26px;height:26px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:6px;font-size:13px;cursor:pointer;line-height:1;">‹</button>
-              ${WEEK_OFFSET>0?`<button onclick="thisWeekNow()" title="Back to this week" style="padding:0 9px;height:26px;background:var(--bg3);border:1px solid var(--border2);color:var(--accent);border-radius:6px;font-size:10.5px;font-weight:800;cursor:pointer;">This week</button>`:''}
-              <button onclick="shiftWeek(-1)" ${WEEK_OFFSET===0?'disabled':''} title="The week after" style="width:26px;height:26px;background:var(--bg3);border:1px solid var(--border2);color:${WEEK_OFFSET===0?'var(--text3)':'var(--text2)'};border-radius:6px;font-size:13px;cursor:${WEEK_OFFSET===0?'default':'pointer'};line-height:1;opacity:${WEEK_OFFSET===0?'.4':'1'};">›</button>
+              ${/* data-week is the real handler — see wireWeekArrows(). The inline
+                    onclick is kept as a belt-and-braces fallback, but it is no
+                    longer the thing this depends on: an inline handler has to
+                    resolve `shiftWeek` off the global scope at the moment of the
+                    click, and it is bigger and sits above its neighbours now
+                    because a 26px target with something overlapping it is
+                    indistinguishable from a dead button. */''}
+              <button type="button" data-week="1" onclick="shiftWeek(1,event)" title="The week before"
+                style="position:relative;z-index:5;width:32px;height:32px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:6px;font-size:15px;cursor:pointer;line-height:1;">‹</button>
+              ${WEEK_OFFSET>0?`<button type="button" data-week="0" onclick="thisWeekNow(event)" title="Back to this week" style="position:relative;z-index:5;padding:0 10px;height:32px;background:var(--bg3);border:1px solid var(--accent);color:var(--accent);border-radius:6px;font-size:10.5px;font-weight:800;cursor:pointer;">This week</button>`:''}
+              <button type="button" data-week="-1" onclick="shiftWeek(-1,event)" ${WEEK_OFFSET===0?'disabled':''} title="The week after"
+                style="position:relative;z-index:5;width:32px;height:32px;background:var(--bg3);border:1px solid var(--border2);color:${WEEK_OFFSET===0?'var(--text3)':'var(--text2)'};border-radius:6px;font-size:15px;cursor:${WEEK_OFFSET===0?'default':'pointer'};line-height:1;opacity:${WEEK_OFFSET===0?'.4':'1'};">›</button>
             </div>
           </div>
           ${(()=>{
@@ -9276,7 +9400,14 @@ function renderDashboard(){
                 </div>
                 <span style="font-size:16px;font-family:var(--mono);font-weight:800;color:${isT?AC:TXT};min-width:46px;text-align:right;">${fmt(d.units)}</span>
               </div>`;
-            }).join('');
+            }).join('')
+            /* An entirely empty week said nothing at all, so pressing ‹ into one
+               looked identical to pressing a dead button. Say it plainly. */
+            +(WEEK_OFFSET>0&&!weekDays.some(d=>d.units>0)
+              ? `<div style="padding:16px 2px;text-align:center;">
+                   <div style="font-size:12px;font-weight:700;color:${DIM};">Nothing went out this week</div>
+                   <div style="font-size:11px;color:${FAINT};margin-top:3px;">No shipments recorded between these dates.</div>
+                 </div>`:'');
 
             const act=weekDays.filter(d=>!d.isFuture&&d.units>0);
             const nD=act.length||1;
@@ -16627,7 +16758,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v20.3 · lav3 · 2026-08-08 · b213';
+const BUILD='v20.6 · lav3 · 2026-08-11 · b216';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -16892,6 +17023,9 @@ async function migrateOld(){
 const LAYER_META=['mode','eta1','eta2','_etaTouched','_etaGuess',
   'arrivedOn','arrivedBy','recvOn','recvBy',
   'short','shortQty','shortOn','shortBy','chased','chasedBy','replyBy','shortEnd','writtenOff',
+  /* the supplier put it right on their own — kept so reporting can tell that
+     apart from a refund somebody had to go and chase */
+  'autoRefund',
   /* damaged units: arrived, so nothing outstanding — but never sellable stock */
   'dmg','dmgOn','dmgBy','dmgEnd',
   /* one order, many deliveries: what was ordered, what has come in so far, and
@@ -16971,7 +17105,10 @@ async function pushNow(){
       const row={sheet_tab:p.tab||'',bought_on:p.date,name:p.name,qty:p.qty,buy_price:p.price,supplier:p.sup,
         order_ref:p.oid,location:p.loc,arrived:!!p.arr,alloc:JSON.stringify(p.alloc||[]),
         meta:{acct:p.acct||'',invoice:p.invoice||'',notes:p.notes||'',
-              spend:(p.spend!=null?p.spend:null),mismatch:p.mismatch||0,link:p.link||''}};
+              spend:(p.spend!=null?p.spend:null),mismatch:p.mismatch||0,link:p.link||'',
+              /* "the sheet has two lines that look identical — are they?" The
+                 answer has to survive a refresh or it gets asked forever. */
+              dupCheck:p.dupCheck||null}};
       if(p.uuid){const r=await sb.from('lavarion_purchases').update(row).eq('id',p.uuid);if(r.error)throw r.error;}
       else{const r=await sb.from('lavarion_purchases').insert(row).select('id').single();
         if(!r.error){
@@ -20700,14 +20837,33 @@ async function syncPurchases(){
     }
     const have=new Set(D.purchases.map(purchKey));
     const claimed=new Set();
-    let added=0,updated=0,renamed=0;
+    let added=0,updated=0,renamed=0,dupAsk=0;
     all.forEach(r=>{
       const k=purchKey(r);
       if(have.has(k)){
-        const ex=D.purchases.find(x=>purchKey(x)===k&&!claimed.has(x.id))||D.purchases.find(x=>purchKey(x)===k);
-        if(ex)claimed.add(ex.id);
-        if(ex&&(ex.price!==r.price||ex.sup!==r.sup)){ex.price=r.price;ex.sup=r.sup;updated++;}
-        if(ex){ex.spend=r.spend;ex.mismatch=r.mismatch;}
+        /* Becki, 10 Aug: two real Tesco purchases, same day, same amount, no
+           order id — so IDENTICAL keys. The second sheet row matched the first
+           purchase and was thrown away, and she had to falsify a date to get
+           her own data in. A key collision is not proof of a duplicate.
+           An existing purchase can only be claimed by ONE sheet row per sync.
+           If it is already taken, this is a second real line: it gets added and
+           flagged, so the question is asked in To review instead of being
+           answered silently and wrongly. Never drop somebody's purchase. */
+        const ex=D.purchases.find(x=>purchKey(x)===k&&!claimed.has(x.id));
+        if(ex){
+          claimed.add(ex.id);
+          if(ex.price!==r.price||ex.sup!==r.sup){ex.price=r.price;ex.sup=r.sup;updated++;}
+          ex.spend=r.spend;ex.mismatch=r.mismatch;
+          return;
+        }
+        /* every stored copy already spoken for — fall through and add this one,
+           marked so somebody confirms it rather than the app deciding */
+        const twinId=(D.purchases.find(x=>purchKey(x)===k)||{}).id||'';
+        have.add(k);added++;dupAsk++;
+        D.purchases.push({id:newId('P'),uuid:null,tab:r.tab,date:r.date,name:r.name,
+          qty:r.qty,price:r.price,sup:r.sup,oid:r.oid,loc:'Warehouse',arr:0,alloc:[],
+          acct:r.acct,invoice:r.invoice,notes:r.notes,spend:r.spend,mismatch:r.mismatch,
+          dupCheck:{of:twinId,on:dayISO()}});
         return;
       }
       /* Renamed on the sheet. A row's identity WAS its name, so changing
@@ -21371,6 +21527,9 @@ function vPurchases(){
   </div>
   ${notesPanel()}
   ${buyPanel()}
+  ${/* above everything else — an unanswered "is this two purchases?" is the one
+        thing that makes the numbers below it wrong */''}
+  ${dupPanel()}
   ${damagedPanel()}
   ${shortPanel()}
   ${reviewPanel()}
@@ -21923,6 +22082,78 @@ function dupTwin(p){
        as £0.1995 on one row and £0.20 on the other. Same purchase. */
     && Math.abs((+q.price||0)-(+p.price||0))<0.02
     && nameClose(q.name,p.name))||null;
+}
+/* ── "THE SHEET HAS TWO LINES THAT LOOK THE SAME" ──────────────────────────
+   Two Tescos, same day, same product, same money, no order number. The sync
+   used to decide on its own that the second one wasn't real. It now adds it and
+   asks, because only a person knows whether they went to two shops. */
+function dupPending(){return D.purchases.filter(p=>p.dupCheck&&!p.dupCheck.answered);}
+function dupConfirm(pid,separate){
+  const p=D.purchases.find(x=>x.id===pid);if(!p)return;
+  const twin=D.purchases.find(x=>x.id===(p.dupCheck||{}).of);
+  if(separate){
+    p.dupCheck={...p.dupCheck,answered:'separate',by:(window.currentUserName||'Becki'),on:dayISO()};
+    logIt('edit',`Confirmed a real second purchase — “${p.name}” ${dshort(p.date)} from ${p.sup||'supplier'}`);
+    save();render();toastUndo('Kept — two separate purchases','ok');
+    return;
+  }
+  confirmBox('Same purchase, listed twice?',
+    `<div style="margin-bottom:10px"><b>${esc(p.name)}</b> — ${fmt(p.qty)} @ ${gbp(p.price)} from <b>${esc(p.sup||'supplier')}</b> on ${dshort(p.date)}.</div>
+     <div class="pmeta" style="margin:0">This copy is removed from the hub. The Purchase Sheet is not touched${twin?` — the one already linked stays exactly as it is`:''}.</div>`,
+    ()=>{
+      snap();
+      const i=D.purchases.findIndex(x=>x.id===pid);
+      if(i>=0)D.purchases.splice(i,1);
+      logIt('edit',`Removed a duplicate purchase line — “${p.name}” ${dshort(p.date)}`);
+      save();render();toastUndo('Removed as a duplicate','ok');
+    },{danger:true,ok:'Yes, remove this copy'});
+}
+const dupAnswered=()=>D.purchases.filter(p=>p.dupCheck&&p.dupCheck.answered);
+function dupPanel(){
+  const list=dupPending();
+  const done=dupAnswered().slice().sort((a,b)=>String((b.dupCheck||{}).on||'').localeCompare(String((a.dupCheck||{}).on||''))).slice(0,6);
+  /* Always on screen, even at zero. Jack: "get a review queue there so we know
+     there are no issues" — a panel that only appears when something is wrong
+     cannot tell you that nothing is wrong, and after being silently robbed of a
+     purchase once, "no news" is not reassuring. */
+  if(!list.length){
+    return `<div class="panel">
+      <div class="ph"><span class="t">Duplicate checks</span>
+        <span class="sub">nothing waiting — every purchase line on the sheet has come through</span>
+        <span class="chip ok">all clear</span></div>
+      <div class="ordNote">When two sheet lines look identical — same day, same product, same money, no order number — both are kept and the question lands here rather than the sync deciding on its own.${
+        done.length?` Last ${done.length} confirmed: ${done.map(p=>esc(p.name)+' ('+dshort(p.date)+')').join(', ')}.`:''}</div>
+    </div>`;
+  }
+  return `<div class="panel">
+    <div class="ph"><span class="t" style="color:var(--amb)">Is this the same purchase twice?</span>
+      <span class="sub">${fmt(list.length)} line${list.length===1?' on the sheet looks':'s on the sheet look'} identical to one already here — nothing has been thrown away</span>
+      <span class="chip warn">${fmt(list.length)} to review</span>
+    </div>
+    <div class="ordNote">Same day, same product, same money and no order number to tell them apart. Two shops on one day is normal, so the sync no longer guesses — it adds both and asks.</div>
+    <div class="tblScroll"><table><thead><tr>
+      <th class="l" style="min-width:230px">The line</th>
+      <th style="width:80px">Qty</th>
+      <th style="width:90px">Unit</th>
+      <th class="l" style="width:150px">Supplier</th>
+      <th style="width:90px">Date</th>
+      <th class="acts" style="width:250px"></th>
+    </tr></thead><tbody>
+    ${list.map(p=>{
+      const twin=D.purchases.find(x=>x.id===(p.dupCheck||{}).of);
+      return `<tr>
+        <td class="l"><div class="pname" style="font-size:12.5px">${esc(p.name)}</div>
+          <div class="pmeta">${twin?`already here: ${fmt(twin.qty)} @ ${gbp(twin.price)}${twin.oid&&twin.oid!=='—'?' · '+esc(twin.oid):''}`:'no matching line found'}</div></td>
+        <td><span class="num b">${fmt(p.qty)}</span></td>
+        <td><span class="num quiet">${gbp(p.price)}</span></td>
+        <td class="l">${esc(p.sup||'—')}</td>
+        <td><span class="pmeta" style="margin:0">${dshort(p.date)}</span></td>
+        <td class="acts">
+          <button class="btn sm go" title="Two genuine purchases — keep both" onclick="LV3.dupConfirm('${p.id}',true)">Two separate purchases</button>
+          <button class="btn sm dgr" title="One purchase written on the sheet twice — remove this copy" onclick="LV3.dupConfirm('${p.id}',false)">Same one — remove it</button>
+        </td></tr>`;}).join('')}
+    </tbody></table></div>
+  </div>`;
 }
 function staleDupes(){
   const norm=x=>(x||'').toLowerCase().replace(/\s+/g,' ').trim();
@@ -23071,6 +23302,7 @@ function shortPanel(){
           <button class="btn sm" title="They agreed to send more — stops it being chased, keeps the units owed"
             onclick="LV3.openRepl('${x.o.id}','${l.id}')">${l.repl?'Change replacement':'Replacement coming'}</button>
           <button class="btn sm go" title="It turned up after all" onclick="LV3.openReceive('${comp(x.o.id)?'component':'product'}','${x.o.id}','${l.id}')">Arrived</button>
+          <button class="btn sm" title="The supplier refunded these on their own — closes it here, Sarah is never asked to chase it" onclick="LV3.shortEnd('${x.o.id}','${l.id}','auto')">Auto refunded</button>
           <button class="btn sm" title="Money back — closes it without writing off stock" onclick="LV3.shortEnd('${x.o.id}','${l.id}','refund')">Refunded</button>
           <button class="btn sm" title="It was on the shelf all along" onclick="LV3.shortEnd('${x.o.id}','${l.id}','miscount')">Miscount</button>
           <button class="btn sm dgr" title="Accept it's never coming" onclick="LV3.writeOffShort('${x.o.id}','${l.id}')">Write off</button>
@@ -23111,21 +23343,33 @@ function shortEnd(oid,lid,kind){
   const o=comp(oid)||prod(oid);if(!o)return;
   const l=(o.layers||[]).find(x=>x.id===lid);if(!l)return;
   const who=(window.currentUserName||'Becki');
-  const words={refund:'Refunded or credited',miscount:'Miscount — it was here all along'};
+  /* Becki: Amazon and some suppliers refund short units automatically, before
+     anybody has asked. Those are not a problem anybody needs to chase — and
+     sending them to Sarah as "missing" costs her real time on something that is
+     already settled. It closes on the spot and never reaches her. */
+  const words={refund:'Refunded or credited',miscount:'Miscount — it was here all along',
+    auto:'Auto refunded by the supplier — no chase needed'};
   const val=l.cost>0?gbp(l.qty*l.cost):'';
-  confirmBox(kind==='refund'?'Money back?':'Was it a miscount?',
+  const titles={refund:'Money back?',miscount:'Was it a miscount?',auto:'Auto refunded?'};
+  const blurb={
+    refund:'This closes the shortfall and stops it counting as incoming. Record it once the credit is actually confirmed.',
+    miscount:'This closes the shortfall and stops it counting as incoming. The stock was never missing, so nothing is written off.',
+    auto:'The supplier refunded these on their own — nothing was ever wrong and nobody needs to chase it. It closes here and never reaches Sarah.'};
+  confirmBox(titles[kind]||'Close this off?',
     `<div style="margin-bottom:10px"><b>${fmt(l.qty)} × ${esc(o.name)}</b> from <b>${esc(l.sup||'the supplier')}</b>${val?` — ${val}`:''}.</div>
-     <div class="pmeta" style="margin:0">${kind==='refund'
-       ? 'This closes the shortfall and stops it counting as incoming. Record it once the credit is actually confirmed.'
-       : 'This closes the shortfall and stops it counting as incoming. The stock was never missing, so nothing is written off.'}</div>`,
+     <div class="pmeta" style="margin:0">${blurb[kind]||''}</div>`,
     ()=>{
       snap();
       l.short=0;l.writtenOff=1;
       l.shortEnd={k:kind,on:dayISO(),by:who};
+      /* flagged so the reporting can tell "the supplier put it right on their
+         own" apart from "we had to go and get our money back" */
+      if(kind==='auto')l.autoRefund={on:dayISO(),by:who,units:l.qty,value:l.cost>0?l.qty*l.cost:0};
       logIt('edit',`${words[kind]} — ${fmt(l.qty)} × ${o.name} from ${l.sup||'supplier'}${val?' ('+val+')':''} · ${who}`);
       save();render();
-      toastUndo(kind==='refund'?'Recorded as refunded':'Recorded as a miscount','ok');
-    },{ok:kind==='refund'?'Yes, it was refunded':'Yes, it was a miscount'});
+      toastUndo(kind==='auto'?'Recorded as auto refunded — not sent to Sarah'
+        :kind==='refund'?'Recorded as refunded':'Recorded as a miscount','ok');
+    },{ok:kind==='auto'?'Yes, it was auto refunded':kind==='refund'?'Yes, it was refunded':'Yes, it was a miscount'});
 }
 function writeOffShort(oid,lid){
   const o=comp(oid)||prod(oid);if(!o)return;
@@ -23157,7 +23401,18 @@ function unlocks(x){
   return{blocked,adds,uses:users};
 }
 function deliveriesPanel(){
-  const open=inboundAll().slice().sort((a,b)=>{
+  /* Becki: pressing "Book it in and close the order" left the order sitting in
+     On order. It was doing what it said — the units ARE still owed, so they
+     still count as incoming — but the delivery is finished and nobody is
+     waiting for a van any more. It belongs in Short deliveries, where it is
+     being chased, and nowhere else. It stays out of this table and is counted
+     separately in the heading, so the units are never lost, just not pretending
+     to be an outstanding delivery.
+     Filtered HERE and not in inboundAll(), because restock forecasting still
+     needs to know those units are owed. */
+  const shortLines_=inboundAll().filter(x=>x.l.short&&!x.l.writtenOff);
+  const shortUnits=shortLines_.reduce((t,x)=>t+outQty(x.l),0);
+  const open=inboundAll().filter(x=>!x.l.short).slice().sort((a,b)=>{
     /* keep an order's lines together, soonest order first */
     const ka=(a.l.oid||'~')+'',kb=(b.l.oid||'~')+'';
     const ea=(a.l.eta2||a.l.eta1||'9999'),eb=(b.l.eta2||b.l.eta1||'9999');
@@ -23172,6 +23427,8 @@ function deliveriesPanel(){
       <span class="sub">${open.length?`${fmt(orderCount)} order${orderCount===1?'':'s'} · ${fmt(open.length)} line${open.length===1?'':'s'} · ${fmt(units)} units${value?` · ${gbp(value)}`:''}`:'nothing outstanding'}</span>
       ${late?`<span class="chip bad">${fmt(late)} overdue</span>`:''}
       ${soon?`<span class="chip warn">${fmt(soon)} due this week</span>`:''}
+      ${shortLines_.length?`<span class="chip" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.45);color:#fca5a5"
+        title="Finished deliveries that came up short. Still owed and still counted — being chased in Short deliveries above, not waiting on a van.">+${fmt(shortUnits)} short, being chased</span>`:''}
       <div class="r"><button class="btn sm" onclick="LV3.openLogOrder()">+ Log an order</button>
         ${open.length>1?`<button class="btn sm" title="Tick several at once instead of one row at a time" onclick="LV3.openDeliveries()">Receive several</button>`:''}</div></div>
     ${open.length?`<div class="ordNote">Grouped by order — the same orders you linked above. Change the number if only part of it turned up, then press <b>Receive</b>. For a whole box at once use <b>Receive several</b>.</div>
@@ -24873,7 +25130,7 @@ function paint(){
 }
 
 /* everything the page's inline handlers need */
-const API={go,render:paint,boot,
+const API={go,render:paint,boot,dupConfirm,
   openProduct,editProduct,setType,setSold30,rowMenu,closeRowMenu,dupeAsins,setSort,saveProductForce,addRecipeRow,rcChange,rcSearch,rcPick,rcMake,recipePreview,copyRecipe,saveProduct,delProduct,togRow,setArchived,
   openShip,drawShip,doShip,copyCog,shipSetQty,shipOverride,shipQty,shipFba,setQ,selOne,selAll,selClear,selType,selVat,
   openComp,editComp,saveComp,delComp,pickKind,openAddBatch,abPreview,doAddBatch,selArchive,selDelete,cselOne,cselAll,cselClear,cselKind,cselTrack,cselArchive,cselDelete,markArrived,openAdjust,doAdjust,
