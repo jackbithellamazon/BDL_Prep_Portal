@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v20.6</title>
+<title>BDL PrepHub v21.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -2609,6 +2609,15 @@ html.light-mode{
 .srtCfmOpen li{font-size:12px;font-weight:600;color:#f0dcae;line-height:1.45;}
 .srtCfmOpen li::marker{color:var(--accent);}
 .srtCfmOpen span{font-size:11.5px;font-weight:600;color:#d9c48d;}
+/* Panels below the fold on the Lavarion pages skip layout and paint entirely
+   until scrolled to. This is the one place content-visibility legally applies —
+   it does NOT work on table rows (table parts cannot take size containment),
+   so the prep table gets nothing from it and is left alone. The main products
+   panel (.stick) is excluded: it is the one that is nearly always on screen,
+   and its sticky header machinery is not worth gambling for a panel that would
+   never be skipped anyway. */
+#page-lavarion .panel:not(.stick),.lav3 .panel:not(.stick){
+  content-visibility:auto;contain-intrinsic-size:auto 420px;}
 /* the "are you sure" step that now sits in front of every closure */
 .srtCfm{width:100%;max-width:540px;background:var(--bg2);border:1px solid var(--border2);
   border-radius:16px;padding:20px 22px 18px;box-shadow:0 32px 90px rgba(0,0,0,.65);}
@@ -2817,7 +2826,13 @@ html.light-mode{
 #prepTable td:nth-child(9) select.ci-sel{font-size:11.5px;padding-left:5px;padding-right:2px;}
 /* was 8px in the dimmest grey on the palette — this is the number your staff
    actually handle, so it reads like one */
-.expPack{margin-top:4px;font-size:10.5px;font-weight:700;color:#d8b4fe;line-height:1.3;white-space:nowrap;}
+/* white-space:normal, NOT nowrap. A table cell does not clip its overflow, so
+   on a big bundle (324 x 5 = 1620) this caption was wider than the Expected
+   Qty column and spilled sideways straight over the bundle chip next to it.
+   It wraps inside its own column now. Also used by the received-qty caption,
+   which had the same exposure. */
+.expPack{margin-top:4px;font-size:10.5px;font-weight:700;color:#d8b4fe;line-height:1.25;
+  white-space:normal;overflow-wrap:anywhere;text-align:center;}
 .expPack b{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:13px;font-weight:800;}
 td.dgbun{text-align:center;white-space:nowrap;}
 /* Notes read as text and only become an input on click — no scrollbar pills,
@@ -3032,7 +3047,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v20.6</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v21.6</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3066,7 +3081,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v20.6</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v21.6</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -4432,6 +4447,8 @@ function goPage(n,btn){
   document.getElementById('page-'+n).classList.add('active');
   const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'Lavarion ASINs',returns:'Returns',admin:"Sarah's Admin",jack:"Jack's Admin",claims:'Issues (old view)',insights:'Insights',audit:'Audit Log',settings:'Settings'};
   document.getElementById('pageTitle').textContent=t[n]||n;
+  /* a page skipped while it was off-screen owes itself one repaint */
+  if(n==='prep'&&_dirtyR.prep)renderPrep();
   if(n==='jack')renderJack();
   if(n==='dashboard')renderDashboard();
   if(n==='insights')renderInsights();
@@ -4590,22 +4607,35 @@ function shiftWeek(by,ev){
   redrawWeek();
 }
 function thisWeekNow(ev){WEEK_OFFSET=0;if(ev)ev.__wkHandled=1;redrawWeek();}
-/* A second, independent way in. The inline onclick has to find `shiftWeek` on
-   the global scope at the instant of the click; this is bound once to the
-   document and survives every redraw, so the arrows keep working even if that
-   lookup fails.
-   The two must never both act on the same press. That is marked on the EVENT
-   rather than timed — a first attempt used "did anything fire in the last 80ms"
-   and duly swallowed the second of two quick presses, which is precisely the
-   "clicking does nothing" complaint this is meant to cure. The inline handler
-   runs first (it is on the target, this is on the document), so by the time
-   this sees the event it already knows. */
-document.addEventListener('click',function(e){
-  if(e.__wkHandled)return;
+/* POINTERDOWN, not click. This is the actual bug, and it is why every previous
+   attempt at this failed.
+   A `click` only exists if the mousedown AND the mouseup happen on the SAME
+   element. renderDashboard() rebuilds dashboardWrap.innerHTML wholesale, and it
+   is called by the realtime subscription on every prep_rows change — so with
+   three people working, the button under the cursor is routinely destroyed and
+   replaced between the press and the release. The mouseup then lands on a
+   brand-new element, no click event is ever generated, and the arrow looks
+   completely dead. Nothing about the button was ever wrong: it was being pulled
+   out from under the pointer.
+   Acting on pointerdown means the press has already done its job before any
+   redraw can intervene. Bound to the document so it survives those redraws. */
+document.addEventListener('pointerdown',function(e){
+  if(e.button&&e.button!==0)return;                 // left button only
   const b=e.target&&e.target.closest?e.target.closest('[data-week]'):null;
   if(!b||b.disabled)return;
   const by=parseInt(b.getAttribute('data-week'));
   if(isNaN(by))return;
+  e.preventDefault();
+  if(by===0)thisWeekNow(e); else shiftWeek(by,e);
+});
+/* A button with no onclick still has to work from the keyboard. */
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  const b=e.target&&e.target.closest?e.target.closest('[data-week]'):null;
+  if(!b||b.disabled)return;
+  const by=parseInt(b.getAttribute('data-week'));
+  if(isNaN(by))return;
+  e.preventDefault();
   if(by===0)thisWeekNow(e); else shiftWeek(by,e);
 });
 /* Weekly Activity is drawn by renderDashboard, not renderStats — calling the
@@ -5330,7 +5360,93 @@ function renderActivityWidget(){
      </div>
    </div>`;
 }
+/* ── RENDER GATING ─────────────────────────────────────────────────────────────
+   The battery complaint, at its root. Every realtime event rebuilt the prep
+   table AND the dashboard — ~77k DOM nodes and most of a second of layout — on
+   every open machine, whether the tab was visible or not and whether the page
+   being rebuilt was even on screen. Three people working meant every laptop
+   doing near-continuous layout for screens nobody was looking at.
+   Nothing is removed: a skipped paint sets a dirty flag, and the flag is
+   flushed the moment the page or tab is actually looked at (goPage below, and
+   the visibilitychange listener). Same screens, same data — just no painting
+   of invisible things. */
+let _dirtyR={prep:false,dash:false,admin:false};
+let _ssRanWhileHidden=false;
+function _pageActive(id){const p=document.getElementById(id);return !!(p&&p.classList.contains('active'));}
+/* One repaint per burst of realtime traffic instead of one per event. 250ms is
+   invisible to a human and collapses a multi-row save into a single rebuild. */
+let _rtRepaintT=null;
+/* A repaint that lands between a finger going down and coming up destroys the
+   button mid-click — no click event is ever generated, the dead-button class
+   that killed the week arrows. Rather than converting every one of the prep
+   sheet's handlers, the flush itself now waits for any press in progress to
+   finish (plus a beat for the click to be delivered) before swapping the DOM
+   out from under it. Protects every control in the app at once. */
+let _ptrHeld=false,_rtOwed=false,_rtWaitT=null;
+document.addEventListener('pointerdown',()=>{_ptrHeld=true;},true);
+const _ptrFree=()=>{_ptrHeld=false;
+  if(_rtOwed){_rtOwed=false;setTimeout(_rtFlush,80);}};
+document.addEventListener('pointerup',_ptrFree,true);
+document.addEventListener('pointercancel',_ptrFree,true);
+/* A pointerup can be lost — released outside the window, a drag that ends
+   off-screen — and a stuck flag would hold every repaint until the next click.
+   Losing focus counts as letting go. */
+window.addEventListener('blur',_ptrFree);
+/* NOTHING repaints while a popup is open. Deferring the flush to just after the
+   press turned "repaint during your click" into "repaint 80ms after it" — which
+   is exactly when a popup has finished opening, so the rebuild wiped it and the
+   button looked like it needed pressing twice. A rebuild underneath an open
+   dialog was never right anyway: it is what closed a half-filled close-off form
+   when somebody else happened to save a row. */
+function _modalOpen(){
+  /* getClientRects(), NOT getComputedStyle. A computed `display` is the
+     element's OWN value and knows nothing about a hidden ancestor, so every
+     .mod box sitting inside a closed .overlay still reports display:block —
+     which read as "a popup is open" permanently and stopped the app repainting
+     at all. Client rects are real on-screen geometry: a closed dialog has none.
+     Only the overlay containers are checked; the inner boxes are theirs. */
+  const els=document.querySelectorAll('.overlay');
+  for(const el of els){if(el.getClientRects().length)return true;}
+  return false;
+}
+function _rtFlush(){
+  if(_ptrHeld||_modalOpen()){
+    /* keep the debt and look again shortly — it flushes the moment the dialog
+       is closed, without needing every close path to remember to tell us */
+    _rtOwed=true;
+    clearTimeout(_rtWaitT);_rtWaitT=setTimeout(_rtFlush,500);
+    return;
+  }
+  clearTimeout(_rtWaitT);_rtOwed=false;
+  /* If the user is actively editing a cell in the prep table, rebuilding it
+     now would destroy their input mid-type. Defer the prep re-render until
+     they click away; dashboard and badges still update. */
+  const ae=document.activeElement;
+  const editingPrep=ae&&ae.closest&&ae.closest('#page-prep')&&(ae.tagName==='INPUT'||ae.tagName==='SELECT'||ae.tagName==='TEXTAREA');
+  if(editingPrep){
+    _pendingPrepRender=true;
+    ae.addEventListener('blur',()=>{if(_pendingPrepRender){_pendingPrepRender=false;renderPrep();}},{once:true});
+  }else renderPrep();
+  renderDashboard();updateCB();
+  if(_pageActive('page-admin'))renderAdmin();
+}
+function rtRepaint(){
+  clearTimeout(_rtRepaintT);
+  _rtRepaintT=setTimeout(_rtFlush,250);
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)return;
+  /* the tab is being looked at again — pay the debts, once */
+  if(_dirtyR.prep&&_pageActive('page-prep'))renderPrep();
+  if(_dirtyR.dash&&_pageActive('page-dashboard'))renderDashboard();
+  if(_dirtyR.admin&&_pageActive('page-admin'))renderAdmin();
+  if(_ssRanWhileHidden){_ssRanWhileHidden=false;
+    try{if(_ssConfig.enabled&&!_ssBusy)runSheetSync(false);}catch(e){}}
+});
 function renderPrep(){
+  /* invisible → not painted, only owed */
+  if(document.hidden||!_pageActive('page-prep')){_dirtyR.prep=true;return;}
+  _dirtyR.prep=false;
   sortRows();
   renderStats();
   updateArchivedBtn();
@@ -8034,6 +8150,8 @@ function lavSupplierBlock(){
   </div>`;
 }
 function renderAdmin(){
+  if(document.hidden||!_pageActive('page-admin')){_dirtyR.admin=true;return;}
+  _dirtyR.admin=false;
   const wrap=document.getElementById('adminWrap');
   if(!wrap)return;
   const items=_adminItems();
@@ -8896,6 +9014,8 @@ const fmtGBP=n=>'£'+Math.round(n).toLocaleString('en-GB');
 const fmtGBP2=n=>'£'+(+n).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
 
 function renderDashboard(){
+  if(document.hidden||!_pageActive('page-dashboard')){_dirtyR.dash=true;return;}
+  _dirtyR.dash=false;
   const w=document.getElementById('dashboardWrap');
   const todayStr=todayISO();
   const yesterdayStr=yesterdayISO();
@@ -9362,10 +9482,10 @@ function renderDashboard(){
                     click, and it is bigger and sits above its neighbours now
                     because a 26px target with something overlapping it is
                     indistinguishable from a dead button. */''}
-              <button type="button" data-week="1" onclick="shiftWeek(1,event)" title="The week before"
+              <button type="button" data-week="1" title="The week before"
                 style="position:relative;z-index:5;width:32px;height:32px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:6px;font-size:15px;cursor:pointer;line-height:1;">‹</button>
-              ${WEEK_OFFSET>0?`<button type="button" data-week="0" onclick="thisWeekNow(event)" title="Back to this week" style="position:relative;z-index:5;padding:0 10px;height:32px;background:var(--bg3);border:1px solid var(--accent);color:var(--accent);border-radius:6px;font-size:10.5px;font-weight:800;cursor:pointer;">This week</button>`:''}
-              <button type="button" data-week="-1" onclick="shiftWeek(-1,event)" ${WEEK_OFFSET===0?'disabled':''} title="The week after"
+              ${WEEK_OFFSET>0?`<button type="button" data-week="0" title="Back to this week" style="position:relative;z-index:5;padding:0 10px;height:32px;background:var(--bg3);border:1px solid var(--accent);color:var(--accent);border-radius:6px;font-size:10.5px;font-weight:800;cursor:pointer;">This week</button>`:''}
+              <button type="button" data-week="-1" ${WEEK_OFFSET===0?'disabled':''} title="The week after"
                 style="position:relative;z-index:5;width:32px;height:32px;background:var(--bg3);border:1px solid var(--border2);color:${WEEK_OFFSET===0?'var(--text3)':'var(--text2)'};border-radius:6px;font-size:15px;cursor:${WEEK_OFFSET===0?'default':'pointer'};line-height:1;opacity:${WEEK_OFFSET===0?'.4':'1'};">›</button>
             </div>
           </div>
@@ -9378,12 +9498,21 @@ function renderDashboard(){
             const wmax=Math.max(...weekDays.filter(d=>!d.isFuture).map(d=>d.units),1);
             const daysHtml=weekDays.map(d=>{
               const isT=d.isToday,isF=d.isFuture,isW=d.day==='Sat'||d.day==='Sun';
-              if(isF||(isW&&d.units===0)){
+              /* A day with nothing in it is a day with nothing in it, whatever
+                 day of the week it falls on. Only WEEKEND zeros used to say "no
+                 activity"; a quiet Thursday printed a full row of \u00a30.00, 0 SKUs,
+                 0 ships, 0 boxes \u2014 and a bar \u2014 which reads as broken data rather
+                 than a quiet day. */
+              if(isF||d.units===0){
                 return `<div style="display:flex;align-items:center;gap:12px;padding:9px 2px;border-bottom:1px solid ${LINE};">
                   <span style="width:40px;font-size:12px;font-weight:600;color:${FAINT};">${d.day}</span>
                   <span style="flex:1;font-size:11px;color:${FAINT};">${isF?'upcoming':'no activity'}</span>
                   <span style="font-size:12px;font-family:var(--mono);color:${FAINT};">\u2014</span></div>`;
               }
+              /* The 3% floor exists so a tiny day is still visible \u2014 but it was
+                 applied to zero as well, so a day with 0 units drew the same bar
+                 as a day with 8. Zero days never reach here now, and the floor
+                 only protects genuine activity. */
               const bar=Math.max(3,Math.round(d.units/wmax*100));
               return `<div style="display:flex;align-items:center;gap:13px;padding:10px 4px;border-radius:8px;margin-bottom:2px;${isT?'background:rgba(56,189,248,.07);':''}border-bottom:1px solid ${LINE};">
                 <span style="width:42px;font-size:12.5px;font-weight:${isT?'700':'600'};color:${isT?AC:TXT};line-height:1.15;">${d.day}${isT?'<span style="display:block;font-size:9.5px;font-weight:800;color:'+AC+';letter-spacing:.06em;">TODAY</span>':''}</span>
@@ -9431,20 +9560,31 @@ function renderDashboard(){
                 <span style="font-size:11px;font-weight:700;color:${ac};width:56px;text-align:right;">${ar} ${p}%</span>
               </div>`;
             };
-            // Pace vs last week — projects this week's total from days elapsed so far
+            /* Pace against the week before, projected from the days gone so
+               far. Only meaningful on the CURRENT week: on a finished week every
+               day is already counted, so the projection was just the total
+               written out twice — "718 units · projecting ~718" — under a heading
+               that said "Week so far" about a week that ended days ago. */
+            const isNow=WEEK_OFFSET===0;
             const elapsedD=weekDays.filter(d=>!d.isFuture).length||1;
             const projU=Math.round(tU/elapsedD*7);
-            const paceR=lwTotal.units?projU/lwTotal.units:1;
-            const pace=lw?(paceR>=1.05?{t:'Ahead of last week',c:'#4ade80',ar:'\u25b2'}:paceR<=0.95?{t:'Behind last week',c:'#f87171',ar:'\u25bc'}:{t:'On pace with last week',c:'#7dd3fc',ar:'\u2192'}):null;
+            const partWeek=isNow&&elapsedD<7;
+            const cmpR=lwTotal.units?((partWeek?projU:tU)/lwTotal.units):1;
+            /* "Behind last week" is a nonsense when last week is the thing you
+               are looking at. Name the week it is actually measured against. */
+            const vs=isNow?'last week':'the week before';
+            const pace=lw?(cmpR>=1.05?{t:'Ahead of '+vs,c:'#4ade80',ar:'\u25b2'}
+              :cmpR<=0.95?{t:'Behind '+vs,c:'#f87171',ar:'\u25bc'}
+              :{t:'On pace with '+vs,c:'#7dd3fc',ar:'\u2192'}):null;
 
             return `<div style="margin-bottom:16px;">${daysHtml}</div>
 
             <div style="background:linear-gradient(135deg,rgba(56,189,248,.06),rgba(52,211,153,.04));border:1px solid rgba(56,189,248,.14);border-radius:10px;padding:14px 15px;margin-bottom:14px;">
               <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;">
                 <div>
-                  <div style="font-size:10px;font-weight:700;color:#7dd3fc;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Week so far</div>
+                  <div style="font-size:10px;font-weight:700;color:#7dd3fc;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">${isNow?(partWeek?'Week so far':'This week'):'That week — total'}</div>
                   <div style="font-size:28px;font-family:var(--mono);font-weight:900;color:${TXT};line-height:1;">${fmt(tU)}<span style="font-size:12px;color:${DIM};font-weight:500;margin-left:6px;">units</span></div>
-                  ${pace?`<div style="font-size:11px;font-weight:600;color:${pace.c};margin-top:7px;">${pace.ar} ${pace.t} <span style="color:${FAINT};font-weight:500;">\u00b7 projecting ~${fmt(projU)}</span></div>`:''}
+                  ${pace?`<div style="font-size:11px;font-weight:600;color:${pace.c};margin-top:7px;">${pace.ar} ${pace.t}${partWeek?` <span style="color:${FAINT};font-weight:500;">\u00b7 projecting ~${fmt(projU)}</span>`:''}</div>`:''}
                 </div>
                 <div style="text-align:right;">
                   <div style="font-size:10px;color:${DIM};text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">COG value</div>
@@ -11624,10 +11764,28 @@ function toggleLateFilter(){
 // Units actually sendable to Amazon = what we have (received, or expected if
 // not yet counted) minus any units flagged as an issue (damaged/missing/
 // incorrect). e.g. expected 30, 4 damaged → 26 sendable. Floored at 0.
+/* What can actually go into a shipment.
+   The old sum double-counted a shortfall. `issueQty` is set to exp − rcvd, i.e.
+   the units that did NOT turn up — and the base is already `rcvd`, which counts
+   only the ones that DID. Subtracting the shortfall from the arrived count
+   removes real stock: 2 ordered, 1 arrived, 1 raised missing gave 1 − 1 = 0,
+   and Part Send refused with "all available units are already in a shipment"
+   while a GoPro sat on the shelf.
+   Which issue it is decides whether it comes off:
+     Missing   — never arrived, so `rcvd` has already excluded it. Do not subtract.
+     Damaged   — arrived and counted in, but cannot be sent. Subtract.
+     Incorrect — arrived and counted in, but is the wrong thing. Subtract.
+   When nothing has been counted in yet the row still ships against what was
+   expected, so the shortfall does come off there. */
 function sendableQty(r){
-  const base=(r.rcvd&&r.rcvd>0)?r.rcvd:(r.exp||0);
-  const issues=r.issueQty||0;
-  return Math.max(0,base-issues);
+  const got=parseInt(r.rcvd)||0;
+  const exp=parseInt(r.exp)||0;
+  const issues=Math.max(0,parseInt(r.issueQty)||0);
+  if(got>0){
+    const heldBack=/damag|incorrect|wrong/i.test(String(r.issueType||''))?issues:0;
+    return Math.max(0,got-heldBack);
+  }
+  return Math.max(0,exp-issues);
 }
 
 // ── SHIPMENT SEGMENTS ─────────────────────────────────────────────────────────
@@ -13107,6 +13265,11 @@ function initSheetSyncLeader(){
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible'&&!_ssLeader){
       _ssLeader=true;_ssBC.postMessage({type:'claim'});
+      /* Taking the lead is worth nothing without a clock to act on it. Make sure
+         one is running, and pull the sheet straight away — coming back to the
+         tab is exactly when somebody wants to see what has landed. */
+      restartSheetSyncTimer();
+      if(_ssConfig.enabled&&!_ssBusy)runSheetSync(false);
     }
   });
 }
@@ -13116,7 +13279,13 @@ function restartSheetSyncTimer(){
   clearTimeout(_ssTimer);_ssTimer=null;
   if(!_ssConfig.enabled)return;
   const ms=(_ssConfig.interval||120)*1000;
-  _ssTimer=setTimeout(()=>runSheetSync(false),ms);
+  _ssTimer=setTimeout(()=>{
+    /* Nobody is looking, so don't wake the radio — note the debt and re-arm.
+       The visibilitychange listener runs the catch-up sync the moment the tab
+       is opened again, so the sheet is never stale when actually looked at. */
+    if(document.hidden){_ssRanWhileHidden=true;restartSheetSyncTimer();return;}
+    runSheetSync(false);
+  },ms);
   const d=new Date(Date.now()+ms);
   const nextStr=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
   setSheetSyncStatus(null,nextStr);
@@ -13206,6 +13375,12 @@ async function runSheetSync(manual){
      skipped, because the run already in flight is reading the same sheet. */
   if(_ssBusy){
     if(manual)toast('Already syncing — give it a second','er');
+    /* Re-arm before leaving. restartSheetSyncTimer() only runs at the very END
+       of this function, so EVERY early return below used to kill the schedule
+       permanently — one skipped poll and that tab never synced again on its
+       own for the rest of the session. It is safe to call on any path: it
+       no-ops when sync is switched off. */
+    restartSheetSyncTimer();
     return;
   }
   if(LOCAL_FILE){
@@ -13217,12 +13392,17 @@ async function runSheetSync(manual){
     return;
   }
   if(!_ssConfig.enabled&&!manual){return;}
-  if(!_ssLeader&&!manual){return;} // only leader polls
+  /* Only one tab per browser polls, so two tabs don't both write the same rows.
+     But a tab that is NOT the leader still has to keep its own clock running —
+     it may become the leader the moment the other tab is closed or hidden, and
+     without a live timer it would then sit there doing nothing while the staff
+     member wonders why they have to keep pressing Sync Now. */
+  if(!_ssLeader&&!manual){restartSheetSyncTimer();return;} // only leader polls
   _ssBusy=true;
   /* released in the finally at the end of this function */
   // Run all active sources
   const activeSources=_ssSources.filter(s=>s.active&&s.url);
-  if(!activeSources.length&&!_ssConfig.url){_ssBusy=false;if(manual)toast('No sync sources configured — add one in Settings','er');return;}
+  if(!activeSources.length&&!_ssConfig.url){_ssBusy=false;if(manual)toast('No sync sources configured — add one in Settings','er');restartSheetSyncTimer();return;}
   // Fall back to legacy single config if no sources defined yet
   const sources=activeSources.length?activeSources:[{url:_ssConfig.url,tab:_ssConfig.tab,col:_ssConfig.col||'Added To Prep Portal',label:'Primary'}];
   let totalAdded=0,totalUpdated=0,totalDeactivated=0,totalReactivated=0,totalErrors=0;
@@ -13236,36 +13416,49 @@ async function runSheetSync(manual){
     if(tabs.length<=1)passes.push(s);
     else tabs.forEach(t=>passes.push({...s,tab:t,label:(s.label||'Source')+' · '+t}));
   });
+  /* All sources are FETCHED at once — three tabs used to mean three Google
+     round trips strictly one after the other. Processing stays sequential and
+     in the same order, so nothing about what lands changes; only the waiting
+     overlaps. */
+  const _fetchCsv=async src=>{
+    if(!src.url)return{err:'Enter a Sheet URL in Settings → Sheet Sync'};
+    const m2=String(src.url).match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if(!m2)return{err:'Invalid Sheet URL — paste the full share link'};
+    try{
+      const efUrl=`${SUPA_URL}/functions/v1/sheet-sync?sheetId=${encodeURIComponent(m2[1])}&tab=${encodeURIComponent(src.tab||'')}`;
+      const res=await fetch(efUrl,{cache:'no-store',headers:{'Authorization':`Bearer ${SUPA_KEY}`}});
+      if(!res.ok)throw new Error(`Edge Function error: ${res.status} ${res.statusText}`);
+      const json=await res.json();
+      if(json.error)throw new Error(json.error);
+      if(!json.csv)throw new Error('No CSV returned from Edge Function');
+      return{csv:json.csv};
+    }catch(e){return{err:'Could not fetch sheet: '+(e.message||e)}}
+  };
+  const _csvFetches=passes.map(src=>_fetchCsv(src));
+  let _passN=0;
   for(const src of passes){
     const{url,tab,col}=src;
     const srcLabel=src.label||(src.tab?src.tab+' tab':'Sheet');
-  if(!url){if(manual)toast('Enter a Sheet URL in Settings → Sheet Sync','er');return;}
+    _passN++;
+    try{SyncUI.step(`Reading ${srcLabel}${passes.length>1?` (${_passN} of ${passes.length})`:''}\u2026`);}catch(e){}
 
-  // Extract sheet ID from URL.
-  let sheetId='';
-  const m=url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-  if(m)sheetId=m[1];
-  if(!sheetId){if(manual)toast('Invalid Sheet URL — paste the full share link','er');return;}
-
-  // Fetch via Edge Function to avoid CORS block.
-  // The Edge Function fetches Google Sheets server-side and returns CSV.
   setSheetSyncLog('Checking sheet…');
+  /* A bad source used to `return` out of the whole function from INSIDE this
+     loop — with _ssBusy still true and no timer re-armed. From then on every
+     sync, manual included, bounced off "already syncing" until the page was
+     reloaded: one bad URL jammed the whole sync system, permanently. A bad
+     source now costs exactly one pass, like every other per-source failure. */
   let csv;
-  try{
-    const efUrl=`${SUPA_URL}/functions/v1/sheet-sync?sheetId=${encodeURIComponent(sheetId)}&tab=${encodeURIComponent(tab||'')}`;
-    const res=await fetch(efUrl,{cache:'no-store',headers:{'Authorization':`Bearer ${SUPA_KEY}`}});
-    if(!res.ok)throw new Error(`Edge Function error: ${res.status} ${res.statusText}`);
-    const json=await res.json();
-    if(json.error)throw new Error(json.error);
-    csv=json.csv;
-    if(!csv)throw new Error('No CSV returned from Edge Function');
-  }catch(e){
-    const msg='Could not fetch sheet: '+e.message;
-    setSheetSyncLog(msg,true);
-    addSyncHistory((src.label||src.tab||'Source')+': '+msg,false);
-    if(manual)toast(msg,'er');
-    totalErrors++;
-    continue; // try next source
+  {
+    const got=await _csvFetches[_passN-1];
+    if(got.err){
+      setSheetSyncLog(got.err,true);
+      addSyncHistory((src.label||src.tab||'Source')+': '+got.err,false);
+      if(manual)toast(got.err,'er');
+      totalErrors++;
+      continue; // try next source
+    }
+    csv=got.csv;
   }
 
   // Parse CSV
@@ -13348,14 +13541,90 @@ async function runSheetSync(manual){
 
   let added=0,updated=0,deactivated=0,reactivated=0;
   const saveErrors=[];
+  /* Say the shape of the job before starting it, so a long sync reads as busy
+     rather than broken. */
+  try{
+    const _n=toAdd.length+toUpdate.length+toReactivate.length;
+    SyncUI.step(_n?`${_n} row${_n===1?'':'s'} to save — ${toAdd.length} new, ${toUpdate.length} changed, ${toReactivate.length} back on the sheet`
+                  :'Nothing changed on the sheet');
+  }catch(e){}
+
+  /* Why the sync took minutes: every row was saved with its own `await`, one
+     strictly after the other. Each save is a separate round trip to Supabase,
+     so 200 changed rows meant 200 sequential round trips — at ~200ms each that
+     is over a minute of doing nothing but waiting, and it grows with the sheet.
+     Same saves, same order of work, just several in the air at once. Capped at
+     6 so a big sheet cannot flood Supabase or trip its rate limit. saveRow is
+     untouched, so the missing-column healing and every retry still apply. */
+  async function _saveMany(items,worker,limit,label){
+    let i=0,done=0;
+    const total=items.length;
+    /* The staff complaint was that it "just does the animation" — the spinner
+       turned while the panel sat on a stale message, so a sync that was working
+       hard looked identical to one that had hung. The saving phase is the slow
+       part and it was the one phase saying nothing at all. Now it counts.
+       Throttled to every 5 (and always the last) so a 500-row sheet doesn't
+       spend its time writing to the DOM instead of saving. */
+    const tick=()=>{ if(!label||!total)return;
+      try{SyncUI.step(label+' — '+done+' of '+total);}catch(e){} };
+    tick();
+    const lanes=Array.from({length:Math.min(limit||6,total)},async()=>{
+      while(i<total){
+        const idx=i++;
+        await worker(items[idx],idx);
+        done++;
+        if(done%5===0||done===total)tick();
+      }
+    });
+    await Promise.all(lanes);
+  }
+  /* One request carrying up to 100 rows instead of one request per row. On ANY
+     error — a missing column, a short reply, anything — the whole phase falls
+     back to the per-row path above, which carries saveRow's missing-column
+     healing and its verify-the-match check. A bad column costs speed, never
+     data. Insert results come back in input order (Postgres RETURNING on a
+     multi-row VALUES insert), which is what makes adopting the new ids safe. */
+  async function _batchRows(list,kind){
+    if(!list.length)return true;
+    try{
+      for(let o=0;o<list.length;o+=100){
+        const chunk=list.slice(o,o+100);
+        chunk.forEach(r=>{if(r&&r.issueType==='Gated'&&!(r.notes||'').toLowerCase().includes('gated'))r.notes=r.notes?('Gated — '+r.notes):'Gated';});
+        const datas=chunk.map(r=>{const d=rowToDb(r);_missingCols.forEach(c=>delete d[c]);if(kind==='update')d.id=r.uuid;return d;});
+        const res=await(kind==='insert'
+          ? sb.from('prep_rows').insert(datas).select('id')
+          : sb.from('prep_rows').upsert(datas,{onConflict:'id'}).select('id'));
+        if(res.error)throw res.error;
+        if(!Array.isArray(res.data)||res.data.length!==chunk.length)
+          throw new Error('batch answered for '+((res.data||[]).length)+' of '+chunk.length+' rows');
+        if(kind==='insert')res.data.forEach((d,i)=>{if(d&&d.id)chunk[i].uuid=d.id;});
+        /* same echo shield saveRow uses — the realtime reflection of this write
+           must not overwrite the fresh local values */
+        chunk.forEach(r=>{r._dirty=true;setTimeout(()=>{r._dirty=false;},1500);});
+      }
+      return true;
+    }catch(e){
+      console.warn('[sync] batch '+kind+' fell back to per-row:',e&&e.message||e);
+      try{SyncUI.step('Batch save unavailable — saving row by row\u2026');}catch(_){}
+      return false;
+    }
+  }
 
   // ADD
-  for(const{fields,syncId}of toAdd){
-    const newRow={id:++nid,sheetSyncId:syncId,...fields,notes:'',rcvd:0,issueType:'',issueQty:0,status:'In-Transit',ship:0,shipId:'',sent:'No',sentDate:'',reimb:'No',pri:'No',archived:false,shipSegments:[],allShipIds:[],createdISO:todayISO(),createdAt:getNowUK(),importedFrom:'Sheet Sync',sheetRow:''};
-    rows.push(newRow);
-    try{const ok=await saveRow(newRow);if(ok){added++;}else{saveErrors.push('Save failed: '+fields.sku);rows.pop();}}
-    catch(e){saveErrors.push('Save error: '+fields.sku+' — '+e.message);rows.pop();}
-  }
+  const _addRows=toAdd.map(({fields,syncId})=>({fields,row:{id:++nid,sheetSyncId:syncId,...fields,notes:'',rcvd:0,issueType:'',issueQty:0,status:'In-Transit',ship:0,shipId:'',sent:'No',sentDate:'',reimb:'No',pri:'No',archived:false,shipSegments:[],allShipIds:[],createdISO:todayISO(),createdAt:getNowUK(),importedFrom:'Sheet Sync',sheetRow:''}}));
+  _addRows.forEach(x=>rows.push(x.row));
+  /* Failures used to be undone with rows.pop() — fine when saves ran one at a
+     time, silently wrong the moment they overlap, because pop() removes
+     whatever happens to be last rather than the row that actually failed.
+     Removed by identity instead. */
+  const _addFailed=[];
+  if(await _batchRows(_addRows.map(x=>x.row),'insert')){
+    added+=_addRows.length;
+  }else await _saveMany(_addRows,async x=>{
+    try{const ok=await saveRow(x.row);if(ok)added++;else{saveErrors.push('Save failed: '+x.fields.sku);_addFailed.push(x.row);}}
+    catch(e){saveErrors.push('Save error: '+x.fields.sku+' — '+e.message);_addFailed.push(x.row);}
+  },6,'Adding new rows');
+  _addFailed.forEach(bad=>{const i=rows.indexOf(bad);if(i>=0)rows.splice(i,1);});
 
   /* The only fields the sheet owns. Everything else on a row — notes, what was
      received, issues, shipments, status — is portal-side work and a sync must
@@ -13365,18 +13634,25 @@ async function runSheetSync(manual){
   const sheetOnly=['sku','date','oid','sup','acct','prod','asin','dg','vat','sas','exp','aqty','bun','bqty','subSave','vaNoteSheet'];
 
   // UPDATE
+  /* Work out what actually changed first — comparing is instant, and only the
+     rows that genuinely differ are worth a round trip. */
+  const _toSave=[];
   for(const{existing,fields,syncId}of toUpdate){
     let changed=false;
     sheetOnly.forEach(k=>{if(fields[k]!==undefined&&existing[k]!==fields[k]){existing[k]=fields[k];changed=true;}});
     if(syncId!==existing.sheetSyncId){existing.sheetSyncId=syncId;changed=true;}
-    if(changed){
-      existing._dirty=true;
-      try{const ok=await saveRow(existing);if(ok){updated++;}else saveErrors.push('Update failed: '+existing.sku);}
-      catch(e){saveErrors.push('Update error: '+existing.sku+' — '+e.message);}
-    }
+    if(changed){existing._dirty=true;_toSave.push(existing);}
   }
+  const _updId=_toSave.filter(r=>r.uuid),_updRest=_toSave.filter(r=>!r.uuid);
+  let _updLeft=_toSave;
+  if(_updId.length&&await _batchRows(_updId,'update')){updated+=_updId.length;_updLeft=_updRest;}
+  await _saveMany(_updLeft,async existing=>{
+    try{const ok=await saveRow(existing);if(ok){updated++;}else saveErrors.push('Update failed: '+existing.sku);}
+    catch(e){saveErrors.push('Update error: '+existing.sku+' — '+e.message);}
+  },6,'Updating changed rows');
 
   // REACTIVATE
+  const _toReact=[];
   for(const{existing,fields,syncId}of toReactivate){
     /* This was Object.assign(existing, fields) — a blanket copy. `fields` carries
        the defaults a NEW row needs (notes:'', rcvd:0, issueType:'', ship:0,
@@ -13394,9 +13670,12 @@ async function runSheetSync(manual){
     // in which case that status is the truer one and is left alone
     if(!existing.status||existing.status==='Deactivated')existing.status='In-Transit';
     existing._dirty=true;
+    _toReact.push(existing);
+  }
+  await _saveMany(_toReact,async existing=>{
     try{await saveRow(existing);reactivated++;}
     catch(e){saveErrors.push('Reactivate error: '+existing.sku+' — '+e.message);}
-  }
+  },6,'Putting rows back');
 
   // ── CIRCUIT BREAKER ─────────────────────────────────────────────────────
   // Deactivation DELETES never-shipped rows. If a sync suddenly wants to
@@ -14529,19 +14808,9 @@ function setupRealtime(){
     }else if(payload.eventType==='DELETE'){
       rows=rows.filter(x=>x.uuid!==payload.old.id);
     }
-    // If the user is actively editing a cell in the prep table, rebuilding it
-    // now would destroy their input mid-type. Defer the prep re-render until
-    // they click away; still update dashboard/claim badges immediately.
-    const ae=document.activeElement;
-    const editingPrep=ae&&ae.closest&&ae.closest('#page-prep')&&(ae.tagName==='INPUT'||ae.tagName==='SELECT'||ae.tagName==='TEXTAREA');
-    if(editingPrep){
-      _pendingPrepRender=true;
-      ae.addEventListener('blur',()=>{if(_pendingPrepRender){_pendingPrepRender=false;renderPrep();}},{once:true});
-    }else{
-      renderPrep();
-    }
-    renderDashboard();updateCB();
-    if(document.getElementById('page-admin')&&document.getElementById('page-admin').classList.contains('active'))renderAdmin();
+    /* One coalesced repaint per burst — the mid-type protection lives inside
+       rtRepaint now, checked at flush time when it actually matters. */
+    rtRepaint();
   }).subscribe();
 
   sb.channel('actions').on('postgres_changes',{event:'*',schema:'public',table:'actions'},payload=>{
@@ -16758,7 +17027,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v20.6 · lav3 · 2026-08-11 · b216';
+const BUILD='v21.6 · lav3 · 2026-08-11 · b226';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
