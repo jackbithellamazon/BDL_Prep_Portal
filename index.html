@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v22.6</title>
+<title>BDL PrepHub v22.8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3053,7 +3053,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v22.6</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v22.8</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3087,7 +3087,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v22.6</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v22.8</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3767,7 +3767,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v22.6</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v22.8</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -13635,7 +13635,13 @@ async function runSheetSync(manual){
   const triggerFound=headers.includes(triggerCol);
   if(!triggerFound){
     const msg=`[${srcLabel}] ⚠ Trigger column "${triggerCol}" not found in sheet. Headers: ${headers.slice(0,6).join(', ')}${headers.length>6?'…':''}`;
-    setSheetSyncLog(msg,true);addSyncHistory(msg,false);totalErrors++;continue;
+    setSheetSyncLog(msg,true);addSyncHistory(msg,false);totalErrors++;
+    /* On the wrong column name this source imports NOTHING, forever, with only
+       a log line to say so. Put it where somebody will actually look. */
+    recordSyncIssues(srcLabel,[{sku:'\u2014 whole tab \u2014',oid:'',
+      why:'The tick column is named wrong',
+      detail:`This source looks for a column called "${triggerCol}", but this tab has no such header. Open the source in Settings and set the Trigger column to the exact header on the sheet \u2014 on the 2026 tracker that is "Added To PrepHub".`}]);
+    continue;
   }
 
   /* ONLY the named column decides. There used to be a fallback chain through
@@ -14074,9 +14080,21 @@ async function saveSyncSources(){
   return true;
 }
 
-function renderSyncSourcesList(){
+let _srcOwedT=null;
+function renderSyncSourcesList(force){
   const el=document.getElementById('syncSourcesList');
   if(!el)return;
+  /* Background events — a tab check finishing, the sheet's tab list arriving —
+     were rebuilding this card while somebody was TYPING in it, stealing the
+     cursor mid-word. If focus is inside the card, background repaints wait;
+     the retry fires once typing stops. Direct user actions pass force=true. */
+  const ae=document.activeElement;
+  if(!force&&ae&&el.contains(ae)&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)){
+    clearTimeout(_srcOwedT);
+    _srcOwedT=setTimeout(()=>renderSyncSourcesList(false),900);
+    return;
+  }
+  clearTimeout(_srcOwedT);
   if(!_ssSources.length){el.innerHTML='<div style="font-size:10px;color:var(--text3);padding:8px 0;">No sources configured — click + Add Source</div>';return;}
   // Two ACTIVE sources sharing one trigger column would double-pull the same
   // ticked rows from two different sheets — surface that as a clear warning
@@ -14090,7 +14108,13 @@ function renderSyncSourcesList(){
       _sheetTabsCache[sid]='loading';
       _fetchSheetTabs(sid).catch(()=>{});
     }});
-  el.innerHTML=_ssSources.map((src,i)=>{
+  /* Jack: "reorder them so the old demo sheet is out of sight." A source that
+     is switched off is history, not configuration — it should not sit above the
+     one that is actually running. Live sources first, switched-off ones folded
+     into a single line underneath. Display order only: `_ssSources` itself is
+     untouched, so nothing about what is saved changes. */
+  const _live=_ssSources.filter(x=>x.active), _off=_ssSources.filter(x=>!x.active);
+  const card=(src,i)=>{
     const key=(src.col||'').trim().toLowerCase();
     const clash=src.active&&key&&activeCols[key]&&activeCols[key].length>1;
     return `
@@ -14098,7 +14122,9 @@ function renderSyncSourcesList(){
       ${clash?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:6px 8px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.35);border-radius:5px;font-size:11px;color:#f87171;font-weight:700;">⚠ Same trigger column as another active source — both will pull the same ticked rows. Give this one its own column.</div>`:''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <input value="${esc(src.label)}" onchange="setSyncSourceField('${src.id}','label',this.value)"
-          style="font-size:11px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;flex:1;cursor:text;">
+          title="Click to rename this source \u2014 e.g. 2026 Purchase Tracker" class="srcName"
+          style="font-size:13px;font-weight:800;color:var(--text);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;flex:1;cursor:text;padding:1px 2px;">
+        <span style="font-size:10px;color:var(--text3);margin:0 8px 0 4px;white-space:nowrap;">\u270e click name to rename</span>
         <div style="display:flex;align-items:center;gap:6px;">
           <span style="font-size:11px;padding:2px 6px;border-radius:10px;background:${src.active?'rgba(96,165,250,.2)':'rgba(100,116,139,.15)'};color:${src.active?'#60a5fa':'var(--text3)'};">${src.active?'ACTIVE':'OFF'}</span>
           <button onclick="toggleSyncSource('${src.id}')" style="padding:2px 8px;background:var(--bg4);border:1px solid var(--border2);color:var(--text2);border-radius:4px;font-size:10px;cursor:pointer;">${src.active?'Disable':'Enable'}</button>
@@ -14184,7 +14210,17 @@ function renderSyncSourcesList(){
         </div>
       </div>
     </div>
-  `;}).join('');
+  `;};
+  el.innerHTML=_live.map(card).join('')
+    +(_off.length?`<details style="margin-top:4px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;">
+      <summary style="cursor:pointer;list-style:none;padding:10px 12px;font-size:11.5px;font-weight:700;color:var(--text3);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:9px;">\u25b6</span>
+        ${_off.length} switched-off source${_off.length===1?'':'s'}
+        <span style="font-weight:400;color:var(--text3);">\u2014 ${esc(_off.map(x=>x.label||'Unnamed').join(', '))} \u00b7 not read, every row already brought in is kept</span>
+      </summary>
+      <div style="padding:0 10px 10px;">${_off.map(card).join('')}</div>
+    </details>`:'')
+    +(!_live.length?`<div style="margin-top:6px;padding:10px 12px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.4);border-radius:6px;font-size:11.5px;color:var(--accent);font-weight:700;">No source is switched on \u2014 nothing is being read from any sheet.</div>`:'');
 }
 
 function renderSyncExcludedList(){
@@ -14269,7 +14305,7 @@ function addSrcTab(id,tab){
   const tabs=_srcTabs(s);
   if(tabs.some(t=>t.toLowerCase()===tab.toLowerCase())){toast('Tab already added');return;}
   tabs.push(tab);s.tab=tabs.join(', ');
-  _tabPickerQ='';sheetSyncDirty();renderSyncSourcesList();
+  _tabPickerQ='';sheetSyncDirty();renderSyncSourcesList(true);
   _verifyTab(_srcSheetId(s),tab);  // live-check it against the sheet
   // keep the picker open so several tabs can be added in one go
   setTimeout(()=>{const i=document.getElementById('tabPickerSearch');if(i)i.focus();},40);
@@ -14277,7 +14313,7 @@ function addSrcTab(id,tab){
 function removeSrcTab(id,tab){
   const s=_ssSources.find(x=>x.id===id);if(!s)return;
   s.tab=_srcTabs(s).filter(t=>t!==tab).join(', ');
-  sheetSyncDirty();renderSyncSourcesList();
+  sheetSyncDirty();renderSyncSourcesList(true);
 }
 function toggleTabPicker(id){
   _tabPickerOpen=(_tabPickerOpen===id)?null:id;
@@ -14399,7 +14435,7 @@ function fixSrcTab(id,oldTab){
   const canon=_tabFix[key];if(!canon)return;
   s.tab=_srcTabs(s).map(t=>t===oldTab?canon:t).join(', ');
   _tabCheck[_srcSheetId(s)+'|'+canon]='ok';
-  sheetSyncDirty();renderSyncSourcesList();
+  sheetSyncDirty();renderSyncSourcesList(true);
   toast('Fixed to "'+canon+'" ✓');
 }
 function refreshSheetTabs(sheetId){
@@ -14440,7 +14476,7 @@ function addSyncSource(){
   // Give it a unique blank-ish default and flag it for the user to set.
   const n=_ssSources.length+1;
   _ssSources.push({id,label:'New Source '+n,url:'',tab:'',col:'',active:true});
-  renderSyncSourcesList();sheetSyncDirty();
+  renderSyncSourcesList(true);sheetSyncDirty();
   toast('New source added — set its own Sheet URL and Trigger column before enabling');
 }
 function removeSyncSource(id){
@@ -17412,7 +17448,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v22.6 · lav3 · 2026-08-15 · b237';
+const BUILD='v22.8 · lav3 · 2026-08-15 · b239';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -26084,6 +26120,7 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 #settingsCols details summary::-webkit-details-marker{display:none;}
 #settingsCols details[open] .foldArrow{transform:rotate(90deg);}
 #settingsCols details summary:hover{color:var(--text);}
+.srcName:hover,.srcName:focus{border-bottom-color:var(--border2)!important;}
 #settingsCols [data-sset]{display:none;}
 #settingsCols[data-tab="sync"] [data-sset="sync"],
 #settingsCols[data-tab="rates"] [data-sset="rates"],
