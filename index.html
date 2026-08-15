@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v21.6</title>
+<title>BDL PrepHub v21.9</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3047,7 +3047,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v21.6</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v21.9</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3081,7 +3081,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v21.6</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v21.9</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3509,6 +3509,22 @@ html.light-mode .tfu thead th{background:#d8dde3;}
             <span id="sheetSyncNext" style="color:var(--text3);"></span>
           </div>
           <div id="sheetSyncLog" style="color:var(--text2);margin-top:4px;"></div>
+        </div>
+      </div>
+
+      <!-- Backup — deliberately ABOVE Data Management, so the way to save
+           everything is seen before the buttons that destroy it. -->
+      <div style="background:var(--bg2);border:1px solid rgba(52,211,153,.35);border-radius:8px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:700;color:#34d399;margin-bottom:6px;">Backup — save everything to a file</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.55;">
+          Downloads one file with every prep row, action, issue, shipment, Lavarion product, purchase and stock batch
+          currently loaded. Nothing is sent anywhere and nothing is changed — it just saves what is here right now.
+          <b style="color:#e2ddd3;">Take one before any sheet sync you are unsure about.</b>
+        </div>
+        <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;">
+          <button onclick="downloadBackup()" style="padding:8px 16px;background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.5);color:#34d399;border-radius:5px;font-size:12px;font-weight:800;cursor:pointer;">&#8595; Download full backup</button>
+          <button onclick="downloadBackup('csv')" style="padding:8px 14px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:5px;font-size:11.5px;font-weight:700;cursor:pointer;">Prep rows as CSV</button>
+          <span id="bkStamp" style="font-size:11px;color:var(--text3);"></span>
         </div>
       </div>
 
@@ -13504,9 +13520,41 @@ async function runSheetSync(manual){
   const toAdd=[],toUpdate=[],toDeactivate=[],toReactivate=[];
   const skuWarnings=[]; // track rows with issues
 
+  /* "Only rows from this date" — Jack, moving onto the real 2026 Purchase
+     Tracker: the Q3 tab holds months of history he does NOT want pulled in, he
+     just wants to start from today. Lavarion has worked this way for months
+     (`purchFrom`), so this is the same idea on the prep side.
+     It gates the row ENTIRELY — an older row is neither added nor removed. That
+     matters: without it, a row dated in June sitting on the tab with its tick
+     box on N/A would be read as "take this off the prep sheet".
+     Unreadable dates are LET THROUGH, never skipped — when we cannot tell, the
+     safe answer is to behave exactly as before rather than silently drop a row. */
+  const _fromISO=(src.from||'').trim();
+  let _tooOld=0;
+  const _rowISO=raw=>{
+    const t=String(raw||'').trim(); if(!t)return '';
+    const p2=t.split('/');
+    if(p2.length<3)return '';
+    let[d1,m1,y1]=p2.map(x=>x.trim());
+    if(y1.length===2)y1='20'+y1;
+    if(!/^\d{1,2}$/.test(d1)||!/^\d{1,2}$/.test(m1)||!/^\d{4}$/.test(y1))return '';
+    return y1+'-'+m1.padStart(2,'0')+'-'+d1.padStart(2,'0');
+  };
   parsed.forEach(row=>{
     const sku=(row['SKU']||'').trim();
     if(!sku)return;
+    /* Asymmetric on purpose, and this is the important bit.
+       A readable date before the start date: skip entirely.
+       An UNREADABLE date while a start date is set: it may still be ADDED (so a
+       new purchase is never silently missed because someone typed the date
+       oddly), but it must never cause a REMOVAL. Uncertainty is allowed to cost
+       an extra row on screen; it is never allowed to delete one. */
+    let _rowOld=false,_rowUndated=false;
+    if(_fromISO){
+      const iso=_rowISO(row['Date']);
+      if(!iso)_rowUndated=true;
+      else if(iso<_fromISO){_tooOld++;return;}
+    }
     // Warn if SKU has no qty
     const qty=parseInt(row['Total units **']||row['Quantity Bought']||row['Quanity Bought *']||row['Quanity Bought']||0)||0;
     if(qty===0&&getTrigger(row)==='yes')skuWarnings.push('No qty: '+sku);
@@ -13535,12 +13583,14 @@ async function runSheetSync(manual){
       else if(existing.archived)toReactivate.push({existing,fields,syncId});
       else toUpdate.push({existing,fields,syncId});
     }else if(trigger==='no'||trigger==='n/a'||trigger===''){
+      if(_rowUndated){_tooOld++;return;}   // no readable date + a start date set → never remove on a guess
       if(existing&&!existing.archived&&existing.status!=='Sent to Amazon')toDeactivate.push(existing);
     }
   });
 
   let added=0,updated=0,deactivated=0,reactivated=0;
   const saveErrors=[];
+  if(_tooOld)addSyncHistory(`[${srcLabel}] ${_tooOld} row${_tooOld===1?'':'s'} dated before ${_fromISO} skipped`,true);
   /* Say the shape of the job before starting it, so a long sync reads as busy
      rather than broken. */
   try{
@@ -13693,22 +13743,44 @@ async function runSheetSync(manual){
       if(!manual)toast(`⚠ Sync held ${_deactHeld} row removals — check the sheet, then Sync Now to confirm`,'er');
     }
   }
-  // DEACTIVATE — delete if never shipped, archive if has shipment ID
+  /* DEACTIVATE — archive anything anybody has touched, only ever delete a row
+     that is genuinely untouched.
+     The old test was "has it shipped?" — so a row with 40 units counted in, a
+     packing note and a raised issue, but no shipment yet, was DELETED outright
+     from the database the moment its tick box changed on the sheet. All of that
+     work gone, with no trace even under Show Archived. Untick by accident, or
+     retype a SKU, and it is unrecoverable.
+     A row nobody has touched is just sheet noise and can go. Everything else
+     gets archived: off the active sheet, still there, still findable. */
+  const _hasWork=r=>!!(
+    (parseInt(r.rcvd)||0)>0 ||
+    (parseInt(r.cancelledQty)||0)>0 ||
+    (r.notes||'').trim() ||
+    (r.vaNote||'').trim() ||
+    (r.issueType&&r.issueType!=='—') ||
+    (parseInt(r.issueQty)||0)>0 ||
+    r.resolution ||
+    r.expectedDelivery ||
+    r.delivered==='Yes' || r.wrongSku==='Yes' ||
+    r.shipId || (r.allShipIds||[]).length || (r.shipSegments||[]).length ||
+    r.sent==='Yes'
+  );
+  let _kept=0;
   for(const r of toDeactivate){
-    const hasShipment=r.shipId||r.allShipIds?.length||(r.shipSegments||[]).length;
     try{
-      if(hasShipment){
-        // Has shipment data — archive it (keep on Shipments page)
+      if(_hasWork(r)){
         r.archived=true;r._dirty=true;
         await saveRow(r);
+        _kept++;
       }else{
-        // Never shipped — fully delete from Supabase, no trace in Show Archived
+        // genuinely untouched — nothing to lose, remove it properly
         if(r.uuid){await sb.from('prep_rows').delete().eq('id',r.uuid);}
         rows.splice(rows.indexOf(r),1);
       }
       deactivated++;
     }catch(e){saveErrors.push('Remove error: '+r.sku+' — '+e.message);}
   }
+  if(_kept)addSyncHistory(`[${srcLabel}] ${_kept} removed row${_kept===1?'':'s'} had work on them — archived, not deleted`,true);
 
   // Per-source log entry with full detail
   const srcParts=[];
@@ -13865,7 +13937,42 @@ function renderSyncSourcesList(){
             <div style="font-size:11px;color:var(--text3);margin-bottom:2px;">Trigger column</div>
             <input value="${esc(src.col||'Added To Prep Portal')}" onchange="setSyncSourceField('${src.id}','col',this.value)" placeholder="Added To Prep Portal"
               style="width:100%;padding:5px 8px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:10px;font-family:var(--mono);">
+            <div style="font-size:10px;color:var(--text3);margin-top:3px;line-height:1.4;">Only <b style="color:#4ade80;">Yes</b> is pulled in. Anything else — N/A, blank, No — is treated as “not for the portal”.</div>
           </div>
+        </div>
+
+        ${/* Start-from date. The whole point of the move onto the real tracker:
+              start from today rather than dragging in months of history. */''}
+        <div style="margin-top:2px;padding:9px 10px;background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.28);border-radius:6px;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:190px;">
+              <div style="font-size:11px;font-weight:700;color:#93c5fd;margin-bottom:3px;">Only bring in rows dated from</div>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <input type="date" value="${esc(src.from||'')}" onchange="setSyncFrom('${src.id}',this.value)"
+                  style="padding:5px 8px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;">
+                <button onclick="setSyncFrom('${src.id}',todayISO())" title="Start from today — ignore everything already on the tab"
+                  style="padding:5px 10px;background:rgba(96,165,250,.16);border:1px solid rgba(96,165,250,.45);color:#60a5fa;border-radius:4px;font-size:10.5px;font-weight:800;cursor:pointer;">Start from today</button>
+                ${src.from?`<button onclick="setSyncFrom('${src.id}','')" title="Read the whole tab, however far back it goes"
+                  style="padding:5px 9px;background:var(--bg4);border:1px solid var(--border2);color:var(--text3);border-radius:4px;font-size:10.5px;font-weight:700;cursor:pointer;">Clear</button>`:''}
+              </div>
+            </div>
+          </div>
+          <div style="font-size:10.5px;color:${src.from?'#93c5fd':'#fbbf24'};margin-top:7px;line-height:1.5;">
+            ${src.from
+              ? `Rows dated before <b>${esc(src.from)}</b> are ignored completely — not added, and <b>not removed either</b>. Older history on the tab is left alone.`
+              : `<b>No start date set</b> — the whole tab is read, however far back it goes. On a tab with months of history that is a lot of rows at once.`}
+          </div>
+        </div>
+
+        ${/* One plain sentence saying what this source will actually do — the
+              settings above are four separate boxes and it was easy to have the
+              wrong file, right tab, and not notice. */''}
+        <div style="margin-top:2px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text2);line-height:1.55;">
+          <b style="color:var(--text);">In plain English:</b>
+          ${src.active?'':'<b style="color:#fbbf24;">This source is switched OFF, so nothing happens. </b>'}
+          Reads <b style="color:#60a5fa;">${_srcTabs(src).length?esc(_srcTabs(src).join(', ')):'(no tab set)'}</b>
+          from <b>${(()=>{const id=_srcSheetId(src);return id?(id.slice(0,10)+'…'):'(no sheet)';})()}</b>,
+          and brings in every row where <b style="color:#4ade80;">${esc(src.col||'Added To Prep Portal')}</b> says <b style="color:#4ade80;">Yes</b>${src.from?` and the date is <b>${esc(src.from)}</b> or later`:''}.
         </div>
       </div>
     </div>
@@ -14136,6 +14243,18 @@ function removeSyncSource(id){
 function setSyncSourceField(id,field,val){
   const s=_ssSources.find(x=>x.id===id);
   if(s){s[field]=val;sheetSyncDirty();}
+}
+/* The date needs its own handler because it must REDRAW. setSyncSourceField
+   only marks the panel unsaved — fine for a text box you are typing in (a
+   redraw there would steal focus mid-edit), useless for a button, which would
+   change the value and appear to do absolutely nothing. */
+function setSyncFrom(id,val){
+  const s=_ssSources.find(x=>x.id===id);
+  if(!s)return;
+  s.from=val||'';
+  sheetSyncDirty();
+  renderSyncSourcesList();
+  try{toast(val?('Will only read rows dated '+val+' or later — press Save Settings'):'Start date cleared — the whole tab will be read');}catch(e){}
 }
 function toggleSyncSource(id){
   const s=_ssSources.find(x=>x.id===id);
@@ -15300,6 +15419,64 @@ async function clearTable(table,label){
     if(table==='ship_boxes'){shipBoxes={};}
     toast(`✓ All ${label} cleared`);
   });
+}
+/* ── BACKUP ────────────────────────────────────────────────────────────────
+   Jack, before pointing the sync at the real purchase tracker: "wanna add a
+   export and save on prep hub incase we fuck up".
+   Saves what the browser currently holds — which is everything the app loaded
+   from the database — into one JSON file. Read-only: it writes nothing back,
+   sends nothing anywhere, and cannot itself lose data.
+   Restoring is deliberately NOT here. Putting rows back needs care about ids
+   and duplicates, and a half-tested restore button is more dangerous than no
+   button at all. The file holds everything needed to put things right. */
+function _bkSafe(fn,d){try{const v=fn();return v===undefined?d:v;}catch(e){return d;}}
+function downloadBackup(kind){
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  let blob,name;
+  if(kind==='csv'){
+    const cols=['id','uuid','sku','asin','prod','sup','acct','oid','date','exp','rcvd','ship','status',
+                'issueType','issueQty','shipId','sent','sentDate','archived','notes','sheetSyncId'];
+    const esc2=v=>{const t=String(v==null?'':v);return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;};
+    const lines=[cols.join(',')].concat((rows||[]).map(r=>cols.map(c=>esc2(r[c])).join(',')));
+    blob=new Blob([lines.join('\n')],{type:'text/csv'});
+    name='prephub-prep-rows-'+stamp+'.csv';
+  }else{
+    const data={
+      _backup:'BDL PrepHub',
+      _takenAt:new Date().toISOString(),
+      /* BUILD is a const inside the Lavarion module, invisible from here —
+         read the version off the page instead so a backup always says which
+         build produced it. */
+      _build:_bkSafe(()=>(document.querySelector('.ver')||{}).textContent||document.title,''),
+      _by:_bkSafe(()=>_who(),''),
+      _warning:'A snapshot of what one browser had loaded. Not a database dump — rows another person added since this page loaded are not in here.',
+      prepRows:_bkSafe(()=>rows,[]),
+      actions:_bkSafe(()=>claims,[]),
+      vaActions:_bkSafe(()=>VA_ACTIONS,[]),
+      shipBoxes:_bkSafe(()=>shipBoxes,{}),
+      lavAsins:_bkSafe(()=>lavAsins,[]),
+      lavShipments:_bkSafe(()=>lavShipments,[]),
+      returnSkus:_bkSafe(()=>returnSkus,[]),
+      returnShipments:_bkSafe(()=>returnShipments,[]),
+      /* the Lavarion module keeps its own copies — stock batches and purchases
+         are the ones that carry money, so they matter most of all */
+      lavLayers:_bkSafe(()=>(window.LV3&&LV3.__layers?LV3.__layers():null),null),
+      lavPurchases:_bkSafe(()=>(window.LV3&&LV3.__purch?LV3.__purch():null),null),
+      syncSources:_bkSafe(()=>_ssSources,[]),
+      syncConfig:_bkSafe(()=>_ssConfig,{})
+    };
+    const counts=Object.keys(data).filter(k=>Array.isArray(data[k])).map(k=>k+':'+data[k].length).join(' · ');
+    data._counts=counts;
+    blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
+    name='prephub-backup-'+stamp+'.json';
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);
+  const el=document.getElementById('bkStamp');
+  if(el)el.textContent='Saved '+name+' \u2014 '+Math.round(blob.size/1024)+' KB';
+  try{logAudit('Backup downloaded',name);}catch(e){}
+  try{toast('\u2713 Backup saved to your Downloads');}catch(e){}
 }
 async function clearEverything(){
   wipeAsk('WIPE EVERYTHING','Empty the prep sheet, the actions and the Lavarion catalogue',
@@ -17027,7 +17204,7 @@ setInterval(updateClock,30000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v21.6 · lav3 · 2026-08-11 · b226';
+const BUILD='v21.9 · lav3 · 2026-08-15 · b229';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -25399,7 +25576,7 @@ function paint(){
 }
 
 /* everything the page's inline handlers need */
-const API={go,render:paint,boot,dupConfirm,
+const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH,
   openProduct,editProduct,setType,setSold30,rowMenu,closeRowMenu,dupeAsins,setSort,saveProductForce,addRecipeRow,rcChange,rcSearch,rcPick,rcMake,recipePreview,copyRecipe,saveProduct,delProduct,togRow,setArchived,
   openShip,drawShip,doShip,copyCog,shipSetQty,shipOverride,shipQty,shipFba,setQ,selOne,selAll,selClear,selType,selVat,
   openComp,editComp,saveComp,delComp,pickKind,openAddBatch,abPreview,doAddBatch,selArchive,selDelete,cselOne,cselAll,cselClear,cselKind,cselTrack,cselArchive,cselDelete,markArrived,openAdjust,doAdjust,
