@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v26.3</title>
+<title>BDL PrepHub v27.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3067,7 +3067,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v26.3</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v27.2</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3101,7 +3101,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v26.3</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v27.2</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3792,7 +3792,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v26.3</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v27.2</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -4590,6 +4590,14 @@ function gsJump(page,term){
   const g=document.getElementById('globalSrch');if(g)g.value='';
 }
 function runGlobalSearch(qRaw){
+  _runGlobalSearchCore(qRaw);
+  if(!_historyReady){
+    const box=document.getElementById('globalSrchResults');
+    if(box&&box.style.display!=='none')box.insertAdjacentHTML('beforeend',
+      '<div style="padding:6px 12px;font-size:11px;color:var(--text3);border-top:1px solid var(--line,#333)">Older history still loading\u2026 results may be incomplete</div>');
+  }
+}
+function _runGlobalSearchCore(qRaw){
   const q=(qRaw||'').trim().toLowerCase();
   const box=document.getElementById('globalSrchResults');
   if(!box)return;
@@ -4762,14 +4770,31 @@ function allSentRows(){
     const cogs=parseSKU(r.sku).cogs;
     const segs=normaliseSegments(r);
     if(segs.length){
-      segs.forEach(seg=>out.push({...r,isoDate:seg.date||r.sentDate||'',units:seg.units||0,shipId:seg.shipId,_segUnits:seg.units||0,cogValue:cogs*(seg.units||0),kind:'oa'}));
+      segs.forEach(seg=>out.push({...r,isoDate:seg.date||r.sentDate||'',units:seg.units||0,shipId:seg.shipId,_segUnits:seg.units||0,cogValue:cogs*(seg.units||0),kind:'oa',_dAuth:!!seg.date}));
     }else if(r.sentDate){
-      out.push({...r,isoDate:r.sentDate,units:r.ship||0,cogValue:cogs*(r.ship||0),kind:'oa'});
+      /* No segments: this row's date is its own `sentDate`, which is the date
+         of its FIRST send and is never updated when the row goes out again on
+         a later shipment. It is a fine date for the row, and a terrible one for
+         the shipment — so it is marked as not allowed to date a shipment.
+         _dAuth:false is what stopped one 11 Aug row dragging the whole of
+         FBA15M5XGGHC (10 units, 8 SKU lines) off "Sent today" while the
+         Shipments page listed it under 18 Aug. */
+      out.push({...r,isoDate:r.sentDate,units:r.ship||0,cogValue:cogs*(r.ship||0),kind:'oa',_dAuth:false});
     }
   });
-  completed.forEach(r=>out.push({...r,isoDate:r.dsISO,units:r.shi||0,cogValue:parseSKU(r.sku).cogs*(r.shi||0),kind:'completed'}));
+  /* `_dAuth` says whether a line may DATE a shipment (it always still carries
+     its units). The rule is copied from the Shipments page so the two cannot
+     drift apart again: only OA segments and Lavarion set a shipment's date
+     there — look at renderShipments, the returns loop deliberately has no
+     "earlier date wins" line, while the Lavarion loop does.
+     This is what was wrong: three RETURNS dated 11 Aug were logged against
+     FBA15M5XGGHC. On the Shipments page they added units and left the date at
+     18 Aug. Here they were allowed to vote, the earliest date won, and the
+     whole shipment — 10 units, 8 SKU lines — dropped out of "Sent today".
+     Four shipments on one page, three on the other. */
+  completed.forEach(r=>out.push({...r,isoDate:r.dsISO,units:r.shi||0,cogValue:parseSKU(r.sku).cogs*(r.shi||0),kind:'completed',_dAuth:false}));
   lavShipments.filter(s=>s.date).forEach(s=>out.push({isoDate:s.date,units:s.units||0,sku:s.sku||'',asin:s.asin||'',shipId:s.shipId||'',cogValue:(s.cost||0)*(s.units||0),kind:'lav'}));
-  returnShipments.filter(s=>s.date).forEach(s=>out.push({isoDate:s.date,units:s.units||0,sku:s.sku||'',asin:s.asin||'',shipId:s.shipId||'',cogValue:0,kind:'return'}));
+  returnShipments.filter(s=>s.date).forEach(s=>out.push({isoDate:s.date,units:s.units||0,sku:s.sku||'',asin:s.asin||'',shipId:s.shipId||'',cogValue:0,kind:'return',_dAuth:false}));
   /* Units stay on the date of the line that carries them. An earlier attempt
      re-dated every line to its shipment's earliest date so the month tile would
      agree with the shipments page — but this function pools OA rows, completed
@@ -4805,9 +4830,22 @@ function sentRollup(start,end){
      one of its lines is in with it. A line added later cannot drag units into a
      period the shipment did not go in, nor leave its own shipment behind. Loose
      rows with no shipment id still fall back to their own date. */
-  const firstSent={};
+  /* Which lines get to say when a shipment went.
+     The Shipments page builds its date from SEGMENTS only — it skips any row
+     without them (see renderShipments). This did not, so a row carrying a
+     shipment id but no segments voted with its stale `sentDate` and, because
+     the earliest date wins, a single week-old line moved an entire shipment out
+     of today. Four shipments on the Shipments page, three on the prep sheet and
+     in Weekly Activity, 10 units and 8 SKU lines missing.
+     Segment dates, Lavarion and Returns are authoritative; a bare `sentDate`
+     is only used when a shipment has nothing better. Same inputs as the
+     Shipments page, so the two now answer the question the same way. */
+  const firstSent={},_fallback={};
   all.forEach(r=>{if(!r.shipId||!r.isoDate)return;
-    if(!firstSent[r.shipId]||r.isoDate<firstSent[r.shipId])firstSent[r.shipId]=r.isoDate;});
+    const auth=r._dAuth!==false;
+    const bag=auth?firstSent:_fallback;
+    if(!bag[r.shipId]||r.isoDate<bag[r.shipId])bag[r.shipId]=r.isoDate;});
+  Object.keys(_fallback).forEach(id=>{if(!firstSent[id])firstSent[id]=_fallback[id];});
   const inWindow=iso=>{const d=iso?new Date(iso+'T00:00:00.000Z'):null;return d&&d>=s&&d<=e;};
   const inRange=all.filter(r=>(r.shipId&&firstSent[r.shipId])
     ? inWindow(firstSent[r.shipId])          // follows its shipment
@@ -5858,7 +5896,11 @@ function saveRowForm(){
   const sentVal=document.getElementById('f-sent').value;
   const existing=editId?rows.find(x=>String(x.id)===String(editId)||x.uuid===String(editId)):null;
   const r={
-    uuid:existing?.uuid||undefined,
+    /* Client-minted uuid on NEW rows: the insert carries it, so the realtime
+       echo dedupes by uuid even while the insert response is still in flight.
+       _minted routes saveRow straight to insert (no pointless 0-match update). */
+    uuid:existing?.uuid||(window.crypto&&crypto.randomUUID?crypto.randomUUID():undefined),
+    _minted:!existing&&!!(window.crypto&&crypto.randomUUID),
     id:existing?existing.id:++nid,date:df,
     oid:document.getElementById('f-oid').value,
     sup:document.getElementById('f-sup').value,
@@ -6952,7 +6994,7 @@ async function doneVaAction(id){
 
 // ── PROPOSING A CLOSURE ───────────────────────────────────────────────────────
 let _srtRid=null;
-let _tfuSort='priority',_tfuDir=1,_admQ='',_admKind='all';
+let _tfuSort='priority',_tfuDir=1,_admQ='',_admKind='all',_jkQ='',_jkKind='all';
 /* ── THE PRIORITY ORDER — built with Jack, 16 Aug, from his own worked example.
    His answer, in his words: the Wagner he sent back yesterday first; this
    morning's damage next (newer AND worth more); the 6-day-old shortage third;
@@ -7588,6 +7630,13 @@ function srtAskClose(override){
   /* "Still in transit" only puts a date on the row. Nothing closes, nothing
      leaves a queue — a confirmation there is just a click tax. */
   if(kind==='date'){submitSorted();return;}
+  /* Jack, 17 Aug: "no need for a 2nd popup — just when press close it off,
+     have a progress bar in the middle with Undo bottom-left and Close now
+     bottom-right, watch it for 3 seconds." The are-you-sure dialog was a
+     click tax; the 3-second undo IS the confirmation. The only dialog that
+     survives is the override — closing with jobs outstanding still demands a
+     typed reason. */
+  if(!override){submitSorted();return;}
   const toJack=(kind!=='ops');
   let el=document.getElementById('srtConfirm');
   if(!el){
@@ -7779,7 +7828,8 @@ async function submitSorted(){
        landed would throw away her working on the one occasion it still mattered
        — the occasion where the save failed. */
     if(srtDraft(rid))srtDropDraft(rid);
-    toast(kind==='ops'?'Closed off — Jack has been told':'Sent to Jack with your findings','ok');
+    showUndoBar(kind==='ops'?'Closed off — Jack has been told':'Sent to Jack with your findings',
+      ()=>reopenResolution(rid,true));
     logAudit(kind==='ops'?'Closed by VA':'Decision sent to Jack',
       [`${r.sku||r.asin||''} — ${_resText(what)}`,fix,
        stepsDone.length?`${stepsDone.length} step${stepsDone.length===1?'':'s'} done`:'',
@@ -7833,8 +7883,11 @@ async function backToSarah(rid){
 }
 async function rejectResolution(rid){
   const r=_rowById(rid);if(!r||!r.resolution)return;
-  const why=prompt('Send it back to Sarah — what needs doing first?','');
-  if(why===null)return;
+  askText('Send it back to Sarah','Your note lands on the row with the red Sent-back banner.',
+    'What needs doing first?','Send back',why=>{_rejectGo(rid,why);});
+}
+async function _rejectGo(rid,why){
+  const r=_rowById(rid);if(!r||!r.resolution)return;
   r.resolution.state='rejected';
   r.resolution.rejectedBy=_who();
   r.resolution.rejectedAt=new Date().toISOString();
@@ -7847,9 +7900,9 @@ async function rejectResolution(rid){
   renderAdmin();renderJack();
   try{renderDashboard();paintJackBadge();}catch(e){}
 }
-async function reopenResolution(rid){
+async function reopenResolution(rid,skipConfirm){
   const r=_rowById(rid);if(!r)return;
-  if(!confirm('Put this back on the follow-up queue?'))return;
+  if(!skipConfirm&&!confirm('Put this back on the follow-up queue?'))return;
   /* Undo used to null the resolution outright, which took the whole chase log
      with it — weeks of "who was contacted, when, what they said" gone behind a
      button that only promised to move the row. The closure is undone; the
@@ -8115,61 +8168,95 @@ function renderJack(){
         <button class="csAct warn" onclick="escalateMoney('${r.uuid||r.id}')" title="Back on Sarah's sheet with the history, to chase and escalate">Back to Sarah</button>`});});
   const order={check:0,dec:1,claim:2,lav:3,fix:4,owed:5};
   items.sort((a,b)=>(order[a.kind]-order[b.kind])||(b.wait-a.wait));
+  /* Same toolbar language as Sarah's page — search, chips with counts. */
+  const _jkCounts={all:items.length};
+  items.forEach(it=>{_jkCounts[it.kind]=(_jkCounts[it.kind]||0)+1;});
+  let shown=items;
+  const _q=(_jkQ||'').toLowerCase();
+  if(_q)shown=shown.filter(it=>[it.prod,it.sup,it.oid,it.sku,it.by,it.note,it.why].filter(Boolean).join(' ').toLowerCase().includes(_q));
+  if(_jkKind!=='all')shown=shown.filter(it=>it.kind===_jkKind);
   const owedTotal=(owed||[]).reduce((a,o)=>a+(o.value||0),0);
   const atRisk=items.filter(i=>i.kind!=='owed').reduce((a,i)=>a+(i.value||0),0);
   const oldest=items.length?Math.max(...items.map(i=>i.wait||0)):0;
-  const kpi=(v,l,cls)=>`<div class="jkKpi ${cls||''}"><b>${v}</b><span>${l}</span></div>`;
+  /* A KPI you can press IS the filter — click "to check" and the table shows
+     only checks; click it again for everything. */
+  const kpi=(v,l,cls,kind)=>`<div class="jkKpi ${cls||''}" style="flex:1;${kind?'cursor:pointer;':''}" ${kind?`onclick="_jkKind=_jkKind==='${kind}'?'all':'${kind}';renderJack();" title="Click to show only these"`:''}><b>${v}</b><span>${l}</span></div>`;
   w.innerHTML=`
-    <div class="jkHero" style="padding:14px 18px;margin-bottom:12px;">
-      <div>
+    <div class="jkHero" style="padding:12px 16px 14px;margin-bottom:10px;flex-direction:column;align-items:stretch;gap:10px;">
+      <div style="display:flex;align-items:baseline;gap:12px;">
         <h2 style="margin:0;">Jack's Admin</h2>
-        <p style="margin:4px 0 0;">${n?`${n} thing${n===1?'':'s'} waiting on you — work top to bottom.`:'Nothing is waiting on you. Sarah is not blocked on anything.'}</p>
+        <p style="margin:0;">${n?`${n} thing${n===1?'':'s'} waiting on you — work top to bottom.`:'Nothing is waiting on you. Sarah is not blocked on anything.'}</p>
       </div>
-      <div class="jkKpis">
-        ${kpi(checks.length,'to check',checks.length?'hot':'')}
-        ${kpi(closures.length,'decisions',closures.length?'hot':'')}
-        ${kpi((claimsQ||[]).length+(lavQ||[]).length,'sent to you',((claimsQ||[]).length+(lavQ||[]).length)?'hot':'')}
+      <div class="jkKpis" style="width:100%;display:flex;gap:9px;">
+        ${kpi(checks.length,'to check',(checks.length?'hot':'')+(_jkKind==='check'?' on':''),'check')}
+        ${kpi(closures.length,'decisions',(closures.length?'hot':'')+(_jkKind==='dec'?' on':''),'dec')}
+        ${kpi((claimsQ||[]).length+(lavQ||[]).length,'sent to you',(((claimsQ||[]).length+(lavQ||[]).length)?'hot':''))}
         ${kpi(fmtGBP2(atRisk),'at risk','warn')}
-        ${owed.length?kpi(fmtGBP2(owedTotal),'owed to you','owed'):''}
+        ${owed.length?kpi(fmtGBP2(owedTotal),'owed to you','owed'+(_jkKind==='owed'?' on':''),'owed'):''}
         ${oldest?kpi(oldest+'d','oldest waiting',oldest>=3?'hot':''):''}
       </div>
     </div>
     ${items.length?`
+    <div class="admBar" style="padding:0 2px 10px;">
+      <div class="admSearch">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="13" y2="13"/></svg>
+        <input id="jkSrch" value="${esc(_jkQ||'')}" placeholder="Search product, supplier, order, SKU or note"
+          oninput="_jkQ=this.value;renderJack();setTimeout(()=>{const b=document.getElementById('jkSrch');if(b){b.focus();b.setSelectionRange(b.value.length,b.value.length);}},0);" autocomplete="off">
+      </div>
+      <div class="admChips">
+        ${[['all','All'],['check','Checks'],['dec','Decisions'],['claim','Claims'],['lav','Shortages'],['fix','Qty fixes'],['owed','\u00a3 owed']]
+          .filter(([k])=>k==='all'||_jkCounts[k])
+          .map(([k,l])=>`<button class="admChip${_jkKind===k?' on':''}" onclick="_jkKind='${k}';renderJack();">${l} <b>${_jkCounts[k]||0}</b></button>`).join('')}
+      </div>
+    </div>
+    <div class="admKey" style="padding:0 4px 8px;">
+      <span class="admKeyT">The stripe</span>
+      ${[['#60a5fa','Check an Amazon order'],['#c084fc','A decision or gated call'],['#fbbf24','A claim sent to you'],['#38bdf8','Short or damaged at check-in'],['#94a3b8','Qty fix — read and wave through'],['#34d399','Money owed to you']]
+        .map(([c,t])=>`<span class="admKeyI"><span class="admKeyD" style="background:${c};"></span>${t}</span>`).join('')}
+    </div>
     <div class="tfuScroll" style="margin:0;">
     <table class="tfu">
       <thead><tr>
         <th style="width:3%;text-align:center;">#</th>
-        <th style="width:26%;">Product</th>
-        <th style="width:14%;">From</th>
+        <th style="width:21%;">Product</th>
+        <th style="width:11%;text-align:center;">Supplier / order</th>
+        <th style="width:8%;text-align:center;">From</th>
         <th style="width:8%;text-align:center;">Money</th>
-        <th style="width:24%;text-align:center;">What's wrong</th>
-        <th style="width:25%;text-align:center;">Your move</th>
+        <th style="width:15%;text-align:center;">What's wrong</th>
+        <th style="width:17%;">Latest</th>
+        <th style="width:17%;text-align:center;">Your move</th>
       </tr></thead>
       <tbody>
-      ${items.map((it,x)=>`<tr>
-        <td class="tfuNumCell" style="text-align:center;padding-top:11px;">
+      ${shown.map((it,x)=>`<tr>
+        <td class="tfuNumCell" style="text-align:center;padding-top:9px;">
           <span class="tfuStripe" style="background:${it.type[1]};" title="${esc(it.type[2])}"></span>
           <span style="font:800 12px var(--mono);color:var(--text3);">${x+1}</span>
         </td>
         <td>
           <div class="tfuProd2">${esc(it.prod)}</div>
-          <div style="font-size:10.5px;color:var(--text2);font-weight:600;margin-top:3px;">
-            ${[it.sup,it.oid,it.acct].filter(Boolean).map(esc).join(' · ')}</div>
-          ${it.sku?`<div class="s-sku" onclick="copyVal('${esc1(it.sku)}',this)" style="font-size:11px;margin-top:3px;">${esc(it.sku)}</div>`:''}
+          ${it.sku?`<div class="s-sku" onclick="copyVal('${esc1(it.sku)}',this)" style="font-size:11px;margin-top:3px;" title="Click to copy">${esc(it.sku)}</div>`:''}
         </td>
-        <td>
+        <td style="text-align:center;">
+          <div class="tfuSup" style="font-size:11.5px;">${esc(it.sup||'—')}</div>
+          ${it.oid?`<div class="tfuOid" style="font-size:10px;" title="Click to copy" onclick="copyVal('${esc1(it.oid)}',this)">${esc(it.oid)}</div>`:''}
+          ${it.acct?`<div class="tfuAcct" style="margin-top:3px;display:inline-block;">${esc(it.acct)}</div>`:''}
+        </td>
+        <td style="text-align:center;">
           <div style="font-size:11.5px;font-weight:800;color:var(--text);">${esc(it.by)}</div>
-          <div style="font-size:10.5px;color:${it.wait>=3?'#fbbf24':'var(--text2)'};font-weight:${it.wait>=3?'800':'600'};margin-top:2px;">${it.wait===0?'today':it.wait+'d ago'}${it.wait>=3?' — waiting on you':''}</div>
+          <div style="font-size:10px;color:${it.wait>=3?'#fbbf24':'var(--text2)'};font-weight:${it.wait>=3?'800':'600'};margin-top:2px;">${it.wait===0?'today':it.wait+'d ago'}${it.wait>=3?'<br>waiting on you':''}</div>
         </td>
         <td style="text-align:center;">
           ${it.value?`<div class="tfuVal" style="margin-top:0;">${fmtGBP2(it.value)}</div>`:'<span style="color:var(--text3);">—</span>'}
-          ${(it.left!==null&&it.left>=0&&it.left<=7)?`<div class="tfuClock" style="color:#ef4444;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.5);">${it.left}d to claim</div>`:''}
+          ${(it.left!==null&&it.left>=0&&it.left<=7)?`<div class="tfuClock" style="color:#ef4444;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.5);">${it.left}d to claim</div>`:(it.left!==null&&it.left>=0)?`<div class="tfuClock" style="color:#94a3b8;background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.3);">${it.left}d to claim</div>`:''}
         </td>
         <td style="text-align:center;">
           <span style="font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:2px 8px;border-radius:9px;color:${it.type[1]};background:${it.type[1]}1a;border:1px solid ${it.type[1]}50;white-space:nowrap;" title="${esc(it.type[2])}">${it.type[0]}</span>
-          <div style="font-size:11px;font-weight:700;color:var(--text);margin-top:4px;white-space:normal;">${it.why}</div>
-          ${it.note?`<div class="tfuRaiseNote" style="text-align:left;">&ldquo;${esc(it.note)}&rdquo;</div>`:''}
-          ${it.fix?`<div class="tfuRaiseNote" style="text-align:left;color:#93c5fd;border-left-color:#60a5fa;">She suggests: ${esc(it.fix)}</div>`:''}
+          <div style="font-size:10.5px;font-weight:700;color:var(--text);margin-top:4px;white-space:normal;line-height:1.35;">${it.why}</div>
+        </td>
+        <td>
+          ${it.note?`<div class="tfuRaiseNote" title="What was written when it was raised or sent">&ldquo;${esc(it.note)}&rdquo;</div>`:''}
+          ${it.fix?`<div class="tfuRaiseNote" style="color:#93c5fd;border-left-color:#60a5fa;">She suggests: ${esc(it.fix)}</div>`:''}
+          ${(!it.note&&!it.fix)?`<div style="font-size:10.5px;color:var(--text3);font-weight:600;">Nothing written yet</div>`:''}
         </td>
         <td style="text-align:center;">
           <div class="csActs">${it.acts}</div>
@@ -8177,7 +8264,9 @@ function renderJack(){
       </tr>`).join('')}
       </tbody>
     </table>
-    </div>`:`<div class="jkEmpty"><b>All clear</b><span>When Sarah sends something over it lands here.</span></div>`}
+    </div>
+    ${!shown.length?`<div style="text-align:center;padding:26px;color:var(--text3);font-weight:700;font-size:12.5px;">Nothing matches — clear the search or press All.</div>`:''}`
+    :`<div class="jkEmpty"><b>All clear</b><span>When Sarah sends something over it lands here.</span></div>`}
     <div class="jkOld">The old Issues page is still here for now —
       <button onclick="goPage('claims',document.querySelector('.sb-item.on'))">open the old Issues view</button>.</div>`;
   paintJackBadge();
@@ -8731,6 +8820,57 @@ function claimQuick(id,act){
     toast('Ungated — done','ok');renderAdmin();return;
   }
 }
+/* The 3-second undo bar. Small, centred, a progress fill she can watch:
+   Undo bottom-left, Close now bottom-right, gone on its own at 3s. */
+let _ubT=null,_ubCb=null;
+function showUndoBar(msg,undoCb){
+  _ubCb=undoCb;
+  let el=document.getElementById('undoBar');
+  if(!el){el=document.createElement('div');el.id='undoBar';el.className='overlay';
+    el.style.zIndex='190';document.body.appendChild(el);}
+  el.innerHTML=`<div class="modal ubMod">
+    <div class="ubTtl">${esc(msg)}</div>
+    <div class="ubTrack"><div class="ubFill" id="ubFill"></div></div>
+    <div class="ubFoot">
+      <button class="ubUndo" onclick="ubUndo()">Undo</button>
+      <button class="ubNow" onclick="ubDone()">Close now</button>
+    </div></div>`;
+  el.style.display='flex';
+  const fill=document.getElementById('ubFill');
+  requestAnimationFrame(()=>{requestAnimationFrame(()=>{fill.style.width='100%';});});
+  clearTimeout(_ubT);_ubT=setTimeout(ubDone,3100);
+}
+function ubDone(){clearTimeout(_ubT);_ubCb=null;
+  const el=document.getElementById('undoBar');if(el)el.style.display='none';}
+function ubUndo(){clearTimeout(_ubT);const cb=_ubCb;_ubCb=null;
+  const el=document.getElementById('undoBar');if(el)el.style.display='none';
+  if(cb)cb();}
+
+/* One in-app dialog for every "type an answer" moment. The grey browser
+   prompt() box looked like a crash, could not be styled, and swallowed the
+   Escape key state — Jack has called every stock popup in this app ugly, and
+   prompt() was the ugliest of the lot. */
+let _atCb=null;
+function askText(title,sub,placeholder,btn,cb){
+  _atCb=cb;
+  let el=document.getElementById('askTextModal');
+  if(!el){el=document.createElement('div');el.id='askTextModal';el.className='overlay';
+    el.style.zIndex='170';document.body.appendChild(el);
+    el.addEventListener('click',e=>{if(e.target===el)atShut();});}
+  el.innerHTML=`<div class="modal srtCfm" style="max-width:480px;">
+    <div class="srtCfmTtl">${esc(title)}</div>
+    ${sub?`<div class="srtCfmSub" style="margin-bottom:10px;">${esc(sub)}</div>`:''}
+    <textarea id="atBox" class="srtNote" rows="3" placeholder="${esc(placeholder||'')}"></textarea>
+    <div class="srtCfmFoot">
+      <button class="srtGhost" onclick="atShut()">Cancel</button>
+      <button class="srtGo" onclick="atGo()">${esc(btn||'Send')}</button>
+    </div></div>`;
+  el.style.display='flex';
+  setTimeout(()=>{const b=document.getElementById('atBox');if(b)b.focus();},60);
+}
+function atShut(){const el=document.getElementById('askTextModal');if(el)el.style.display='none';_atCb=null;}
+function atGo(){const v=((document.getElementById('atBox')||{}).value||'').trim();const cb=_atCb;atShut();if(cb)cb(v);}
+
 /* Pulling something back from Jack — same one-press ease as sending it. */
 async function undoSend(kind,id){
   if(kind==='claim'){
@@ -8798,8 +8938,10 @@ function lavToJack(key){
   renderAdmin();try{renderJack();paintJackBadge();}catch(e){}
 }
 function lavBackFromJack(key){
-  const note=prompt('Your answer for Sarah — what did you find / what should she do?','');
-  if(note===null)return;
+  askText('Answer & hand back','Your answer goes on the shortage and it returns to Sarah\u2019s queue.',
+    'What did you find? What should she do?','Hand back',note=>_lavBackGo(key,note));
+}
+function _lavBackGo(key,note){
   try{
     LV3.setSupplierIssueField(key,'toJack','');
     LV3.logSupplierIssue(key,{by:_who(),at:new Date().toISOString(),msg:'Jack answered — '+(note||'handed back')});
@@ -8810,9 +8952,11 @@ function lavBackFromJack(key){
 }
 /* A claim Jack hands back, with his answer attached. */
 function claimBackFromJack(id){
+  askText('Answer & hand back','Your answer goes on the claim and it returns to Sarah\u2019s queue.',
+    'What did you find? What should she do?','Hand back',note=>_claimBackGo(id,note));
+}
+function _claimBackGo(id,note){
   const c=claims.find(x=>String(x.id)===String(id));if(!c)return;
-  const note=prompt('Your answer for Sarah — what did you find / what should she do?','');
-  if(note===null)return;
   c.owner='VA';c.sentToJack=null;
   if(!c.log)c.log=[];
   c.log.push({t:getNowUK(),msg:'Jack answered — '+(note||'handed back')});
@@ -9089,20 +9233,36 @@ function paintLavIssue(){
             <span style="color:var(--text);font-weight:600;">${esc(x.name)}</span>
             <span style="color:#fbbf24;font-weight:800;white-space:nowrap;">${[x.short?x.short+' short':'',x.dmg?x.dmg+' damaged':''].filter(Boolean).join(' · ')}</span></div>`).join('')}
         </div>`)}
-      ${step(2,'Evidence',
-        `<div style="font-size:11.5px;font-weight:600;color:var(--text2);line-height:1.55;">Photos and messages stay in <b>Discord</b> — write here where to find them, so the next person is not hunting.</div>
-         <input id="lavEvid" value="${esc(g.evid||'')}" placeholder="e.g. Discord #prep 15/08 — 3 photos of the pallet"
-           style="width:100%;margin-top:7px;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;box-sizing:border-box;">`)}
-      ${step(3,'Talk to the supplier',
+      ${(()=>{
+        /* Jack, 17 Aug: "don't need 2" — the Evidence step is gone. Photos
+           live in Discord; one small row holds the link and jumps to it. */
+        const isUrl=/^https?:\/\//.test((g.evid||'').trim());
+        return `<div style="display:flex;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+          ${isUrl?`<button onclick="window.open('${esc(g.evid.trim())}','_blank')" style="padding:6px 12px;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;color:#93c5fd;background:rgba(96,165,250,.14);border:1px solid rgba(96,165,250,.5);white-space:nowrap;">&#128247; View photos</button>`:''}
+          <input id="lavEvid" value="${esc(g.evid||'')}" placeholder="Paste the Discord photos link (right-click the message &rarr; Copy Message Link)"
+            style="flex:1;padding:6px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;font-family:var(--mono);box-sizing:border-box;"
+            onchange="try{LV3.setSupplierIssueField(_lavIssueKey,'evid',this.value.trim());toast('Photos link saved','ok');paintLavIssue();}catch(e){}">
+        </div>`;})()}
+      ${step(2,'Talk to the supplier',
         `<div style="display:flex;gap:7px;flex-wrap:wrap;">
-          ${btn('Chased today','lavIssueChase()','#60a5fa')}
+          ${(()=>{
+            /* The popup now SHOWS what the row already recorded — pressing
+               Chased today on the row and opening this used to look like
+               nothing had happened, which read as "not saving". Same data,
+               same day, shown done. */
+            const today=new Date().toISOString().slice(0,10);
+            const doneToday=(g.chased||'')===today;
+            return doneToday
+              ?`<span style="padding:6px 13px;border-radius:6px;font-size:11.5px;font-weight:800;color:#4ade80;background:rgba(74,222,128,.13);border:1px solid rgba(74,222,128,.5);">&#10003; Chased today${(()=>{const last=(g.log||[]).slice().reverse().find(e=>/chased today/i.test(e.msg||''));const m=last&&(last.msg.match(/by (email|live chat|case|phone)/i)||[])[0];return m?' '+m:'';})()}</span>`
+              :btn('Chased today','lavIssueChase()','#60a5fa');
+          })()}
           ${btn('They replied','lavIssueLog(\'They replied\')','#94a3b8')}
           <span style="font-size:11px;font-weight:600;color:var(--text3);align-self:center;">${g.replyBy?'reply promised by '+esc(g.replyBy):'no reply date set'}</span>
         </div>
         <textarea id="lavNote" placeholder="What did they say? What did you send them?"
           style="width:100%;margin-top:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;min-height:52px;box-sizing:border-box;"></textarea>
         <button onclick="lavIssueLog()" style="margin-top:6px;padding:5px 12px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Add to the log</button>`)}
-      ${step(4,'How it ends',
+      ${step(3,'How it ends',
         `<div style="display:flex;gap:7px;flex-wrap:wrap;">
           ${btn('Refunded','lavIssueOutcome(\'refunded\')','#4ade80')}
           ${btn('Replacement coming','lavIssueOutcome(\'replacement\')','#38bdf8')}
@@ -9121,7 +9281,7 @@ function paintLavIssue(){
     </div>
   </div>`;
 }
-function lavIssueChase(){lavIssueLog('Chased the supplier');}
+function lavIssueChase(){lavIssueLog('Chased today');}
 function lavIssueLog(preset){
   const box=document.getElementById('lavNote');
   const msg=preset||(box?box.value.trim():'');
@@ -9132,11 +9292,22 @@ function lavIssueLog(preset){
   paintLavIssue();try{renderAdmin();}catch(e){}
 }
 function lavIssueOutcome(kind){
+  /* The native "This page says…" confirm box is gone — Jack: "wtf is this".
+     One press does the real thing; the 3-second bar is the safety net. And
+     Send to Jack now performs the ACTUAL hand-over (grey row on Sarah's,
+     lands on his page) — before this it only wrote a log line saying it had. */
+  const key=_lavIssueKey;
+  if(kind==='jack'){closeLavIssue();lavToJack(key);return;}
   const label={refunded:'Refunded — money back',replacement:'Replacement agreed',
-    chasing:'Still chasing',jack:'Sent to Jack'}[kind]||kind;
-  if(!confirm(label+' — is that right?'))return;
+    chasing:'Still chasing'}[kind]||kind;
   lavIssueLog(label);
-  if(kind!=='chasing')closeLavIssue();
+  if(kind!=='chasing'){
+    closeLavIssue();
+    showUndoBar(label,()=>{
+      try{const l=null;LV3.logSupplierIssue(key,{by:_who(),at:new Date().toISOString(),msg:'Undone — '+label+' was pressed by mistake'});}catch(e){}
+      _lavIssueKey=key;openLavIssue(key);
+    });
+  }
 }
 function lavIssueSave(){
   const ev=document.getElementById('lavEvid');
@@ -9432,7 +9603,7 @@ function _allAdminRows(){
         photos:/^https?:\/\//.test((g.evid||'').trim())?(g.evid||'').trim():'',
         waiting:_tj?{state:'asked',at:_tj.at||''}:null,
         lastLog:_last?{what:_last.msg||'',by:_last.by||'',at:_last.at||''}:null,
-        notes:'',
+        notes:'',srcNote:g.note||'',
         chased:g.chased});
     });
   }catch(e){}
@@ -9570,6 +9741,32 @@ function nowQueue(){
     else push({...base,band:'chase',age:stale,
       line:i.reason||'Needs following up'});
   });
+
+  /* ── LAVARION DELIVERY PROBLEMS ──────────────────────────────────────────
+     NOW_BANDS has carried a 'supplier' band ("a Lavarion delivery problem")
+     since it was written and nothing ever pushed into it, so the band was
+     unreachable and every shortage and damaged unit lived only in the merged
+     table below the queue — the part of the page nobody works from.
+     Jack, 18 Aug: Sarah owns ALL of it, shortages and damage alike; she gets
+     the photos from Becki. So there is no owner routing here on purpose.
+     `quiet` groups (settled/written off) stay out, and anything already handed
+     to Jack keeps its blue waiting state exactly like a prep row. */
+  try{
+    const _lav=(typeof _lavIssues==='function')?_lavIssues(true):null;
+    (_lav||[]).forEach(g=>{
+      if(g.quiet)return;
+      const both=[g.short?g.short+' short':'',g.dmg?g.dmg+' damaged':''].filter(Boolean).join(' · ');
+      push({band:'supplier',id:'lav:'+g.key,lav:g,
+        title:(g.lines||[]).map(x=>x.name).join(', ')||'(delivery)',
+        sup:g.sup,oid:g.ref||'',units:(g.short||0)+(g.dmg||0),
+        outstanding:(g.short||0)+(g.dmg||0),value:g.val||0,
+        waiting:!!g.toJack,
+        line:g.toJack?'Sent to Jack — waiting on him'
+             :g.dmg&&!g.short?both+' — get the photos off Becki and raise it'
+             :both+(g.chased?' — chased, waiting on them':' — nobody has asked yet'),
+        stale:g.age||0,age:g.age||0});
+    });
+  }catch(e){}
 
   /* claims Sarah owns */
   claims.forEach(c=>{
@@ -9931,7 +10128,7 @@ function renderAdmin(){
              them actually mean." Every coloured edge explains itself. */
           const edgeCol=waiting?'#94a3b8':i.col;
           const edgeTip=waiting?'Light grey — with Jack, waiting for his answer':({'#ef4444':'Red — late or urgent, money at risk','#fb923c':'Orange — delayed or being chased','#fbbf24':'Amber — needs following up','#38bdf8':'Blue — supplier shortage or damage','#94a3b8':'Grey — job from Jack or already sorted'}[i.col]||'');
-          return`<tr class="${waiting?'tfuWaiting':''}"${sentBack?' style="background:rgba(239,68,68,.05);"':''}>
+          return`<tr class="${(waiting||i.sortedGrace)?'tfuWaiting':''}"${sentBack?' style="background:rgba(239,68,68,.05);"':''}>
             <td class="tfuNumCell" style="text-align:center;padding-top:13px;">
               <span class="tfuStripe" style="background:${edgeCol};" title="${edgeTip}. ${esc(i.reason||'')}"></span>
               <span style="font:800 12px var(--mono);color:var(--text3);" title="${edgeTip}. ${esc(i.reason||'')}">${n+1}</span>
@@ -10058,6 +10255,7 @@ function renderAdmin(){
                       <button class="csAct plain" onclick="lavQuick('${String(i.lavKey).replace(/'/g,"\\'")}','replied')">They replied</button>
                     </div></div>`;
                 }
+                if(i.sortedGrace)return '<div class="tfuSelf" style="text-align:center;">Closed — grey for 24 hours. Undo is on the right.</div>';
                 if(i.kind!=='transit')return '<div class="tfuSelf" style="text-align:center;">Open it to work through this one.</div>';
                 if(waiting)return '<div class="tfuSelf" style="color:#93c5fd;font-weight:700;text-align:center;">Waiting on Jack</div>';
                 /* A live case takes the column over: the verdict is settled, so
@@ -10142,10 +10340,12 @@ function renderAdmin(){
                   state='JOB FROM JACK';scol='#94a3b8';last=i.notes||'';next='Do it, then press Mark done';
                 }
                 const note=(i.notes||'').trim();
-                return `<div class="stState" style="color:${scol};">${state}</div>
+                return `<div class="standBox" style="border-left-color:${scol};">
+                  <div class="stState" style="color:${scol};">${state}</div>
                   ${last?`<div class="stLast">${esc(last)}</div>`:''}
                   ${next?`<div class="stNext">&#10132; ${esc(next)}</div>`:''}
-                  ${(note&&i.kind==='transit'&&!waiting)?`<div class="csNote" title="${note.replace(/"/g,'&quot;')}">&ldquo;${esc(note)}&rdquo;</div>`:''}`;
+                  ${(note&&i.kind==='transit'&&!waiting)?`<div class="csNote" title="${note.replace(/"/g,'&quot;')}">&ldquo;${esc(note)}&rdquo;</div>`:''}
+                </div>`;
               })()}
             </td>
             <td class="tfuActs" style="text-align:center;">
@@ -10156,6 +10356,7 @@ function renderAdmin(){
                    it over), Details (the full case module — his rename of the
                    old "More\u2026"). A row that is with Jack shows only Details. */
                 const esc1=s=>String(s).replace(/'/g,"\\'");
+                if(i.sortedGrace)return `<button class="tfuAsk" style="margin-top:0;" onclick="reopenResolution('${i.rid}',true)" title="Bring it straight back — everything it knew is still on it">Undo — bring it back</button>`;
                 if(waiting)return `<button class="tfuAsk" style="margin-top:0;" onclick="undoSend('${i.kind}','${i.kind==='claim'?i.claimId:i.kind==='lav'?esc1(i.lavKey):i.rid}')" title="Changed your mind — pull it back off Jack's list and carry on yourself">Undo — pull it back</button>
                   <button class="tfuMore" onclick="${
                   i.kind==='claim'?`openClaimCase('${i.claimId}')`:
@@ -10282,7 +10483,10 @@ function renderAdmin(){
      queue now. The transit table is kept behind a toggle: it is still the best
      surface for scanning and sorting everything at once, it just must not sit
      under the queue repeating it. */
-  const _sections=(_showAllTransit?_transitSec:'')+closedSection();
+  /* Jack, 17 Aug: "get rid of this" — the Closed-off-recently list is gone.
+     The grey 24h row with its own Undo button replaced it; closedSection()
+     is kept for the History work but no longer composed onto the page. */
+  const _sections=(_showAllTransit?_transitSec:'');
   /* Three sections can all be empty at once. Say so once, rather than leaving
      a check-in strip floating above a page of nothing. */
   html+=_sections||`<div class="vaSec" style="border-left:4px solid var(--green);">
@@ -10724,6 +10928,7 @@ async function archiveClaim(id){
 }
 
 async function resolveIssue(id){
+  if(histGate())return;
   const c=claims.find(x=>String(x.id)===String(id));
   if(!c)return;
   c.cst='Resolved';
@@ -10739,6 +10944,7 @@ async function resolveIssue(id){
 }
 
 async function removeIssue(id){
+  if(histGate())return;
   const c=claims.find(x=>String(x.id)===String(id));
   if(!c)return;
   showConfirm('Remove this issue?','This will delete the issue from the Actions page and clear the red flag on the prep row.',async()=>{
@@ -10770,8 +10976,19 @@ function setGatedDecision(id,dec){
   if(!c.log)c.log=[];
   c.log.push({t:getNowUK(),msg:'Decision: '+(dec==='eBay'?'Sell on eBay':'Get ungated')});
   if(c.cst==='Needs Attention')c.cst='Open';
+  /* One click does the WHOLE job — Jack, 17 Aug: "more automation, one click".
+     The decision is recorded AND the claim goes straight back to Sarah with
+     the instruction attached, instead of sitting on his page with a decision
+     nobody has told her about. */
+  if(((c.owner)||'VA')==='Jack'){
+    c.owner='VA';c.sentToJack=null;
+    c.log.push({t:getNowUK(),msg:'Jack answered — '+(dec==='eBay'
+      ?'eBay it: list it on eBay and take it out of the prep flow'
+      :'Get it ungated: submit the invoices, buy extra units if needed')});
+  }
   saveClaim(c);renderClaims();if(typeof renderAdmin==='function')renderAdmin();
-  toast(dec==='eBay'?'Decision: sell on eBay':'Decision: get ungated');
+  try{renderJack();paintJackBadge();}catch(e){}
+  toast(dec==='eBay'?'Decision: eBay — back with Sarah with the instruction':'Decision: ungate — back with Sarah with the instruction');
   logAudit('Gated decision',(c.sku||'')+' → '+dec);
 }
 function setClaimNext(id,field,val){
@@ -13288,6 +13505,10 @@ function setAutoEan(on){_autoEan=!!on;_autoEanStop=false;
   toast(_autoEan?'Auto-EAN on — new rows fetch their EAN automatically':'Auto-EAN off');}
 function _eanFromRows(asin){if(!asin)return null;const hit=rows.find(x=>x.asin===asin&&x.ean&&String(x.ean).trim());return hit?String(hit.ean).trim():null;}
 async function ensureRowEan(r){try{
+  /* Mid-gap the EAN might sit on an archived row we have not merged yet —
+     asking Keepa now would spend tokens on an answer we already own. Park it;
+     finalize drains the queue through this same cache-first path. */
+  if(!_historyReady){if(_pendingEan.indexOf(r)<0)_pendingEan.push(r);return;}
   if(!r||!r.asin||(r.ean&&String(r.ean).trim()))return;
   const cached=_eanFromRows(r.asin);
   if(cached){r.ean=cached;await saveRow(r);renderPrep();return;}
@@ -13297,6 +13518,7 @@ async function ensureRowEan(r){try{
   else _eanTried.add(r.asin);
 }catch(e){if(/429|token/i.test(e.message||''))_autoEanStop=true;}}
 async function autoEanSweep(){
+  if(histGate())return;
   if(_autoEanSweeping||!_autoEan||_autoEanStop)return;
   const todo=rows.filter(r=>!r.archived&&r.asin&&!(r.ean&&String(r.ean).trim()));
   if(!todo.length)return;
@@ -13573,7 +13795,9 @@ function toggleArchivedView(){
   updateArchivedBtn();
   renderPrep();
   const n=rows.filter(r=>r.archived).length;
-  toast(_showArchived?`Showing ${n} archived row${n!==1?'s':''} (sent to Amazon)`:'Back to active prep sheet');
+  toast(_showArchived?(_historyReady?`Showing ${n} archived row${n!==1?'s':''} (sent to Amazon)`
+                                    :'Showing archived \u2014 history still loading\u2026')
+                     :'Back to active prep sheet');
 }
 // Keep the Show/Hide Archived button label + count in sync.
 function updateArchivedBtn(){
@@ -13681,6 +13905,7 @@ function remainingToShip(r){
    already dragged forward needs putting back, so the date is editable and the
    correction lands on every line at once. */
 function openShipDate(shipId){
+  if(histGate())return;
   const cur=shipDateFor(shipId);
   const counts={oa:0,lav:0,ret:0};
   rows.forEach(r=>{if((r.allShipIds||[]).includes(shipId)||r.shipId===shipId)counts.oa++;});
@@ -13716,6 +13941,7 @@ function applyShipDate(shipId){
   setShipmentDate(shipId,v);
 }
 function setShipmentDate(shipId,iso){
+  if(histGate())return;
   let touched=0;
   rows.forEach(r=>{
     let hit=false;
@@ -14885,6 +15111,7 @@ function parseCSVLine(line){
 }
 
 function processImportRows(parsed){
+  if(histGate())return;
   const status=document.getElementById('importStatus');
 
   // Existing SKUs in PrepHub — for dupe check
@@ -14977,6 +15204,8 @@ function confirmImport(){
     const bqtyVal=(row['How Many In a Bundle?']||'').trim();
 
     const newRow={
+      uuid:(window.crypto&&crypto.randomUUID?crypto.randomUUID():undefined),
+      _minted:!!(window.crypto&&crypto.randomUUID),
       id:++nid,
       date:dateFormatted,
       oid:(row['Order Id']||row['Order ID']||'').trim(),
@@ -15357,6 +15586,16 @@ async function recordSyncIssues(source,list){
   try{renderSyncIssues();}catch(e){}
 }
 async function runSheetSync(manual){
+  /* Two-phase boot: a sync mid-gap would see the archive as absent and re-add
+     rows the pre-insert check then has to bounce. Queue it; finalize runs it.
+     restartSheetSyncTimer is MANDATORY on this early return — file convention:
+     every early exit re-arms or the schedule dies for the session. */
+  if(!_historyReady){
+    _syncQueued=true;
+    if(manual)toast('Loading history \u2014 sync will run automatically in a moment');
+    restartSheetSyncTimer();
+    return;
+  }
   /* No guard here meant the two-minute timer fired again while a slow sync was
      still working, and the runs stacked — each one writing into the same little
      progress box, which is why it looked like it ran fifty times and never
@@ -15700,20 +15939,68 @@ async function runSheetSync(manual){
     }
   }
 
+  /* ── ASK THE DATABASE, NOT JUST THIS BROWSER ─────────────────────────────
+     18 Aug: one LEGO line on the purchase sheet became THREE identical prep
+     rows. Nobody did anything wrong. The dedupe above is a lookup into `rows`,
+     which is this tab's own memory, loaded once when the page opened. Three
+     machines had the portal open; each looked in its own memory, each honestly
+     saw nothing, each added the line. Nothing at the database said no, because
+     the unique index on sheet_sync_id lives in a migration that was never run.
+
+     So before inserting anything, ask the database what it already holds for
+     these SKUs. One extra read per sync, and only when there is something to
+     add. It shrinks the window for a double-import from "however long this tab
+     has been open" to the few hundred ms between this read and the insert —
+     the unique index closes the rest, once it exists.
+
+     Archived rows COUNT as present on purpose: the sheet saying Yes to a row
+     that was archived means reactivate, never insert a second copy. This tab
+     cannot reactivate what it has never loaded, so it leaves it alone and the
+     next page load handles it through toReactivate with the notes intact.
+
+     Fails OPEN: if this read errors, the sync proceeds exactly as before. A
+     missed import is worse than a duplicate, and the index is the real net. */
+  if(toAdd.length){
+    try{
+      const _skus=[...new Set(toAdd.map(x=>(x.fields.sku||'').trim()).filter(Boolean))];
+      const _inDb=new Set();
+      const _key=(sku,oid)=>(String(sku||'').trim().toLowerCase())+'|'+(String(oid||'').trim()||'nooid');
+      for(let o=0;o<_skus.length;o+=80){
+        const{data,error}=await sb.from('prep_rows').select('sku,order_id').in('sku',_skus.slice(o,o+80));
+        if(error)throw error;
+        (data||[]).forEach(d=>_inDb.add(_key(d.sku,d.order_id)));
+      }
+      let _dropped=0;
+      for(let i=toAdd.length-1;i>=0;i--){
+        if(_inDb.has(_key(toAdd[i].fields.sku,toAdd[i].fields.oid))){toAdd.splice(i,1);_dropped++;}
+      }
+      if(_dropped)console.warn('[sync] '+_dropped+' row(s) already in the database — not re-added (stale tab memory)');
+    }catch(e){console.warn('[sync] pre-insert existence check unavailable, continuing:',e&&e.message||e);}
+  }
+
   // ADD
-  const _addRows=toAdd.map(({fields,syncId})=>({fields,row:{id:++nid,sheetSyncId:syncId,...fields,notes:'',rcvd:0,issueType:'',issueQty:0,status:'In-Transit',ship:0,shipId:'',sent:'No',sentDate:'',reimb:'No',pri:'No',archived:false,shipSegments:[],allShipIds:[],createdISO:todayISO(),createdAt:getNowUK(),importedFrom:'Sheet Sync',sheetRow:''}}));
+  const _addRows=toAdd.map(({fields,syncId})=>({fields,row:{uuid:(window.crypto&&crypto.randomUUID?crypto.randomUUID():undefined),_minted:!!(window.crypto&&crypto.randomUUID),id:++nid,sheetSyncId:syncId,...fields,notes:'',rcvd:0,issueType:'',issueQty:0,status:'In-Transit',ship:0,shipId:'',sent:'No',sentDate:'',reimb:'No',pri:'No',archived:false,shipSegments:[],allShipIds:[],createdISO:todayISO(),createdAt:getNowUK(),importedFrom:'Sheet Sync',sheetRow:''}}));
   _addRows.forEach(x=>rows.push(x.row));
   /* Failures used to be undone with rows.pop() — fine when saves ran one at a
      time, silently wrong the moment they overlap, because pop() removes
      whatever happens to be last rather than the row that actually failed.
      Removed by identity instead. */
   const _addFailed=[];
+  let _addDupes=0;
   if(await _batchRows(_addRows.map(x=>x.row),'insert')){
     added+=_addRows.length;
   }else await _saveMany(_addRows,async x=>{
-    try{const ok=await saveRow(x.row);if(ok)added++;else{saveErrors.push('Save failed: '+x.fields.sku);_addFailed.push(x.row);}}
+    /* A row the database REFUSES as a duplicate is not an error to report — it
+       means another machine imported this line first, which is exactly what we
+       want to happen. The phantom local row is dropped either way (below), and
+       the real one arrives on the next load. Counted, never shouted about. */
+    try{const ok=await saveRow(x.row);
+      if(ok)added++;
+      else if(_isDupKeyErr(_lastSaveErr)){_addDupes++;_addFailed.push(x.row);}
+      else{saveErrors.push('Save failed: '+x.fields.sku);_addFailed.push(x.row);}}
     catch(e){saveErrors.push('Save error: '+x.fields.sku+' — '+e.message);_addFailed.push(x.row);}
   },6,'Adding new rows');
+  if(_addDupes)console.warn('[sync] '+_addDupes+' row(s) refused by the database as already present — correct, not an error');
   _addFailed.forEach(bad=>{const i=rows.indexOf(bad);if(i>=0)rows.splice(i,1);});
 
   /* The only fields the sheet owns. Everything else on a row — notes, what was
@@ -15748,7 +16035,18 @@ const sheetOnly=['sku','date','oid','sup','acct','prod','asin','dg','vat','sas',
       if(was===undefined&&(fields[k]===''||fields[k]==null)){existing[k]=fields[k];return;}
       if(was!==fields[k]){existing[k]=fields[k];changed=true;}
     });
-    if(syncId!==existing.sheetSyncId){existing.sheetSyncId=syncId;changed=true;}
+    /* This is the vaNoteSheet bug again, one line below the fix for it, and
+       worse. sheet_sync_id has no column in the database, so dbToRow rebuilds
+       every row with '' while syncId is always non-empty — meaning this
+       condition was TRUE for every ticked row on every pass of every sync,
+       forever, from every laptop. Not just the first sync after a refresh:
+       every single one. That is a permanent whole-table write storm and a
+       permanent overwrite race against whatever the prep team is typing.
+       A row that has no fingerprint yet simply adopts one in memory; only a
+       genuine change of fingerprint is worth a write. Once the migration has
+       run and the value is stored, this stops being reachable at all. */
+    if(existing.sheetSyncId&&syncId!==existing.sheetSyncId){existing.sheetSyncId=syncId;changed=true;}
+    else if(!existing.sheetSyncId)existing.sheetSyncId=syncId;
     if(changed){existing._dirty=true;_toSave.push(existing);}
   }
   const _updId=_toSave.filter(r=>r.uuid),_updRest=_toSave.filter(r=>!r.uuid);
@@ -16507,11 +16805,17 @@ function startHealthUITimer(){
 }
 
 // Called once after app data loads (so rows[] is populated for deduplication).
-function bootSheetSync(){
+function bootSheetSync(){bootSheetSyncPrep();bootSheetSyncStart();}
+/* Row-independent parts — safe to run in Phase A before the archive lands. */
+function bootSheetSyncPrep(){
   loadSheetSyncUI();
   Promise.all([loadSyncSources(),loadSyncHistory(),loadSyncExcluded(),loadSyncIssues()]).then(updateSyncHealthUI);
   startHealthUITimer(); // FIX 5: keep health UI ticking
   initSheetSyncLeader();
+}
+/* The enabled-tail — actually STARTS syncing. Runs at finalize (or legacy boot):
+   a sync that fired mid-gap would see archived rows as absent and re-add them. */
+function bootSheetSyncStart(){
   if(_ssConfig.enabled){
     restartSheetSyncTimer();
     try{decideFirstIn();}catch(e){}
@@ -16552,10 +16856,59 @@ function setSyncStatus(status){
    ~974 and rising — the day it crosses 1000, every boot would quietly load an
    incomplete sheet and the app would look normal while missing the oldest
    rows. Page through in 1000s until a short page says we have everything. */
+/* ── TWO-PHASE BOOT (v27.0) ────────────────────────────────────────────────
+   The browser used to download the entire table — active AND archived — before
+   painting anything. Boot time therefore grew with the archive, forever. Now:
+   Phase A loads only what the prep team works on (active rows) plus every side
+   table, paints immediately, and Phase B streams the archive in behind. Until
+   the archive has fully landed, _historyReady is false and:
+   - destructive full-history actions are gated (histGate) with a polite toast,
+   - the sheet sync queues itself instead of running half-blind,
+   - realtime events for rows not in memory yet are buffered (_pendingRt) and
+     replayed at finalize, so nothing another laptop does in the gap is lost.
+   localStorage ph_boot_mode='legacy' boots the old single-phase path. */
+let _historyReady=false;
+let _pendingRt=[];       // realtime events for rows not yet merged
+let _pendingEan=[];      // EAN lookups deferred until history lands (no Keepa waste)
+let _syncQueued=false;   // a sync requested mid-gap fires at finalize
+let _totalRowCount=0;    // server head-count taken at boot
+const _sleep=ms=>new Promise(r=>setTimeout(r,ms));
+/* Keyset pager. .range() paging breaks under concurrent writes: a row archived
+   mid-walk shifts every offset after it, so one row appears twice and another
+   never appears at all. A keyset cursor (created_at,id) never shifts.
+   RULE for every consumer: reference the global `rows` binding inline
+   (rows.push / rows.some) — never a captured alias — so an in-place splice by
+   a realtime DELETE is always visible mid-loop. */
+async function _fetchRowsWhere(table,applyFilter,idOnly){
+  const out=[];const STEP=1000;let cur=null;
+  for(;;){
+    let q=sb.from(table).select('*');
+    if(!idOnly)q=q.order('created_at',{ascending:true});
+    q=q.order('id',{ascending:true}).limit(STEP);
+    if(applyFilter)q=applyFilter(q);
+    if(cur)q=idOnly?q.gt('id',cur.id)
+                   :q.or(`created_at.gt.${cur.ca},and(created_at.eq.${cur.ca},id.gt.${cur.id})`);
+    const r=await q;
+    if(r.error)return r;
+    out.push(...(r.data||[]));
+    if((r.data||[]).length<STEP)break;
+    const last=r.data[r.data.length-1];
+    cur={ca:last.created_at,id:last.id};
+  }
+  return{data:out,error:null};
+}
 async function _fetchAllRows(table,orderCol,asc){
   const out=[];let from=0;const STEP=1000;
   for(;;){
-    const r=await sb.from(table).select('*').order(orderCol,{ascending:asc}).range(from,from+STEP-1);
+    /* A tiebreaker is not optional once a table passes one page. Rows saved in
+       one batch share a created_at to the microsecond, and Postgres gives no
+       fixed order among equal keys — so the row that sat at position 999 on
+       page one can come back again on page two while a different row is never
+       returned at all. A row missing from memory reads as "not on the prep
+       sheet yet" and gets imported a second time: the duplicate bug through a
+       different door. prep_rows passed 1,000 rows (297 active + 743 archived)
+       this month, so this boundary is live. `id` is unique, so ties resolve. */
+    const r=await sb.from(table).select('*').order(orderCol,{ascending:asc}).order('id',{ascending:true}).range(from,from+STEP-1);
     if(r.error)return r;                       // caller keeps its error handling
     out.push(...(r.data||[]));
     if((r.data||[]).length<STEP)break;
@@ -16565,73 +16918,72 @@ async function _fetchAllRows(table,orderCol,asc){
 }
 async function dbLoad(){
   setSyncStatus('syncing');
+  const LEGACY=(function(){try{return localStorage.getItem('ph_boot_mode')==='legacy';}catch(e){return false;}})();
   try{
-    const [rowsRes,claimsRes,lavAsinRes,lavShipRes,boxesRes]=await Promise.all([
-      _fetchAllRows('prep_rows','created_at',true),
-      sb.from('actions').select('*').order('created_at',{ascending:false}),
-      sb.from('lavarion_asins').select('*').order('created_at',{ascending:true}),
-      sb.from('lavarion_shipments').select('*').order('created_at',{ascending:false}),
-      sb.from('ship_boxes').select('*'),
+    /* Phase A. Actives only (null-inclusive: the column is boolean DEFAULT
+       false with no NOT NULL, so a null must count as active). maxId comes
+       from the SERVER, not from the loaded slice — the highest local_id lives
+       on an archived row, and seeding nid from actives alone would mint
+       colliding ids for the whole session. Every side table goes through the
+       keyset pager: the old bare .select('*') silently capped each of them at
+       PostgREST's 1,000-row default — ship_boxes would have crossed it first
+       and box counts would simply have gone missing with nothing on screen. */
+    const [rowsRes,maxIdRes,countRes,claimsRes,lavAsinRes,lavShipRes,boxesRes]=await Promise.all([
+      LEGACY?_fetchAllRows('prep_rows','created_at',true)
+            :_fetchRowsWhere('prep_rows',q=>q.or('archived.is.null,archived.eq.false')),
+      sb.from('prep_rows').select('local_id').order('local_id',{ascending:false,nullsFirst:false}).limit(1),
+      sb.from('prep_rows').select('id',{count:'exact',head:true}),
+      _fetchRowsWhere('actions'),
+      _fetchRowsWhere('lavarion_asins'),
+      _fetchRowsWhere('lavarion_shipments'),
+      _fetchRowsWhere('ship_boxes',null,true),
     ]);
     if(rowsRes.error)throw rowsRes.error;
+    /* nid mis-seeded is the phantom-row bug class — fail LOUDLY, never guess. */
+    if(!LEGACY){
+      if(maxIdRes.error)throw maxIdRes.error;
+      if(countRes.error)throw countRes.error;
+    }
+    _totalRowCount=(countRes&&countRes.count)||0;
     rows=(rowsRes.data||[]).map(dbToRow);
-    // ── ONE-TIME BUNDLE EXPECTED-UNITS CORRECTION ──────────────────────────────
-    // Older bundle rows were imported with the sheet's PHYSICAL item count in
-    // Expected Units (e.g. 98 = 49 bundles × 2) instead of the saleable count
-    // sent to Amazon (49). This silently doubled their COG everywhere. Fix only
-    // rows whose stored exp EXACTLY equals SKU-units × bundle-qty — that's the
-    // provable un-corrected signature, so an already-fixed row (exp = SKU-units)
-    // is never touched and this can't run twice.
     {
-      const toFix=rows.filter(r=>{
-        const bq=parseInt(r.bqty)||0;
-        const su=parseSKU(r.sku).units||0;
-        return String(r.bun).trim()==='Yes'&&bq>1&&su>0&&(parseInt(r.exp)||0)===su*bq;
-      });
-      if(toFix.length){
-        toFix.forEach(r=>{
-          const su=parseSKU(r.sku).units||0;
-          logAudit('Bundle expected units corrected',`${r.sku}: ${r.exp} → ${su} (÷${r.bqty})`);
-          r.exp=su;
-          // If received was auto-set to the old physical expected, realign it too.
-          if((parseInt(r.rcvd)||0)===su*(parseInt(r.bqty)||1))r.rcvd=su;
-          r._dirty=true;
-        });
-        setSyncStatus('syncing');
-        Promise.all(toFix.map(r=>saveRow(r))).then(()=>setSyncStatus('synced')).catch(()=>setSyncStatus('error'));
-        toast(`✓ Corrected ${toFix.length} bundle row${toFix.length!==1?'s':''} (Expected Units → saleable count)`);
-      }
+      const dbMax=parseInt(maxIdRes&&maxIdRes.data&&maxIdRes.data[0]&&maxIdRes.data[0].local_id)||0;
+      const memMax=rows.reduce((m,r)=>{const n=parseInt(r.id);return(Number.isFinite(n)&&n>m)?n:m;},0);
+      nid=Math.max(nid,dbMax,memMax);
     }
-    // Bump the local-id counter past every id already in the DB. Without this,
-    // nid stays at 0 on each load and ++nid produces 1,2,3… which collide with
-    // existing rows' local_ids — causing the wrong row (e.g. a stray Philips
-    // row) to be selected/stamped/duplicated. (Fixes phantom shipment rows.)
-    {
-      const maxId=rows.reduce((m,r)=>{const n=parseInt(r.id);return(Number.isFinite(n)&&n>m)?n:m;},0);
-      if(maxId>nid)nid=maxId;
-    }
-    claims=(claimsRes.data||[]).map(dbToClaim);
+    /* The one-time bundle correction MOVED to finalize (_bundleFixOnce): it
+       scans and saves rows, and running it against half the table would both
+       miss archived rows and race Phase B's merge. Legacy boot runs it inline
+       below, exactly where it used to live. */
+    claims=(claimsRes.data||[]).map(dbToClaim).reverse();  // pager is asc; claims list expects newest first
     // Returns tables — load separately, graceful if not yet created in Supabase
     try{
       const [retSkuRes,retShipRes]=await Promise.all([
-        sb.from('returns_skus').select('*').order('created_at',{ascending:true}),
-        sb.from('returns_shipments').select('*').order('created_at',{ascending:false}),
+        _fetchRowsWhere('returns_skus'),
+        _fetchRowsWhere('returns_shipments'),
       ]);
       returnSkus=(retSkuRes.data||[]).map(d=>({uuid:d.id,sku:d.sku||'',asin:d.asin||'',prod:d.product_name||'',cog:d.cog||0,units:d.units||1,notes:d.notes||''}));
-      returnShipments=(retShipRes.data||[]).map(d=>({uuid:d.id,shipId:d.ship_id||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:(d.date||'').slice(0,10)}));
+      returnShipments=(retShipRes.data||[]).map(d=>({uuid:d.id,shipId:d.ship_id||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:(d.date||'').slice(0,10)})).reverse();
     }catch(e){console.warn('Returns tables not yet created — run SQL to enable Returns tab');}
     shipBoxes={};
     (boxesRes.data||[]).forEach(b=>{shipBoxes[b.ship_id]=b.boxes;if(b.ship_type)_shipTypeCache[b.ship_id]=b.ship_type;});
     rows.forEach(r=>{if(r.shipId&&r.shipType&&r.shipType!=='Standard')if(!_shipTypeCache[r.shipId]||_shipTypeCache[r.shipId]==='Standard')_shipTypeCache[r.shipId]=r.shipType;});
     lavAsins=(lavAsinRes.data||[]).map(dbToLav);
-    lavShipments=(lavShipRes.data||[]).map(dbToLavShip);
+    lavShipments=(lavShipRes.data||[]).map(dbToLavShip).reverse();
     setSyncStatus('synced');
     // Clear any previous error state
     renderPrep();renderDashboard();updateCB();
     // Auto-clean any legacy return rows that still have " - name" stuck in the SKU.
     repairLegacyReturnSkus(true);
-    // Boot sheet sync AFTER rows are loaded so dedupe works on first poll.
-    bootSheetSync();
+    if(LEGACY){
+      /* the untouched old path: everything is already in memory */
+      _bundleFixOnce();
+      _historyReady=true;
+      bootSheetSync();
+    }else{
+      bootSheetSyncPrep();   // row-independent setup only; syncing starts at finalize
+      setTimeout(()=>{_loadHistory().then(ok=>{if(ok)return _finalizeHistory();}).catch(e=>{console.error('[boot] history phase:',e);_histFail();});},0);
+    }
   }catch(err){
     console.error('Load error:',err);
     // Only show offline if it's a real network error, not a schema issue
@@ -16644,6 +16996,186 @@ async function dbLoad(){
       toast('Load error: '+err.message,'er');
     }
   }
+}
+
+// ── TWO-PHASE BOOT: PHASE B + FINALIZE ────────────────────────────────────────
+/* Small floating pill under the header clock: history load progress. */
+function _histPill(txt){
+  let el=document.getElementById('histPill');
+  if(!txt){if(el)el.remove();return;}
+  if(!el){
+    el=document.createElement('div');el.id='histPill';
+    el.style.cssText='position:fixed;top:46px;right:18px;z-index:9990;background:var(--bg2,#1c1c1c);border:1px solid var(--line,#3a3a3a);color:var(--text3,#9aa);font:600 11px var(--sans,system-ui);padding:4px 11px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.35);pointer-events:none;';
+    document.body.appendChild(el);
+  }
+  el.textContent=txt;
+}
+/* Loud, persistent failure. A quietly incomplete history is exactly the kind
+   of silent wrongness this app keeps getting bitten by — never allowed. */
+function _histFail(){
+  setSyncStatus('error');
+  try{toast('Could not load full history — reload when connected','er');}catch(e){}
+  _histPill(null);
+  let el=document.getElementById('histFailBar');
+  if(!el){
+    el=document.createElement('div');el.id='histFailBar';
+    el.style.cssText='position:fixed;top:46px;right:18px;z-index:9995;background:#2a0f0f;border:1px solid #ef4444;color:#fecaca;font:600 12px var(--sans,system-ui);padding:8px 12px;border-radius:9px;display:flex;gap:10px;align-items:center;';
+    el.innerHTML='&#9888; Full history could not load &mdash; totals and shipments are incomplete. <button onclick="location.reload()" style="background:#ef4444;border:0;color:#fff;border-radius:6px;padding:4px 10px;font-weight:800;cursor:pointer;font-size:12px">Reload</button>';
+    document.body.appendChild(el);
+  }
+}
+/* Gate for actions that scan or export FULL history. Everything the prep team
+   does to visible rows (receive, ship, archive, edit) is NOT gated — Phase A
+   loaded those rows. */
+function histGate(){
+  if(!_historyReady){
+    try{toast('Still loading full history — try again in a few seconds','er');}catch(e){}
+    return true;
+  }
+  return false;
+}
+/* ── PHASE B: stream the archive in behind the painted page ── */
+async function _loadHistory(){
+  const STEP=1000;
+  const estPages=Math.max(1,Math.ceil(Math.max(0,_totalRowCount-rows.length)/STEP));
+  let cur=null,page=0,attempt=0;
+  const surfaceVisible=()=>{try{
+    const sp=document.getElementById('page-shipments');
+    return (sp&&sp.classList.contains('active'))||_showArchived;
+  }catch(e){return false;}};
+  for(;;){
+    page++;
+    _histPill('Loading history \u2014 page '+page+' of ~'+estPages);
+    let q=sb.from('prep_rows').select('*').eq('archived',true)
+      .order('created_at',{ascending:true}).order('id',{ascending:true}).limit(STEP);
+    if(cur)q=q.or(`created_at.gt.${cur.ca},and(created_at.eq.${cur.ca},id.gt.${cur.id})`);
+    const r=await q;
+    if(r.error){
+      attempt++;
+      if(attempt>=5){_histFail();return false;}
+      console.warn('[boot] history page failed (attempt '+attempt+'):',r.error.message);
+      await _sleep(3000*Math.pow(2,attempt-1));
+      page--;continue;
+    }
+    attempt=0;
+    (r.data||[]).forEach(d=>{
+      /* NEVER replace an existing object — it may carry _dirty or sit under an
+         open editor. Merge is add-only; realtime owns updates. */
+      if(!rows.some(x=>x.uuid===d.id)){
+        const nr=dbToRow(d);
+        rows.push(nr);
+        if(nr.shipId&&nr.shipType&&nr.shipType!=='Standard'&&(!_shipTypeCache[nr.shipId]||_shipTypeCache[nr.shipId]==='Standard'))_shipTypeCache[nr.shipId]=nr.shipType;
+      }
+    });
+    if(surfaceVisible()){try{rtRepaint();}catch(e){}}
+    if((r.data||[]).length<STEP)break;
+    const last=r.data[r.data.length-1];
+    cur={ca:last.created_at,id:last.id};
+  }
+  return true;
+}
+/* The one-time bundle expected-units correction — verbatim from the old boot,
+   now run at finalize when the WHOLE table is in memory. The signature test
+   (exp === SKU-units × bundle-qty) makes it idempotent. */
+function _bundleFixOnce(){
+  const toFix=rows.filter(r=>{
+    const bq=parseInt(r.bqty)||0;
+    const su=parseSKU(r.sku).units||0;
+    return String(r.bun).trim()==='Yes'&&bq>1&&su>0&&(parseInt(r.exp)||0)===su*bq;
+  });
+  if(toFix.length){
+    toFix.forEach(r=>{
+      const su=parseSKU(r.sku).units||0;
+      logAudit('Bundle expected units corrected',`${r.sku}: ${r.exp} → ${su} (÷${r.bqty})`);
+      r.exp=su;
+      if((parseInt(r.rcvd)||0)===su*(parseInt(r.bqty)||1))r.rcvd=su;
+      r._dirty=true;
+    });
+    setSyncStatus('syncing');
+    Promise.all(toFix.map(r=>saveRow(r))).then(()=>setSyncStatus('synced')).catch(()=>setSyncStatus('error'));
+    toast(`✓ Corrected ${toFix.length} bundle row${toFix.length!==1?'s':''} (Expected Units → saleable count)`);
+  }
+}
+/* ── FINALIZE: runs once, after the last archive page ── */
+async function _finalizeHistory(){
+  /* (a) canonical order — the legacy boot delivered created_at asc. Stable
+     sort; locally-created pre-echo rows (no _ca) sort last on purpose.
+     Order is explicitly OUT of contract — every paint re-sorts anyway. */
+  rows.sort((a,b)=>{
+    const ka=(a._ca||'\uffff'), kb=(b._ca||'\uffff');
+    if(ka<kb)return -1; if(ka>kb)return 1;
+    const ua=(a.uuid||'\uffff'), ub=(b.uuid||'\uffff');
+    return ua<ub?-1:ua>ub?1:0;
+  });
+  /* (b) nid can only ever rise */
+  {
+    const memMax=rows.reduce((m,r)=>{const n=parseInt(r.id);return(Number.isFinite(n)&&n>m)?n:m;},0);
+    if(memMax>nid){console.warn('[boot] nid raised at finalize:',nid,'\u2192',memMax);nid=memMax;}
+  }
+  /* (c) bundle correction, whole table now present */
+  try{_bundleFixOnce();}catch(e){console.warn('[boot] bundle fix:',e);}
+  /* (d) replay buffered realtime events IN ARRIVAL ORDER. An UPDATE for a row
+     we merged from an already-stale page must win over the page copy — apply
+     it wholesale (no portal-field preservation: no local edit exists on a row
+     that was absent when the event arrived), unless the row is mid-edit. */
+  _pendingRt.forEach(pl=>{
+    try{
+      if(pl.eventType==='UPDATE'){
+        const i=rows.findIndex(x=>x.uuid===pl.new.id);
+        if(i>=0){if(!rows[i]._dirty)rows[i]=dbToRow(pl.new);}
+        else rows.push(dbToRow(pl.new));
+      }else if(pl.eventType==='DELETE'){
+        const di=rows.findIndex(x=>x.uuid===pl.old.id);
+        if(di>=0)rows.splice(di,1);
+      }
+    }catch(e){console.warn('[boot] replay:',e);}
+  });
+  _pendingRt=[];
+  /* (e) integrity: fresh head-count vs what we hold. Transient churn gets one
+     2s grace; a real gap is closed by an id-diff that fetches ONLY the missing
+     rows. Never a silent shrug, never a full refetch. */
+  try{
+    const memCount=()=>rows.filter(x=>x.uuid).length;
+    let c2=await sb.from('prep_rows').select('id',{count:'exact',head:true});
+    if(!c2.error&&c2.count!==memCount()){
+      await _sleep(2000);
+      c2=await sb.from('prep_rows').select('id',{count:'exact',head:true});
+      if(!c2.error&&c2.count!==memCount()){
+        const srv=new Set();let cur=null;
+        for(;;){
+          let q=sb.from('prep_rows').select('id,created_at').order('created_at',{ascending:true}).order('id',{ascending:true}).limit(1000);
+          if(cur)q=q.or(`created_at.gt.${cur.ca},and(created_at.eq.${cur.ca},id.gt.${cur.id})`);
+          const r=await q;if(r.error)break;
+          (r.data||[]).forEach(d=>srv.add(d.id));
+          if((r.data||[]).length<1000)break;
+          const last=r.data[r.data.length-1];cur={ca:last.created_at,id:last.id};
+        }
+        const have=new Set(rows.map(x=>x.uuid).filter(Boolean));
+        const missing=[...srv].filter(id=>!have.has(id));
+        const extras=[...have].filter(id=>!srv.has(id));
+        if(extras.length)console.warn('[boot] finalize: '+extras.length+' in-memory row(s) no longer on the server (deleted remotely):',extras.slice(0,5));
+        for(let o=0;o<missing.length;o+=100){
+          const r=await sb.from('prep_rows').select('*').in('id',missing.slice(o,o+100));
+          if(!r.error)(r.data||[]).forEach(d=>{if(!rows.some(x=>x.uuid===d.id))rows.push(dbToRow(d));});
+        }
+        if(missing.length){console.warn('[boot] finalize: fetched '+missing.length+' missed row(s)');try{logAudit('Boot self-heal',missing.length+' row(s) fetched at finalize');}catch(e){}}
+      }
+    }
+  }catch(e){console.warn('[boot] integrity check:',e);}
+  /* (f) open the gates */
+  _historyReady=true;
+  _histPill(null);
+  /* (g) EAN lookups deferred in the gap — cache-first, so archived rows that
+     just arrived answer them without a single Keepa call */
+  const eanQ=_pendingEan.splice(0);
+  eanQ.forEach(r=>{try{ensureRowEan(r);}catch(e){}});
+  /* (h) NOW start syncing — schedule first, then any queued manual ask */
+  try{bootSheetSyncStart();}catch(e){console.warn('[boot] sync start:',e);}
+  if(_syncQueued){_syncQueued=false;try{runSheetSync(false);}catch(e){}}
+  /* (i) one repaint with the full picture */
+  try{rtRepaint();}catch(e){}
+  try{updateArchivedBtn();}catch(e){}
+  try{updateCB();}catch(e){}
 }
 
 // ── ROW CONVERTERS ────────────────────────────────────────────────────────────
@@ -16706,6 +17238,7 @@ function dbToRow(d){
   return{
     uuid:d.id,
     id:d.local_id||d.id,
+    _ca:(d.created_at||''),  // full-precision timestamp; rowToDb never writes it back
     // Soft-archive flag. Archived rows are HIDDEN from the active prep sheet but
     // KEPT in the database and still shown on the shipments page + counted in
     // stats, so archiving never destroys shipment history. (Replaces the old
@@ -16842,6 +17375,11 @@ function dbToLavShip(d){
 // keeps working before the user runs the migration SQL (Settings → Database).
 const _missingCols=new Set();
 let _missingColWarned=false;
+/* saveRow returns false for every kind of failure, which leaves callers unable
+   to tell "the database refused a duplicate" (fine, expected, nothing to do)
+   from "the save genuinely did not happen" (needs saying out loud). The last
+   error is parked here so the sync add path can tell the difference. */
+let _lastSaveErr=null;
 /* A column the database does not have yet is dropped from the write and the
    save then "succeeds" — which is right, it keeps the app working. What was
    wrong is that it said so ONCE, in a toast that fades in three seconds, and
@@ -16890,8 +17428,27 @@ function _paintMissingCols(){
     <button onclick="_missingColFold()" title="Fold it away — it stays as a small tab until the SQL is run"
       style="flex:0 0 auto;background:none;border:1px solid rgba(255,255,255,.25);color:#fecaca;border-radius:6px;padding:6px 11px;font-weight:700;cursor:pointer;font-size:12px">Fold away</button>`;
 }
+/* A UNIQUE constraint rejection — the database refusing a second copy of a row
+   that already exists. This is a GOOD answer, not a fault, and it must never be
+   confused with a schema problem. See the guard at the top of _missingColInErr:
+   Postgres words a blocked duplicate as
+     duplicate key value violates unique constraint "prep_rows_sheet_sync_id_key"
+     Key (sheet_sync_id)=(SKU|ORDERID) already exists.
+   The column name appears TWICE in that text, so the old substring scan below
+   read it as "sheet_sync_id does not exist", stripped the fingerprint from the
+   write and retried — and the retry SUCCEEDED, inserting the very duplicate the
+   database had just refused, then stopped stamping fingerprints for the rest of
+   the session. The unique index would have been silently disarmed the first
+   time it ever did its job. */
+function _isDupKeyErr(err){
+  if(!err)return false;
+  if(err.code==='23505')return true;
+  const raw=((err.message||'')+' '+(err.details||'')+' '+(err.hint||'')).toLowerCase();
+  return /duplicate key|violates unique constraint|already exists/.test(raw);
+}
 function _missingColInErr(err){
   if(!err)return null;
+  if(_isDupKeyErr(err))return null;   // a refused duplicate is not a missing column
   const raw=(err.message||'')+' '+(err.details||'')+' '+(err.hint||'');
   // Supabase says: Could not find the 'COLUMN' column of 'TABLE' in the schema
   // cache. Parse the column name generically so ANY not-yet-migrated column
@@ -16899,12 +17456,17 @@ function _missingColInErr(err){
   const g=raw.match(/find the '([^']+)' column/i);
   if(g)return g[1];
   const m=raw.toLowerCase();
+  /* The bare name scan is a last resort and it is indiscriminate — a column name
+     mentioned anywhere in any error used to count. Require the error to actually
+     be talking about schema before trusting it. */
+  if(!/column|schema cache/.test(m))return null;
   for(const col of ['ship_segments','archived','vat','ean','sheet_sync_id','va_note','jack_note','reimbursed','reimburse_note','chase_snooze_until','cancelled_qty','resolution','qty_fix','delivered','wrong_sku']){if(m.includes(col))return col;}
   return null;
 }
 // Back-compat alias used elsewhere.
 function _isMissingShipSegmentsErr(err){return _missingColInErr(err)==='ship_segments';}
 async function saveRow(r){
+  _lastSaveErr=null;
   // ── Gated automation: if a row's issue type is Gated, the packing note must
   //    say so — auto-stamp it once so UK staff never type "gated" twice. This
   //    hook covers every save path (edit form, issue modal, sheet sync).
@@ -16938,7 +17500,7 @@ async function saveRow(r){
     return out;
   };
   let res;
-  if(r.uuid){
+  if(r.uuid&&!r._minted){
     // Ask for the updated rows back so we can tell if it actually matched
     // anything. Supabase .update() does NOT error when it matches zero rows —
     // it silently succeeds — so a stale/missing uuid would "save" but write
@@ -16956,10 +17518,24 @@ async function saveRow(r){
   }else{
     res=await runWrite(data=>sb.from('prep_rows').insert(data).select().single());
     if(res.data)r.uuid=res.data.id;
+    if(!res.error)delete r._minted;
+    else if(_isDupKeyErr(res.error)&&r._minted){
+      /* Retrying an insert whose first attempt actually committed: the PK
+         already exists because WE put it there. That is success. */
+      delete r._minted;
+      setTimeout(()=>{r._dirty=false;},1500);
+      setSyncStatus('synced');return true;
+    }
   }
   if(res.error){
+    _lastSaveErr=res.error;
     console.error('Save row error:',res.error.message,res.error.details);
     r._dirty=false;
+    /* The database refusing a second copy of a row that already exists is the
+       system working, not breaking. Sarah must not get a red "Save failed"
+       toast every two minutes because another laptop imported the line first.
+       Reported quietly to the caller, which drops the phantom row instead. */
+    if(_isDupKeyErr(res.error)){setSyncStatus('synced');return false;}
     setSyncStatus('error');
     toast('Save failed: '+res.error.message,'er');
     return false;
@@ -17116,9 +17692,21 @@ function setupRealtime(){
         incoming.vaNote=rows[i].vaNote;
         incoming.transitAction=rows[i].transitAction||incoming.transitAction;
         rows[i]=incoming;
+      }else if(!_historyReady){
+        /* Row not in memory YET — it is on an archive page Phase B has not
+           merged. Dropping this event would hand the stale page copy the win
+           at merge time; buffer it and replay at finalize. (After finalize a
+           miss means a genuinely unknown row — same silent drop as always.) */
+        _pendingRt.push(payload);
       }
     }else if(payload.eventType==='DELETE'){
-      rows=rows.filter(x=>x.uuid!==payload.old.id);
+      /* In-place splice, never reassignment: Phase B's merge loop reads the
+         global `rows` binding mid-walk, and a reassignment would leave it
+         pushing into an orphaned array. Buffered too while history loads, so
+         the replay re-filters any copy an already-fetched page sneaks back. */
+      const di=rows.findIndex(x=>x.uuid===payload.old.id);
+      if(di>=0)rows.splice(di,1);
+      if(!_historyReady)_pendingRt.push(payload);
     }
     /* One coalesced repaint per burst — the mid-type protection lives inside
        rtRepaint now, checked at flush time when it actually matters. */
@@ -17624,6 +18212,7 @@ async function clearTable(table,label){
    button at all. The file holds everything needed to put things right. */
 function _bkSafe(fn,d){try{const v=fn();return v===undefined?d:v;}catch(e){return d;}}
 function downloadBackup(kind){
+  if(histGate())return;
   const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
   let blob,name;
   if(kind==='csv'){
@@ -18444,6 +19033,7 @@ async function saveShipmentDate(){
   logAudit('Shipment date changed',`${shipId} → ${newDate}`);
 }
 async function saveShipmentRename(){
+  if(histGate())return;
   const oldId=_editShipId;
   const newId=(document.getElementById('editShipNewId').value||'').trim().toUpperCase();
   if(!oldId)return;
@@ -18481,6 +19071,7 @@ async function saveShipmentRename(){
 }
 
 async function deleteShipment(){
+  if(histGate())return;
   const shipId=_editShipId;if(!shipId)return;
   const c=shipmentContents(shipId);
   // Close the Edit Shipment modal FIRST so the confirm dialog isn't stacked on
@@ -19474,7 +20065,7 @@ setInterval(updateClock,60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v26.3 · lav3 · 2026-08-17 · b274';
+const BUILD='v27.2 · lav3 · 2026-08-18 · b283';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -19521,6 +20112,11 @@ function rowToComp(d){return{uuid:d.id,id:d.id,name:d.name||'',
      old column has to win — otherwise packaging silently becomes a component */
   kind:(d.type==='packing')?'packaging':(d.kind||'component'),
   tag:d.tag||d.type||'complementary',caseQty:(d.case_qty!=null?d.case_qty:null),
+  /* compRow writes `supplier` on every push; nothing ever read it back and
+     nothing in LV3 assigns c.supplier, so it was permanently undefined and
+     every save wrote '' over the column. All 87 components were already blank
+     when this was found. Reading it back closes the loop. */
+  supplier:d.supplier||'',
   size:d.size||'',archived:!!d.archived,
   _legacyOnHand:d.on_hand||0,
   _legacyOrders:(function(){try{return JSON.parse(d.orders||'[]');}catch(e){return[];}})()};}
@@ -19749,6 +20345,17 @@ const LAYER_META=['mode','eta1','eta2','_etaTouched','_etaGuess',
   /* which line of its purchase's allocation this layer is. The only stable way
      to find it again after a refresh — see setAlloc. */
   'allocIx',
+  /* THE CHASE CONVERSATION. LAYER_META is a WHITELIST — layerMeta() copies only
+     the keys named here — and `log` and `toJack` were never in it. So Sarah
+     chased a supplier, got her green toast, saw it in the Progress log, and it
+     was gone on the next refresh; a shortage she sent to Jack silently came
+     back to her queue and dropped off his page. Exactly the "sent to Jack and
+     it's gone" bug from the prep side, living over here.
+     No new exposure: logIt() already writes the same names and messages into
+     app_settings.lavarion_state, same project, same anon key.
+     `evid` (the Discord photo link) is deliberately NOT here yet — that URL is
+     the one genuinely new thing this table would carry, and it is Jack's call. */
+  'log','toJack',
   'manual','why','whoAdded','leadLo','leadHi',
   /* a note left when stock was counted in stays OPEN until somebody deals with
      it — the order does not silently disappear just because the box arrived */
@@ -23114,12 +23721,19 @@ function rcvPreview(){
   const go=document.getElementById('rcvGo');
   const dmg=Math.min(got,_rcvDmgVal());
   const usable=got-dmg;
-  if(go){const bad=got<1||dmg>got;go.disabled=bad;go.style.opacity=bad?'.45':'1';
-    go.textContent=(got<out&&_rcvThat)?'Book it in and close the order':'Book it in';}
+  /* got===0 used to disable the button AND hide the declaration below, so a
+     delivery where NOTHING turned up could not be recorded at all — the "None"
+     button led to a dead end and the only writable field left was the free-text
+     note. That is why two of the open notes read "Missing - images sent to
+     Sarah": it was the only thing the app allowed. Zero is now a real answer,
+     as long as the person holding the boxes says the delivery is finished. */
+  if(go){const bad=(got<1&&!_rcvThat)||dmg>got;go.disabled=bad;go.style.opacity=bad?'.45':'1';
+    go.textContent=(got<1&&_rcvThat)?'Nothing arrived \u2014 raise it as short'
+                  :(got<out&&_rcvThat)?'Book it in and close the order':'Book it in';}
   /* the declaration only exists when there is something left to declare */
   const tb=document.getElementById('rcvThatBox'),sub=document.getElementById('rcvThatSub');
   if(tb){
-    const shows=got>0&&got<out;
+    const shows=got<out;   // including zero — see the note above
     tb.style.display=shows?'block':'none';
     if(!shows&&_rcvThat){_rcvThat=false;
       const b=document.getElementById('rcvThatBtn');if(b)b.classList.remove('on');}
@@ -23173,10 +23787,30 @@ function rcvConfirm(){
   if(!found){toast('That order has moved — close this and open it again. Nothing was booked in.','er');return;}
   _rcvCtx.oid=found.o.id;_rcvCtx.kind=found.kind;
   const got=Math.max(0,parseInt((document.getElementById('rcvGot')||{}).value)||0);
-  if(got<1){toast('Enter how many arrived','er');return;}
   const note=((document.getElementById('rcvNote')||{}).value||'').trim();
   const dmg=Math.min(got,_rcvDmgVal());
   const that=_rcvThat;
+  /* NOTHING ARRIVED. Not a receipt — there is no box, no batch and no stock to
+     book in — so this does not go through receiveRow at all. It is exactly the
+     declaration the THAT'S IT button already makes, applied to the whole
+     outstanding quantity, through the same declareShort the partial case uses.
+     From here the existing machinery takes over untouched: the line joins
+     shortLines(), joins supplierIssues(), and starts a chase. */
+  if(got<1){
+    if(!that){toast('Enter how many arrived \u2014 or press None, then tick that the delivery is finished','er');return;}
+    const o=found.o,l=found.l;
+    const who=(window.currentUserName||'Becki');
+    const landed=dayISO();
+    _rcvCtx=null;_rcvThat=false;
+    cm('lav3Ov2');
+    snap();
+    const n=declareShort(l,who,landed);
+    if(note){l.note=note;l.noteOpen=1;l.noteBy=who;l.noteOn=landed;}
+    logIt('recv',`Nothing arrived \u2014 ${fmt(n)} \u00d7 ${o.name} raised as SHORT from ${l.sup||'supplier'}`);
+    save();render();
+    toastUndo(`Nothing arrived \u00b7 ${fmt(n)} short \u2014 raised with Sarah`,'er');
+    return;
+  }
   const c=_rcvCtx;_rcvCtx=null;_rcvThat=false;
   cm('lav3Ov2');
   receiveRow(c.kind,c.oid,c.lid,got,note,dmg,that);
@@ -25725,7 +26359,13 @@ function supplierIssues(){
       on:l.shortOn||l.dmgOn||l.date||'',short:0,dmg:0,val:0,chased:'',replyBy:'',repl:0,lines:[],
       /* the popup's context: where the photos are, the conversation so far,
          and whether the whole conversation is currently in Jack's hands */
-      evid:l.evid||'',toJack:l.toJack||'',log:Array.isArray(l.log)?l.log.slice():[]};
+      evid:l.evid||'',toJack:l.toJack||'',log:Array.isArray(l.log)?l.log.slice():[],
+      /* Becki's note travels with the problem. It was collected on the layer,
+         shown only on the Lavarion Purchases page, and dropped here — which is
+         why two of them read "images sent to Sarah": she was writing a routing
+         instruction into a field that went nowhere. Same rule as the claim row
+         three blocks down, which already carries srcNote for exactly this. */
+      note:(l.note||'').trim()};
   };
   shortLines().forEach(({o,l})=>{
     const g=grab(l),n=outQty(l);
@@ -28364,6 +29004,32 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
    The tooltip names the colour AND the reason. */
 .tfuNumCell{position:relative;}
 .tfuStripe{position:absolute;left:0;top:5px;bottom:5px;width:4px;border-radius:0 3px 3px 0;cursor:help;}
+/* where-it-stands: a soft panel with the state colour down its edge, instead
+   of loose lines floating in the cell */
+.standBox{background:rgba(255,255,255,.025);border:1px solid var(--border);border-left:3px solid var(--border2);
+  border-radius:7px;padding:7px 9px;text-align:left;}
+/* the 3-second undo bar */
+.ubMod{max-width:340px;width:88vw;padding:18px 20px 16px;text-align:center;border-radius:13px;}
+.ubTtl{font-size:13.5px;font-weight:800;color:var(--text);}
+.ubTrack{height:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:99px;overflow:hidden;margin:13px 0 14px;}
+.ubFill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#4ade80);transition:width 3s linear;}
+.ubFoot{display:flex;justify-content:space-between;gap:10px;}
+.ubUndo{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;
+  background:rgba(239,68,68,.13);border:1px solid rgba(239,68,68,.5);color:#fca5a5;}
+.ubNow{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;
+  background:var(--accent);border:1px solid var(--accent);color:#1a1400;}
+/* Jack: "more grey — like greyed out." And no blurry text anywhere on either
+   admin page: full antialiasing, nothing under 10px. */
+.tfu tr.tfuWaiting td{opacity:.55;filter:grayscale(1);}
+.tfu tr.tfuWaiting td.tfuActs{opacity:1;filter:none;}
+#jackWrap,#adminWrap{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
+#jackWrap .tfu th{font-size:10px;color:#c6cfda;}
+#jackWrap .tfuProd2{font-size:12px;}
+#jackWrap .s-sku{font-size:11.5px!important;}
+#jackWrap .csAct{padding:7px 10px;font-size:11px;font-weight:800;}
+#jackWrap .csAct.go{background:rgba(96,165,250,.2);color:#bfdbfe;border-color:rgba(96,165,250,.65);}
+#jackWrap .csAct.good{background:rgba(52,211,153,.18);color:#a7f3d0;border-color:rgba(52,211,153,.6);}
+#jackWrap .csAct.warn{background:rgba(251,191,36,.16);color:#fde68a;border-color:rgba(251,191,36,.6);}
 /* the structured status — his three lines */
 .stState{font-size:10px;font-weight:800;letter-spacing:.06em;white-space:normal!important;}
 .stLast{font-size:11px;font-weight:700;color:var(--text);line-height:1.4;margin-top:3px;
@@ -28402,6 +29068,18 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .tfu td.tfuActs .tfuAsk{padding:4px 8px;font-size:10px;margin-top:4px;}
 .tfu td.tfuActs .tfuMore{padding:4px 8px;font-size:10px;margin-top:4px;}
 .csAct,.tfuWork,.tfuAsk,.tfuMore,.admChip{transition:filter .12s,border-color .12s,background .12s;}
+/* Sarah's check-in strip took a third of the screen before a single issue was
+   visible — it is a reminder, not the work. Slimmed to one tight line. */
+.ciBar{padding:8px 13px;gap:11px;margin-bottom:10px;border-radius:9px;}
+.ciTtl{font-size:12px;}
+.ciSub{font-size:10.5px;margin-top:1px;}
+.ciFlags{margin-top:4px;gap:5px;}
+.ciFlag{font-size:10px;padding:2px 8px;}
+.ciBtn{padding:7px 16px;font-size:12px;}
+/* the last row's buttons were kissing the bottom edge of the scroll box */
+.tfuScroll table{margin-bottom:8px;}
+/* clickable KPI on Jack's page shows its active state */
+.jkKpi.on{outline:2px solid var(--accent);outline-offset:1px;}
 /* readability bump — Jack: "some of the text is unreadable due to colour/font/size" */
 .stState{font-size:10px;}
 .stLast{font-size:11px;color:var(--text);}
