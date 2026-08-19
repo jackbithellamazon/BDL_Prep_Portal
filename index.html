@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v27.2</title>
+<title>BDL PrepHub v28.5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1394,11 +1394,44 @@ html.light-mode{
 #page-lavarion .rsBuild .rsLbl,.lav3 .rsBuild .rsLbl{font:800 9px var(--sans);letter-spacing:.07em;
   text-transform:uppercase;color:var(--text3);}
 #page-lavarion .rsSum,.lav3 .rsSum{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
-#page-lavarion .rsS,.lav3 .rsS{flex:1 1 168px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;
-  background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:8px 12px;
-  font:600 11.5px var(--sans);color:var(--text2);}
-#page-lavarion .rsS b,.lav3 .rsS b{font:800 20px var(--num);color:var(--text);line-height:1;}
-#page-lavarion .rsS i,.lav3 .rsS i{flex:0 0 100%;font-style:normal;font-size:10px;color:var(--text3);}
+/* Card = icon tile + one text column. Was: three inline pieces on a baseline
+   with the sub-label forced to flex:0 0 100%, so a long value like £196.02
+   shoved its own label onto the next line and no two cards lined up. Equal
+   widths (flex-basis 0) so four cards are four columns, always. */
+#page-lavarion .rsS,.lav3 .rsS{flex:1 1 0;min-width:172px;display:flex;align-items:center;gap:11px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;}
+#page-lavarion .rsIco,.lav3 .rsIco{width:36px;height:36px;border-radius:10px;flex:0 0 auto;
+  display:grid;place-items:center;background:rgba(255,255,255,.055);color:var(--text2);}
+#page-lavarion .rsIco svg,.lav3 .rsIco svg{width:17px;height:17px;stroke:currentColor;fill:none;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+#page-lavarion .rsTx,.lav3 .rsTx{display:grid;gap:1px;min-width:0;}
+#page-lavarion .rsS b,.lav3 .rsS b{font:800 21px var(--num);color:var(--text);line-height:1.04;
+  font-variant-numeric:tabular-nums;}
+#page-lavarion .rsS em,.lav3 .rsS em{font-style:normal;font:700 11.5px var(--sans);color:var(--text2);}
+#page-lavarion .rsS i,.lav3 .rsS i{font-style:normal;font:600 10px var(--sans);color:var(--muted2);}
+#page-lavarion .rsS.bad .rsIco,.lav3 .rsS.bad .rsIco{background:rgba(248,113,113,.13);color:var(--red);}
+#page-lavarion .rsS.warn .rsIco,.lav3 .rsS.warn .rsIco{background:rgba(251,191,36,.13);color:var(--amb);}
+#page-lavarion .rsS.ok .rsIco,.lav3 .rsS.ok .rsIco{background:rgba(74,222,128,.13);color:var(--grn);}
+#page-lavarion .rsS.info .rsIco,.lav3 .rsS.info .rsIco{background:rgba(96,165,250,.13);color:var(--blu);}
+#page-lavarion .rsS.shared .rsIco,.lav3 .rsS.shared .rsIco{background:rgba(245,158,11,.14);color:var(--accent);}
+/* the primary action belongs beside the numbers it acts on, not in a panel header */
+/* It was a solid amber slab the full height of the card row — the loudest
+   thing on a page of quiet outlined cards, for an action that is no longer
+   even the main one. Same card family now: same height, same radius, amber
+   ink on a tint rather than a flood. */
+
+/* a missing figure is not a headline: small and quiet, never a 17px em-dash */
+#page-lavarion .rsMx .v.none,.lav3 .rsMx .v.none{font-size:13px;color:var(--muted2);}
+#page-lavarion .rsStepU,.lav3 .rsStepU{display:block;text-align:center;font:600 9.5px var(--sans);
+  color:var(--muted2);margin-top:4px;}
+#page-lavarion .rsSel option,.lav3 .rsSel option{color:var(--text);background:var(--bg2);}
+/* two-line column headings, and a colour rail that says short or covered */
+#page-lavarion .rsTbl th span,.lav3 .rsTbl th span{display:block;font:600 9.5px var(--sans);
+  color:var(--muted2);letter-spacing:0;text-transform:none;margin-top:2px;}
+#page-lavarion .rsTbl tbody tr td:first-child,.lav3 .rsTbl tbody tr td:first-child{
+  box-shadow:inset 3px 0 0 var(--grn);}
+#page-lavarion .rsTbl tbody tr.short td:first-child,.lav3 .rsTbl tbody tr.short td:first-child{
+  box-shadow:inset 3px 0 0 var(--amb);}
 #page-lavarion .rsS.bad,.lav3 .rsS.bad{border-color:rgba(248,113,113,.4);}
 #page-lavarion .rsS.bad b,.lav3 .rsS.bad b{color:var(--red);}
 #page-lavarion .rsS.warn,.lav3 .rsS.warn{border-color:rgba(251,191,36,.4);}
@@ -1416,10 +1449,42 @@ html.light-mode{
 #page-lavarion .rsPicksH .sub,.lav3 .rsPicksH .sub{font-size:11.5px;color:var(--text3);}
 #page-lavarion .rsPicksAdd,.lav3 .rsPicksAdd{display:flex;gap:7px;align-items:center;margin-left:auto;}
 #page-lavarion .rsPicksAdd .rsSearch,.lav3 .rsPicksAdd .rsSearch{width:250px;position:relative;}
+/* ── RESTOCK ROW, MODERNISED ───────────────────────────────────────────────
+   Jack, 19 Aug: "this just looks off for some reason". It was: the -/22/+
+   control is three loose elements. .rsStep (below, written months ago) is the
+   wrapper that joins them — it was never put in the template, and .rsPm is
+   deliberately border:none because the wrapper was meant to supply the border.
+   Also one dimmer ink: --text3 is #e6e1d6 in here, so every caption shouted as
+   loudly as the number it described. --muted2 is used ONLY on labels, units
+   and placeholders, never on a figure. */
+#page-lavarion,.lav3{--muted2:#9a948a;}
+#page-lavarion .rsHd,.lav3 .rsHd{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;width:100%;}
+#page-lavarion .rsHdN,.lav3 .rsHdN{min-width:180px;flex:1 1 200px;}
+#page-lavarion .rsHdN .nm2,.lav3 .rsHdN .nm2{font:800 14.5px var(--sans);color:var(--text);letter-spacing:-.01em;}
+#page-lavarion .rsHdN .mt2,.lav3 .rsHdN .mt2{display:block;font:600 11px var(--sans);color:var(--muted2);margin-top:3px;}
+#page-lavarion .rsHdN .ordn,.lav3 .rsHdN .ordn{display:inline-flex;align-items:center;gap:6px;
+  font:800 11px var(--sans);margin-top:6px;}
+#page-lavarion .rsHdN .ordn .dt,.lav3 .rsHdN .ordn .dt{width:6px;height:6px;border-radius:50%;
+  background:currentColor;flex:0 0 auto;}
+#page-lavarion .rsMx,.lav3 .rsMx{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;}
+#page-lavarion .rsMx>span,.lav3 .rsMx>span{display:grid;gap:1px;min-width:52px;}
+#page-lavarion .rsMx .k,.lav3 .rsMx .k{font:800 8.5px var(--sans);letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted2);white-space:nowrap;}
+#page-lavarion .rsMx .v,.lav3 .rsMx .v{font:800 17px var(--num);color:var(--text);line-height:1.05;}
+#page-lavarion .rsMx .u,.lav3 .rsMx .u{font:600 9.5px var(--sans);color:var(--muted2);}
+#page-lavarion .rsCtl,.lav3 .rsCtl{display:flex;gap:12px;align-items:flex-start;margin-left:auto;}
+#page-lavarion .rsCtl .k,.lav3 .rsCtl .k{display:block;font:800 8.5px var(--sans);letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted2);margin-bottom:5px;white-space:nowrap;}
+#page-lavarion .rsSel,.lav3 .rsSel{background:var(--bg3);border:1px solid var(--border2);border-radius:9px;
+  color:var(--text);font:700 12px var(--sans);padding:9px 9px;cursor:pointer;width:132px;}
+#page-lavarion .rsSel:disabled,.lav3 .rsSel:disabled{color:var(--muted2);cursor:not-allowed;}
 #page-lavarion .rsPick2,.lav3 .rsPick2{display:flex;align-items:center;gap:16px;flex-wrap:wrap;
   padding:9px 0;border-bottom:1px solid var(--border);}
 #page-lavarion .rsPick2:last-child,.lav3 .rsPick2:last-child{border-bottom:0;padding-bottom:0;}
-#page-lavarion .rsPick2.noList,.lav3 .rsPick2.noList{opacity:.55;}
+/* opacity dimmed the row's BUTTONS too, so a live control looked disabled on
+   the one row that actually needs work. Colour, plus a grey edge. */
+#page-lavarion .rsPick2.noList,.lav3 .rsPick2.noList{box-shadow:inset 3px 0 0 var(--border2);padding-left:9px;}
+#page-lavarion .rsPick2.noList .nm2,.lav3 .rsPick2.noList .nm2{color:var(--muted2);}
 #page-lavarion .rsP2N,.lav3 .rsP2N{min-width:170px;flex:1 1 170px;display:flex;gap:9px;align-items:flex-start;}
 /* a log folds away until it is needed */
 #page-lavarion .rsChev,.lav3 .rsChev{background:none;border:0;padding:0;cursor:pointer;color:var(--text3);
@@ -1956,6 +2021,228 @@ html.light-mode{
 #page-lavarion .rsEmT,.lav3 .rsEmT{font-size:16px;font-weight:800;color:var(--text);}
 #page-lavarion .rsEmB,.lav3 .rsEmB{font-size:13px;color:var(--text2);max-width:520px;line-height:1.6;}
 #page-lavarion .rsEmBtns,.lav3 .rsEmBtns{display:flex;gap:8px;margin-top:6px;}
+/* the page never said in words which period was on screen — only which chip
+   was lit, and on a custom range no chip is lit at all */
+.shipBarP{font:600 11px var(--sans);color:var(--text3);margin-bottom:6px;}
+.shipBarP b{color:var(--text2);font-weight:800;}
+/* ── SHIPMENTS SUMMARY BAR ─────────────────────────────────────────────────
+   Seven metrics, each carrying its own day/week/month answer and a 14-day
+   trend. Grid rather than flex so all seven are the SAME width whatever the
+   figure length — £15,130.18 no longer squeezes its neighbours. */
+.shipBar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;
+  background:var(--border);border:1px solid var(--border);border-radius:10px;
+  margin-bottom:10px;overflow:hidden;}
+.shipKpi{background:var(--bg2);padding:11px 12px 10px;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;min-width:0;}
+.shipKpiV{font:900 19px var(--num);font-variant-numeric:tabular-nums;line-height:1.05;
+  white-space:nowrap;}
+.shipKpiL{font:700 11px var(--sans);letter-spacing:.045em;text-transform:uppercase;
+  color:var(--text3);margin-top:3px;text-align:center;}
+.shipKpiG{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;margin-top:8px;
+  width:100%;border-top:1px solid var(--border);padding-top:7px;}
+.shipKpiC{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;}
+.shipKpiC i{font:700 11px var(--sans);font-style:normal;letter-spacing:.03em;
+  text-transform:uppercase;color:var(--text3);}
+.shipKpiC b{font:800 12px var(--num);font-variant-numeric:tabular-nums;color:var(--text2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.shipKpiC.on i{color:var(--text2);}
+.shipKpiC.on b{font-weight:900;}
+@media(max-width:1180px){
+  .shipBar{grid-template-columns:repeat(4,minmax(0,1fr));}
+}
+/* ── COMPONENTS TABLE ──────────────────────────────────────────────────────
+   Jack, 19 Aug: "more info more detail — no dead space — make it super simple
+   don't over complicate it with loads of colours — centralise the info".
+   So: every column carries a figure AND its qualifier on a second line (the
+   detail), the columns are sized to their content (no slack for the browser to
+   inflate), and colour appears in exactly two places — the state rail down the
+   left of the row, and the Short figure. Everything else is ink. */
+#page-lavarion .thS,.lav3 .thS{display:block;font:600 10.5px var(--sans);letter-spacing:0;
+  text-transform:none;color:var(--muted2);margin-top:2px;}
+#page-lavarion td.cRail,.lav3 td.cRail{padding-left:11px!important;}
+#page-lavarion .dimNum,.lav3 .dimNum{color:var(--muted2);}
+#page-lavarion td .num,.lav3 td .num{font:800 15px var(--num);font-variant-numeric:tabular-nums;
+  color:var(--text);line-height:1.1;}
+#page-lavarion td .pmeta,.lav3 td .pmeta{white-space:normal!important;}
+#page-lavarion .useWrap,.lav3 .useWrap{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+/* ══════════════════════════════════════════════════════════════════════════
+   RESTOCKS — ONE TYPE SCALE, ONE CARD SYSTEM, ONE TABLE RHYTHM
+   Jack, 19 Aug: "some text is too big and some text i can't read and some
+   kpi's look shit". Contrast was never the fault — --muted2 #9a948a measures
+   6.18:1 on --bg2, 5.84:1 on --bg3, 5.23:1 on --bg4 and 5.49:1 on the amber
+   short-row tint. SIZE was: eighteen font sizes on one screen, six of them
+   under 11px carrying every word that explains a number. This surface now
+   uses five steps and nothing else:
+     11px  LABEL     800 uppercase .08em --muted2  |  600 sentence --muted2
+     13px  BODY      500-600, --text2 supporting / --text content
+     15px  SUB-HEAD  700-800 --text — section titles, comparison figures
+     20px  NAME      800 -.015em --text — the product
+     22px  FIGURE    800 tabular-nums, state colour — every headline number
+   --muted2 is for labels, units and placeholders ONLY, never a figure.
+   No text is dimmed with opacity anywhere below.
+   NB 1: this block is APPENDED, never spliced, so it wins on source order at
+   equal specificity. Do not move it above line 2022.
+   NB 2: the `font:` shorthand resets font-variant-numeric, so tabular-nums is
+   re-stated after every shorthand. Do not strip those lines.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── A. picked-product header ─────────────────────────────────────────── */
+#page-lavarion .rsHdN .nm2,.lav3 .rsHdN .nm2{font:800 20px var(--sans);letter-spacing:-.015em;line-height:1.2;color:var(--text);}
+#page-lavarion .rsHdN .mt2,.lav3 .rsHdN .mt2{font:600 11px var(--sans);color:var(--muted2);margin-top:4px;}
+#page-lavarion .rsHdN .ordn,.lav3 .rsHdN .ordn{font:700 13px var(--sans);margin-top:7px;}
+#page-lavarion .rsMx>span,.lav3 .rsMx>span{gap:1px;min-width:0;}
+#page-lavarion .rsMx,.lav3 .rsMx{gap:26px;}
+/* 800 + .08em made the captions read as headings — four of them stacked over
+   four figures, and the labels won. A label names a number; it must never
+   compete with it. Weight down, tracking in, size held at the 11px floor. */
+#page-lavarion .rsMx .k,.lav3 .rsMx .k{font:700 11px var(--sans);letter-spacing:.045em;text-transform:uppercase;color:var(--muted2);}
+#page-lavarion .rsMx .v,.lav3 .rsMx .v{font:800 22px var(--num);line-height:1.08;color:var(--text);font-variant-numeric:tabular-nums;}
+/* a missing figure drops exactly one step, to BODY — it is not a headline */
+#page-lavarion .rsMx .v.none,.lav3 .rsMx .v.none{font:800 13px var(--num);color:var(--muted2);}
+#page-lavarion .rsMx .u,.lav3 .rsMx .u{font:600 11px var(--sans);color:var(--muted2);}
+/* the "+24" qualifier: label step, raised off the baseline so it stops
+   fighting the 22px figure it hangs from */
+#page-lavarion .rsMx .v span,.lav3 .rsMx .v span{font:800 11px var(--num);font-variant-numeric:tabular-nums;vertical-align:.36em;}
+#page-lavarion .rsCtl .k,.lav3 .rsCtl .k{font:700 11px var(--sans);letter-spacing:.045em;text-transform:uppercase;color:var(--muted2);margin-bottom:6px;}
+#page-lavarion .rsQty,.lav3 .rsQty{font:800 22px var(--num);font-variant-numeric:tabular-nums;}
+/* furniture must not outrank words: the minus sign was 18px, larger than
+   every heading on the page */
+#page-lavarion .rsPm,.lav3 .rsPm{font-size:15px;font-weight:700;}
+#page-lavarion .rsStepU,.lav3 .rsStepU{display:block;text-align:center;font:600 11px var(--sans);color:var(--muted2);margin-top:3px;}
+/* scoped to .rsCtl — `btn sm dots` is also used at 22399/23304/24523/24559 */
+#page-lavarion .rsCtl .btn.sm.dots,.lav3 .rsCtl .btn.sm.dots{font-size:13px;}
+/* the dead .rsBar rule at 1972 was stretching this to 340px at 14px, larger
+   than every heading on the tab. .rsBar/.rsPick/.rsLbl/.rsChip/.rsCard/.rsTop
+   appear in no template any more; .rsSel has exactly one consumer. */
+#page-lavarion .rsSel,.lav3 .rsSel{min-width:0;width:132px;font:600 13px var(--sans);padding:8px 10px;}
+
+/* ── B. the four KPI cards + the one primary action ───────────────────── */
+/* flex-wrap:wrap + min-width:172px meant the £ card stole width from the
+   other three and, under ~900px, dropped onto its own row at full width */
+#page-lavarion .rsSum,.lav3 .rsSum{display:flex;flex-wrap:nowrap;gap:10px;align-items:stretch;margin-bottom:12px;}
+#page-lavarion .rsS,.lav3 .rsS{flex:1 1 0;min-width:0;gap:12px;background:var(--bg3);
+  border:1px solid var(--border);border-radius:12px;padding:13px 14px;}
+#page-lavarion .rsTx,.lav3 .rsTx{gap:3px;}
+#page-lavarion .rsS b,.lav3 .rsS b{font:800 22px/1.05 var(--num);color:var(--text);
+  font-variant-numeric:tabular-nums;letter-spacing:-.015em;white-space:nowrap;}
+#page-lavarion .rsS.cash b,.lav3 .rsS.cash b{font-size:19px;letter-spacing:-.025em;}
+#page-lavarion .rsS em,.lav3 .rsS em{font-style:normal;font:600 13px/1.25 var(--sans);color:var(--text2);}
+#page-lavarion .rsS i,.lav3 .rsS i{font-style:normal;font:600 11px/1.35 var(--sans);color:var(--muted2);}
+/* tinted tile = the card's own number colour, dialled down. Was Tailwind hues
+   (red-400, amber-400, green-400, blue-400) that this palette does not
+   contain, so every tile was a slightly different colour from its number. */
+#page-lavarion .rsIco,.lav3 .rsIco{background:rgba(255,255,255,.07);color:var(--text3);}
+#page-lavarion .rsS.bad .rsIco,.lav3 .rsS.bad .rsIco{background:var(--red-bg);color:var(--red);}
+#page-lavarion .rsS.warn .rsIco,.lav3 .rsS.warn .rsIco{background:var(--amb-bg);color:var(--amb);}
+#page-lavarion .rsS.ok .rsIco,.lav3 .rsS.ok .rsIco{background:var(--grn-bg);color:var(--grn);}
+#page-lavarion .rsS.cash .rsIco,.lav3 .rsS.cash .rsIco{background:var(--grn-bg);color:var(--grn);}
+#page-lavarion .rsS.info .rsIco,.lav3 .rsS.info .rsIco{background:var(--blu-bg);color:var(--blu);}
+#page-lavarion .rsS.shared .rsIco,.lav3 .rsS.shared .rsIco{background:var(--amb-bg);color:var(--accent);}
+/* every state now has BOTH a border and a number colour — `info` and the new
+   `cash` had neither, so two of four cards rendered unstyled */
+#page-lavarion .rsS.bad,.lav3 .rsS.bad{border-color:var(--red-br);}
+#page-lavarion .rsS.bad b,.lav3 .rsS.bad b{color:var(--red);}
+#page-lavarion .rsS.warn,.lav3 .rsS.warn{border-color:var(--amb-br);}
+#page-lavarion .rsS.warn b,.lav3 .rsS.warn b{color:var(--amb);}
+#page-lavarion .rsS.ok,.lav3 .rsS.ok{border-color:var(--grn-br);}
+#page-lavarion .rsS.ok b,.lav3 .rsS.ok b{color:var(--grn);}
+#page-lavarion .rsS.cash,.lav3 .rsS.cash{border-color:var(--grn-br);}
+#page-lavarion .rsS.cash b,.lav3 .rsS.cash b{color:var(--grn);}
+#page-lavarion .rsS.info,.lav3 .rsS.info{border-color:var(--blu-br);}
+#page-lavarion .rsS.info b,.lav3 .rsS.info b{color:var(--blu);}
+#page-lavarion .rsS.shared,.lav3 .rsS.shared{border-color:var(--amb-br);}
+#page-lavarion .rsS.shared b,.lav3 .rsS.shared b{color:var(--accent);}
+/* a deliberate 2x2 instead of a wrap accident */
+@media(max-width:1180px){
+  #page-lavarion .rsSum,.lav3 .rsSum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+
+/* ── C. section headings — the page gets a skeleton ───────────────────── */
+#page-lavarion .rsPicksH .t,.lav3 .rsPicksH .t{font:800 15px var(--sans);color:var(--text);}
+#page-lavarion .rsPicksH .sub,.lav3 .rsPicksH .sub{font:600 13px var(--sans);color:var(--text3);}
+/* .rsPanel hook, not :has(.rsTbl) — .ph .t is shared by every Lavarion panel
+   on every tab, and :has() would flip the size when rsToggleTbl folds it */
+#page-lavarion .rsPanel>.ph .t,.lav3 .rsPanel>.ph .t{font-size:15px;font-weight:800;}
+#page-lavarion .rsPanel>.ph .sub,.lav3 .rsPanel>.ph .sub{font:600 13px var(--sans);color:var(--text3);}
+#page-lavarion .rsEmT,.lav3 .rsEmT{font-size:20px;font-weight:800;}
+
+/* ── D. "What to order" ───────────────────────────────────────────────── */
+/* the global thead{position:sticky;top:0;z-index:10} at line 381 belongs to
+   .panel.stick tables. This panel does not scroll internally, so its header
+   was detaching and sliding under .lav3bar (sticky, z-index 30). */
+#page-lavarion .rsTbl thead,.lav3 .rsTbl thead{position:static;}
+/* the fold-out mini table is not inside a .panel, so .panel>table (1068) never
+   reached it and global table{min-width:1280px} (380) widened the whole page.
+   .rsTbl (1,1,0) loses to .panel>table (1,1,1), so the big table keeps 100%. */
+#page-lavarion .rsTbl,.lav3 .rsTbl{min-width:0;}
+/* rows, not a spreadsheet grid — the status rail is the only vertical line
+   that should mean anything, and a hairline 1px away cancelled it */
+#page-lavarion .rsTbl th,.lav3 .rsTbl th,
+#page-lavarion .rsTbl td,.lav3 .rsTbl td{border-right:none;}
+#page-lavarion .rsTbl tbody tr td:first-child,.lav3 .rsTbl tbody tr td:first-child{box-shadow:inset 3px 0 0 rgba(85,255,85,.45);}
+#page-lavarion .rsTbl tbody tr.short td:first-child,.lav3 .rsTbl tbody tr.short td:first-child{box-shadow:inset 3px 0 0 var(--amb);}
+/* hover DEEPENS the short wash instead of wiping it: tr:hover td at 2016
+   (1-2-3) was beating tr.short td at 1995 (1-2-2), so a row that needed
+   ordering looked covered at the exact moment you pointed at it */
+#page-lavarion .rsTbl tbody tr.short td,.lav3 .rsTbl tbody tr.short td{background:rgba(255,170,51,.06);}
+#page-lavarion .rsTbl tbody tr:not(.short):hover td,.lav3 .rsTbl tbody tr:not(.short):hover td{background:var(--bg3);}
+#page-lavarion .rsTbl tbody tr.short:hover td,.lav3 .rsTbl tbody tr.short:hover td{background:rgba(255,170,51,.11);}
+/* two-line headings: main labels share one top line, subs hang below and are
+   readable rather than merely present. Was 9.5px. */
+#page-lavarion .rsTbl thead th,.lav3 .rsTbl thead th{font-size:11px;font-weight:800;letter-spacing:.08em;
+  vertical-align:top;white-space:normal;line-height:1.25;padding-top:11px;padding-bottom:11px;}
+#page-lavarion .rsTbl th span,.lav3 .rsTbl th span{display:block;font:600 11px var(--sans);color:var(--muted2);
+  letter-spacing:0;text-transform:none;line-height:1.3;margin-top:4px;}
+/* reading rhythm, not density. :not(.mini) so the fold-out log keeps its 7px */
+#page-lavarion .rsTbl.tight:not(.mini) td,.lav3 .rsTbl.tight:not(.mini) td{padding-top:12px;padding-bottom:12px;}
+/* the component cell: a fixed 30px anchor so every row starts on the same x */
+#page-lavarion .rsPart,.lav3 .rsPart{display:flex;align-items:center;gap:11px;min-width:0;white-space:normal!important;}
+#page-lavarion .rsPartT,.lav3 .rsPartT{min-width:0;}
+#page-lavarion .rsThm,.lav3 .rsThm{flex:0 0 auto;width:30px;height:30px;border-radius:8px;display:grid;
+  place-items:center;background:var(--blu-bg);color:var(--blu);border:1px solid var(--blu-br);}
+/* violet, not amber, for packaging — amber already means "short" on this row */
+#page-lavarion .rsThm.pk,.lav3 .rsThm.pk{background:var(--vio-bg);color:var(--vio);border-color:var(--vio-br);}
+#page-lavarion .rsThm svg,.lav3 .rsThm svg{width:15px;height:15px;fill:none;stroke:currentColor;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+#page-lavarion .rsTbl td.l .pname,.lav3 .rsTbl td.l .pname{font:600 13px var(--sans);color:var(--text);}
+/* the spec line under a part name was 12px --text2 #f7f4ee — a caption at 97%
+   of the size and 91% of the luminance of the name is a second headline */
+#page-lavarion .rsTbl td.l .pmeta,.lav3 .rsTbl td.l .pmeta{font:600 11px var(--sans);color:var(--muted2);
+  margin-top:3px;white-space:normal!important;}
+/* exactly one loud number per row — the one you act on */
+#page-lavarion .rsTbl.tight td.mono,.lav3 .rsTbl.tight td.mono{font:600 15px var(--num);font-variant-numeric:tabular-nums;}
+/* `b` on a <td> was never styled anywhere in the file — only .num.b (2245) */
+#page-lavarion .rsTbl td.mono.b,.lav3 .rsTbl td.mono.b{font-weight:800;color:var(--text);}
+#page-lavarion .rsTbl.tight .rsBig,.lav3 .rsTbl.tight .rsBig{font:800 22px var(--num);font-variant-numeric:tabular-nums;
+  color:var(--amb);display:inline-flex;align-items:baseline;gap:6px;line-height:1.05;}
+#page-lavarion .rsBig em,.lav3 .rsBig em{font:700 13px var(--sans);font-style:normal;color:var(--amb);letter-spacing:0;}
+#page-lavarion .rsTbl .rsCases .pmeta,.lav3 .rsTbl .rsCases .pmeta{font:600 11px var(--sans);color:var(--muted2);
+  margin-top:4px;white-space:normal!important;}
+/* covered = green INK on a tint. .chip.ok is a solid #55ff55 slab, which made
+   the rows needing NO action the brightest objects in the table. */
+#page-lavarion .rsCov,.lav3 .rsCov{display:inline-block;padding:3px 11px;border-radius:20px;
+  font:700 11px var(--sans);letter-spacing:0;white-space:nowrap;
+  color:var(--grn);background:var(--grn-bg);border:1px solid var(--grn-br);}
+/* a placeholder is a placeholder — explicit colour, never opacity */
+#page-lavarion .rsDash,.lav3 .rsDash{color:var(--muted2);font-size:14px;line-height:1;}
+/* the row button stays secondary: "Log all N orders" is the one primary */
+#page-lavarion .rsTbl .btn.sm,.lav3 .rsTbl .btn.sm{font-size:13px;padding:5px 11px;}
+/* the footnote is the lowest-priority text on the surface. It is PROSE, so it
+   stays on --text3 and must not fall to --muted2; the glyph is an icon, so it
+   may. It was 12px bold near-white — louder than the numbers above it. */
+#page-lavarion .rsFoot,.lav3 .rsFoot{display:flex;align-items:flex-start;gap:9px;padding:12px 16px;
+  border-top:1px solid var(--border);font:500 13px var(--sans);color:var(--text3);line-height:1.5;}
+#page-lavarion .rsFoot b,.lav3 .rsFoot b{color:var(--text2);font-weight:700;}
+#page-lavarion .rsFootI,.lav3 .rsFootI{flex:0 0 auto;}
+#page-lavarion .rsFootI svg,.lav3 .rsFootI svg{width:14px;height:14px;fill:none;stroke:currentColor;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;color:var(--muted2);display:block;margin-top:2px;}
+/* the fold-out log is denser by PADDING (2005), never by a second type scale.
+   These four must stay LAST in this block: they tie with the .tight rules
+   above on specificity and win only on source order. */
+#page-lavarion .rsTbl.mini,.lav3 .rsTbl.mini{font-size:13px;}
+#page-lavarion .rsTbl.mini thead th,.lav3 .rsTbl.mini thead th{font-size:11px;}
+#page-lavarion .rsTbl.mini .pname,.lav3 .rsTbl.mini .pname{font-size:13px;}
+#page-lavarion .rsTbl.mini td.mono,.lav3 .rsTbl.mini td.mono{font-size:13px;}
 #page-lavarion .plNote,.lav3 .plNote{border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.06);
   border-radius:9px;padding:12px 14px;display:grid;gap:6px;}
 #page-lavarion .plNote b,.lav3 .plNote b{font-size:12.5px;color:var(--amb);}
@@ -3067,7 +3354,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v27.2</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v28.5</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3101,7 +3388,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v27.2</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v28.5</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3353,11 +3640,11 @@ html.light-mode .tfu thead th{background:#d8dde3;}
       <button id="shipLavBtn" onclick="toggleShipLavFilter()" style="padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid rgba(204,153,255,.4);background:var(--bg2);color:var(--text3);white-space:nowrap;">LAV Only</button>
       <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;" id="shipDateBtns">
         <span style="font-size:10px;color:var(--text3);font-weight:600;">Date:</span>
-        <button id="shipDateBtn-today" onclick="setShipDateFilter('today')" class="sdBtn">Today</button>
+        <button id="shipDateBtn-today" onclick="setShipDateFilter('today')" class="sdBtn sdBtn-active">Today</button>
         <button id="shipDateBtn-yesterday" onclick="setShipDateFilter('yesterday')" class="sdBtn">Yesterday</button>
         <button id="shipDateBtn-week" onclick="setShipDateFilter('week')" class="sdBtn">This Week</button>
         <button id="shipDateBtn-7d" onclick="setShipDateFilter('7d')" class="sdBtn">7 Days</button>
-        <button id="shipDateBtn-mtd" onclick="setShipDateFilter('mtd')" class="sdBtn sdBtn-active">MTD</button>
+        <button id="shipDateBtn-mtd" onclick="setShipDateFilter('mtd')" class="sdBtn">MTD</button>
         <button id="shipDateBtn-ytd" onclick="setShipDateFilter('ytd')" class="sdBtn">YTD</button>
         <button id="shipDateBtn-all" onclick="setShipDateFilter('all')" class="sdBtn">All</button>
         <input type="date" id="shipDateFrom" onchange="setShipDateFilter('custom')" style="padding:2px 6px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:10px;margin-left:4px;">
@@ -3366,6 +3653,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
       </div>
       <button class="btn-add" onclick="openNewShipment()" style="margin-left:auto;white-space:nowrap;">+ New Shipment</button>
     </div>
+    <div id="shipSummary" style="padding:12px 12px 0;"></div>
     <div class="tbl-wrap" style="padding:12px;" id="shipList"></div>
   </div>
 
@@ -3792,7 +4080,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v27.2</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v28.5</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -14732,7 +15020,8 @@ function renderShipments(){
     // (returns are stock coming back, tracked for reference, not new value sent).
   });
 
-  let shipments=Object.values(shipMap).sort((a,b)=>a.date.localeCompare(b.date));
+  /* newest first — today at the top, not at the bottom of the month */
+  let shipments=Object.values(shipMap).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 
   // Date filter — a shipment shows if its date span (earliest line .. latest
   // line) overlaps the selected range. Using overlap instead of the single
@@ -14803,6 +15092,11 @@ function renderShipments(){
            <div style="font-size:13px;color:var(--text2);margin-top:7px;">No shipment on record has that ASIN, SKU or FBA ID.</div>`
         : `<div class="empty-t">No shipments found for this period</div>`}
     </div>`;
+    /* The bar was built AFTER this return, so an empty period did not blank it
+       — it never built it at all. That is the one moment you most want to see
+       how the week and the month are doing, and it becomes the normal view now
+       the page opens on Today. */
+    _paintShipBar();
     return;
   }
 
@@ -14859,28 +15153,105 @@ function renderShipments(){
     return a+pc.withVat;
   },0);
 
-  const sc=(label,val,col)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 6px;border-right:1px solid rgba(255,255,255,.06);">
-    <div style="font-size:15px;font-weight:900;font-family:var(--mono);color:${col};">${val}</div>
-    <div style="font-size:9.5px;color:#8b9bb3;margin-top:2px;text-transform:uppercase;letter-spacing:.06em;">${label}</div>
-  </div>`;
+  /* ── THE BAR ───────────────────────────────────────────────────────────────
+     Jack, 19 Aug: "i mainly look at them at a glance and see how the week, day
+     and month are doing", and "don't drop any info". So all seven metrics stay
+     and each answers day/week/month on its own — big figure for the period on
+     screen, the other two beneath it, and a 14-day trend behind it.
 
-  const summaryBar=`<div style="display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;">
-    ${sc('Shipments',fmt(shipments.length),'#60a5fa')}
-    ${sc('Units',fmt(sumUnits),'#4ade80')}
-    ${sc('SKU Lines',fmt(sumSkus),'#60a5fa')}
-    ${sc('ASINs',fmt(sumAsins),'#c084fc')}
-    ${sc('COG',fmtGBP2(sumCOG),'#fbbf24')}
-    ${sc('Boxes',fmt(sumBoxes),'#fb923c')}
-    ${sc('Prep Cost inc. VAT',fmtGBP2(sumPrep),'#fbbf24')}
-  </div>`;
-
-
-  w.innerHTML=_hitStrip+summaryBar+shipments.map(s=>{
+     The first cut of this was wrong in a way worth writing down: the tiles
+     reduced over the FILTERED shipments while the trend and the footers called
+     sentRollup, which knows only about dates. Turn LAV Only on and the Units
+     tile narrowed to Lavarion while the line and the footer under it still drew
+     the whole business — one measure over three periods is what it looked like,
+     two different populations is what it was. Everything below is computed from
+     ONE pool: every shipment matching the type / LAV / search filters, at every
+     date, so the only thing that varies between the four numbers is the period.
+     `_allDated` is the pre-date-filter snapshot, which is exactly that pool
+     once the same non-date filters are applied to it. */
+  const _pool=_allDated.filter(s2=>
+    (!typeF||s2.type===typeF)&&(!_shipLavOnly||s2.hasLav)&&(!q||_match(s2)));
+  const _mBox=s2=>shipBoxes[s2.id]||0;
+  const _mAsin=s2=>[...s2.skus.map(r=>r.asin),...s2.lavSkus.map(l=>l.asin),
+                    ...(s2.retSkus||[]).map(r=>r.asin)].filter(Boolean);
+  const _mSku=s2=>s2.skus.length+s2.lavSkus.length+(s2.retSkus||[]).length;
+  const _tot=list=>({
+    shipments:list.length,
+    units:list.reduce((a,x)=>a+(x.units||0),0),
+    value:list.reduce((a,x)=>a+(x.value||0),0),
+    boxes:list.reduce((a,x)=>a+_mBox(x),0),
+    skus:list.reduce((a,x)=>a+_mSku(x),0),
+    asins:new Set(list.flatMap(_mAsin)).size,
+    prep:list.reduce((a,x)=>{try{return a+calcImpliedPrepCost(x.skus,x.lavSkus,
+      shipBoxes[x.id]?{[x.id]:shipBoxes[x.id]}:{}).withVat;}catch(e){return a;}},0),
+  });
+  const _isoOf=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const _inRange=(x,a,b)=>{const d=x.date||x.minDate||'';return d&&d>=a&&d<=b;};
+  const _per=(function(){
+    const t=todayISO();
+    let ws=t,we=t,ms=t,me=t;
+    /* getWeekRange() with no argument inherits the DASHBOARD's week offset —
+       step Weekly Activity back and every "week …" figure here silently became
+       last week's. Pinned to 0, and ended at today so it matches the page's own
+       This Week filter exactly rather than running to Sunday. */
+    try{const r=getWeekRange(0);ws=_isoOf(r.s);we=t;}catch(e){}
+    try{const r=getMonthRange();ms=_isoOf(r.s);me=_isoOf(r.e);}catch(e){}
+    return{today:_tot(_pool.filter(x=>_inRange(x,t,t))),
+           week:_tot(_pool.filter(x=>_inRange(x,ws,we))),
+           month:_tot(_pool.filter(x=>_inRange(x,ms,me)))};})();
+  const _cur=(_shipDateFilter==='today')?'today':(_shipDateFilter==='week')?'week':(_shipDateFilter==='mtd')?'month':'';
+  /* The sparkline is gone. Fourteen points in 72px is a squiggle, not a fact —
+     and it answered a question ("what shape was the fortnight") nobody asked.
+     What IS asked, every morning, is "how are today, the week and the month
+     doing", so those three become the graphic: labelled, aligned in a row,
+     with the period currently on screen picked out in the tile's own colour
+     and the other two quiet. Same three numbers as before, readable. */
+  /* £4,660.63 does not fit a third of a tile — it was ellipsing to "£4,66…".
+     The small cells get a compact form; the big figure above stays exact. */
+  const _cash=v=>v>=1000?('£'+(v/1000).toFixed(v>=10000?0:1)+'k'):fmtGBP2(v);
+  const _sc=(label,val,col,key,fmtFn)=>{
+    const cells=['today','week','month'].map(k=>{
+      const v=(_per[k]||{})[key];
+      if(v==null)return '';
+      const on=(k===_cur);
+      return `<div class="shipKpiC${on?' on':''}">
+        <i>${k==='month'?'mth':k}</i>
+        <b style="${on?'color:'+col:''}">${fmtFn?fmtFn(v):fmt(v)}</b></div>`;}).filter(Boolean).join('');
+    return `<div class="shipKpi">
+      <div class="shipKpiV" style="color:${col}">${val}</div>
+      <div class="shipKpiL">${label}</div>
+      ${cells?`<div class="shipKpiG">${cells}</div>`:''}
+    </div>`;};
+  /* Named so the empty-period branch can paint it too — it used to be built
+     after that branch's return, so a quiet morning showed no bar at all. */
+  const _paintShipBar=()=>{
+    const el=document.getElementById('shipSummary');
+    if(!el)return;
+    const period=({today:'today',yesterday:'yesterday',week:'this week','7d':'last 7 days',
+      mtd:'this month',ytd:'this year',all:'all time',custom:'the dates you picked'})[_shipDateFilter]||'this period';
+    el.innerHTML=`<div class="shipBarP">Showing <b>${esc(period)}</b>${
+        typeF?` · ${esc(typeF)} only`:''}${_shipLavOnly?' · Lavarion only':''}${q?` · matching “${esc(q)}”`:''}</div>
+      <div class="shipBar">
+      ${_sc('Shipments',fmt(shipments.length),'#60a5fa','shipments')}
+      ${_sc('Units',fmt(sumUnits),'#4ade80','units')}
+      ${_sc('SKU Lines',fmt(sumSkus),'#60a5fa','skus')}
+      ${_sc('ASINs',fmt(sumAsins),'#c084fc','asins')}
+      ${_sc('COG',fmtGBP2(sumCOG),'#fbbf24','value',_cash)}
+      ${_sc('Boxes',fmt(sumBoxes),'#fb923c','boxes')}
+      ${_sc('Prep Cost inc. VAT',fmtGBP2(sumPrep),'#fbbf24','prep',_cash)}
+    </div>`;};
+  _paintShipBar();
+  w.innerHTML=_hitStrip+shipments.map(s=>{
     const dateDisp=s.date?new Date(s.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
     const sfUrl=`https://app.sellerfuse.com/shipment-manager?search=${encodeURIComponent(s.id)}`;
     const skuCount=s.skus.length+(s.lavSkus||[]).length+(s.retSkus||[]).length;
     const safeId=s.id.replace(/[^a-z0-9]/gi,'_');
     const tc=s.type==='DG'?'var(--red)':s.type==='Oversize'?'var(--amber)':'var(--blue)';
+    /* `background:${tc}22` emitted `var(--red)22`, which is not a colour, so
+       BOTH the background and the border shorthand were invalid and painted
+       nothing — the badge that flags dangerous goods rendered as plain text.
+       The app already ships the tinted pair for exactly this. */
+    const tbg=s.type==='DG'?'var(--red-bg)':s.type==='Oversize'?'var(--amber-bg)':'var(--blue-bg)';
     // Flag shipments with no box number entered — needs a box count before it's complete.
     const noBox=!s.boxes||s.boxes<=0;
     return`<div class="hgroup" id="ship-${safeId}"${noBox?' style="border:1px solid var(--red);border-left:4px solid var(--red);background:rgba(248,113,113,.06);border-radius:8px;"':''}>
@@ -14894,7 +15265,7 @@ function renderShipments(){
         <span onclick="event.stopPropagation();openShipDate('${s.id.replace(/'/g,"\\'")}')"
           title="Click to correct the shipment date — this sets the date on every line in it"
           style="font-size:10px;color:var(--text3);cursor:pointer;border-bottom:1px dashed var(--border);padding-bottom:1px;">${dateDisp} <span style="opacity:.5">✎</span></span>
-        <span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;background:${tc}22;color:${tc};border:1px solid ${tc}44;">${s.type||'Standard'}</span>
+        <span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;background:${tbg};color:${tc};border:1px solid ${tc};">${s.type||'Standard'}</span>
         ${s.hasLav?`<span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);">LAV</span>`:''}
         <span style="font-size:10px;color:var(--blue);font-weight:700;">${skuCount} SKU${skuCount!==1?'s':''}</span>
         <span style="font-size:10px;color:var(--green);font-weight:700;">${fmt(s.units)} units</span>
@@ -14913,7 +15284,7 @@ function renderShipments(){
           📦
           <input type="number" min="0" value="${s.boxes||''}" placeholder="0"
             style="width:56px;padding:2px 6px;background:var(--bg);border:1px solid ${noBox?'var(--red)':'var(--border2)'};border-radius:3px;color:var(--text);font-size:11px;font-family:var(--mono);font-weight:700;outline:none;text-align:center;"
-            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor=(+this.value>0)?'var(--border2)':'var(--red)'"
             onchange="shipBoxes['${s.id}']=+this.value;saveShipBoxes('${s.id}',+this.value);renderShipments();">
         </span>
         <a href="${sfUrl}" target="_blank" onclick="event.stopPropagation()" style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:var(--btn-sf-bg);color:var(--btn-sf-text);border:1px solid var(--btn-sf-border);border-radius:4px;font-size:10px;font-weight:700;font-family:var(--mono);text-decoration:none;white-space:nowrap;">SF ↗</a>
@@ -19192,7 +19563,10 @@ async function saveEditRetLine(){
 }
 
 let _shipLavOnly=false;
-let _shipDateFilter='mtd';
+/* Jack, 19 Aug: "default should always open on today". It opened on
+   month-to-date, and groups sort oldest-first, so today's shipment — the one
+   thing the page is opened for — was the LAST item after weeks of history. */
+let _shipDateFilter='today';
 function toggleShipLavFilter(){
   _shipLavOnly=!_shipLavOnly;
   const btn=document.getElementById('shipLavBtn');
@@ -20065,7 +20439,7 @@ setInterval(updateClock,60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v27.2 · lav3 · 2026-08-18 · b283';
+const BUILD='v28.5 · lav3 · 2026-08-19 · b296';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -20452,6 +20826,10 @@ async function pushNow(){
 }
 /* products and components still save through the app's existing helpers */
 function saveProductSrc(p){
+  /* Lead time rides in prefs keyed by ASIN, the same shape the at-Amazon and
+     sold-30 figures already use, so it needs no new database column. */
+  try{const el=document.getElementById('e-lead');
+    if(el&&p.asin)setLead(p.asin,el.value);}catch(e){}
   const a=p._src;if(!a)return;
   const oldAsin=a.asin;
   a.prod=p.name;a.asin=p.asin;a.sku=p.sku;a.vat=p.vat;a.ptype=p.type;
@@ -21481,6 +21859,75 @@ function demand30(p){const s=sold30(p);return s!=null?s:(p.ship30||0);}   // sal
 function target60(p){const d=sold30(p);if(d==null||!d)return null;
   const days=D.settings.targetDays||60;
   return Math.round(d/30*days);}
+/* ══════════════ REPLENISHMENT — WHEN, AND HOW MUCH ══════════════════════
+   From the UK team's brief, 19 Aug. The whole point is that these are TWO
+   questions and the old page answered them with one number.
+
+     WHEN  = (current relevant stock / average daily sales) - lead time
+     HOW MUCH = average daily sales x the period you pick (normally 60 days)
+
+   What it replaces: "we are 19 below the 60-day target, so order 19". Order 19
+   and thirty days later you are 73 down and ordering again — a small top-up
+   every single month, forever. Existing stock decides WHEN the next order goes
+   in; it does not decide how big it is.
+
+   Sales land from the hub on the 5th-6th for the month before, so this is
+   LAST FULL MONTH, not a rolling 30 days. Every label says which month. */
+function adsOf(p){const s=sold30(p);return (s==null||s<=0)?null:s/30;}
+/* Lead time is per product and typed in by hand — never guessed from the
+   supplier, the country or the components. Blank means blank: the row says so
+   rather than borrowing a number from somewhere else. */
+function leadOf(p){
+  const m=D.settings.leadDays||{};
+  const v=m[p.asin];
+  const n=parseInt(v);
+  return Number.isFinite(n)&&n>0?n:null;
+}
+function setLead(asin,v){
+  D.settings.leadDays=D.settings.leadDays||{};
+  const n=parseInt(v);
+  if(Number.isFinite(n)&&n>0)D.settings.leadDays[asin]=n; else delete D.settings.leadDays[asin];
+  savePrefs();
+}
+/* Sellable at Amazon + already landing there + what we could build here now.
+   Components ON ORDER are deliberately excluded (Jack, 19 Aug): they are not
+   finished units, and counting them would report cover that does not exist. */
+function relStock(p){
+  const at=atAmz(p),inb=amzIn(p);
+  if(at==null&&inb==null&&p.type!=='bundle')return null;
+  return (at||0)+(inb||0)+((avail(p)||{}).n||0);
+}
+function daysCover(p){const a=adsOf(p);if(a==null)return null;
+  const st=relStock(p);if(st==null)return null;return st/a;}
+/* Live, every render — never a countdown from a date worked out weeks ago.
+   Sales move, so the answer moves. */
+function reorderIn(p){
+  const ads=adsOf(p);
+  if(ads==null)return{k:'nosales',days:null,ads:null,cover:null,lead:leadOf(p),stock:relStock(p)};
+  const lead=leadOf(p);
+  const cover=daysCover(p);
+  if(cover==null)return{k:'nostock',days:null,ads,cover:null,lead,stock:null};
+  if(lead==null)return{k:'nolead',days:null,ads,cover,lead:null,stock:relStock(p)};
+  const days=cover-lead;
+  return{k:days<=0?'due':'ok',days,ads,cover,lead,stock:relStock(p)};
+}
+/* How much to order when it IS due — the period's worth of forecast demand,
+   NOT the gap to a target. Rounded up: you cannot build 145.2 of something. */
+function replenQty(p,days){
+  const ads=adsOf(p);if(ads==null)return null;
+  return Math.ceil(ads*(days||D.settings.replenDays||60));
+}
+/* One place decides the colour so the cell and the sort agree. Never dims with
+   opacity — a settled row gets an explicit colour. */
+function reorderState(r){
+  if(!r||r.k==='nosales')return{col:'var(--muted2)',txt:'no recent sales'};
+  if(r.k==='nostock')return{col:'var(--muted2)',txt:'not counted yet'};
+  if(r.k==='nolead')return{col:'var(--muted2)',txt:'set a lead time'};
+  if(r.days<=0)return{col:'var(--red)',txt:'DUE NOW'};
+  if(r.days<=7)return{col:'var(--amb)',txt:fmt(Math.round(r.days))+' days'};
+  if(r.days<=30)return{col:'var(--text)',txt:fmt(Math.round(r.days))+' days'};
+  return{col:'var(--grn)',txt:fmt(Math.round(r.days))+' days'};
+}
 /* weekly usage from shipped-30d -> cover in weeks */
 function coverWeeks(p){const a=avail(p);const wk=demand30(p)/4.35;if(!wk)return null;return (a.n||0)/wk;}
 function compWeekUse(c){
@@ -21944,10 +22391,11 @@ const sortTh=(which,k,label,sub)=>{
     title="Sort by this${on?' — click again to reverse':''}">${label}<span class="thArr">${on?(dir>0?'▲':'▼'):'↕'}</span>
     ${sub?`<span class="thSub">${sub}</span>`:''}</button>`;
 };
-const P_SORTS=[['name','Name A–Z'],['short','Furthest below target'],['avail','Least available'],
-               ['atamz','Least at Amazon'],['sold','Best selling'],['cog','Highest COG'],['incoming','Most incoming']];
-const C_SORTS=[['name','Name A–Z'],['short','Furthest short'],['low','Least on hand'],
-               ['used','Used in most'],['order','Most on order']];
+const P_SORTS=[['name','Name A–Z'],['reorder','Reorder in — soonest first'],['short','Furthest below target'],
+               ['avail','Least available'],['atamz','Least at Amazon'],['sold','Best selling'],
+               ['cog','Highest COG'],['incoming','Most incoming']];
+const C_SORTS=[['name','Name A–Z'],['short','Furthest short'],['cover','Least cover'],
+               ['low','Least on hand'],['used','Used in most'],['order','Most on order']];
 const incOf=p=>p.type==='bundle'
   ? p.recipe.reduce((t,r)=>{const c=comp(r.c);return t+(c?onOrder(c):0);},0) : onOrder(p);
 function sortProducts(rows){
@@ -21959,6 +22407,11 @@ function sortProducts(rows){
     sold:(a,b)=>demand30(b)-demand30(a),
     cog:(a,b)=>(cogOf(b,1).per||0)-(cogOf(a,1).per||0),
     incoming:(a,b)=>incOf(b)-incOf(a),
+    /* numeric, so 2 days sorts above 10 days. DUE NOW keeps its negative value
+       internally so the most overdue leads; anything we cannot work out sorts
+       to the bottom rather than pretending to be urgent. */
+    reorder:(a,b)=>{const x=reorderIn(a).days,y=reorderIn(b).days;
+      if(x==null&&y==null)return 0; if(x==null)return 1; if(y==null)return -1; return x-y;},
     /* soonest deadline first — the one that has to leave today comes above the
        one that has to leave in a fortnight */
     send:(a,b)=>{const x=sendBy(a),y=sendBy(b);return (x?x.left:1e9)-(y?y.left:1e9);}
@@ -21980,7 +22433,11 @@ function sortComponents(rows){
     short:(a,b)=>compShort60(b)-compShort60(a),
     low:(a,b)=>onHand(a)-onHand(b),
     used:(a,b)=>usedIn(b.id).length-usedIn(a.id).length,
-    order:(a,b)=>onOrder(b)-onOrder(a)
+    order:(a,b)=>onOrder(b)-onOrder(a),
+    /* a part with no known demand has no cover — it sorts last rather than
+       pretending to be the best-covered thing on the page */
+    cover:(a,b)=>{const A=compCover(a),B=compCover(b);
+      if(A==null&&B==null)return 0; if(A==null)return 1; if(B==null)return -1; return A-B;}
   };
   const f=by[cSort]||by.name;
   return rows.slice().sort((a,b)=>cDir*f(a,b));
@@ -22028,7 +22485,7 @@ function vProducts(){
       ${COL('pOrdered')?'<th style="width:84px">Ordered</th>':''}
       ${COL('pSold')?`<th style="width:110px" title="Total units sold on Amazon, read straight from the BDL hub's monthly report. Nothing is typed in here and this app never writes back to the hub.">${sortTh('p','sold','Sold',(()=>{const M=hubMonth();return M.ym?esc(ymName(M.ym)):'last month';})())}</th>`:''}
       ${COL('pTarget')?`<th style="width:112px" title="How many units should be sitting at Amazon: ${D.settings.targetDays||60} days at the rate it sold last month. Without a sales figure this stays empty rather than guessing.">${sortTh('p','short',(D.settings.targetDays||60)+'d target',D.products.filter(x=>!x.archived).every(x=>sold30(x)==null)?(HUB.state==='loading'?'reading the hub…':'no sales in'):'')}</th>`:''}
-      ${COL('pSendBy')?`<th style="width:142px" title="The last WORKING day fresh stock can leave here and still be Prime-eligible before this runs out. ${primeDays()} working days for Amazon to switch a shipment on — change that in Settings. Weekends are never counted.">${sortTh('p','send','Send by',D.products.filter(x=>!x.archived).every(x=>!sendBy(x))?'needs stock + sales':'')}</th>`:''}
+      ${COL('pSendBy')?`<th style="width:142px" title="How long before this needs reordering: how many days of stock you hold, minus this product's lead time. Recalculated from the latest figures every time — never a countdown.">${sortTh('p','reorder','Reorder in',D.products.filter(x=>!x.archived).every(x=>reorderIn(x).days==null)?'needs sales + lead time':'')}</th>`:''}
       ${COL('pCog')?`<th style="width:86px">${sortTh('p','cog','COG / unit')}</th>`:''}<th class="acts" style="width:132px"></th>
     </tr></thead><tbody>
     ${rows.length?rows.map(p=>prodRow(p)).join(''):`<tr><td colspan="${5+['pIncoming','pOrdered','pSold','pTarget','pSendBy','pCog'].filter(COL).length}" class="empty">${D.products.length?'Nothing matches this filter.':
@@ -22309,20 +22766,16 @@ function prodRow(p){
         <span class="tgtN">${fmt(t)}</span>
         <span class="tgtS">${gap>0?`${fmt(gap)} short`:'covered'}</span>
         <span class="tgtBar"><i style="width:${Math.max(2,Math.min(100,pct))}%"></i></span></button>`;})()}</td>`:''}
-    ${COL('pSendBy')?`<td title="${(()=>{const sb=sendBy(p);return sb
-        ?`Send by ${dshort(sb.send)} · runs out around ${dshort(sb.outOn)} · ${primeDays()} working days for Amazon to switch it on`
-        :(atAmz(p)==null?'Nobody has counted this at Amazon yet':'No sales figure, so there is nothing to work it out from');})()}">${(()=>{
-      const sb=sendBy(p);
-      if(!sb)return `<span class="dim" style="font-size:13px">&mdash;</span>
-        <div class="pmeta" style="text-align:center">${atAmz(p)==null?'not counted':'no sales figure'}</div>`;
-      const st=sendState(sb);
-      if(st.k==='far')return `<span class="dim" style="font-size:13px">&mdash;</span>
-        <div class="pmeta" style="text-align:center">well covered</div>`;
-      const when=st.k==='late'?`${fmt(-sb.left)} working day${sb.left===-1?'':'s'} late`
-        :st.k==='today'?'leave today'
-        :`in ${fmt(sb.left)} working day${sb.left===1?'':'s'}`;
-      return `<span class="num b" style="font-size:13.5px;color:${st.col}">${st.k==='late'?'send now':dshort(sb.send)}</span>
-        <div class="pmeta" style="text-align:center;color:${st.col};font-weight:700;white-space:nowrap">${when}</div>`;})()}</td>`:''}
+    ${COL('pSendBy')?`<td title="${(()=>{const r=reorderIn(p);
+        if(r.k==='nosales')return 'No sales figure for '+esc(ymName(hubMonth().ym)||'the last month')+', so there is nothing to work it out from';
+        if(r.k==='nolead')return 'This product has no lead time yet — set one on the product to get a reorder date';
+        if(r.k==='nostock')return 'Nobody has counted this at Amazon yet';
+        return `${fmt(Math.round(r.cover))} days of stock at ${r.ads.toFixed(2)}/day, minus ${fmt(r.lead)} days lead time`;})()}">${(()=>{
+      const r=reorderIn(p),st=reorderState(r);
+      if(r.days==null)return `<span class="dim" style="font-size:13px">&mdash;</span>
+        <div class="pmeta" style="text-align:center">${st.txt}</div>`;
+      return `<span class="num b" style="font-size:13.5px;color:${st.col}">${st.txt}</span>
+        <div class="pmeta" style="text-align:center;white-space:nowrap">${fmt(Math.round(r.cover))}d cover &minus; ${fmt(r.lead)}d lead</div>`;})()}</td>`:''}
     ${COL('pCog')?`<td>${cg.short
       ? (cg.noPrice
         ? `<span style="font-size:12px;color:var(--red)">!</span><div class="pmeta" style="text-align:center;color:var(--red);font-weight:700">price missing</div>`
@@ -22630,6 +23083,13 @@ function editProduct(id){
         <div class="edrow" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div><span class="lab">VAT</span><select class="in" id="e-vat">${['20','5','0'].map(v=>`<option ${p.vat===v?'selected':''}>${v}%</option>`).join('')}</select></div>
           <div><span class="lab">Shipped 30d <span style="text-transform:none;font-weight:600">(demo)</span></span><input class="in mono" id="e-s30" type="number" value="${p.ship30||0}" oninput="LV3.recipePreview()"></div></div>
+        ${/* Lead time is entered by hand, per product, and nothing infers it —
+             it already accounts for the supplier, the build, the trip to Amazon
+             and Amazon switching it on. Calendar days, not working days. */''}
+        <div class="edrow"><span class="lab">Lead time (days)</span>
+          <input class="in mono" id="e-lead" type="number" min="1" step="1"
+            value="${leadOf(p)!=null?leadOf(p):''}" placeholder="e.g. 10">
+          <div class="pmeta" style="margin-top:4px;white-space:normal">Calendar days from placing the order to it being on sale at Amazon — supplier, build, shipping and Amazon check-in all included. Nothing is added on top.</div></div>
         <div id="livePrev"></div>
       </div>
       <div id="recipeWrap"></div>
@@ -23207,38 +23667,75 @@ function vComponents(){
            so the browser inflated all seven proportionally — that is where the
            dead space came from. Now only "Used in" is free, so the slack goes
            to the one column that has something to say with it. */''}
-      <th class="l" style="width:250px">${sortTh('c','name','Component')}</th><th style="width:84px">${sortTh('c','low','On hand')}</th>
-      ${COL('cOnOrder')?`<th style="width:84px">${sortTh('c','order','On order')}</th>`:''}
-      ${COL('cOrdered')?'<th style="width:96px">Ordered</th>':''}
-      ${COL('cUsed')?`<th class="l" style="min-width:200px">${sortTh('c','used','Used in')}</th>`:''}<th class="acts" style="width:250px"></th>
+      <th class="l" style="width:238px">${sortTh('c','name','Component')}</th>
+      <th style="width:104px">${sortTh('c','low','On hand')}<span class="thS">value at cost</span></th>
+      ${/* ON ORDER and ORDERED were fed by the same unarrived-layer set, so they
+           were guaranteed to be blank TOGETHER — 85 of 87 rows, two columns,
+           about 160 near-white em-dashes as the loudest thing on the page.
+           compShort60 and compCover are computed for every row on every render
+           and were spent tinting one number amber. Now they are printed, and
+           on-order rides inside On hand where it belongs. */''}
+      <th style="width:96px">${sortTh('c','short','Short')}<span class="thS">next 60 days</span></th>
+      <th style="width:88px">${sortTh('c','cover','Cover')}<span class="thS">weeks left</span></th>
+      ${COL('cUsed')?`<th class="l" style="min-width:170px">${sortTh('c','used','Used in')}</th>`:''}
+      <th class="l" style="width:132px">Supplier<span class="thS">last paid</span></th>
+      <th class="acts" style="width:150px">Action</th>
     </tr></thead><tbody>
     ${rows.length?rows.map(c=>{
       const h=onHand(c),oo=onOrder(c),nx=nextIn(c),need=compNeed60(c),short=compShort60(c),old=arrLayers(c).filter(l=>l.rem>0)[0];
       const uses=usedIn(c.id);
-      const col=h===0?'var(--red)':short>0?'var(--amber)':'var(--green)';
+      /* ONE colour rail carries the state; the figures stay plain. Jack, 19 Aug:
+         "don't over complicate it with loads of colours". Untracked and
+         no-demand parts are grey on purpose — a green "covered" on a part whose
+         demand nobody knows is a guess wearing a fact's clothes. */
+      const wk=(function(){try{return compWeekUse(c);}catch(e){return null;}})();
+      const cov=(function(){try{return compCover(c);}catch(e){return null;}})();
+      const unknown=c.untracked||need==null||(wk==null&&!short);
+      const rail=unknown?'var(--muted2)':h===0?'var(--red)':short>0?'var(--amb)':'var(--grn)';
+      const sup=(function(){try{return usualSupplier(c)||'';}catch(e){return '';}})();
+      const avg=(function(){try{return avgCostOf(c);}catch(e){return 0;}})();
       return `<tr style="cursor:pointer" class="${CSEL.has(c.id)?'picked':''}" onclick="LV3.openComp('${c.id}')">
         <td onclick="event.stopPropagation()" style="text-align:center">
           <input type="checkbox" ${CSEL.has(c.id)?'checked':''} onclick="LV3.cselOne('${c.id}',this.checked)"></td>
-        <td class="l"><div class="pname" style="font-size:12.5px">${esc(c.name)}</div>
-          <div style="margin-top:4px;display:flex;gap:5px;align-items:center">
+        <td class="l cRail" style="box-shadow:inset 3px 0 0 ${rail}">
+          <div class="pname" style="font-size:12.5px">${esc(c.name)}</div>
+          <div style="margin-top:4px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">
             <span class="chip ${c.kind}">${c.kind==='packaging'?'Packaging':'Component'}</span>
             ${c.kind!=='packaging'?`<span class="chip ${esc(c.tag||'complementary')}">${({branded:'Branded','private-label':'Private label',complementary:'Complementary'})[c.tag||'complementary']}</span>`:''}
             ${c.untracked?'<span class="chip">not tracked</span>':''}
             ${c.caseQty?`<span class="pmeta" style="margin:0">case of ${fmt(c.caseQty)}</span>`:''}</div></td>
-        <td><span class="num" style="color:${col}">${fmt(h)}</span>
-          <div class="pmeta">${arrLayers(c).filter(l=>l.rem>0).length} batch${arrLayers(c).filter(l=>l.rem>0).length===1?'':'es'}</div></td>
-        ${COL('cOnOrder')?`<td><span class="num ${oo?'b':'dim'}">${oo?fmt(oo):'—'}</span></td>`:''}
-        ${COL('cOrdered')?`<td>${nx?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(nx.date)}</span><div class="pmeta">${esc(nx.sup.split('—')[0].trim())}</div>`:'<span class="dim">—</span>'}</td>`:''}
-        ${COL('cUsed')?`<td class="l">${uses.length?`<div class="useWrap">${uses.map(u=>
-            `<button class="useChip" title="Open ${esc(u.name)}" onclick="event.stopPropagation();LV3.openProduct('${u.id}')">${esc(u.name)}</button>`).join('')}</div>`
-          :'<span class="dim">not used yet</span>'}</td>`:''}
-        <td class="acts" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:flex-end">
+        <td><span class="num">${fmt(h)}</span>
+          ${oo?`<div class="pmeta" style="color:var(--blu)">+${fmt(oo)} coming${nx?' · '+dshort(nx.date):''}</div>`:''}
+          <div class="pmeta">${avg?gbp(h*avg)+' at cost':(arrLayers(c).filter(l=>l.rem>0).length+' batch'+(arrLayers(c).filter(l=>l.rem>0).length===1?'':'es'))}</div></td>
+        <td>${unknown
+            ? `<span class="num dimNum">?</span><div class="pmeta">${c.untracked?'not tracked':'demand unknown'}</div>`
+            : short>0
+              ? `<span class="num" style="color:var(--amb)">${fmt(short)}</span><div class="pmeta">units${wk?' · '+fmt(wk)+'/wk':''}</div>`
+              : `<span class="num dimNum">—</span><div class="pmeta">covered</div>`}</td>
+        <td>${unknown||cov==null
+            ? '<span class="num dimNum">?</span>'
+            : `<span class="num">${cov>52?'52+':fmt(cov)}</span><div class="pmeta">week${cov===1?'':'s'}</div>`}</td>
+        ${COL('cUsed')?`<td class="l">${uses.length?`<div class="useWrap">${uses.slice(0,2).map(u=>
+            `<button class="useChip" title="Open ${esc(u.name)}" onclick="event.stopPropagation();LV3.openProduct('${u.id}')">${esc(u.name)}</button>`).join('')}${
+            uses.length>2?`<span class="pmeta" style="margin:0">+${uses.length-2} more</span>`:''}</div>`
+          :'<span class="dimNum">not used yet</span>'}</td>`:''}
+        <td class="l">${sup?`<div style="font-size:12px;color:var(--text2)">${esc(sup)}</div>`:'<span class="dimNum">—</span>'}
+          ${avg?`<div class="pmeta">${gbp(avg)} each</div>`:''}</td>
+        <td class="acts" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:flex-end;align-items:center">
           ${c.archived?`<button class="btn sm go" onclick="LV3.setArchived('component','${c.id}',false)">Restore</button>`
-            :`<button class="btn sm" onclick="LV3.openAdjust('component','${c.id}')">Adjust</button>
-              <button class="btn sm" title="Book in stock you already have" onclick="LV3.openAddBatch('${c.id}','component')">+ Batch</button>
-              <button class="btn sm" title="Put this part into a product's build list" onclick="LV3.openUseIn('${c.id}')">+ Product</button>
-              <button class="btn sm dots" title="Archive, correct stock or delete" onclick="LV3.rowMenu(event,'component','${c.id}')">⋯</button>`}</div></td></tr>`;}).join('')
-      :`<tr><td colspan="${4+['cOnOrder','cOrdered','cUsed'].filter(COL).length}" class="empty">${D.components.length?'Nothing matches this filter.':
+            : (function(){
+                /* ONE action that changes with the situation, and the rest in the
+                   menu. Four buttons on 87 rows was 348 buttons on one screen,
+                   and not one of them was "buy more of this" — the thing you
+                   have just been told to do. */
+                const cases=(short>0&&c.caseQty>1)?Math.ceil(short/c.caseQty):0;
+                const primary=short>0
+                  ? `<button class="btn sm pri" title="Log an order for this part" onclick="LV3.openLogOrder('${c.id}')">${cases?`Order ${fmt(cases)} case${cases===1?'':'s'}`:`Order ${fmt(short)}`}</button>`
+                  : (oo?`<button class="btn sm" title="Book in what has arrived" onclick="LV3.openAddBatch('${c.id}','component')">Receive</button>`
+                       :`<button class="btn sm" title="Book in stock you already have" onclick="LV3.openAddBatch('${c.id}','component')">+ Batch</button>`);
+                return primary+`<button class="btn sm dots" title="Adjust, add to a build list, archive or delete" onclick="LV3.rowMenu(event,'component','${c.id}')">⋯</button>`;
+              })()}</div></td></tr>`;}).join('')
+      :`<tr><td colspan="${6+['cUsed'].filter(COL).length}" class="empty">${D.components.length?'Nothing matches this filter.':
    'No components yet.<div style="margin-top:10px;display:flex;gap:7px;justify-content:center"><button class="btn pri" onclick="LV3.openBulkComp()">Bulk add components</button><button class="btn" onclick="LV3.editComp(null)">Add one</button></div>'}</td></tr>`}
     </tbody></table>
   </div>
@@ -24593,7 +25090,13 @@ function rsSave(){
     else localStorage.removeItem(RS_KEY);
   }catch(e){}
 }
-function rsDefaultQty(p){const s=sold60(p);return (s&&s.real&&s.n>0)?s.n:50;}
+/* WAS: sold60 — the two most recent months ADDED UP, i.e. what actually sold,
+   which is why Restocks said 167 while the Products page said 146. That is
+   history, not a forecast, and the brief asks for a forecast.
+   NOW: the latest month's daily rate x the replenishment period. And no more
+   inventing 50 when there is no sales figure — a made-up number in a costed
+   plan is the thing the team keeps getting bitten by. */
+function rsDefaultQty(p){return replenQty(p,D.settings.replenDays||60)||0;}
 function rsSet(id){
   const p=prod(id);if(!p)return;
   if(!RS_PICKS[id])RS_PICKS[id]=rsDefaultQty(p);
@@ -24738,30 +25241,54 @@ function vRestocks(){
         const own=restockPlan(x,q),ownShort=own.filter(y=>!y.ok);
         const open=!!RS_OPEN[x.id];
         return `<div class="rsPick2${(x.recipe||[]).length?'':' noList'}${open?' open':''}">
-          <div class="rsP2N">
-            <button class="rsChev" onclick="LV3.rsToggle('${x.id}')"
-              title="${open?'Fold this log away':'Open this log and check the parts'}">${open?'&#9662;':'&#9656;'}</button>
-            <div>
-              <span class="nm">${esc(x.name)}</span>
-              <span class="mt">${asinBtn(x.asin)} · ${(x.recipe||[]).length} part${(x.recipe||[]).length===1?'':'s'}${
-                ownShort.length?` · <b style="color:var(--red)">${fmt(ownShort.length)} to order</b>`:(own.length?' · <b style="color:var(--grn)">all covered</b>':'')}</span>
+          ${(()=>{
+            /* Step by the smallest case on this build, not a hardcoded 25 — on a
+               plan of 22 the old buttons could only reach 0 or 47, never the
+               number the page itself recommends. */
+            const cq=own.map(y=>parseInt(y.caseQty)||0).filter(v=>v>1);
+            const step=cq.length?Math.min.apply(null,cq):10;
+            const per=n=>(n===2&&s2.n!=null)?s2.n:(sold!=null?sold*n:null);
+            const opts=[1,2,3].map(n=>{const v=per(n);
+              return `<option value="${v==null?'':v}"${v!=null&&v===q?' selected':''}${v==null?' disabled':''}>${n} month${n===1?'':'s'}${v==null?'':' · '+fmt(v)}</option>`;}).join('');
+            return `
+          <div class="rsHd">
+            <div class="rsHdN" style="display:flex;gap:8px;align-items:flex-start">
+              <button class="rsChev" onclick="LV3.rsToggle('${x.id}')"
+                title="${open?'Fold this log away':'Open this log and check the parts'}">${open?'&#9662;':'&#9656;'}</button>
+              <div>
+                <span class="nm2">${esc(x.name)}</span>
+                <span class="mt2">${asinBtn(x.asin)} · ${(x.recipe||[]).length} component${(x.recipe||[]).length===1?'':'s'}</span>
+                ${ownShort.length?`<span class="ordn" style="color:var(--red)"><i class="dt"></i>${fmt(ownShort.length)} component${ownShort.length===1?'':'s'} need ordering</span>`
+                  :(own.length?`<span class="ordn" style="color:var(--grn)"><i class="dt"></i>everything covered</span>`:'')}
+              </div>
             </div>
-          </div>
-          <div class="rsP2F">
-            <span><i>Sold ${esc(ymName(hubMonth().ym))}</i><b>${sold!=null?fmt(sold):'—'}</b></span>
-            <span><i>Two months</i><b>${s2.n==null?'—':fmt(s2.n)}</b></span>
-            <span><i>At Amazon</i><b>${at==null?'—':fmt(at)}${amzIn(x)?`<span style="color:var(--blu);font-size:11px"> +${fmt(amzIn(x))}</span>`:''}</b></span>
-            <span><i>Backstock</i><b>${fmt(have)}</b></span>
-          </div>
-          <div class="rsP2B">
-            <button class="rsPm" onclick="LV3.rsQty('${x.id}',${Math.max(0,q-25)})">&minus;</button>
-            <input class="rsQty" type="number" min="0" value="${q}" onchange="LV3.rsQty('${x.id}',this.value)">
-            <button class="rsPm" onclick="LV3.rsQty('${x.id}',${q+25})">+</button>
-            ${s2.n==null?'':`<button class="rsChip ${s2.n===q?'on':''}"
-              title="${s2.real?'Both months added up':"Twice last month — only one month's data in"}"
-              onclick="LV3.rsQty('${x.id}',${s2.n})">2 months · ${fmt(s2.n)}</button>`}
-            <button class="btn sm dots" title="Take this one out" onclick="LV3.rsDrop('${x.id}')">&#10005;</button>
-          </div>
+            <div class="rsMx">
+              <span><i class="k">Sold ${esc(ymName(hubMonth().ym))}</i><b class="v${sold!=null?'':' none'}">${sold!=null?fmt(sold):'—'}</b><i class="u">${sold!=null?'units':'no figure'}</i></span>
+              <span><i class="k">2-month sales</i><b class="v${s2.n==null?' none':''}">${s2.n==null?'—':fmt(s2.n)}</b><i class="u">${s2.n==null?'no figure':'units'}</i></span>
+              <span><i class="k">At Amazon</i><b class="v${at==null?' none':''}">${at==null?'—':fmt(at)}${amzIn(x)?`<span style="color:var(--blu);font-size:11px"> +${fmt(amzIn(x))}</span>`:''}</b><i class="u">${at==null?'never counted':'units'}</i></span>
+              <span><i class="k">Backstock</i><b class="v">${fmt(have)}</b><i class="u">unit${have===1?'':'s'}</i></span>
+            </div>
+            <div class="rsCtl">
+              <div><span class="k">Target stock</span>
+                <div class="rsStep">
+                  <button class="rsPm" title="Down one case (${fmt(step)})" onclick="LV3.rsQty('${x.id}',${Math.max(0,q-step)})">&minus;</button>
+                  <input class="rsQty" type="number" min="0" step="${step}" value="${q}" onchange="LV3.rsQty('${x.id}',this.value)">
+                  <button class="rsPm" title="Up one case (${fmt(step)})" onclick="LV3.rsQty('${x.id}',${q+step})">+</button>
+                </div><i class="rsStepU">units</i></div>
+              <div><span class="k">Target period</span>
+                <select class="rsSel" ${per(1)==null&&per(2)==null?'disabled title="No sales figure for this product yet"':''}
+                  onchange="if(this.value)LV3.rsQty('${x.id}',this.value)">
+                  ${/* Custom is what the box SAYS when the number matches no
+                       period — it was selectable and did nothing, because its
+                       value is empty and the handler guards on truthiness.
+                       Disabled: it can be shown, never chosen. */''}
+                  <option value="" disabled${[1,2,3].every(n=>per(n)!==q)?' selected':''}>Custom</option>
+                  ${opts}
+                </select></div>
+              <div><span class="k">&nbsp;</span>
+                <button class="btn sm dots" title="Take this one out" onclick="LV3.rsDrop('${x.id}')">&#10005;</button></div>
+            </div>
+          </div>`;})()}
           ${open?`<div class="rsLog">
             ${!own.length?`<div class="pmeta">No build list — nothing to work out for this one.</div>`
             :`<table class="rsTbl tight mini"><thead><tr>
@@ -24792,34 +25319,51 @@ function vRestocks(){
         <div class="rsEmT">Nothing to work out yet</div>
         <div class="rsEmB">None of the products picked have a build list.</div>
       </div></div>`
-    :`<div class="rsSum">
-        <span class="rsS ${short.length?'bad':'ok'}"><b>${short.length?fmt(short.length):'0'}</b>
-          ${short.length?'to order':'nothing to order'}<i>of ${fmt(plan.length)} parts</i></span>
-        ${(()=>{
-          if(!nCases&&!nLoose)return `<span class="rsS ok"><b>0</b>to buy<i>everything is covered</i></span>`;
-          if(nCases&&nLoose)return `<span class="rsS warn"><b>${fmt(nCases)}</b>cases<i>plus ${fmt(nLoose)} loose units</i></span>`;
-          if(nCases)return `<span class="rsS warn"><b>${fmt(nCases)}</b>cases<i>rounded up — you can't buy part of a case</i></span>`;
-          return `<span class="rsS warn"><b>${fmt(nLoose)}</b>units<i>none of these come in cases</i></span>`;})()}
-        <span class="rsS"><b>${gbp(spend)}</b>roughly<i>at what you last paid</i></span>
+    :`${(()=>{
+        /* Inline SVG, currentColor, no emoji and no image files — the icon has
+           to theme with the card and survive with no network. The carton is
+           drawn face-on so it can never be mistaken for the isometric cube. */
+        const I={cart:'<svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.6 12.2a1.6 1.6 0 0 0 1.6 1.3h8.4a1.6 1.6 0 0 0 1.6-1.3L21 7H6"/></svg>',
+                 box:'<svg viewBox="0 0 24 24"><path d="M2.6 8.6h18.8v10.3a1.5 1.5 0 0 1-1.5 1.5H4.1a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M2.6 8.6 4.9 4.3A1.5 1.5 0 0 1 6.2 3.5h11.6a1.5 1.5 0 0 1 1.3.8l2.3 4.3"/><path d="M12 3.5v5.1"/><path d="M9.4 13.2h5.2"/></svg>',
+                 coin:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M14.2 9.1a2.9 2.9 0 0 0-4.9 2.1V16h5.3"/><path d="M9 13h4.4"/></svg>',
+                 cube:'<svg viewBox="0 0 24 24"><path d="M12 2.8 20.2 7v10L12 21.2 3.8 17V7z"/><path d="M3.8 7 12 11.4 20.2 7"/><path d="M12 11.4v9.8"/></svg>',
+                 tick:'<svg viewBox="0 0 24 24"><path d="M9 5h6a1.6 1.6 0 0 1 1.6 1.6V7H7.4v-.4A1.6 1.6 0 0 1 9 5z"/><path d="M16.6 6.2H18a1.8 1.8 0 0 1 1.8 1.8v10.6A1.8 1.8 0 0 1 18 20.4H6A1.8 1.8 0 0 1 4.2 18.6V8A1.8 1.8 0 0 1 6 6.2h1.4"/><path d="m8.8 13.4 2.2 2.2 4.2-4.4"/></svg>'};
+        const card=(cls,ico,val,lab,sub)=>`<span class="rsS ${cls}"><span class="rsIco">${ico}</span>
+          <span class="rsTx"><b>${val}</b><em>${lab}</em><i>${sub}</i></span></span>`;
+        /* the middle line is the metric's NAME. It was "roughly" on the money
+           card (an adverb left over from an inline sentence) and bare unit
+           words on the buy card, which only repeated the figure's own unit. */
+        const buy=(!nCases&&!nLoose)?card('ok',I.box,'0','nothing to buy','every part is covered')
+          :(nCases&&nLoose)?card('warn',I.box,fmt(nCases),'cases to buy','plus '+fmt(nLoose)+' loose units')
+          :nCases?card('warn',I.box,fmt(nCases),'cases to buy',"rounded up — you can't buy part of a case")
+          :card('warn',I.box,fmt(nLoose),'units to buy','none of these come in cases');
+        return `<div class="rsSum">
+        ${card(short.length?'bad':'ok',I.cart,short.length?fmt(short.length):'0',
+               short.length?('component'+(short.length===1?'':'s')+' to order'):'nothing to order',
+               short.length?('of '+fmt(plan.length)+' in this build'):('all '+fmt(plan.length)+' parts covered'))}
+        ${buy}
+        ${card('cash',I.coin,gbp(spend),'estimated spend','at what you last paid')}
         ${multi
-          ? `<span class="rsS ${shared.length?'shared':''}"><b>${fmt(shared.length)}</b>shared parts<i>counted once, not once each</i></span>`
-          : `<span class="rsS"><b>${fmt(avail(picks[0]).n||0)}</b>buildable now<i>of the ${fmt(totalUnits)} asked for</i></span>`}
-      </div>
+          ? card(shared.length?'shared':'info',I.cube,fmt(shared.length),'shared parts','counted once, not once each')
+          : card('info',I.cube,fmt(avail(picks[0]).n||0),'can build now','from backstock, of '+fmt(totalUnits)+' asked for')}
+
+      </div>`;})()}
       <div class="panel">
         <div class="ph"><button class="rsChev" onclick="LV3.rsToggleTbl()"
             title="${RS_TBL?'Fold the order list away':'Open the order list'}">${RS_TBL?'&#9662;':'&#9656;'}</button>
           <span class="t">What to order${multi?` — all ${fmt(picks.length)} logs`:''}</span>
           <span class="sub">to build ${fmt(totalUnits)} unit${totalUnits===1?'':'s'}</span>
           ${short.length?`<span class="chip bad">${fmt(short.length)} to order</span>`:'<span class="chip ok">all covered</span>'}
-          ${short.length?`<div class="r"><button class="btn sm pri" onclick="LV3.rsLogAll()"
-            title="Open the order form for each part that needs one, in turn">Log all ${fmt(short.length)} orders</button></div>`:''}</div>
+</div>
         ${!RS_TBL?'':`
         ${/* Nine columns for a five-column question. "In one" and "Case size" are
              facts about the part, so they sit with the part. "Still short" and
              "Order" were the same number twice whenever nothing came in cases. */''}
         <table class="rsTbl tight"><thead><tr>
-          <th class="l">Part</th>${multi?'<th class="l">Needed by</th>':''}
-          <th>Need</th><th>Have</th><th>To order</th><th class="l" style="width:120px"></th>
+          <th class="l">Component</th>${multi?'<th class="l">Needed by</th>':''}
+          <th>Required<span>to build ${fmt(totalUnits)}</span></th>
+          <th>In stock<span>available</span></th>
+          <th>Buy<span>to order</span></th>
         </tr></thead><tbody>
         ${plan.map(x=>{
           const per=x.from[0]?x.from[0].per:1;
@@ -24834,10 +25378,10 @@ function vRestocks(){
           <td class="mono"><span style="color:${x.stock?'var(--text)':'var(--red)'}">${fmt(x.stock)}</span>
             ${x.coming?`<div class="pmeta" style="color:var(--blu)">+${fmt(x.coming)} coming</div>`:''}</td>
           <td class="rsCases">${x.ok
-            ? '<span class="chip ok">covered</span>'
+            ? '<span class="chip ok">Covered</span><div class="pmeta">sufficient stock</div>'
             : `<span class="rsBig">${fmt(x.cases)}</span>
                <div class="pmeta">${x.caseQty>1?`case${x.cases===1?'':'s'} · ${fmt(x.buying)} units${spare>0?` · ${fmt(spare)} spare`:''}`:'units'}</div>`}</td>
-          <td class="l">${x.ok?'':`<button class="btn sm" onclick="LV3.openLogOrder('${x.c.id}')">Log the order</button>`}</td>
+
         </tr>`;}).join('')}
         </tbody></table>
         <div class="pmeta" style="padding:9px 14px;border-top:1px solid var(--border)">
@@ -28542,7 +29086,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   sendBy,sendState,primeDays,setPrimeDays,workDaysBefore,workDaysBetween,
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
-  sortCol,amzWhen,localDT,copyAsin,nextCog,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  sortCol,amzWhen,localDT,copyAsin,nextCog,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
