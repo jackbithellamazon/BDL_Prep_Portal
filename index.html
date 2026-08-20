@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v28.9</title>
+<title>BDL PrepHub v30.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1457,7 +1457,7 @@ html.light-mode{
    Also one dimmer ink: --text3 is #e6e1d6 in here, so every caption shouted as
    loudly as the number it described. --muted2 is used ONLY on labels, units
    and placeholders, never on a figure. */
-#page-lavarion,.lav3{--muted2:#9a948a;}
+#page-lavarion,.lav3,#page-shipments{--muted2:#9a948a;}
 #page-lavarion .rsHd,.lav3 .rsHd{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;width:100%;}
 #page-lavarion .rsHdN,.lav3 .rsHdN{min-width:180px;flex:1 1 200px;}
 #page-lavarion .rsHdN .nm2,.lav3 .rsHdN .nm2{font:800 14.5px var(--sans);color:var(--text);letter-spacing:-.01em;}
@@ -2023,30 +2023,42 @@ html.light-mode{
 #page-lavarion .rsEmBtns,.lav3 .rsEmBtns{display:flex;gap:8px;margin-top:6px;}
 /* the page never said in words which period was on screen — only which chip
    was lit, and on a custom range no chip is lit at all */
-.shipBarP{font:600 11px var(--sans);color:var(--text3);margin-bottom:6px;}
+.shipBarP{font:600 11px var(--sans);color:var(--muted2);margin-bottom:7px;letter-spacing:.01em;}
 .shipBarP b{color:var(--text2);font-weight:800;}
 /* ── SHIPMENTS SUMMARY BAR ─────────────────────────────────────────────────
    Seven metrics, each carrying its own day/week/month answer and a 14-day
    trend. Grid rather than flex so all seven are the SAME width whatever the
    figure length — £15,130.18 no longer squeezes its neighbours. */
-.shipBar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;
-  background:var(--border);border:1px solid var(--border);border-radius:10px;
-  margin-bottom:10px;overflow:hidden;}
-.shipKpi{background:var(--bg2);padding:11px 12px 10px;display:flex;flex-direction:column;
-  align-items:center;justify-content:flex-start;min-width:0;}
-.shipKpiV{font:900 19px var(--num);font-variant-numeric:tabular-nums;line-height:1.05;
-  white-space:nowrap;}
-.shipKpiL{font:700 11px var(--sans);letter-spacing:.045em;text-transform:uppercase;
-  color:var(--text3);margin-top:3px;text-align:center;}
-.shipKpiG{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;margin-top:8px;
-  width:100%;border-top:1px solid var(--border);padding-top:7px;}
-.shipKpiC{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;}
-.shipKpiC i{font:700 11px var(--sans);font-style:normal;letter-spacing:.03em;
-  text-transform:uppercase;color:var(--text3);}
+/* Seven cells welded together by hairlines read as a spreadsheet, and the
+   TODAY/WEEK/MTH caption was repeated seven times — twenty-one tiny labels
+   fighting seven numbers. Separate cards with air between them, the period
+   strip carried by a single filled pill on the one you are looking at, and the
+   captions dropped to the quiet ink so the figures lead. Same card family as
+   the Restocks tiles, so the app stops having two KPI styles. */
+.shipBar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;
+  margin-bottom:10px;}
+.shipKpi{background:var(--bg2);border:1px solid var(--border);border-radius:11px;
+  padding:12px 12px 10px;display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;min-width:0;transition:border-color .12s;}
+.shipKpi:hover{border-color:var(--border2);}
+.shipKpiV{font:900 21px var(--num);font-variant-numeric:tabular-nums;line-height:1.02;
+  white-space:nowrap;letter-spacing:-.01em;}
+.shipKpiL{font:700 11px var(--sans);letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted2);margin-top:4px;text-align:center;line-height:1.25;}
+.shipKpiG{display:flex;gap:3px;margin-top:10px;width:100%;justify-content:center;
+  border-top:1px solid var(--border);padding-top:8px;}
+.shipKpiC{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;
+  flex:1 1 0;padding:3px 2px;border-radius:6px;}
+.shipKpiC i{font:700 10.5px var(--sans);font-style:normal;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--muted2);}
 .shipKpiC b{font:800 12px var(--num);font-variant-numeric:tabular-nums;color:var(--text2);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+/* the period actually on screen — a quiet pill, not a third colour */
+.shipKpiC.on{background:rgba(255,255,255,.055);}
 .shipKpiC.on i{color:var(--text2);}
-.shipKpiC.on b{font-weight:900;}
+.shipKpiC.on b{font-weight:900;color:var(--text);}
+@media(max-width:1500px){.shipBar{grid-template-columns:repeat(4,minmax(0,1fr));}}
+@media(max-width:900px){.shipBar{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:1180px){
   .shipBar{grid-template-columns:repeat(4,minmax(0,1fr));}
 }
@@ -3354,7 +3366,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v28.9</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v30.0</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3388,7 +3400,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v28.9</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v30.0</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -4080,7 +4092,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v28.9</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v30.0</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -12385,53 +12397,320 @@ function addLavShipLine(){
   div.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <div style="font-size:10px;font-weight:700;color:var(--accent);">ASIN ${idx+1}</div>
-      ${idx>0?`<button onclick="document.getElementById('lsl-${idx}').remove()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">&#10005;</button>`:''}
+      ${idx>0?`<button onclick="document.getElementById('lsl-${idx}').remove();pkFoot('lsl');" title="Drop this line" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">&#10005;</button>`:''}
     </div>
-    <div style="display:grid;grid-template-columns:1fr 70px 80px;gap:8px;align-items:end;">
-      <div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">ASIN</div>
-        <select class="fi-in" id="lsl-asin-${idx}" style="font-size:11px;" onchange="onLslSelect(${idx})">
-          <option value="">Select Lavarion ASIN…</option>
-          ${lavAsins.map(a=>'<option value="'+a.asin+'">'+a.prod+'</option>').join('')}
-        </select>
+    <div style="display:grid;grid-template-columns:1fr 76px 92px;gap:8px;align-items:end;">
+      <div style="position:relative;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Product</div>
+        ${/* Was a bare <select> of every Lavarion ASIN — Jack, 20 Aug: "search
+             can't do". You cannot type in a select, so finding one product
+             among dozens meant scrolling a list ordered by nothing useful.
+             Type-to-filter, matching name, SKU or ASIN, with the stock and the
+             cost shown on each row so the choice is made before you click. */''}
+        <input class="fi-in" id="lsl-search-${idx}" autocomplete="off"
+          placeholder="Type a product, SKU or ASIN…" style="font-size:12px;"
+          oninput="pkFilter('lsl',${idx})" onfocus="pkFilter('lsl',${idx})"
+          onkeydown="if(event.key==='Escape'){pkHide('lsl',${idx});this.blur();}">
+        <input type="hidden" id="lsl-asin-${idx}" value="">
+        <div id="lsl-pop-${idx}" style="display:none;position:absolute;z-index:60;left:0;right:0;top:100%;
+          margin-top:3px;max-height:230px;overflow:auto;background:var(--bg2);border:1px solid var(--border2);
+          border-radius:7px;box-shadow:0 12px 26px rgba(0,0,0,.55);"></div>
       </div>
       <div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Units</div>
-        <input class="fi-in" type="number" id="lsl-units-${idx}" min="1" placeholder="0" style="font-size:12px;">
+        <input class="fi-in" type="number" id="lsl-units-${idx}" min="1" placeholder="0" style="font-size:12px;"
+          oninput="pkCheck('lsl',${idx})">
       </div>
       <div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">COG/Unit £</div>
-        <input class="fi-in" type="number" id="lsl-cost-${idx}" min="0" step="0.01" placeholder="0.00" style="font-size:12px;">
+        <input class="fi-in" type="number" id="lsl-cost-${idx}" min="0" step="0.01" placeholder="auto"
+          title="Worked out from the oldest stock first. Type over it only if this batch genuinely cost something else."
+          style="font-size:12px;" oninput="this.dataset.touched='1';pkCheck('lsl',${idx});">
       </div>
     </div>
-    <div id="lsl-info-${idx}" style="font-size:11px;color:var(--text3);margin-top:4px;"></div>
+    <div id="lsl-info-${idx}" style="font-size:11px;color:var(--text3);margin-top:6px;"></div>
   `;
   container.appendChild(div);
+  pkFoot('lsl');
+  setTimeout(()=>{const el=document.getElementById('lsl-search-'+idx);if(el)el.focus();},30);
 }
-function onLslSelect(idx){
-  const asin=document.getElementById('lsl-asin-'+idx)?.value;
-  const a=lavAsins.find(x=>x.asin===asin);
-  const info=document.getElementById('lsl-info-'+idx);
-  if(info&&a)info.textContent='SKU: '+a.sku;
+/* ── THE LAVARION PICKER ──────────────────────────────────────────────────
+   One implementation, two screens. "Add Lavarion to shipment" and "New
+   Shipment" ask the identical question — can these units go, and at what cost
+   — so they run the same code and cannot drift apart. The only difference is
+   the id prefix on the inputs and which footer button they drive.        */
+const PK={
+  'lsl'   :{go:'lavShipGo',label:n=>n?`Add ${n} to Shipment`:'Add to Shipment'},
+  'ns-lav':{go:'nsGo',label:n=>n?`Create Shipment · ${n} Lavarion line${n===1?'':'s'}`:'Create Shipment'}
+};
+const _pk=(pfx,part,idx)=>document.getElementById(`${pfx}-${part}-${idx}`);
+
+/* The picker came up empty on every search. LV3.lavShipList reads the Lavarion
+   module's own product list, and that module only loads when you OPEN the
+   Lavarion page — from Shipments it had nothing to offer. The old dropdown
+   worked because it used `lavAsins`, which dbLoad always fills.
+   So: lavAsins is the list, always. If the Lavarion module happens to be
+   loaded, its buildable count and FIFO cost are merged in on top; if not, the
+   ASIN's own stored cost is used, which is what it is there for. */
+function _lslRows(){
+  const base=(typeof lavAsins!=='undefined'?lavAsins:[])
+    .filter(a=>!a.archived)
+    .map(a=>({asin:a.asin||'',sku:a.sku||'',name:a.prod||a.asin||'',
+              available:null,cog:(a.cost>0?a.cost:null)}));
+  let rich=[];
+  try{if(window.LV3&&LV3.lavShipList)rich=LV3.lavShipList()||[];}catch(e){}
+  if(rich.length){
+    const by={};rich.forEach(r=>{if(r.asin)by[String(r.asin).toLowerCase()]=r;});
+    base.forEach(b=>{const r=by[String(b.asin).toLowerCase()];
+      if(r){if(r.available!=null)b.available=r.available;if(r.cog!=null)b.cog=r.cog;
+            if(r.sku&&!b.sku)b.sku=r.sku;}});
+  }
+  return base.sort((a,b)=>a.name.localeCompare(b.name));
 }
+function _lslInfo(asin,units){
+  let info=null;
+  try{if(window.LV3&&LV3.lavShipInfo)info=LV3.lavShipInfo(asin,units);}catch(e){}
+  if(info)return info;
+  const a=(typeof lavAsins!=='undefined'?lavAsins:[]).find(x=>String(x.asin||'').toLowerCase()===String(asin||'').toLowerCase());
+  return a?{asin:a.asin||'',sku:a.sku||'',name:a.prod||'',available:null,
+            cog:(a.cost>0?a.cost:null),blocked:[],unpriced:[],mixed:false,fallback:true}:null;
+}
+/* A blended cost is an average, so it lands on fractions of a penny. Jack, 20
+   Aug: it rounds UP — a COG guessed high costs you nothing, a COG guessed low
+   quietly flatters every margin downstream. */
+const pkBlendUp=n=>Math.ceil((n||0)*100)/100;
+function pkReasons(){
+  try{if(window.LV3&&LV3.ovReasons)return LV3.ovReasons();}catch(e){}
+  return [['other','Something else']];
+}
+
+function pkHide(pfx,idx){const p=_pk(pfx,'pop',idx);if(p)p.style.display='none';}
+function pkFilter(pfx,idx){
+  const inp=_pk(pfx,'search',idx),pop=_pk(pfx,'pop',idx);
+  if(!inp||!pop)return;
+  const q=(inp.value||'').trim().toLowerCase();
+  let rows=_lslRows();
+  if(q)rows=rows.filter(r=>((r.name||'')+' '+(r.sku||'')+' '+(r.asin||'')).toLowerCase().includes(q));
+  if(!rows.length){
+    pop.innerHTML='<div style="padding:9px 11px;font-size:11.5px;color:var(--text3)">Nothing matches that</div>';
+    pop.style.display='block';return;
+  }
+  pop.innerHTML=rows.slice(0,40).map(r=>{
+    const stock=(r.available==null)?'<span style="color:var(--text3)">no build list</span>'
+      :`<span style="color:${r.available>0?'var(--green)':'var(--red)'}">${r.available} buildable</span>`;
+    const cog=(r.cog==null)?'<span style="color:var(--text3)">no price yet</span>'
+      :`<span style="color:var(--amber)">£${r.cog.toFixed(2)}</span>`;
+    return `<div onclick="pkPick('${pfx}',${idx},'${String(r.asin).replace(/'/g,"\\'")}')"
+      style="padding:8px 11px;cursor:pointer;border-bottom:1px solid var(--border);"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
+      <div style="font-size:12.5px;font-weight:700;color:var(--text);">${esc(r.name||r.asin)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;">
+        ${esc(r.sku||'no SKU')} · ${esc(r.asin||'')} &nbsp;·&nbsp; ${stock} &nbsp;·&nbsp; ${cog}</div>
+    </div>`;}).join('');
+  pop.style.display='block';
+}
+function pkPick(pfx,idx,asin){
+  const u=parseInt((_pk(pfx,'units',idx)||{}).value)||1;
+  const info=_lslInfo(asin,u);
+  const inp=_pk(pfx,'search',idx),hid=_pk(pfx,'asin',idx),cost=_pk(pfx,'cost',idx);
+  if(hid){hid.value=asin;delete hid.dataset.blend;delete hid.dataset.why;}
+  if(inp)inp.value=(info&&info.name)||asin;
+  /* the auto COG Jack expected and never got — the FIFO cost of one unit,
+     filled in for you and still editable if this shipment really did cost
+     something else */
+  if(cost&&info&&info.cog!=null&&!cost.dataset.touched)cost.value=info.cog.toFixed(2);
+  pkHide(pfx,idx);
+  pkCheck(pfx,idx);
+}
+function pkSetUnits(pfx,idx,n){
+  const u=_pk(pfx,'units',idx);if(!u)return;
+  u.value=n;
+  const c=_pk(pfx,'cost',idx);if(c)delete c.dataset.touched;
+  const h=_pk(pfx,'asin',idx);if(h){delete h.dataset.blend;delete h.dataset.why;}
+  pkCheck(pfx,idx);
+}
+/* Blending is a decision, so it is made the way the Lavarion page makes it:
+   ticked on deliberately, with a reason that can be counted afterwards. */
+function pkBlendToggle(pfx,idx,on){
+  const h=_pk(pfx,'asin',idx);if(!h)return;
+  if(on)h.dataset.blend='1'; else {delete h.dataset.blend;delete h.dataset.why;}
+  const c=_pk(pfx,'cost',idx);if(c)delete c.dataset.touched;
+  pkCheck(pfx,idx);
+}
+function pkBlendWhy(pfx,idx,k){
+  const h=_pk(pfx,'asin',idx);if(!h)return;
+  h.dataset.why=k||'';
+  pkCheck(pfx,idx);
+}
+function pkBlendNote(pfx,idx,v){
+  const h=_pk(pfx,'asin',idx);if(!h)return;
+  h.dataset.note=v||'';
+  pkFoot(pfx);
+}
+function pkVerdict(pfx,idx){
+  const hid=_pk(pfx,'asin',idx);
+  const asin=hid&&hid.value;
+  if(!asin)return{k:'empty'};
+  const want=parseInt((_pk(pfx,'units',idx)||{}).value)||0;
+  const info=_lslInfo(asin,want||1);
+  if(!info)return{k:'empty'};
+  const cost=_pk(pfx,'cost',idx);
+  const typed=parseFloat(cost&&cost.value)||0;
+  if(!want)return{k:'nounits',info};
+  if((info.unpriced||[]).length&&typed<=0)return{k:'noprice',info,want};
+  /* You cannot send stock you do not have. There is no tick and no override —
+     Jack, 20 Aug: "they can't send 14 units as we only have 12". The units
+     that are not there yet go out on a later shipment, once they exist. */
+  if(info.available!=null&&want>info.available)
+    return{k:'short',info,want,can:info.available,gap:want-info.available};
+  /* The stock IS there, but it was bought in two batches at two prices. Same
+     rule as the Lavarion page: blocked by default, overridable with a reason. */
+  let split=null;
+  if(info.mixed){try{if(window.LV3&&LV3.lavShipSplit)split=LV3.lavShipSplit(asin,want);}catch(e){}}
+  if(split){
+    const on=hid.dataset.blend==='1',why=hid.dataset.why||'',note=hid.dataset.note||'';
+    const per=pkBlendUp(info.cog);
+    if(!on)return{k:'mixed',info,want,split,per};
+    if(!why||(why==='other'&&!note.trim()))return{k:'mixed',info,want,split,per,on:true,why,note};
+    return{k:'blended',info,want,split,per,why,note};
+  }
+  return{k:'ok',info,want,per:typed||info.cog};
+}
+function pkCheck(pfx,idx){
+  const box=_pk(pfx,'info',idx);
+  if(!box)return;
+  const v=pkVerdict(pfx,idx);
+  if(v.k==='empty'){box.innerHTML='';pkFoot(pfx);return;}
+  const info=v.info,cost=_pk(pfx,'cost',idx);
+  /* keep the auto figure honest as the quantity moves — the whole reason the
+     COG engine exists is so nobody works this out by hand. A short line has no
+     price for the full quantity, so show the cost of the units that do exist. */
+  const fill=(v.k==='blended')?v.per
+            :(info.cog!=null)?info.cog
+            :(info.coveredPer!=null)?info.coveredPer:null;
+  if(cost&&fill!=null&&!cost.dataset.touched)cost.value=fill.toFixed(2);
+  const gbp=n=>'£'+(n||0).toFixed(2);
+  const line=(col,txt)=>`<div style="font-size:12px;color:${col};font-weight:700;">${txt}</div>`;
+  const sub=t=>`<div style="font-size:11px;color:var(--text3);margin-top:2px;">${t}</div>`;
+  const btn=(on,txt)=>`<button type="button" onclick="${on}" style="padding:4px 10px;background:var(--bg4);border:1px solid var(--border2);color:var(--text);border-radius:5px;font-size:11.5px;font-weight:700;cursor:pointer;">${txt}</button>`;
+  const row=h=>`<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:6px;">${h}</div>`;
+  const tick=(on,txt)=>`<label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:${on?'var(--amber)':'var(--text2)'};cursor:pointer;font-weight:${on?'700':'400'};">
+      <input type="checkbox" ${on?'checked':''} onchange="pkBlendToggle('${pfx}',${idx},this.checked)" style="cursor:pointer;">${txt}</label>`;
+  const whyBox=(why,note)=>`<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+      <select class="fi-in" style="font-size:11.5px;max-width:230px;" onchange="pkBlendWhy('${pfx}',${idx},this.value)">
+        <option value="">Why are you blending them?…</option>
+        ${pkReasons().map(r=>`<option value="${r[0]}" ${why===r[0]?'selected':''}>${esc(r[1])}</option>`).join('')}
+      </select>
+      ${why==='other'?`<input class="fi-in" style="font-size:11.5px;max-width:230px;" placeholder="Say what the reason is"
+        value="${esc(note||'')}" oninput="pkBlendNote('${pfx}',${idx},this.value)">`:''}
+    </div>`;
+  let html='';
+  if(v.k==='nounits'){
+    html=sub(`${esc(info.sku||'no SKU set')}${info.available!=null?` · ${info.available} buildable`:''}${info.cog!=null?` · ${gbp(info.cog)} each`:''} — enter units`);
+  }else if(v.k==='noprice'){
+    html=line('var(--amber)',`No purchase price on ${(info.unpriced||[]).map(u=>esc(u.name)).join(', ')||'a component'}`)
+      +sub('The COG cannot be worked out, so this line needs one typed in. It will be recorded as a typed figure, not a calculated one.');
+  }else if(v.k==='short'){
+    const short=(info.blocked||[]).map(b=>`${esc(b.name)} (need ${b.need}, have ${b.have})`).join(', ');
+    html=line('var(--red)',`Only ${v.can} can be built — you are asking for ${v.want}`)
+      +sub((short?`Short on ${short}. `:'')+`The other ${v.gap} do not exist yet, so they go out on a later shipment once the parts land.`)
+      +(v.can>0?row(btn(`pkSetUnits('${pfx}',${idx},${v.can})`,`Send ${v.can} instead`)):'');
+  }else if(v.k==='mixed'){
+    const f=v.split.first,r=v.split.rest;
+    html=line('var(--amber)',`Only ${f.units} were bought at ${f.per!=null?gbp(f.per):'this price'}`)
+      +sub(`The other ${r.units} came in at ${r.per!=null?gbp(r.per):'a different price'}. One shipment carries one cost, so send ${f.units} now and put the remaining ${r.units} on the next shipment — or blend them if you have to.`)
+      +row(btn(`pkSetUnits('${pfx}',${idx},${f.units})`,`Send ${f.units} at ${f.per!=null?gbp(f.per):'this price'}`)
+        +tick(!!v.on,`Blend all ${v.want} into one cost at ${gbp(v.per)}`))
+      +(v.on?whyBox(v.why,v.note):'');
+  }else if(v.k==='blended'){
+    const f=v.split.first,r=v.split.rest;
+    const label=(pkReasons().find(x=>x[0]===v.why)||[])[1]||v.why;
+    html=line('var(--amber)',`Blended — ${gbp(v.per)} each, rounded up`)
+      +sub(`${f.units} bought at ${f.per!=null?gbp(f.per):'—'} and ${r.units} at ${r.per!=null?gbp(r.per):'—'}, averaged onto one line. Recorded as an override: ${esc(label)}${v.why==='other'&&v.note?` — ${esc(v.note)}`:''}.`)
+      +row(btn(`pkSetUnits('${pfx}',${idx},${f.units})`,`Actually, send ${f.units} at one price`)
+        +tick(true,`Blend all ${v.want} into one cost at ${gbp(v.per)}`))
+      +whyBox(v.why,v.note);
+  }else{
+    const total=(v.per||0)*v.want;
+    html=line('var(--text2)',`${v.want} × ${gbp(v.per||0)} = <span style="color:var(--text)">${gbp(total)}</span>`)
+      +sub(`${esc(info.sku||'no SKU set')}${info.available!=null?` · ${info.available} buildable, ${info.available-v.want} left after this`:''}${info.fallback?" · price is the ASIN's own cost, open Lavarion for the built-up figure":''}`);
+  }
+  box.innerHTML=html;
+  pkFoot(pfx);
+}
+/* the footer button should never be a surprise */
+function pkFoot(pfx){
+  const cfg=PK[pfx]||{};
+  const b=document.getElementById(cfg.go);if(!b)return;
+  let n=0,bad=0,blend=0;
+  document.querySelectorAll(`[id^="${pfx}-asin-"]`).forEach(sel=>{
+    const idx=sel.id.split('-').pop();
+    if(!sel.value)return;
+    const v=pkVerdict(pfx,idx);
+    if(v.k==='empty'||v.k==='nounits')return;
+    n++;
+    if(v.k==='short'||v.k==='noprice'||v.k==='mixed')bad++;
+    if(v.k==='blended')blend++;
+  });
+  b.textContent=(cfg.label?cfg.label(n):'Save')+(blend?` · ${blend} blended COG`:'');
+  b.style.opacity=bad?'.55':'1';
+  b.title=bad?'One or more lines cannot go as they are':'';
+}
+/* every line has to have been decided — returns the reasons it cannot save */
+function pkStops(pfx){
+  const stop=[];
+  document.querySelectorAll(`[id^="${pfx}-asin-"]`).forEach(sel=>{
+    const idx=sel.id.split('-').pop();
+    if(!sel.value)return;
+    const units=parseInt((_pk(pfx,'units',idx)||{}).value)||0;
+    if(units<=0)return;
+    const cost=parseFloat((_pk(pfx,'cost',idx)||{}).value)||0;
+    const v=pkVerdict(pfx,idx);
+    const who=(v.info&&v.info.name)||sel.value;
+    if(v.k==='short')
+      stop.push(`${who}: only ${v.can} can be built, so ${v.want} cannot go. Send ${v.can} now and the other ${v.gap} on a later shipment.`);
+    else if(v.k==='noprice')
+      stop.push(`${who}: no purchase price on record — type the COG for this line.`);
+    else if(v.k==='mixed'&&v.on)
+      stop.push(`${who}: pick a reason for blending the two costs${v.why==='other'?', and say what it is':''}.`);
+    else if(v.k==='mixed')
+      stop.push(`${who}: only ${v.split.first.units} were bought at that price. Send ${v.split.first.units} now and the rest on the next shipment, or tick to blend them.`);
+    else if(cost<=0)
+      stop.push(`${who}: no COG on the line.`);
+  });
+  return stop;
+}
+/* what a saved line should record about how it was decided */
+function pkMeta(pfx,idx){
+  const v=pkVerdict(pfx,idx);
+  return (v.k==='blended')?{blended:true,per:v.per,why:v.why,note:v.note}:null;
+}
+
 async function confirmLavShipMulti(){
   if(!_lavShipId){toast('No shipment selected','er');return;}
+  const stop=pkStops('lsl');
+  if(stop.length){toast(stop[0],'er');return;}
   const lines=[];
   document.querySelectorAll('[id^="lsl-asin-"]').forEach(sel=>{
     const idx=sel.id.split('-').pop();
     const asin=sel.value;
     const units=parseInt(document.getElementById('lsl-units-'+idx)?.value)||0;
     const cost=parseFloat(document.getElementById('lsl-cost-'+idx)?.value)||0;
-    if(asin&&units>0){
-      const a=lavAsins.find(x=>x.asin===asin);
-      lines.push({shipId:_lavShipId,asin,sku:a?.sku||'',prod:a?.prod||asin,units,cost,date:shipDateFor(_lavShipId)});
-    }
+    if(!asin||units<=0)return;
+    const a=lavAsins.find(x=>x.asin===asin);
+    lines.push({shipId:_lavShipId,asin,sku:a?.sku||'',prod:a?.prod||asin,units,cost,
+      date:shipDateFor(_lavShipId),_meta:pkMeta('lsl',idx)});
   });
   if(!lines.length){toast('Add at least one ASIN with units','er');return;}
   for(const entry of lines){
+    const meta=entry._meta;delete entry._meta;
     lavShipments.push(entry);
     await saveLavShipment(entry);
-    logAudit('Lavarion added to shipment',entry.asin+' x '+entry.units+' -> '+_lavShipId);
+    logAudit('Lavarion added to shipment',entry.asin+' x '+entry.units+' -> '+_lavShipId
+      +(meta?` — COG £${entry.cost} blended across two purchase prices by ${window.currentUserName||'Unknown'} (${meta.why}${meta.note?': '+meta.note:''})`:''));
+    /* a blend is a decision, counted the same way the Lavarion page counts its own */
+    if(meta){try{if(window.LV3&&LV3.noteOverride)LV3.noteOverride({k:meta.why||'other',
+      shipId:_lavShipId,prod:entry.prod,units:entry.units,cost:entry.cost,note:meta.note});}catch(e){}}
   }
   cm('lavShipModal');
   renderShipments();renderLavarion();
@@ -15390,11 +15669,11 @@ function renderShipments(){
           style="font-size:10px;color:var(--text3);cursor:pointer;border-bottom:1px dashed var(--border);padding-bottom:1px;">${dateDisp} <span style="opacity:.5">✎</span></span>
         <span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;background:${tbg};color:${tc};border:1px solid ${tc};">${s.type||'Standard'}</span>
         ${s.hasLav?`<span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);">LAV</span>`:''}
-        ${s.retUnits?`<span title="${fmt(s.retUnits)} unit${s.retUnits===1?'':'s'} coming back on this shipment${s.retValue?` · ${fmtGBP2(s.retValue)} of stock`:''} — counted in the units above, deliberately not in the COG" style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);">RET ${fmt(s.retUnits)}u</span>`:''}
+        ${s.retUnits?`<span title="${fmt(s.retUnits)} unit${s.retUnits===1?'':'s'} coming back on this shipment${s.retValue?` · ${fmtGBP2(s.retValue)} of stock`:''} — counted in the units above, deliberately not in the COG" style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);">RET</span>`:''}
         <span style="font-size:10px;color:var(--blue);font-weight:700;">${skuCount} SKU${skuCount!==1?'s':''}</span>
         <span style="font-size:10px;color:var(--green);font-weight:700;">${fmt(s.units)} units</span>
         <span style="font-size:10px;color:var(--amber);font-weight:700;">${fmtGBP2(s.value)}</span>
-        ${s.retValue?`<span title="Value of the stock coming back — kept out of the outbound total on purpose" style="font-size:10px;color:var(--blue);font-weight:700;">+${fmtGBP2(s.retValue)} back</span>`:''}
+
         <!-- Editable shipment type -->
         <select onclick="event.stopPropagation()" onchange="updateShipmentType('${s.id}',this.value);"
           style="padding:2px 6px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:${tc};font-size:11px;font-weight:700;cursor:pointer;">
@@ -18828,18 +19107,31 @@ function renderReturns(){
      name its own problem or somebody still has to go and find out. */
   const stateOf=r=>{
     const ship=(typeof returnShipments!=='undefined'?returnShipments:[]).filter(x=>x.sku===r.sku);
-    const cog=parseSKU(r.sku).cogs||0;
+    /* The typed-in cost is the one a person checked; the SKU string is only the
+       fallback. The shipment picker already worked this way — the page did not,
+       so the same return could show two different prices in two places. */
+    const cog=(r.cog>0?r.cog:0)||parseSKU(r.sku).cogs||0;
     const named=!!String(r.prod||'').trim();
-    if(!named)return{k:'attn',label:'Product name missing',col:'#fbbf24',ship,cog,named};
-    if(!cog)  return{k:'attn',label:'Cost missing',col:'#fbbf24',ship,cog,named};
-    return ship.length?{k:'ship',label:'In shipment',col:'#4ade80',ship,cog,named}
-                      :{k:'none',label:'Not shipped',col:'#94a3b8',ship,cog,named};
+    /* The quantity that means anything is the one on the shipment lines. This
+       list holds one row per return so the SKU can be found quickly — there is
+       no "logged quantity" to be part-way through. */
+    const sent=ship.reduce((a,x)=>a+(x.units||0),0);
+    const value=ship.reduce((a,x)=>a+(x.units||0)*(x.cost||cog||0),0);
+    const base={ship,cog,named,sent,value};
+    if(!named)return{k:'attn',label:'Product name missing',col:'#fbbf24',...base};
+    if(!cog)  return{k:'attn',label:'Cost missing',col:'#fbbf24',...base};
+    return ship.length?{k:'ship',label:'In shipment',col:'#4ade80',...base}
+                      :{k:'none',label:'Not shipped',col:'#94a3b8',...base};
   };
   const all=returnSkus.map(r=>({r,st:stateOf(r)}));
   const nAll=all.length, nShip=all.filter(x=>x.st.k==='ship').length,
         nNone=all.filter(x=>x.st.k==='none').length, nAttn=all.filter(x=>x.st.k==='attn').length;
-  const totalVal=all.reduce((t,x)=>t+x.st.cog,0);
-  const notShipVal=all.filter(x=>x.st.k!=='ship').reduce((t,x)=>t+x.st.cog,0);
+  /* This summed the cost of ONE unit of each return and called it a value.
+     A value is a price times a quantity, and the only real quantity is the one
+     on the shipment lines — so that is what it counts. A return not yet on a
+     shipment has no quantity anywhere, so it is counted, not valued. */
+  const totalVal=all.reduce((t,x)=>t+x.st.value,0);
+  const totalUnits=all.reduce((t,x)=>t+x.st.sent,0);
   let data=all.filter(({r})=>!q||((r.sku||'')+(r.asin||'')+(r.prod||'')).toLowerCase().includes(q));
   if(_retFilter!=='all')data=data.filter(x=>x.st.k===_retFilter);
 
@@ -18860,8 +19152,8 @@ function renderReturns(){
     </div>
     <div class="retKpis">
       ${kpi('Total returns',nAll,'being tracked','#93c5fd')}
-      ${kpi('Value held',gbp(totalVal),gbp(notShipVal)+' not shipped yet','#fbbf24')}
-      ${kpi('In shipment',nShip,nAll?Math.round(nShip/nAll*100)+'% on their way':'—','#4ade80')}
+      ${kpi('Value going back',gbp(totalVal),totalUnits?`${fmt(totalUnits)} unit${totalUnits===1?'':'s'} on shipments`:'nothing on a shipment yet','#fbbf24')}
+      ${kpi('In shipment',nShip,nNone?`${nNone} not on one yet`:(nAll?'all on their way':'—'),'#4ade80')}
       ${kpi('Needs attention',nAttn,nAttn?'missing name or cost':'all accounted for',nAttn?'#f87171':'#4ade80')}
     </div>
     <div class="retBar">
@@ -18908,7 +19200,7 @@ function renderReturns(){
         <td><span class="retChip" style="color:${st.col};background:${st.col}1f;border-color:${st.col}55;">${st.label}</span></td>
         <td class="retCog${st.cog?'':' miss'}">${st.cog?gbp(st.cog):'Missing'}</td>
         <td>${st.ship.length
-          ? `<div class="retUnits">${st.ship.length} shipment${st.ship.length===1?'':'s'} · ${units} unit${units===1?'':'s'}</div>
+          ? `<div class="retUnits">${ids.length} shipment${ids.length===1?'':'s'} · ${units} unit${units===1?'':'s'}</div>
              <div class="retShipId" title="${ids.join(', ')}">${ids.join(', ')}</div>`
           : '<span style="color:var(--text3);">—</span>'}</td>
         <td class="retActs">
@@ -19225,19 +19517,28 @@ function renderRetShipExisting(){
   const box=document.getElementById('retShipExisting');
   if(!box)return;
   const mine=returnShipments.filter(rs=>rs.shipId===_retShipId);
-  if(!mine.length){box.innerHTML='';return;}
+  if(!mine.length){
+    box.innerHTML='<div style="font-size:12px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:10px 12px;margin-bottom:14px;">Nothing coming back on this shipment yet.</div>';
+    return;
+  }
+  const units=mine.reduce((a,b)=>a+(b.units||0),0);
+  const value=mine.reduce((a,b)=>a+((b.units||0)*(b.cost||0)),0);
   box.innerHTML=`
-    <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Already on this shipment</div>
-    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.045em;">Already coming back</div>
+      <div style="font-size:12px;color:var(--text2);"><b style="color:var(--text)">${fmt(units)}</b> units · <b style="color:var(--text)">${fmtGBP2(value)}</b></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;">
       ${mine.map(rs=>`
-        <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;">
+        <div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 11px;">
           <div style="flex:1;min-width:0;">
-            <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${rs.sku}</div>
-            <div style="font-size:11px;color:var(--text2);">${retProdDesc(rs)||''}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(retProdDesc(rs)||rs.sku)}</div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:1px;">${esc(rs.sku)}${rs.cost?' · £'+(rs.cost).toFixed(2)+'/unit':''}</div>
           </div>
-          <input type="number" min="1" value="${rs.units||1}" id="ret-existing-units-${rs.uuid}" style="width:64px;padding:3px 6px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;font-family:var(--mono);text-align:center;">
-          <button onclick="saveRetShipLine('${rs.uuid}')" title="Save units" style="padding:3px 8px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">Save</button>
-          <button onclick="deleteRetShipLine('${rs.uuid}')" title="Remove this return from the shipment" style="padding:3px 8px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">Remove</button>
+          <input type="number" min="1" value="${rs.units||1}" id="ret-existing-units-${rs.uuid}" title="Units coming back"
+            style="width:62px;padding:4px 6px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:13px;font-family:var(--mono);text-align:center;">
+          <button onclick="saveRetShipLine('${rs.uuid}')" title="Save the new unit count" style="padding:4px 9px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">Save</button>
+          <button onclick="deleteRetShipLine('${rs.uuid}')" title="Take this return off the shipment" style="padding:4px 9px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">Remove</button>
         </div>`).join('')}
     </div>`;
 }
@@ -19276,76 +19577,172 @@ function addRetShipLine(){
   const container=document.getElementById('retShipLines');
   const div=document.createElement('div');
   div.id=`rsl-${idx}`;
-  div.style.cssText='background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px;';
+  div.style.cssText='background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:11px 12px;margin-bottom:8px;';
   div.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <div style="font-size:10px;font-weight:700;color:var(--accent);">Return ${idx+1}</div>
-      ${idx>0?`<button onclick="document.getElementById('rsl-${idx}').remove()" style="background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;cursor:pointer;font-size:12px;padding:2px 6px;">✕</button>`:''}
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.045em;">Return ${idx+1}</div>
+      ${idx>0?`<button onclick="document.getElementById('rsl-${idx}').remove()" title="Drop this line" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">&#10005;</button>`:''}
     </div>
-    <div style="display:grid;grid-template-columns:1fr 70px 80px;gap:8px;align-items:end;">
-      <div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">SKU</div>
-        <select class="fi-in" id="rsl-sku-${idx}" style="font-size:11px;" onchange="onRslSelect(${idx})">
-          <option value="">Select Return SKU…</option>
-          ${returnSkus.map(r=>`<option value="${r.sku}">${retProdDesc(r)?retProdDesc(r)+' — ':''} ${r.sku}</option>`).join('')}
-        </select>
+    <div style="display:grid;grid-template-columns:1fr 76px 92px;gap:8px;align-items:end;">
+      <div style="position:relative;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Return SKU</div>
+        ${/* Same fix as the Lavarion picker, same reason: a <select> cannot be
+             typed into, so finding one return SKU meant scrolling a list of
+             every return you have ever taken. Type the product name. */''}
+        <input class="fi-in" id="rsl-search-${idx}" autocomplete="off"
+          placeholder="Type a product, SKU or ASIN…" style="font-size:12px;"
+          oninput="rslFilter(${idx})" onfocus="rslFilter(${idx})"
+          onkeydown="if(event.key==='Escape'){rslHide(${idx});this.blur();}">
+        <input type="hidden" id="rsl-sku-${idx}" value="">
+        <div id="rsl-pop-${idx}" style="display:none;position:absolute;z-index:60;left:0;right:0;top:100%;
+          margin-top:3px;max-height:230px;overflow:auto;background:var(--bg2);border:1px solid var(--border2);
+          border-radius:7px;box-shadow:0 12px 26px rgba(0,0,0,.55);"></div>
       </div>
       <div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Units</div>
-        <input class="fi-in" type="number" id="rsl-units-${idx}" min="1" placeholder="0" style="font-size:12px;">
+        <input class="fi-in" type="number" id="rsl-units-${idx}" min="1" placeholder="0" style="font-size:12px;"
+          oninput="rslCheck(${idx})">
       </div>
       <div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">COG/Unit £</div>
-        <input class="fi-in" type="number" id="rsl-cost-${idx}" min="0" step="0.01" placeholder="0.00" style="font-size:12px;">
+        <input class="fi-in" type="number" id="rsl-cost-${idx}" min="0" step="0.01" placeholder="auto"
+          title="Taken from the return SKU. Type over it only if this batch genuinely cost something else."
+          style="font-size:12px;" oninput="this.dataset.touched='1';rslCheck(${idx});">
       </div>
     </div>
-    <div id="rsl-info-${idx}" style="font-size:11px;color:var(--text3);margin-top:4px;"></div>
+    <div id="rsl-info-${idx}" style="font-size:11px;color:var(--text3);margin-top:5px;"></div>
   `;
   container.appendChild(div);
+  setTimeout(()=>{const el=document.getElementById('rsl-search-'+idx);if(el)el.focus();},30);
 }
 
-function onRslSelect(idx){
-  const sku=document.getElementById(`rsl-sku-${idx}`)?.value;
-  const r=returnSkus.find(x=>x.sku===sku);
-  const info=document.getElementById(`rsl-info-${idx}`);
-  const costEl=document.getElementById(`rsl-cost-${idx}`);
-  const unitsEl=document.getElementById(`rsl-units-${idx}`);
-  if(r){
-    const cog=r.cog||parseSKU(r.sku).cogs||0;
-    if(costEl&&cog>0)costEl.value=cog.toFixed(2);
-    if(unitsEl&&r.units)unitsEl.value=r.units;
-    if(info)info.textContent=r.asin?`ASIN: ${r.asin}`:r.prod||'';
+/* the return-SKU picker */
+function _rslRows(){
+  const on={};(returnShipments||[]).forEach(rs=>{if(rs.shipId===_retShipId)on[rs.sku]=(on[rs.sku]||0)+(rs.units||0);});
+  /* returnSkus is a lookup list — one row per return SKU, added so a SKU can be
+     found fast when building a shipment. Its `units` field is not a stock count
+     (bulk import hard-codes 1, and Jack adds one row per return rather than
+     tracking quantities here), so nothing may reason from it. The real
+     quantities live on returnShipments, and `already` comes from there. */
+  return (returnSkus||[]).map(r=>({
+      sku:r.sku||'',asin:r.asin||'',name:retProdDesc(r)||r.sku||'',
+      already:on[r.sku]||0,
+      cog:(r.cog>0?r.cog:(parseSKU(r.sku||'').cogs||0))||null
+    })).sort((a,b)=>a.name.localeCompare(b.name));
+}
+function rslHide(idx){const p=document.getElementById('rsl-pop-'+idx);if(p)p.style.display='none';}
+function rslFilter(idx){
+  const inp=document.getElementById('rsl-search-'+idx),pop=document.getElementById('rsl-pop-'+idx);
+  if(!inp||!pop)return;
+  const q=(inp.value||'').trim().toLowerCase();
+  let rows=_rslRows();
+  if(q)rows=rows.filter(r=>((r.name||'')+' '+(r.sku||'')+' '+(r.asin||'')).toLowerCase().includes(q));
+  if(!rows.length){
+    pop.innerHTML='<div style="padding:9px 11px;font-size:11.5px;color:var(--text3)">'+
+      (returnSkus.length?'Nothing matches that':'No return SKUs set up yet — add them on the Returns page first')+'</div>';
+    pop.style.display='block';return;
   }
+  pop.innerHTML=rows.slice(0,40).map(r=>{
+    const cog=(r.cog==null)?'<span style="color:var(--text3)">no price yet</span>'
+      :`<span style="color:var(--amber)">£${r.cog.toFixed(2)}</span>`;
+    const qty=r.already?`<span style="color:var(--blue)">${r.already} already on this shipment</span>`:'';
+    return `<div onclick="rslPick(${idx},'${String(r.sku).replace(/'/g,"\\'")}')"
+      style="padding:8px 11px;cursor:pointer;border-bottom:1px solid var(--border);"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
+      <div style="font-size:12.5px;font-weight:700;color:var(--text);">${esc(r.name)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;">
+        ${esc(r.sku||'no SKU')}${r.asin?' · '+esc(r.asin):''} &nbsp;·&nbsp; ${cog}${qty?' &nbsp;·&nbsp; '+qty:''}</div>
+    </div>`;}).join('');
+  pop.style.display='block';
+}
+function rslPick(idx,sku){
+  const r=_rslRows().find(x=>x.sku===sku);
+  const inp=document.getElementById('rsl-search-'+idx);
+  const hid=document.getElementById('rsl-sku-'+idx);
+  const cost=document.getElementById('rsl-cost-'+idx);
+  const units=document.getElementById('rsl-units-'+idx);
+  if(hid)hid.value=sku;
+  if(inp)inp.value=(r&&r.name)||sku;
+  /* the COG the return was booked at, filled in for you and still editable */
+  if(cost&&r&&r.cog!=null&&!cost.dataset.touched)cost.value=r.cog.toFixed(2);
+  /* deliberately does not guess the quantity — it is typed per shipment */
+  rslHide(idx);
+  rslCheck(idx);
+}
+function rslCheck(idx){
+  const hid=document.getElementById('rsl-sku-'+idx);
+  const box=document.getElementById('rsl-info-'+idx);
+  if(!box)return;
+  const sku=hid&&hid.value;
+  if(!sku){box.innerHTML='';return;}
+  const r=_rslRows().find(x=>x.sku===sku);
+  if(!r){box.innerHTML='';return;}
+  const cost=document.getElementById('rsl-cost-'+idx);
+  if(cost&&r.cog!=null&&!cost.dataset.touched)cost.value=r.cog.toFixed(2);
+  const want=parseInt((document.getElementById('rsl-units-'+idx)||{}).value)||0;
+  const rate=parseFloat((cost||{}).value)||0;
+  const bits=['SKU: '+(r.sku?esc(r.sku):'<span style="color:var(--text3)">none set</span>')];
+  if(r.asin)bits.push(esc(r.asin));
+  if(r.cog!=null)bits.push(`COG £${r.cog.toFixed(2)} <span style="color:var(--text3)">from the return SKU</span>`);
+  else bits.push('<span style="color:var(--amber)">no price on record — type the COG</span>');
+  if(want>0&&rate>0)bits.push(`<b style="color:var(--text)">${fmtGBP2(want*rate)}</b> of stock back`);
+  let warn='';
+  if(r.already)warn+=`<div style="margin-top:5px;color:var(--blue);">${r.already} of this SKU already on ${_retShipId} — these units are added to that line, not a second one.</div>`;
+  box.innerHTML=bits.join(' · ')+warn;
 }
 
+/* onRslSelect went with the <select> it was wired to — rslPick/rslCheck do this now. */
 async function confirmRetShip(){
   if(!_retShipId){toast('No shipment selected','er');return;}
   if(!returnSkus.length){toast('No return SKUs set up — add them on the Returns page first','er');return;}
-  const lines=[];
+  const lines=[],stop=[];
   document.querySelectorAll('[id^="rsl-sku-"]').forEach(sel=>{
     const idx=sel.id.split('-').pop();
-    const sku=sel.value;
+    const sku=(sel.value||'').trim();
     const units=parseInt(document.getElementById(`rsl-units-${idx}`)?.value)||0;
     const cost=parseFloat(document.getElementById(`rsl-cost-${idx}`)?.value)||0;
-    if(sku&&units>0){
-      const r=returnSkus.find(x=>x.sku===sku);
-      lines.push({shipId:_retShipId,sku,prod:r?.prod||sku,asin:r?.asin||'',units,cost,date:shipDateFor(_retShipId)});
-    }
+    if(!sku||units<=0)return;
+    const r=_rslRows().find(x=>x.sku===sku);
+    /* No quantity check against returnSkus: that list is a lookup, its units
+       field is not a stock count, and checking against it only ever produced a
+       warning about a number nobody maintains. */
+    if(cost<=0)stop.push(`${(r&&r.name)||sku}: no COG on the line.`);
+    lines.push({shipId:_retShipId,sku,prod:(r&&r.name)||sku,asin:(r&&r.asin)||'',units,cost,
+      date:shipDateFor(_retShipId)});
   });
-  if(!lines.length){toast('Select a SKU and enter units > 0','er');return;}
-  let saved=0;
+  if(stop.length){toast(stop[0],'er');return;}
+  if(!lines.length){toast('Pick a return and enter units above 0','er');return;}
+  let saved=0,merged=0;
   for(const entry of lines){
-    const res=await sb.from('returns_shipments').insert({ship_id:entry.shipId,sku:entry.sku,product_name:entry.prod,units:entry.units,cost:entry.cost,date:entry.date}).select().single();
-    if(res.error){console.error('Return shipment insert error:',res.error);toast('Save failed: '+res.error.message,'er');continue;}
-    if(res.data)entry.uuid=res.data.id;
-    returnShipments.push(entry);
-    saved++;
+    /* The same SKU twice on one shipment made two rows that every total then
+       counted separately. One shipment, one line per SKU — the units go up. */
+    const twin=returnShipments.find(x=>x.shipId===entry.shipId&&x.sku===entry.sku&&x.uuid);
+    if(twin){
+      const was=twin.units||0;
+      twin.units=was+entry.units;
+      if(entry.cost>0)twin.cost=entry.cost;
+      const res=await sb.from('returns_shipments').update({units:twin.units,cost:twin.cost}).eq('id',twin.uuid);
+      if(res.error){twin.units=was;toast('Save failed: '+res.error.message,'er');continue;}
+      merged++;
+      logAudit('Return units added to shipment',`${entry.sku} → ${entry.shipId} (${was} + ${entry.units} = ${twin.units})`);
+    }else{
+      const res=await sb.from('returns_shipments').insert({ship_id:entry.shipId,sku:entry.sku,product_name:entry.prod,units:entry.units,cost:entry.cost,date:entry.date}).select().single();
+      if(res.error){console.error('Return shipment insert error:',res.error);toast('Save failed: '+res.error.message,'er');continue;}
+      if(res.data)entry.uuid=res.data.id;
+      returnShipments.push(entry);
+      saved++;
+      logAudit('Returns added to shipment',`${entry.sku} x${entry.units} → ${entry.shipId}`);
+    }
+
   }
-  if(!saved){return;}
+  if(!saved&&!merged)return;
   cm('retShipModal');renderShipments();renderReturns();renderDashboard();
-  toast(`✓ ${saved} return${saved!==1?'s':''} added to ${_retShipId}`);
-  logAudit('Returns added to shipment',`${saved} SKUs → ${_retShipId}`);
+  const bits=[];
+  if(saved)bits.push(`${saved} return${saved!==1?'s':''} added`);
+  if(merged)bits.push(`${merged} line${merged!==1?'s':''} topped up`);
+  toast('✓ '+bits.join(', ')+' on '+_retShipId);
 }
+
 // Cache for shipment types (persists across re-renders)
 const _shipTypeCache={};
 
@@ -19603,9 +20000,18 @@ async function deleteShipment(){
         r.archived=false;
         r._dirty=true;await saveRow(r);
       }
-      // Detach Lavarion lines.
-      for(const ls of c.lav){if(ls.uuid)await sb.from('lavarion_shipments').delete().eq('id',ls.uuid);}
+      // Detach Lavarion lines — and put their stock back, exactly as removing
+      // one line does. OA rows return to the prep sheet here; Lavarion units
+      // were staying consumed by a shipment that no longer existed.
+      let putBack=0;
+      for(const ls of c.lav){
+        if(ls.uuid)await sb.from('lavarion_shipments').delete().eq('id',ls.uuid);
+        try{const b=(window.LV3&&LV3.shipRestore)?LV3.shipRestore(ls.asin,ls.units||0):null;
+            if(b)putBack+=b.restored;}catch(e){}
+      }
       lavShipments=lavShipments.filter(ls=>ls.shipId!==shipId);
+      if(putBack){try{if(window.LV3&&LV3.render)LV3.render();}catch(e){}
+        logAudit('Lavarion stock returned',`${putBack} units back on the shelf from ${shipId}`);}
       // Detach Returns (the return SKU itself stays on the Returns page).
       for(const rs of c.ret){if(rs.uuid)await sb.from('returns_shipments').delete().eq('id',rs.uuid);}
       returnShipments=returnShipments.filter(rs=>rs.shipId!==shipId);
@@ -19634,8 +20040,28 @@ function editLavShipLine(uuid){
 function saveEditLavLine(){
   const ls=lavShipments.find(s=>s.uuid===_editLavLineId||(s.uuid||String(lavShipments.indexOf(s)))===String(_editLavLineId));
   if(!ls)return;
+  const was=parseInt(ls.units)||0;
   ls.units=parseInt(document.getElementById('editLavUnits').value)||0;
   ls.cost=parseFloat(document.getElementById('editLavCog').value)||0;
+  /* This wrote straight to the database and skipped the stock entirely, so
+     changing 14 to 4 left ten units consumed by nothing. Move the difference. */
+  const delta=ls.units-was;
+  if(delta!==0){
+    try{
+      if(delta>0&&window.LV3&&LV3.shipConsume){
+        const r=LV3.shipConsume(ls.asin,delta);
+        if(r&&r.over>0){
+          try{LV3.noteOverSent(ls.asin,r.over,ls.shipId);}catch(e){}
+          toast(`⚠ Only ${r.consumed} of the extra ${delta} were in stock — ${r.over} recorded as owed.`,'er');
+        }
+      }else if(delta<0&&window.LV3&&LV3.shipRestore){
+        LV3.shipRestore(ls.asin,-delta);
+      }
+      if(window.LV3&&LV3.render)LV3.render();
+    }catch(e){console.warn('[lav3] edit line stock',e);}
+    logAudit('Lavarion line units changed',
+      `${ls.asin} on ${ls.shipId}: ${was} → ${ls.units} (${delta>0?'+':''}${delta} on stock)`);
+  }
   // Save to Supabase
   setSyncStatus('syncing');
   sb.from('lavarion_shipments').update({units:ls.units,cost:ls.cost}).eq('id',ls.uuid).then(()=>setSyncStatus('synced'));
@@ -19659,7 +20085,14 @@ function delLavShipLine(uuid){
           .catch(()=>setSyncStatus('error'));
       }else{setSyncStatus('synced');}
       lavShipments=lavShipments.filter(s=>s!==ls);
-      logAudit('Lavarion removed from shipment',`${ls.asin} x ${ls.units} from ${ls.shipId}`);
+      /* the line goes, so the stock comes back — otherwise the units were
+         consumed by a shipment that no longer exists */
+      let back=null;
+      try{if(window.LV3&&LV3.shipRestore)back=LV3.shipRestore(ls.asin,ls.units||0);}catch(e){}
+      logAudit('Lavarion removed from shipment',
+        `${ls.asin} x ${ls.units} from ${ls.shipId}`+(back?` — ${back.restored} put back on the shelf`:''));
+      if(back&&back.short>0)toast(`${back.restored} put back; ${back.short} could not be — those batches were already full.`,'er');
+      try{if(window.LV3&&LV3.render)LV3.render();}catch(e){}
       renderShipments();
       if(document.getElementById('page-admin')&&document.getElementById('page-admin').classList.contains('active'))renderAdmin();
       toast('Removed from shipment ✓');
@@ -19834,30 +20267,52 @@ function openNewShipment(){
   om('newShipModal');
 }
 
+/* This screen still had the original dropdown: no search, no buildable count,
+   no cost, no check — so a shipment created here could go out short and the
+   only word about it was a toast AFTER the row was already saved. It is the
+   same job as the Add-Lavarion picker, so it is the same picker, off the same
+   helpers, so the two screens can never disagree about what is allowed. */
+/* This screen still had the original dropdown: no search, no buildable count,
+   no cost, no check — so a shipment created here could go out short and the
+   only word about it was a toast AFTER the row was already saved. Same job as
+   the Add-Lavarion picker, so it runs the same code, off the same helpers. */
 function addNsLavRow(){
   const idx=_nsLavCount++;
   const container=document.getElementById('ns-lavRows');
   const row=document.createElement('div');
   row.id=`ns-lav-${idx}`;
-  row.style.cssText='display:grid;grid-template-columns:1fr 1fr 70px 70px 24px;gap:6px;margin-bottom:6px;align-items:center;';
+  row.style.cssText='background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:10px 11px;margin-bottom:8px;';
   row.innerHTML=`
-    <select class="fi-in" id="ns-lav-asin-${idx}" style="font-size:11px;" onchange="nsLavFill(${idx})">
-      <option value="">Select ASIN…</option>
-      ${lavAsins.map(a=>`<option value="${a.asin}">${a.prod} (${a.asin})</option>`).join('')}
-    </select>
-    <div id="ns-lav-name-${idx}" style="font-size:10px;color:var(--text3);"></div>
-    <input class="fi-in" type="number" id="ns-lav-units-${idx}" placeholder="Units" style="font-size:11px;">
-    <input class="fi-in" type="number" id="ns-lav-cost-${idx}" placeholder="£COG" step="0.01" style="font-size:11px;">
-    <button onclick="document.getElementById('ns-lav-${idx}').remove()" style="background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;cursor:pointer;font-size:12px;padding:2px 6px;">✕</button>
+    <div style="display:grid;grid-template-columns:1fr 76px 92px 24px;gap:8px;align-items:end;">
+      <div style="position:relative;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Product</div>
+        <input class="fi-in" id="ns-lav-search-${idx}" autocomplete="off"
+          placeholder="Type a product, SKU or ASIN…" style="font-size:12px;"
+          oninput="pkFilter('ns-lav',${idx})" onfocus="pkFilter('ns-lav',${idx})"
+          onkeydown="if(event.key==='Escape'){pkHide('ns-lav',${idx});this.blur();}">
+        <input type="hidden" id="ns-lav-asin-${idx}" value="">
+        <div id="ns-lav-pop-${idx}" style="display:none;position:absolute;z-index:60;left:0;right:0;top:100%;
+          margin-top:3px;max-height:230px;overflow:auto;background:var(--bg2);border:1px solid var(--border2);
+          border-radius:7px;box-shadow:0 12px 26px rgba(0,0,0,.55);"></div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Units</div>
+        <input class="fi-in" type="number" id="ns-lav-units-${idx}" min="1" placeholder="0" style="font-size:12px;"
+          oninput="pkCheck('ns-lav',${idx})">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">COG/Unit £</div>
+        <input class="fi-in" type="number" id="ns-lav-cost-${idx}" min="0" step="0.01" placeholder="auto"
+          title="Worked out from the oldest stock first. Type over it only if this batch genuinely cost something else."
+          style="font-size:12px;" oninput="this.dataset.touched='1';pkCheck('ns-lav',${idx});">
+      </div>
+      <button onclick="document.getElementById('ns-lav-${idx}').remove();pkFoot('ns-lav');" title="Drop this line"
+        style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">&#10005;</button>
+    </div>
+    <div id="ns-lav-info-${idx}" style="font-size:11px;color:var(--text3);margin-top:6px;"></div>
   `;
   container.appendChild(row);
-}
-
-function nsLavFill(idx){
-  const asin=document.getElementById(`ns-lav-asin-${idx}`)?.value;
-  const a=lavAsins.find(x=>x.asin===asin);
-  const nameEl=document.getElementById(`ns-lav-name-${idx}`);
-  if(nameEl)nameEl.textContent=a?a.sku:'';
+  pkFoot('ns-lav');
 }
 
 async function saveNewShipment(){
@@ -19868,6 +20323,8 @@ async function saveNewShipment(){
   const boxes=parseInt(document.getElementById('ns-boxes').value)||0;
 
   // Collect Lavarion rows
+  /* Same stop as the Add-Lavarion picker — this screen had none at all. */
+  const stop=pkStops('ns-lav');
   const lavRows=[];
   document.querySelectorAll('[id^="ns-lav-asin-"]').forEach(sel=>{
     const idx=sel.id.split('-').pop();
@@ -19876,10 +20333,11 @@ async function saveNewShipment(){
     const cost=parseFloat(document.getElementById(`ns-lav-cost-${idx}`)?.value)||0;
     if(asin&&units>0){
       const a=lavAsins.find(x=>x.asin===asin);
-      lavRows.push({shipId,asin,sku:a?.sku||'',prod:a?.prod||asin,units,cost,date});
+      lavRows.push({shipId,asin,sku:a?.sku||'',prod:a?.prod||asin,units,cost,date,_meta:pkMeta('ns-lav',idx)});
     }
   });
 
+  if(stop.length){toast(stop[0],'er');return;}
   if(!lavRows.length){toast('Add at least one Lavarion ASIN with units','er');return;}
 
   // Write type to cache NOW so renderShipments picks it up immediately and
@@ -19896,8 +20354,15 @@ async function saveNewShipment(){
 
   // Save Lavarion shipments
   for(const ls of lavRows){
+    const meta=ls._meta;delete ls._meta;
     lavShipments.push(ls);
     await saveLavShipment(ls);
+    if(meta){
+      logAudit('Lavarion added to shipment',
+        `${ls.asin} x ${ls.units} -> ${shipId} — COG £${ls.cost} blended across two purchase prices by ${window.currentUserName||'Unknown'} (${meta.why}${meta.note?': '+meta.note:''})`);
+      try{if(window.LV3&&LV3.noteOverride)LV3.noteOverride({k:meta.why||'other',
+        shipId,prod:ls.prod,units:ls.units,cost:ls.cost,note:meta.note});}catch(e){}
+    }
   }
 
   cm('newShipModal');renderShipments();
@@ -20158,16 +20623,16 @@ setInterval(updateClock,60000);
 
 <!-- LAVARION ADD TO SHIPMENT MODAL -->
 <div class="overlay" id="lavShipModal">
-  <div class="modal" style="max-width:500px;">
+  <div class="modal" style="max-width:560px;">
     <div class="mh"><div class="mh-title" id="lavShipModalTitle">Add Lavarion to Shipment</div><button class="mh-close" onclick="cm('lavShipModal')">✕</button></div>
     <div class="mb" style="padding:16px;">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Add one or more Lavarion ASINs to this shipment. Each line has its own units and COG.</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Type the product name. The COG is worked out from the oldest stock first — override it only if this batch really cost something else.</div>
       <div id="lavShipLines"></div>
       <button onclick="addLavShipLine()" style="margin-top:8px;padding:5px 12px;background:var(--btn-purple-bg);border:1px solid var(--btn-purple-border);color:var(--btn-purple-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">+ Add Another ASIN</button>
     </div>
     <div class="mf">
       <button class="btn-cancel" onclick="cm('lavShipModal')">Cancel</button>
-      <button class="btn-save" onclick="confirmLavShipMulti()">Add to Shipment</button>
+      <button class="btn-save" id="lavShipGo" onclick="confirmLavShipMulti()">Add to Shipment</button>
     </div>
   </div>
 </div>
@@ -20266,7 +20731,7 @@ setInterval(updateClock,60000);
     </div>
     <div class="mf">
       <button class="btn-cancel" onclick="cm('newShipModal')">Cancel</button>
-      <button class="btn-save" onclick="saveNewShipment()">Create Shipment</button>
+      <button class="btn-save" id="nsGo" onclick="saveNewShipment()">Create Shipment</button>
     </div>
   </div>
 </div>
@@ -20502,13 +20967,14 @@ setInterval(updateClock,60000);
 </div>
 
 <div class="overlay" id="retShipModal">
-  <div class="modal" style="max-width:520px;">
+  <div class="modal" style="max-width:560px;">
     <div class="mh"><div class="mh-title" id="retShipModalTitle">Add Returns to Shipment</div><button class="mh-close" onclick="cm('retShipModal')">✕</button></div>
     <div class="mb" style="padding:16px;">
       <div id="retShipExisting"></div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Select return SKUs and confirm units for this shipment. COG auto-fills from SKU.</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.045em;margin-bottom:7px;">Add a return</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px;">Type the product name. The COG comes from the return SKU — override it only if this batch really cost something else.</div>
       <div id="retShipLines"></div>
-      <button onclick="addRetShipLine()" style="margin-top:8px;padding:5px 12px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">+ Add Another SKU</button>
+      <button onclick="addRetShipLine()" style="margin-top:8px;padding:6px 12px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;">+ Add another SKU</button>
     </div>
     <div class="mf">
       <button class="btn-cancel" onclick="cm('retShipModal')">Cancel</button>
@@ -20581,7 +21047,7 @@ setInterval(updateClock,60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v28.9 · lav3 · 2026-08-20 · b300';
+const BUILD='v30.0 · lav3 · 2026-08-20 · b311';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -21133,6 +21599,73 @@ function priceRuns(o){
 /* What a unit will cost once the stock at today's price is gone. Stock is
    eaten oldest-batch-first, so the next price is already known — it is sitting
    in the next price run. Worth seeing before it lands in the margin. */
+/* What the "Add Lavarion to shipment" picker needs, in one call. The modal
+   lives in the main app and the products live in here, so it had nothing to
+   work from — which is why its COG box sat at 0.00 and had to be typed by
+   hand every time. */
+function lavShipList(){
+  return (D.products||[]).filter(x=>!x.archived).map(x=>{
+    const av=avail(x)||{};
+    let per=null;try{const c=cogOf(x,1);per=(c&&c.per)||null;}catch(e){}
+    return{asin:x.asin||'',sku:x.sku||'',name:x.name||'',
+      available:(av.n==null?null:av.n),kind:av.kind||'',cog:per};
+  }).sort((a,b)=>a.name.localeCompare(b.name));
+}
+function lavShipInfo(asin,units){
+  const key=String(asin||'').toLowerCase();
+  const x=(D.products||[]).find(y=>String(y.asin||'').toLowerCase()===key);
+  if(!x)return null;
+  const av=avail(x)||{};
+  /* Cost the REAL quantity. Oldest stock goes first, so five units can straddle
+     two purchase prices — one unit's cost times five would be the wrong number,
+     and it is the number that gets stamped on the shipment forever. */
+  const n=Math.max(1,parseInt(units)||1);
+  /* blocked entries are {o,need,have,short} — the name is on .o, and mapping
+     b.name over them is what printed "[object Object]" in the modal. The
+     quantities travel with it now: the modal has to say need 28 / have 24, not
+     just "something is short". */
+  let per=null,blocked=[],unpriced=[],mixed=false,cleanMax=null,nextPer=null;
+  try{const c=cogOf(x,n);
+    per=(c&&c.per)||null;
+    blocked=((c&&c.blocked)||[]).map(b=>({name:(b&&b.o&&b.o.name)||'',need:b.need||0,have:b.have||0,short:b.short||0}));
+    unpriced=((c&&c.unpriced)||[]).map(u=>({name:(u&&u.name)||'',units:u.units||0}));
+    try{const chk=cogCheck(x,n);
+      mixed=!!(chk&&chk.mixed&&chk.mixed.length);
+      /* how many can go at ONE price before the next purchase run starts —
+         the app's own "one shipment, one COG" rule, finally visible */
+      cleanMax=(chk&&chk.cleanMax!=null)?chk.cleanMax:null;
+    }catch(e){}
+    /* what a unit costs once today's price run is gone */
+    try{const nx=nextCog(x);if(nx&&nx.next!=null)nextPer=nx.next;}catch(e){}
+  }catch(e){}
+  /* the cost of only what can actually be built — so a short line can still
+     show a real figure for the part that is covered */
+  let coveredPer=null,coveredN=null;
+  try{
+    const canDo=(av.n==null)?null:Math.min(n,av.n);
+    if(canDo&&canDo>0&&canDo<n){const c2=cogOf(x,canDo);if(c2&&c2.per)  {coveredPer=c2.per;coveredN=canDo;}}
+  }catch(e){}
+  return{asin:x.asin||'',sku:x.sku||'',name:x.name||'',
+    available:(av.n==null?null:av.n),kind:av.kind||'',cog:per,blocked,unpriced,mixed,
+    cleanMax,nextPer,coveredPer,coveredN,limiter:av.limiter||null};
+}
+/* A quantity that straddles two purchase prices gets one blended figure today
+   and nobody is told it happened. This is the honest alternative: two lines,
+   each at the price it was actually bought at. The person chooses. */
+function lavShipSplit(asin,units){
+  const x=(D.products||[]).find(y=>String(y.asin||'').toLowerCase()===String(asin||'').toLowerCase());
+  if(!x)return null;
+  const n=Math.max(1,parseInt(units)||1);
+  let chk=null;try{chk=cogCheck(x,n);}catch(e){return null;}
+  if(!chk||!chk.mixed||!chk.mixed.length)return null;
+  const first=Math.max(0,Math.min(n,chk.cleanMax||0));
+  const rest=n-first;
+  if(first<=0||rest<=0)return null;
+  let aPer=null,bPer=null;
+  try{const a=cogOf(x,first);aPer=(a&&a.per)||null;}catch(e){}
+  try{const nx=nextCog(x);bPer=(nx&&nx.next!=null)?nx.next:null;}catch(e){}
+  return{first:{units:first,per:aPer},rest:{units:rest,per:bPer}};
+}
 function nextCog(p){
   const items=[];
   if(p.type!=='bundle')items.push({o:p,per:1});
@@ -22226,6 +22759,21 @@ function workList(){
   const noSold=live.filter(p=>sold30(p)==null&&p.ship30>0).length;
   const stale=live.filter(p=>{const a=sold30Age(p);return a!=null&&a>=30;}).length;
 
+  /* Units that went out against stock we did not hold. Recorded at the moment
+     of sending so it cannot be argued about later, and it sits here until a
+     person settles it against a delivery. */
+  const owed=[];
+  Object.keys((D.settings||{}).overSent||{}).forEach(asin=>{
+    const n=overSentFor(asin);if(!n)return;
+    const pr=live.find(x=>x.asin===asin);
+    owed.push({asin,n,name:(pr&&pr.name)||asin});
+  });
+  const owedUnits=owed.reduce((a,b)=>a+b.n,0);
+  if(owed.length)jobs.push({sev:1,n:owedUnits,
+    t:`${fmt(owedUnits)} unit${owedUnits===1?'':'s'} went out that we did not have`,
+    s:owed.slice(0,3).map(o=>`${esc(o.name)} (${o.n})`).join(', ')+(owed.length>3?` +${owed.length-3} more`:'')
+      +' — approved at the time; settle it once the delivery lands',
+    btn:'Settle',go:"openOverSent()"});
   if(blockedNoOrder.length)jobs.push({sev:1,n:blockedNoOrder.length,
     t:`${fmt(blockedNoOrder.length)} product${blockedNoOrder.length===1?'':'s'} out of stock with nothing on order`,
     s:blockedNoOrder.slice(0,3).map(p=>esc(p.name)).join(', ')+(blockedNoOrder.length>3?` +${blockedNoOrder.length-3} more`:''),
@@ -23537,8 +24085,12 @@ function drawShip(){
   const cg=cogOf(p,n);
   const chk=cogCheck(p,n);
   const blocked=cg.blocked.length>0;
-  const mixed=!blocked&&chk.mixed.length>0;      // stock is fine, but prices would mix
-  const stopped=blocked||(mixed&&!SHIP.override);
+  /* A batch booked in without a price is missing information, not free stock —
+     cogOf says so in a SEPARATE array, and testing only `blocked` let it ship
+     under a green chip at a COG of £0.00. */
+  const noprice=!blocked&&(cg.unpriced||[]).length>0;
+  const mixed=!blocked&&!noprice&&chk.mixed.length>0;   // stock is fine, but prices would mix
+  const stopped=blocked||noprice||(mixed&&!SHIP.override);
   $('lav3Mod1').className='mod wide';
   $('lav3Mod1').innerHTML=`
   <div class="mh"><h3>Ship — ${esc(p.name)}</h3><span class="chip ${p.type}">${typeLabel(p.type)}</span><button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
@@ -23556,11 +24108,20 @@ function drawShip(){
         <div class="k">${p.type==='bundle'?'You can build':'In stock'}</div>
         <div class="v" style="color:${a.n?'var(--green)':'var(--red)'}">${fmt(a.n)}</div></div>
     </div>
-    ${blocked?shipBlock(p,cg,n):(mixed?shipMixed(p,chk,n):'')}
+    ${blocked?shipBlock(p,cg,n):noprice?`<div class="mixWrap">
+      <div class="mixHead">
+        <span class="mixIcon">!</span>
+        <div><div class="mixT">Blocked — no purchase price on record</div>
+          <div class="mixS">Sending now would stamp this shipment £0.00 a unit, for good. Put the cost on the delivery in Purchases and it will price itself.</div></div>
+      </div>
+      ${cg.unpriced.map(u=>`<div class="att"><span class="dot" style="background:var(--amb)"></span>
+        <span>${esc(u.name)} — ${fmt(u.units)} unit${u.units===1?'':'s'} booked in with no cost</span></div>`).join('')}
+    </div>`:(mixed?shipMixed(p,chk,n):'')}
     ${stopped?'':shipOk(p,cg,n,mixed)}
   </div>
   <div class="mf">
     ${blocked?`<span class="pmeta" style="margin:0">Fix the shortfall or lower the quantity.</span>`
+      :noprice?`<span class="pmeta" style="margin:0;color:var(--amb);font-weight:700">Blocked — a part has no price, so this cannot be costed.</span>`
       :mixed&&!SHIP.override?`<span class="pmeta" style="margin:0;color:var(--red);font-weight:700">Blocked — this would mix two costs in one shipment.</span>`
       :SHIP.override?`<span class="pmeta" style="margin:0;color:var(--amb);font-weight:700">Override on — mixed costs will be recorded against this shipment.</span>`
       :`<span class="pmeta" style="margin:0">Stock comes off oldest-first the moment you send.</span>`}
@@ -23725,7 +24286,14 @@ function shipBlock(p,cg,n){
 function copyCog(v){navigator.clipboard&&navigator.clipboard.writeText(v);toast('COG £'+v+' copied','ok');}
 function doShip(){
   const p=prod(SHIP.id),n=SHIP.units,cg=cogOf(p,n);
-  if(cg.blocked.length||n<1){toast('Blocked','er');return;}
+  if(n<1){toast('Blocked','er');return;}
+  if(cg.blocked.length){toast('Blocked — not enough stock to build '+fmt(n),'er');return;}
+  /* cg.per is 0 whenever anything is unpriced, and that 0 used to be written
+     onto the shipment as its COG, permanently. */
+  if((cg.unpriced||[]).length){
+    toast('Blocked — no price on '+cg.unpriced.map(u=>u.name).join(', ')+'. Price the delivery in Purchases first, or this ships at £0.00.','er');
+    return;
+  }
   const chk=cogCheck(p,n);
   if(chk.mixed.length&&!SHIP.override){toast('Blocked — mixed costs. Send '+fmt(chk.cleanMax)+' instead, or override.','er');return;}
   /* Without an FBA ID this took stock off the shelf and told the Shipments page
@@ -23738,16 +24306,19 @@ function doShip(){
     return;
   }
   snap();
-  /* consume FIFO for real */
-  if(p.type!=='bundle'){fifo(p,n).parts.forEach(pt=>{pt.layer.rem-=pt.take;});}
-  else p.recipe.forEach(r=>{const c=comp(r.c);fifo(c,r.q*n).parts.forEach(pt=>{pt.layer.rem-=pt.take;});});
+  /* The FIFO draw used to happen here AND again inside saveLavShipment, which
+     is monkey-patched to call shipConsume — so every send from this modal took
+     the stock off twice. One send, one deduction: the patch owns it now, and
+     it is the same path the Shipments page uses. */
   p.ship30=(p.ship30||0)+n;p.lastSent=localDay(TODAY);
   /* record it where the rest of the app looks: the Shipments page, the monthly
      numbers and the COG history all read lavShipments */
   const rec={shipId:fba,asin:p.asin,sku:p.sku||'',prod:p.name,units:n,
     /* an existing FBA ID keeps its own date — a line added later must not drag
        the whole shipment forward to today */
-    cost:Number(cg.per.toFixed(4)),
+    /* A blend lands on fractions of a penny. It rounds UP — a COG guessed high
+       costs nothing, a COG guessed low flatters every margin downstream. */
+    cost:chk.mixed.length?Math.ceil(cg.per*100)/100:Number(cg.per.toFixed(4)),
     date:(typeof shipDateFor==='function')?shipDateFor(fba):dayISO()};
   try{
     if(typeof lavShipments!=='undefined')lavShipments.push(rec);
@@ -24759,6 +25330,62 @@ function parseSheetRows(rows,tab){
 let _revOpen=false;
 function revToggle(){_revOpen=!_revOpen;render();}
 const purchKey=r=>[r.date,(r.oid||'—').toLowerCase(),r.name.toLowerCase(),r.qty].join('|');
+/* ── LINES A HUMAN HAS ALREADY RULED ON ───────────────────────────────────
+   Becki, 20 Aug: "past couple of times i have refreshed app and then synced
+   purchase sheet ... both of these keep coming up despite being cleared".
+
+   She was right and the loop was unwinnable. dropReview forgets the row and
+   deletes it — its own comment admits the rest: "syncing again fetches it
+   afresh". The sheet still holds the line, so the next sync re-imports it, it
+   lands back in To review, she clears it, and round it goes. Nothing recorded
+   that a person had already looked at that line and said no.
+
+   The prep sheet solved exactly this with a persistent exclusion list; the
+   Lavarion purchase sync never had one. This is that list, keyed on the same
+   purchKey the sync matches with, riding in prefs so it survives a refresh.
+   Nothing is hidden silently — the page says how many lines are being ignored
+   and any of them can be put back. */
+const purchKilled=()=>((D.settings||{}).purchKilled)||{};
+function killPurchLine(p,why){
+  if(!p)return;
+  D.settings.purchKilled=D.settings.purchKilled||{};
+  D.settings.purchKilled[purchKey(p)]={on:dayISO(),by:(window.currentUserName||''),
+    name:p.name||'',sup:p.sup||'',qty:p.qty||0,why:why||'removed from To review'};
+  savePrefs();
+}
+function openKilled(){
+  const k=Object.entries(purchKilled());
+  $('lav3Mod2').className='mod';
+  $('lav3Mod2').innerHTML=`
+  <div class="mh"><h3>Sheet lines being ignored</h3>
+    <span class="pmeta" style="margin:0">${fmt(k.length)} line${k.length===1?'':'s'} the sync will not bring back</span>
+    <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+  <div class="mb" style="padding:12px 14px">
+    ${k.length?`<table class="rsTbl tight"><thead><tr>
+        <th class="l">The line</th><th>Qty</th><th class="l">Supplier</th><th class="l">Removed</th><th></th>
+      </tr></thead><tbody>
+      ${k.map(([key,v])=>`<tr>
+        <td class="l"><span class="pname">${esc(v.name||key)}</span><div class="pmeta">${esc(v.why||'')}</div></td>
+        <td class="mono">${fmt(v.qty||0)}</td>
+        <td class="l">${esc(v.sup||'—')}</td>
+        <td class="l"><span class="pmeta" style="margin:0">${esc(dshort(v.on)||v.on||'')}${v.by?' · '+esc(v.by):''}</span></td>
+        <td class="l"><button class="btn sm" title="Let the next sync bring this line back in"
+          onclick="LV3.revivePurchLine('${key.replace(/'/g,"\\'")}')">Put it back</button></td>
+      </tr>`).join('')}
+      </tbody></table>`
+    :'<div class="pmeta">Nothing is being ignored.</div>'}
+    <div class="ordNote" style="margin-top:10px">A line lands here when somebody removes it from To review. The sheet is never touched — the line is still on it, the sync just stops handing it back. Put one back and the next sync will import it again.</div>
+  </div>
+  <div class="mf"><div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Close</button></div></div>`;
+  om('lav3Ov2');
+}
+function revivePurchLine(key){
+  if(!D.settings.purchKilled)return;
+  delete D.settings.purchKilled[key];
+  savePrefs();render();
+  toast('Back in play — the next sync will bring it in again','ok');
+}
+let killedSkipped=0;   // lines this sync passed over because a human removed them
 /* the same line WITHOUT its name — used to spot a rename on the sheet instead
    of treating it as a new purchase */
 const purchId=r=>[r.date,(r.oid||'—').toLowerCase(),r.qty,Number(r.price||0).toFixed(4)].join('|');
@@ -24864,6 +25491,9 @@ async function syncPurchases(){
         }
         /* every stored copy already spoken for — fall through and add this one,
            marked so somebody confirms it rather than the app deciding */
+        /* somebody already looked at this exact line and removed it — do not
+           hand it back to them on every sync */
+        if(purchKilled()[k]){have.add(k);killedSkipped++;return;}
         const twinId=(D.purchases.find(x=>purchKey(x)===k)||{}).id||'';
         have.add(k);added++;dupAsk++;
         D.purchases.push({id:newId('P'),uuid:null,tab:r.tab,date:r.date,name:r.name,
@@ -24996,16 +25626,20 @@ function suggestFor(p){
 /* quiet: the caller is removing a batch and has already taken ONE snapshot.
    Snapshotting per row meant Undo after "remove 5 leftovers" put back exactly
    one of them — an Undo that only half works is worse than none. */
-function dropReview(pid,quiet){
+function dropReview(pid,quiet,keep){
   const p=D.purchases.find(x=>x.id===pid);if(!p)return;
   if(!quiet)snap();
   D.purchases=D.purchases.filter(x=>x.id!==pid);
   PURCH=D.purchases;
+  /* Deleting the row was only ever half the job — the sheet still holds the
+     line, so the next sync brought it straight back. Record the decision too,
+     unless the caller explicitly wants it to return (keep=true). */
+  if(!keep)killPurchLine(p);
   if(p.uuid)sb.from('lavarion_purchases').delete().eq('id',p.uuid)
     .then(r=>{if(r.error)console.warn('[lav3] drop purchase',r.error);});
   if(quiet)return;
   save();render();
-  toastUndo(`${p.name} removed from the list`,'ok');
+  toastUndo(`${p.name} removed — the sync will not bring it back`,'ok');
 }
 function clearReview(){
   /* A broken link is work waiting, same as an unlinked purchase. Excluding it
@@ -25112,6 +25746,7 @@ function reviewPanel(){
               const total=p.spend||(p.qty*p.price);
               const isBroken=allocState(p).k==='broken';
               const twin=dupTwin(p);
+              const chgTwin=twin?null:changedTwin(p);
               return `<div class="rvLine ${isBroken?'broken':t?'':'nomatch'}">
                 <div class="rvName">${esc(p.name)}
                   ${isBroken?'<span class="chip bad" title="This was linked once, but the part it pointed at has changed. Pick it again.">link broken</span>':''}</div>
@@ -25121,6 +25756,9 @@ function reviewPanel(){
                 <div class="rvTo">${twin
                   ? `<span class="rvNone" style="color:var(--red)">already on order as <b>${esc(twin.name)}</b></span>
                      <span class="rvWhy">this is a leftover copy — do not link it</span>`
+                  : chgTwin
+                  ? `<span class="rvNone" style="color:var(--amb)">the sheet has changed <b>${esc(chgTwin.name)}</b></span>
+                     <span class="rvWhy">${fmt(chgTwin.qty||0)} → ${fmt(p.qty||0)} units — probably a correction</span>`
                   : t
                   ? `<span class="brTag ${sug.sure?'':'maybe'}">${esc(t.name)}</span><span class="rvWhy">${esc(sug.why)}</span>`
                   : `<span class="rvNone">nothing matches</span>`}</div>
@@ -25128,6 +25766,9 @@ function reviewPanel(){
                   ${twin
                     ? `<button class="btn sm dgr" title="Same day, same quantity, same supplier as one already on order — linking it would book stock you never bought"
                          onclick="LV3.dropReview('${p.id}')">Remove the copy</button>`
+                    : chgTwin
+                    ? `<button class="btn sm pri" title="Same day, same supplier, same product — the figures changed on the sheet"
+                         onclick="LV3.openMerge('${p.id}')">Merge or keep both</button>`
                     : t?`<button class="btn sm go" onclick="LV3.quickLink('${p.id}','${sug.id}')">Link</button>
                          <button class="btn sm" onclick="LV3.openLink('${p.id}')">Change</button>`
                        :`<button class="btn sm pri" onclick="LV3.openLink('${p.id}')">Pick one</button>`}
@@ -26136,6 +26777,88 @@ function dupTwin(p){
     && Math.abs((+q.price||0)-(+p.price||0))<0.02
     && nameClose(q.name,p.name))||null;
 }
+/* ── "THE SAME PURCHASE, WITH THE NUMBERS CHANGED" ────────────────────────
+   dupTwin insists on an identical quantity, so a line somebody CORRECTED on
+   the sheet (4 units becomes 5) matches nothing and arrives looking like a
+   brand new purchase. Same day, same supplier, same product, different figures
+   is almost always a correction — but only almost, so the app asks instead of
+   deciding, and the answer can be overruled. */
+function changedTwin(p){
+  const norm=x=>(x||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const st=allocState(p).k;
+  if(st!=='none'&&st!=='broken')return null;
+  return D.purchases.find(q=>q.id!==p.id
+    && (q.alloc||[]).length && (q.alloc||[]).every(a=>targetOf(a.to))
+    && q.date===p.date
+    && norm(q.sup)===norm(p.sup)
+    && nameClose(q.name,p.name)
+    /* something must actually differ, or dupTwin already has it */
+    && ((parseInt(q.qty)||0)!==(parseInt(p.qty)||0)
+        || Math.abs((+q.price||0)-(+p.price||0))>=0.02))||null;
+}
+/* The popup. It explains what changed, in both directions, before anything
+   moves — and the UK team can overrule it and keep both. */
+function openMerge(pid){
+  const p=D.purchases.find(x=>x.id===pid);if(!p)return;
+  const tw=changedTwin(p);
+  if(!tw){toast('Nothing on order matches this line any more','er');return;}
+  const oldTot=tw.spend||((tw.qty||0)*(tw.price||0));
+  const newTot=p.spend||((p.qty||0)*(p.price||0));
+  const dq=(p.qty||0)-(tw.qty||0);
+  const row=(lab,a,b)=>`<tr><td class="l" style="color:var(--text3)">${lab}</td>
+    <td class="mono">${a}</td><td class="mono" style="color:var(--accent)">${b}</td></tr>`;
+  $('lav3Mod2').className='mod';
+  $('lav3Mod2').innerHTML=`
+  <div class="mh"><h3>The sheet has changed this purchase</h3>
+    <span class="pmeta" style="margin:0">${esc(p.name)} · ${esc(p.sup||'—')} · ${esc(dshort(p.date)||p.date)}</span>
+    <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+  <div class="mb" style="padding:12px 14px">
+    <div class="ordNote" style="margin-bottom:10px">A line already on order matches this one on the day, the supplier and the product — but the figures are different. That is usually somebody correcting the sheet, not a second purchase.</div>
+    <table class="rsTbl tight"><thead><tr>
+      <th class="l">&nbsp;</th><th>Already on order</th><th>The sheet now says</th>
+    </tr></thead><tbody>
+      ${row('Quantity',fmt(tw.qty||0),fmt(p.qty||0)+(dq?` <span style="color:${dq>0?'var(--grn)':'var(--red)'}">(${dq>0?'+':''}${fmt(dq)})</span>`:''))}
+      ${row('Unit price',gbp(tw.price||0),gbp(p.price||0))}
+      ${row('Line total',gbp(oldTot),gbp(newTot))}
+    </tbody></table>
+    <div class="ordNote" style="margin-top:10px"><b>Update the existing line</b> keeps one purchase and moves it to the sheet's figures — the stock it created follows. <b>Keep both</b> treats them as two separate purchases on the same day, and stops this being asked again.</div>
+  </div>
+  <div class="mf">
+    <button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
+    <div class="sp">
+      <button class="btn" title="These really are two different purchases made on the same day"
+        onclick="LV3.mergeKeepBoth('${p.id}')">Keep both &mdash; separate purchases</button>
+      <button class="btn pri" onclick="LV3.mergeIntoTwin('${p.id}')">Update the existing line</button>
+    </div>
+  </div>`;
+  om('lav3Ov2');
+}
+function mergeIntoTwin(pid){
+  const p=D.purchases.find(x=>x.id===pid);if(!p)return;
+  const tw=changedTwin(p);if(!tw){toast('That line has moved on — reopen it','er');return;}
+  snap();
+  const oldQty=parseInt(tw.qty)||0, newQty=parseInt(p.qty)||0;
+  tw.qty=newQty; tw.price=p.price; tw.spend=p.spend; tw.mismatch=p.mismatch;
+  /* the stock this purchase created has to follow the correction, but only
+     when the allocation plainly covered the whole line — a split allocation is
+     somebody's deliberate work and is left alone with a word about it */
+  const al=tw.alloc||[];
+  if(al.length===1&&(parseInt(al[0].qty)||0)===oldQty){al[0].qty=newQty;setAlloc(tw,al);}
+  else if(al.length)toast('Figures updated — check the allocation, it was split across more than one thing','er');
+  logIt('edit',`Merged a corrected sheet line — ${p.name}: ${fmt(oldQty)} → ${fmt(newQty)} units`);
+  cm('lav3Ov2');
+  dropReview(p.id,true);           // tombstoned, so the old figures stop coming back
+  save();render();
+  toastUndo(`Updated to ${fmt(newQty)} units — one purchase, the sheet's figures`,'ok');
+}
+function mergeKeepBoth(pid){
+  const p=D.purchases.find(x=>x.id===pid);if(!p)return;
+  snap();
+  p.dupCheck={...(p.dupCheck||{}),answered:'separate',by:(window.currentUserName||''),on:dayISO()};
+  logIt('edit',`Kept as a separate purchase — ${p.name} ${dshort(p.date)}`);
+  cm('lav3Ov2');save();render();
+  toastUndo('Kept as its own purchase — you will not be asked again','ok');
+}
 /* ── "THE SHEET HAS TWO LINES THAT LOOK THE SAME" ──────────────────────────
    Two Tescos, same day, same product, same money, no order number. The sync
    used to decide on its own that the second one wasn't real. It now adds it and
@@ -26175,6 +26898,8 @@ function dupPanel(){
         <span class="sub">nothing waiting — every purchase line on the sheet has come through</span>
         <span class="chip ok">all clear</span></div>
       <div class="ordNote">When two sheet lines look identical — same day, same product, same money, no order number — both are kept and the question lands here rather than the sync deciding on its own.${
+      (()=>{const k=Object.entries(purchKilled());
+        return k.length?` <b style="color:var(--amb)">${fmt(k.length)} sheet line${k.length===1?'':'s'}</b> ${k.length===1?'is':'are'} being ignored because somebody removed ${k.length===1?'it':'them'} — <button class="btn sm" style="padding:1px 8px" onclick="LV3.openKilled()">show ${k.length===1?'it':'them'}</button>`:'';})()}${
         done.length?` Last ${done.length} confirmed: ${done.map(p=>esc(p.name)+' ('+dshort(p.date)+')').join(', ')}.`:''}</div>
     </div>`;
   }
@@ -29155,16 +29880,127 @@ function doUndo(){
 
 /* the app's Shipments page still owns sending — make it deduct FIFO and
    record the COG it actually consumed */
+/* Sending more than can be built used to deduct NOTHING. cogOf refuses to
+   price a build it cannot make, and this bailed out on that same flag — so
+   fourteen units could leave the building while the stock still read twelve,
+   permanently, with nothing downstream to reconcile it. Stock has to move when
+   stock moves. Take what is genuinely on the shelf, and hand the gap back so
+   the caller can record it instead of losing it. */
 function shipConsume(asin,units){
   const p=D.products.find(x=>x.asin===asin);
   if(!p||!units)return null;
-  const cg=cogOf(p,units);
-  if(cg.blocked.length)return{blocked:cg.blocked,per:null};
-  if(p.type!=='bundle')fifo(p,units).parts.forEach(pt=>{pt.layer.rem-=pt.take;});
-  else p.recipe.forEach(r=>{const c=comp(r.c);if(c)fifo(c,r.q*units).parts.forEach(pt=>{pt.layer.rem-=pt.take;});});
+  const av=avail(p)||{};
+  const have=(av.n==null)?units:av.n;              // no recipe = no ceiling to enforce
+  const take=Math.max(0,Math.min(units,have));
+  const over=units-take;
+  /* cost it BEFORE the layers move — afterwards the answer is a different one */
+  const cg=take>0?cogOf(p,take):null;
+  if(take>0){
+    if(p.type!=='bundle')fifo(p,take).parts.forEach(pt=>{pt.layer.rem-=pt.take;});
+    else p.recipe.forEach(r=>{const c=comp(r.c);if(c)fifo(c,r.q*take).parts.forEach(pt=>{pt.layer.rem-=pt.take;});});
+    writeBack();
+  }
+  return{blocked:[],consumed:take,over,partial:over>0,
+    per:(cg&&cg.per)||null,total:(cg&&cg.total)||0,batches:(cg&&cg.batches)||0,
+    unpriced:(cg&&cg.unpriced)||[],
+    layers:((cg&&cg.lines)||[]).map(l=>({name:l.name,parts:l.parts.map(x=>({qty:x.take,cost:x.cost}))}))};
+}
+
+/* Taking a line off a shipment has to put the stock back, or the units are
+   gone for good. Layers carry both what was bought (qty) and what is left
+   (rem), so the inverse of a FIFO draw is exact: refill oldest-first, capped
+   at what that batch ever held, so a restore can never invent stock. */
+function shipRestore(asin,units){
+  const p=D.products.find(x=>x.asin===asin);
+  if(!p||!units||units<=0)return null;
+  const give=(o,n)=>{
+    let need=n;
+    for(const l of arrLayers(o)){
+      if(need<=0)break;
+      const room=Math.max(0,(l.qty||0)-(l.rem||0));
+      if(room<=0)continue;
+      const back=Math.min(room,need);l.rem+=back;need-=back;
+    }
+    return n-need;
+  };
+  let restored=0;
+  if(p.type!=='bundle')restored=give(p,units);
+  else{p.recipe.forEach(r=>{const c=comp(r.c);if(c)give(c,r.q*units);});restored=units;}
   writeBack();
-  return{blocked:[],per:cg.per,total:cg.total,batches:cg.batches,
-    layers:cg.lines.map(l=>({name:l.name,parts:l.parts.map(x=>({qty:x.take,cost:x.cost}))}))};
+  return{restored,short:units-restored};
+}
+
+/* Who sent what they did not have, when, and on which shipment. Append-only:
+   settling marks a line settled, it never removes it. */
+function openOverSent(){
+  const map=(D.settings||{}).overSent||{};
+  const rows=[];
+  Object.keys(map).forEach(asin=>{
+    const pr=D.products.find(x=>x.asin===asin);
+    (map[asin]||[]).forEach(e=>rows.push({asin,name:(pr&&pr.name)||asin,...e}));
+  });
+  rows.sort((a,b)=>String(b.on).localeCompare(String(a.on)));
+  const open=rows.filter(r=>!r.settled),done=rows.filter(r=>r.settled);
+  const line=r=>`<tr>
+    <td class="l"><div class="pname" style="font-size:12.5px;">${esc(r.name)}</div>
+      <div class="psub">${esc(r.asin)}${r.shipId?' · '+esc(r.shipId):''}</div></td>
+    <td style="text-align:right;font-weight:800;color:${r.settled?'var(--text3)':'var(--red)'};">${fmt(r.units)}</td>
+    <td style="font-size:12px;color:var(--text2);">${esc(String(r.on||'').slice(0,10))} · ${esc(r.by||'—')}</td>
+    <td style="text-align:right;">${r.settled
+      ? `<span style="font-size:11.5px;color:var(--grn);">settled ${esc(String(r.settledOn||'').slice(0,10))}</span>`
+      : `<button class="btn sm" onclick="LV3.settleOverSent('${r.asin}')">Settle</button>`}</td></tr>`;
+  $('lav3Mod1').className='mod wide';
+  $('lav3Mod1').innerHTML=`
+  <div class="mh"><h3>Sent over stock</h3>
+    <button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
+  <div class="mb">
+    <div style="font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:14px;">
+      Someone sent more units than the shelf held and approved it at the time. Whatever stock
+      existed was taken; what is listed here is the gap. Settle a line once the delivery that
+      covers it has been booked in — the record stays either way.</div>
+    ${open.length?`<table class="tbl"><thead><tr><th class="l">Product</th><th style="text-align:right;">Over</th><th>When · who</th><th></th></tr></thead>
+      <tbody>${open.map(line).join('')}</tbody></table>`
+     :`<div style="font-size:13px;color:var(--grn);padding:10px 0;">Nothing outstanding.</div>`}
+    ${done.length?`<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin:18px 0 6px;">Settled</div>
+      <table class="tbl"><tbody>${done.slice(0,25).map(line).join('')}</tbody></table>`:''}
+  </div>`;
+  om('lav3Ov1');
+}
+
+/* Settings can already answer "how often do we blend a COG, and why" for this
+   page's own Ship modal. The Shipments-page modal was writing a log line only,
+   which cannot be counted — same shape, same store. */
+function noteOverride(o){
+  D.settings.overrides=D.settings.overrides||[];
+  const label=(OV_REASONS.find(r=>r[0]===o.k)||[])[1]||'';
+  D.settings.overrides.unshift({on:dayISO(),by:(window.currentUserName||'Unknown'),
+    shipId:o.shipId||'',prod:o.prod||'',units:o.units||0,k:o.k||'other',
+    why:o.note||label||'blended across two purchase prices',
+    cost:Number(o.cost||0)});
+  D.settings.overrides=D.settings.overrides.slice(0,300);
+  savePrefs();
+}
+
+/* An overdraw is a fact about the business, not a warning that scrolls away.
+   Appended, never overwritten, and settled by a person on the Lavarion page.
+   Lives in settings so it needs no migration. */
+function noteOverSent(asin,units,shipId,who){
+  if(!units||units<=0)return;
+  D.settings.overSent=D.settings.overSent||{};
+  const list=D.settings.overSent[asin]=D.settings.overSent[asin]||[];
+  list.push({on:new Date().toISOString(),units:units,shipId:shipId||'',
+             by:who||(window.currentUserName||'Unknown'),settled:false});
+  savePrefs();
+}
+function overSentFor(asin){
+  const l=((D.settings||{}).overSent||{})[asin]||[];
+  return l.filter(x=>!x.settled).reduce((s,x)=>s+(x.units||0),0);
+}
+function settleOverSent(asin){
+  const l=((D.settings||{}).overSent||{})[asin]||[];
+  l.forEach(x=>{if(!x.settled){x.settled=true;x.settledOn=new Date().toISOString();
+                               x.settledBy=(window.currentUserName||'Unknown');}});
+  savePrefs();render();
 }
 /* what a shipment would cost / whether it can go — no mutation */
 function shipCheck(asin,units){
@@ -29228,8 +30064,9 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   sendBy,sendState,primeDays,setPrimeDays,workDaysBefore,workDaysBetween,
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
-  sortCol,amzWhen,localDT,copyAsin,nextCog,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
-  shipCheck,shipConsume,
+  sortCol,amzWhen,localDT,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  shipCheck,shipConsume,shipRestore,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,
+  ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
   isReady:()=>READY};
@@ -29262,16 +30099,27 @@ return API;
     try{
       const n=parseInt(sh.units)||0;
       if(n>0&&window.LV3){
-        const chk=LV3.shipCheck(sh.asin,n);
-        if(chk&&!chk.ok){
-          const lines=chk.short.map(s=>`${s.name}: need ${s.need}, have ${s.have}`).join(' · ');
-          toast(`⚠ ${sh.prod||sh.asin} — not enough stock (${lines}). Sent anyway; fix it on the Lavarion page.`,'er');
-          try{logAudit('Lavarion sent while short',`${sh.asin} x${n} — ${lines}`);}catch(e){}
-        }
+        /* shipConsume now reports what it actually took and what it could not,
+           so the warning is driven off what happened rather than off a check
+           that ran beforehand and could disagree with it. */
         const res=LV3.shipConsume(sh.asin,n);
-        if(res&&res.per!=null){
-          if(!sh.cost||sh.cost===0)sh.cost=Math.round(res.per*10000)/10000;   // prefill COG if blank
-          sh.cogAuto=res.per;sh.layersUsed=res.layers;
+        if(res){
+          if(res.per!=null&&res.per>0&&(!sh.cost||sh.cost===0))sh.cost=Math.round(res.per*10000)/10000;
+          if(res.per!=null)sh.cogAuto=res.per;
+          sh.layersUsed=res.layers;
+          if(res.over>0){
+            sh.overSent=res.over;
+            try{LV3.noteOverSent(sh.asin,res.over,sh.shipId);}catch(e){}
+            toast(`⚠ ${sh.prod||sh.asin} — only ${res.consumed} were in stock. ${res.over} more went out than exists; recorded as owed, settle it on the Lavarion page when the delivery lands.`,'er');
+            try{logAudit('Lavarion sent short',`${sh.asin} x${n} on ${sh.shipId} — ${res.consumed} in stock, ${res.over} overdrawn`);}catch(e){}
+          }
+          /* the quiet one: enough stock, but a part was booked in with no
+             price, so the COG came out as nothing and nobody was told */
+          if((res.unpriced||[]).length){
+            const names=res.unpriced.map(u=>u.name).filter(Boolean).join(', ');
+            toast(`⚠ ${sh.prod||sh.asin} — no purchase price on ${names||'a component'}, so the COG could not be worked out. Check the figure on the line.`,'er');
+            try{logAudit('Lavarion sent unpriced',`${sh.asin} x${n} on ${sh.shipId} — no price on ${names}`);}catch(e){}
+          }
         }
       }
     }catch(e){console.warn('[lav3] ship hook',e);}
