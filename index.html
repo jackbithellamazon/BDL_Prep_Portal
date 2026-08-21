@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v30.0</title>
+<title>BDL PrepHub v30.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -380,6 +380,20 @@ select.fsel option{background:var(--bg3);color:var(--text);padding:4px;}
 table{width:100%;border-collapse:collapse;min-width:1280px;}
 thead{position:sticky;top:0;z-index:10;}
 thead tr{background:linear-gradient(90deg,#0d0d0c,#1a1917);border-bottom:2px solid var(--accent);}
+/* The background and bottom border lived on `thead tr`. On a border-collapse
+   table, a row inside a position:sticky thead paints neither reliably — the
+   header cells stayed see-through, so scrolled rows showed straight through
+   the column titles and the whole strip read as a squashed, garbled heading.
+   Sticking the CELLS rather than the section is the pattern that composites
+   correctly: each th carries its own background and pins itself. */
+/* Sticky on the CELLS only. Leaving the section sticky as well nests one
+   sticky box inside another, and the cell then offsets against a parent that
+   has already moved — which clipped the top off every column title. Lavarion's
+   own tables still use the global thead rule, so this is scoped. */
+.tbl-wrap thead{position:static;}
+.tbl-wrap thead th{position:sticky;top:0;z-index:11;
+  background:#131211;border-bottom:2px solid var(--accent);}
+html.light-mode .tbl-wrap thead th{background:#252b3a!important;}
 th{padding:12px 8px;text-align:center;font-size:12px;font-weight:900;color:var(--accent);white-space:nowrap;border-right:1px solid var(--border);letter-spacing:.1em;text-transform:uppercase;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;}
 th:last-child{border-right:none;}
 th.th-left{text-align:left;padding-left:12px;}
@@ -3228,6 +3242,7 @@ td.dgbun .pchip{display:inline-block;margin:1px 2px;white-space:nowrap;}
 #prepTable .s-title{font-weight:700;letter-spacing:.005em;}
 /* the flag sits above the button so the column stays centred either way */
 .sasCell{text-align:center;line-height:1;}
+.acHold{font-size:10px;color:var(--text3);margin-top:3px;line-height:1.35;font-style:italic;}
 .sasFlag{display:block;color:#f87171;font-size:10px;font-weight:900;
   line-height:1;margin-bottom:2px;cursor:default;}
 .s-more{color:var(--text3);}
@@ -3366,7 +3381,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v30.0</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v30.3</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3400,7 +3415,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v30.0</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v30.3</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3517,6 +3532,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
       </select>
       <button id="showIssuesBtn" onclick="toggleIssuesFilter()" style="padding:5px 10px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⚑ Issues</button>
       <button id="showLateBtn" onclick="toggleLateFilter()" style="padding:5px 10px;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.4);color:#fb923c;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⏱ Late</button>
+      <button id="showReadyBtn" onclick="toggleReadyFilter()" style="padding:5px 10px;background:rgba(74,222,128,.13);border:1px solid rgba(74,222,128,.4);color:#4ade80;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Ready to clear 0</button>
       <button id="showArchivedBtn" onclick="toggleArchivedView()" title="Show rows that were sent to Amazon and archived" style="padding:5px 10px;background:var(--bg2);border:1px solid rgba(96,165,250,.4);color:var(--text3);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Show Archived</button>
       <select class="fsel" id="prepSortF" onchange="sortTable(this.value)">
         <option value="">Sort by…</option>
@@ -3576,6 +3592,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
       <button onclick="toggleKbHint()" class="kbX" title="Hide">✕</button>
     </div>
     <button id="kbHintBtn" class="kbBtn" onclick="toggleKbHint()" title="Keyboard shortcuts">?</button>
+    <div id="acBar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border2);border-left:3px solid var(--green);border-radius:7px;font-size:12px;"></div>
     <div class="tbl-wrap">
       <table id="prepTable">
         <thead><tr>
@@ -4028,6 +4045,8 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       </div></details>
 
       <!-- Alerts / webhook -->
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:16px;margin-bottom:14px;" data-sset="closures" id="acCard"></div>
+
       <div style="background:var(--bg2);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:16px;margin-bottom:14px;" data-sset="closures">
         <div style="font-size:13px;font-weight:800;color:#f87171;margin-bottom:6px;">Alerts</div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:14px;">
@@ -4092,7 +4111,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v30.0</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v30.3</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -5202,9 +5221,9 @@ function renderStats(){
           : ` onclick="jumpToShipments('${go}')" title="Show these shipments"`):''}>
     <div style="font-size:10px;font-weight:800;color:${col};text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">${label}</div>
     <div style="font-size:26px;font-weight:900;font-family:var(--num);font-variant-numeric:tabular-nums;color:${col};line-height:1;">${val}</div>
-    <div style="font-size:10px;color:#8b9bb3;margin-top:3px;">${sub}</div>
+    <div style="font-size:11px;color:var(--text2);margin-top:4px;letter-spacing:.005em;">${sub}</div>
   </div>`;
-  const shipWord=n=>`${n} shipment${n===1?'':'s'}`;
+  const shipWord=n=>`${fmt(n)} shipment${n===1?'':'s'}`;
 
   const lavWeekUnits=lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we).reduce((a,s)=>a+(s.units||0),0);
   const lavMonthUnits=lavShipments.filter(s=>s.date&&new Date(s.date)>=ms&&new Date(s.date)<=me).reduce((a,s)=>a+(s.units||0),0);
@@ -5212,11 +5231,15 @@ function renderStats(){
   const totalSentMonth=sentMonth;      // sentMonth (unitsSentInRange) already includes Lavarion
 
   document.getElementById('prepStats').innerHTML=
-    mk('In Transit',inTransitUnits+' units',`${inTransitSkus} SKUs · ${inTransitAsins} ASINs · ${fmtGBP2(inTransitValue)} COG`,'#38bdf8','filter:In-Transit')+
+    /* 2255 read as a part number. Every figure on this strip is money or
+       volume, so every one of them gets separated — and the two tiles that
+       were missing their COG now carry it, because "876 units" without a
+       value is half the sentence the other tiles are speaking. */
+    mk('In Transit',fmt(inTransitUnits)+' units',`${fmt(inTransitSkus)} SKUs · ${fmt(inTransitAsins)} ASINs · ${fmtGBP2(inTransitValue)} COG`,'#38bdf8','filter:In-Transit')+
     mk('COG In Transit',fmtGBP2(inTransitValue),`stock value locked in transit`,'#fbbf24','filter:In-Transit')+
-    mk('Sent Today',sentTodayUnits+' units',`${shipWord(todayRoll.shipments)} · ${sentTodaySkus} SKU lines · ${fmtGBP2(valueToday)} COG`,'#4ade80','today')+
-    mk('Sent This Week',sentWeekUnits+' units',`${shipWord(weekRoll.shipments)} · ${sentWeekSkus} SKU lines · ${sentWeekAsins} ASINs`,'#a78bfa','week')+
-    mk('Sent This Month',totalSentMonth+' units',`${shipWord(monthRoll.shipments)} · ${monthRoll.skus} SKU lines · ${monthRoll.asins} ASINs`,'#34d399','mtd');
+    mk('Sent Today',fmt(sentTodayUnits)+' units',`${shipWord(todayRoll.shipments)} · ${fmt(sentTodaySkus)} SKU lines · ${fmtGBP2(valueToday)} COG`,'#4ade80','today')+
+    mk('Sent This Week',fmt(sentWeekUnits)+' units',`${shipWord(weekRoll.shipments)} · ${fmt(sentWeekSkus)} SKU lines · ${fmt(sentWeekAsins)} ASINs · ${fmtGBP2(weekRoll.value)} COG`,'#a78bfa','week')+
+    mk('Sent This Month',fmt(totalSentMonth)+' units',`${shipWord(monthRoll.shipments)} · ${fmt(monthRoll.skus)} SKU lines · ${fmt(monthRoll.asins)} ASINs · ${fmtGBP2(monthRoll.value)} COG`,'#34d399','mtd');
   renderNoBoxBanner();
 }
 
@@ -5504,6 +5527,8 @@ function renderPrepRows(data){
             title="Click to add shipment ID">${r.shipId||'—'}</div>`;
         })()}
         <input type="hidden" id="shipid-${r.id}" value="${r.shipId||''}">
+        ${(()=>{const h=(typeof acNearly==='function')?acNearly(r):null;
+          return h?`<div class="acHold" title="This row stays on the prep sheet until this is sorted">${esc(h)}</div>`:'';})()}
       </td>
       <td class="td-left"><div class="noteCell${r.notes?'':' empty'}" tabindex="0"
         title="Packing instructions — click to edit" onclick="editNote(this,'${r.uuid||r.id}','notes')"
@@ -5539,6 +5564,7 @@ function renderPrepRows(data){
   }).join('');
 
   updateBundleCols(data);
+  try{acPaintChip();}catch(e){}
   // Apply issue badges for any rows with issueType already set
   // Re-render issue badges based on claims
   data.forEach(r=>{
@@ -5644,15 +5670,16 @@ function onPrepSearch(){
 let _prepDomSig=null; // signature of the un-searched base set currently in the DOM
 function _prepBaseSig(){
   const st=(document.getElementById('prepStF')||{}).value||'';
-  return st+'|'+(_issuesFilterActive?1:0)+'|'+(_lateFilterActive?1:0)+'|'+(_showArchived?1:0);
+  return st+'|'+(_issuesFilterActive?1:0)+'|'+(_lateFilterActive?1:0)+'|'+(_readyFilterActive?1:0)+'|'+(_showArchived?1:0);
 }
 // Base set = every filter EXCEPT the search query (mirrors filterPrep's logic)
 function _prepBaseRows(){
   const st=(document.getElementById('prepStF')||{}).value||'';
   const base=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
-  if(!st&&!_issuesFilterActive&&!_lateFilterActive)return base;
+  if(!st&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive)return base;
   return base.filter(r=>{
     const rid=r.uuid||String(r.id);
+    if(_readyFilterActive&&acHold(r)!==null)return false;
     if(_issuesFilterActive){
       const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
       if(!hasIssue)return false;
@@ -5725,10 +5752,11 @@ function filterPrep(skipFlush){
   const st=document.getElementById('prepStF').value;
   // _showArchived ON = show ONLY archived rows; OFF = show only active rows.
   const baseRows=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
-  if(!q&&!st&&!_issuesFilterActive&&!_lateFilterActive){renderPrepRows(baseRows);}
+  if(!q&&!st&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive){renderPrepRows(baseRows);}
   else{
     const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
+      if(_readyFilterActive&&acHold(r)!==null)return false;
       if(_issuesFilterActive){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
         if(!hasIssue)return false;
@@ -5916,9 +5944,10 @@ function renderPrep(){
   // the shipments page and stats still see them). _showArchived flips to an
   // archived-ONLY view rather than mixing archived in with active rows.
   const baseRows=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
-  if(q||st||_issuesFilterActive||_lateFilterActive){
+  if(q||st||_issuesFilterActive||_lateFilterActive||_readyFilterActive){
     const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
+      if(_readyFilterActive&&acHold(r)!==null)return false;
       if(_issuesFilterActive){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
         if(!hasIssue)return false;
@@ -6087,6 +6116,253 @@ async function _chunkedUpdate(table,patch,ids,size){
     if(r.error)return r;
   }
   return{error:null};
+}
+
+/* ── AUTO-CLEAR FINISHED ROWS ──────────────────────────────────────────────
+   A row that went to Amazon days ago, fully reconciled, with nothing
+   outstanding, is just noise on the prep sheet. It gets archived — the same
+   archive the bulk button has always used, so it stays on Shipments, in the
+   audit log, and under "Show Archived". Nothing is deleted.
+
+   Nothing is decided quietly. A row is held back for exactly one reason at a
+   time, that reason is shown on the row, the sheet has a filter for what is
+   going tonight, and every sweep leaves an undo and an audit entry.        */
+
+const AC_DEF={on:true,hours:48,at:'20:00',lastRun:''};
+let AC=Object.assign({},AC_DEF);
+let _acLastBatch=[];            // for Undo
+let _readyFilterActive=false;
+
+/* Everything here is wall-clock UK, whatever the browser's own timezone is —
+   a VA working abroad must not shift when a row clears. */
+function ukWall(d){
+  try{
+    const f=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',
+      month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+    const p={};f.formatToParts(d||new Date()).forEach(x=>{if(x.type!=='literal')p[x.type]=x.value;});
+    const hh=p.hour==='24'?'00':p.hour;
+    return new Date(`${p.year}-${p.month}-${p.day}T${hh}:${p.minute}:00`);
+  }catch(e){return d||new Date();}
+}
+const ukToday=()=>{const w=ukWall();return `${w.getFullYear()}-${String(w.getMonth()+1).padStart(2,'0')}-${String(w.getDate()).padStart(2,'0')}`;};
+
+/* sent_date is the day it went; sent_at carries the time. Rows sent before
+   sent_at existed have no time, so they are treated as late in the day — a
+   row clears an hour late rather than a day early. */
+function sentMoment(r){
+  const day=String(r.sentDate||'').slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return null;
+  const m=String(r.sentAt||'').match(/(\d{1,2}):(\d{2})/);
+  const hh=m?String(m[1]).padStart(2,'0'):'23',mm=m?m[2]:'59';
+  return new Date(`${day}T${hh}:${mm}:00`);
+}
+/* Weekends do not count. Bank holidays do — Jack, 20 Aug, asked directly. */
+function workHoursSince(from,now){
+  if(!from)return 0;
+  const to=now||ukWall();
+  let n=0,guard=0,cur=new Date(from.getTime());
+  while(cur<to&&guard<24*400){
+    const w=cur.getDay();
+    if(w>=1&&w<=5)n++;
+    cur=new Date(cur.getTime()+3600000);guard++;
+  }
+  return n;
+}
+const acOpenClaims=r=>{
+  const rid=r.uuid||String(r.id);
+  return (typeof claims!=='undefined'?claims:[])
+    .some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id||cl.prepRowId===r.uuid)
+              &&cl.cst!=='Resolved'&&cl.cst!=='Closed');
+};
+
+/* Null means this row can go. Anything else is the reason it cannot, written
+   for the person reading the sheet, not for the log. */
+function acHold(r){
+  if(!r||r.archived)return 'already archived';
+  if(r.status!=='Sent to Amazon')return r.status==='Part Sent'?'part sent':'not sent to Amazon yet';
+  if(r.sent!=='Yes')return 'not marked as sent';
+  if(r.subSave==='Yes')return 'S&S — never clears';
+  if(r.issueType&&r.issueType!=='—')return `has an issue: ${r.issueType}`;
+  if(acOpenClaims(r))return 'has an open claim';
+  if(r.resolution&&['proposed','asked'].includes(r.resolution.state))return 'waiting on Jack';
+  if(r.reimb==='Yes')return 'reimbursement being chased';
+  const hasShip=String(r.shipId||'').trim()||((r.allShipIds||[]).length>0);
+  if(!hasShip)return 'waiting on shipment ID';
+  const exp=parseInt(r.exp)||0,rcv=parseInt(r.rcvd)||0,shp=parseInt(r.ship)||0;
+  if(!exp||!shp)return 'quantities not filled in';
+  if(exp!==rcv||rcv!==shp)return `numbers do not match — ${exp} expected, ${rcv} received, ${shp} shipped`;
+  const m=sentMoment(r);
+  if(!m)return 'no sent date recorded';
+  const need=parseInt(AC.hours)||48;
+  const done=workHoursSince(m);
+  if(done<need){
+    const left=need-done;
+    return `${left} working hour${left===1?'':'s'} to go`;
+  }
+  return null;
+}
+const acReady=()=>rows.filter(r=>!r.archived&&acHold(r)===null);
+/* only worth showing a reason on rows that are otherwise finished — every
+   In-Transit row saying "not sent to Amazon yet" would be noise */
+function acNearly(r){
+  if(!r||r.archived||r.status!=='Sent to Amazon')return null;
+  const h=acHold(r);
+  return h==='already archived'?null:h;
+}
+
+/* ── settings, shared so one machine cannot disagree with another ── */
+async function acLoad(){
+  try{
+    const r=await sb.from('app_settings').select('value').eq('key','auto_clear').maybeSingle();
+    if(r&&r.data&&r.data.value){
+      const v=JSON.parse(r.data.value);
+      if(v&&typeof v==='object')AC=Object.assign({},AC_DEF,v);
+    }
+  }catch(e){console.warn('[autoclear] load',e);}
+}
+async function acSave(){
+  try{
+    await sb.from('app_settings').upsert({key:'auto_clear',value:JSON.stringify(AC)},{onConflict:'key'});
+  }catch(e){console.warn('[autoclear] save',e);}
+}
+function acSet(k,v){
+  AC[k]=v;acSave();
+  try{acPaintCard();acPaintChip();}catch(e){}
+  try{renderPrep&&renderPrep();}catch(e){}
+}
+
+/* ── the sweep ── */
+/* Once a day, at 8pm UK — or the first moment after 8pm that somebody has the
+   app open, because at 8pm on a Sunday nobody does. lastRun is stored with the
+   setting, not per browser, so three open tabs still means one sweep. */
+function acDue(){
+  if(!AC.on)return false;
+  if(AC.lastRun===ukToday())return false;
+  const w=ukWall();
+  const[hh,mm]=String(AC.at||'20:00').split(':').map(Number);
+  /* `hh||20` would read midnight as eight in the evening — zero is falsy */
+  const H=Number.isFinite(hh)?hh:20,M=Number.isFinite(mm)?mm:0;
+  return (w.getHours()*60+w.getMinutes())>=(H*60+M);
+}
+async function acSweep(manual){
+  if(!manual&&!acDue())return;
+  const today=ukToday();
+  /* claim the day BEFORE doing the work, so two tabs cannot both sweep */
+  if(!manual){
+    AC.lastRun=today;
+    await acSave();
+  }
+  /* a row someone is in the middle of is left where it is and picked up
+     tomorrow — rows vanishing under the cursor is how people stop trusting it */
+  const busy=new Set();
+  try{
+    const ae=document.activeElement;
+    const tr=ae&&ae.closest?ae.closest('tr[id^="row-"]'):null;
+    if(tr)busy.add(tr.id.replace('row-',''));
+    (typeof getSelectedRows==='function'?getSelectedRows():[]).forEach(id=>busy.add(String(id)));
+  }catch(e){}
+  const go=acReady().filter(r=>!busy.has(String(r.id))&&!busy.has(String(r.uuid)));
+  if(!go.length){if(manual)toast('Nothing is ready to clear yet');return;}
+  const ids=[];
+  go.forEach(r=>{r.archived=true;if(r.uuid)ids.push(r.uuid);});
+  _acLastBatch=go.map(r=>r.uuid||String(r.id));
+  try{renderPrep();}catch(e){}
+  if(ids.length){
+    const res=await _chunkedUpdate('prep_rows',{archived:true},ids);
+    if(res&&res.error){
+      go.forEach(r=>{r.archived=false;});_acLastBatch=[];
+      try{renderPrep();}catch(e){}
+      toast('Auto-clear failed: '+res.error.message,'er');return;
+    }
+  }
+  logAudit('Rows auto-cleared',
+    `${go.length} finished row${go.length===1?'':'s'} archived after ${AC.hours} working hours — `
+    +go.slice(0,8).map(r=>r.sku||r.asin||r.id).join(', ')+(go.length>8?` +${go.length-8} more`:''));
+  acBar(go.length);
+}
+/* what happened, and the way back */
+function acBar(n){
+  const host=document.getElementById('acBar');if(!host)return;
+  host.innerHTML=`<span style="font-weight:800;color:var(--text);">${n} finished row${n===1?'':'s'} cleared</span>
+    <span style="color:var(--text3);">archived after ${AC.hours} working hours — still on Shipments and under Show Archived</span>
+    <button onclick="toggleArchivedView()" style="padding:3px 9px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:5px;font-size:11.5px;font-weight:700;cursor:pointer;">Show me</button>
+    <button onclick="acUndo()" style="padding:3px 9px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:5px;font-size:11.5px;font-weight:700;cursor:pointer;">Undo</button>
+    <button onclick="document.getElementById('acBar').style.display='none'" title="Dismiss" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;margin-left:auto;">&#10005;</button>`;
+  host.style.display='flex';
+}
+async function acUndo(){
+  if(!_acLastBatch.length){toast('Nothing to undo','er');return;}
+  const back=rows.filter(r=>_acLastBatch.includes(r.uuid||String(r.id)));
+  back.forEach(r=>{r.archived=false;});
+  const ids=back.map(r=>r.uuid).filter(Boolean);
+  if(ids.length){
+    const res=await _chunkedUpdate('prep_rows',{archived:false},ids);
+    if(res&&res.error){toast('Undo failed: '+res.error.message,'er');return;}
+  }
+  logAudit('Auto-clear undone',`${back.length} row${back.length===1?'':'s'} put back on the prep sheet`);
+  _acLastBatch=[];
+  const host=document.getElementById('acBar');if(host)host.style.display='none';
+  renderPrep();
+  toast(`✓ ${back.length} row${back.length===1?'':'s'} back on the sheet`);
+}
+
+/* the filter chip — so "why is that still there" has an answer on screen */
+function toggleReadyFilter(){
+  _readyFilterActive=!_readyFilterActive;
+  if(_readyFilterActive){
+    if(_issuesFilterActive)toggleIssuesFilter();
+    if(_lateFilterActive)toggleLateFilter();
+    _readyFilterActive=true;
+  }
+  acPaintChip();
+  renderPrep();
+}
+function acPaintChip(){
+  const b=document.getElementById('showReadyBtn');if(!b)return;
+  const n=acReady().length;
+  b.textContent=_readyFilterActive?`Ready to clear ${n} ✓`:`Ready to clear ${n}`;
+  b.style.background=_readyFilterActive?'rgba(74,222,128,.32)':'rgba(74,222,128,.13)';
+  b.style.borderColor=_readyFilterActive?'#4ade80':'rgba(74,222,128,.4)';
+  b.title=AC.on
+    ?`These go automatically at ${AC.at} UK, once they have had ${AC.hours} working hours`
+    :'Auto-clear is switched off in Settings — nothing goes on its own';
+}
+
+/* checked when the app opens, then hourly; the once-a-day guard does the rest */
+/* The off switch. If this misbehaves at seven on a Monday morning somebody
+   needs to stop it without waiting for a new build. */
+function acPaintCard(){
+  const c=document.getElementById('acCard');if(!c)return;
+  const n=(typeof rows!=='undefined')?acReady().length:0;
+  c.innerHTML=`
+    <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:4px;">Clear finished rows off the prep sheet</div>
+    <div style="font-size:11.5px;color:var(--text3);line-height:1.55;margin-bottom:12px;">
+      A row is archived once it has gone to Amazon, the numbers all agree, it has a shipment ID and
+      nothing is outstanding on it. Weekends do not count toward the wait. S&amp;S rows never clear, and
+      neither does anything with an issue. Archived is not deleted — the rows stay on Shipments and
+      under Show Archived.</div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:12px;">
+      <input type="checkbox" ${AC.on?'checked':''} onchange="acSet('on',this.checked)" style="cursor:pointer;">
+      <b>Clear them automatically</b></label>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:end;">
+      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Wait this many working hours</div>
+        <input class="fi-in" type="number" min="1" max="500" value="${AC.hours}" style="width:90px;font-size:12px;"
+          onchange="acSet('hours',Math.max(1,parseInt(this.value)||48))"></div>
+      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Run at (UK time)</div>
+        <input class="fi-in" type="time" value="${AC.at}" style="width:110px;font-size:12px;"
+          onchange="acSet('at',this.value||'20:00')"></div>
+      <button onclick="acSweep(true)" style="padding:6px 12px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;">Run it now</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:11px;">
+      ${n} row${n===1?'':'s'} ready right now${AC.lastRun?` · last run ${esc(AC.lastRun)}`:' · has not run yet'}.
+      It runs once a day, at the first moment after ${esc(AC.at)} that somebody has the app open.</div>`;
+}
+function acStart(){
+  acLoad().then(()=>{
+    try{acPaintChip();acPaintCard();}catch(e){}
+    setTimeout(()=>{acSweep().catch(e=>console.warn('[autoclear]',e));},20000);
+    setInterval(()=>{acSweep().catch(e=>console.warn('[autoclear]',e));},3600000);
+  });
 }
 
 async function doBulkArchive(){
@@ -20421,6 +20697,7 @@ function bootApp(){
     const prepBtn=document.querySelector('.sb-item.on');
     if(prepBtn)goPage('prep',prepBtn);
     BootLoad.done();
+    try{acStart();}catch(e){console.warn('[autoclear] start',e);}
   }).catch(e=>{console.warn('boot',e);BootLoad.fail();});
 }
 
@@ -21047,7 +21324,7 @@ setInterval(updateClock,60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v30.0 · lav3 · 2026-08-20 · b311';
+const BUILD='v30.3 · lav3 · 2026-08-21 · b314';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
