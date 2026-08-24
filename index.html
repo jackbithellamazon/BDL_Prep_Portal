@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v30.5</title>
+<title>BDL PrepHub v30.9</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3381,7 +3381,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v30.5</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v30.9</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3415,7 +3415,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v30.5</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v30.9</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -4111,7 +4111,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v30.5</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v30.9</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -5339,7 +5339,7 @@ function renderPrepRows(data){
   // fast-path can no longer assume it holds the plain base set.
   _prepDomSig=null;
   const b=document.getElementById('prepBody');
-  if(!data.length){b.innerHTML=`<tr><td colspan="18"><div class="empty"><div class="empty-ico">📦</div><div class="empty-t">No rows found</div></div></td></tr>`;return;}
+  if(!data.length){b.innerHTML=`<tr><td colspan="18">${prepEmptyState()}</td></tr>`;return;}
   const todayStr=todayISO();
   b.innerHTML=data.map((r,_rowIx)=>{
     const diff=(r.exp||0)-(r.rcvd||0);
@@ -5730,17 +5730,52 @@ function applyPrepSearch(){
   });
   // "No rows found" message when the query matches nothing (all rows hidden)
   let nm=document.getElementById('prepNoMatchRow');
-  if(shown===0&&q){
+  if(shown===0){
     if(!nm){
       nm=document.createElement('tr');
       nm.id='prepNoMatchRow';
-      nm.innerHTML='<td colspan="18"><div class="empty"><div class="empty-ico">📦</div><div class="empty-t">No rows found</div></div></td>';
       b.appendChild(nm);
     }
+    nm.innerHTML=`<td colspan="18">${prepEmptyState()}</td>`;
     nm.style.display='';
   }else if(nm){nm.style.display='none';}
 }
 function updatePrepSearchUI(){}
+
+/* An empty sheet with no explanation reads as deleted data. 24 Aug: the
+   Ready-to-clear chip was left on with nothing eligible, every row was hidden,
+   the sheet said only "No rows found" — and it was reported as "the auto-clear
+   has wiped the prep sheet". The rows were fine; 13 of them then never got
+   marked sent because nobody could see them, and a 96-unit shipment reached
+   Amazon with 52 units in the hub. The empty state now names every filter that
+   is hiding rows and clears the lot with one click. */
+function prepEmptyState(){
+  const active=[];
+  if(typeof _readyFilterActive!=='undefined'&&_readyFilterActive)active.push('the <b>Ready to clear</b> filter');
+  if(_issuesFilterActive)active.push('the <b>Issues</b> filter');
+  if(_lateFilterActive)active.push('the <b>Late</b> filter');
+  const st=(document.getElementById('prepStF')||{}).value||'';
+  if(st)active.push(`the status filter (<b>${esc(st)}</b>)`);
+  const q=((document.getElementById('prepSrch')||{}).value||'').trim();
+  if(q)active.push(`your search (<b>&ldquo;${esc(q)}&rdquo;</b>)`);
+  const hidden=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).length;
+  if(!active.length||!hidden)
+    return `<div class="empty"><div class="empty-ico">📦</div><div class="empty-t">No rows found</div></div>`;
+  return `<div class="empty"><div class="empty-ico">📦</div>
+    <div class="empty-t">Nothing matches — but ${fmt(hidden)} row${hidden===1?' is':'s are'} still here</div>
+    <div style="font-size:12.5px;color:var(--text2);margin-top:6px;line-height:1.6;">
+      ${active.join(' and ')} ${active.length===1?'is':'are'} hiding ${hidden===1?'it':'them'}. Nothing has been cleared or deleted.</div>
+    <button onclick="prepShowEverything()" style="margin-top:12px;padding:7px 16px;background:var(--accent);border:none;color:#1a1a18;border-radius:6px;font-size:12.5px;font-weight:800;cursor:pointer;">Show everything</button>
+  </div>`;
+}
+function prepShowEverything(){
+  if(typeof _readyFilterActive!=='undefined'&&_readyFilterActive)toggleReadyFilter();
+  if(_issuesFilterActive)toggleIssuesFilter();
+  if(_lateFilterActive)toggleLateFilter();
+  const st=document.getElementById('prepStF');if(st)st.value='';
+  const q=document.getElementById('prepSrch');if(q)q.value='';
+  filterPrep();
+}
 function filterPrep(skipFlush){
   if(!skipFlush)flushPending();
   // Reset late filter when a status filter is applied — they conflict
@@ -18706,6 +18741,137 @@ async function saveLavShipment(s){
 }
 
 // ── REAL-TIME SUBSCRIPTIONS ───────────────────────────────────────────────────
+/* ── CATCH UP AFTER SLEEP ─────────────────────────────────────────────────
+   24 Aug: the sheet sync added 13 rows at 08:07; Becki's tab had been open
+   since before that. A slept laptop kills the live-updates connection, and on
+   waking the app just carried on showing the old sheet — so she marked the 12
+   rows she could see, all 13 invisible ones were missed, and a 96-unit
+   shipment reached Amazon with 52 units in the hub. Everything she typed saved
+   perfectly; the screen was the stale part.
+   So: a heartbeat notices any gap the page slept through (a suspended machine
+   freezes timers, which is exactly the tell), and on waking, coming back to
+   the foreground, or the network returning, the app re-pulls everything and
+   says so — it never again trusts a connection that has been dead. */
+/* The catch-up used to announce itself with a toast after the fact. Jack, 24
+   Aug: make the moment itself something to look at — a card that appears while
+   the app heals, walks its three steps, lands on a tick and leaves. */
+(function(){
+  const css=document.createElement('style');
+  css.textContent=`
+  #resyncOv{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;
+    background:rgba(8,8,7,.55);backdrop-filter:blur(3px);opacity:0;pointer-events:none;
+    transition:opacity .28s ease;}
+  #resyncOv.on{opacity:1;pointer-events:auto;}
+  #resyncCard{width:340px;max-width:88vw;background:linear-gradient(180deg,#201e1a,#131210);
+    border:1px solid rgba(245,158,11,.3);
+    border-radius:14px;padding:26px 26px 22px;
+    box-shadow:0 24px 70px rgba(0,0,0,.75),0 0 0 1px rgba(0,0,0,.4),0 0 42px rgba(245,158,11,.07);
+    transform:translateY(10px) scale(.97);transition:transform .28s ease;text-align:center;}
+  #resyncOv.on #resyncCard{transform:translateY(0) scale(1);}
+  #resyncRing{width:52px;height:52px;margin:0 auto 16px;border-radius:50%;position:relative;
+    background:conic-gradient(var(--accent) 0 25%,rgba(245,158,11,.12) 25% 100%);
+    -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 6px),#000 calc(100% - 5px));
+    mask:radial-gradient(farthest-side,transparent calc(100% - 6px),#000 calc(100% - 5px));
+    animation:rsSpin .9s linear infinite;}
+  #resyncOv.ok #resyncRing{animation:none;background:conic-gradient(var(--green,#4ade80) 0 100%);
+    -webkit-mask:none;mask:none;display:flex;align-items:center;justify-content:center;
+    transition:background .3s;}
+  #resyncTick{display:none;font-size:26px;color:#0d0d0b;font-weight:900;line-height:1;}
+  #resyncOv.ok #resyncTick{display:block;animation:rsPop .35s cubic-bezier(.2,1.6,.4,1);}
+  @keyframes rsSpin{to{transform:rotate(360deg)}}
+  @keyframes rsPop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+  #resyncTitle{font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px;}
+  #resyncStep{font-size:12px;color:var(--text2);min-height:17px;margin-bottom:15px;transition:opacity .2s;}
+  #resyncBarWrap{height:7px;border-radius:5px;background:var(--bg4);overflow:hidden;position:relative;}
+  #resyncBar{height:100%;width:5%;border-radius:5px;background:linear-gradient(90deg,var(--accent),#ffb020);
+    transition:width .5s cubic-bezier(.3,.8,.3,1);position:relative;overflow:hidden;}
+  #resyncBar::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);
+    animation:rsSheen 1.1s linear infinite;}
+  #resyncOv.ok #resyncBar{background:var(--green,#4ade80);}
+  #resyncOv.ok #resyncBar::after{animation:none;}
+  @keyframes rsSheen{from{transform:translateX(-100%)}to{transform:translateX(100%)}}`;
+  document.head.appendChild(css);
+  const ov=document.createElement('div');
+  ov.id='resyncOv';
+  ov.innerHTML=`<div id="resyncCard">
+    <div id="resyncRing"><span id="resyncTick">✓</span></div>
+    <div id="resyncTitle">Catching up</div>
+    <div id="resyncStep"></div>
+    <div id="resyncBarWrap"><div id="resyncBar"></div></div>
+  </div>`;
+  document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(ov));
+  if(document.body)document.body.appendChild(ov);
+})();
+const resyncUI={
+  show(why){const o=document.getElementById('resyncOv');if(!o)return;
+    o.classList.remove('ok');
+    const t=document.getElementById('resyncTitle');if(t)t.textContent='Catching up';
+    this.step(8,`This tab was ${why} — bringing it up to date`);
+    o.classList.add('on');},
+  step(pct,txt){const b=document.getElementById('resyncBar'),st=document.getElementById('resyncStep');
+    if(b)b.style.width=Math.min(100,pct)+'%';
+    if(st&&txt)st.textContent=txt;},
+  done(){const o=document.getElementById('resyncOv');if(!o)return;
+    this.step(100,'Everything that happened meanwhile is now on screen');
+    const t=document.getElementById('resyncTitle');if(t)t.textContent='All caught up';
+    o.classList.add('ok');
+    setTimeout(()=>o.classList.remove('on','ok'),1600);},
+  hide(){const o=document.getElementById('resyncOv');if(o)o.classList.remove('on','ok');}
+};
+let _aliveTick=Date.now(),_resyncBusy=false,_resyncQueued=false;
+async function resyncNow(why,quiet){
+  if(_resyncBusy)return;
+  /* mid-edit is a bad moment to swap the data out from under a modal — wait */
+  if(document.querySelector('.overlay.open')){
+    if(!quiet&&!_resyncQueued){_resyncQueued=true;
+      setTimeout(()=>{_resyncQueued=false;resyncNow(why);},60000);}
+    return;
+  }
+  _resyncBusy=true;
+  try{
+    if(!quiet)resyncUI.show(why);
+    if(!quiet)resyncUI.step(18,'Saving anything you typed that had not gone up yet');
+    try{flushPending();}catch(e){}
+    if(!quiet)resyncUI.step(38,'Downloading the latest of everything');
+    await dbLoad();
+    if(!quiet)resyncUI.step(82,'Redrawing every page');
+    ['renderPrep','renderShipments','renderDashboard','renderReturns','renderAdmin','renderStats']
+      .forEach(f=>{try{window[f]&&window[f]()}catch(e){}});
+    try{if(window.LV3&&LV3.isReady&&LV3.isReady())LV3.render();}catch(e){}
+    if(!quiet){
+      resyncUI.done();
+      try{logAudit('Refreshed after a gap',why);}catch(e){}
+    }
+  }catch(e){
+    console.warn('[resync]',e);
+    resyncUI.hide();
+    if(!quiet)toast('Could not refresh after reconnecting — reload the page to be safe','er');
+  }
+  _resyncBusy=false;
+}
+function watchForSleep(){
+  _aliveTick=Date.now();
+  /* a machine that suspends cannot run this timer, so a large gap between two
+     beats IS the sleep — no browser event needed */
+  setInterval(()=>{
+    const gap=Date.now()-_aliveTick;
+    _aliveTick=Date.now();
+    if(gap>3*60*1000)resyncNow(`${Math.round(gap/60000)} minutes asleep`);
+  },20000);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden)return;
+    const gap=Date.now()-_aliveTick;
+    if(gap>3*60*1000){_aliveTick=Date.now();resyncNow('sitting in the background');}
+  });
+  window.addEventListener('online',()=>resyncNow('the connection coming back'));
+  /* the backstop for whatever we have not thought of: whatever else fails —
+     a live connection dying quietly while the machine stays awake, an event
+     that never fires — a full quiet re-pull every 15 minutes caps how stale
+     any screen can possibly be at 15 minutes, instead of a whole morning */
+  setInterval(()=>{if(!document.hidden)resyncNow('routine check',true);},15*60*1000);
+}
+
 function setupRealtime(){
   sb.channel('prep_rows').on('postgres_changes',{event:'*',schema:'public',table:'prep_rows'},payload=>{
     if(payload.eventType==='INSERT'){
@@ -20693,6 +20859,7 @@ function bootApp(){
   dbLoad().then(()=>{
     BootLoad.set(72,'Setting up live updates');
     setupRealtime();
+    watchForSleep();
     BootLoad.set(88,'Opening your prep sheet');
     const prepBtn=document.querySelector('.sb-item.on');
     if(prepBtn)goPage('prep',prepBtn);
@@ -21324,7 +21491,7 @@ setInterval(updateClock,60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v30.5 · lav3 · 2026-08-22 · b316';
+const BUILD='v30.9 · lav3 · 2026-08-24 · b320';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
