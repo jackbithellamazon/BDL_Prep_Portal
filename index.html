@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v31.7</title>
+<title>BDL PrepHub v31.8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3388,7 +3388,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v31.7</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v31.8</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3422,7 +3422,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v31.7</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v31.8</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -4120,7 +4120,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v31.7</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v31.8</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -21584,7 +21584,7 @@ setInterval(updateClock,60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v31.7 · lav3 · 2026-08-28 · b328';
+const BUILD='v31.8 · lav3 · 2026-08-28 · b329';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -27456,15 +27456,20 @@ function dupConfirm(pid,separate){
      <div class="pmeta" style="margin:0">This copy is removed from the hub and the sync will not bring it back. The Purchase Sheet is not touched${twin?` — the one already linked stays exactly as it is`:''}.</div>`,
     ()=>{
       snap();
-      /* Removing it here only ever deleted the local row, so the very next
-         sheet sync read the same line, found nothing stored against it, and
-         handed it straight back — Becki cleared this one repeatedly and it
-         returned every time. The tombstone the sync already checks was never
-         being written on this path. Write it. */
+      /* Two things have to happen and this path only ever did one of them.
+         The tombstone stops the SHEET SYNC handing the line back — that was
+         the first fix. But the row also lives in lavarion_purchases, and a
+         reload reads it straight back out of there, which is why it kept
+         reappearing after a hard refresh even once it was being ignored.
+         Delete the stored row as well, exactly as dropReview does. */
       killPurchLine(p,'removed as a duplicate');
       const i=D.purchases.findIndex(x=>x.id===pid);
       if(i>=0)D.purchases.splice(i,1);
-      logIt('edit',`Removed a duplicate purchase line — “${p.name}” ${dshort(p.date)} — the sync will now skip it`);
+      PURCH=D.purchases;
+      if(p.uuid)sb.from('lavarion_purchases').delete().eq('id',p.uuid)
+        .then(r=>{if(r.error){console.warn('[lav3] drop duplicate',r.error);
+          toast('Removed here, but the database refused: '+r.error.message,'er');}});
+      logIt('edit',`Removed a duplicate purchase line — “${p.name}” ${dshort(p.date)} — deleted and the sync will skip it`);
       save();render();toastUndo('Removed as a duplicate — it will not come back','ok');
     },{danger:true,ok:'Yes, remove this copy'});
 }
