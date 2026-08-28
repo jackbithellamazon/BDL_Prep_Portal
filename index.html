@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v31.8</title>
+<title>BDL PrepHub v32.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3388,7 +3388,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v31.8</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v32.0</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3422,7 +3422,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v31.8</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v32.0</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3532,6 +3532,11 @@ html.light-mode .tfu thead th{background:#d8dde3;}
       </div>
       <!-- Row 2: Controls + Bulk -->
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <!-- accounts are how the parcels arrive — one buying account at a time —
+           so this belongs beside the status filter, not buried in search -->
+      <select class="fsel" id="prepAcctF" onchange="filterPrep()" title="Show one buying account at a time">
+        <option value="">All accounts</option>
+      </select>
       <select class="fsel" id="prepStF" onchange="filterPrep()">
         <option value="">All Statuses</option>
         <option>In-Transit</option><option>Delivered</option><option>In Warehouse</option>
@@ -4120,7 +4125,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v31.8</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v32.0</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -5579,7 +5584,7 @@ function renderPrepRows(data){
   }).join('');
 
   updateBundleCols(data);
-  try{acPaintChip();}catch(e){}
+  try{acPaintChip();paintAcctFilter();}catch(e){}
   // Apply issue badges for any rows with issueType already set
   // Re-render issue badges based on claims
   data.forEach(r=>{
@@ -5685,15 +5690,18 @@ function onPrepSearch(){
 let _prepDomSig=null; // signature of the un-searched base set currently in the DOM
 function _prepBaseSig(){
   const st=(document.getElementById('prepStF')||{}).value||'';
-  return st+'|'+(_issuesFilterActive?1:0)+'|'+(_lateFilterActive?1:0)+'|'+(_readyFilterActive?1:0)+'|'+(_showArchived?1:0);
+  const ac=(document.getElementById('prepAcctF')||{}).value||'';
+  return st+'|'+ac+'|'+(_issuesFilterActive?1:0)+'|'+(_lateFilterActive?1:0)+'|'+(_readyFilterActive?1:0)+'|'+(_showArchived?1:0);
 }
 // Base set = every filter EXCEPT the search query (mirrors filterPrep's logic)
 function _prepBaseRows(){
   const st=(document.getElementById('prepStF')||{}).value||'';
+  const _acctF=(document.getElementById('prepAcctF')||{}).value||'';
   const base=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
-  if(!st&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive)return base;
+  if(!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive)return base;
   return base.filter(r=>{
     const rid=r.uuid||String(r.id);
+    if(_acctF&&String(r.acct||'').trim()!==_acctF)return false;
     if(_readyFilterActive&&acHold(r)!==null)return false;
     if(_issuesFilterActive){
       const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
@@ -5756,6 +5764,21 @@ function applyPrepSearch(){
   }else if(nm){nm.style.display='none';}
 }
 function updatePrepSearchUI(){}
+/* the account list is whatever is actually on the sheet — never a hard-coded
+   list that quietly goes stale when a new buying account appears */
+function paintAcctFilter(){
+  const sel=document.getElementById('prepAcctF');if(!sel)return;
+  const seen={};
+  rows.forEach(r=>{const a=String(r.acct||'').trim();if(a)seen[a]=(seen[a]||0)+1;});
+  const names=Object.keys(seen).sort();
+  const cur=sel.value;
+  const want=''+names.join('|');
+  if(sel.dataset.built===want)return;            // nothing new — leave it alone
+  sel.dataset.built=want;
+  sel.innerHTML='<option value="">All accounts</option>'
+    +names.map(n=>`<option value="${esc(n)}">${esc(n)} (${seen[n]})</option>`).join('');
+  if(names.indexOf(cur)>=0)sel.value=cur;        // keep the chosen one selected
+}
 
 /* An empty sheet with no explanation reads as deleted data. 24 Aug: the
    Ready-to-clear chip was left on with nothing eligible, every row was hidden,
@@ -5767,6 +5790,8 @@ function updatePrepSearchUI(){}
 function prepEmptyState(){
   const active=[];
   if(typeof _readyFilterActive!=='undefined'&&_readyFilterActive)active.push('the <b>Ready to clear</b> filter');
+  const _ac=(document.getElementById('prepAcctF')||{}).value||'';
+  if(_ac)active.push(`the account filter (<b>${esc(_ac)}</b>)`);
   if(_issuesFilterActive)active.push('the <b>Issues</b> filter');
   if(_lateFilterActive)active.push('the <b>Late</b> filter');
   const st=(document.getElementById('prepStF')||{}).value||'';
@@ -5788,6 +5813,7 @@ function prepShowEverything(){
   if(_issuesFilterActive)toggleIssuesFilter();
   if(_lateFilterActive)toggleLateFilter();
   const st=document.getElementById('prepStF');if(st)st.value='';
+  const ac=document.getElementById('prepAcctF');if(ac)ac.value='';
   const q=document.getElementById('prepSrch');if(q)q.value='';
   filterPrep();
 }
@@ -5800,12 +5826,14 @@ function filterPrep(skipFlush){
   const scrollTop=wrap?wrap.scrollTop:0;
   const q=document.getElementById('prepSrch').value.toLowerCase();
   const st=document.getElementById('prepStF').value;
+  const _acctF=(document.getElementById('prepAcctF')||{}).value||'';
   // _showArchived ON = show ONLY archived rows; OFF = show only active rows.
   const baseRows=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
-  if(!q&&!st&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive){renderPrepRows(baseRows);}
+  if(!q&&!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive){renderPrepRows(baseRows);}
   else{
     const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
+      if(_acctF&&String(r.acct||'').trim()!==_acctF)return false;
       if(_readyFilterActive&&acHold(r)!==null)return false;
       if(_issuesFilterActive){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
@@ -5990,13 +6018,15 @@ function renderPrep(){
   // Re-apply active filter instead of showing all rows
   const q=(document.getElementById('prepSrch')||{}).value?.toLowerCase()||'';
   const st=(document.getElementById('prepStF')||{}).value||'';
+  const _acctF=(document.getElementById('prepAcctF')||{}).value||'';
   // Archived rows are hidden from the active prep sheet (but kept in `rows` so
   // the shipments page and stats still see them). _showArchived flips to an
   // archived-ONLY view rather than mixing archived in with active rows.
   const baseRows=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
-  if(q||st||_issuesFilterActive||_lateFilterActive||_readyFilterActive){
+  if(q||st||_acctF||_issuesFilterActive||_lateFilterActive||_readyFilterActive){
     const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
+      if(_acctF&&String(r.acct||'').trim()!==_acctF)return false;
       if(_readyFilterActive&&acHold(r)!==null)return false;
       if(_issuesFilterActive){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
@@ -6231,7 +6261,13 @@ function acHold(r){
   if(!r||r.archived)return 'already archived';
   if(r.status!=='Sent to Amazon')return r.status==='Part Sent'?'part sent':'not sent to Amazon yet';
   if(r.sent!=='Yes')return 'not marked as sent';
-  if(r.subSave==='Yes')return 'S&S — never clears';
+  /* S&S used to be a permanent exclusion here. That was me reading "anything
+     that is part sent or has S&S can't be sent" too literally — that list was
+     about what makes a row UNFINISHED, and Subscribe & Save says nothing about
+     whether a row that has already gone to Amazon and reconciled is done.
+     S&S matters for arrival (it is exempt from overdue chasing, because those
+     deliveries come on a schedule) — not for clearing. A finished row is a
+     finished row, so it now clears on exactly the same rules as every other. */
   if(r.issueType&&r.issueType!=='—')return `has an issue: ${r.issueType}`;
   if(acOpenClaims(r))return 'has an open claim';
   if(r.resolution&&['proposed','asked'].includes(r.resolution.state))return 'waiting on Jack';
@@ -14439,11 +14475,15 @@ async function ensureRowEan(r){try{
   if(ean){r.ean=ean;await saveRow(r);renderPrep();logAudit('EAN auto (Keepa)',r.asin+' → '+ean);}
   else _eanTried.add(r.asin);
 }catch(e){if(/429|token/i.test(e.message||''))_autoEanStop=true;}}
-async function autoEanSweep(){
-  if(histGate())return;
-  if(_autoEanSweeping||!_autoEan||_autoEanStop)return;
+async function autoEanSweep(quiet){
+  /* Every reason this could not run used to be a silent return, so "Keepa did
+     not pull the EAN" had no answer on screen. Say which one it was. */
+  if(!_historyReady)return;                       // it will run again once loaded
+  if(_autoEanSweeping)return;
   const todo=rows.filter(r=>!r.archived&&r.asin&&!(r.ean&&String(r.ean).trim()));
   if(!todo.length)return;
+  if(!_autoEan){if(!quiet)toast(`${todo.length} row${todo.length===1?'':'s'} have no barcode — auto-fetch is switched off in Settings`,'er');return;}
+  if(_autoEanStop){if(!quiet)toast('Keepa stopped earlier this session — reload the page to try again','er');return;}
   _autoEanSweeping=true;let n=0;
   try{for(const r of todo){
     const cached=_eanFromRows(r.asin);
@@ -17374,7 +17414,11 @@ const sheetOnly=['sku','date','oid','sup','acct','prod','asin','dg','vat','sas',
   if(manual&&(anyChange||totalErrors>0))toast((totalErrors>0?'⚠ ':'')+'Sheet sync: '+logMsg,totalErrors>0?'er':null);
   if(manual&&!anyChange&&!totalErrors)toast('Sheet is up to date — no new rows');
   if(_ssBC)_ssBC.postMessage({type:'synced',lastRun:nowStr,log:logMsg});
-  if(totalAdded>0)autoEanSweep();   // newly-synced rows → auto-fetch EANs (cache-first, token-safe)
+  /* This only fired when the sync ADDED rows, so a sync that changed nothing
+     left every existing row without a barcode and looked like Keepa was
+     broken. The sweep is cache-first and returns immediately when there is
+     nothing to do, so it is safe to run after every sync. */
+  autoEanSweep();
   try{firstInDone(totalAdded);}catch(e){}
   _ssBusy=false;
   restartSheetSyncTimer();
@@ -21584,7 +21628,7 @@ setInterval(updateClock,60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v31.8 · lav3 · 2026-08-28 · b329';
+const BUILD='v32.0 · lav3 · 2026-08-28 · b331';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
