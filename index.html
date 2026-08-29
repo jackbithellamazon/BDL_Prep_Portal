@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v32.0</title>
+<title>BDL PrepHub v32.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3250,6 +3250,7 @@ td.dgbun .pchip{display:inline-block;margin:1px 2px;white-space:nowrap;}
 /* the flag sits above the button so the column stays centred either way */
 .sasCell{text-align:center;line-height:1;}
 .acHold{font-size:10px;color:var(--text3);margin-top:3px;line-height:1.35;font-style:italic;}
+#page-lavarion .etaSel.needPick,.lav3 .etaSel.needPick{border-color:var(--amb);color:var(--amb);}
 .sasFlag{display:block;color:#f87171;font-size:10px;font-weight:900;
   line-height:1;margin-bottom:2px;cursor:default;}
 .s-more{color:var(--text3);}
@@ -3388,7 +3389,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v32.0</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v32.3</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3422,7 +3423,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v32.0</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v32.3</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -4125,7 +4126,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v32.0</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v32.3</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -21628,7 +21629,7 @@ setInterval(updateClock,60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v32.0 · lav3 · 2026-08-28 · b331';
+const BUILD='v32.3 · lav3 · 2026-08-29 · b334';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -23138,6 +23139,64 @@ function leadOf(p){
   const v=m[p.asin];
   const n=parseInt(v);
   return Number.isFinite(n)&&n>0?n:null;
+}
+/* Every product needs a lead time before "Reorder in" can say anything, and
+   they were only settable one at a time inside the product editor — so none of
+   the 38 had one and the whole column read "set a lead time". The app already
+   knows who supplies a product and how they ship, so it can PROPOSE a number.
+   Proposed, not applied: a suggestion you accept is not the same as a guess
+   made behind your back. */
+function supplierOf(p){
+  const names={};
+  const add=o=>(o&&o.layers||[]).forEach(l=>{const n=(l.sup||'').trim();if(n)names[n]=(names[n]||0)+1;});
+  if(p.type!=='bundle')add(p);
+  else (p.recipe||[]).forEach(r=>{const c=comp(r.c);if(c)add(c);});
+  const best=Object.keys(names).sort((a,b)=>names[b]-names[a])[0];
+  return best||'';
+}
+function leadSuggest(p){
+  const sup=supplierOf(p);
+  if(!sup)return null;
+  const k=guessMode(sup);
+  if(!k)return {days:null,sup,why:`${sup} has no usual route set`};
+  const m=shipMode(k);
+  if(!m)return null;
+  /* the slow end of the window, because ordering late costs more than early */
+  return {days:m.hi,sup,why:`${sup} · ${m.label.split('—')[0].trim()} · ${m.lo}–${m.hi} days`};
+}
+function leadApplyAll(){
+  const live=D.products.filter(x=>!x.archived&&x.asin&&leadOf(x)==null);
+  let n=0;
+  live.forEach(p=>{const s=leadSuggest(p);if(s&&s.days){setLead(p.asin,s.days);n++;}});
+  render();
+  toast(n?`${fmt(n)} lead time${n===1?'':'s'} set from each supplier's route — change any of them on the product`:'Nothing to set — no supplier route to work from','ok');
+  if(n)logIt('edit',`Lead times set from supplier routes on ${n} product(s)`);
+}
+function leadPanel(){
+  const live=D.products.filter(x=>!x.archived&&x.asin);
+  const missing=live.filter(x=>leadOf(x)==null);
+  const canSuggest=missing.map(p=>({p,s:leadSuggest(p)})).filter(x=>x.s&&x.s.days);
+  const stuck=missing.length-canSuggest.length;
+  return `<div class="panel">
+    <div class="ph"><span class="t">How long each product takes to arrive</span>
+      <span class="sub">${missing.length?`${fmt(missing.length)} of ${fmt(live.length)} still to set`:'all set'}</span>
+      ${canSuggest.length?`<div class="r"><button class="btn sm pri" onclick="LV3.leadApplyAll()">Set ${fmt(canSuggest.length)} from supplier routes</button></div>`:''}</div>
+    <div style="padding:12px">
+      <div class="pmeta" style="margin:0 0 10px">Nothing can say <b>when to reorder</b> until it knows how long a delivery takes.
+        These are proposals from each product's supplier and their usual route — accept them here and change any single one on the product itself.</div>
+      ${missing.length?`<div class="supGrid">
+        ${canSuggest.slice(0,12).map(x=>`<div class="supRow">
+          <div class="supNm">${esc(x.p.name)}<div class="pmeta">${esc(x.s.why)}</div></div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input class="in" style="width:70px" type="number" min="1" value="${x.s.days}"
+              onchange="LV3.setLead('${esc(x.p.asin)}',this.value);LV3.render();">
+            <span class="pmeta" style="margin:0">days</span></div>
+        </div>`).join('')}
+        ${canSuggest.length>12?`<div class="pmeta" style="margin:6px 0 0">+${fmt(canSuggest.length-12)} more — the button sets them all</div>`:''}
+      </div>`:`<div class="pmeta" style="margin:0;color:var(--grn)">Every product has one.</div>`}
+      ${stuck?`<div class="pmeta" style="margin:10px 0 0;color:var(--amb)">${fmt(stuck)} product${stuck===1?' has':'s have'} no supplier route to work from — set the supplier's method above, or type a lead time on the product.</div>`:''}
+    </div>
+  </div>`;
 }
 function setLead(asin,v){
   D.settings.leadDays=D.settings.leadDays||{};
@@ -26906,9 +26965,37 @@ function quickLinkSilent(pid,to){
    changing an allocation can never leave orphaned stock behind */
 /* Which way stock from this supplier usually travels. Saved per supplier the
    first time someone corrects it, so it only has to be taught once. */
+/* Some suppliers genuinely have no usual route. Jack, 29 Aug: Alibaba goes air,
+   rail OR sea depending on the order, so guessing "sea" quietly dates it five
+   to ten weeks out when it might be three. ASK_MODE means: no default, the
+   person logging the order picks — and nothing is dated until they do. */
+/* The line under the method dropdown. Either "this supplier has no usual
+   route, pick one", or — once a method is chosen and it differs from the
+   supplier's saved default — a one-click way to make it the default. The
+   decision gets made here, looking at a real order, instead of two thousand
+   pixels down a settings page. */
+function modeHint(l,needsPick){
+  const sup=(l.sup||'').trim();
+  if(needsPick)
+    return '<div class="pmeta" style="margin:3px 0 0;color:var(--amb)">'
+      +esc(sup||'this supplier')+' uses more than one route — pick one and it will date itself</div>';
+  if(!l.mode||!sup)return '';
+  const key=sup.toLowerCase();
+  const saved=(D.settings.supplierModes||{})[key];
+  if(saved===l.mode||saved===ASK_MODE)return '';
+  const label=((shipMode(l.mode)||{}).label||l.mode).split('—')[0].trim();
+  return '<div class="pmeta" style="margin:3px 0 0">'
+    +'<span style="cursor:pointer;text-decoration:underline;color:var(--blu)"'
+    +' title="Every future order from '+esc(sup)+' uses '+esc(label)+', and anything already on order gets re-dated"'
+    +' onclick="event.stopPropagation();LV3.setSupplierMode(&quot;'+esc(key)+'&quot;,&quot;'+esc(l.mode)+'&quot;)">'
+    +'always '+esc(label)+' for '+esc(sup)+'</span></div>';
+}
+const ASK_MODE='__ask';
+const supplierAsks=sup=>((D.settings.supplierModes||{})[(sup||'').toLowerCase().trim()])===ASK_MODE;
 function guessMode(sup){
   const s=(sup||'').toLowerCase().trim();
   const learned=(D.settings.supplierModes||{})[s];
+  if(learned===ASK_MODE)return '';        // deliberately unanswered
   if(learned)return learned;
   if(/alibaba|aliexpress|temu|1688|dhgate|shein/.test(s))return 'sea';
   if(/amazon|ebay|superdrug|boots|tesco|asda|savers|wilko|argos|home ?bargains|b&m/.test(s))return 'courier';
@@ -26941,6 +27028,7 @@ function setSupplierMode(key,mode){
   D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{
     if(l.arr||l.writtenOff||l._etaTouched)return;
     if((l.sup||'').toLowerCase().trim()!==key)return;
+    if(mode===ASK_MODE){l.mode='';l.eta1='';l.eta2='';delete l._etaGuess;touched++;return;}
     l.mode=mode||guessMode(l.sup);
     const mm=shipMode(l.mode);if(!mm||!l.date)return;
     const add=n=>{const x=new Date(l.date);x.setDate(x.getDate()+n);
@@ -27018,6 +27106,7 @@ function supplierPanel(){
             <div class="supNm">${esc(x.name)}<div class="pmeta">${x.orders?`${fmt(x.orders)} order${x.orders===1?'':'s'}`:'no orders yet'}</div></div>
             <select class="in" onchange="LV3.setSupplierMode('${esc(x.key).replace(/'/g,"\\'")}',this.value)">
               <option value="">Work it out (${esc((modes.find(m=>m.k===auto)||{label:auto}).label.split('—')[0].trim())})</option>
+              <option value="${ASK_MODE}" ${cur===ASK_MODE?'selected':''}>Ask every time — no usual route</option>
               ${modes.map(m=>`<option value="${m.k}" ${cur===m.k?'selected':''}>${esc(m.label.split('—')[0].trim())} · ${m.lo}–${m.hi}d</option>`).join('')}
             </select></div>`;}).join('')}
       </div>
@@ -28150,8 +28239,12 @@ function inboundAll(){
   let filled=0;
   out.forEach(({l})=>{
     if(l.eta1||l.eta2||l._etaTouched||!l.date)return;
+    /* an "ask every time" supplier gets no method and no dates — the row will
+       say so rather than showing a window nobody chose */
+    if(supplierAsks(l.sup)&&!l.mode)return;
     if(!l.mode)l.mode=guessMode(l.sup);
-    const m=shipMode(l.mode)||SHIPMODES[0];
+    if(!l.mode)return;
+    const m=shipMode(l.mode);
     if(!m)return;
     const add=n=>{const x=new Date(l.date);x.setDate(x.getDate()+n);
       return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;};
@@ -28226,7 +28319,12 @@ function setEta(kind,oid,lid,field,v){
   const l=(o.layers||[]).find(x=>x.id===lid);if(!l)return;
   l[field]=v;
   if(field==='mode'){                       // re-suggest the window unless it was typed by hand
-    rememberMode(l.sup,v);                  // teach it for next time
+    /* Learning the supplier's route from one order is right for Superdrug and
+       wrong for Alibaba: picking "air" on a single order would overwrite the
+       "ask every time" setting and silently re-date every other order from
+       them. A supplier with no usual route stays that way — the choice sticks
+       to THIS order only. */
+    if(!supplierAsks(l.sup))rememberMode(l.sup,v);
     const m=shipMode(v);
     if(m&&!l._etaTouched){const add=n=>{const x=new Date(l.date);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
       l.eta1=add(m.lo);l.eta2=add(m.hi);}
@@ -28924,9 +29022,17 @@ function deliveriesPanel(){
             return `<div class="unlk dim">not used in anything yet</div>`;})()}</td>
         <td><span class="pmeta" style="margin:0">${dshort(l.date)}</span></td>
         <td class="l" onclick="event.stopPropagation()">
-          <select class="in etaSel" onchange="LV3.setEta('${x.kind}','${x.o.id}','${l.id}','mode',this.value)">
-            ${shipModes().map(m=>`<option value="${m.k}" ${((l.mode||'courier')===m.k)?'selected':''}>${esc(m.label.split('—')[0].trim())}</option>`).join('')}
-          </select></td>
+          ${(()=>{
+            /* The dropdown used to fall back to "courier" when nothing was
+               chosen, so an Alibaba order silently claimed it would land in
+               1–4 days. When the supplier is set to ask every time, the cell
+               starts empty and says so until somebody picks. */
+            const needsPick=!l.mode&&supplierAsks(l.sup);
+            return `<select class="in etaSel${needsPick?' needPick':''}"
+              onchange="LV3.setEta('${x.kind}','${x.o.id}','${l.id}','mode',this.value)">
+              ${needsPick?'<option value="" selected>— how did it come? —</option>':''}
+              ${shipModes().map(m=>`<option value="${m.k}" ${((l.mode||(needsPick?'':'courier'))===m.k)?'selected':''}>${esc(m.label.split('—')[0].trim())}</option>`).join('')}
+            </select>${modeHint(l,needsPick)}`;})()}</td>
         <td class="l" onclick="event.stopPropagation()">
           <div style="display:flex;gap:5px;align-items:center">
             <input class="in etaDM" value="${dmOf(l.eta1)}" placeholder="dd/mm" title="Earliest it might arrive"
@@ -30237,10 +30343,13 @@ function vSettings(){
           <div class="note info">Reading only, and it goes through the same server-side helper this app already uses for the prep sheet — no key sits in this page and nothing here can change a cell.</div>
         </div>
       </div>
+      <!-- "Who ships how" sat fifth, nearly 2,000px down, and went unfound for
+           weeks. It decides every expected date on the page, so it goes first. -->
+      ${supplierPanel()}
+      ${leadPanel()}
       ${salesPanel()}
       ${overridePanel()}
       ${ignoredPanel()}
-      ${supplierPanel()}
 
       <div class="panel">
         <div class="ph"><span class="t">How long deliveries take</span><span class="sub">your methods and your timings</span>
@@ -30705,7 +30814,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,localDT,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
-  shipCheck,shipConsume,shipRestore,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,
+  shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
