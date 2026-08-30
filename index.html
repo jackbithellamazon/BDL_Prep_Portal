@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v34.6</title>
+<title>BDL PrepHub v35.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -264,7 +264,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 
 /* ── MAIN ── */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
-.topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 18px;flex-shrink:0;}
+.topbar{height:54px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0;gap:14px;}
+.topbar .page-title{font-weight:800;letter-spacing:.01em;}
+#globalSrch:focus{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(245,158,11,.12);}
 .page-title{font-size:15px;font-weight:600;color:var(--text);}
 .topbar-controls{display:flex;align-items:center;gap:12px;}
 .theme-btn{width:32px;height:32px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
@@ -2646,6 +2648,8 @@ html.light-mode{
 .cols2 .panel{break-inside:avoid;-webkit-column-break-inside:avoid;}
 #lav3View table tbody tr:nth-child(even){background:rgba(255,255,255,.016);}
 #lav3View table tbody tr:hover{background:rgba(255,255,255,.045);}
+.supRow:nth-child(even){background:rgba(255,255,255,.016);}
+.supRow:hover{background:rgba(255,255,255,.045);}
 @media(min-width:1560px){#page-lavarion .cols2,.lav3 .cols2{column-count:3;}}
 /* and no single panel is allowed to run the length of the page — a list that
    long is a page of its own, not the front door */
@@ -2844,6 +2848,10 @@ html.light-mode{
 .jkKpi.warn{border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.1);}
 .jkKpi.warn b{color:var(--accent);}
 /* money promised but not landed — his side of a closed case */
+.jkKpi.bad{border-color:rgba(239,68,68,.55);background:rgba(239,68,68,.1);}
+.jkKpi.bad b{color:#f87171;}
+.jkKpi.ok{border-color:rgba(74,222,128,.4);background:rgba(74,222,128,.07);}
+.jkKpi.ok b{color:#4ade80;}
 .jkKpi.owed{border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.1);}
 .jkKpi.owed b{color:#34d399;font-size:19px;}
 .jkHd{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 12px;margin:20px 0 10px;}
@@ -3298,8 +3306,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 .tfu td{word-break:break-word;vertical-align:top;}
 .tfu .tfuWhy{white-space:normal!important;display:inline-block;line-height:1.3;
   font-size:10.5px;padding:3px 7px;}
-.tfu .tfuProd2{white-space:normal!important;max-height:none;
-  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.tfu .tfuProd2{white-space:normal!important;max-height:none;display:block;overflow:visible;}
 .tfu .tfuBtn+.tfuBtn{margin-top:4px;}
 .tfu td.tfuActs{padding:10px 12px;}
 .tfu td.tfuActs .tfuBtn{display:block;width:100%;box-sizing:border-box;white-space:nowrap;
@@ -3394,7 +3401,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v34.6</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v35.6</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3428,7 +3435,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v34.6</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v35.6</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3464,18 +3471,18 @@ html.light-mode .tfu thead th{background:#d8dde3;}
          sidebar. Its old view is still reachable from in here for one version,
          so nothing is lost while he checks that holds up. -->
     <button class="sb-item" onclick="goPage('jack',this)">
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="4.4" r="2.4"/><path d="M2.2 12.4a4.8 4.8 0 019.6 0"/></svg>
+      <span style="font-size:13px;font-weight:900;width:14px;text-align:center;">J</span>
       <span>Jack's Admin</span>
-      <span class="sb-badge" id="jackBadge" style="display:none;"></span>
     </button>
     <div class="sb-sec" style="margin-top:6px;">Analytics</div>
-    <button class="sb-item" onclick="goPage('insights',this)">
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="8" width="3" height="5"/><rect x="5" y="5" width="3" height="8"/><rect x="9" y="2" width="3" height="11"/></svg>
-      <span>Insights</span>
-    </button>
+    <!-- Insights archived from nav — Jack, 30 Aug ('I basically never use it'). Page + code kept; the prep-cost history now opens from the Dashboard card. -->
     <button class="sb-item" onclick="goPage('audit',this)">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M7 4v3l2 2"/></svg>
       <span>Audit Log</span>
+    </button>
+    <button class="sb-item" onclick="goPage('lookup',this)">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><path d="M9 9l3.5 3.5"/></svg>
+      <span>History Lookup</span>
     </button>
     <div class="sb-sec" style="margin-top:6px;">System</div>
     <button class="sb-item" onclick="goPage('settings',this)">
@@ -3499,7 +3506,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
         <input id="globalSrch" autocomplete="off" placeholder="Search any SKU or ASIN…"
           oninput="runGlobalSearch(this.value)" onfocus="runGlobalSearch(this.value)"
           onkeydown="if(event.key==='Escape'){this.value='';closeGlobalSearch();this.blur();}"
-          style="width:100%;height:30px;background:var(--bg3);border:1px solid var(--border);border-radius:15px;color:var(--text);font-size:11px;padding:0 12px 0 28px;outline:none;transition:border-color .15s,background .15s;"
+          style="width:100%;height:34px;background:var(--bg3);border:1px solid var(--border);border-radius:17px;color:var(--text);font-size:12px;padding:0 14px 0 30px;outline:none;transition:border-color .15s,background .15s,box-shadow .15s;"
           onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
         <div id="globalSrchResults" style="display:none;position:absolute;top:36px;left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.45);max-height:60vh;overflow-y:auto;z-index:300;padding:6px;"></div>
       </div>
@@ -4131,7 +4138,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v34.6</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v35.6</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -4142,6 +4149,18 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
   <!-- INSIGHTS PAGE -->
   <div class="page" id="page-insights">
     <div class="insights-wrap" id="insightsWrap"></div>
+  </div>
+
+  <!-- HISTORY LOOKUP PAGE -->
+  <div class="page" id="page-lookup">
+    <div class="panel" style="max-width:1150px;margin:0 auto;">
+      <div class="ph"><span class="t">History lookup</span>
+        <span class="sub">every row the Prep Hub has seen since June — archived included. Search, pick a record, copy the story.</span></div>
+      <div style="padding:14px;">
+        <input class="in" id="lkQ" style="width:100%;max-width:480px;padding:10px 14px;font-size:14px;" placeholder="SKU, ASIN or order number — 4+ characters" oninput="lkFind(this.value)">
+        <div id="lkOut" style="margin-top:14px;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- AUDIT PAGE -->
@@ -4859,11 +4878,11 @@ function goPage(n,btn){
   if(btn&&btn.classList)btn.classList.add('on');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+n).classList.add('active');
-  const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'Lavarion ASINs',returns:'Returns',admin:"Sarah's Admin",jack:"Jack's Admin",claims:'Issues (old view)',insights:'Insights',audit:'Audit Log',settings:'Settings'};
+  const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'Lavarion ASINs',returns:'Returns',admin:"Sarah's Admin",jack:"Jack's Admin",claims:'Issues (old view)',insights:'Insights',audit:'Audit Log',lookup:'History Lookup',settings:'Settings'};
   document.getElementById('pageTitle').textContent=t[n]||n;
   /* a page skipped while it was off-screen owes itself one repaint */
   if(n==='prep'&&_dirtyR.prep)renderPrep();
-  if(n==='jack')renderJack();
+  if(n==='jack'){window._jkFreshVisit=true;renderJack();}
   if(n==='settings'){try{renderSyncIssues();}catch(e){}}
   if(n==='dashboard')renderDashboard();
   if(n==='insights')renderInsights();
@@ -6841,6 +6860,13 @@ const ADMIN_CHASE_STATES=['Urgent — Chase Now','Late — Needs Chasing','Delay
 
 function _adminItems(){
   const today=new Date();
+  /* one-time sweep: the year-0002 dates the old input let through poisoned
+     every clock they touched ("refund gone 739180d"). Corrupt = cleared. */
+  if(!window._datesHealed){window._datesHealed=1;rows.forEach(r=>{
+    if(r.expectedDelivery&&!saneDate(r.expectedDelivery)){r.expectedDelivery='';r._dirty=true;debounce('healx_'+r.id,()=>saveRow(r),3000);}
+    const hc=r.resolution&&r.resolution.chase;
+    if(hc&&hc.due&&!saneDate(hc.due)){hc.due='';r._dirty=true;debounce('healy_'+r.id,()=>saveRow(r),3000);}
+  });}
   const out=[];
   rows.forEach(r=>{
     if(r.archived)return;
@@ -6871,7 +6897,7 @@ function _adminItems(){
        stops rows sitting at 94 days with nobody able to do anything about them. */
     if(r.resolution&&r.resolution.state==='approved'){
       const at=new Date(r.resolution.approvedAt||r.resolution.at||0).getTime();
-      if(Date.now()-at<86400000){
+      if(!r.resolution.filed&&_workMsSince(at)<48*3600e3){
         out.push({rid:r.uuid||r.id,sku:r.sku,asin:r.asin,prod:r.prod,sup:r.sup,oid:r.oid,
           date:r.date,acct:r.acct||'',units:0,got:0,cancelled:0,outstanding:0,
           sortedGrace:true,sortedAt:at,sortedWhat:(r.resolution.what||''),sev:0,col:'#94a3b8',
@@ -6900,7 +6926,13 @@ function _adminItems(){
        counting as late — so a live case with a chase log silently left the
        page and belonged to nobody: not on Jack's list, not on hers. Anything
        still being worked, or just handed back by Jack, stays put. */
-    const _liveCase=!!_caseOf(r);
+    const _c0=_caseOf(r);
+    /* parked on a promised delivery date = nobody's job until it slips —
+       but it goes grey to the BOTTOM for 3 days first, undoable ("it went
+       too quick — what if we need to undo it", Jack 30 Aug) */
+    const _parked=!!(_c0&&_c0.step==='due-date'&&expDate&&!expPassed);
+    const _parkGrace=_parked&&!_c0.filed&&_c0.parkedAt&&(_workMsSince(_c0.parkedAt)<48*3600e3);
+    const _liveCase=(!!_c0&&!_parked)||_parkGrace;
     const _handedBack=!!(r.resolution&&r.resolution.state==='rejected');
     if(!isStuck&&!inChase&&!expOverdue&&!_liveCase&&!_handedBack)return;
     let sev,col;
@@ -6909,10 +6941,14 @@ function _adminItems(){
     else if(expOverdue){sev=3;col='#ef4444';}
     else if(ta==='Delayed'||ta==='Chasing Supplier'){sev=2;col='#fb923c';}
     else{sev=1;col='#fbbf24';}
+    /* a chase gone quiet past its 2-working-day due is the most actionable
+       thing here — it rises to the top instead of fading (Jack, 30 Aug) */
+    if(_c0&&!_parked){const _od=_caseDue(_c0);if(_od!==null&&_od>0){sev=4;col='#ef4444';}}
+    if(_parkGrace){sev=0;col='#94a3b8';}
     const expStr=expDate?expDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):'';
     /* "(threshold: 20 days)" was printed on all nineteen rows. It is one fact
        about the whole queue, so it is said once in the heading instead. */
-    const reason=isStuck?`Late — ${days} days in transit`:(expOverdue?`Past expected date (${expStr}) — confirm arrival`:(ta||'Needs follow-up'));
+    const reason=isStuck?`${days} days in transit`:(expOverdue?`Past expected (${expStr}) — confirm arrival`:(ta||'Needs follow-up'));
     const cogs=parseSKU(r.sku).cogs||0;
     const units=_units,got=_got,cancelled=_cx;
     const outstanding=Math.max(0,units-got-cancelled);
@@ -6922,6 +6958,7 @@ function _adminItems(){
     const partArrived=got>0&&got<units;
     const missing=partArrived?outstanding:0;
     out.push({rid:r.uuid||r.id,sku:r.sku,asin:r.asin,prod:r.prod,sup:r.sup,oid:r.oid,date:r.date,
+      parkedRow:_parkGrace===true,
       acct:r.acct||'',units,got,cancelled,outstanding,partArrived,missing,
       sheetRow:r.sheetRow||'',expDate:r.expectedDelivery||'',
       /* where the row came from — the Purchase Sheet (Sarah types it) or straight
@@ -6935,6 +6972,7 @@ function _adminItems(){
          something she has just told him she cannot check. */
       waiting:(r.resolution&&(r.resolution.state==='proposed'||r.resolution.state==='asked'))?r.resolution:null,
       draft:srtDraft(r.uuid||r.id),
+      packNote:(r.notes||'').trim(),vaNote:(r.vaNote||'').trim(),
       days,isStuck,ta,reason,sev,col,value:cogs*(outstanding||units)});
   });
   /* Ordered by how close the refund window is to shutting. Age alone was
@@ -7321,6 +7359,7 @@ const REFUND_DAYS=30;
    landed — or, for something that never turned up, from when it was DUE to
    land. The order date is only a last resort, for rows carrying no delivery
    date at all. `row` is optional so every existing caller still works. */
+function saneDate(v){const y=parseInt(String(v||'').slice(0,4),10);return y>=2020&&y<=2035;}
 function refundLeft(dateDDMM,row){
   const t=new Date();
   let d=null;
@@ -7373,10 +7412,11 @@ function _who(){return window.currentUserName||'Sarah';}
 // ── LOADING / SAVING ──────────────────────────────────────────────────────────
 async function loadVaState(){
   try{
-    const r=await sb.from('app_settings').select('key,value').in('key',['webhook_cfg','admin_checkin','va_actions','resolution_types','follow_up_types','jack_suppliers','srt_drafts']);
+    const r=await sb.from('app_settings').select('key,value').in('key',['webhook_cfg','admin_checkin','va_actions','resolution_types','follow_up_types','jack_suppliers','srt_drafts','row_seen']);
     (r.data||[]).forEach(row=>{
       let v=null;try{v=JSON.parse(row.value||'null');}catch(e){return;}
       if(row.key==='srt_drafts'&&v&&typeof v==='object')SRT_DRAFTS=v;
+      if(row.key==='row_seen'&&v&&typeof v==='object'&&!Array.isArray(v))ROW_SEEN=v;
       if(row.key==='webhook_cfg'&&v)WEBHOOK_CFG=Object.assign(WEBHOOK_CFG,v);
       if(row.key==='admin_checkin'&&v)ADMIN_CHECK=Object.assign(ADMIN_CHECK,v);
       if(row.key==='va_actions'&&Array.isArray(v))VA_ACTIONS=v;
@@ -7662,7 +7702,7 @@ async function doneVaAction(id){
 
 // ── PROPOSING A CLOSURE ───────────────────────────────────────────────────────
 let _srtRid=null;
-let _tfuSort='priority',_tfuDir=1,_admQ='',_admKind='all',_jkQ='',_jkKind='all';
+let _tfuSort='priority',_tfuDir=1,_admQ='',_admKind='all',_jkQ='',_jkKind='all',_jkSort='priority',_jkSup='all',_jkAcct='all';
 /* ── THE PRIORITY ORDER — built with Jack, 16 Aug, from his own worked example.
    His answer, in his words: the Wagner he sent back yesterday first; this
    morning's damage next (newer AND worth more); the 6-day-old shortage third;
@@ -7672,6 +7712,7 @@ let _tfuSort='priority',_tfuDir=1,_admQ='',_admKind='all',_jkQ='',_jkKind='all';
 function _prioScore(i){
   const v=Math.min(Math.round(i.value||0),999999);
   if(i.sortedGrace)return 9e9;                       // done, undoable — bottom
+  if(i.parkedRow)return 8.9e9;                       // parked on a date — bottom, undoable
   if(i.waiting)return 8e9+(i.days||0);               // with Jack — locked, sinks
   if(i.sentBack)return 0+(i.days||0)*1e3;            // 1. Jack replied — newest first
   if(i.kind==='job')return 1e8+(i.days||0)*1e3;      // 1b. jobs Jack sent over
@@ -7688,6 +7729,7 @@ function tfuSort(k){
 }
 function _rowById(rid){return rows.find(x=>x.uuid===String(rid)||String(x.id)===String(rid));}
 function openSorted(rid,preset){
+  markSeen(rid);
   const r=_rowById(rid);if(!r){toast('Row not found','er');return;}
   /* The popup already knows what she answered on the row. Arrived + wrong SKU
      → that outcome, ready to confirm or change. Arrived with nothing else said
@@ -7923,13 +7965,21 @@ function srtPick(v){
 let _srtSkuIx=-1;
 function _srtSkuRows(q){
   const r=_rowById(_srtRid)||{};
-  const all=rows.filter(x=>!x.archived&&x.sku&&x.sku!==r.sku);
+  /* Jack, 30 Aug: "loads of this SKU on the shipments page — why isn't it
+     suggesting any?" Because this EXCLUDED archived rows — and the rows that
+     actually shipped are the archived ones. History is the whole point.
+     Include everything, de-dupe by SKU, rows that shipped units first. */
+  const all=rows.filter(x=>x.sku&&x.sku!==r.sku);
   const isSame=x=>!!(x.asin&&r.asin&&x.asin===r.asin);
-  const same=all.filter(isSame);
+  const dedupe=list=>{const seen=new Set(),out=[];
+    for(const x of list.slice().sort((a,b)=>(parseInt(b.ship)||0)-(parseInt(a.ship)||0))){
+      if(seen.has(x.sku))continue;seen.add(x.sku);out.push(x);}
+    return out;};
+  const same=dedupe(all.filter(isSame));
   q=(q||'').trim().toLowerCase();
   if(!q)return{list:same.slice(0,60),scoped:true};
   const hit=x=>((x.sku||'')+' '+(x.prod||'')+' '+(x.asin||'')).toLowerCase().includes(q);
-  return{list:same.filter(hit).concat(all.filter(x=>!isSame(x)).filter(hit)).slice(0,60),scoped:false};
+  return{list:same.filter(hit).concat(dedupe(all.filter(x=>!isSame(x)).filter(hit))).slice(0,60),scoped:false};
 }
 function srtSkuSearch(){
   const inp=document.getElementById('srtSku'),box=document.getElementById('srtSkuList');
@@ -8034,12 +8084,15 @@ function _srtPaintSteps(picked,want){
      work was done that it is no longer even asking for. */
   const live=new Set(steps.map(s=>s.k));
   Object.keys(_srtTicks).forEach(k=>{if(!live.has(k))delete _srtTicks[k];});
-  ol.innerHTML=steps.length
+  ol.innerHTML=(steps.length
     ? steps.map(s=>`<li class="srtStep${_srtTicks[s.k]?' done':''}">
         <label class="srtStepChk"><input type="checkbox" data-k="${esc(s.k)}"
           ${_srtTicks[s.k]?'checked':''} onchange="srtTick(this)">
         <span>${esc(s.text)}</span></label></li>`).join('')
-    : '<li class="srtNone">Nothing else to do — closing it off is enough.</li>';
+    : '<li class="srtNone">Nothing else to do — closing it off is enough.</li>')
+    +`<li style="list-style:none;margin-top:9px;display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
+        <button type="button" class="csAct go" style="margin:0;" onclick="srtCopyMsg(this)">Copy the sheet note</button>
+        <span style="font-size:10.5px;color:var(--text3);">written for you — order number, what happened, SKU, numbers, who closed it. Paste it straight into the sheet.</span></li>`;
   const hint=document.getElementById('srtTodoHint');
   if(hint){
     const left=steps.filter(s=>!_srtTicks[s.k]).length;
@@ -8048,6 +8101,21 @@ function _srtPaintSteps(picked,want){
            :'All done — you can close it off now.';
     hint.style.color=!steps.length?'var(--text2)':(left?'#fbbf24':'var(--green)');
   }
+}
+/* Jack, 30 Aug: "make it more automated — you make a message that is copyable
+   to paste in a column." The note the checklist used to ask her to hand-write. */
+function srtCopyMsg(btn){
+  const r=_rowById(_srtRid)||{};
+  const d=_srtCollect();
+  const bits=[
+    _resText(d.what)||'closed off',
+    d.wentAs?'went out under '+d.wentAs:'',
+    [d.ord?d.ord+' ordered':'',d.got?d.got+' arrived':'',d.cx?d.cx+' cancelled':''].filter(Boolean).join(' / '),
+    d.due?'expected '+d.due:'',
+    d.note?'“'+d.note+'”':'',
+    'closed by '+_who()+' '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
+  ].filter(Boolean).join(' · ');
+  copyVal((r.oid?r.oid+' — ':'')+bits,btn);
 }
 function srtTick(el){
   const k=el.dataset.k;if(!k)return;
@@ -8073,6 +8141,26 @@ function _srtCollect(){
    Start from THEIR copy and lay ours on top, so a draft the other person began
    since this page loaded survives — and only ever remove the one row we have
    actually finished. */
+let ROW_SEEN={};
+let _seenT=null;
+function markSeen(rid){
+  try{
+    if(!rid)return;
+    if(/^(jack|beck)/i.test(String(window.currentUserName||'').trim()))return; /* only Sarah's look counts (Jack, 30 Aug) */
+    const k=String(rid);
+    if(ROW_SEEN[k])return;
+    ROW_SEEN[k]={at:new Date().toISOString(),by:_who()};
+    clearTimeout(_seenT);
+    _seenT=setTimeout(async()=>{
+      try{
+        const r=await sb.from('app_settings').select('value').eq('key','row_seen').maybeSingle();
+        let remote={};try{remote=JSON.parse((r.data&&r.data.value)||'{}')||{};}catch(e){}
+        if(remote&&typeof remote==='object'&&!Array.isArray(remote))ROW_SEEN=Object.assign({},remote,ROW_SEEN);
+        await _putSetting('row_seen',ROW_SEEN);
+      }catch(e){}
+    },1200);
+  }catch(e){}
+}
 async function _saveDrafts(dropId){
   try{
     const r=await sb.from('app_settings').select('value').eq('key','srt_drafts').maybeSingle();
@@ -8664,7 +8752,7 @@ async function saveQtyFix(){
     if(['Late — Needs Chasing','Urgent — Chase Now','Chasing Supplier','Awaiting Update','Delayed'].includes(r.transitAction))r.transitAction='';
     try{
       (claims||[]).filter(c=>String(c.prepRowId)===String(r.uuid||r.id)&&c.cst!=='Resolved').forEach(c=>{
-        c.cst='Resolved';
+        c.cst='Resolved';c.resolvedAt=c.resolvedAt||todayISO();
         if(!c.log)c.log=[];
         c.log.push({t:getNowUK(),msg:'Closed automatically — expected quantity corrected from '+from+' to '+nv+' by '+_who()});
         saveClaim(c);cleared++;
@@ -8691,6 +8779,54 @@ async function ackQtyFix(rid){
 }
 
 // ── WHAT IS WAITING ON WHOM ───────────────────────────────────────────────────
+/* ── HISTORY LOOKUP (Jack, 30 Aug): search SKU/ASIN/order → matching records
+   (archived included) → one click → the row's whole story, written out and
+   copyable for pasting into the Purchase Sheet. Pre-June rows never entered
+   the hub, so they can't be reconstructed here — by design. */
+function lkFind(q){
+  const out=document.getElementById('lkOut');if(!out)return;
+  q=String(q||'').trim().toLowerCase();
+  if(q.length<4){out.innerHTML='<div class="pmeta">Type at least 4 characters of a SKU, ASIN or order number.</div>';return;}
+  const hits=rows.filter(r=>((r.sku||'')+' '+(r.asin||'')+' '+(r.oid||'')).toLowerCase().includes(q)).slice(0,25);
+  if(!hits.length){out.innerHTML='<div class="pmeta">Nothing matches — if it was bought before the Prep Hub started (June), it was never in here.</div>';return;}
+  out.innerHTML='<div class="pmeta" style="margin-bottom:8px;">'+fmt(hits.length)+' match'+(hits.length===1?'':'es')+(hits.length===25?' (first 25)':'')+'</div>'
+    +hits.map(r=>`<div onclick="lkOpen('${r.uuid||r.id}')" style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;${r.archived?'opacity:.6;':''}" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background=''">
+      <span class="num" style="font-size:11px;color:var(--text3);">${esc(r.date||'—')}</span>
+      <b style="font-size:12px;">${esc((r.prod||'').slice(0,60)||r.sku||'')}</b>
+      <span class="s-sku" style="font-size:10.5px;">${esc(r.sku||'')}</span>
+      <span style="font-size:10.5px;color:var(--text2);">${esc(r.sup||'')} · ${esc(r.status||'—')} · ${fmt(r.exp||0)} ordered${r.archived?' · archived':''}</span>
+    </div>`).join('');
+}
+function lkStory(r){
+  const seg=(r.shipSegments||[]).map(s=>`${fmt(s.units||0)} units → shipment ${s.shipId||'?'}${s.date?' on '+s.date:''}`);
+  const cls=(claims||[]).filter(c=>String(c.prepRowId)===String(r.uuid||r.id));
+  const cl=(r.resolution&&r.resolution.chase&&r.resolution.chase.log)||[];
+  const L=[];
+  L.push(`${r.prod||r.sku||''}`);
+  L.push(`SKU ${r.sku||'—'} · ASIN ${r.asin||'—'} · ${r.sup||'—'} · ${r.acct||'—'}${r.oid?' · order '+r.oid:''}`);
+  L.push(`ordered ${r.date||'—'} · ${fmt(r.exp||0)} ordered / ${fmt(parseInt(r.rcvd)||0)} arrived / ${fmt(parseInt(r.ship)||0)} shipped${parseInt(r.cancelledQty)?' / '+fmt(parseInt(r.cancelledQty))+' cancelled':''} · status ${r.status||'—'}${r.archived?' · ARCHIVED':''}`);
+  if(r.expectedDelivery)L.push(`expected delivery ${r.expectedDelivery}`);
+  seg.forEach(s=>L.push(s));
+  if(r.issueType&&r.issueType!=='—')L.push(`issue: ${r.issueType}${r.issueQty?' ('+r.issueQty+' units)':''}`);
+  cls.forEach(c=>L.push(`claim: ${c.issT||''} · ${c.cst||''}${c.claimValue?' · '+fmtGBP2(c.claimValue):''}${c.resolvedAt?' · resolved '+c.resolvedAt:''}`));
+  if(r.resolution&&r.resolution.what)L.push(`closed as: ${_resText(r.resolution.what)}${r.resolution.by?' — '+r.resolution.by:''}`);
+  cl.slice(-6).forEach(x=>L.push(`${_logWhen(x.at)} · ${x.by||''} — ${x.what||''}`));
+  if(r.notes)L.push(`note: "${r.notes}"`);
+  return L.filter(Boolean).join('\n');
+}
+function lkOpen(rid){
+  const r=_rowById(rid);if(!r)return;
+  const out=document.getElementById('lkOut');if(!out)return;
+  const story=lkStory(r);
+  out.innerHTML=`<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+        <b style="font-size:13px;">${esc(r.prod||r.sku||'')}</b>
+        <button class="btn sm pri" onclick="copyVal(${JSON.stringify(story).replace(/"/g,'&quot;')},this)">Copy the story — paste into the sheet</button>
+        <button class="btn sm" onclick="lkFind(document.getElementById('lkQ').value)">&larr; back to results</button>
+      </div>
+      <pre style="white-space:pre-wrap;font-family:var(--mono);font-size:11.5px;line-height:1.6;color:var(--text2);margin:0;">${esc(story)}</pre>
+    </div>`;
+}
 function jackTodo(){
   /* No !archived guard on the decisions: a row archived by some other path is
      still a decision he owes an answer to, and hiding it was how items got
@@ -8769,11 +8905,7 @@ async function escalateMoney(rid){
    nobody's name on it, sitting beside a queue organised by who owns things, so
    the same row appeared twice and the two drifted apart.
    Every live item belongs to exactly one of them. This is his half. */
-function paintJackBadge(){
-  const b=document.getElementById('jackBadge');if(!b)return;
-  const n=jackTodo().n;
-  b.textContent=n||'';b.style.display=n?'inline-flex':'none';
-}
+function paintJackBadge(){/* badge retired — Jack, 30 Aug: "get rid of the 4" */}
 function renderJack(){
   const w=document.getElementById('jackWrap');if(!w)return;
   /* Same gate as every other page: skip while unseen, note the debt, repaint on
@@ -8791,23 +8923,29 @@ function renderJack(){
   const days=t=>t?Math.floor((Date.now()-new Date(t).getTime())/864e5):0;
   checks.forEach(r=>{const q=r.resolution||{};
     items.push({kind:'check',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
-      by:q.by||'Sarah',at:q.at,wait:days(q.at),type:['CHECK','#60a5fa','An Amazon order she cannot see — did it arrive?'],
+      asin:r.asin||'',by:q.by||'Sarah',at:q.at,wait:days(q.at),type:['CHECK','#60a5fa','An Amazon order she cannot see — did it arrive?'],
       why:esc(q.ask||'Check this order'),note:q.note||'',
+      clog:(q.chase&&q.chase.log)||[],expDate:r.expectedDelivery||'',
       value:(parseSKU(r.sku).cogs||0)*Math.max(0,(r.exp||r.ship||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0)),
       left:refundLeft(r.date,r),
       acts:`<button class="csAct good" onclick="jackAnswered('${r.uuid||r.id}','Arrived — YES. Carry on with the wrong-SKU check.')">Arrived — YES</button>
-        <button class="csAct warn" onclick="jackAnswered('${r.uuid||r.id}','NOT arrived — nothing delivered on the account. Chase or claim.')">Not arrived — NO</button>
+        <button class="csAct warn" onclick="jackNoSplit('${r.uuid||r.id}',this)">Not arrived — NO</button>
         <button class="csAct plain" onclick="jackAnswerAsk('${r.uuid||r.id}')">Answer with a note</button>`});});
   closures.forEach(r=>{const q=r.resolution||{};
     items.push({kind:'dec',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
-      by:q.by||'Sarah',at:q.at,wait:days(q.at),type:['DECISION','#c084fc','She investigated — your call'],
+      asin:r.asin||'',by:q.by||'Sarah',at:q.at,wait:days(q.at),type:['DECISION','#c084fc','She investigated — your call'],
       why:esc(_resText(q.what))+(q.claim?' · money at risk':''),note:q.note||'',fix:q.fix||'',
+      clog:(q.chase&&q.chase.log)||[],expDate:r.expectedDelivery||'',
       value:(parseSKU(r.sku).cogs||0)*(r.exp||r.ship||0),left:refundLeft(r.date,r),
       acts:`<button class="csAct good" onclick="approveResolution('${r.uuid||r.id}')">Approve &amp; close</button>
         <button class="csAct warn" onclick="rejectResolution('${r.uuid||r.id}')">Send back</button>
         <button class="csAct plain" onclick="backToSarah('${r.uuid||r.id}')" title="No decision needed from me">Not my call</button>`});});
   (claimsQ||[]).forEach(c=>{const gated=(c.issT||'')==='Gated';const sj=c.sentToJack||{};
-    items.push({kind:'claim',id:c.id,prod:c.prod||c.sku||'',sup:c.sup,oid:c.oid,acct:c.acct,sku:c.sku,
+    items.push({kind:'claim',id:c.id,prod:c.prod||c.sku||'',sup:c.sup,oid:c.oid,acct:c.acct,sku:c.sku,asin:c.asin||'',
+      claimLog:(c.log||[]).slice(-3).reverse(),units:c.dif||c.exp||0,
+      perUnit:(c.claimValue&&(c.dif||c.exp))?(c.claimValue/(c.dif||c.exp)):0,
+      raisedDays:c.raisedAt?Math.max(0,Math.floor((Date.now()-new Date(c.raisedAt).getTime())/864e5)):null,
+      na:c.nextAction||'',
       by:sj.by||c.raisedBy||'Sarah',at:sj.at,wait:days(sj.at),
       type:gated?['GATED','#c084fc','Cannot be sold — eBay it or ungate it']:['CLAIM','#fbbf24','A claim she sent over'],
       why:esc((c.issT||'Issue')+' · '+(c.dif||0)+' unit'+((c.dif||0)===1?'':'s')),note:c.notes||'',
@@ -8822,12 +8960,12 @@ function renderJack(){
       note:(g.log&&g.log.length?g.log[g.log.length-1].msg:''),value:g.val||0,left:null,
       acts:`<button class="csAct good" onclick="lavBackFromJack('${esc1(g.key)}')">Answer &amp; hand back</button>`});});
   fixes.forEach(r=>{const f=r.qtyFix||{};
-    items.push({kind:'fix',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
+    items.push({kind:'fix',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,asin:r.asin||'',
       by:f.by||'Sarah',at:f.at,wait:days(f.at),type:['QTY FIX','#94a3b8','The sheet was wrong — read and wave through'],
       why:esc(String(f.from??'?'))+' &rarr; '+esc(String(f.to??'?'))+' units',note:f.why||'',value:0,left:null,
       acts:`<button class="csAct plain" onclick="ackQtyFix('${r.uuid||r.id}')">Seen it</button>`});});
   (owed||[]).forEach(o=>{const r=o.r;
-    items.push({kind:'owed',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
+    items.push({kind:'owed',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,asin:r.asin||'',
       by:o.q.by||'Sarah',at:o.q.approvedAt||o.q.at,wait:o.waiting,type:['£ OWED','#34d399','A refund was promised — waiting to land'],
       why:'Promised '+o.waiting+' day'+(o.waiting===1?'':'s')+' ago'+(o.waiting>=14?' — a long time':''),
       note:(o.q.chase&&(o.q.chase.log||[]).length)?o.q.chase.log.slice(-1)[0].what:'',
@@ -8835,7 +8973,16 @@ function renderJack(){
       acts:`<button class="csAct good" onclick="moneyLanded('${r.uuid||r.id}')">Money received</button>
         <button class="csAct warn" onclick="escalateMoney('${r.uuid||r.id}')" title="Back on Sarah's sheet with the history, to chase and escalate">Back to Sarah</button>`});});
   const order={check:0,dec:1,claim:2,lav:3,fix:4,owed:5};
-  items.sort((a,b)=>(order[a.kind]-order[b.kind])||(b.wait-a.wait));
+  items.sort((a,b)=>{
+    switch(_jkSort){
+      case 'oldest':return (b.wait||0)-(a.wait||0);
+      case 'newest':return (a.wait||0)-(b.wait||0);
+      case 'money':return (b.value||0)-(a.value||0);
+      case 'claim':{const ax=a.left==null?9e9:(a.left<0?9e8:a.left),bx=b.left==null?9e9:(b.left<0?9e8:b.left);return ax-bx;}
+      case 'supplier':return String(a.sup||'').localeCompare(String(b.sup||''))||(b.wait||0)-(a.wait||0);
+      default:return (order[a.kind]-order[b.kind])||(b.wait-a.wait);
+    }
+  });
   /* Same toolbar language as Sarah's page — search, chips with counts. */
   const _jkCounts={all:items.length};
   items.forEach(it=>{_jkCounts[it.kind]=(_jkCounts[it.kind]||0)+1;});
@@ -8843,17 +8990,75 @@ function renderJack(){
   const _q=(_jkQ||'').toLowerCase();
   if(_q)shown=shown.filter(it=>[it.prod,it.sup,it.oid,it.sku,it.by,it.note,it.why].filter(Boolean).join(' ').toLowerCase().includes(_q));
   if(_jkKind!=='all')shown=shown.filter(it=>it.kind===_jkKind);
+  if(_jkSup!=='all')shown=shown.filter(it=>String(it.sup||'')===_jkSup);
+  if(_jkAcct!=='all')shown=shown.filter(it=>String(it.acct||'')===_jkAcct);
   const owedTotal=(owed||[]).reduce((a,o)=>a+(o.value||0),0);
   const atRisk=items.filter(i=>i.kind!=='owed').reduce((a,i)=>a+(i.value||0),0);
   const oldest=items.length?Math.max(...items.map(i=>i.wait||0)):0;
   /* A KPI you can press IS the filter — click "to check" and the table shows
      only checks; click it again for everything. */
+  /* Jack, 30 Aug: "more KPIs — how many sent to Jack, gated, waiting on
+     reimbursements and refunds and replacements — what is Sarah doing or not
+     done — what do I need to chase — do I need to tell her off?" */
+  const _ps={chasing:0,quiet:0,quietOld:0,replacement:0,parked:0};
+  rows.forEach(r=>{
+    if(r.archived)return;
+    const c=_caseOf(r);if(!c||c.path!=='never-arrived')return;
+    if(c.step==='due-date')_ps.parked++;
+    else if(c.step==='replacement')_ps.replacement++;
+    else if(c.step==='waiting'||c.step==='contact'||c.step==='check-refund'){
+      _ps.chasing++;
+      const od=_caseDue(c);
+      if(od!==null&&od>0){_ps.quiet++;_ps.quietOld=Math.max(_ps.quietOld,od);}
+    }
+  });
+  const _gatedList=claims.filter(c=>!c.archived&&c.cst!=='Resolved'&&/gated/i.test(c.issT||''));
+  const _gated=_gatedList.length;
+  /* rolling 30 days — "what has been happening RECENTLY", not all-time */
+  const _cut30=Date.now()-30*864e5;
+  const _in30=s=>{const d=new Date(s||0).getTime();return d>=_cut30;};
+  const _raised30=claims.filter(c=>_in30(c.raisedAt)).length;
+  const _res30=claims.filter(c=>c.cst==='Resolved'&&_in30(c.resolvedAt));
+  const _rec30=_res30.filter(c=>c.reimbursed==='Yes').reduce((t,c)=>t+(c.claimValue||0),0);
+  const _stuck30=claims.filter(c=>!c.archived&&c.cst!=='Resolved'&&!/gated/i.test(c.issT||'')&&!_in30(c.raisedAt)).length;
+  const _cut7=Date.now()-7*864e5;
+  const _in7=s=>{const d=new Date(s||0).getTime();return d>=_cut7;};
+  const _res7=claims.filter(c=>c.cst==='Resolved'&&_in7(c.resolvedAt));
+  const _rec7=_res7.filter(c=>c.reimbursed==='Yes').reduce((t,c)=>t+(c.claimValue||0),0);
+  const _new7=claims.filter(c=>_in7(c.raisedAt)).length;
+  const _gAsins=new Set(_gatedList.map(c=>c.asin).filter(Boolean)).size;
+  const _gUnits=_gatedList.reduce((t,c)=>t+(c.dif||c.exp||0),0);
+  const _gVal=_gatedList.reduce((t,c)=>t+(c.claimValue||0),0);
+  /* her page, summarised for him: open work, money tied up, untouched rows,
+     oldest row, and when she last pressed Checked */
+  let _sq=[],_sqVal=0,_sqNew=0,_sqOld=0;
+  try{_sq=_adminItems();_sqVal=_sq.reduce((t,x)=>t+(x.value||0),0);
+    _sqNew=_sq.filter(x=>!ROW_SEEN[String(x.rid)]&&!x.waiting&&x.kind!=='job').length;
+    _sqOld=Math.max(0,..._sq.map(x=>x.days||0));}catch(e){}
+  let _chk='never';try{const ck=ADMIN_CHECK&&ADMIN_CHECK.at;if(ck){const dd=Math.floor((Date.now()-new Date(ck).getTime())/864e5);_chk=dd<=0?'today':dd+'d ago';}}catch(e){}
+  if(window._jkFreshVisit){
+    try{
+      const last=parseInt(localStorage.getItem('jk_lastSeen')||'0');
+      window._jkSince=last?{
+        res:claims.filter(c=>c.cst==='Resolved'&&c.resolvedAt&&new Date(c.resolvedAt).getTime()>=last-864e5).length,
+        newIn:items.filter(x=>x.at&&new Date(x.at).getTime()>last).length}:null;
+      localStorage.setItem('jk_lastSeen',String(Date.now()));
+    }catch(e){window._jkSince=null;}
+    window._jkFreshVisit=false;
+  }
+  const _mrow=(l,v,c,tip,go)=>`<div ${go?`onclick="${go}" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''"`:''} style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;${go?'cursor:pointer;border-radius:5px;margin:0 -5px;padding:0 5px;':''}" ${tip?`title="${tip}"`:''}>
+      <span style="font-size:10.5px;color:var(--text3);font-weight:600;">${l}${go?' &#8599;':''}</span>
+      <span class="num" style="font-size:12.5px;font-weight:800;color:${c};white-space:nowrap;">${v}</span></div>`;
+  const _mpanel=(t,tc,rows2)=>`<div style="flex:1;min-width:215px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:9px 13px;display:flex;flex-direction:column;gap:5px;">
+      <div style="font-size:9.5px;font-weight:800;letter-spacing:.08em;color:${tc};margin-bottom:2px;">${t}</div>${rows2.join('')}</div>`;
   const kpi=(v,l,cls,kind)=>`<div class="jkKpi ${cls||''}" style="flex:1;${kind?'cursor:pointer;':''}" ${kind?`onclick="_jkKind=_jkKind==='${kind}'?'all':'${kind}';renderJack();" title="Click to show only these"`:''}><b>${v}</b><span>${l}</span></div>`;
   w.innerHTML=`
     <div class="jkHero" style="padding:12px 16px 14px;margin-bottom:10px;flex-direction:column;align-items:stretch;gap:10px;">
       <div style="display:flex;align-items:baseline;gap:12px;">
         <h2 style="margin:0;">Jack's Admin</h2>
         <p style="margin:0;">${n?`${n} thing${n===1?'':'s'} waiting on you — work top to bottom.`:'Nothing is waiting on you. Sarah is not blocked on anything.'}</p>
+        ${window._jkSince&&(window._jkSince.res||window._jkSince.newIn)?`<span style="font-size:11px;font-weight:700;color:#93c5fd;white-space:nowrap;">Since you last looked: <b style="color:#4ade80;">${fmt(window._jkSince.res)}</b> resolved · <b>${fmt(window._jkSince.newIn)}</b> new</span>`:''}
+        <span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap;" title="The last 7 days at a glance">This week: <b style="color:#4ade80;">${fmt(_res7.length)}</b> resolved · <b style="color:#4ade80;">${fmtGBP2(_rec7)}</b> recovered · <b style="color:#93c5fd;">${fmt(_new7)}</b> new</span>
       </div>
       <div class="jkKpis" style="width:100%;display:flex;gap:9px;">
         ${kpi(checks.length,'to check',(checks.length?'hot':'')+(_jkKind==='check'?' on':''),'check')}
@@ -8863,6 +9068,31 @@ function renderJack(){
         ${owed.length?kpi(fmtGBP2(owedTotal),'owed to you','owed'+(_jkKind==='owed'?' on':''),'owed'):''}
         ${oldest?kpi(oldest+'d','oldest waiting',oldest>=3?'hot':''):''}
       </div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:stretch;">
+        ${_mpanel('THE PIPELINE','var(--text3)',[
+          _mrow('Being chased by Sarah',fmt(_ps.chasing),'#60a5fa','Open her page at the chase rows',"goPage('admin',null)"),
+          _mrow('Gone quiet — chase overdue',_ps.quiet?fmt(_ps.quiet)+(_ps.quietOld?' · '+_ps.quietOld+'d':''):'0',_ps.quiet?'#ef4444':'#4ade80','Chases past their 2-working-day due — your tell-Sarah number. Click Nudge below to flag them all.',"goPage('admin',null)"),
+          _mrow('Refunds promised — owed',fmt(owed.length),'#4ade80'),
+          _mrow('Replacements promised',fmt(_ps.replacement),'#c084fc'),
+          _mrow('Parked on a date',fmt(_ps.parked),'#93c5fd')]
+          .concat(_ps.quiet?[`<button class="csAct warn" style="margin-top:4px;" onclick="jackNudgeQuiet()" title="Writes 'Jack flagged this — chase it today' into every overdue chase's log — it shows on her rows immediately">&#9889; Nudge Sarah — flag all ${fmt(_ps.quiet)}</button>`]:[]))}
+        ${_mpanel("SARAH'S PAGE",'var(--text3)',[
+          _mrow('Open on her queue',fmt(_sq.length),_sq.length>25?'#fbbf24':'#93c5fd','Open her page',"goPage('admin',null)"),
+          _mrow('Tied up',fmtGBP2(_sqVal),'#fbbf24'),
+          _mrow('Never opened by her',fmt(_sqNew),_sqNew>8?'#ef4444':_sqNew?'#fbbf24':'#4ade80','Rows with no open, no triage, no action — probably not seen. Click to open her page.',"goPage('admin',null)"),
+          _mrow('Oldest row',_sqOld?_sqOld+'d':'—',_sqOld>30?'#ef4444':'#93c5fd'),
+          ])}
+        ${_mpanel('LAST 30 DAYS','var(--text3)',[
+          _mrow('Issues raised',fmt(_raised30),'#93c5fd'),
+          _mrow('Resolved',fmt(_res30.length),'#4ade80'),
+          _mrow('Recovered — processed',fmtGBP2(_rec30),'#4ade80'),
+          _mrow('Stuck over 30d (not gated)',fmt(_stuck30),_stuck30?'#ef4444':'#4ade80')])}
+        ${_mpanel('GATED STOCK','#c084fc',[
+          _mrow('ASINs',fmt(_gAsins),'#c084fc','See the gated rows on her page',"goPage('admin',null);setTimeout(()=>{_admKind='GATED';renderAdmin();},60)"),
+          _mrow('Units',fmt(_gUnits),'#c084fc'),
+          _mrow('Tied up',fmtGBP2(_gVal),'#c084fc'),
+          _mrow('Its own clock','sits longer by nature','var(--text3)','Gated can stay unresolved far longer than normal admin — watched here, never counted as stuck')])}
+      </div>
     </div>
     ${items.length?`
     <div class="admBar" style="padding:0 2px 10px;">
@@ -8871,6 +9101,25 @@ function renderJack(){
         <input id="jkSrch" value="${esc(_jkQ||'')}" placeholder="Search product, supplier, order, SKU or note"
           oninput="_jkQ=this.value;renderJack();setTimeout(()=>{const b=document.getElementById('jkSrch');if(b){b.focus();b.setSelectionRange(b.value.length,b.value.length);}},0);" autocomplete="off">
       </div>
+      ${(()=>{const _selCss='padding:8px 11px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:11.5px;font-weight:700;cursor:pointer;';
+        const sups=[...new Set(items.map(x=>String(x.sup||'')).filter(Boolean))].sort();
+        const accts=[...new Set(items.map(x=>String(x.acct||'')).filter(Boolean))].sort();
+        return (sups.length>1?`<select onchange="_jkSup=this.value;renderJack();" title="Only this supplier" style="${_selCss}">
+            <option value="all">All suppliers</option>
+            ${sups.map(s=>`<option value="${esc(s)}" ${_jkSup===s?'selected':''}>${esc(s)} (${items.filter(x=>String(x.sup||'')===s).length})</option>`).join('')}</select>`:'')
+          +(accts.length>1?`<select onchange="_jkAcct=this.value;renderJack();" title="Only this account" style="${_selCss}">
+            <option value="all">All accounts</option>
+            ${accts.map(s=>`<option value="${esc(s)}" ${_jkAcct===s?'selected':''}>${esc(s)} (${items.filter(x=>String(x.acct||'')===s).length})</option>`).join('')}</select>`:'');})()}
+      <select onchange="_jkSort=this.value;renderJack();" title="How the table is ordered"
+        style="padding:8px 11px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:11.5px;font-weight:700;cursor:pointer;">
+        ${[['priority','Sort: type — checks first, oldest within'],
+           ['oldest','Sort: waiting longest first'],
+           ['newest','Sort: newest first'],
+           ['money','Sort: biggest money first'],
+           ['claim','Sort: closest to the claim deadline'],
+           ['supplier','Sort: supplier A–Z']]
+          .map(([k,l])=>`<option value="${k}" ${_jkSort===k?'selected':''}>${l}</option>`).join('')}
+      </select>
       <div class="admChips">
         ${[['all','All'],['check','Checks'],['dec','Decisions'],['claim','Claims'],['lav','Shortages'],['fix','Qty fixes'],['owed','\u00a3 owed']]
           .filter(([k])=>k==='all'||_jkCounts[k])
@@ -8885,13 +9134,13 @@ function renderJack(){
     <div class="tfuScroll" style="margin:0;">
     <table class="tfu">
       <thead><tr>
-        <th style="width:3%;text-align:center;">#</th>
-        <th style="width:21%;">Product</th>
-        <th style="width:11%;text-align:center;">Supplier / order</th>
-        <th style="width:8%;text-align:center;">From</th>
-        <th style="width:8%;text-align:center;">Money</th>
-        <th style="width:15%;text-align:center;">What's wrong</th>
-        <th style="width:17%;">Latest</th>
+        <th style="width:2%;text-align:center;">#</th>
+        <th style="width:17%;">Product</th>
+        <th style="width:10%;text-align:center;">Supplier / order</th>
+        <th style="width:6%;text-align:center;">From</th>
+        <th style="width:7%;text-align:center;">Money</th>
+        <th style="width:11%;text-align:center;">What's wrong</th>
+        <th style="width:30%;" title="The row's story — what Sarah has done so far, the note she sent, and any promised date. The same log her page shows.">Latest</th>
         <th style="width:17%;text-align:center;">Your move</th>
       </tr></thead>
       <tbody>
@@ -8901,8 +9150,9 @@ function renderJack(){
           <span style="font:800 12px var(--mono);color:var(--text3);">${x+1}</span>
         </td>
         <td>
-          <div class="tfuProd2">${esc(it.prod)}</div>
-          ${it.sku?`<div class="s-sku" onclick="copyVal('${esc1(it.sku)}',this)" style="font-size:11px;margin-top:3px;" title="Click to copy">${esc(it.sku)}</div>`:''}
+          <div class="tfuProd2" title="${esc(it.prod||'')}">${esc(it.prod)}</div>
+          ${it.sku?`<div class="s-sku" onclick="copyVal('${esc1(it.sku)}',this)" style="font-size:10.5px;margin-top:6px;white-space:normal;overflow-wrap:anywhere;display:block;text-align:left;" title="Click to copy">${esc(it.sku)}</div>`:''}
+          ${it.asin?`<div style="margin-top:7px;text-align:left;"><span class="s-asin" onclick="copyVal('${esc1(it.asin)}',this)" style="font-size:10.5px;opacity:.85;">${esc(it.asin)}</span></div>`:''}
         </td>
         <td style="text-align:center;">
           <div class="tfuSup" style="font-size:11.5px;">${esc(it.sup||'—')}</div>
@@ -8921,10 +9171,16 @@ function renderJack(){
           <span style="font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:2px 8px;border-radius:9px;color:${it.type[1]};background:${it.type[1]}1a;border:1px solid ${it.type[1]}50;white-space:nowrap;" title="${esc(it.type[2])}">${it.type[0]}</span>
           <div style="font-size:10.5px;font-weight:700;color:var(--text);margin-top:4px;white-space:normal;line-height:1.35;">${it.why}</div>
         </td>
-        <td>
+        <td style="vertical-align:middle;">
           ${it.note?`<div class="tfuRaiseNote" title="What was written when it was raised or sent">&ldquo;${esc(it.note)}&rdquo;</div>`:''}
           ${it.fix?`<div class="tfuRaiseNote" style="color:#93c5fd;border-left-color:#60a5fa;">She suggests: ${esc(it.fix)}</div>`:''}
-          ${(!it.note&&!it.fix)?`<div style="font-size:10.5px;color:var(--text3);font-weight:600;">Nothing written yet</div>`:''}
+          ${it.expDate?(()=>{const aw=Math.round((new Date(it.expDate)-new Date())/864e5);const ds=new Date(it.expDate).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+            return `<div class="stExp" style="color:${aw<0?'#f87171':'#4ade80'};">&#128197; expected ${ds}${aw<0?` — slipped ${Math.abs(aw)}d ago`:aw===0?' — today':` — in ${aw}d`}</div>`;})():''}
+          ${(it.clog&&it.clog.length)?it.clog.slice(-3).reverse().map(L=>`<div class="stLog"><span class="stLogWhen">${esc(_logWhen(L.at))}</span>${L.by?` · <b>${esc(L.by)}</b>`:''} — ${esc(L.what||'')}</div>`).join('')+(it.clog.length>3?`<div class="stLog stLogMore">+ ${it.clog.length-3} earlier</div>`:''):''}
+          ${it.kind==='claim'?`<div class="stExp" style="color:var(--text2);">${it.raisedDays!=null?`gated/raised ${it.raisedDays}d ago`:''}${it.units?` · ${fmt(it.units)} unit${it.units===1?'':'s'}`:''}${it.perUnit?` · ${fmtGBP2(it.perUnit)}/unit`:''}${it.acct?` · ${esc(it.acct)}`:''}</div>`:''}
+          ${(it.claimLog&&it.claimLog.length)?it.claimLog.map(L=>`<div class="stLog"><span class="stLogWhen">${esc(String(L.t||'').slice(0,17))}</span> — ${esc(L.msg||'')}</div>`).join(''):''}
+          ${it.na?`<div class="stNext">&#10132; ${esc(it.na)}</div>`:''}
+          ${(!it.note&&!it.fix&&!(it.clog&&it.clog.length)&&!(it.claimLog&&it.claimLog.length)&&!it.expDate&&it.kind!=='claim')?`<div style="font-size:10.5px;color:var(--text3);font-weight:600;">Nothing written yet</div>`:''}
         </td>
         <td style="text-align:center;">
           <div class="csActs">${it.acts}</div>
@@ -8935,8 +9191,7 @@ function renderJack(){
     </div>
     ${!shown.length?`<div style="text-align:center;padding:26px;color:var(--text3);font-weight:700;font-size:12.5px;">Nothing matches — clear the search or press All.</div>`:''}`
     :`<div class="jkEmpty"><b>All clear</b><span>When Sarah sends something over it lands here.</span></div>`}
-    <div class="jkOld">The old Issues page is still here for now —
-      <button onclick="goPage('claims',document.querySelector('.sb-item.on'))">open the old Issues view</button>.</div>`;
+    `;/* Issues page killed — Jack, 30 Aug: "issues are split into Sarah Admin + Jack Admin. Remove it." */
   paintJackBadge();
 }
 /* Answering is a real reply, not a status flip — he types what he found and it
@@ -8957,7 +9212,12 @@ function jackAnswerAsk(rid){
     <div class="srtCfmOpen"><b>${esc(q.by||'Sarah')} asked</b>
       <ul><li>${esc(q.ask||'Check this order')}</li></ul>
       ${q.note?`<span>${esc(q.note)}</span>`:''}</div>
-    <div class="srtCfmLab">Your answer</div>
+    <div class="srtCfmLab">Still coming? Answer with the date — it parks the order and comes back by itself if it slips</div>
+    <div style="display:flex;gap:8px;align-items:center;margin:2px 0 12px;">
+      <input type="date" id="askDate" min="2024-01-01" max="2030-12-31" style="flex:0 0 150px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12.5px;">
+      <button class="csAct go" style="margin:0;" onclick="askStillComing()">Record the date</button>
+    </div>
+    <div class="srtCfmLab">Or answer in words</div>
     <textarea id="askNote" class="srtNote" rows="3" oninput="jackAnsCheck()"
       placeholder="e.g. Amazon shows it delivered on 12 July, signed for — book it in"></textarea>
     <div class="srtCfmKeep"><b>What happens</b><ul>
@@ -8971,6 +9231,11 @@ function jackAnswerAsk(rid){
   el.style.display='flex';
   jackAnsCheck();
   setTimeout(()=>{const t=document.getElementById('askNote');if(t)t.focus();},50);
+}
+function askStillComing(){
+  const v=(document.getElementById('askDate')||{}).value;
+  if(!v||!saneDate(v)){toast('Pick the date first','er');return;}
+  const rid=_askRid;askShut();jackStillComing(rid,v);
 }
 function jackAnsCheck(){
   const t=document.getElementById('askNote'),b=document.getElementById('jkAnsGo');
@@ -9064,6 +9329,105 @@ async function askSend(){
 }
 /* Jack answering. Either he records what he found and it goes back to her with
    the answer attached, or he hands it straight back untouched. */
+/* Jack, 30 Aug: "if it's not arrived it might still be arriving — don't jump
+   too quickly to refund." NO forks on the row: the account often shows a new
+   delivery date, and that date parks the order (off both lists, date on the
+   Prep Sheet, straight back the moment it slips). Only "nothing coming" starts
+   the chase-or-claim road. */
+/* Jack, 30 Aug: "let her click OK before it clears so it doesn't go mid-work."
+   Filing is HER action; the 48-working-hour clock is only the tidy-up backstop.
+   Nothing is deleted — the row, its case and its history all stay. */
+async function fileAway(rid){
+  const r=_rowById(rid);if(!r)return;
+  if(r.resolution&&r.resolution.state==='approved')r.resolution.filed=true;
+  else{const c=_caseOf(r);if(c)c.filed=true;}
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){toast('Didn\'t save — nothing was recorded. Check the connection and try again.','er');return;}
+  logAudit('Filed away',`${r.sku||r.asin||''} — cleared from Recently actioned by ${_who()}`);
+  toast('Filed away — nothing deleted, History keeps the lot','ok');
+  renderAdmin();
+}
+/* Jack's yes, 30 Aug: the chase email writes itself — order, what's missing,
+   last contact, what we want. One copy, one paste. */
+function copyChaseMsg(rid,btn){
+  const r=_rowById(rid);if(!r)return;
+  const c=_caseOf(r);
+  const units=r.exp||r.ship||0,got=parseInt(r.rcvd)||0;
+  const short=got>0?`${units-got} of ${units} units are missing (we received ${got})`:`nothing has arrived — ${units} unit${units===1?'':'s'} ordered`;
+  const lastChase=c?(c.log||[]).slice().reverse().find(x=>/chas|contact/i.test(x.what||'')):null;
+  const msg='Hello,\n\n'
+    +`We are chasing order ${r.oid||'(no order id)'} placed on ${r.date||'—'} — ${r.prod||r.sku||''}. `
+    +short.charAt(0).toUpperCase()+short.slice(1)+'.'
+    +(lastChase?`\nWe last contacted you on ${_logWhen(lastChase.at)} and have not heard back.`:'')
+    +'\n\nPlease confirm the delivery status and an expected date, or issue a refund for the outstanding units.'
+    +'\n\nThank you.';
+  copyVal(msg,btn);
+}
+/* Jack's yes, 30 Aug: one press flags every overdue chase in its own case
+   log — the tell-Sarah moment, on the record where she works. */
+async function jackNudgeQuiet(){
+  const hit=[];
+  rows.forEach(r=>{
+    if(r.archived)return;
+    const c=_caseOf(r);if(!c||c.path!=='never-arrived')return;
+    if(!['contact','waiting','check-refund'].includes(c.step))return;
+    const od=_caseDue(c);if(od===null||od<=0)return;
+    if((c.log||[]).slice(-1)[0]&&/Flagged from Jack/.test((c.log||[]).slice(-1)[0].what||''))return; /* no double-flag spam */
+    c.log=(c.log||[]).concat([{at:new Date().toISOString(),by:_who(),what:'\u26a1 Flagged from Jack\u2019s page — chase it today'}]);
+    r._dirty=true;hit.push(r);
+  });
+  if(!hit.length){toast('Nothing is overdue a chase right now','ok');return;}
+  for(const r of hit){try{await _mustSave(r);}catch(e){}}
+  logAudit('Nudged Sarah',hit.length+' overdue chase'+(hit.length===1?'':'s')+' flagged');
+  toast('&#9889; Flagged '+hit.length+' — it is on her rows now','ok');
+  renderJack();try{renderAdmin();}catch(e){}
+}
+async function unparkDate(rid){
+  const r=_rowById(rid);if(!r)return;
+  const c=_caseOf(r);if(!c)return;
+  r.expectedDelivery='';
+  c.step=c.prevStep||'check-refund';c.due='';c.parkedAt='';
+  c.log=(c.log||[]).concat([{at:new Date().toISOString(),by:_who(),what:'Date cleared — brought back to work'}]);
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){toast('Didn\'t save — nothing was recorded. Check the connection and try again.','er');return;}
+  logAudit('Date cleared',`${r.sku||r.asin||''} — un-parked`);
+  toast('Back on the list — the date is cleared','ok');
+  renderAdmin();try{renderPrep();}catch(e){}
+}
+function jackNoSplit(rid,btn){
+  const td=btn&&btn.closest('td');if(!td)return;
+  td.innerHTML=`<div style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#fbbf24;margin-bottom:5px;">NOT ARRIVED — IS IT STILL COMING?</div>
+    <input type="date" id="jkD_${rid}" min="2024-01-01" max="2030-12-31" style="width:100%;box-sizing:border-box;margin:0 0 5px;padding:7px 9px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;">
+    <button class="csAct go" onclick="jackStillComing('${rid}')" title="The account shows a delivery date — park it until then">Still coming — record the date</button>
+    <button class="csAct warn" onclick="jackAnswered('${rid}','NOT arrived — nothing delivered on the account. Chase or claim.')" title="No delivery showing and none coming — Sarah starts the refund road">Nothing coming — chase or claim</button>
+    <button class="csAct plain" onclick="renderJack()">Back</button>`;
+}
+async function jackStillComing(rid,vGiven){
+  const el=document.getElementById('jkD_'+rid);const v=vGiven||(el&&el.value);
+  if(!v||!saneDate(v)){toast('Pick the date the account shows','er');return;}
+  const r=_rowById(rid);if(!r)return;
+  const nice=new Date(v).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+  const asked=r.resolution||{};
+  /* not arrived YET is not never-arrived — the date carries the state */
+  r.delivered='';
+  r.expectedDelivery=v;r.chaseSnoozeUntil='';
+  if(r.transitAction==='Late — Needs Chasing')r.transitAction='';
+  const chase=asked.chase||{path:'never-arrived',step:'',due:'',log:[]};
+  if(chase.step!=='due-date')chase.prevStep=chase.step||'check-refund';
+  chase.parkedAt=new Date().toISOString();
+  chase.step='due-date';chase.due=v;
+  chase.log=(chase.log||[]).concat([{at:new Date().toISOString(),by:_who(),
+    what:'Checked the account — still coming, delivery expected '+nice}]);
+  /* state 'working': hers again but parked — no sent-back banner, no queue row.
+     The date on the Prep Sheet and the case log ARE the message to Sarah; the
+     overdue machinery returns it to her queue by itself if the date slips. */
+  r.resolution=Object.assign({},asked,{state:'working',chase});
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){toast('Didn\'t save — nothing was recorded. Check the connection and try again.','er');return;}
+  logAudit('Jack answered a check',`${r.sku||r.asin||''} — still coming, expected ${nice}`);
+  toast('✓ Parked until '+nice+' — on the Prep Sheet, back with Sarah the moment it slips');
+  renderJack();try{renderAdmin();renderPrep();renderDashboard();paintJackBadge();}catch(e){}
+}
 async function jackAnswered(rid,answer){
   const r=_rowById(rid);if(!r||!r.resolution)return;
   const asked=r.resolution;
@@ -9126,6 +9490,7 @@ function sarahTodo(){
    cancelled and the stock went out under a different listing. Recording it on
    the row means the answer is there next time instead of being re-worked out. */
 async function setTriage(rid,field,val){
+  markSeen(rid);
   const r=_rowById(rid);if(!r)return;
   r[field]=val;r._dirty=true;
   /* Answering "no" IS the diagnosis — the case opens itself on the next step
@@ -9182,7 +9547,11 @@ const CASE_PATHS={
         why:'Sarah has no access to the Amazon accounts, so there is nothing for her to look up. It goes straight to Jack and comes back with his answer.',
         amazonOnly:true,
         acts:[
-          {k:'_jack',t:'Send to Jack',tone:'go',log:'Sent to Jack — Amazon account check'}]},
+          {k:'_jack',t:'Send to Jack',tone:'go',log:'Sent to Jack — Amazon account check'},
+          /* Jack, 30 Aug: "sometimes VA will message me rather than sending to
+             Jack — they know the answer anyway as I've already told them, so
+             let them put the date in, or send to Jack — either or." */
+          {k:'due-date',t:'Jack already told me — set the date',tone:'plain',log:'Date from Jack directly — recording it',due:7}]},
       /* Where an Amazon row lands once he has answered. She cannot open a case
          on his account either, so her last job is to close it as a refund
          claim — which the existing rules route back to him to action. */
@@ -9193,19 +9562,30 @@ const CASE_PATHS={
           {k:'_close',t:'Close it — refund needed',tone:'good',log:'Confirmed never arrived — passed over for the refund claim',close:'no-refund'},
           {k:'_jack',t:'Ask him something else',tone:'plain',log:'Back to Jack'}]},
       'check-refund':{
-        now:'Check whether they have already refunded it',
-        why:'Suppliers often refund automatically without telling us. Always look before opening a case — it saves the whole conversation.',
+        now:'Is it still on its way? Then check for a refund',
+        why:'Jack, 30 Aug: "if it\'s not arrived it might still be arriving — don\'t jump too quickly to refund." A promised date parks the row; only a dead order goes down the refund road.',
         acts:[
+          {k:'due-date',t:'It is still coming — set the date',tone:'go',log:'Still on its way — recording the delivery date',due:7},
           {k:'_close',t:'Already refunded',tone:'good',log:'Checked — it had already been refunded automatically',close:'refund-done'},
           {k:'contact',t:'Not refunded',tone:'plain',log:'Checked — no refund had been issued'}]},
+      /* Parked on a promised date — nobody's job until the date slips. The date
+         input writes the row's real expectedDelivery (caseDate), so the Prep
+         Sheet shows it and the overdue machinery brings it back by itself. */
+      'due-date':{
+        now:'Expected — nothing to do until the date',
+        why:'The account or the supplier has given a delivery date. It sits on the Prep Sheet row, this stops counting as late, and it comes straight back here the moment the date passes.',
+        date:{label:'Expected date',days:7,log:'Delivery date recorded'},
+        acts:[
+          {k:'_close',t:'It has arrived',tone:'good',log:'Arrived as promised',close:'arrived-ok'},
+          {k:'check-refund',t:'Date passed — still nothing',tone:'warn',log:'The promised date slipped — nothing delivered'}]},
       'contact':{
         now:'Open a case or email the supplier',
         why:'Nothing moves until they have actually been asked.',
         acts:[
-          {k:'waiting',t:'I have contacted them',tone:'go',log:'Contacted the supplier',due:3}]},
+          {k:'waiting',t:'I have contacted them',tone:'go',log:'Contacted the supplier',dueW:2}]},
       'waiting':{
         now:'Waiting for the supplier to come back',
-        why:'They normally reply inside 48 hours. Three days is the most it should sit before you chase.',
+        why:'Chase every 2 working days until they answer — a quiet thread never pays out. It goes red here the moment a chase is overdue.',
         acts:[
           /* Jack, 16 Aug: "If the supplier says they're going to send the
              refund, that's SORTED from Sarah's action point of view. She
@@ -9214,7 +9594,7 @@ const CASE_PATHS={
              what stops a promise quietly never landing. */
           {k:'_close',t:'They are refunding it',tone:'good',log:'Supplier confirmed a refund is coming',close:'refund-done'},
           {k:'replacement',t:'They are replacing it',tone:'go',log:'Supplier is sending a replacement',due:7},
-          {k:'waiting',t:'No reply — chase again',tone:'warn',log:'Chased again — still no reply',due:3}]},
+          {k:'waiting',t:'No reply — chase again',tone:'warn',log:'Chased again — still no reply',dueW:2}]},
       'replacement':{
         now:'Replacement promised — when is it due?',
         why:'A replacement normally lands inside seven days. Putting the date in tells the Prep Sheet to expect the stock, and brings this row back the moment the date passes.',
@@ -9256,13 +9636,35 @@ function _caseStep(c){
   return p?(p.steps[c.step]||null):null;
 }
 /* How overdue the next look is, in days. Negative = still has time. */
+/* n WORKING days from now — weekends don't count as chasing time */
+function _wdays(n){const d=new Date();let a=0;while(a<n){d.setDate(d.getDate()+1);const w=d.getDay();if(w!==0&&w!==6)a++;}return d.toISOString().split('T')[0];}
+/* elapsed WORKING-hours ms since t0 — Sat/Sun contribute nothing */
+function _workMsSince(t0){
+  const a=new Date(t0),b=new Date();
+  if(isNaN(a)||a>=b)return 0;
+  let ms=0;const d=new Date(a);d.setHours(0,0,0,0);
+  while(d<b){
+    const w=d.getDay();
+    if(w!==0&&w!==6){
+      const s=Math.max(d.getTime(),a.getTime());
+      const e=Math.min(d.getTime()+864e5,b.getTime());
+      if(e>s)ms+=e-s;
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return ms;
+}
 function _caseDue(c){
   if(!c||!c.due)return null;
   return Math.floor((Date.now()-new Date(c.due).getTime())/864e5);
 }
 async function caseGo(rid,actKey,stepKey){
   const r=_rowById(rid);if(!r){toast('Row not found','er');return;}
+  markSeen(rid);
   const c=_caseOf(r);if(!c)return;
+  /* two laptops: if this row moved on since the page painted, a stale click
+     must not act on the OLD step's buttons */
+  if(stepKey&&c.step&&stepKey!==c.step){toast('This row has moved on — refreshed it for you','er');renderAdmin();return;}
   const def=CASE_PATHS[c.path];const step=def&&def.steps[stepKey||c.step];if(!step)return;
   const act=(step.acts||[]).find(a=>a.k===actKey);if(!act)return;
   /* The hand-off writes its own line, carrying the reason he was asked — this
@@ -9286,8 +9688,9 @@ async function caseGo(rid,actKey,stepKey){
     renderAdmin();
     return openSorted(rid,act.close);
   }
+  if(act.k==='due-date'&&c.step!=='due-date'){c.prevStep=c.step;c.parkedAt=new Date().toISOString();}
   c.step=act.k;
-  c.due=act.due?new Date(Date.now()+act.due*864e5).toISOString().split('T')[0]:'';
+  c.due=act.due?new Date(Date.now()+act.due*864e5).toISOString().split('T')[0]:(act.dueW?_wdays(act.dueW):'');
   _caseSet(r,c);
   try{await _mustSave(r);}catch(e){toast('Didn\'t save — nothing was recorded. Check the connection and try again.','er');return;}
   logAudit('Case step',`${r.sku||r.asin||''} — ${act.log}`);
@@ -9300,7 +9703,15 @@ async function caseGo(rid,actKey,stepKey){
    each other" is one field, not two that can disagree. When it passes, the
    normal overdue machinery brings the row back on its own. */
 async function caseDate(rid,val){
-  const r=_rowById(rid);const c=_caseOf(r);if(!c||!val)return;
+  const r=_rowById(rid);const c=_caseOf(r);if(!c)return;
+  if(!val){toast('Pick the date first, then Confirm','er');return;}
+  if(!saneDate(val))return;               /* half-typed year — let them finish */
+  if(val===r.expectedDelivery&&c.due===val)return;  /* no-op — no log spam */
+  markSeen(rid);
+  if(c.step==='due-date'&&!c.parkedAt)c.parkedAt=new Date().toISOString();
+  /* same rule as setDueDate: a typed date clears OUR auto-flag — a chase
+     status a person picked still holds the row on purpose */
+  if(r.transitAction==='Late — Needs Chasing')r.transitAction='';
   const step=_caseStep(c);
   r.expectedDelivery=val;
   r.chaseSnoozeUntil='';
@@ -9671,14 +10082,23 @@ function caseStanding(c){
    One field, so the whole app agrees — and it comes back louder if it slips. */
 async function setDueDate(rid,val){
   const r=_rowById(rid);if(!r)return;
+  if(val&&!saneDate(val))return;         /* half-typed year — let them finish */
   const was=r.expectedDelivery||'';
   r.expectedDelivery=val||'';
   r.chaseSnoozeUntil='';                 // the date is the snooze now
+  /* The app auto-flags stuck rows 'Late — Needs Chasing', and that flag counts
+     as "being chased" — which held rows on Sarah's queue even after she typed
+     the new date (Jack: "it should go off her sheet — it's not late, it has an
+     expected date now"). Clear OUR auto-flag; a chase status a person picked,
+     or a live supplier case, still holds the row on purpose. The flag comes
+     straight back the moment the date slips. */
+  if(val&&r.transitAction==='Late — Needs Chasing')r.transitAction='';
   r._dirty=true;
   try{await _mustSave(r);}catch(e){toast('Didn\'t save — nothing was recorded. Check the connection and try again.','er');return;}
   logAudit('Due date set',`${r.sku||r.asin||''} — ${was||'none'} → ${val||'cleared'}`);
   toast(val?('Off the list until '+new Date(val).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' — back if it slips'):'Date cleared','ok');
   renderAdmin();
+  try{renderPrep();}catch(e){}
   try{renderDashboard();}catch(e){}
 }
 function bumpDue(rid,days){
@@ -9937,7 +10357,7 @@ function paintLavIssue(){
           ${btn('Still chasing','lavIssueOutcome(\'chasing\')','#fbbf24')}
           ${btn('Send to Jack','lavIssueOutcome(\'jack\')','#60a5fa')}
         </div>
-        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;line-height:1.5;">Refunded or a replacement agreed closes it here and stops it being chased. It stays undoable for 24 hours.</div>`)}
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;line-height:1.5;">Refunded or a replacement agreed closes it here and stops it being chased. It stays undoable for 48 working hours.</div>`)}
       ${log.length?`<div style="margin-top:12px;">
         <div style="font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--text3);text-transform:uppercase;margin-bottom:6px;">Progress log</div>
         ${log.slice().reverse().map(e=>`<div style="font-size:11.5px;color:var(--text2);padding:5px 0;border-bottom:1px solid var(--border);"><b style="color:var(--text);">${esc(e.by||'')}</b> <span style="color:var(--text3);">${esc((e.at||'').slice(0,10))}</span> — ${esc(e.msg||'')}</div>`).join('')}
@@ -9990,7 +10410,7 @@ function lavIssueSave(){
    old row used. Escape closes. */
 let _workRid=null;
 function openWork(rid){
-  _workRid=rid;
+  _workRid=rid;markSeen(rid);
   let el=document.getElementById('workModal');
   if(!el){el=document.createElement('div');el.id='workModal';el.className='overlay';
     el.style.zIndex='120';document.body.appendChild(el);
@@ -10054,7 +10474,7 @@ function paintWork(){
         <button onclick="${_workAnd(`bumpDue('${_workRid}',7)`)}" class="wq">1 wk</button>
         <button onclick="${_workAnd(`bumpDue('${_workRid}',14)`)}" class="wq">2 wks</button>
         <button onclick="${_workAnd(`bumpDue('${_workRid}',30)`)}" class="wq">1 mth</button>
-        <input type="date" value="${esc(r.expectedDelivery||'')}" onchange="${_workAnd(`setDueDate('${_workRid}',this.value)`)}"
+        <input type="date" value="${esc(r.expectedDelivery||'')}" min="2024-01-01" max="2030-12-31" onchange="${_workAnd(`setDueDate('${_workRid}',this.value)`)}"
           style="padding:6px 9px;background:var(--bg);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-size:11px;">
       </div>
     </div>`;
@@ -10383,7 +10803,7 @@ function nowQueue(){
     const r=rows.find(x=>(x.uuid||x.id)===i.rid); if(!r)return;
     /* sorted-within-24h rides at the very bottom, grey, undoable */
     if(i.sortedGrace){push({band:'sorted',id:i.rid,r,title:i.prod||i.sku||'(no name)',
-      line:'Sorted '+(Math.round((Date.now()-i.sortedAt)/36e5)||1)+'h ago — undo is one press away for 24 hours',
+      line:'Sorted '+(Math.round((Date.now()-i.sortedAt)/36e5)||1)+'h ago — undo is one press away for 48 working hours',
       age:-(Date.now()-i.sortedAt)});return;}
     /* waiting on Jack stays exactly where it was, blue and locked */
     if(i.waiting){push({band:i.origBand||'chase',id:i.rid,r,waiting:true,
@@ -10677,7 +11097,7 @@ function renderAdmin(){
   const _counts={all:items.length};
   items.forEach(i=>{_counts[i.typeL]=(_counts[i.typeL]||0)+1;});
   _counts.WITHJACK=items.filter(i=>i.waiting).length;
-  if(_aq)items=items.filter(i=>[i.prod,i.sku,i.asin,i.sup,i.oid,i.acct,i.reason,i.notes,i.srcNote,i.src]
+  if(_aq)items=items.filter(i=>[i.prod,i.sku,i.asin,i.sup,i.oid,i.acct,i.reason,i.notes,i.srcNote,i.src,i.packNote,i.vaNote]
     .filter(Boolean).join(' ').toLowerCase().includes(_aq));
   if(_admKind==='WITHJACK')items=items.filter(i=>i.waiting);
   else if(_admKind!=='all')items=items.filter(i=>i.typeL===_admKind);
@@ -10703,22 +11123,26 @@ function renderAdmin(){
     ${(()=>{
       /* Title first — the page used to open on a banner, so you could not tell
          at a glance whose page it was or how much was waiting. */
-      const s3=(k,v,col)=>`<div class="aqStat"><b style="color:${col||'var(--text)'};">${v}</b><span>${k}</span></div>`;
-      const toChase=items.filter(x=>!x.waiting).length;
+      const toChase=items.filter(x=>!x.waiting&&!x.sortedGrace&&!x.parkedRow).length;
       const withJack=(typeof jackTodo==='function'?jackTodo().n:0);
-      return`<div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
-      <div>
-        <div style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:.01em;">Sarah's Admin</div>
-        <div style="font-size:11.5px;color:var(--text2);margin-top:2px;font-weight:600;">Work the queue top to bottom — it is already in order.</div>
+      const unseenN=items.filter(x=>!ROW_SEEN[String(x.rid)]&&!x.waiting&&x.kind!=='job'&&!x.sortedGrace&&!x.parkedRow).length;
+      const doneN=items.filter(x=>x.sortedGrace||x.parkedRow).length;
+      const kc=(v,l,cls)=>`<div class="jkKpi ${cls||''}" style="flex:1;"><b>${v}</b><span>${l}</span></div>`;
+      return`<div class="jkHero" style="padding:12px 16px 14px;margin-bottom:10px;flex-direction:column;align-items:stretch;gap:10px;">
+      <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
+        <h2 style="margin:0;">Sarah's Admin</h2>
+        <p style="margin:0;">${toChase?`Work the queue top to bottom — it is already in order.`:'Nothing to chase. All quiet.'}</p>
       </div>
-      <div class="aqStats">
-        ${s3('to chase',toChase,toChase?'var(--accent)':'#4ade80')}
-        ${cUrgent?s3('urgent',cUrgent,'#ef4444'):''}
-        ${s3('tied up',fmtGBP2(lateValue),'#fbbf24')}
-        ${withJack?s3('with Jack',withJack,'#60a5fa'):''}
+      <div class="jkKpis" style="width:100%;display:flex;gap:9px;">
+        ${kc(fmt(toChase),'to chase',toChase?'warn':'ok')}
+        ${cUrgent?kc(fmt(cUrgent),'urgent','bad'):''}
+        ${kc(fmt(unseenN),'not opened yet',unseenN>8?'bad':unseenN?'warn':'ok')}
+        ${kc(fmtGBP2(lateValue),'tied up','warn')}
+        ${withJack?kc(fmt(withJack),'with Jack','hot'):''}
+        ${doneN?kc(fmt(doneN),'recently actioned',''):''}
       </div>
     </div>`;})()}
-    ${checkInStrip()}
+    ${''/* Checked ritual removed for the 31 Aug trial — Jack, 30 Aug. checkInStrip() kept in code for later. */}
 `;
 
   if(allClear){
@@ -10789,17 +11213,18 @@ function renderAdmin(){
               const on=_tfuSort===k;
               return`<th style="width:${w};${extra||''}" ${k?`class="tfuSortable${on?' on':''}" onclick="tfuSort('${k}')" title="${tip||('Sort by '+label.toLowerCase())}"`:(tip?`title="${tip}"`:'')}>${label}${
                 on?`<span class="tfuArrow">${_tfuDir===1?'▲':'▼'}</span>`:''}</th>`;};
-            return H('priority','#','3%','text-align:center;','Priority order — 1 is the most important thing on the page')
-              +H('product','Product','25%')
-              +H('supplier','Supplier / order','12%')
-              +H('units','Units','7%','text-align:center;')
-              +H('kind','What\'s wrong','16%','text-align:center;','The issue type and what put this row on the page, worked out by the app from the numbers — plus the note written by whoever raised it, and the refund-window clock. Click to sort by type.')
+            return H('priority','#','2%','text-align:center;','Priority order — 1 is the most important thing on the page')
+              +H('product','Product','19%')
+              +H('supplier','Supplier / order','10%')
+              +H('units','Units','6%','text-align:center;')
+              +H('kind','What\'s wrong','11%','text-align:center;','The issue type and what put this row on the page, worked out by the app from the numbers — plus the note written by whoever raised it, and the refund-window clock. Click to sort by type.')
               +H('','Triage','15%','text-align:center;','Work the first questions and steps right here on the row — the popup is only for detail.')
-              +H('','Where it stands','13%','','The current state of the issue: the last thing anyone recorded, who did it, when, and what is being waited on. Written automatically as the row is worked.')
+              +H('','Where it stands','28%','','The current state of the issue: the last thing anyone recorded, who did it, when, and what is being waited on. Written automatically as the row is worked.')
               +H('','Actions','9%','text-align:center;');})()}
         </tr></thead>
         <tbody>
-        ${items.map((i,n)=>{
+        ${(()=>{
+        const _rowHtml=(i,n)=>{
           const jumpTerm=(i.oid||i.sku||'').replace(/'/g,"\\'");
           const sentBack=i.sentBack, waiting=i.waiting;
           const isAmz=i.kind==='transit'&&typeof _jackSupplier==='function'&&_jackSupplier(i.sup);
@@ -10807,18 +11232,15 @@ function renderAdmin(){
              them actually mean." Every coloured edge explains itself. */
           const edgeCol=waiting?'#94a3b8':i.col;
           const edgeTip=waiting?'Light grey — with Jack, waiting for his answer':({'#ef4444':'Red — late or urgent, money at risk','#fb923c':'Orange — delayed or being chased','#fbbf24':'Amber — needs following up','#38bdf8':'Blue — supplier shortage or damage','#94a3b8':'Grey — job from Jack or already sorted'}[i.col]||'');
-          return`<tr class="${(waiting||i.sortedGrace)?'tfuWaiting':''}"${sentBack?' style="background:rgba(239,68,68,.05);"':''}>
+          return`<tr class="${(waiting||i.sortedGrace||i.parkedRow)?'tfuWaiting':''}"${sentBack?' style="background:rgba(239,68,68,.05);"':''}>
             <td class="tfuNumCell" style="text-align:center;padding-top:13px;">
               <span class="tfuStripe" style="background:${edgeCol};" title="${edgeTip}. ${esc(i.reason||'')}"></span>
               <span style="font:800 12px var(--mono);color:var(--text3);" title="${edgeTip}. ${esc(i.reason||'')}">${n+1}</span>
             </td>
             <td>
-              <div class="tfuProd2">${esc(i.prod||i.sku||'')}</div>
-              <div style="display:flex;gap:7px;margin-top:5px;align-items:center;flex-wrap:wrap;min-width:0;">
-                ${i.asin?`<span class="s-asin" onclick="copyVal('${i.asin}',this)" style="font-size:11px;flex:0 0 auto;">${i.asin}</span>`:''}
-
-              </div>
-              ${i.sku?`<div class="s-sku" onclick="copyVal('${(i.sku||'').replace(/'/g,"\\'")}',this)" style="font-size:12px;font-weight:700;letter-spacing:.04em;-webkit-font-smoothing:antialiased;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(i.sku||'').replace(/"/g,'&quot;')}">${i.sku}</div>`:''}
+              <div class="tfuProd2" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</div>
+              ${i.sku?`<div class="s-sku" onclick="copyVal('${(i.sku||'').replace(/'/g,"\\'")}',this)" style="font-size:10.5px;font-weight:700;letter-spacing:.03em;white-space:normal;overflow-wrap:anywhere;display:block;text-align:left;margin-top:6px;" title="Click to copy">${i.sku}</div>`:''}
+              ${i.asin?`<div style="margin-top:7px;text-align:left;"><span class="s-asin" onclick="copyVal('${i.asin}',this)" style="font-size:10.5px;opacity:.85;">${i.asin}</span></div>`:''}
               ${sentBack?`<div class="tfuBack">Sent back by ${esc(sentBack.rejectedBy||'Jack')}${sentBack.rejectNote?' — '+esc(sentBack.rejectNote):''}</div>`:''}
               ${waiting?`<div class="tfuWait">${waiting.state==='asked'?'Asked Jack to check':'Sent to Jack — awaiting decision'}${waiting.at?` · ${noteAgo(waiting.at)}`:''}<span>${esc(waiting.state==='asked'?(waiting.ask||'Amazon order check'):_resText(waiting.what))}</span></div>`:''}
               ${i.draft?`<div class="tfuDraftChip" title="${esc((i.draft.by||'Someone')+' started closing this off')}">Part done — ${esc(i.draft.by||'someone')} saved it ${esc(noteAgo(i.draft.at))}<span>${esc(_resText(i.draft.what))}</span></div>`:''}
@@ -10845,7 +11267,7 @@ function renderAdmin(){
               ${(()=>{const s=i.src||(i.source==='Sheet'?'Purchase Sheet':(i.kind==='transit'?'Prep Hub':''));
                 return s?`<div class="tfuSrcLine" title="Where this issue came from">${esc(s)}</div>`:'';})()}
             </td>
-            <td style="text-align:center;">
+            <td style="text-align:center;vertical-align:middle;">
               ${/* Jack: "If NOTHING has arrived, why is it showing 0 UNITS?" —
                    claims and jobs were pushed with units:0 and then given the
                    transit row's "nothing arrived" line. Each type now says what
@@ -10862,14 +11284,16 @@ function renderAdmin(){
                    </div>`}
               ${i.value?`<div class="tfuVal" title="Money tied up in this line">${fmtGBP2(i.value)}</div>`:''}
             </td>
-            <td style="text-align:center;">
+            <td class="tfuWrong" style="text-align:center;vertical-align:middle;">
               ${(()=>{const K=_typeOf(i);
                 return `<span style="font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:3px 8px;border-radius:9px;color:${K[1]};background:${K[1]}1a;border:1px solid ${K[1]}50;white-space:nowrap;cursor:default;margin-right:5px;" title="${K[2]}">${K[0]}</span>`;})()}
-              <span class="tfuWhy" style="color:${i.col};background:${i.col}1f;border:1px solid ${i.col}55;cursor:default;" title="Why this row is on the page — worked out by the app from the numbers">${esc(i.reason)}</span>
+              ${i.kind==='claim'||i.kind==='job'?'':`<span class="tfuWhy" style="color:${i.col};background:${i.col}1f;border:1px solid ${i.col}55;cursor:default;" title="Why this row is on the page — worked out by the app from the numbers">${esc(i.reason)}</span>`}
               ${/* The note typed by whoever RAISED it — the context Jack wants
                     Sarah to see without digging. Different from the chase notes:
                     this is why it exists, those are what has happened since. */''}
               ${i.srcNote?`<div class="tfuRaiseNote" title="Written when the issue was raised">&ldquo;${esc(i.srcNote)}&rdquo;</div>`:''}
+              ${i.packNote?`<div class="tfuRaiseNote" style="border-left-color:#fb923c;color:#fdba74;" title="The packing note from the Prep Sheet row">&#128230; ${esc(i.packNote)}</div>`:''}
+              ${i.vaNote?`<div class="tfuRaiseNote" style="border-left-color:#60a5fa;color:#93c5fd;" title="The VA note from the Prep Sheet row">VA: ${esc(i.vaNote)}</div>`:''}
               ${i.photos?`<button class="csAct go" style="margin-top:5px;padding:3px 10px;" onclick="window.open('${esc(i.photos)}','_blank')" title="Opens the Discord message with the photos">&#128247; View photos</button>`:''}
               ${(()=>{const L=refundLeft(i.date,i);
                 if(L===null)return'';
@@ -10934,7 +11358,8 @@ function renderAdmin(){
                       <button class="csAct plain" onclick="lavQuick('${String(i.lavKey).replace(/'/g,"\\'")}','replied')">They replied</button>
                     </div></div>`;
                 }
-                if(i.sortedGrace)return '<div class="tfuSelf" style="text-align:center;">Closed — grey for 24 hours. Undo is on the right.</div>';
+                if(i.sortedGrace)return '<div class="tfuSelf" style="text-align:center;">Closed — undoable for 48 working hours. Undo is on the right.</div>';
+                if(i.parkedRow)return '<div class="tfuSelf" style="text-align:center;">Parked — expected '+(i.expDate?new Date(i.expDate).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):'')+'. It comes back by itself if the date slips. Undo is on the right.</div>';
                 if(i.kind!=='transit')return '<div class="tfuSelf" style="text-align:center;">Open it to work through this one.</div>';
                 if(waiting)return '<div class="tfuSelf" style="color:#93c5fd;font-weight:700;text-align:center;">Waiting on Jack</div>';
                 /* A live case takes the column over: the verdict is settled, so
@@ -10952,12 +11377,14 @@ function renderAdmin(){
                     <div class="csNowTxt" title="${esc(st.why||'')}">${esc(st.now)}</div>
                     ${st.date?`<div class="csDate">
                       <span class="csDateL">${esc(st.date.label)}</span>
-                      <input type="date" value="${esc(i.expDate||'')}" onchange="caseDate('${i.rid}',this.value)">
-                      ${!set?`<button class="csAct go" style="width:100%;" onclick="caseDate('${i.rid}','${dflt}')">Set ${(st.date&&st.date.days)||7} days from today</button>`:''}
+                      <input type="date" id="cd_${i.rid}" value="${esc(i.expDate||'')}" min="2024-01-01" max="2030-12-31">
+                      <button class="csAct go" style="width:100%;" onclick="caseDate('${i.rid}',(document.getElementById('cd_${i.rid}')||{}).value)" title="Nothing saves until you press this — type the date, check it, confirm">Confirm the date &#10003;</button>
+                      ${!set?`<button class="csAct plain" style="width:100%;" onclick="caseDate('${i.rid}','${dflt}')">Set ${(st.date&&st.date.days)||7} days from today</button>`:''}
                     </div>`:''}
                     ${(!st.date||set)?`<div class="csActs">${(st.acts||[]).map(a=>
                       `<button class="csAct ${a.tone}" onclick="caseGo('${i.rid}','${a.k}','${i.caseC.step}')"
                         title="${esc(a.log)}">${esc(a.t)}</button>`).join('')}</div>`:''}
+                    ${(i.caseC&&['contact','waiting','check-refund'].includes(i.caseC.step))?`<button class="csAct plain" style="width:100%;margin-top:4px;" onclick="copyChaseMsg('${i.rid}',this)" title="Writes the supplier chase for you — order number, what's missing, what we want. Paste it into the email or case.">&#9998; Copy the chase message</button>`:''}
                   </div>`;}
                 }
                 const arrived=i.delivered==='Yes';
@@ -10970,14 +11397,14 @@ function renderAdmin(){
                   </select></div>`;
                 let h=q('Has it arrived?','delivered',i.delivered);
                 if(arrived)h+=q('Wrong SKU?','wrongSku',i.wrongSku);
-                if(arrived&&i.wrongSku==='Yes')h+=`<div class="tfuGuide ok">Nothing lost — press Sorted.</div>`;
+                if(arrived&&i.wrongSku==='Yes')h+=`<button class="csAct good" style="width:100%;margin-top:4px;" onclick="openSorted('${i.rid}','wrong-sku')" title="Nothing is lost — close it off right here">Sorted — nothing lost</button>`;
                 else if(arrived&&i.wrongSku==='No')h+=`<div class="tfuGuide bad">Stock unaccounted for — dig in.</div>`;
-                else if(i.delivered==='No')h+=`<div class="tfuGuide warn">Never turned up — Sorted starts the refund.</div>`;
+                else if(i.delivered==='No')h+=`<button class="csAct warn" style="width:100%;margin-top:4px;" onclick="openSorted('${i.rid}')" title="Starts the refund close-off">Sorted — start the refund</button>`;
                 else if(isAmz)h+=`<div class="tfuGuide">Amazon order — can't tell? Send it to Jack.</div>`;
                 else h+=`<div class="tfuGuide">Check emails, order history, tracking.</div>`;
                 return h;})()}
             </td>
-            <td>
+            <td style="vertical-align:middle;">
               ${(()=>{
                 /* Jack's spec, near-verbatim: "Current status · Last action ·
                    Date of last action · Who owns it · What we're waiting for ·
@@ -10996,6 +11423,9 @@ function renderAdmin(){
                     scol=sd.overdue?'#ef4444':(sd.dueIn!==null?'#60a5fa':'#fbbf24');
                     last=sd.was+(sd.by?' — '+sd.by:'')+(sd.at?' · '+lw(sd.at):'');
                     next=sd.now+(sd.dueIn!==null&&!sd.overdue&&i.caseC.due?` · by ${lw(i.caseC.due)}`:'');
+                    /* a parked date that has slipped must not keep saying
+                       "nothing to do" next to a red CHASE flag */
+                    if(sd.overdue&&i.caseC.step==='due-date')next='The promised date has passed — arrived, or still nothing?';
                   }
                   else if(i.delivered==='Yes'&&i.wrongSku==='Yes'){state='WRONG SKU';scol='#fbbf24';last='Arrived, went out under another SKU';next='Press Sorted — nothing is lost';}
                   else if(i.delivered==='Yes'&&i.wrongSku==='No'){state='STOCK HUNT';scol='#ef4444';last='Arrived — but not a wrong SKU';next='Dig in, then send it to Jack';}
@@ -11004,13 +11434,26 @@ function renderAdmin(){
                   else if(i.expDate){const away=Math.round((new Date(i.expDate)-new Date())/864e5);
                     state=away<0?`WAS DUE ${Math.abs(away)}D AGO`:'DATE PROMISED';scol=away<0?'#f87171':'#4ade80';
                     last='Supplier promised '+lw(i.expDate);next=away<0?'It slipped — chase them':'Nothing until the date';}
-                  else{state='NOT LOOKED AT YET';scol='var(--text3)';next='Answer \u201cHas it arrived?\u201d';}
+                  else if(!ROW_SEEN[String(i.rid)]){
+                    /* the trial starts 31 Aug — pre-trial history must not
+                       count against her (Jack, 30 Aug) */
+                    const _trialD=Math.max(0,Math.floor((Date.now()-new Date('2026-08-31').getTime())/864e5));
+                    const loud=(Math.min(i.days||0,_trialD)>=3)||(i.value>=100)||(i.left!==null&&i.left>=0&&i.left<=7);
+                    state='NEW — NOT OPENED';scol=loud?'#ef4444':'var(--text3)';
+                    last=`Sitting ${i.days||0}d · ${fmtGBP2(i.value||0)} at stake${loud?' — nobody has opened it':''}`;
+                    next='Answer \u201cHas it arrived?\u201d';
+                  }else{
+                    const sn=ROW_SEEN[String(i.rid)];
+                    state='SEEN — NOT ANSWERED';scol='#fbbf24';
+                    last='Opened by '+(sn.by||'')+' · '+lw(sn.at)+' — no answer recorded';
+                    next='Answer \u201cHas it arrived?\u201d';
+                  }
                 }else if(i.kind==='claim'){
                   const ch3=i.claimC?_claimChaseInfo(i.claimC):{txt:'',col:'#f87171',days:0};
                   const fresh3=ch3.txt==='No contact yet';
                   state=fresh3?'NO CONTACT YET':'CHASING SUPPLIER';scol=fresh3?'#f87171':ch3.col;
                   if(i.lastLog&&i.lastLog.what)last=i.lastLog.what+(i.lastLog.at?' · '+lw(i.lastLog.at):'');
-                  next=fresh3?'Check for a refund, then open a case':(ch3.days>=3?'Quiet for '+ch3.days+' days — chase again':'Wait for the reply, then record it');
+                  next=fresh3?'Check for a refund, then open a case':(ch3.days>=2?'Quiet for '+ch3.days+' days — chase again':'Wait for the reply, then record it');
                 }else if(i.kind==='lav'){
                   state=i.chased?'CHASING SUPPLIER':'NOT CHASED YET';scol=i.chased?'#4ade80':'#f87171';
                   if(i.lastLog&&i.lastLog.what)last=i.lastLog.what+(i.lastLog.by?' — '+i.lastLog.by:'')+(i.lastLog.at?' · '+lw(i.lastLog.at):'');
@@ -11019,9 +11462,23 @@ function renderAdmin(){
                   state='JOB FROM JACK';scol='#94a3b8';last=i.notes||'';next='Do it, then press Mark done';
                 }
                 const note=(i.notes||'').trim();
+                /* Jack, 30 Aug: "this needs to be super informative — the vital
+                   part of the whole process and page." So: the expected date
+                   with how far away it is, then the last three things that
+                   actually happened, who did them and when — the row's story,
+                   not just its label. */
+                const _ds=s=>{const d=new Date(s);return isNaN(d)?String(s):d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});};
+                let expLine='';
+                if(i.expDate){const aw=Math.round((new Date(i.expDate)-new Date())/864e5);
+                  expLine=`<div class="stExp" style="color:${aw<0?'#f87171':'#4ade80'};">&#128197; expected ${_ds(i.expDate)}${aw<0?` — slipped ${Math.abs(aw)}d ago`:aw===0?' — today':` — in ${aw}d`}</div>`;}
+                const _cl=(i.caseC&&i.caseC.log)||[];
+                const hist=_cl.slice(-3).reverse().map(L=>
+                  `<div class="stLog"><span class="stLogWhen">${esc(lw(L.at))}</span>${L.by?` · <b>${esc(L.by)}</b>`:''} — ${esc(L.what||'')}</div>`).join('')
+                  +(_cl.length>3?`<div class="stLog stLogMore">+ ${_cl.length-3} earlier — Details has the lot</div>`:'');
                 return `<div class="standBox" style="border-left-color:${scol};">
                   <div class="stState" style="color:${scol};">${state}</div>
-                  ${last?`<div class="stLast">${esc(last)}</div>`:''}
+                  ${expLine}
+                  ${hist||(last?`<div class="stLast">${esc(last)}</div>`:'')}
                   ${next?`<div class="stNext">&#10132; ${esc(next)}</div>`:''}
                   ${(note&&i.kind==='transit'&&!waiting)?`<div class="csNote" title="${note.replace(/"/g,'&quot;')}">&ldquo;${esc(note)}&rdquo;</div>`:''}
                 </div>`;
@@ -11035,7 +11492,10 @@ function renderAdmin(){
                    it over), Details (the full case module — his rename of the
                    old "More\u2026"). A row that is with Jack shows only Details. */
                 const esc1=s=>String(s).replace(/'/g,"\\'");
-                if(i.sortedGrace)return `<button class="tfuAsk" style="margin-top:0;" onclick="reopenResolution('${i.rid}',true)" title="Bring it straight back — everything it knew is still on it">Undo — bring it back</button>`;
+                if(i.sortedGrace)return `<button class="tfuAsk" style="margin-top:0;" onclick="reopenResolution('${i.rid}',true)" title="Bring it straight back — everything it knew is still on it">Undo — bring it back</button>
+                  <button class="tfuWork" onclick="fileAway('${i.rid}')" title="Happy with it — files off this page. Nothing is deleted.">OK — file it</button>`;
+                if(i.parkedRow)return `<button class="tfuAsk" style="margin-top:0;" onclick="unparkDate('${i.rid}')" title="Clears the date and brings the chase straight back">Undo — clear the date</button>
+                  <button class="tfuWork" onclick="fileAway('${i.rid}')" title="Happy with it — files off this page until the date. Nothing is deleted.">OK — file it</button>`;
                 if(waiting)return `<button class="tfuAsk" style="margin-top:0;" onclick="undoSend('${i.kind}','${i.kind==='claim'?i.claimId:i.kind==='lav'?esc1(i.lavKey):i.rid}')" title="Changed your mind — pull it back off Jack's list and carry on yourself">Undo — pull it back</button>
                   <button class="tfuMore" onclick="${
                   i.kind==='claim'?`openClaimCase('${i.claimId}')`:
@@ -11053,7 +11513,19 @@ function renderAdmin(){
               })()}
             </td>
           </tr>`;
-        }).join('')}
+        };
+        /* Jack, 30 Aug: "stuff she actions should stay in another section for
+           48 working hours like the prep sheet — so we can undo" */
+        const _work=items.filter(i=>!(i.sortedGrace||i.parkedRow));
+        const _done=items.filter(i=>i.sortedGrace||i.parkedRow);
+        return _work.map(_rowHtml).join('')
+          +(_done.length?`<tr><td colspan="8" style="background:transparent;border:none;padding:16px 12px 6px;">
+              <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;border-top:1px dashed var(--border);padding-top:13px;">
+                <span style="font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--text3);">RECENTLY ACTIONED — ${fmt(_done.length)}</span>
+                <span style="font-size:10.5px;color:var(--text3);">hers to clear — press OK to file each one, or Undo to bring it back. After 48 working hours (weekends frozen) it files itself as the backstop</span>
+              </div></td></tr>`
+            +_done.map((i,x)=>_rowHtml(i,_work.length+x)).join(''):'');
+        })()}
         </tbody>
       </table>
       </div>
@@ -12562,7 +13034,8 @@ function renderDashboard(){
         </div>
         <!-- Implied Prep Cost MTD -->
         <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
-          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Implied Prep Cost — MTD</div>
+          <div onclick="openPrepHistory()" title="Click for the month-by-month prep cost history" style="cursor:pointer;font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;display:flex;justify-content:space-between;gap:8px;">
+            <span>Implied Prep Cost — MTD</span><span style="color:var(--accent);font-weight:800;text-transform:none;letter-spacing:0;">history &#9656;</span></div>
           <div style="font-size:28px;font-weight:900;color:${GOLD};font-family:var(--num);font-variant-numeric:tabular-nums;line-height:1;">${fmtGBP2(prepCost.withVat)}</div>
           <div style="font-size:11px;color:#cbd5e1;margin-bottom:10px;">inc. VAT · ${fmtGBP2(prepCost.subtotal)} ex. VAT</div>
 
@@ -13645,6 +14118,23 @@ function renderInsightsTab(tab){
 // Insights popup (the renderer was previously missing, so the tab showed nothing).
 // Prep-focused per request: each month's prep cost inc. VAT, units, £/unit and the
 // change vs the previous month. Uses the same prep helpers as the rest of Insights.
+/* Jack, 30 Aug: "I'd like Prep Cost MTD clickable — this month, last month,
+   2 months ago…" The table already existed on Insights; now it opens right
+   off the Dashboard card. */
+function openPrepHistory(){
+  let el=document.getElementById('prepHistModal');
+  if(!el){el=document.createElement('div');el.id='prepHistModal';el.className='overlay';
+    el.style.zIndex='130';document.body.appendChild(el);
+    el.addEventListener('click',e=>{if(e.target===el)el.style.display='none';});}
+  el.innerHTML=`<div class="modal" style="max-width:760px;max-height:82vh;overflow:auto;padding:20px 22px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <b style="font-size:15px;">Prep cost — month by month</b>
+      <button onclick="document.getElementById('prepHistModal').style.display='none'" style="margin-left:auto;background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;">&#10005;</button></div>
+    <div id="prepHistBody"></div></div>`;
+  el.style.display='flex';
+  try{renderInsMonthly(document.getElementById('prepHistBody'));}
+  catch(e){document.getElementById('prepHistBody').innerHTML='<div class="pmeta">Could not build the history: '+String(e).slice(0,120)+'</div>';}
+}
 function renderInsMonthly(body){
   const map=buildMonthMap(null);
   const entries=Object.entries(map).sort(([a],[b])=>b.localeCompare(a)); // newest first
@@ -16041,13 +16531,13 @@ function renderShipments(){
   if(q){
     const hits=[];
     shipments.forEach(s=>{
-      const add=(u,name)=>{if(u>0)hits.push({date:s.minDate||s.date,ship:s.id,units:u,name});};
+      const add=(u,name,sku)=>{if(u>0)hits.push({date:s.minDate||s.date,ship:s.id,units:u,name,sku:sku||''});};
       s.skus.forEach(r=>{if(((r.sku||'')+(r.asin||'')+(r.prod||'')+(r.sup||'')).toLowerCase().includes(q))
-        add(r._segUnits||r.ship||r.exp||0, r.prod||r.sku);});
+        add(r._segUnits||r.ship||r.exp||0, r.prod||r.sku, r.sku);});
       s.lavSkus.forEach(l=>{if(((l.sku||'')+(l.asin||'')+(l.prod||'')).toLowerCase().includes(q))
-        add(l.units||0, l.prod||l.sku);});
+        add(l.units||0, l.prod||l.sku, l.sku);});
       (s.retSkus||[]).forEach(r=>{if(((r.sku||'')+(r.asin||'')+(r.prod||'')).toLowerCase().includes(q))
-        add(r.units||0, r.prod||r.sku);});
+        add(r.units||0, r.prod||r.sku, r.sku);});
     });
     if(hits.length){
       hits.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
@@ -16061,10 +16551,14 @@ function renderShipments(){
               first&&last?` · ${_hd(first)}${first!==last?' → '+_hd(last):''}`:''}</span></div>
           <div class="hitTot"><b>${fmt(tot)}</b><i>units sent</i></div>
         </div>
-        <div class="hitRows">${hits.map(h=>`<div class="hitRow">
-          <span class="hd">${_hd(h.date)}</span>
-          <span class="hs">${esc(h.ship)}</span>
-          <span class="hu">${fmt(h.units)}</span></div>`).join('')}</div>
+        <details>
+          <summary style="cursor:pointer;list-style:none;font-size:11px;font-weight:800;color:var(--blu);padding:5px 0 2px;">&#9656; Show the ${hits.length} line${hits.length===1?'':'s'} — dates, shipments &amp; SKUs</summary>
+          <div class="hitRows">${hits.map(h=>`<div class="hitRow">
+            <span class="hd">${_hd(h.date)}</span>
+            <span class="hs">${esc(h.ship)}</span>
+            ${h.sku?`<span class="hs" style="opacity:.65;overflow:hidden;text-overflow:ellipsis;" title="${esc(h.sku)}">${esc(h.sku)}</span>`:''}
+            <span class="hu">${fmt(h.units)}</span></div>`).join('')}</div>
+        </details>
       </div>`;
     }
   }
@@ -18013,6 +18507,10 @@ function firstInDone(added){
   paintFirstInBanner();
 }
 function updateSyncHealthUI(){
+  /* the 30s tick was repainting Settings DOM even while the page was hidden —
+     the audit's known battery waste. Same visibility gate as every page;
+     goPage('settings') repaints on entry so nothing is lost. */
+  if(document.hidden||!_pageActive('page-settings'))return;
   // FIX 2: Read sources directly — always up to date
   const active=_ssSources.filter(s=>s.active&&s.url);
   const get=id=>document.getElementById(id);
@@ -18998,6 +19496,17 @@ async function resyncNow(why,quiet){
     ['renderPrep','renderShipments','renderDashboard','renderReturns','renderAdmin','renderStats']
       .forEach(f=>{try{window[f]&&window[f]()}catch(e){}});
     try{if(window.LV3&&LV3.isReady&&LV3.isReady())LV3.render();}catch(e){}
+    /* dbLoad can resolve while rows is still filling (paged fetch) — a paint
+       at that moment shows a near-empty page and nothing repaints (Jack's
+       "gone blank after 60 seconds"). Wait for the row count to settle, then
+       paint once more. Every render is visibility-gated, so this is cheap. */
+    setTimeout(async()=>{try{
+      let last=-1;
+      for(let i=0;i<10&&rows.length!==last;i++){last=rows.length;await new Promise(r2=>setTimeout(r2,700));}
+      ['renderPrep','renderShipments','renderDashboard','renderReturns','renderAdmin','renderStats']
+        .forEach(f=>{try{window[f]&&window[f]()}catch(e){}});
+      try{if(window.LV3&&LV3.isReady&&LV3.isReady())LV3.render();}catch(e){}
+    }catch(e){}},600);
     if(!quiet){
       resyncUI.done();
       try{logAudit('Refreshed after a gap',why);}catch(e){}
@@ -21687,7 +22196,7 @@ setInterval(updateClock,60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v34.6 · lav3 · 2026-08-29 · b357';
+const BUILD='v35.6 · lav3 · 2026-08-30 · b405';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -23549,9 +24058,9 @@ function planAmazon(){
   const live=D.products.filter(x=>!x.archived);
   const rows=live.map(plAmazonRow);
   const act=rows.filter(r=>(r.state==='act'||r.state==='critical')&&r.rec>0)
-    /* a 1-a-month product should not outrank a 350-a-month one on the same
-       protection days — low sellers sink a few places, never off the list */
-    .sort((a,b)=>(a.protDays+(a.ads<0.5?4:0))-(b.protDays+(b.ads<0.5?4:0)));
+    /* Jack, 30 Aug: "it doesn't matter if it's a slow seller — if we're going
+       to run out, it needs to go." No sinking; closest to empty leads. */
+    .sort((a,b)=>a.protDays-b.protDays);
   const pool={};
   const poolGet=o=>{if(pool[o.id]===undefined)pool[o.id]=onHand(o);return pool[o.id];};
   act.forEach(r=>{
@@ -23748,6 +24257,90 @@ function plDebugPre(r){
   return '<div style="display:grid;grid-template-columns:auto 1fr;gap:3px 14px;padding:10px 12px;background:var(--bg3);border-radius:7px;margin:7px 0 3px;font-size:11.5px;">'
     +rows.map(x=>'<span style="color:var(--text3)">'+x[0]+'</span><span class="mono" style="color:var(--text)">'+x[1]+'</span>').join('')+'</div>';
 }
+function _plnCard(o){
+  /* o: {k,label,col,name,act,sub,ord,onclick} */
+  return '<div onclick="'+(o.onclick||'')+'" style="display:flex;gap:12px;align-items:center;padding:11px 14px;border:1px solid var(--border);border-left:4px solid '+o.col+';border-radius:10px;margin-bottom:7px;cursor:pointer;background:var(--bg2);" onmouseenter="this.style.background=\'var(--bg3)\'" onmouseleave="this.style.background=\'var(--bg2)\'">'
+    +'<span style="flex:0 0 108px;font-size:10px;font-weight:800;letter-spacing:.05em;color:'+o.col+';">'+o.label+'</span>'
+    +'<span style="flex:1;min-width:0;"><b style="font-size:12.5px;">'+esc(o.name)+'</b>'
+    +'<div style="font-size:12px;color:var(--text);margin-top:2px;">'+o.act+'</div>'
+    +(o.sub?'<div class="pmeta" style="margin-top:2px;">'+o.sub+'</div>':'')+'</span>'
+    +'<span class="pmeta" style="flex:0 0 auto;">details &#9656;</span></div>';
+}
+function _plannerSimple(az,buys,gaps,fba,saf){
+  const trig=fba+saf,today=dayISO();
+  const cards=[];const safeLines=[];let pausedN=0;
+  az.rows.forEach(r=>{
+    if(!r.demand||['nodata','nocount'].includes(r.state))return;
+    if(r.state==='paused'){pausedN++;return;}
+    const send=r.alloc||0,more=Math.max(0,(r.rec||0)-send);
+    const oos=r.stockout?dshort(r.stockout):'';
+    const open="LV3.openPlanRow('"+r.p.id+"')";
+    if((r.state==='act'||r.state==='critical')&&(r.sell||0)<=0){
+      const gap=more>0?plGapInfo(r):null;
+      cards.push({ord:0,col:'#ef4444',label:'OUT OF STOCK',name:r.p.name,onclick:open,
+        act:'<b style="color:#ef4444">Amazon is empty — losing sales every day.</b> '+(send>0?'<b>Send '+fmt(send)+' now.</b>':'')+(more>0?' <b style="color:var(--amb)">Buy parts for '+fmt(more)+' more.</b>':''),
+        sub:gap?esc(gap.txt):''});
+    }else if((r.state==='act'||r.state==='critical')&&send>0&&more>0){
+      const gap=plGapInfo(r);
+      cards.push({ord:1,col:'#fb923c',label:'SEND + BUY',name:r.p.name,onclick:open,
+        act:'<b>Send '+fmt(send)+' now</b> \u00b7 <b style="color:var(--amb)">buy parts for '+fmt(more)+' more</b>',
+        sub:'Send by: today \u00b7 expected out of stock: ~'+oos+(gap?' \u00b7 '+esc(gap.txt):'')});
+    }else if((r.state==='act'||r.state==='critical')&&send>0){
+      cards.push({ord:2,col:'#fbbf24',label:'SEND NOW',name:r.p.name,onclick:open,
+        act:'<b>Send '+fmt(send)+'</b> through the normal Shipments page',
+        sub:'Send by: today \u00b7 expected out of stock: ~'+oos});
+    }else if((r.state==='act'||r.state==='critical')&&more>0){
+      const gap=plGapInfo(r);
+      if(gap&&gap.kind==='intime'){
+        cards.push({ord:4,col:'#60a5fa',label:'PARTS ON THE WAY',name:r.p.name,onclick:open,
+          act:'Nothing to do yet — parts land, then build &amp; send '+fmt(more),
+          sub:esc(gap.txt)});
+      }else{
+        cards.push({ord:1,col:'#f87171',label:'BUY NOW',name:r.p.name,onclick:open,
+          act:'<b style="color:#f87171">Buy parts for '+fmt(more)+'</b> — nothing can be built until they arrive',
+          sub:(gap?esc(gap.txt)+' \u00b7 ':'')+'expected out of stock: ~'+oos});
+      }
+    }else if(r.state==='waiting'||r.state==='watch'){
+      cards.push({ord:5,col:'#60a5fa',label:'STOCK ON ITS WAY',name:r.p.name,onclick:open,
+        act:fmt(r.inb||0)+' already heading to Amazon \u00b7 sellable ~'+(r.inbEta?dshort(r.inbEta):'\u2014')+' \u00b7 nothing to do',
+        sub:r.state==='watch'?'worth a glance — it lands close to the empty date':''});
+    }else if(r.state==='safe'){
+      const room=Math.floor((r.protDays||0)-trig);
+      if(room<=7&&(r.ads||0)>0){
+        cards.push({ord:3,col:'#fbbf24',label:'SEND SOON',name:r.p.name,onclick:open,
+          act:'Get a send ready \u00b7 <b>send by: '+dshort(addCalDays(today,Math.max(0,room)))+'</b>',
+          sub:'expected out of stock: ~'+oos});
+      }else{
+        safeLines.push('<div onclick="'+open+'" style="display:flex;gap:10px;align-items:baseline;padding:4px 2px;font-size:12px;cursor:pointer;"><span style="flex:1;min-width:0;">'+esc(r.p.name)+'</span><span class="pmeta" style="margin:0">out of stock ~'+oos+'</span></div>');
+      }
+    }
+  });
+  cards.sort((a,b)=>a.ord-b.ord);
+  const buyRows=buys.filter(L=>['buy','soon'].includes(L.state));
+  const buyCost=buyRows.reduce((t,L)=>t+(L.cost||0),0);
+  const sendN=cards.filter(c=>c.ord<=3&&/SEND/.test(c.label)).length;
+  const buyN=buyRows.length;
+  return '<div style="max-width:980px;margin:0 auto;">'
+    +'<div class="panel" style="padding:13px 16px;margin:0 0 12px;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;">'
+      +'<b style="font-size:15px;">This week</b>'
+      +'<span style="font-size:12.5px;color:var(--text2);"><b style="color:#fbbf24">'+fmt(sendN)+'</b> to send \u00b7 <b style="color:#f87171">'+fmt(buyN)+'</b> part'+(buyN===1?'':'s')+' to buy ('+gbp(buyCost)+') \u00b7 everything else is safe</span>'
+      +'<span class="pmeta" style="margin-left:auto;">send through the Shipments page as normal — this list updates itself</span></div>'
+    +(cards.length?cards.map(_plnCard).join(''):'<div class="panel" style="padding:18px;text-align:center;color:var(--text2);font-weight:700;">Nothing needs doing. Everything is stocked and safe.</div>')
+    +(buyRows.length?'<div class="panel" style="margin-top:14px;">'
+      +'<div class="ph"><span class="t">What needs buying</span><span class="sub">'+fmt(buyN)+' part'+(buyN===1?'':'s')+' \u00b7 about '+gbp(buyCost)+' \u00b7 full detail on the Purchases tab</span></div>'
+      +'<div style="padding:6px 14px 10px;">'
+      +buyRows.slice(0,10).map(L=>'<div style="display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;">'
+        +'<span style="flex:1;min-width:0;"><b>'+esc(L.o.name)+'</b> <span class="pmeta" style="margin:0">'+esc(L.sup||'')+'</span></span>'
+        +'<span class="num" style="font-weight:800;">'+fmt(L.buyQty)+(L.cases?' <span class="pmeta" style="margin:0">('+fmt(L.cases)+' cases)</span>':'')+'</span>'
+        +'<span class="num" style="color:'+(L.buyByDays<0?'#f87171':L.buyByDays<=2?'#fbbf24':'var(--text2)')+';font-size:12px;">'+(L.buyByDays<0?'<b>order now — '+fmt(-L.buyByDays)+'d late</b>':L.buyByDays===0?'<b>order today</b>':'order by '+dshort(L.buyBy))+'</span>'
+        +'<button class="btn sm pri" onclick="LV3.openLogOrder(\''+L.o.id+'\')">Log the order</button></div>').join('')
+      +(buyRows.length>10?'<div class="pmeta" style="padding:8px 0 2px;">+ '+fmt(buyRows.length-10)+' more on the <a href="javascript:void(0)" onclick="LV3.go(\'purchases\')" style="color:var(--blu)">Purchases tab</a></div>':'')
+      +'</div></div>':'')
+    +(safeLines.length?'<details style="margin-top:14px;"><summary style="cursor:pointer;font-size:12px;font-weight:800;color:var(--text3);padding:6px 2px;">SAFE — '+fmt(safeLines.length)+' products, no action \u25be</summary><div class="panel" style="padding:8px 14px;margin-top:6px;">'+safeLines.join('')+'</div></details>':'')
+    +(pausedN?'<div class="pmeta" style="margin-top:10px;">'+fmt(pausedN)+' marked not selling — hidden. Manage them from the product details popup.</div>':'')
+    +(gaps?'<div style="margin-top:16px;">'+gaps+'</div>':'')
+    +'</div>';
+}
 function vPlanner(){
   const az=planAmazon();
   const buys=planComponents();
@@ -23813,6 +24406,11 @@ function vPlanner(){
     +'<div class="pmeta" style="margin:6px 0 0">Until a method is picked these count as NOT protecting you — deliberately harsh, so a late order can never hide. Set them on the <a href="javascript:void(0)" onclick="LV3.go(\'purchases\')" style="color:var(--blu)">Purchases tab</a>.</div>');
   if(noCount.length)gaps+=gapCard('Never counted at Amazon',
     noCount.map(r=>'<div style="font-size:12px;padding:2px 0;color:var(--text)">'+esc(r.p.name)+'</div>').join(''));
+  /* Jack, 30 Aug: "the engine can be sophisticated — SHE sees BUY NOW / SEND
+     NOW / dates." The simple action list replaces everything below; the old
+     deep view still opens per product (openPlanRow). */
+  $('lav3View').innerHTML=_plannerSimple(az,buys,gaps,fba,saf);
+  return;
 
   const azRow=r=>{
     const gap=(r.alloc<r.rec&&(r.state==='act'||r.state==='critical'))?plGapInfo(r):null;
@@ -24089,6 +24687,7 @@ function workList(){
     btn:'Planner',go:"go('planner')",
     items:needParts.map(r=>({k:'parts_'+r.p.id,
       t:esc(r.p.name)+(r.lim?' — waiting on <b>'+esc(r.lim.name)+'</b>':''),
+      s:(r.protDays!=null?fmt(Math.round(r.protDays))+'d protection':''),
       btn:'Open',go:`openPlanRow('${r.p.id}')`}))});
   /* Sarah's chases live on HER Admin page — Jack, 30 Aug: "nothing for Sarah
      should be on here." Shorts/damage already flow there as supplier rows;
@@ -24154,8 +24753,13 @@ function workList(){
      whose morning it belongs to (spec §47/§48). */
   D.settings.wlAck=D.settings.wlAck||{};
   const _T=dayISO();
-  const parked=jobs.filter(j=>j.k&&D.settings.wlAck[j.k]&&D.settings.wlAck[j.k].d===_T);
-  const jobsShow=jobs.filter(j=>!(j.k&&D.settings.wlAck[j.k]&&D.settings.wlAck[j.k].d===_T));
+  /* Jack, 30 Aug: "if she presses DONE, the task is completed" — no overnight
+     resurrection. The ack lives until the engine stops generating the job
+     (the sync catches up), then cleans itself up. */
+  const _liveKeys=new Set();jobs.forEach(j=>{if(j.k)_liveKeys.add(j.k);(j.items||[]).forEach(i2=>_liveKeys.add(i2.k));});
+  Object.keys(D.settings.wlAck).forEach(k=>{if(!_liveKeys.has(k))delete D.settings.wlAck[k];});
+  const parked=jobs.filter(j=>j.k&&D.settings.wlAck[j.k]);
+  const jobsShow=jobs.filter(j=>!(j.k&&D.settings.wlAck[j.k]));
   const urgentShow=jobsShow.filter(j=>j.sev===1).length;
   const GRP=[['wh','FOR THE UK STAFF','check · order · build · send · receive','#22d3ee']];
   const whoBar='';
@@ -24163,14 +24767,14 @@ function workList(){
     const head=`<span class="wlDot"></span>
       <div class="wlTxt"><b>${j.t}</b><span>${j.s}</span></div>
       <button class="btn sm ${j.sev===1?'warn':''}" onclick="event.stopPropagation();${j.fix?j.fix:'LV3.'+j.go}">${esc(j.btn)}</button>
-      ${j.k?`<button class="btn sm" title="Done for today — it leaves the list until tomorrow, and comes back sooner if the numbers change." onclick="event.stopPropagation();LV3.wlTick('${j.k}')">&#10003;</button>`:''}`;
+      ${j.k?`<button class="btn sm" title="Done — it leaves the list. The numbers catch up on the next sheet sync." onclick="event.stopPropagation();LV3.wlTick('${j.k}')">DONE</button>`:''}`;
     if(!j.items||!j.items.length)return `<div class="wlRow s${j.sev}">${head}</div>`;
     /* an action centre says DO x, x, x — the grouped jobs open into the actual
        list, each line with its own button and its own tick (Jack, 30 Aug) */
     const T=dayISO();
-    const live=j.items.filter(i=>!(D.settings.wlAck[i.k]&&D.settings.wlAck[i.k].d===T));
+    const live=j.items.filter(i=>!D.settings.wlAck[i.k]);
     const done=j.items.length-live.length;
-    return `<details class="wlRow s${j.sev}" style="display:block;padding:0;">
+    return `<details ${(j.o==='wh')?'open':''} class="wlRow s${j.sev}" style="display:block;padding:0;">
       <summary style="display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;padding:10px 14px;">
         <span class="plCh" style="color:var(--text3);font-size:10px;">\u25b8</span>${head}
         ${done?`<span style="font-size:11px;font-weight:700;color:var(--grn);white-space:nowrap;">${fmt(done)} done</span>`:''}
@@ -24180,7 +24784,7 @@ function workList(){
           <span style="flex:1;min-width:0;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${i.t}</span>
           ${i.s?`<span style="font-size:11px;color:var(--text3);white-space:nowrap;">${i.s}</span>`:''}
           <button class="btn sm" onclick="LV3.${i.go}">${esc(i.btn)}</button>
-          <button class="btn sm" title="Ticked off for today" onclick="LV3.wlTick('${i.k}')">&#10003;</button>
+          <button class="btn sm" title="Done — it leaves the list. The numbers catch up on the next sheet sync." onclick="LV3.wlTick('${i.k}')">DONE</button>
         </div>`).join('')||'<div class="pmeta" style="padding:6px 0;">All ticked off for today.</div>'}
       </div>
     </details>`;
@@ -24195,9 +24799,21 @@ function workList(){
       ${doneG?`<span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--grn);">${fmt(doneG)} done today${g.length?` · ${fmt(g.length)} to go`:' — all done \u2713'}</span>`:''}
     </div>`+(g.length?g.map(row).join(''):`<div class="pmeta" style="padding:4px 14px 8px;">Nothing waiting — all ticked off.</div>`);
   }).join('');
+  const _pl=(function(){try{
+    const az=plData().az,buys=plData().buys;
+    const outN=(az.act||[]).filter(r=>(r.sell||0)<=0).length;
+    const sendN=(az.act||[]).filter(r=>(r.alloc||0)>0).length;
+    const buyN=buys.filter(L=>['buy','soon'].includes(L.state)).length;
+    if(!outN&&!sendN&&!buyN)return '';
+    return `<div onclick="LV3.go('planner')" style="display:flex;gap:12px;align-items:center;padding:10px 14px;margin-bottom:9px;border:1px solid ${outN?'rgba(239,68,68,.5)':'var(--border)'};border-left:4px solid ${outN?'#ef4444':'#fbbf24'};border-radius:10px;cursor:pointer;background:var(--bg2);" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background='var(--bg2)'">
+      <span style="font-size:10px;font-weight:800;letter-spacing:.05em;color:${outN?'#ef4444':'#fbbf24'};">PLANNER</span>
+      <span style="font-size:12.5px;">${outN?`<b style="color:#ef4444">${fmt(outN)} out of stock at Amazon</b> · `:''}<b>${fmt(sendN)}</b> to send · <b>${fmt(buyN)}</b> part${buyN===1?'':'s'} to buy</span>
+      <span class="pmeta" style="margin-left:auto;">open the Planner &#9656;</span></div>`;
+  }catch(e){return '';}})();
   return `<div class="wl">
+    ${_pl}
     <div class="wlHead"><b>Action centre</b>
-      <span>${fmt(jobsShow.length)} job${jobsShow.length===1?'':'s'}${urgentShow?` · <b style="color:var(--red)">${fmt(urgentShow)} can't wait</b>`:''}${parked.length?` · ${fmt(parked.length)} ticked off today`:''}</span></div>
+      <span>${fmt(jobsShow.length)} job${jobsShow.length===1?'':'s'}${urgentShow?` · <b style="color:var(--red)">${fmt(urgentShow)} can't wait</b>`:''}${parked.length?` · ${fmt(parked.length)} done`:''}</span></div>
     ${sections}
     ${(function(){
       const g=jobsShow.filter(j=>(j.o||'jack')==='jack');
@@ -24208,7 +24824,7 @@ function workList(){
     ${parked.length?`<details><summary style="padding:8px 14px;cursor:pointer;font-size:11.5px;color:var(--text3);list-style:none;">${fmt(parked.length)} ticked off today — open to check or bring back</summary>
       ${parked.map(j=>`<div class="wlRow" style="opacity:.55">
         <span class="wlDot"></span>
-        <div class="wlTxt"><b>${j.t}</b><span>ticked by ${esc((D.settings.wlAck[j.k]||{}).by||'someone')} today</span></div>
+        <div class="wlTxt"><b>${j.t}</b><span>done — ${esc((D.settings.wlAck[j.k]||{}).by||'someone')}</span></div>
         <button class="btn sm" onclick="LV3.wlUntick('${j.k}')">Bring back</button>
       </div>`).join('')}</details>`:''}
   </div>`;
@@ -27297,13 +27913,14 @@ let RS_PICKS=(()=>{
     /* a build plan left for over an hour is stale on purpose — Jack: "if I go
        off the webapp it should auto clear after 1 hour". Fresh visits start
        clean; a refresh mid-planning keeps everything. */
-    const at=parseInt(localStorage.getItem('lv3_rs_at')||'0');
-    if(at&&Date.now()-at>60*60*1000){
-      localStorage.removeItem(RS_KEY);localStorage.removeItem('lv3_rs_dates');
-      return{};
-    }
     const raw=localStorage.getItem(RS_KEY);
     if(!raw)return{};
+    const at=parseInt(localStorage.getItem('lv3_rs_at')||'0');
+    /* no stamp = saved before the expiry existed = stale by definition */
+    if(!at||Date.now()-at>60*60*1000){
+      localStorage.removeItem(RS_KEY);localStorage.removeItem('lv3_rs_dates');localStorage.removeItem('lv3_rs_at');
+      return{};
+    }
     const o=JSON.parse(raw);
     return (o&&typeof o==='object'&&!Array.isArray(o))?o:{};
   }catch(e){return{};}
@@ -27875,8 +28492,12 @@ function modeHint(l,needsPick){
       +esc(sup||'this supplier')+' uses more than one route — pick one and it will date itself</div>';
   if(!l.mode||!sup)return '';
   const key=sup.toLowerCase();
+  /* HARD RULE (Jack, 30 Aug): Alibaba freight is chosen per order when it is
+     synced — never remembered, never offered as a future default. The saved
+     route stays for PLANNING maths only. */
+  if(/alibab/i.test(sup))return '';
   const saved=(D.settings.supplierModes||{})[key];
-  if(saved===ASK_MODE)return '';           /* Alibaba-style: picked fresh every order, never remembered */
+  if(saved===ASK_MODE)return '';
   const label=((shipMode(l.mode)||{}).label||l.mode).split('—')[0].trim();
   const on=saved===l.mode;
   return '<div class="pmeta" style="margin:3px 0 0">'
@@ -27905,7 +28526,7 @@ function guessMode(sup){
 function knownSuppliers(){
   const seen={};
   /* "Opening stock" is the stocktake, not somebody who ships to us */
-  const notReal=/^(opening stock|stocktake|—|-|n\/a|unknown)$/i;
+  const notReal=/^(opening stock|stock (correction|adjustment|adjust)|stocktake|—|-|n\/a|unknown)$/i;
   const add=n=>{const k=(n||'').trim();if(!k||notReal.test(k))return;const lk=k.toLowerCase();
     if(!seen[lk])seen[lk]={name:k,key:lk,orders:0};seen[lk].orders++;};
   D.purchases.forEach(p=>add(p.sup));
@@ -27931,7 +28552,16 @@ function setSupplierMode(key,mode){
       return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;};
     l.eta1=add(mm.lo);l.eta2=add(mm.hi);l._etaGuess=1;touched++;
   }));
-  save();_keepScroll(render);
+  save();
+  if(TAB==='settings'){
+    /* no repaint: a full render resets this panel's own scrollbar AND re-sorts
+       the row out from under the cursor — the two things that made editing
+       here miserable. The select already shows the new value on its own. */
+    const c=document.getElementById('supSetCount');
+    if(c)c.textContent=`${fmt(knownSuppliers().length)} suppliers · ${fmt(Object.keys(D.settings.supplierModes||{}).length)} set by hand`;
+  }else{
+    _keepScroll(render);
+  }
   toast(touched?`${fmt(touched)} order${touched===1?'':'s'} re-dated`:'Saved','ok');
 }
 /* answering one dropdown used to hurl the page back to the top — remember the
@@ -27990,23 +28620,53 @@ function supplierPanel(){
      search away. */
   const q=_supQ.toLowerCase().trim();
   const setKeys=D.settings.supplierModes||{};
-  /* quickest route first, always (Jack, 30 Aug) — then ask-every-time, then
-     the ones still on a guess, busiest first within each band */
-  const _speed=x=>{
-    const m=setKeys[x.key];
-    if(m===ASK_MODE)return 1e5;
-    if(!m)return 2e5;
-    const d=modeDays(m);return d?d.hi:9e4;
+  /* NOT-TOUCHED-YET FIRST (Jack, 30 Aug: "sort by newest or not touched yet")
+     — the unset ones are the actual work, busiest first so a new supplier off
+     the sheet surfaces immediately; then ask-every-time; then the done ones,
+     quickest route first. All 27 shown — hiding rows hid the job. */
+  /* spelling drift ("Alibab", "Fre From direct") must not show as untouched
+     work — the engine already routes those through their twin, so the panel
+     says so instead of asking UK staff to set them again. Same squash +
+     one-typo matching routeDaysFor uses. */
+  const _sq2=x=>String(x).toLowerCase().replace(/[^a-z0-9]/g,'');
+  const _lv2=(a,b)=>{if(a===b)return true;if(Math.abs(a.length-b.length)>1)return false;
+    if(a.length<6||b.length<6)return false;
+    let i=0,j=0,d=0;
+    while(i<a.length&&j<b.length){
+      if(a[i]===b[j]){i++;j++;continue;}
+      d++;if(d>1)return false;
+      if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++;}}
+    return d+(a.length-i)+(b.length-j)<=1;};
+  const _smk=Object.keys(setKeys);
+  const _twin={};
+  sups.forEach(x=>{
+    if(setKeys[x.key])return;
+    const sq=_sq2(x.key);
+    const hit=_smk.find(k=>_sq2(k)===sq)||_smk.find(k=>_lv2(_sq2(k),sq));
+    if(hit)_twin[x.key]=hit;
+  });
+  const _twinNm=k=>{const y=sups.find(z=>z.key===k);return y?y.name:k;};
+  const _effMode=x=>setKeys[x.key]||(_twin[x.key]?setKeys[_twin[x.key]]:null);
+  const _band=x=>{
+    const m=_effMode(x);
+    if(!m)return 0;
+    if(m===ASK_MODE)return 1;
+    return 2;
   };
-  const bySpeed=(a,b)=>_speed(a)-_speed(b)||b.orders-a.orders;
-  const filtered=(q?sups.filter(x=>x.name.toLowerCase().includes(q))
-    :_supAll?sups.slice()
-    :sups.filter(x=>setKeys[x.key]).concat(sups.filter(x=>!setKeys[x.key]).slice(0,8)))
-    .sort(bySpeed);
-  const hidden=sups.length-filtered.length;
-  return `<div class="panel">
+  const _spd=x=>{const d=modeDays(_effMode(x));return d?d.hi:999;};
+  const filtered=(q?sups.filter(x=>x.name.toLowerCase().includes(q)):sups.slice())
+    .sort((a,b)=>_band(a)-_band(b)||( _band(a)===2?(_spd(a)-_spd(b)):(b.orders-a.orders))||a.name.localeCompare(b.name));
+  const hidden=0;
+  const _spCol=x=>{
+    const m=_effMode(x);
+    if(m===ASK_MODE)return '#c084fc';
+    if(!m)return '#7d7568';
+    const d=modeDays(m);if(!d)return '#7d7568';
+    return d.hi<=2?'#4ade80':d.hi<=6?'#60a5fa':d.hi<=15?'#fbbf24':d.hi<=60?'#fb923c':'#f87171';
+  };
+  return `<div class="panel" id="supPanel">
     <div class="ph"><span class="t">Who ships how</span>
-      <span class="sub">${fmt(sups.length)} supplier${sups.length===1?'':'s'} · ${fmt(set)} set by hand</span>
+      <span class="sub" id="supSetCount">${fmt(sups.length)} supplier${sups.length===1?'':'s'} · ${fmt(set)} set by hand</span>
       <div class="r"><input class="in" style="width:220px" placeholder="Search suppliers…" value="${esc(_supQ)}"
         oninput="LV3.supFind(this.value)"></div></div>
     <div style="padding:12px">
@@ -28016,8 +28676,8 @@ function supplierPanel(){
         ${filtered.map(x=>{
           const cur=(D.settings.supplierModes||{})[x.key]||'';
           const auto=guessMode(x.name);
-          return `<div class="supRow">
-            <div class="supNm">${esc(x.name)}<div class="pmeta">${x.orders?`${fmt(x.orders)} order${x.orders===1?'':'s'}`:'no orders yet'}</div></div>
+          return `<div class="supRow" style="border-left:3px solid ${_spCol(x)};padding-left:10px;">
+            <div class="supNm" style="font-weight:700;">${esc(x.name)}<div class="pmeta">${x.orders?`${fmt(x.orders)} order${x.orders===1?'':'s'}`:'no orders yet'}${_twin[x.key]?` · <span style="color:var(--blu)" title="Spelling twin — the engine already treats this as ${esc(_twinNm(_twin[x.key]))}. Fix the name on the sheet when convenient.">same as ${esc(_twinNm(_twin[x.key]))}</span>`:''}</div></div>
             <select class="in" onchange="LV3.setSupplierMode('${esc(x.key).replace(/'/g,"\\'")}',this.value)">
               <option value="">Work it out (${esc((modes.find(m=>m.k===auto)||{label:auto}).label.split('—')[0].trim())})</option>
               <option value="${ASK_MODE}" ${cur===ASK_MODE?'selected':''}>Ask every time — no usual route</option>
@@ -29233,7 +29893,7 @@ function setEta(kind,oid,lid,field,v){
        "ask every time" setting and silently re-date every other order from
        them. A supplier with no usual route stays that way — the choice sticks
        to THIS order only. */
-    if(!supplierAsks(l.sup))rememberMode(l.sup,v);
+    if(!supplierAsks(l.sup)&&!/alibab/i.test(l.sup||''))rememberMode(l.sup,v);
     const m=shipMode(v);
     if(m&&!l._etaTouched){const add=n=>{const x=new Date(l.date);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
       l.eta1=add(m.lo);l.eta2=add(m.hi);}
@@ -29667,7 +30327,8 @@ function buyPanel(){
         <td><span class="num" style="color:${col}">${x.cover!=null?fmt(Math.round(x.cover))+'d':'—'}</span></td>
         <td class="l" style="font-size:12px;color:var(--text2)">${esc(x.sup)}
           <div class="pmeta">${esc(x.route?x.route.label:'')} · ${x.lead}d${x.prodDays?' incl. '+x.prodDays+'d made-to-order':''}</div></td>
-        <td><span class="num" style="color:${col};font-size:12.5px">${x.buyByDays<0?fmt(-x.buyByDays)+'d overdue':x.buyByDays===0?'today':dshort(x.buyBy)}</span></td>
+        <td><span class="num" style="color:${col};font-size:12.5px">${x.buyByDays<0?fmt(-x.buyByDays)+'d overdue':x.buyByDays===0?'today':dshort(x.buyBy)}</span>
+          ${x.buyByDays<0&&x.inTime?`<div class="pmeta" style="color:var(--text3)" title="The ${fmt(x.inTime)} on the way is already counted — even after it lands, stock runs out before another order on this route could arrive. This is the order AFTER the one that's coming.">next batch — ${fmt(x.inTime)} counted</div>`:''}</td>
         <td><span class="num b">${fmt(x.buyQty)}</span>
           ${x.cases?`<div class="pmeta" style="text-align:center">${fmt(x.cases)} case${x.cases===1?'':'s'}</div>`:''}</td>
         <td class="acts"><button class="btn sm ${x.buyByDays<=0?'warn':'pri'}" onclick="LV3.openLogOrder('${x.o.id}')">Log the order</button></td>
@@ -31260,7 +31921,23 @@ function salesPanel(){
   </div>`;
 }
 function vSettings(){
+  const _eng=(key,val,unit,what)=>`<div style="display:flex;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+      <input class="in" style="width:64px;text-align:center;font-weight:800;" type="number" value="${val}" onchange="LV3.plSet('${key}',this.value)">
+      <span style="flex:0 0 92px;font-size:11px;color:var(--text3);font-weight:700;">${unit}</span>
+      <span style="flex:1;font-size:12px;color:var(--text);">${what}</span></div>`;
   $('lav3View').innerHTML=`
+  <div class="panel" style="border-left:3px solid var(--accent);margin-bottom:12px;">
+    <div class="ph"><span class="t">The engine numbers</span>
+      <span class="sub">every Planner recommendation is built from these five — check them once, they rarely change</span></div>
+    <div style="padding:6px 16px 12px;">
+      ${_eng('primeDays',primeDays(),'working days','From pressing send to SELLABLE at Amazon — courier + check-in. Everything late/early is judged against this.')}
+      ${_eng('safetyDays',safetyDays(),'days','The panic buffer. Stock must never be planned to land with less than this to spare.')}
+      ${_eng('targetDays',D.settings.targetDays||60,'days of cover','How much Amazon stock a send should leave behind when it lands. Bigger = fewer sends, more Amazon storage.')}
+      ${_eng('cycleDays',cycleDaysN(),'days of cover','How much a PURCHASE should cover when it arrives. Bigger = fewer orders, more cash in stock.')}
+      ${_eng('prepDays',prepDaysN(),'days','How long building/prepping takes in the warehouse before something can ship.')}
+      <div class="pmeta" style="margin-top:8px;">Change one and every date and quantity on the Planner, Purchases and Overview recalculates instantly.</div>
+    </div>
+  </div>
   <div class="cols2">
       <div class="panel">
         <div class="ph"><span class="t">Purchase sheet</span><span class="sub">the same Lavarion tabs spend.dash reads</span>
@@ -31776,6 +32453,14 @@ return API;
     try{
       const n=parseInt(sh.units)||0;
       if(n>0&&window.LV3){
+        /* Jack, 30 Aug: oversending is a HARD BLOCK now, not a warning. */
+        try{
+          const pre=LV3.shipCheck?LV3.shipCheck(sh.asin,n):null;
+          if(pre&&pre.available!=null&&n>pre.available){
+            toast(`BLOCKED — only ${pre.available} in stock, cannot send ${n}. Receive the delivery or correct the count first.`,'er');
+            return false;
+          }
+        }catch(e){}
         /* shipConsume now reports what it actually took and what it could not,
            so the warning is driven off what happened rather than off a check
            that ran beforehand and could disagree with it. */
@@ -32291,7 +32976,7 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
    it takes up less space… smoother to click, less work for the VA"). One
    place, so density is tuned by editing these lines only. ── */
 .tfu tbody td{padding-top:7px;padding-bottom:7px;}
-.tfu .tfuProd2{-webkit-line-clamp:2;font-size:11.5px;line-height:1.3;}
+.tfu .tfuProd2{-webkit-line-clamp:unset;display:block;overflow:visible;white-space:normal;font-size:11px;line-height:1.35;overflow-wrap:anywhere;}
 .tfuBig{font-size:16px;}
 .tfuVal{font-size:12px;margin-top:3px;}
 .tfuUnits{margin-top:2px;line-height:1.3;font-size:10.5px;}
@@ -32335,6 +33020,30 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .stState{font-size:10px;}
 .stLast{font-size:11px;color:var(--text);}
 .stNext{font-size:10.5px;color:#b6c2d4;}
+.tfu td{overflow:hidden;}
+.standBox{overflow:hidden;}
+.stLog{overflow-wrap:anywhere;}
+.stExp{font-size:11px;font-weight:800;margin-top:3px;}
+.stLog{font-size:10.5px;color:var(--text2);margin-top:3px;line-height:1.35;border-left:2px solid var(--border);padding-left:7px;}
+.stLog b{color:var(--text);font-weight:700;}
+.stLogWhen{color:var(--text3);font-variant-numeric:tabular-nums;}
+.stLogMore{color:var(--text3);font-style:italic;border-left-color:transparent;}
+/* Jack, 30 Aug: dashboard greys hard to read — brighter muted tones, page-scoped */
+#page-dashboard{--text3:#a6a094;--text2:#c8c2b6;}
+/* Returns: light readability refresh — smaller calmer mono, wrapped notes-in-SKU */
+#page-returns .s-sku{font-size:11px;font-weight:600;white-space:normal;overflow-wrap:anywhere;line-height:1.45;}
+#page-returns td{font-size:12.5px;line-height:1.5;}
+#page-returns th{font-size:10.5px;letter-spacing:.06em;}
+#page-returns{--text3:#a6a094;}
+.tfu td.tfuWrong{white-space:normal;}
+.tfu .tfuProd2{margin-bottom:4px!important;}
+.tfu .s-sku{margin-top:7px!important;}
+.tfu .s-asin{margin-top:6px!important;display:inline-block;}
+.tfu td.tfuWrong .tfuWhy{display:block;width:fit-content;margin:5px auto 0;max-width:100%;overflow-wrap:anywhere;box-sizing:border-box;}
+.tfuUnits{overflow-wrap:anywhere;white-space:normal;}
+.tfuVal,.tfuBig{white-space:nowrap;}
+.tfuAsk,.tfuWork{white-space:normal;line-height:1.25;max-width:100%;box-sizing:border-box;}
+.tfu tbody td{vertical-align:middle;}
 .tfuRaiseNote{font-size:11px;color:#c6cfda;}
 .csNowTxt{color:var(--text);}
 .tfuSelf{color:#b6c2d4;}
@@ -32348,6 +33057,10 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .csStand,.csWas,.csWho,.csNote,.csNowTxt,.csAct,.csDateL,.tfuGuide,.tfuSelf{white-space:normal!important;}
 .csNow{text-align:center;}
 .csNowCap{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#fbbf24;margin-bottom:3px;}
+.csDate{margin:2px 0 0;}
+.csDate input{margin-bottom:5px;}
+.csNow{padding-bottom:0;}
+.csNow>*:last-child{margin-bottom:0!important;padding-bottom:0!important;border-bottom:none!important;}
 .csNowTxt{font-size:11.5px;font-weight:700;color:var(--text);line-height:1.35;margin-bottom:7px;cursor:help;}
 .csActs{display:flex;flex-direction:column;gap:4px;}
 .csDate{display:flex;flex-direction:column;gap:4px;margin-bottom:7px;padding-bottom:7px;border-bottom:1px dashed var(--border2);}
@@ -32421,8 +33134,7 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .admSort:hover{border-color:var(--accent);}
 /* Product titles were three lines deep and set the height of every row. One
    line, full text on hover — the list roughly halves and twice as much fits. */
-.tfu .tfuProd2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
-  font-size:12px;line-height:1.4;}
+.tfu .tfuProd2{display:block;overflow:visible;font-size:12px;line-height:1.4;}
 .tfu tbody td{padding-top:9px;padding-bottom:9px;}
 .tfuWork{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;
   background:var(--accent);border:1px solid var(--accent);color:#1a1400;transition:filter .15s;}
