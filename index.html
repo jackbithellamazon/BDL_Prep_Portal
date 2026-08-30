@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v32.3</title>
+<title>BDL PrepHub v33.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1868,11 +1868,11 @@ html.light-mode{
    the new lines are, then decide what to buy. "What to buy" is the last step,
    not the first thing in your face. */
 #page-lavarion .ppStack,.lav3 .ppStack{display:flex;flex-direction:column;gap:14px;}
-#page-lavarion .ppStack>*,.lav3 .ppStack>*{order:5;margin-bottom:0;}
-#page-lavarion .ppStack>.ppFlow,.lav3 .ppStack>.ppFlow{order:0;}
-#page-lavarion .ppStack>#allPurch,.lav3 .ppStack>#allPurch{order:1;}
-#page-lavarion .ppStack>#revPanel,.lav3 .ppStack>#revPanel{order:2;}
-#page-lavarion .ppStack>#buyPanel,.lav3 .ppStack>#buyPanel{order:9;}
+#page-lavarion .ppStack>*,.lav3 .ppStack>*{margin-bottom:0;}
+#page-lavarion 
+#page-lavarion 
+#page-lavarion 
+#page-lavarion 
 /* restocks */
 /* Restocks — start on a question, not on a random product */
 /* incoming, at a glance */
@@ -2567,7 +2567,9 @@ html.light-mode{
   background:var(--amb-bg);border:1px solid var(--amb-br);border-radius:9px;padding:3px 8px;
   white-space:normal;overflow-wrap:anywhere;line-height:1.3;max-width:100%;}
 #page-lavarion .limtag.out,.lav3 .limtag.out{color:var(--red);background:var(--red-bg);border-color:var(--red-br);}
-#page-lavarion .cogbox,.lav3 .cogbox{margin-top:12px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;font-size:12.5px;}
+#page-lavarion .cogbox,.lav3 .cogbox{margin-top:12px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;font-size:12.5px;min-width:0;overflow:hidden;}
+.rgrid>*{min-width:0;}
+.plNote b{white-space:normal;text-align:left;}
 #page-lavarion .cogrow,.lav3 .cogrow{display:flex;justify-content:space-between;gap:16px;padding:5px 0;color:var(--text2);}
 #page-lavarion .cogrow b,.lav3 .cogrow b{color:var(--text);font-family:var(--num);font-weight:600;letter-spacing:-.01em;
   font-variant-numeric:tabular-nums;font-feature-settings:'zero' 0;}
@@ -2641,6 +2643,7 @@ html.light-mode{
 /* Three tracks on a wide screen, two on a laptop, one on a narrow window. A
    fixed two-column grid left a band of nothing down the right on a 1920 screen. */
 #page-lavarion .cols2,.lav3 .cols2{display:block;column-count:2;column-gap:14px;max-width:1560px;margin:0 auto;}
+.cols2 .panel{break-inside:avoid;-webkit-column-break-inside:avoid;}
 @media(min-width:1560px){#page-lavarion .cols2,.lav3 .cols2{column-count:3;}}
 /* and no single panel is allowed to run the length of the page — a list that
    long is a page of its own, not the front door */
@@ -3389,7 +3392,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v32.3</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v33.7</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3423,7 +3426,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v32.3</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v33.7</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -4126,7 +4129,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v32.3</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v33.7</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -11952,7 +11955,7 @@ function renderDashboard(){
              sku:'#60a5fa',asin:'#c084fc',box:'#fb923c',ship:'#34d399',cog:'#fbbf24'};
 
   // Centred KPI tile — hero units top, £ second, then stat pills
-  const kTile=(title,col,units,unitLabel,gbp,gbpLabel,pills,badge,badgeCol,onClick)=>`
+  const kTile=(title,col,units,unitLabel,gbp,gbpLabel,pills,badge,badgeCol,onClick,foot)=>`
     <div ${onClick?`onclick="${onClick}" role="button" tabindex="0" onkeydown="if(event.key==='Enter'){${onClick}}"`:''} style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 12px 10px;box-shadow:0 2px 10px rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;text-align:center;gap:0;position:relative;${onClick?'cursor:pointer;':''}" ${onClick?'onmouseover="this.style.borderColor=\''+col+'88\'" onmouseout="this.style.borderColor=\'var(--border)\'"':''}>
       <span style="position:absolute;top:0;left:14px;right:14px;height:2px;background:${col};opacity:.5;border-radius:0 0 3px 3px;"></span>
       <div style="font-size:10px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;display:flex;align-items:center;gap:5px;">
@@ -11965,6 +11968,7 @@ function renderDashboard(){
       <div style="width:100%;display:flex;flex-direction:column;gap:0;">
         ${pills}
       </div>
+      <div style="width:100%;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:10.5px;color:#8b96a6;min-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${(foot||'').replace(/<[^>]+>/g,'')}">${foot||''}</div>
     </div>`;
 
   const _pillSemantic=[GOLD,'#4ade80','#f87171','#fb923c','#22c55e','#ef4444'];
@@ -11985,14 +11989,15 @@ function renderDashboard(){
   const mtdSentLav=lavShipments.filter(s=>s.date&&s.date>=mss&&s.date<=mes);
   const mtdShipIds=new Set([...mtdSentRows.filter(r=>r.shipId).map(r=>r.shipId),...mtdSentLav.filter(s=>s.shipId).map(s=>s.shipId)]);
   const mtdBoxMap=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>mtdShipIds.has(sid)));
-  const prepCost=calcImpliedPrepCost(mtdSentRows,mtdSentLav,mtdBoxMap,prepFees.expectedMonthlyUnits);
+  _smartExpCache=null;
+  const prepCost=calcImpliedPrepCost(mtdSentRows,mtdSentLav,mtdBoxMap,smartExpectedUnits());
 
   // Per-shipment costs this week
   function calcShipmentPrepCost(shipId){
     const sRows=rows.filter(r=>r.sent==='Yes'&&r.shipId===shipId);
     const sLav=lavShipments.filter(s=>s.shipId===shipId);
     const sBoxMap=shipBoxes[shipId]?{[shipId]:shipBoxes[shipId]}:{};
-    return calcImpliedPrepCost(sRows,sLav,sBoxMap,prepFees.expectedMonthlyUnits);
+    return calcImpliedPrepCost(sRows,sLav,sBoxMap,smartExpectedUnits());
   }
 
   // Per-day costs this week
@@ -12002,7 +12007,7 @@ function renderDashboard(){
     const dLav=lavShipments.filter(s=>s.date===d.ds);
     const dShipIds=new Set([...dRows.filter(r=>r.shipId).map(r=>r.shipId),...dLav.filter(s=>s.shipId).map(s=>s.shipId)]);
     const dBoxMap=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>dShipIds.has(sid)));
-    dayPrepCosts[d.ds]=calcImpliedPrepCost(dRows,dLav,dBoxMap,prepFees.expectedMonthlyUnits);
+    dayPrepCosts[d.ds]=calcImpliedPrepCost(dRows,dLav,dBoxMap,smartExpectedUnits());
   });
 
   // Per-tile prep costs
@@ -12010,12 +12015,12 @@ function renderDashboard(){
     const r=rows.filter(x=>x.sent==='Yes'&&x.sentDate===sentDate);
     const l=lavShipments.filter(x=>x.date===sentDate);
     const ids=new Set([...r.filter(x=>x.shipId).map(x=>x.shipId),...l.filter(x=>x.shipId).map(x=>x.shipId)]);
-    return calcImpliedPrepCost(r,l,Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>ids.has(sid))),prepFees.expectedMonthlyUnits);
+    return calcImpliedPrepCost(r,l,Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>ids.has(sid))),smartExpectedUnits());
   };
   const todayPC=mkTilePC(todayStr);
   const ydPC=mkTilePC(yesterdayStr);
   const weekShipIdSet=new Set([...rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we&&r.shipId).map(r=>r.shipId),...lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we&&s.shipId).map(s=>s.shipId)]);
-  const weekPC=calcImpliedPrepCost(rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we),lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we),Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>weekShipIdSet.has(sid))),prepFees.expectedMonthlyUnits);
+  const weekPC=calcImpliedPrepCost(rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we),lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we),Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>weekShipIdSet.has(sid))),smartExpectedUnits());
 
   // MTD totals — use the canonical sentRollup so the dashboard tile matches the
   // Shipments page (source of truth) and Prep Sheet exactly. The old logic used
@@ -12139,36 +12144,39 @@ function renderDashboard(){
       ${kTile('In Transit',COL.transit,
         fmt(transit.units),'units in transit',
         fmtGBP2(transit.value),'COG value in transit',
-        pill('SKUs',fmt(transit.skus),COL.sku)+pill('ASINs',fmt(transit.asins),COL.asin)+pill('Avg £/unit',transit.units?fmtGBP2(transit.value/transit.units):'—',GOLD)+pill('Suppliers',fmt(new Set(transitRows.map(r=>r.sup).filter(Boolean)).size),COL.ship),
-        '','')
+        pill('SKUs',fmt(transit.skus),COL.sku)+pill('ASINs',fmt(transit.asins),COL.asin)+pill('Boxes','—',COL.box)+pill('COG/unit',transit.units?fmtGBP2(transit.value/transit.units):'—',GOLD)+pill('Suppliers',fmt(new Set(transitRows.map(r=>r.sup).filter(Boolean)).size),COL.ship),
+        '','',null,'on the road — not yet checked in at Amazon')
       }
 
       ${kTile('Sent Today',COL.today,
         fmt(todayTotal.units),'units sent today',
         fmtGBP2(todayTotal.value),'COG value sent',
-        pill('SKUs',fmt(todaySkus),COL.sku)+pill('ASINs',fmt(todayAsins),COL.asin)+pill('Boxes',fmt(todayBoxes),COL.box)+pill('vs Yesterday',`${trendArrow} ${todayDiff} units`,trendCol)+pill('COG vs Yesterday',(todayTotal.value-ydTotal.value>=0?'+':'')+fmtGBP2(todayTotal.value-ydTotal.value),todayTotal.value>=ydTotal.value?COL.today:'#f87171')+(todayPC.totalUnits>0?pill('Prep cost',fmtGBP2(todayPC.withVat),GOLD):''),
-        trendArrow,trendCol)
+        pill('SKUs',fmt(todaySkus),COL.sku)+pill('ASINs',fmt(todayAsins),COL.asin)+pill('Boxes',fmt(todayBoxes),COL.box)+pill('COG/unit',todayTotal.units?fmtGBP2(todayTotal.value/todayTotal.units):'—',GOLD)+pill('vs Yesterday',`${trendArrow} ${todayDiff} units`,trendCol),
+        trendArrow,trendCol,null,
+        `COG ${(todayTotal.value-ydTotal.value>=0?'+':'−')}${fmtGBP2(Math.abs(todayTotal.value-ydTotal.value)).replace('£','£')} vs yesterday${todayPC.totalUnits>0?` · prep ${fmtGBP2(todayPC.withVat)}`:''}`)
       }
 
       ${kTile('Yesterday',COL.yday,
         fmt(ydTotal.units),'units sent',
         fmtGBP2(ydTotal.value),'COG value sent',
-        pill('SKUs',fmt(ydSkus),COL.sku)+pill('ASINs',fmt(ydRoll.asins),COL.asin)+pill('Boxes',fmt(ydBoxes),COL.box)+pill('COG/unit',ydTotal.units?fmtGBP2(ydTotal.value/ydTotal.units):'—',GOLD)+pill('vs Day Before',`${ydArrow} ${Math.abs(ydDiff)} units`,ydACol)+(ydPC.totalUnits>0?pill('Prep cost',fmtGBP2(ydPC.withVat),GOLD):''),
-        '','')
+        pill('SKUs',fmt(ydSkus),COL.sku)+pill('ASINs',fmt(ydRoll.asins),COL.asin)+pill('Boxes',fmt(ydBoxes),COL.box)+pill('COG/unit',ydTotal.units?fmtGBP2(ydTotal.value/ydTotal.units):'—',GOLD)+pill('vs Day Before',`${ydArrow} ${Math.abs(ydDiff)} units`,ydACol),
+        '','',null,ydPC.totalUnits>0?`prep ${fmtGBP2(ydPC.withVat)}`:'')
       }
 
       ${kTile('This Week',COL.week,
         fmt(weekTotal.units),'units sent this week',
         fmtGBP2(weekTotal.value),'COG value sent',
-        pill('Shipments',fmt(weekShipments),COL.ship)+pill('SKUs',fmt(weekSkus),COL.sku)+pill('ASINs',fmt(weekAsins),COL.asin)+(weekLavAsins?pill('Lavarion Units',fmt(weekLav.units),COL.asin):'')+pill('Boxes',fmt(weekBoxes),COL.box)+pill('COG/unit',weekTotal.units?fmtGBP2(weekTotal.value/weekTotal.units):'—',GOLD)+(lwTotal.units>0?pill('vs Last Week',`${weekTotal.units>=lwTotal.units?'\u2191':'\u2193'} ${Math.abs(weekTotal.units-lwTotal.units)} units`,weekTotal.units>=lwTotal.units?'#4ade80':'#f87171'):'')+(weekPC.totalUnits>0?pill('Prep cost',fmtGBP2(weekPC.withVat),GOLD):''),
-        '','')
+        pill('SKUs',fmt(weekSkus),COL.sku)+pill('ASINs',fmt(weekAsins),COL.asin)+pill('Boxes',fmt(weekBoxes),COL.box)+pill('COG/unit',weekTotal.units?fmtGBP2(weekTotal.value/weekTotal.units):'—',GOLD)+(lwTotal.units>0?pill('vs Last Week',`${weekTotal.units>=lwTotal.units?'\u2191':'\u2193'} ${Math.abs(weekTotal.units-lwTotal.units)} units`,weekTotal.units>=lwTotal.units?'#4ade80':'#f87171'):pill('vs Last Week','—','#cbd5e1')),
+        '','',null,
+        `${fmt(weekShipments)} shipment${weekShipments===1?'':'s'}${weekLavAsins?` · ${fmt(weekLav.units)} Lavarion`:''}${weekPC.totalUnits>0?` · prep ${fmtGBP2(weekPC.withVat)}`:''}`)
       }
 
       ${kTile('This Month',`#06b6d4`,
         fmt(mtdUnits),'units sent this month',
         fmtGBP2(mtdCOG),'COG value sent',
-        pill('Shipments',fmt(mtdShipCount),COL.ship)+pill('SKUs',fmt(mtdSkus),COL.sku)+pill('ASINs',fmt(mtdAsins),COL.asin)+(prepCost.lavUnits>0?pill('Lavarion Units',fmt(prepCost.lavUnits),COL.asin):'')+pill('Boxes',fmt(mtdBoxesCount),COL.box)+pill('COG/unit',mtdUnits?fmtGBP2(mtdCOG/mtdUnits):'—',GOLD)+((()=>{try{const s=_insMonthSeries();const pm=s[s.length-2];if(pm&&pm.units)return pill('vs Last Month',`${mtdUnits>=pm.units?'\u2191':'\u2193'} ${Math.abs(mtdUnits-pm.units)} units`,mtdUnits>=pm.units?'#4ade80':'#f87171');}catch(e){}return '';})())+pill('Prep Days',fmt(mtdPrepDays),'#34d399')+(prepCost.totalUnits>0?pill('Prep cost',fmtGBP2(prepCost.withVat),GOLD):''),
-        '','','openMonthHistory()')
+        pill('SKUs',fmt(mtdSkus),COL.sku)+pill('ASINs',fmt(mtdAsins),COL.asin)+pill('Boxes',fmt(mtdBoxesCount),COL.box)+pill('COG/unit',mtdUnits?fmtGBP2(mtdCOG/mtdUnits):'—',GOLD)+((()=>{try{const s=_insMonthSeries();const pm=s[s.length-2];if(pm&&pm.units)return pill('vs Last Month',`${mtdUnits>=pm.units?'\u2191':'\u2193'} ${Math.abs(mtdUnits-pm.units)} units`,mtdUnits>=pm.units?'#4ade80':'#f87171');}catch(e){}return pill('vs Last Month','—','#cbd5e1');})()),
+        '','','openMonthHistory()',
+        `${fmt(mtdShipCount)} shipment${mtdShipCount===1?'':'s'}${prepCost.lavUnits>0?` · ${fmt(prepCost.lavUnits)} Lavarion`:''} · ${fmt(mtdPrepDays)} prep day${mtdPrepDays===1?'':'s'}${prepCost.totalUnits>0?` · prep ${fmtGBP2(prepCost.withVat)}`:''}`)
       }
     </div>
 
@@ -12355,63 +12363,6 @@ function renderDashboard(){
             </div>`).join('');})()}
         </div>
 
-        <!-- Implied Prep Cost MTD -->
-        <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
-          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Implied Prep Cost — MTD</div>
-          <div style="font-size:28px;font-weight:900;color:${GOLD};font-family:var(--num);font-variant-numeric:tabular-nums;line-height:1;">${fmtGBP2(prepCost.withVat)}</div>
-          <div style="font-size:11px;color:#cbd5e1;margin-bottom:10px;">inc. VAT · ${fmtGBP2(prepCost.subtotal)} ex. VAT</div>
-
-          <!-- Volume rate breakdown -->
-          <div style="font-size:10px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Unit rate (volume-based, ex. VAT)</div>
-          ${(()=>{
-            const rateStr=prepCost.unitRate<1?(prepCost.unitRate*100).toFixed(0)+'p':fmtGBP2(prepCost.unitRate);
-            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
-                <span style="font-size:11px;color:#cbd5e1;">${fmt(prepCost.tieredUnits)} units so far × ${rateStr}/unit</span>
-              <div style="font-size:10px;color:#aeb9c9;margin-top:3px;line-height:1.5;">${rateStr}/unit is your <b style="color:#aeb9c9;">${fmt(prepFees.expectedMonthlyUnits)}/mo</b> price band (${prepCost.unitRateBand} units). Priced at your normal monthly volume so the rate doesn’t jump early in the month before you’ve shipped much.</div>
-                <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(prepCost.baseCost)}</span>
-              </div>`;
-          })()}
-
-          <!-- Extras -->
-          ${(prepCost.osCost>0||prepCost.bundleCost>0||prepCost.boxCostTotal>0||prepCost.dgExtra>0)?`
-          <div style="font-size:10px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px;">Extras (ex. VAT)</div>`:''}
-          ${[
-            ...(prepCost.osCost>0?[[prepCost.osUnits+' OS units × £'+prepFees.osCostPerUnit+'/unit',fmtGBP2(prepCost.osCost),'#fb923c']]:[]),
-            ...(prepCost.bundleCost>0?[[prepCost.bundleUnits+' bundle units × £'+prepFees.bundleCostPerUnit+'/unit',fmtGBP2(prepCost.bundleCost),'#34d399']]:[]),
-            [prepCost.stdBoxes+' std boxes × £'+prepFees.boxCost+'/box',fmtGBP2(prepCost.boxCostTotal),'#60a5fa'],
-            ...(prepCost.dgExtra>0?[[prepCost.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox+'/box (DG rate)',fmtGBP2(prepCost.dgExtra),'#f87171']]:[]),
-          ].map(([l,v,col])=>`
-            <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
-              <span style="font-size:11px;color:#cbd5e1;">${l}</span>
-              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span>
-            </div>`).join('')}
-
-          <!-- Subtotal + VAT + Total -->
-          <div style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.1);">
-            <div style="display:flex;justify-content:space-between;padding:2px 0;">
-              <span style="font-size:11px;color:#b6c2d4;">Subtotal ex. VAT</span>
-              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#b6c2d4;">${fmtGBP2(prepCost.subtotal)}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.08);">
-              <span style="font-size:11px;color:#b6c2d4;">VAT 20%</span>
-              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#b6c2d4;">${fmtGBP2((prepCost.withVat-prepCost.subtotal))}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:4px 0;margin-top:2px;">
-              <span style="font-size:11px;font-weight:800;color:#fbbf24;">Total inc. VAT</span>
-              <span style="font-size:14px;font-weight:900;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(prepCost.withVat)}</span>
-            </div>
-          </div>
-
-          ${(()=>{
-            const activeDays=Object.keys(dayPrepCosts).length;
-            const todayCost=dayPrepCosts[todayStr];
-            if(!activeDays)return'';
-            return`<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);">
-              ${todayCost&&todayCost.totalUnits>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:10px;color:#cbd5e1;">Today's cost inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(todayCost.withVat)}</span></div>`:''}
-              <div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:10px;color:#cbd5e1;">Cost per prep day inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2((prepCost.withVat/activeDays))}</span></div>
-            </div>`;
-          })()}
-        </div>
       </div>
 
       <!-- Col 2: By Type + Pipeline + Claims + Ops -->
@@ -12505,7 +12456,7 @@ function renderDashboard(){
       </div>
 
       <!-- Col 3: Claims + Stuck -->
-      <div style="display:flex;flex-direction:column;gap:8px;height:100%;align-self:stretch;">
+      <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="background:var(--bg2);border:1px solid ${totalAtRisk>0?'rgba(248,113,113,.3)':'var(--border)'};border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <!-- Header -->
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -12576,7 +12527,7 @@ function renderDashboard(){
           </div>`:``}
           `}
         </div>
-        <div style="background:var(--bg2);border:1px solid ${stuckRows.length>0?'rgba(248,113,113,.35)':'var(--border)'};border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);flex:1;min-height:0;">
+        <div style="background:var(--bg2);border:1px solid ${stuckRows.length>0?'rgba(248,113,113,.35)':'var(--border)'};border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Stuck In Transit <span style="color:#f87171;">&gt;20 Days</span></div>
           ${stuckRows.length?`
           <div style="display:flex;gap:16px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07);justify-content:center;width:100%;">
@@ -12595,6 +12546,63 @@ function renderDashboard(){
                 </div>
               </div>`;}).join('')}
           </div>`:`<div style="color:${COL.today};font-size:11px;padding:4px 0;text-align:center;">✓ Nothing stuck</div>`}
+        </div>
+        <!-- Implied Prep Cost MTD -->
+        <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
+          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Implied Prep Cost — MTD</div>
+          <div style="font-size:28px;font-weight:900;color:${GOLD};font-family:var(--num);font-variant-numeric:tabular-nums;line-height:1;">${fmtGBP2(prepCost.withVat)}</div>
+          <div style="font-size:11px;color:#cbd5e1;margin-bottom:10px;">inc. VAT · ${fmtGBP2(prepCost.subtotal)} ex. VAT</div>
+
+          <!-- Volume rate breakdown -->
+          <div style="font-size:10px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Unit rate (volume-based, ex. VAT)</div>
+          ${(()=>{
+            const rateStr=prepCost.unitRate<1?(prepCost.unitRate*100).toFixed(0)+'p':fmtGBP2(prepCost.unitRate);
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+                <span style="font-size:11px;color:#cbd5e1;">${fmt(prepCost.tieredUnits)} units so far × ${rateStr}/unit</span>
+              <div style="font-size:10px;color:#aeb9c9;margin-top:3px;line-height:1.5;">${rateStr}/unit comes from pricing the month at <b style="color:#aeb9c9;">${fmt(smartExpectedUnits())}/mo</b> (${prepCost.unitRateBand} band) — ${smartExpectedInfo().src}. Even one unit on the 1st is priced at the volume you actually run; if the month overtakes it, the real figure wins.</div>
+                <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(prepCost.baseCost)}</span>
+              </div>`;
+          })()}
+
+          <!-- Extras -->
+          ${(prepCost.osCost>0||prepCost.bundleCost>0||prepCost.boxCostTotal>0||prepCost.dgExtra>0)?`
+          <div style="font-size:10px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px;">Extras (ex. VAT)</div>`:''}
+          ${[
+            ...(prepCost.osCost>0?[[prepCost.osUnits+' OS units × £'+prepFees.osCostPerUnit+'/unit',fmtGBP2(prepCost.osCost),'#fb923c']]:[]),
+            ...(prepCost.bundleCost>0?[[prepCost.bundleUnits+' bundle units × £'+prepFees.bundleCostPerUnit+'/unit',fmtGBP2(prepCost.bundleCost),'#34d399']]:[]),
+            [prepCost.stdBoxes+' std boxes × £'+prepFees.boxCost+'/box',fmtGBP2(prepCost.boxCostTotal),'#60a5fa'],
+            ...(prepCost.dgExtra>0?[[prepCost.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox+'/box (DG rate)',fmtGBP2(prepCost.dgExtra),'#f87171']]:[]),
+          ].map(([l,v,col])=>`
+            <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+              <span style="font-size:11px;color:#cbd5e1;">${l}</span>
+              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span>
+            </div>`).join('')}
+
+          <!-- Subtotal + VAT + Total -->
+          <div style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.1);">
+            <div style="display:flex;justify-content:space-between;padding:2px 0;">
+              <span style="font-size:11px;color:#b6c2d4;">Subtotal ex. VAT</span>
+              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#b6c2d4;">${fmtGBP2(prepCost.subtotal)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+              <span style="font-size:11px;color:#b6c2d4;">VAT 20%</span>
+              <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#b6c2d4;">${fmtGBP2((prepCost.withVat-prepCost.subtotal))}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;margin-top:2px;">
+              <span style="font-size:11px;font-weight:800;color:#fbbf24;">Total inc. VAT</span>
+              <span style="font-size:14px;font-weight:900;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(prepCost.withVat)}</span>
+            </div>
+          </div>
+
+          ${(()=>{
+            const activeDays=Object.keys(dayPrepCosts).length;
+            const todayCost=dayPrepCosts[todayStr];
+            if(!activeDays)return'';
+            return`<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);">
+              ${todayCost&&todayCost.totalUnits>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:10px;color:#cbd5e1;">Today's cost inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(todayCost.withVat)}</span></div>`:''}
+              <div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:10px;color:#cbd5e1;">Cost per prep day inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2((prepCost.withVat/activeDays))}</span></div>
+            </div>`;
+          })()}
         </div>
       </div>
 
@@ -13861,7 +13869,7 @@ function _insMonthSeries(){
   return Object.keys(mm).sort().slice(-10).map(k=>{
     const md=mm[k];const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));
     const _curKey=new Date().toISOString().slice(0,7);
-    const m=calcInsMetrics(md.rows,md.lavRows,bm,k===_curKey?prepFees.expectedMonthlyUnits:null);const[y,mo]=k.split('-');
+    const m=calcInsMetrics(md.rows,md.lavRows,bm,k===_curKey?smartExpectedUnits():null);const[y,mo]=k.split('-');
     // per-month sent mix: OA rows bucketed by shipType, all Lavarion its own bucket
     const _u=r=>(r.ship||r.shi||0);let _std=0,_dg=0,_os=0;
     md.rows.forEach(r=>{const t=(r.shipType||(typeof _shipTypeCache!=='undefined'&&_shipTypeCache[r.shipId])||'Standard');if(t==='DG')_dg+=_u(r);else if(t==='Oversize')_os+=_u(r);else _std+=_u(r);});
@@ -15900,7 +15908,7 @@ function renderShipments(){
        band no matter what the month actually did. The Dashboard has always
        passed the Typical monthly volume from Settings — this page never did,
        which is also why the two disagreed. Same argument now, same answer. */
-    const pc=calcImpliedPrepCost(s.skus,s.lavSkus,shipBoxes[s.id]?{[s.id]:shipBoxes[s.id]}:{},prepFees.expectedMonthlyUnits);
+    const pc=calcImpliedPrepCost(s.skus,s.lavSkus,shipBoxes[s.id]?{[s.id]:shipBoxes[s.id]}:{},smartExpectedUnits());
     return a+pc.withVat;
   },0);
 
@@ -15934,7 +15942,7 @@ function renderShipments(){
     skus:list.reduce((a,x)=>a+_mSku(x),0),
     asins:new Set(list.flatMap(_mAsin)).size,
     prep:list.reduce((a,x)=>{try{return a+calcImpliedPrepCost(x.skus,x.lavSkus,
-      shipBoxes[x.id]?{[x.id]:shipBoxes[x.id]}:{},prepFees.expectedMonthlyUnits).withVat;}catch(e){return a;}},0),
+      shipBoxes[x.id]?{[x.id]:shipBoxes[x.id]}:{},smartExpectedUnits()).withVat;}catch(e){return a;}},0),
   });
   const _isoOf=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const _inRange=(x,a,b)=>{const d=x.date||x.minDate||'';return d&&d>=a&&d<=b;};
@@ -20387,6 +20395,43 @@ function unitRateBand(units){
 function calcTieredRate(units){
   return units*pickUnitRate(units);
 }
+/* SMART PREP BAND, 30 Aug (Jack): "over the past 2 months I've hit 3,000 —
+   from the 1st it should know it'll do the 3,000 band again." The band floor
+   is no longer the hand-typed expected volume: it is the AVERAGE of the last
+   three completed months' actual tiered units (Standard+DG+Lavarion — the same
+   pool the band prices). One unit prepped on the 1st is priced at the volume
+   this operation genuinely runs. The manual setting survives as a minimum for
+   brand-new months with no history. */
+let _smartExpCache=null;
+function smartExpectedInfo(){
+  if(_smartExpCache)return _smartExpCache;
+  const manual=prepFees.expectedMonthlyUnits||0;
+  let out={v:manual,src:'your setting',months:0};
+  try{
+    const now=new Date();
+    const vals=[];
+    for(let k=1;k<=2;k++){
+      const d=new Date(now.getFullYear(),now.getMonth()-k,1);
+      const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const seg=r=>(r._segUnits!=null)?r._segUnits:(r.ship||0);
+      const rs=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&r.sentDate.slice(0,7)===ym
+        &&(!r.shipType||r.shipType==='Standard'||r.shipType==='DG')&&r.inBundle!=='Yes')
+        .reduce((a,r)=>a+seg(r),0);
+      const lv=lavShipments.filter(s=>s.date&&String(s.date).slice(0,7)===ym)
+        .reduce((a,s)=>a+(s.units||0),0);
+      const t=rs+lv;if(t>0)vals.push(t);
+    }
+    if(vals.length){
+      /* the BEST recent month, not the average — a ramp-up month must not
+         drag the assumed volume below what this operation now runs at */
+      const best=Math.max.apply(null,vals);
+      if(best>manual)out={v:best,src:'your best of the last '+vals.length+' month'+(vals.length===1?'':'s'),months:vals.length};
+      else out={v:manual,src:'your setting (recent months ran lower)',months:vals.length};
+    }
+  }catch(e){}
+  _smartExpCache=out;return out;
+}
+const smartExpectedUnits=()=>smartExpectedInfo().v;
 function calcImpliedPrepCost(sentRows,sentLavRows,boxMap,rateUnits){
   // rateUnits (optional): the volume used to PICK the per-unit rate. Defaults to
   // this period's own tiered units (correct for the monthly figure). Daily/weekly
@@ -21629,7 +21674,7 @@ setInterval(updateClock,60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v32.3 · lav3 · 2026-08-29 · b334';
+const BUILD='v33.7 · lav3 · 2026-08-29 · b348';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -21643,7 +21688,7 @@ let D={products:[],components:[],purchases:[],log:[],settings:{
      Amazon. It is a setting and not a constant because it is genuinely not a
      constant — Q4 is slower, the quiet months are quicker. */
   primeDays:10,
-  cols:{pIncoming:true,pOrdered:false,pSold:true,pTarget:true,pCog:true,pSendBy:true,
+  cols:{pIncoming:true,pOrdered:false,pSold:true,pCog:true,pSendBy:true,
         cOnOrder:true,cOrdered:true,cUsed:true}}};
 
 const TODAY=new Date();
@@ -23286,6 +23331,607 @@ function gsRun(q){
 function gsGo(fn){$('gsIn').value='';$('gsOut').className='';try{eval(fn.replace(/LV3\./g,''));}catch(e){console.warn(e);}}
 document.addEventListener('click',e=>{if(!e.target.closest('.gs')){const b=$('gsOut');if(b)b.className='';}});
 
+/* ═══════════════ PLANNER β — THE REPLENISHMENT ENGINE ═══════════════════
+   From the 29 Aug spec. This is the calculation engine plus its debug view,
+   deliberately built BEFORE any redesign of the existing pages: the numbers
+   have to be trusted first (spec §82). Nothing on this tab writes anywhere
+   except its own settings; Products/Restocks are untouched until the numbers
+   are proven against real ASINs.
+
+   The one principle everything below serves (spec §1):
+     lead time decides WHEN we act; demand + projected stock + the cycle
+     decide HOW MUCH; safety stock covers the uncertainty.
+
+   Stage discipline (spec §3): sellable, inbound, buildable and on-order are
+   four different things and are never summed into one comforting number.  */
+
+/* ── planner settings — reuses targetDays + primeDays, adds only the three
+   the spec needs. Fallbacks are the spec's agreed starting values (§78). */
+function plNum(key,def,min,max){const n=parseFloat((D.settings||{})[key]);
+  return (Number.isFinite(n)&&n>=min&&n<=max)?n:def;}
+const safetyDays=()=>plNum('safetyDays',14,0,60);
+const prepDaysN =()=>plNum('prepDays',3,0,30);
+const cycleDaysN=()=>plNum('cycleDays',60,7,365);
+function plSet(key,v){const n=parseFloat(v);
+  if(Number.isFinite(n)&&n>0)D.settings[key]=n;else delete D.settings[key];
+  savePrefs();render();}
+
+/* working days FORWARD — the mirror of workDaysBefore, for "sent today,
+   sellable when?" */
+function workDaysAfter(iso,n){
+  const d=new Date(String(iso).slice(0,10)+'T00:00:00');
+  let left=n,guard=0;
+  while(left>0&&guard<600){d.setDate(d.getDate()+1);guard++;
+    const w=d.getDay();if(w>=1&&w<=5)left--;}
+  return _isoOf(d);
+}
+/* the FBA pipeline in calendar days, honestly derived from the working-day
+   setting rather than a second number that could drift from the first */
+function fbaCalDays(){
+  const t=dayISO(),p=workDaysAfter(t,primeDays());
+  return Math.round((new Date(p+'T00:00:00')-new Date(t+'T00:00:00'))/864e5);
+}
+
+/* ── demand: hub sales first, the owner's planning figure second, never a
+   guess (spec §63). Zero sales is its own honest state, not a blank. */
+function planDemandOf(p){
+  if(hubSkipped(p))return{m:0,src:'skip',label:'marked as not selling'};
+  const s=sold30(p);
+  if(s!=null&&s>0)return{m:s,src:'hub',label:ymName(hubMonth().ym)+' sales'};
+  const v=parseFloat((D.settings.planDemand||{})[p.asin]);
+  if(Number.isFinite(v)&&v>0)return{m:v,src:'manual',label:'your planning figure'};
+  if(s===0)return{m:0,src:'zero',label:'sold none in '+ymName(hubMonth().ym)};
+  return null;
+}
+function setRouteGroup(keys,mode){
+  String(keys||'').split('|').filter(Boolean).forEach(k=>setSupplierMode(k,mode));
+}
+function plSkip(asin){
+  D.settings.hubSkip=D.settings.hubSkip||{};
+  D.settings.hubSkip[asin]=true;
+  savePrefs();render();
+  toast('Marked as not selling — it stops nagging everywhere. Un-mark it in the sales review if it comes back.','ok');
+}
+function setPlanDemand(asin,v){
+  D.settings.planDemand=D.settings.planDemand||{};
+  const n=parseFloat(v);
+  if(Number.isFinite(n)&&n>0)D.settings.planDemand[asin]=n;
+  else delete D.settings.planDemand[asin];
+  savePrefs();render();
+}
+
+/* ── production time (spec §7.1): OFF for everything by default — UK
+   off-the-shelf is production 0. A component is ticked "made to order" and
+   THEN the days are filled in; ticked-but-unfilled is a visible gap, never a
+   silent zero. Stored in settings, so no schema change. */
+function prodTimeOf(c){const m=D.settings.prodTime||{};const v=m[c.id];
+  return v===undefined?null:(parseInt(v)||0);}
+function toggleProdTime(cid){
+  D.settings.prodTime=D.settings.prodTime||{};
+  if(D.settings.prodTime[cid]===undefined)D.settings.prodTime[cid]=0;
+  else delete D.settings.prodTime[cid];
+  savePrefs();render();
+}
+function setProdTime(cid,v){
+  D.settings.prodTime=D.settings.prodTime||{};
+  const n=parseInt(v);
+  D.settings.prodTime[cid]=(Number.isFinite(n)&&n>0)?n:0;
+  savePrefs();render();
+}
+
+/* ── who supplies a thing, and how long their route takes. The supplier
+   column plus the layer history; the route comes from "Who ships how".
+   An ask-every-time supplier deliberately has no planning route — that is
+   surfaced as a gap, never guessed around (spec §7.3). */
+function compSupplier(c){
+  /* "Stock correction" and "Opening stock" are bookkeeping, not suppliers —
+     counting them made the glove's "usual supplier" an accounting artifact,
+     which then had no route, which kept the part unpriced everywhere. */
+  const junk=/^(opening stock|stock (correction|adjust)|stocktake|—|-|n\/a|unknown)$/i;
+  const own=(c.supplier||'').trim();
+  if(own&&!junk.test(own))return own;
+  const names={};
+  (c.layers||[]).forEach(l=>{const n=(l.sup||'').trim();
+    if(n&&!junk.test(n))names[n]=(names[n]||0)+1;});
+  return Object.keys(names).sort((a,b)=>names[b]-names[a])[0]||'';
+}
+function routeDaysFor(sup){
+  const s=(sup||'').trim();if(!s)return null;
+  if(supplierAsks(s))return null;
+  /* only a route Jack has actually SET counts for planning — guessMode's
+     pattern-matching fallback is fine for dating one purchase, but a BUY
+     deadline built on a guessed route is the silent assumption the spec
+     forbids. Unset suppliers go to the route screen instead. */
+  const SM=D.settings.supplierModes||{};
+  let k=SM[s.toLowerCase()];
+  if(!k){
+    /* spelling drift on the sheet — "Alibab", "Love Pub Snacks" — must not
+       strand a part unrouted when the real supplier IS set. Exact squashed
+       match first, then one-typo tolerance on names 6+ characters. */
+    const _sq=x=>String(x).toLowerCase().replace(/[^a-z0-9]/g,'');
+    const _l1=(a,b)=>{if(a===b)return true;if(Math.abs(a.length-b.length)>1)return false;
+      if(a.length<6||b.length<6)return false;
+      let i=0,j=0,d=0;
+      while(i<a.length&&j<b.length){
+        if(a[i]===b[j]){i++;j++;continue;}
+        d++;if(d>1)return false;
+        if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++;}}
+      return d+(a.length-i)+(b.length-j)<=1;};
+    const sq=_sq(s);
+    const hit=Object.keys(SM).find(x=>_sq(x)===sq)||Object.keys(SM).find(x=>_l1(_sq(x),sq));
+    if(hit){if(SM[hit]===ASK_MODE)return null;k=SM[hit];}}
+  if(!k)return null;
+  const m=modeDays(k);if(!m)return null;
+  const lbl=(shipModes().find(x=>x.k===k)||{}).label||k;
+  return{hi:m.hi,lo:m.lo,k,label:String(lbl).split('—')[0].trim()};
+}
+/* every supplier the data has ever seen — the route screen works off this */
+function plSuppliers(){
+  /* stock adjustments masquerade as suppliers in old rows — nobody ships from
+     "Stock correction", so it never belongs on the route screen */
+  return knownSuppliers().map(x=>x.name)
+    .filter(n=>!/^stock (correction|adjust)/i.test(n));
+}
+
+/* ═══ A. AMAZON REPLENISHMENT (spec §13-14) — build & send? when? how many? */
+function plAmazonRow(p){
+  const d=planDemandOf(p);
+  const sell=atAmz(p),inb=amzIn(p)||0;
+  const out={p,demand:d,sell,inb,alloc:0,rec:0};
+  if(!d){out.state='nodata';
+    out.why='No sales figure and no planning demand. Nothing is planned for it — type a monthly estimate below and it joins in.';return out;}
+  if(d.m===0){out.state='paused';
+    out.why=d.src==='skip'
+      ?'Marked as not selling, so the planner leaves it alone completely. Un-mark it in the sales review if it comes back.'
+      :'Sold none in '+ymName(hubMonth().ym)+', so nothing is planned. Give it a planning figure if it should still be stocked.';return out;}
+  if(sell==null){out.state='nocount';
+    out.why='Amazon stock has never been counted for this one, so there is no starting point to plan from.';return out;}
+  const ads=d.m/30;out.ads=ads;
+  const fba=fbaCalDays(),saf=safetyDays();
+  /* when does the inbound become sellable? Worked from the latest real
+     shipment date (spec §32) plus the FBA pipeline — never taken on faith
+     as already-sellable, never discounted either (spec §9.2). */
+  let inbEta=null;
+  if(inb>0){
+    const ships=(typeof lavShipments!=='undefined'?lavShipments:[])
+      .filter(x=>x.asin===p.asin&&x.date)
+      .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    const base=ships.length?String(ships[0].date).slice(0,10)
+      :String((D.settings.atAmzAt||{})[p.asin]||dayISO()).slice(0,10);
+    inbEta=workDaysAfter(base,primeDays());
+  }
+  const sellDry=addCalDays(dayISO(),Math.floor(sell/ads));
+  const inbInTime=inb>0&&inbEta!=null&&inbEta<=sellDry;
+  const protUnits=sell+(inbInTime?inb:0);
+  out.protDays=protUnits/ads;
+  out.inbEta=inbEta;out.inbInTime=inbInTime;out.sellDry=sellDry;
+  out.stockout=addCalDays(dayISO(),Math.floor(out.protDays));
+  out.trigger=out.protDays<=fba+saf;
+  /* how many: land the shipment with roughly targetDays of cover ON ARRIVAL
+     (spec §14) — projected position when it becomes sellable, not today's */
+  const landIso=workDaysAfter(dayISO(),primeDays());
+  const landDays=Math.round((new Date(landIso+'T00:00:00')-new Date(dayISO()+'T00:00:00'))/864e5);
+  const inbByLand=(inb>0&&inbEta!=null&&inbEta<=landIso)?inb:0;
+  const projAtLand=Math.max(0,sell-ads*landDays)+inbByLand;
+  const want=ads*(D.settings.targetDays||60);
+  out.rec=out.trigger?Math.max(0,Math.ceil(want-projAtLand)):0;
+  out.landIso=landIso;out.projAtLand=Math.round(projAtLand);out.want=Math.round(want);
+  if(!out.trigger){
+    out.state=(inb>0&&!inbInTime)?'watch':'safe';
+    out.why=(out.state==='watch')
+      ?fmt(inb)+' inbound is expected sellable ~'+dshort(inbEta)+', AFTER the shelf empties ~'+dshort(sellDry)+' — protection holds for now but this needs watching.'
+      :Math.round(out.protDays)+' days of protection against a '+(fba+saf)+'-day trigger ('+fba+' FBA + '+saf+' safety). Nothing to do.';
+  }else if(out.rec===0){
+    out.state='waiting';
+    out.why=(inb>0?fmt(inb)+' already inbound (sellable ~'+dshort(inbEta)+') — ':'')
+      +'the projected position when a shipment sent today became sellable is already at target. Sending more now would just overstock.';
+  }else{
+    out.state=out.protDays<=fba?'critical':'act';
+  }
+  return out;
+}
+/* shared components are allocated ONCE, most-urgent product first — the same
+   12 gloves can never be promised to sixteen products (spec §16/§57). */
+function planAmazon(){
+  const live=D.products.filter(x=>!x.archived);
+  const rows=live.map(plAmazonRow);
+  const act=rows.filter(r=>(r.state==='act'||r.state==='critical')&&r.rec>0)
+    /* a 1-a-month product should not outrank a 350-a-month one on the same
+       protection days — low sellers sink a few places, never off the list */
+    .sort((a,b)=>(a.protDays+(a.ads<0.5?4:0))-(b.protDays+(b.ads<0.5?4:0)));
+  const pool={};
+  const poolGet=o=>{if(pool[o.id]===undefined)pool[o.id]=onHand(o);return pool[o.id];};
+  act.forEach(r=>{
+    const p=r.p;
+    if(p.type!=='bundle'){
+      const have=poolGet(p);
+      r.buildCap=have;r.alloc=Math.min(have,r.rec);
+      if(r.alloc>0)pool[p.id]-=r.alloc;
+      return;
+    }
+    let cap=Infinity,lim=null;
+    (p.recipe||[]).forEach(rc=>{const c=comp(rc.c);if(!c||c.untracked)return;
+      const can=Math.floor(poolGet(c)/rc.q);
+      if(can<cap){cap=can;lim=c;}});
+    cap=(cap===Infinity)?0:cap;
+    r.buildCap=cap;r.lim=lim;r.alloc=Math.min(cap,r.rec);
+    if(r.alloc>0)(p.recipe||[]).forEach(rc=>{const c=comp(rc.c);if(!c||c.untracked)return;
+      pool[c.id]-=rc.q*r.alloc;});
+  });
+  act.forEach(r=>{
+    if(r.alloc>=r.rec||!r.lim)return;
+    r.limTakers=act.filter(x=>x!==r&&x.alloc>0&&x.p.type==='bundle'
+      &&(x.p.recipe||[]).some(rc=>rc.c===r.lim.id)&&x.protDays<=r.protDays)
+      .map(x=>x.p.name);
+  });
+  return{rows,act};
+}
+/* when a product cannot be fully built: is the limiting component's incoming
+   order going to save it, and in time? (spec §10 — "incoming in time") */
+function plGapInfo(r){
+  const c=r.lim;if(!c)return null;
+  const pend=(c.layers||[]).filter(l=>!l.arr&&!l.writtenOff);
+  if(!pend.length)return{kind:'none',
+    txt:'nothing on order for '+c.name+' — the shortfall has no incoming cover at all'};
+  const qty=pend.reduce((t,l)=>t+(l.qty||0),0);
+  const withEta=pend.filter(l=>l.eta1||l.eta2);
+  if(!withEta.length)return{kind:'noeta',qty,
+    txt:fmt(qty)+' × '+c.name+' on order but NO delivery method or ETA is set, so nobody can say if it lands in time. Set the method on the Purchases tab.'};
+  const eta=withEta.map(l=>String(l.eta2||l.eta1).slice(0,10)).sort()[0];
+  const usable=workDaysAfter(addCalDays(eta,prepDaysN()),primeDays());
+  const late=usable>r.stockout;
+  return{kind:late?'late':'intime',eta,usable,qty,
+    txt:fmt(qty)+' × '+c.name+' due '+dshort(eta)+' → built and sellable ~'+dshort(usable)
+      +(late?' — AFTER the projected stock-out on '+dshort(r.stockout)+'. That is a supply gap this order cannot close.'
+             :' — before the projected stock-out on '+dshort(r.stockout)+'.')};
+}
+
+/* ═══ B. COMPONENT PURCHASING (spec §15-22) — buy? by when? how much? ═══ */
+function planComponents(){
+  const live=D.products.filter(x=>!x.archived);
+  const cd={},drv={},selfLines=[];
+  live.forEach(p=>{
+    const d=planDemandOf(p);if(!d||!d.m)return;
+    const ads=d.m/30;
+    if(p.type!=='bundle'){selfLines.push({o:p,isProd:true,daily:ads,drivers:[p.name]});return;}
+    (p.recipe||[]).forEach(rc=>{const c=comp(rc.c);if(!c||c.untracked)return;
+      cd[c.id]=(cd[c.id]||0)+ads*rc.q;
+      (drv[c.id]=drv[c.id]||[]).push(p.name+(rc.q>1?' ×'+rc.q:''));});
+  });
+  const lines=selfLines.concat(Object.keys(cd)
+    .map(id=>({o:comp(id),isProd:false,daily:cd[id],drivers:drv[id]}))
+    .filter(x=>x.o&&!x.o.archived));
+  const today=dayISO();
+  lines.forEach(L=>{
+    const o=L.o,dly=L.daily;
+    L.hand=onHand(o);
+    L.cover=dly?L.hand/dly:null;
+    L.sup=compSupplier(o);
+    const route=routeDaysFor(L.sup);
+    const pt=L.isProd?null:prodTimeOf(o);
+    L.prodOn=pt!==null;L.prodDays=pt||0;
+    L.prodMissing=L.prodOn&&!pt;
+    if(!L.sup){L.state='nosup';return;}
+    if(!route){L.state='noroute';return;}
+    L.route=route;
+    L.lead=route.hi+L.prodDays;
+    const pend=(o.layers||[]).filter(l=>!l.arr&&!l.writtenOff);
+    L.pendQty=pend.reduce((t,l)=>t+(l.qty||0),0);
+    L.pendNoEta=pend.filter(l=>!(l.eta1||l.eta2)).reduce((t,l)=>t+(l.qty||0),0);
+    L.overdue=pend.some(l=>{const e=String(l.eta2||'').slice(0,10);return e&&e<today;});
+    const arriveIso=addCalDays(today,L.lead);
+    const inTime=pend.filter(l=>{const e=String(l.eta2||l.eta1||'').slice(0,10);
+      return e&&e<=arriveIso;}).reduce((t,l)=>t+(l.qty||0),0);
+    L.inTime=inTime;
+    /* buy enough that AFTER it lands we hold cycle + safety of cover, from
+       the projected position — never a flat top-up to a target (spec §18) */
+    const projAtArrival=Math.max(0,L.hand-dly*L.lead)+inTime;
+    const want=dly*(cycleDaysN()+safetyDays());
+    L.want=Math.ceil(want);L.projAtArrival=Math.round(projAtArrival);
+    const need=Math.max(0,want-projAtArrival);
+    L.needRaw=Math.ceil(need);
+    const cq=(!L.isProd&&o.caseQty>0)?o.caseQty:null;
+    L.caseQty=cq;
+    L.cases=(cq&&need>0)?Math.ceil(need/cq):null;
+    L.buyQty=need>0?(cq?L.cases*cq:Math.ceil(need)):0;
+    L.cost=L.buyQty>0?L.buyQty*(avgCost(o)||0):0;
+    const runoutDays=dly?(L.hand+inTime)/dly:Infinity;
+    L.buyByDays=Math.floor(runoutDays-(L.lead+safetyDays()));
+    L.buyBy=addCalDays(today,Math.max(0,L.buyByDays));
+    if(L.buyQty<=0)L.state=(L.pendQty>0)?'waiting':'safe';
+    else if(L.buyByDays<=0)L.state='buy';
+    else if(L.buyByDays<=7)L.state='soon';
+    else L.state='upcoming';
+    if(L.overdue)L.chase=true;
+  });
+  const rank={buy:0,soon:1,noroute:2,nosup:2,upcoming:3,waiting:4,safe:5};
+  return lines.sort((a,b)=>{
+    const d=(rank[a.state]!==undefined?rank[a.state]:6)-(rank[b.state]!==undefined?rank[b.state]:6);
+    if(d)return d;
+    const ax=a.buyByDays==null?999:a.buyByDays,bx=b.buyByDays==null?999:b.buyByDays;
+    return ax-bx;
+  });
+}
+
+/* one engine run per render pass — every panel reads the SAME answer, which
+   is the entire point of the rebuild: four surfaces, one brain */
+let _plCache=null,_plStamp=0;
+function plData(){
+  if(_plCache&&Date.now()-_plStamp<800)return _plCache;
+  const az=planAmazon(),buys=planComponents();
+  const byComp={},azBy={};
+  buys.forEach(L=>{if(!L.isProd)byComp[L.o.id]=L;});
+  az.rows.forEach(r=>{azBy[r.p.id]=r;});
+  _plCache={az,buys,byComp,azBy};_plStamp=Date.now();
+  return _plCache;
+}
+/* ═══ THE DEBUG VIEW (spec §82) ═══ */
+function plStateCol(k){
+  const M={critical:'#f87171',act:'#fbbf24',gap:'#f87171',parts:'#fb923c',
+    waiting:'#60a5fa',watch:'#fbbf24',safe:'#4ade80',buy:'#f87171',soon:'#fbbf24',
+    noroute:'#7d7568',nosup:'#7d7568',upcoming:'#7d7568',paused:'#7d7568',chase:'#c084fc',
+    nodata:'#f87171',nocount:'#f87171'};
+  return M[k]||'#7d7568';
+}
+function plStateChip(k){
+  const M={critical:['CRITICAL — BUILD & SEND NOW','#f87171'],
+    act:['BUILD & SEND','#fbbf24'],waiting:['WAITING','#60a5fa'],
+    watch:['WATCH','#fbbf24'],safe:['SAFE','#4ade80'],
+    paused:['NOT PLANNED','#7d7568'],nodata:['SALES DATA REQUIRED','#f87171'],
+    nocount:['UPDATE AMAZON STOCK','#f87171'],
+    buy:['BUY NOW','#f87171'],soon:['BUY THIS WEEK','#fbbf24'],
+    upcoming:['UPCOMING','#a8a196'],chase:['CHASE','#c084fc'],
+    parts:['GET PARTS FIRST','#fb923c'],
+    noroute:['SET SUPPLIER ROUTE','#f87171'],
+    nosup:['NO SUPPLIER','#f87171'],gap:['SUPPLY GAP','#f87171']};
+  const x=M[k]||[k,'#a8a196'];
+  return '<span style="display:inline-block;padding:2px 8px;border-radius:5px;font-size:10.5px;font-weight:800;letter-spacing:.04em;white-space:nowrap;color:#14120f;background:'+x[1]+'">'+x[0]+'</span>';
+}
+/* the Action cell's popup — what the old 60d-target button used to answer
+   ("what do I send, what do I buy?") but from the engine, with the working */
+function openPlanRow(pid){
+  const p=prod(pid);if(!p)return;
+  const R=(plData().azBy||{})[p.id];if(!R)return;
+  const blocked=(R.state==='act'||R.state==='critical')&&R.buildCap===0;
+  const gap=(R.alloc<R.rec&&(R.state==='act'||R.state==='critical'))?plGapInfo(R):null;
+  let doTxt='';
+  if(R.state==='act'||R.state==='critical')
+    doTxt=R.alloc>0?('<b>BUILD & SEND '+fmt(R.alloc)+'</b>'+(R.alloc<R.rec?' of the '+fmt(R.rec)+' wanted':'')):'<b>nothing can be built yet</b>';
+  $('lav3Mod2').className='mod';
+  $('lav3Mod2').innerHTML=`
+    <div class="mh"><h3>${esc(p.name)}</h3>
+      <span style="margin-left:8px">${plStateChip(blocked?'parts':R.state)}</span>
+      <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+    <div class="mb">
+      ${doTxt?`<div style="font-size:13.5px;color:var(--text);margin:0 0 8px;">${doTxt}</div>`:''}
+      <div style="font-size:12px;color:var(--text3);line-height:1.6;margin:0 0 4px;">${R.why||''}
+        ${gap?' '+esc(gap.txt):''}</div>
+      ${plDebugPre(R)}
+    </div>
+    <div class="mf"><span class="pmeta" style="margin:0">the same row, with the same working, lives on the Planner</span>
+      <div class="sp">
+        ${R.alloc>0?`<button class="btn go" onclick="LV3.cm('lav3Ov2');LV3.openShip('${p.id}')">Ship units</button>`:''}
+        <button class="btn" onclick="LV3.cm('lav3Ov2');LV3.go('planner')">Planner</button>
+        <button class="btn" onclick="LV3.cm('lav3Ov2')">Close</button></div></div>`;
+  om('lav3Ov2');
+}
+function plDebugPre(r){
+  const d=r.demand||{};
+  const rows=[
+    ['Demand',d.m!=null?fmt(d.m)+'/month ('+d.label+') = '+(r.ads?r.ads.toFixed(2):'—')+'/day':'—'],
+    ['Amazon sellable',r.sell==null?'never counted':fmt(r.sell)],
+    ['Amazon inbound',fmt(r.inb||0)+(r.inbEta?' · expected sellable ~'+dshort(r.inbEta)+(r.inbInTime?' (in time)':' (after the shelf empties)'):'')],
+    ['Buildable now',r.buildCap!=null?fmt(r.buildCap):fmt((avail(r.p)||{}).n||0)],
+    ['FBA pipeline',primeDays()+' working days = '+fbaCalDays()+' calendar'],
+    ['Safety reserve',safetyDays()+' days'],
+    ['Trigger at',(fbaCalDays()+safetyDays())+' days of protection'],
+    ['Protection now',r.protDays!=null?Math.round(r.protDays)+' days':'—'],
+    ['Projected stock-out',r.stockout?dshort(r.stockout):'—'],
+    ['Sent today → sellable',r.landIso?dshort(r.landIso):'—'],
+    ['Projected position then',r.projAtLand!=null?fmt(r.projAtLand):'—'],
+    ['Aim when it lands',r.want!=null?fmt(r.want)+' units — '+(D.settings.targetDays||60)+' days\u2019 worth':'—'],
+    ['Recommended send',r.rec?fmt(r.rec):'0'],
+    ['Allocated from parts',r.alloc!=null?fmt(r.alloc):'—']];
+  return '<div style="display:grid;grid-template-columns:auto 1fr;gap:3px 14px;padding:10px 12px;background:var(--bg3);border-radius:7px;margin:7px 0 3px;font-size:11.5px;">'
+    +rows.map(x=>'<span style="color:var(--text3)">'+x[0]+'</span><span class="mono" style="color:var(--text)">'+x[1]+'</span>').join('')+'</div>';
+}
+function vPlanner(){
+  const az=planAmazon();
+  const buys=planComponents();
+  const fba=fbaCalDays(),saf=safetyDays();
+  /* data gaps first — the engine refuses to guess, so the gaps ARE the UI */
+  /* "Alibab", "Love Pub Snacks"/"LovePubSnacks" — variants of one supplier
+     each demanding their own answer was four questions for one fact. Group by
+     a squashed name (plus one-typo tolerance) so one pick covers the lot. */
+  const _sq=s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,'');
+  const _lev1=(a,b)=>{if(a===b)return true;if(Math.abs(a.length-b.length)>1)return false;
+    if(a.length<6||b.length<6)return false;
+    let i=0,j=0,d=0;
+    while(i<a.length&&j<b.length){
+      if(a[i]===b[j]){i++;j++;continue;}
+      d++;if(d>1)return false;
+      if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++;}}
+    return d+(a.length-i)+(b.length-j)<=1;};
+  const unrouted=plSuppliers().filter(s=>!routeDaysFor(s)&&!supplierAsks(s));
+  const groups=[];
+  unrouted.forEach(s=>{const q=_sq(s);
+    const g=groups.find(G=>G.qs.some(x=>x===q||_lev1(x,q)));
+    if(g){g.names.push(s);g.qs.push(q);}else groups.push({names:[s],qs:[q]});});
+  const noRoute=groups;
+  const askSup=plSuppliers().filter(s=>supplierAsks(s));
+  const noDemand=az.rows.filter(r=>r.state==='nodata');
+  const noCount=az.rows.filter(r=>r.state==='nocount');
+  const noEtaLines=buys.filter(L=>L.pendNoEta>0);
+  const actRows=az.act||[];
+  const shown=az.rows.filter(r=>['critical','act','waiting','watch'].indexOf(r.state)>=0)
+    .sort((a,b)=>(a.protDays==null?999:a.protDays)-(b.protDays==null?999:b.protDays));
+  const safeRows=az.rows.filter(r=>r.state==='safe');
+  const buyRows=buys.filter(L=>['buy','soon'].indexOf(L.state)>=0);
+  const routeRows=buys.filter(L=>L.state==='noroute'||L.state==='nosup');
+  const laterRows=buys.filter(L=>['upcoming','waiting'].indexOf(L.state)>=0);
+  const buyCost=buyRows.reduce((t,L)=>t+(L.cost||0),0);
+
+  const setBox=(key,val,lab,hint)=>'<label style="display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text3)">'+lab
+    +'<span style="display:flex;align-items:center;gap:5px"><input class="in" style="width:58px" type="number" value="'+val+'" onchange="LV3.plSet(\''+key+'\',this.value)"><span>'+hint+'</span></span></label>';
+
+  const gapCard=(title,body)=>'<div style="background:var(--bg2);border:1px solid var(--border2);border-left:3px solid var(--amb);border-radius:9px;padding:11px 13px;">'
+    +'<div style="font-size:11.5px;font-weight:800;color:var(--amb);margin-bottom:6px;">'+title+'</div>'+body+'</div>';
+
+  let gaps='';
+  if(noRoute.length)gaps+=gapCard('Set each supplier\u2019s route — no BUY date without one',
+    noRoute.map(g=>{const s=g.names[0];const extra=g.names.slice(1);
+      return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px;">'
+      +'<span style="flex:1;min-width:0;color:var(--text)">'+esc(s)
+      +(extra.length?'<div class="pmeta" style="margin:0">also covers: '+esc(extra.join(', '))+'</div>':'')+'</span>'
+      +'<select class="in" style="width:220px" onchange="if(this.value)LV3.setRouteGroup(\''+esc(g.names.map(n=>n.toLowerCase().trim()).join('|')).replace(/'/g,"\\'")+'\',this.value)">'
+      +'<option value="">'+(guessMode(s)?'guess: '+esc(String((shipModes().find(m=>m.k===guessMode(s))||{}).label||guessMode(s)).split('—')[0].trim().replace(' / parcel','')):'pick\u2026')+'</option>'
+      +shipModes().map(m=>'<option value="'+m.k+'">'+esc(String(m.label).split('—')[0].trim())+' · '+m.lo+'–'+m.hi+'d</option>').join('')
+      +'</select></div>';}).join('')
+    +'<div class="pmeta" style="margin:6px 0 0">One-time job — the same answer then covers everything that supplier sends, and you can change it in Settings later.</div>');
+  if(noDemand.length)gaps+=gapCard('No sales history and no planning figure — these are invisible to the planner',
+    noDemand.map(r=>'<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px;">'
+      +'<span style="flex:1;color:var(--text)">'+esc(r.p.name)+'</span>'
+      +'<input class="in" style="width:80px" type="number" placeholder="e.g. 50" value="" onchange="LV3.setPlanDemand(\''+esc(r.p.asin)+'\',this.value)">'
+      +'<span class="pmeta" style="margin:0">/month</span>'
+      +'<button class="btn sm" title="Dead line? One click and it stops nagging everywhere." onclick="LV3.plSkip(\''+esc(r.p.asin)+'\')">Not selling</button></div>').join('')
+    +'<div class="pmeta" style="margin:6px 0 0">Your estimate, clearly labelled as yours — the moment real sales land from the hub they take over automatically.</div>');
+  if(noEtaLines.length)gaps+=gapCard('Orders with no delivery method — the engine cannot tell if they land in time',
+    noEtaLines.map(L=>'<div style="font-size:12px;padding:2px 0;color:var(--text)">'+fmt(L.pendNoEta)+' × '+esc(L.o.name)+' <span class="pmeta" style="margin:0">('+esc(L.sup||'?')+')</span></div>').join('')
+    +'<div class="pmeta" style="margin:6px 0 0">Until a method is picked these count as NOT protecting you — deliberately harsh, so a late order can never hide. Set them on the <a href="javascript:void(0)" onclick="LV3.go(\'purchases\')" style="color:var(--blu)">Purchases tab</a>.</div>');
+  if(noCount.length)gaps+=gapCard('Never counted at Amazon',
+    noCount.map(r=>'<div style="font-size:12px;padding:2px 0;color:var(--text)">'+esc(r.p.name)+'</div>').join(''));
+
+  const azRow=r=>{
+    const gap=(r.alloc<r.rec&&(r.state==='act'||r.state==='critical'))?plGapInfo(r):null;
+    const stateK=(gap&&(gap.kind==='late'||gap.kind==='noeta')&&r.alloc<r.rec)?'gap'
+      :((r.state==='act'||r.state==='critical')&&r.buildCap===0)?'parts':r.state;
+    let doTxt='';
+    if(r.state==='act'||r.state==='critical'){
+      doTxt=r.alloc>0?('<b>BUILD & SEND '+fmt(r.alloc)+'</b>'+(r.alloc<r.rec?' <span class="pmeta" style="margin:0">of the '+fmt(r.rec)+' wanted</span>':'')):'<b>nothing can be built</b>';
+    }else if(r.state==='waiting'){doTxt='wait — inbound covers it';}
+    else if(r.state==='watch'){doTxt='watch the inbound';}
+    let why='';
+    if(r.state==='act'||r.state==='critical'){
+      why='Protection is ~'+Math.round(r.protDays)+' days against a '+(fba+saf)+'-day trigger. Sent today it is sellable ~'+dshort(r.landIso)
+        +', when ~'+fmt(r.projAtLand)+' would remain; topping up to '+fmt(r.want)+' ('+(D.settings.targetDays||60)+'d) means sending '+fmt(r.rec)+'.';
+      if(r.alloc<r.rec){
+        why+=' Parts only allow '+fmt(r.buildCap)+(r.lim?' — limited by '+esc(r.lim.name):'')+'.';
+        if(r.limTakers&&r.limTakers.length)why+=' '+esc(r.limTakers.join(', '))+' (more urgent) already claimed the shared stock.';
+        if(gap)why+=' '+esc(gap.txt);
+      }
+    }else why=r.why||'';
+    return '<details class="plRow"><summary style="display:grid;grid-template-columns:16px minmax(150px,1.4fr) 62px 62px 62px 70px 88px minmax(140px,1fr);gap:8px;align-items:center;padding:8px 10px;cursor:pointer;list-style:none;border-left:3px solid '+plStateCol(stateK)+';">'
+      +'<span class="plCh">\u25b8</span>'
+      +'<span style="font-size:12.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(r.p.name)
+      +(r.ads&&r.ads<0.5?' <span class="pmeta" style="margin:0">· low volume</span>':'')+'</span>'
+      +'<span class="mono" style="font-size:12px;text-align:right;color:'+(r.sell===0?'var(--red)':'var(--text)')+'">'+(r.sell==null?'—':fmt(r.sell))+'</span>'
+      +'<span class="mono" style="font-size:12px;text-align:right;color:var(--blu)">'+(r.inb?fmt(r.inb):'—')+'</span>'
+      +'<span class="mono" style="font-size:12px;text-align:right;">'+(r.buildCap!=null?fmt(r.buildCap):fmt((avail(r.p)||{}).n||0))+'</span>'
+      +'<span class="mono" style="font-size:12px;text-align:right;color:var(--text3)">'+(r.demand&&r.demand.m?fmt(r.demand.m)+'/mo':'—')+'</span>'
+      +'<span class="mono" style="font-size:12px;text-align:right;font-weight:800;color:'+(r.protDays==null?'var(--text3)':(r.protDays<=fba?'var(--red)':(r.protDays<=fba+saf?'var(--amb)':'var(--grn)')))+'">'+(r.protDays==null?'—':Math.round(r.protDays)+'d')+'</span>'
+      +'<span style="text-align:right">'+plStateChip(stateK)+'</span></summary>'
+      +'<div style="padding:2px 12px 11px;">'
+      +(doTxt?'<div style="font-size:12.5px;color:var(--text);margin:4px 0 5px;">'+doTxt+'</div>':'')
+      +'<div style="font-size:11.5px;color:var(--text3);line-height:1.55;">'+why+'</div>'
+      +plDebugPre(r)+'</div></details>';
+  };
+
+  const buyRow=L=>{
+    const nm=esc(L.o.name)+(L.isProd?' <span class="pmeta" style="margin:0">(the product itself)</span>':'');
+    let why='';
+    if(L.state==='buy'||L.state==='soon'||L.state==='upcoming'){
+      why='Used by '+esc((L.drivers||[]).join(', '))+' — '+(L.daily?L.daily.toFixed(1):'0')+'/day pooled. '
+        +fmt(L.hand)+' on hand ('+(L.cover!=null?Math.round(L.cover)+' days':'—')+')'
+        +(L.inTime?', '+fmt(L.inTime)+' incoming in time':'')
+        +(L.pendNoEta?', '+fmt(L.pendNoEta)+' incoming with NO ETA (not counted)':'')
+        +'. Route '+esc(L.sup)+' · '+esc(L.route?L.route.label:'')+' = '+L.lead+'d'
+        +(L.prodDays?' (incl. '+L.prodDays+'d production)':'')
+        +'. After it lands you would hold '+fmt(L.projAtArrival)+'; the target is '+fmt(L.want)+' ('+cycleDaysN()+'d cycle + '+safetyDays()+'d safety), so buy '+fmt(L.needRaw)
+        +(L.cases?' → '+fmt(L.cases)+' case'+(L.cases===1?'':'s')+' of '+fmt(L.caseQty)+' = '+fmt(L.buyQty):'')+'.';
+    }else if(L.state==='waiting'){why=fmt(L.pendQty)+' already on order covers it — no duplicate buy.';}
+    else if(L.state==='safe'){why='Enough cover for the cycle — nothing to do.';}
+    else if(L.state==='noroute'){why=esc(L.sup)+' has no route set (or is set to ask-every-time), so no BUY date can be worked out. Pick its route in the box above.';}
+    else if(L.state==='nosup'){why='No supplier recorded anywhere for this — no purchase history to plan from.';}
+    const prodBit=(L.isProd||['buy','soon','upcoming'].indexOf(L.state)<0)?'':('<span class="pmeta" style="margin:0;white-space:nowrap;" title="Tick when the supplier makes this after you order (custom print, etc) — the production days are added to every BUY date.">'
+      +'<a href="javascript:void(0)" onclick="LV3.toggleProdTime(\''+L.o.id+'\')" style="color:'+(L.prodOn?'var(--amb)':'var(--text3)')+';text-decoration:none;">'+(L.prodOn?'☑':'☐')+' made to order</a>'
+      +(L.prodOn?' <input class="in" style="width:52px" type="number" min="1" placeholder="days" value="'+(L.prodDays||'')+'" onchange="LV3.setProdTime(\''+L.o.id+'\',this.value)">':'')
+      +'</span>');
+    return '<details class="plRow"><summary style="display:grid;grid-template-columns:16px minmax(150px,1.4fr) minmax(90px,.7fr) 60px 74px 84px 100px;gap:8px;align-items:center;padding:8px 10px;cursor:pointer;list-style:none;border-left:3px solid '+plStateCol(L.chase?'chase':L.state)+';">'
+      +'<span class="plCh">\u25b8</span>'
+      +'<span style="font-size:12.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+nm+'</span>'
+      +'<span style="font-size:11.5px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(L.sup||'—')+'</span>'
+      +'<span class="mono" style="font-size:12px;text-align:right;color:'+(L.hand===0?'var(--red)':'var(--text)')+'">'+fmt(L.hand)+'</span>'
+      +'<span class="mono" style="font-size:12px;text-align:right;color:var(--text3)">'+(L.cover!=null?Math.round(L.cover)+'d':'—')+'</span>'
+      +'<span class="mono" style="font-size:12.5px;font-weight:800;text-align:right;color:'+(L.buyQty>0?'var(--amb)':'var(--text3)')+'">'+(L.buyQty>0?fmt(L.buyQty):'—')+'</span>'
+      +'<span style="text-align:right">'+(L.chase?plStateChip('chase')+' ':'')+plStateChip(L.state)+'</span></summary>'
+      +'<div style="padding:2px 12px 11px;">'
+      +(L.chase?'<div style="font-size:12px;color:#c084fc;font-weight:700;margin:3px 0 4px;">An order for this is past its expected window — worth the VA chasing the supplier.</div>':'')
+      +'<div style="font-size:11.5px;color:var(--text3);line-height:1.55;">'+why+'</div>'
+      +(L.state==='buy'||L.state==='soon'?'<div style="font-size:12px;color:var(--text);margin-top:5px;"><b>Order by '+dshort(L.buyBy)+'</b>'+(L.cost?' · roughly '+gbp(L.cost):'')+'</div>':'')
+      +'<div style="margin-top:6px;">'+prodBit+'</div>'
+      +'</div></details>';
+  };
+
+  const hd=(t,s)=>'<div class="ph"><span class="t">'+t+'</span><span class="sub">'+s+'</span></div>';
+  const azHead='<div style="display:grid;grid-template-columns:16px minmax(150px,1.4fr) 62px 62px 62px 70px 88px minmax(140px,1fr);gap:8px;padding:7px 10px;border-bottom:1px solid var(--border2);font-size:10px;font-weight:800;letter-spacing:.05em;color:var(--text3);text-transform:uppercase;">'
+    +'<span></span><span>Product</span><span style="text-align:right">Sellable</span><span style="text-align:right">Inbound</span><span style="text-align:right">Buildable</span><span style="text-align:right">Demand</span><span style="text-align:right">Protection</span><span style="text-align:right">Action</span></div>';
+  const buyHead='<div style="display:grid;grid-template-columns:16px minmax(150px,1.4fr) minmax(90px,.7fr) 60px 74px 84px 100px;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border2);font-size:10px;font-weight:800;letter-spacing:.05em;color:var(--text3);text-transform:uppercase;">'
+    +'<span></span><span>Part</span><span>Supplier</span><span style="text-align:right">On hand</span><span style="text-align:right">Cover</span><span style="text-align:right">Buy</span><span style="text-align:right">Status</span></div>';
+
+  const kBuyCost=buyRows.reduce((t,L)=>t+(L.cost||0),0);
+  const kSendUnits=actRows.reduce((t,r)=>t+(r.alloc||0),0);
+  const kSetup=noRoute.length+noDemand.length+noCount.length;
+  const kpiCard=(v,lab,sub,col)=>'<div style="flex:1;min-width:150px;background:var(--bg2);border:1px solid var(--border);border-top:2px solid '+col+';border-radius:10px;padding:13px 15px;">'
+    +'<div style="font-size:26px;font-weight:900;font-family:var(--num,inherit);color:'+col+';line-height:1.1;">'+v+'</div>'
+    +'<div style="font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);margin-top:5px;">'+lab+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:2px;">'+sub+'</div></div>';
+  $('lav3View').innerHTML='<div id="plnrWrap" style="max-width:1560px;margin:0 auto;">'
+    +'<style>#plnrWrap details>summary{list-style:none}#plnrWrap details>summary::-webkit-details-marker{display:none}'
+    +'#plnrWrap details>summary:hover{background:var(--bg3)}'
+    +'#plnrWrap .plCh{display:inline-block;transition:transform .15s;color:var(--text3);font-size:10px}'
+    +'#plnrWrap details[open]>summary .plCh{transform:rotate(90deg)}'
+    +'#plnrWrap .plRow{border-bottom:1px solid var(--border);}'
+    +'#plnrWrap .plRow>summary{border-left:3px solid transparent;}'
+    +'</style>'
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">'
+    +kpiCard(fmt(actRows.length),'need action','build &amp; send is due',actRows.length?'#f87171':'#4ade80')
+    +kpiCard(fmt(kSendUnits),'units sendable now','across '+fmt(actRows.filter(r=>r.alloc>0).length)+' products','#22d3ee')
+    +kpiCard(fmt(buyRows.length),'parts to buy',kBuyCost?'about '+gbp(kBuyCost):'nothing due',buyRows.length?'#fbbf24':'#4ade80')
+    +kpiCard(fmt(kSetup),'setup jobs',kSetup?'answers below the tables':'all set',kSetup?'#fbbf24':'#4ade80')
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 12px;padding:0 2px;">'
+    +'<span class="pmeta" style="margin:0;"><b>Protection</b> = days until the Amazon shelf runs empty, counting inbound that lands in time · trigger at <b>'+(fba+saf)+'d</b> ('+fba+' FBA + '+saf+' safety) · send target <b>'+(D.settings.targetDays||60)+'d</b></span>'
+    +'<details style="margin-left:auto;"><summary style="cursor:pointer;font-size:11.5px;color:var(--blu);padding:2px 6px;">assumptions</summary>'
+    +'<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;padding:10px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:9px;margin-top:6px;">'
+    +setBox('safetyDays',safetyDays(),'Safety reserve','days')
+    +setBox('prepDays',prepDaysN(),'Warehouse prep','days')
+    +setBox('cycleDays',cycleDaysN(),'Purchase cycle','days')
+    +'<span class="pmeta" style="margin:0 0 4px;">FBA pipeline: <b>'+primeDays()+' working days = '+fba+' calendar</b> — set in Settings</span>'
+    +'</div></details>'
+    +'</div>'
+    +'<div class="panel" style="margin-bottom:14px;">'
+    +hd('Build &amp; send to Amazon',fmt(actRows.length)+' need action · '+fmt(safeRows.length)+' safe')
+    +azHead+shown.map(azRow).join('')
+    +(safeRows.length?'<details><summary style="padding:8px 10px;cursor:pointer;font-size:11.5px;color:var(--text3);list-style:none;">'+fmt(safeRows.length)+' safe products — open to check them</summary>'+safeRows.map(azRow).join('')+'</details>':'')
+    +'</div>'
+    +'<div class="panel" style="margin-bottom:14px;">'
+    +hd('Buy list',buyRows.length?fmt(buyRows.length)+' to buy · roughly '+gbp(buyCost):'nothing due')
+    +buyHead+buyRows.map(buyRow).join('')
+    +(routeRows.length?routeRows.map(buyRow).join(''):'')
+    +(laterRows.length?'<details><summary style="padding:8px 10px;cursor:pointer;font-size:11.5px;color:var(--text3);list-style:none;">'+fmt(laterRows.length)+' more — upcoming or already covered</summary>'+laterRows.map(buyRow).join('')+'</details>':'')
+    +'</div>'
+    +(gaps?('<details style="margin:0 0 14px;"><summary style="cursor:pointer;list-style:none;padding:10px 14px;background:var(--bg2);border:1px solid var(--border2);border-left:3px solid var(--amb);border-radius:9px;font-size:12.5px;font-weight:700;color:var(--amb);">'
+      +'\u26a0 '+fmt(noRoute.length+noDemand.length+noCount.length)+' setup job'+((noRoute.length+noDemand.length+noCount.length)===1?'':'s')+' waiting'
+      +' <span style="font-weight:400;color:var(--text3);">— '
+      +[noRoute.length?fmt(noRoute.length)+' supplier route'+(noRoute.length===1?'':'s'):'',
+        noDemand.length?fmt(noDemand.length)+' sales figure'+(noDemand.length===1?'':'s'):'',
+        noCount.length?fmt(noCount.length)+' Amazon count'+(noCount.length===1?'':'s'):''].filter(Boolean).join(' \u00b7 ')
+      +' \u00b7 click to open</span></summary>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:10px;align-items:start;margin-top:10px;">'+gaps+'</div></details>'):'')
+    +'<div class="pmeta" style="margin:0 0 20px;">Numbers not looking right on something? Open its row — every input the engine used is listed. That is the point of this page.</div>'
+    +'</div>';
+}
+
 /* ═══════════════ TABS + ROUTER ═══════════════ */
 function render(){
   if(TAB==='guide')TAB='overview';        // the tab is gone; anyone parked on it lands home
@@ -23294,12 +23940,13 @@ function render(){
   const t=[['overview','Overview',''],['products','Products',D.products.length],
            ['components','Components',D.components.length],
            ['restocks','Restocks',''],
+           ['planner','Planner',''],
            ['purchases','Purchases',(()=>{const n=D.purchases.filter(x=>allocState(x).k==='none').length;return n?'· '+n+' to link':'';})()],
            ['history','History',''],   // the count was noise — nobody acts on "301"
 
            ['settings','Settings','']];   // How it works retired — the pages explain themselves now
   $('lav3Tabs').innerHTML=t.map(([k,l,c])=>`<button class="${TAB===k?'on':''}" onclick="LV3.go('${k}')">${l}${c!==''?`<span class="cnt">${c}</span>`:''}</button>`).join('');
-  ({overview:vOverview,products:vProducts,components:vComponents,restocks:vRestocks,purchases:vPurchases,history:vHistory,settings:vSettings,guide:vGuide})[TAB]();
+  ({overview:vOverview,products:vProducts,components:vComponents,restocks:vRestocks,planner:vPlanner,purchases:vPurchases,history:vHistory,settings:vSettings,guide:vGuide})[TAB]();
   try{paintHealth();}catch(e){console.warn('health paint',e);}
   stickWatch();          // after layout, not mid-render
   save();
@@ -23388,14 +24035,12 @@ function workList(){
   const orders=reviewOrders();
   const shorts=shortLines();
   const unchased=shorts.filter(x=>!x.l.chased).length;
-  const overdue=inboundAll().filter(x=>etaState(x.l).k==='late');
+  const overdue=inboundAll().filter(x=>!x.l.short&&etaState(x.l).k==='late');
   const dueSoon=inboundAll().filter(x=>etaState(x.l).k==='soon');
   const live=D.products.filter(p=>!p.archived);
-  const blockedNoOrder=live.filter(p=>{const a=avail(p);
-    if(a.kind==='norecipe'||a.n!==0)return false;
-    if(p.type!=='bundle')return !onOrder(p);
-    return !p.recipe.some(r=>{const c=comp(r.c);return c&&onOrder(c);});});
-  const belowTarget=live.filter(p=>{const t=target60(p);return t&&(avail(p).n||0)<t&&sold30(p)!=null;});
+  const PE=(function(){try{return plData();}catch(e){return null;}})();
+  const needParts=PE?PE.az.act.filter(r=>r.buildCap===0):[];
+  const toSend=PE?PE.az.act.filter(r=>r.alloc>0):[];
   const noSold=live.filter(p=>sold30(p)==null&&p.ship30>0).length;
   const stale=live.filter(p=>{const a=sold30Age(p);return a!=null&&a>=30;}).length;
 
@@ -23409,40 +24054,49 @@ function workList(){
     owed.push({asin,n,name:(pr&&pr.name)||asin});
   });
   const owedUnits=owed.reduce((a,b)=>a+b.n,0);
-  if(owed.length)jobs.push({sev:1,n:owedUnits,
+  if(owed.length)jobs.push({k:'owed',o:'jack',sev:1,n:owedUnits,
     t:`${fmt(owedUnits)} unit${owedUnits===1?'':'s'} went out that we did not have`,
     s:owed.slice(0,3).map(o=>`${esc(o.name)} (${o.n})`).join(', ')+(owed.length>3?` +${owed.length-3} more`:'')
       +' — approved at the time; settle it once the delivery lands',
     btn:'Settle',go:"openOverSent()"});
-  if(blockedNoOrder.length)jobs.push({sev:1,n:blockedNoOrder.length,
-    t:`${fmt(blockedNoOrder.length)} product${blockedNoOrder.length===1?'':'s'} out of stock with nothing on order`,
-    s:blockedNoOrder.slice(0,3).map(p=>esc(p.name)).join(', ')+(blockedNoOrder.length>3?` +${blockedNoOrder.length-3} more`:''),
-    btn:'Show me',go:"pFilter='blocked';go('products')"});
-  if(overdue.length)jobs.push({sev:1,n:overdue.length,
+  if(needParts.length)jobs.push({k:'needparts',o:'wh',sev:1,n:needParts.length,
+    t:`${fmt(needParts.length)} product${needParts.length===1?' needs':'s need'} parts before anything can be sent`,
+    s:needParts.slice(0,3).map(r=>esc(r.p.name)).join(', ')+(needParts.length>3?` +${needParts.length-3} more`:'')
+      +' — the Planner names the blocking part and whether it is already on order',
+    btn:'Planner',go:"go('planner')"});
+  if(overdue.length)jobs.push({k:'overdue',o:'va',sev:1,n:overdue.length,
     t:`${fmt(overdue.length)} deliver${overdue.length===1?'y is':'ies are'} overdue`,
     s:overdue.slice(0,2).map(x=>`${esc(x.o.name)} from ${esc(x.l.sup||'—')}`).join(' · '),
     btn:'Chase',go:"go('purchases')"});
-  if(unchased)jobs.push({sev:1,n:unchased,
+  if(unchased)jobs.push({k:'shorts',o:'va',sev:1,n:unchased,
     t:`${fmt(unchased)} short deliver${unchased===1?'y has':'ies have'} not been chased`,
     s:'Paid for and never turned up',btn:'Chase',go:"go('purchases')"});
-  const buys=buyList().filter(x=>x.urgency==='late'||x.urgency==='now');
-  if(buys.length)jobs.push({sev:1,n:buys.length,
-    t:`${fmt(buys.length)} part${buys.length===1?'':'s'} need${buys.length===1?'s':''} ordering now`,
-    s:buys.slice(0,3).map(x=>esc(x.c.name)+(x.slack<0?` (${-x.slack}d late)`:'')).join(', '),
-    btn:'What to buy',go:"go('purchases')"});
-  if(orders.length)jobs.push({sev:2,n:orders.length,
+  const engBuys=PE?PE.buys.filter(L=>!L.isProd&&L.buyQty>0&&(L.state==='buy'||L.state==='soon')):[];
+  if(engBuys.length){const spend=engBuys.reduce((t,x)=>t+(x.cost||0),0);
+    jobs.push({k:'buys',o:'wh',sev:1,n:engBuys.length,
+      t:`${fmt(engBuys.length)} part${engBuys.length===1?'':'s'} need${engBuys.length===1?'s':''} ordering — about ${gbp(spend)}`,
+      s:engBuys.slice(0,3).map(x=>esc(x.o.name)+(x.buyByDays<0?` (${fmt(-x.buyByDays)}d late)`:'')).join(', '),
+      btn:'What to buy',go:"go('purchases')"});}
+  if(orders.length)jobs.push({k:'link',o:'wh',sev:2,n:orders.length,
     t:`${fmt(orders.length)} order${orders.length===1?'':'s'} waiting to be linked`,
     s:'They are not stock until someone says what they are',btn:'Review',go:"go('purchases')"});
-  if(dueSoon.length)jobs.push({sev:2,n:dueSoon.length,
+  if(dueSoon.length)jobs.push({k:'duesoon',o:'wh',sev:2,n:dueSoon.length,
     t:`${fmt(dueSoon.length)} deliver${dueSoon.length===1?'y':'ies'} due this week`,
     s:'Be ready to receive them',btn:'Deliveries',go:"openDeliveries()"});
-  if(belowTarget.length)jobs.push({sev:3,n:belowTarget.length,
-    t:`${fmt(belowTarget.length)} product${belowTarget.length===1?' is':'s are'} below the ${D.settings.targetDays||60}-day target`,
-    s:'Send more, or buy more parts',btn:'Show me',go:"go('products')"});
-  if(noSold)jobs.push({sev:3,n:noSold,
-    t:`${fmt(noSold)} product${noSold===1?'':'s'} ${noSold===1?'has':'have'} no sales figure`,
-    s:'Targets are guesses until last month\u2019s sales are in',btn:'Show me',go:"go('products')"});
-  else if(stale)jobs.push({sev:3,n:stale,
+  if(toSend.length){const u=toSend.reduce((t,r)=>t+r.alloc,0);
+    jobs.push({k:'tosend',o:'wh',sev:2,n:toSend.length,
+      t:`${fmt(toSend.length)} product${toSend.length===1?'':'s'} to build &amp; send — ${fmt(u)} units buildable now`,
+      s:toSend.slice(0,3).map(r=>esc(r.p.name)+' ('+fmt(r.alloc)+')').join(', ')+(toSend.length>3?` +${toSend.length-3} more`:''),
+      btn:'Planner',go:"go('planner')"});}
+  /* the no-sales row already arrives via healthCheck below — listing it twice
+     made the queue read "8 things" when it was 7 */
+  const _orph=D.components.filter(c=>!c.archived&&!c.untracked&&!usedIn(c.id).length&&(onHand(c)>0||onOrder(c)>0));
+  if(_orph.length){const _ov=_orph.reduce((t,c)=>t+arrLayers(c).reduce((a,l)=>a+l.rem*l.cost,0),0);
+    jobs.push({k:'orphans',o:'jack',sev:3,n:_orph.length,
+      t:`${fmt(_orph.length)} component${_orph.length===1?' holds':'s hold'} stock but ${_orph.length===1?"isn't":"aren't"} in any product`,
+      s:_orph.slice(0,3).map(c=>esc(c.name)).join(', ')+(_orph.length>3?` +${_orph.length-3} more`:'')+(_ov?` — ${gbp(_ov)} sitting idle`:''),
+      btn:'Components',go:"setFilter('c','all');go('components')"});}
+  if(stale)jobs.push({k:'stale',o:'jack',sev:3,n:stale,
     t:`${fmt(stale)} sales figure${stale===1?'':'s'} over a month old`,
     s:'Worth refreshing from Seller Central',btn:'Update',go:"go('products')"});
 
@@ -23451,6 +24105,8 @@ function workList(){
      the banner still shows on the other tabs, where this list is not. */
   try{
     healthCheck().forEach(i=>jobs.push({
+      k:'h_'+String(i.label||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').slice(0,40),
+      o:'jack',
       sev:i.sev==='bad'?1:2,
       t:i.label,
       s:String(i.detail||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim(),
@@ -23464,15 +24120,66 @@ function workList(){
     <span class="wlTick">✓</span>
     <div><b>Nothing needs doing</b><span>Everything is linked, received and in stock. Come back after the next sync.</span></div></div>`;
   const urgent=jobs.filter(j=>j.sev===1).length;
-  return `<div class="wl">
-    <div class="wlHead"><b>What needs doing</b>
-      <span>${fmt(jobs.length)} thing${jobs.length===1?'':'s'}${urgent?` · <b style="color:var(--red)">${fmt(urgent)} can't wait</b>`:''}</span></div>
-    ${jobs.map(j=>`<div class="wlRow s${j.sev}">
+  /* Grouped by WHO, warehouse first — Becki should see her jobs without
+     reading past Jack's, and a job wears its owner so nobody has to guess
+     whose morning it belongs to (spec §47/§48). */
+  D.settings.wlAck=D.settings.wlAck||{};
+  const _T=dayISO();
+  const parked=jobs.filter(j=>j.k&&D.settings.wlAck[j.k]&&D.settings.wlAck[j.k].d===_T);
+  const jobsShow=jobs.filter(j=>!(j.k&&D.settings.wlAck[j.k]&&D.settings.wlAck[j.k].d===_T));
+  const urgentShow=jobsShow.filter(j=>j.sev===1).length;
+  const GRP=[['wh','FOR THE UK STAFF','buy parts · build · send · receive','#22d3ee'],
+             ['va','FOR SARAH (VA)','chase suppliers','#c084fc'],
+             ['jack','FOR JACK','decisions and data','#fbbf24']];
+  const whoBar=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 14px 2px;">
+    <span class="pmeta" style="margin:0">Show:</span>
+    ${[['all','Everyone'],['wh','UK staff'],['va','Sarah'],['jack','Jack']].map(([k,l])=>
+      `<button class="btn sm ${_wlWho===k?'pri':''}" onclick="LV3.wlWho('${k}')">${l}</button>`).join('')}
+    ${_wlWho!=='all'?`<span class="pmeta" style="margin:0 0 0 8px">${GRP.filter(g=>g[0]!==_wlWho).map(g=>{const n=jobsShow.filter(j=>(j.o||'jack')===g[0]).length;return n?n+' hidden for '+(g[0]==='wh'?'UK staff':g[0]==='va'?'Sarah':'Jack'):'';}).filter(Boolean).join(' · ')}</span>`:''}
+  </div>`;
+  const row=j=>`<div class="wlRow s${j.sev}">
       <span class="wlDot"></span>
       <div class="wlTxt"><b>${j.t}</b><span>${j.s}</span></div>
       <button class="btn sm ${j.sev===1?'warn':''}" onclick="${j.fix?j.fix:'LV3.'+j.go}">${esc(j.btn)}</button>
-    </div>`).join('')}
+      ${j.k?`<button class="btn sm" title="Done for today — it leaves the list until tomorrow, and comes back sooner if the numbers change. Jobs the hub can verify itself disappear automatically anyway." onclick="LV3.wlTick('${j.k}')">&#10003;</button>`:''}
+    </div>`;
+  const sections=GRP.map(([k,lab,sub,col])=>{
+    if(_wlWho!=='all'&&_wlWho!==k)return '';
+    const g=jobsShow.filter(j=>(j.o||'jack')===k);
+    const doneG=parked.filter(j=>(j.o||'jack')===k).length;
+    if(!g.length&&!doneG)return '';
+    return `<div style="display:flex;align-items:baseline;gap:9px;padding:9px 14px 3px;">
+      <span style="font-size:10.5px;font-weight:800;letter-spacing:.08em;color:${col};">${lab}</span>
+      <span style="font-size:11px;color:var(--text3);">${sub}</span>
+      ${doneG?`<span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--grn);">${fmt(doneG)} done today${g.length?` · ${fmt(g.length)} to go`:' — all done \u2713'}</span>`:''}
+    </div>`+(g.length?g.map(row).join(''):`<div class="pmeta" style="padding:4px 14px 8px;">Nothing waiting — all ticked off.</div>`);
+  }).join('');
+  return `<div class="wl">
+    <div class="wlHead"><b>Action centre</b>
+      <span>${fmt(jobsShow.length)} job${jobsShow.length===1?'':'s'}${urgentShow?` · <b style="color:var(--red)">${fmt(urgentShow)} can't wait</b>`:''}${parked.length?` · ${fmt(parked.length)} ticked off today`:''}</span></div>
+    ${whoBar}
+    ${sections}
+    ${parked.length?`<details><summary style="padding:8px 14px;cursor:pointer;font-size:11.5px;color:var(--text3);list-style:none;">${fmt(parked.length)} ticked off today — open to check or bring back</summary>
+      ${parked.map(j=>`<div class="wlRow" style="opacity:.55">
+        <span class="wlDot"></span>
+        <div class="wlTxt"><b>${j.t}</b><span>ticked by ${esc((D.settings.wlAck[j.k]||{}).by||'someone')} today</span></div>
+        <button class="btn sm" onclick="LV3.wlUntick('${j.k}')">Bring back</button>
+      </div>`).join('')}</details>`:''}
   </div>`;
+}
+let _wlWho=(function(){try{return localStorage.getItem('lv3_wlwho')||'all';}catch(e){return 'all';}})();
+function wlWho(k){_wlWho=k;try{localStorage.setItem('lv3_wlwho',k);}catch(e){}render();}
+function wlTick(k){
+  D.settings.wlAck=D.settings.wlAck||{};
+  D.settings.wlAck[k]={d:dayISO(),by:(window.currentUserName||'someone')};
+  savePrefs();
+  try{logIt('edit','Action centre: ticked off \u201c'+k.replace(/_/g,' ')+'\u201d for today');}catch(e){}
+  render();
+}
+function wlUntick(k){
+  D.settings.wlAck=D.settings.wlAck||{};
+  delete D.settings.wlAck[k];
+  savePrefs();render();
 }
 function vOverview(){
   const live=D.products.filter(p=>!p.archived);
@@ -23532,7 +24239,7 @@ function vOverview(){
       return [b?b+' bundle'+(b===1?'':'s'):'',l?l+' private label':'',g?g+' single':''].filter(Boolean).join(' · ')||'none yet';})(),'var(--blu)',"go('products')")}
     ${kpi('Sendable now',fmt(sendable),'units ready to send',sendable?'var(--grn)':'var(--red)',"go('products')")}
     ${kpi('Out of stock',fmt(blocked.length),blocked.length?'product'+(blocked.length===1?'':'s')+' blocked':'everything can ship',blocked.length?'var(--red)':null,"pFilter='blocked';go('products')")}
-    ${kpi('Incoming',fmt(incoming),inbound.length?`${inbound.length} deliveries · next ordered ${dshort(inbound[0].l.date)}`:'nothing on order',incoming?'var(--blu)':null,"go('purchases')")}
+    ${kpi('Incoming',fmt(incoming),inbound.length?`${inbound.length} deliveries · oldest waiting since ${dshort(inbound[0].l.date)}`:'nothing on order',incoming?'var(--blu)':null,"go('purchases')")}
     ${kpi('Shipped 30d',fmt(shipped),'units sent to FBA','var(--vio)')}
     ${kpi('Stock value',gbp(stockVal),'on hand, at what you paid','var(--accent)',"go('components')")}
   </div>
@@ -23542,101 +24249,59 @@ function vOverview(){
        left, one short table on the right, and two thirds of the right-hand side
        empty. With the wrappers gone each panel falls into whichever column has
        room. */''}
-  <div class="cols2${(!sendableProds.length&&!D.log.length)?' one':''}">
-      <div class="panel">
-        <div class="ph"><span class="t" style="color:${(blocked.length||oosComps.length)?'var(--red)':'var(--text)'}">Out of stock</span>
-          <span class="sub">${(blocked.length||oosComps.length)?'nothing can be sent until these are back':'nothing is out of stock'}</span>
-          ${ackedCount?`<div class="r"><span class="pmeta" style="margin:0">${fmt(ackedCount)} dealt with</span>
-            <button class="btn sm" onclick="LV3.ackClear()">Show all</button></div>`:''}</div>
-        ${blocked.length?(_oosAll?blocked:blocked.slice(0,6)).map(p=>{const a=avail(p);const c=a.limiter?comp(a.limiter):null;
-          const oo=c?onOrder(c):onOrder(p);
-          return `<div class="att"><span class="dot" style="background:var(--red)"></span>
-            <span class="tx"><b>${esc(p.name)}</b> <span class="chip ${p.type}" style="margin-left:4px">${typeLabel(p.type)}</span>
-              <span class="s">${c?`out of <b style="color:var(--text2)">${esc(c.name)}</b>`:'no stock on hand'}${oo?` · <b style="color:var(--blue)">${fmt(oo)} on order</b>`:' · <b style="color:var(--red)">nothing on order</b>'}</span></span>
-            <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Open</button>
-            <button class="btn sm go" title="Mark as dealt with — hides it until stock changes" onclick="LV3.ack('${p.id}')">✓</button></div>`;}).join('')
-          +(blocked.length>6?`<div class="att" style="justify-content:center">
-             <button class="btn sm" onclick="LV3.toggleOos()">${_oosAll?'Show fewer':'Show all '+fmt(blocked.length)+' blocked products'}</button></div>`:''):''}
-        ${oosComps.length?`<div class="subhead">Components at zero</div>
-          ${(_oosAll?oosComps:oosComps.slice(0,5)).map(c=>`<div class="att"><span class="dot" style="background:var(--red)"></span>
-            <span class="tx"><b>${esc(c.name)}</b><span class="s">used in ${usedIn(c.id).map(u=>esc(u.name)).join(', ')}${onOrder(c)?` · <b style="color:var(--blue)">${fmt(onOrder(c))} on order</b>`:' · <b style="color:var(--red)">nothing on order</b>'}</span></span>
-            <button class="btn sm" onclick="LV3.openComp('${c.id}')">Open</button>
-            <button class="btn sm go" title="Mark as dealt with" onclick="LV3.ack('${c.id}')">✓</button></div>`).join('')}`:''}
-        ${(!blocked.length&&!oosComps.length)?'<div class="empty">Everything is in stock.</div>':''}
+  ${(function(){
+    /* THE REDESIGN, 29 Aug: everything that repeated the Action centre or
+       another tab is GONE — the out-of-stock list, the short-deliveries recap,
+       "worth a look", the 21-row send table. What is left is glanceable:
+       five things to send, five deliveries to expect, the movement log. */
+    const PE=(function(){try{return plData();}catch(e){return null;}})();
+    const AZ=PE?PE.az.rows.filter(r=>r.protDays!=null).sort((a,b)=>a.protDays-b.protDays):[];
+    const sendNext=AZ.filter(r=>(r.state==='act'||r.state==='critical')).slice(0,5);
+    const SHORT={critical:'SEND NOW',act:'SEND',parts:'GET PARTS',gap:'GAP',waiting:'WAIT',watch:'WATCH',safe:'SAFE'};
+    const nd=inbound.filter(x=>!x.l.short).map(x=>{
+      let st=null;try{st=etaState(x.l);}catch(e){}
+      const due=String(x.l.eta2||x.l.eta1||'').slice(0,10);
+      return{x,due:due||'9999',late:st&&st.k==='late'};})
+      .sort((a,b)=>a.due.localeCompare(b.due)).slice(0,5);
+    const sRow=r=>{
+      const k=((r.state==='act'||r.state==='critical')&&r.buildCap===0)?'parts':r.state;
+      return `<div style="display:flex;align-items:center;gap:9px;padding:7px 12px;border-bottom:1px solid var(--border);cursor:pointer;border-left:3px solid ${plStateCol(k)};" onclick="LV3.openPlanRow('${r.p.id}')">
+        <span style="flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.p.name)}</span>
+        ${r.alloc>0?`<span class="num b" style="font-size:12px;color:var(--grn)">${fmt(r.alloc)}</span><span class="pmeta" style="margin:0">units</span>`:''}
+        <span class="num b" style="font-size:12px;color:${r.protDays<=fbaCalDays()?'var(--red)':'var(--amb)'}">${fmt(Math.round(r.protDays))}d</span>
+        <span style="padding:2px 7px;border-radius:5px;font-size:9.5px;font-weight:800;white-space:nowrap;color:#14120f;background:${plStateCol(k)}">${SHORT[k]||k}</span>
+      </div>`;};
+    const dRow=g=>{const x=g.x;
+      return `<div style="display:flex;align-items:center;gap:9px;padding:7px 12px;border-bottom:1px solid var(--border);">
+        <span style="flex:1;min-width:0;font-size:12.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(x.o.name)}</span>
+        <span class="num b" style="font-size:12px;">${fmt(x.l.qty)}</span>
+        <span class="pmeta" style="margin:0;white-space:nowrap;">${esc(x.l.sup||'')}</span>
+        <span style="font-size:11.5px;font-weight:700;white-space:nowrap;color:${g.late?'var(--red)':'var(--blu)'}">${g.late?'late':g.due!=='9999'?dshort(g.due):'no ETA'}</span>
+        <button class="btn sm go" onclick="LV3.markArrived('${x.type}','${x.o.id}','${x.l.id}')">Receive</button>
+      </div>`;};
+    return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:14px;margin-bottom:14px;">
+      <div class="panel" style="margin:0;">
+        <div class="ph"><span class="t">Send next</span><span class="sub">most urgent first</span>
+          <div class="r"><button class="btn sm" onclick="LV3.go('planner')">Planner</button></div></div>
+        ${sendNext.length?sendNext.map(sRow).join(''):'<div class="empty" style="padding:14px">Nothing needs sending — protection is healthy everywhere.</div>'}
       </div>
-
-      ${(()=>{const sl=shortLines();if(!sl.length)return '';
-        const u=sl.reduce((t,x)=>t+x.l.qty,0),v=sl.reduce((t,x)=>t+x.l.qty*(x.l.cost||0),0);
-        const unchased=sl.filter(x=>!x.l.chased).length;
-        return `<div class="panel">
-          <div class="ph"><span class="t" style="color:var(--red)">Short deliveries</span>
-            <span class="sub">paid for, never turned up</span>
-            <div class="r"><button class="btn sm" onclick="LV3.go('purchases')">Deal with them</button></div></div>
-          <div class="att"><span class="dot" style="background:var(--red)"></span>
-            <span class="tx"><b>${fmt(sl.length)} order${sl.length===1?'':'s'} arrived short</b> — ${fmt(u)} units${v?`, ${gbp(v)}`:''}
-              <span class="s">${unchased?`${fmt(unchased)} not chased yet`:'all chased'} · still counted as incoming until written off</span></span></div>
-        </div>`;})()}
-      ${(low.length||unlinked||orphans.length)?`<div class="panel">
-        <div class="ph"><span class="t">Worth a look</span><span class="sub">not urgent</span></div>
-        ${orphans.length?`<div class="att"><span class="dot" style="background:var(--amb)"></span>
-          <span class="tx"><b>${fmt(orphans.length)} component${orphans.length===1?'':'s'}</b> ${orphans.length===1?"holds stock but isn't":"hold stock but aren't"} in any product
-            <span class="s">${orphans.slice(0,4).map(c=>esc(c.name)+' ('+fmt(onHand(c))+')').join(', ')}${orphans.length>4?` +${orphans.length-4} more`:''}${orphanVal?` · ${gbp(orphanVal)} sitting idle`:''}</span></span>
-          <button class="btn sm" onclick="LV3.setFilter('c','all');LV3.go('components')">Components</button></div>`:''}
-        ${low.map(p=>{const t=target60(p),have=avail(p).n||0;return `<div class="att"><span class="dot" style="background:var(--amber)"></span>
-          <span class="tx"><b>${esc(p.name)}</b> — ${fmt(t-have)} short of ${D.settings.targetDays||60} days<span class="s">${fmt(have)} available · target ${fmt(t)} · sold ${fmt(demand30(p))} per 30 days</span></span>
-          <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Open</button></div>`;}).join('')}
-        ${unlinked?`<div class="att"><span class="dot" style="background:var(--blue)"></span>
-          <span class="tx"><b>${unlinked} purchase${unlinked===1?'':'s'}</b> not linked<span class="s">Their stock and cost are ignored until linked</span></span>
-          <button class="btn sm" onclick="LV3.go('purchases')">Link them</button></div>`:''}
-      </div>`:''}
-
-      ${inbound.length?`<div class="panel">
-        <div class="ph"><span class="t">Landing soon</span><span class="sub">from the purchase sheet — not yet marked arrived</span></div>
-        ${inbound.length?`<table><thead><tr><th class="l">Item</th><th class="l">Supplier</th><th>Ordered</th><th>Qty</th><th>Unit</th><th></th></tr></thead><tbody>
-        ${inbound.map(x=>{const wait=Math.floor((TODAY-new Date(x.l.date))/864e5);
-          return `<tr><td class="l"><div class="pname" style="font-size:12px;">${esc(x.o.name)}</div>
-            <div class="pmeta">${x.type==='product'?'finished stock':'component'}${wait>=21?' · <b style="color:var(--red)">waiting '+wait+'d</b>':''}</div></td>
-          <td class="l" style="font-size:12px;color:var(--text2)">${esc(x.l.sup)}</td>
-          <td class="mono" style="font-size:12px;color:var(--text2)">${dshort(x.l.date)}</td>
-          <td><span class="num b">${fmt(x.l.qty)}</span></td>
-          <td class="mono" style="font-size:12px;color:var(--text2)">${gbp(x.l.cost)}</td>
-          <td><button class="btn sm go" onclick="LV3.markArrived('${x.type}','${x.o.id}','${x.l.id}')">Arrived</button></td></tr>`;}).join('')}
-        </tbody></table>`:''}
-      </div>`:''}
-      <div class="panel">
-        <div class="ph"><span class="t">What we can send today</span><span class="sub">${sendableProds.length} of ${live.length} products${blocked.length?` · ${blocked.length} can't be sent`:''}</span></div>
-        ${sendableProds.length?`<table><thead><tr><th class="l">Product</th><th>Available</th><th>Sold last month</th><th>${D.settings.targetDays||60}d target</th></tr></thead><tbody>
-        ${sendableProds.slice().sort((a,b)=>{
-          const ga=(target60(a)||0)-(avail(a).n||0),gb=(target60(b)||0)-(avail(b).n||0);return gb-ga;}).map(p=>{
-          const a=avail(p),tgt=target60(p),gap=tgt?Math.max(0,tgt-(a.n||0)):0;
-          const col=a.n===0?'var(--red)':gap>0?'var(--amber)':'var(--green)';
-          const pct=!tgt?0:Math.max(4,Math.min(100,(a.n||0)/tgt*100));
-          return `<tr style="cursor:pointer" onclick="LV3.openProduct('${p.id}')"><td class="l">
-            <div class="pname" style="font-size:12px;">${esc(p.name)}</div>
-            <div style="margin-top:4px;"><span class="chip ${p.type}">${typeLabel(p.type)}</span></div></td>
-          <td><span class="num" style="color:${col}">${a.kind==='norecipe'?'—':fmt(a.n)}</span>
-            <div class="pmeta">${a.kind==='build'?'buildable':'in stock'}</div></td>
-          <td class="mono" style="font-size:12px;color:var(--text2)">${sold30(p)!=null?fmt(sold30(p)):'<span class="dim">not set</span>'}</td>
-          <td style="width:112px">${tgt?`<div class="bar"><i style="width:${pct}%;background:${col}"></i></div>
-            <div class="pmeta" style="text-align:center">${gap>0?`send ${fmt(gap)} more`:'covered'}</div>`
-            :'<span class="dim" style="font-size:11.5px">no sales figure</span>'}</td></tr>`;}).join('')}
-        </tbody></table>`:'<div class="empty">Nothing can be sent right now — everything is out of stock.</div>'}
-        ${blocked.length?`<div style="padding:9px 12px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text3)">
-          <b style="color:var(--red)">${blocked.length}</b> hidden because they can't be sent — ${blocked.map(b=>esc(b.name)).join(', ')}</div>`:''}
+      <div class="panel" style="margin:0;">
+        <div class="ph"><span class="t">Next deliveries</span><span class="sub">soonest first</span>
+          <div class="r"><button class="btn sm" onclick="LV3.go('purchases')">All orders</button></div></div>
+        ${nd.length?nd.map(dRow).join(''):'<div class="empty" style="padding:14px">Nothing on order.</div>'}
       </div>
-      </div>
-    </div>
-    <!-- full width: the two columns are rarely the same height, and a
-         half-empty left column was just dead space -->
+    </div>`;})()}
     ${D.log.length?`<div class="panel">
-        <div class="ph"><span class="t">Recent movement</span><span class="sub">every in and out</span></div>
-        ${D.log.slice(0,_logAll?40:9).map(l=>{const col=l.k==='ship'?'var(--purple)':l.k==='recv'?'var(--green)':l.k==='adj'?'var(--amber)':'var(--blue)';
-          return `<div class="att"><span class="dot" style="background:${col}"></span>
-          <span class="tx">${esc(l.txt)}<span class="s">${ago(l.t.slice(0,10))} · ${esc(l.who)}</span></span></div>`;}).join('')}
-        ${D.log.length>9?`<div class="att" style="justify-content:center">
-          <button class="btn sm" onclick="LV3.toggleLog()">${_logAll?'Show less':'Show more'}</button></div>`:''}
-      </div>`:''}
-  </div>`;
+        <div class="ph"><span class="t">Recent movement</span><span class="sub">every in and out</span>
+          ${D.log.length>12?`<div class="r"><button class="btn sm" onclick="LV3.toggleLog()">${_logAll?'Show less':`Show all ${fmt(Math.min(40,D.log.length))}`}</button></div>`:''}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(560px,1fr));gap:0 22px;padding:4px 6px 8px;">
+        ${D.log.slice(0,_logAll?40:12).map(l=>{const col=l.k==='ship'?'var(--purple)':l.k==='recv'?'var(--green)':l.k==='adj'?'var(--amber)':'var(--blue)';
+          return `<div style="display:flex;align-items:baseline;gap:8px;padding:5px 8px;border-bottom:1px solid var(--border);min-width:0;">
+          <span class="dot" style="background:${col};flex:none;"></span>
+          <span style="flex:1;min-width:0;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(l.txt)}">${esc(l.txt)}</span>
+          <span style="flex:none;font-size:11px;color:var(--text3);white-space:nowrap;">${ago(l.t.slice(0,10))} · ${esc(l.who)}</span></div>`;}).join('')}
+        </div>
+      </div>`:''}`;
 }
 const typeLabel=t=>t==='bundle'?'Bundle':t==='pl'?'Private label':'Single';   // 'single' kept only for legacy rows
 
@@ -23721,7 +24386,7 @@ const sortTh=(which,k,label,sub)=>{
     title="Sort by this${on?' — click again to reverse':''}">${label}<span class="thArr">${on?(dir>0?'▲':'▼'):'↕'}</span>
     ${sub?`<span class="thSub">${sub}</span>`:''}</button>`;
 };
-const P_SORTS=[['name','Name A–Z'],['reorder','Reorder in — soonest first'],['short','Furthest below target'],
+const P_SORTS=[['name','Name A–Z'],['reorder','Action — most urgent first'],
                ['avail','Least available'],['atamz','Least at Amazon'],['sold','Best selling'],
                ['cog','Highest COG'],['incoming','Most incoming']];
 const C_SORTS=[['name','Name A–Z'],['short','Furthest short'],['cover','Least cover'],
@@ -23731,7 +24396,6 @@ const incOf=p=>p.type==='bundle'
 function sortProducts(rows){
   const by={
     name:(a,b)=>a.name.localeCompare(b.name),
-    short:(a,b)=>{const ga=(target60(a)||0)-(avail(a).n||0),gb=(target60(b)||0)-(avail(b).n||0);return gb-ga;},
     avail:(a,b)=>(avail(a).n||0)-(avail(b).n||0),
     atamz:(a,b)=>(atAmz(a)||0)-(atAmz(b)||0),
     sold:(a,b)=>demand30(b)-demand30(a),
@@ -23740,7 +24404,8 @@ function sortProducts(rows){
     /* numeric, so 2 days sorts above 10 days. DUE NOW keeps its negative value
        internally so the most overdue leads; anything we cannot work out sorts
        to the bottom rather than pretending to be urgent. */
-    reorder:(a,b)=>{const x=reorderIn(a).days,y=reorderIn(b).days;
+    reorder:(a,b)=>{const P=plData().azBy;
+      const x=(P[a.id]||{}).protDays,y=(P[b.id]||{}).protDays;
       if(x==null&&y==null)return 0; if(x==null)return 1; if(y==null)return -1; return x-y;},
     /* soonest deadline first — the one that has to leave today comes above the
        one that has to leave in a fortnight */
@@ -23750,7 +24415,7 @@ function sortProducts(rows){
      the bottom whichever way the column is turned, rather than pretending to be
      a zero and topping a "least at Amazon" sort. */
   const blank={atamz:p=>atAmz(p)==null,sold:p=>sold30(p)==null,
-    short:p=>!target60(p),cog:p=>cogOf(p,1).short,send:p=>!sendBy(p)};
+    cog:p=>cogOf(p,1).short,send:p=>!sendBy(p)};
   const isBlank=blank[pSort],f=by[pSort]||by.name;
   return rows.slice().sort((a,b)=>{
     if(isBlank){const na=isBlank(a),nb=isBlank(b);if(na!==nb)return na?1:-1;}
@@ -23814,11 +24479,10 @@ function vProducts(){
       ${COL('pIncoming')?`<th style="width:190px">${sortTh('p','incoming','Incoming')}</th>`:''}
       ${COL('pOrdered')?'<th style="width:84px">Ordered</th>':''}
       ${COL('pSold')?`<th style="width:110px" title="Total units sold on Amazon, read straight from the BDL hub's monthly report. Nothing is typed in here and this app never writes back to the hub.">${sortTh('p','sold','Sold',(()=>{const M=hubMonth();return M.ym?esc(ymName(M.ym)):'last month';})())}</th>`:''}
-      ${COL('pTarget')?`<th style="width:112px" title="How many units should be sitting at Amazon: ${D.settings.targetDays||60} days at the rate it sold last month. Without a sales figure this stays empty rather than guessing.">${sortTh('p','short',(D.settings.targetDays||60)+'d target',D.products.filter(x=>!x.archived).every(x=>sold30(x)==null)?(HUB.state==='loading'?'reading the hub…':'no sales in'):'')}</th>`:''}
-      ${COL('pSendBy')?`<th style="width:142px" title="How long before this needs reordering: how many days of stock you hold, minus this product's lead time. Recalculated from the latest figures every time — never a countdown.">${sortTh('p','reorder','Reorder in',D.products.filter(x=>!x.archived).every(x=>reorderIn(x).days==null)?'needs sales + lead time':'')}</th>`:''}
+      ${COL('pSendBy')?`<th style="width:150px" title="The Planner's verdict: protection is how many days until the shelf at Amazon runs empty at the current selling rate, counting inbound that lands in time. The chip is what to do about it.">${sortTh('p','reorder','Action','protection · from the Planner')}</th>`:''}
       ${COL('pCog')?`<th style="width:86px">${sortTh('p','cog','COG / unit')}</th>`:''}<th class="acts" style="width:132px"></th>
     </tr></thead><tbody>
-    ${rows.length?rows.map(p=>prodRow(p)).join(''):`<tr><td colspan="${5+['pIncoming','pOrdered','pSold','pTarget','pSendBy','pCog'].filter(COL).length}" class="empty">${D.products.length?'Nothing matches this filter.':
+    ${rows.length?rows.map(p=>prodRow(p)).join(''):`<tr><td colspan="${5+['pIncoming','pOrdered','pSold','pSendBy','pCog'].filter(COL).length}" class="empty">${D.products.length?'Nothing matches this filter.':
    'No products yet.<div style="margin-top:10px;display:flex;gap:7px;justify-content:center"><button class="btn pri" onclick="LV3.openBulkProd()">Bulk add products</button><button class="btn" onclick="LV3.editProduct(null)">Add one</button></div>'}</td></tr>`}
     </tbody></table>
   </div>
@@ -23922,7 +24586,8 @@ let CSEL=new Set();
 function cselOne(id,on){on?CSEL.add(id):CSEL.delete(id);vComponents();}
 function cselAll(on){
   const live=D.components.filter(c=>cFilter==='archived'?c.archived:!c.archived);
-  const shown=live.filter(c=>(cFilter==='all'||cFilter==='archived'||(cFilter==='low'?compShort60(c)>0:c.kind===cFilter))
+  const _plc=(function(){try{return plData().byComp||{};}catch(e){return{};}})();
+  const shown=live.filter(c=>(cFilter==='all'||cFilter==='archived'||(cFilter==='low'?((_plc[c.id]||{}).buyQty>0):c.kind===cFilter))
     &&(!Q||c.name.toLowerCase().includes(Q)));
   CSEL=new Set(on?shown.map(c=>c.id):[]);vComponents();
 }
@@ -24018,8 +24683,10 @@ function prodRow(p){
   const col=a.n===0?'var(--red)':(cw!==null&&cw<2)?'var(--amber)':'var(--green)';
   const lim=a.limiter?comp(a.limiter):null;
   const open=openRows[p.id];
+  const _R=(function(){try{return (plData().azBy||{})[p.id];}catch(e){return null;}})();
+  const _rail=_R?plStateCol(((_R.state==='act'||_R.state==='critical')&&_R.buildCap===0)?'parts':_R.state):'transparent';
   const main=`<tr class="${open?'open':''}" style="cursor:pointer" onclick="LV3.togRow('${p.id}')">
-    <td style="text-align:center" onclick="event.stopPropagation()">
+    <td style="text-align:center;box-shadow:inset 3px 0 0 ${_rail}" onclick="event.stopPropagation()">
       <input type="checkbox" ${SEL.has(p.id)?'checked':''} onclick="LV3.selOne('${p.id}',this.checked)"></td>
     <td class="l"><span class="chev">&#9654;</span>
       <div style="display:inline-block;vertical-align:middle;max-width:none">
@@ -24078,34 +24745,19 @@ function prodRow(p){
         if(src==='hub')return esc(ymName(hubMonth().ym));
         const age=sold30Age(p);
         return `<span class="est">typed in${age!=null?` ${age}d ago`:''}</span>`;})()}</div></td>`:''}
-    ${COL('pTarget')?`<td onclick="event.stopPropagation()">${(()=>{const t=target60(p);
-      if(!t)return `<span class="dim">—</span>`;
-      /* The target is now measured against what is AT AMAZON, plus what you hold
-         here, because that is the real question: is there enough in front of the
-         customer for the next 60 days. Backstock only counts once it is sent. */
-      /* inbound counts. Asking for a reorder of stock already on its way to
-         Amazon is how you end up double-buying. */
-      const at=atAmz(p),inb=amzIn(p),have=avail(p).n||0,cover=(at||0)+(inb||0)+have,gap=t-cover,real=sold30(p)!=null;
-      /* One shade of amber for everything short said nothing: 8 units short of
-         74 and 690 short of 690 are not the same problem. Colour follows how
-         much of the target is actually covered. */
-      const pct=t?Math.round(cover/t*100):0;
-      const k=gap<=0?'ok':pct>=75?'near':pct>=35?'gap':'bad';
-      return `<button class="tgtBtn ${k}" onclick="LV3.openOrderPlan('${p.id}')"
-        title="${fmt(cover)} of ${fmt(t)} covered — ${fmt(at||0)} sellable at Amazon${inb?` + ${fmt(inb)} inbound`:''} + ${fmt(have)} here. Click for what to send and what to order.">
-        <span class="tgtN">${fmt(t)}</span>
-        <span class="tgtS">${gap>0?`${fmt(gap)} short`:'covered'}</span>
-        <span class="tgtBar"><i style="width:${Math.max(2,Math.min(100,pct))}%"></i></span></button>`;})()}</td>`:''}
-    ${COL('pSendBy')?`<td title="${(()=>{const r=reorderIn(p);
-        if(r.k==='nosales')return 'No sales figure for '+esc(ymName(hubMonth().ym)||'the last month')+', so there is nothing to work it out from';
-        if(r.k==='nolead')return 'This product has no lead time yet — set one on the product to get a reorder date';
-        if(r.k==='nostock')return 'Nobody has counted this at Amazon yet';
-        return `${fmt(Math.round(r.cover))} days of stock at ${r.ads.toFixed(2)}/day, minus ${fmt(r.lead)} days lead time`;})()}">${(()=>{
-      const r=reorderIn(p),st=reorderState(r);
-      if(r.days==null)return `<span class="dim" style="font-size:13px">&mdash;</span>
-        <div class="pmeta" style="text-align:center">${st.txt}</div>`;
-      return `<span class="num b" style="font-size:13.5px;color:${st.col}">${st.txt}</span>
-        <div class="pmeta" style="text-align:center;white-space:nowrap">${fmt(Math.round(r.cover))}d cover &minus; ${fmt(r.lead)}d lead</div>`;})()}</td>`:''}
+    ${COL('pSendBy')?`<td onclick="event.stopPropagation()">${(()=>{
+      const R=(plData().azBy||{})[p.id];
+      if(!R)return '<span class="dim">&mdash;</span>';
+      const blockedBuild=(R.state==='act'||R.state==='critical')&&R.buildCap===0;
+      const chip=plStateChip(blockedBuild?'parts':R.state);
+      if(R.protDays==null)return `<div style="display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer" onclick="LV3.openPlanRow('${p.id}')">${chip}</div>`;
+      const trig=fbaCalDays()+safetyDays();
+      const col=R.protDays<=fbaCalDays()?'var(--red)':R.protDays<=trig?'var(--amb)':'var(--grn)';
+      return `<div style="display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer"
+        onclick="LV3.openPlanRow('${p.id}')"
+        title="${Math.round(R.protDays)} days of protection against a ${trig}-day trigger. Click for the full working.">
+        <span class="num b" style="font-size:13.5px;color:${col}">${fmt(Math.round(R.protDays))}d</span>
+        ${chip}</div>`;})()}</td>`:''}
     ${COL('pCog')?`<td>${cg.short
       ? (cg.noPrice
         ? `<span style="font-size:12px;color:var(--red)">!</span><div class="pmeta" style="text-align:center;color:var(--red);font-weight:700">price missing</div>`
@@ -24118,8 +24770,18 @@ function prodRow(p){
           <button class="btn sm dots" title="More" onclick="LV3.rowMenu(event,'product','${p.id}')">⋯</button>`}</div></td></tr>`;
   if(!open)return main;
 
-  /* expanded: what it's made of + live COG */
-  let inner='';
+  /* expanded: the plan first, then what it's made of + live COG */
+  let inner='',planStrip='';
+  if(_R){
+    const _blocked=(_R.state==='act'||_R.state==='critical')&&_R.buildCap===0;
+    planStrip=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;margin:0 0 10px;background:var(--bg3);border-radius:8px;border-left:3px solid ${_rail};">
+      ${plStateChip(_blocked?'parts':_R.state)}
+      ${_R.protDays!=null?`<span class="num b" style="font-size:13px;">${fmt(Math.round(_R.protDays))}d protection</span>`:''}
+      ${(_R.state==='act'||_R.state==='critical')&&_R.alloc>0?`<span style="font-size:12px;color:var(--text);"><b>send ${fmt(_R.alloc)}</b>${_R.alloc<_R.rec?' of '+fmt(_R.rec)+' wanted':''}</span>`:''}
+      <span style="flex:1;min-width:200px;font-size:11.5px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(_R.why||'')}">${esc((_R.why||'').slice(0,140))}</span>
+      <button class="btn sm" onclick="event.stopPropagation();LV3.openPlanRow('${p.id}')">Full working</button>
+    </div>`;
+  }
   if(p.type==='bundle'){
     const parts=p.recipe.filter(r=>comp(r.c)&&comp(r.c).kind!=='packaging');
     const pack=p.recipe.filter(r=>comp(r.c)&&comp(r.c).kind==='packaging');
@@ -24133,9 +24795,18 @@ function prodRow(p){
                together with no space and an arrow doing unexplained work.
                Nobody could tell that 36 meant BUNDLES, not units of the part. */
             const l=arrLayers(c).filter(x=>x.rem>0)[0];
-            return `<span class="stHave">${fmt(h)}</span> in stock`
-              +(l&&l.cost>0?` <span class="stSep">·</span> ${gbp(l.cost)} each`:'')
-              +` <span class="stSep">·</span> enough for <b style="color:${can?'var(--text2)':'var(--red)'}">${fmt(can)}</b> ${can===1?'build':'builds'}`;
+            const _oo=onOrder(c),_nx=nextIn(c);
+            let _inc='';
+            if(_oo){let st=null;try{st=_nx?etaState(_nx):null;}catch(e){}
+              const due=_nx&&(_nx.eta2||_nx.eta1);
+              _inc=` <span class="stSep">·</span> <span style="color:${st&&st.k==='late'?'var(--red)':'var(--blu)'}">+${fmt(_oo)} ${st&&st.k==='late'?'late':due?'due '+dshort(String(due).slice(0,10)):'coming'}</span>`;}
+            const EL2=(function(){try{return (plData().byComp||{})[c.id]||null;}catch(e){return null;}})();
+            let _buy='';
+            if(EL2&&EL2.buyQty>0)_buy=` <span class="stSep">·</span> <b style="color:var(--amb)">buy&nbsp;${fmt(EL2.buyQty)}</b>&nbsp;${EL2.buyByDays<=0?'now':'by&nbsp;'+dshort(EL2.buyBy)}`;
+            else if(EL2&&(EL2.state==='noroute'))_buy=` <span class="stSep">·</span> <span style="color:var(--amb)">set&nbsp;route</span>`;
+            return `<span class="stHave">${fmt(h)}</span>&nbsp;in stock`
+              +(l&&l.cost>0?` <span class="stSep">·</span> ${gbp(l.cost)}&nbsp;each`:'')
+              +` <span class="stSep">·</span> enough for&nbsp;<b style="color:${can?'var(--text2)':'var(--red)'}">${fmt(can)}</b>&nbsp;${can===1?'build':'builds'}`+_inc+_buy;
           })()}</span></div>`;};
     inner=`<div class="rsh">Components</div>${parts.map(line).join('')||'<div class="pmeta">None</div>'}
       ${pack.length?`<div class="rsh">Packaging</div>${pack.map(line).join('')}`:''}`;
@@ -24196,7 +24867,7 @@ function prodRow(p){
       there is nothing to cost from, so COG can't be shown. Put the price on the batch and it comes straight back.
       ${c1.unpriced[0]&&c1.unpriced[0].cid?`<div style="margin-top:7px"><button class="btn sm warn" onclick="event.stopPropagation();LV3.openComp('${c1.unpriced[0].cid}')">Fix ${esc(c1.unpriced[0].name)}</button></div>`:''}</div>`:''}
     </div>`;
-  return main+`<tr class="sub-row"><td colspan="${5+['pIncoming','pOrdered','pSold','pTarget','pSendBy','pCog'].filter(COL).length}" style="padding:0"><div class="rbox"><div class="rgrid"><div>${inner}</div><div>${cogHtml}</div></div>
+  return main+`<tr class="sub-row"><td colspan="${5+['pIncoming','pOrdered','pSold','pSendBy','pCog'].filter(COL).length}" style="padding:0"><div class="rbox">${planStrip}<div class="rgrid"><div>${inner}</div><div>${cogHtml}</div></div>
     <div style="margin-top:9px;display:flex;gap:6px">
     ${isPL?`<button class="btn sm" onclick="LV3.openAddBatch('${p.id}','product')">+ Add a batch</button>
             <button class="btn sm" onclick="LV3.editProduct('${p.id}')">Edit product</button>`
@@ -24989,13 +25660,14 @@ function vComponents(){
 
   const counts={all:liveC.length,component:0,packaging:0,low:0,archived:archC.length,
     branded:0,'private-label':0,complementary:0};
-  liveC.forEach(c=>{counts[c.kind]++;if(compShort60(c)>0)counts.low++;
+  const _plc2=(function(){try{return plData().byComp||{};}catch(e){return{};}})();
+  liveC.forEach(c=>{counts[c.kind]++;if((_plc2[c.id]||{}).buyQty>0)counts.low++;
     const t=c.tag||'complementary';if(counts[t]!==undefined)counts[t]++;});
   const basisC=cFilter==='archived'?archC:liveC;
   const TAGS=['branded','private-label','complementary'];
   let rows=sortComponents(basisC.filter(c=>{
     if(cFilter==='all'||cFilter==='archived')return !Q||c.name.toLowerCase().includes(Q);
-    const hit=cFilter==='low'?compShort60(c)>0
+    const hit=cFilter==='low'?(((function(){try{return plData().byComp||{};}catch(e){return{};}})()[c.id]||{}).buyQty>0)
       :TAGS.includes(cFilter)?((c.tag||'complementary')===cFilter)
       :c.kind===cFilter;
     return hit&&(!Q||c.name.toLowerCase().includes(Q));
@@ -25005,7 +25677,7 @@ function vComponents(){
     <div class="ph">
       <div class="seg">${[['all','All'],['component','Components'],['packaging','Packaging'],
           ['branded','Branded'],['private-label','Private label'],['complementary','Complementary'],
-          ['low','Short for '+(D.settings.targetDays||60)+' days']]
+          ['low','To buy']]
         .concat(archC.length?[['archived','Archived']]:[])
         .map(([k,l])=>`<button class="${cFilter===k?'on':''}" onclick="LV3.setFilter('c','${k}')">${l}<span class="cnt">${fmt(counts[k])}</span></button>`).join('')}</div>
       <input class="srch" placeholder="Search components…" value="${esc(Q)}" oninput="LV3.setQ(this.value)">
@@ -25028,8 +25700,8 @@ function vComponents(){
            compShort60 and compCover are computed for every row on every render
            and were spent tinting one number amber. Now they are printed, and
            on-order rides inside On hand where it belongs. */''}
-      <th style="width:96px">${sortTh('c','short','Short')}<span class="thS">next 60 days</span></th>
-      <th style="width:88px">${sortTh('c','cover','Cover')}<span class="thS">weeks left</span></th>
+      <th style="width:96px">${sortTh('c','short','To buy')}<span class="thS">from the Planner</span></th>
+      <th style="width:88px">${sortTh('c','cover','Cover')}<span class="thS">days left</span></th>
       ${COL('cUsed')?`<th class="l" style="min-width:170px">${sortTh('c','used','Used in')}</th>`:''}
       <th class="l" style="width:132px">Supplier<span class="thS">last paid</span></th>
       <th class="acts" style="width:150px">Action</th>
@@ -25044,8 +25716,14 @@ function vComponents(){
       const wk=(function(){try{return compWeekUse(c);}catch(e){return null;}})();
       const cov=(function(){try{return compCover(c);}catch(e){return null;}})();
       const unknown=c.untracked||need==null||(wk==null&&!short);
-      const rail=unknown?'var(--muted2)':h===0?'var(--red)':short>0?'var(--amb)':'var(--grn)';
-      const sup=(function(){try{return usualSupplier(c)||'';}catch(e){return '';}})();
+      const EL=(function(){try{return (plData().byComp||{})[c.id]||null;}catch(e){return null;}})();
+      const rail=c.untracked?'var(--muted2)'
+        :EL?(EL.state==='buy'?'var(--red)':EL.state==='soon'?'var(--amb)'
+          :(EL.state==='noroute'||EL.state==='nosup')?'var(--amb)':'var(--grn)')
+        :(h===0&&!unknown?'var(--red)':'var(--muted2)');
+      let sup=(function(){try{return usualSupplier(c)||'';}catch(e){return '';}})();
+      if(/^(stock (correction|adjust)|opening stock|stocktake)/i.test(sup))sup='';
+      if(!sup&&EL&&EL.sup)sup=EL.sup;
       const avg=(function(){try{return avgCostOf(c);}catch(e){return 0;}})();
       return `<tr style="cursor:pointer" class="${CSEL.has(c.id)?'picked':''}" onclick="LV3.openComp('${c.id}')">
         <td onclick="event.stopPropagation()" style="text-align:center">
@@ -25058,16 +25736,26 @@ function vComponents(){
             ${c.untracked?'<span class="chip">not tracked</span>':''}
             ${c.caseQty?`<span class="pmeta" style="margin:0">case of ${fmt(c.caseQty)}</span>`:''}</div></td>
         <td><span class="num">${fmt(h)}</span>
-          ${oo?`<div class="pmeta" style="color:var(--blu)">+${fmt(oo)} coming${nx?' · '+dshort(nx.date):''}</div>`:''}
+          ${oo?`<div class="pmeta" style="color:var(--blu)">+${fmt(oo)} coming${(function(){
+            if(!nx)return '';
+            var st=null;try{st=etaState(nx);}catch(e){}
+            var due=nx.eta2||nx.eta1||'';
+            if(st&&st.k==='late')return ' · <b style="color:var(--red)">late — was due '+dshort(due)+'</b>';
+            if(due)return ' · due '+dshort(due);
+            return ' · ordered '+dshort(nx.date)+', <span style="color:var(--amb)">no ETA</span>';})()}</div>`:''}
           <div class="pmeta">${avg?gbp(h*avg)+' at cost':(arrLayers(c).filter(l=>l.rem>0).length+' batch'+(arrLayers(c).filter(l=>l.rem>0).length===1?'':'es'))}</div></td>
-        <td>${unknown
-            ? `<span class="num dimNum">?</span><div class="pmeta">${c.untracked?'not tracked':'demand unknown'}</div>`
-            : short>0
-              ? `<span class="num" style="color:var(--amb)">${fmt(short)}</span><div class="pmeta">units${wk?' · '+fmt(wk)+'/wk':''}</div>`
-              : `<span class="num dimNum">—</span><div class="pmeta">covered</div>`}</td>
-        <td>${unknown||cov==null
-            ? '<span class="num dimNum">?</span>'
-            : `<span class="num">${cov>52?'52+':fmt(cov)}</span><div class="pmeta">week${cov===1?'':'s'}</div>`}</td>
+        <td>${c.untracked
+            ? `<span class="num dimNum">?</span><div class="pmeta">not tracked</div>`
+            : !EL
+              ? `<span class="num dimNum">—</span><div class="pmeta">${(function(){const us=usedIn(c.id);return us.length&&us.every(p=>hubSkipped(p))?'not selling':'no sales figure';})()}</div>`
+              : (EL.state==='noroute'||EL.state==='nosup')
+                ? `<span class="num dimNum">—</span><div class="pmeta" style="color:var(--amb)">${EL.state==='nosup'?'no supplier':'<a href="javascript:void(0)" onclick="event.stopPropagation();LV3.go(\'planner\')" style="color:var(--amb)">set the route</a>'}</div>`
+                : EL.buyQty>0
+                  ? `<span class="num" style="color:${EL.buyByDays<=0?'var(--red)':'var(--amb)'}">${fmt(EL.buyQty)}</span><div class="pmeta">${EL.buyByDays<0?fmt(-EL.buyByDays)+'d overdue':EL.buyByDays<=0?'order today':'by '+dshort(EL.buyBy)}</div>`
+                  : `<span class="num dimNum">—</span><div class="pmeta">${EL.state==='waiting'?'on order covers it':'covered'}</div>`}</td>
+        <td>${c.untracked||!EL||EL.cover==null
+            ? '<span class="num dimNum">—</span>'
+            : `<span class="num">${EL.cover>365?'1yr+':fmt(Math.round(EL.cover))}</span><div class="pmeta">day${Math.round(EL.cover)===1?'':'s'}</div>`}</td>
         ${COL('cUsed')?`<td class="l">${uses.length?`<div class="useWrap">${uses.slice(0,2).map(u=>
             `<button class="useChip" title="Open ${esc(u.name)}" onclick="event.stopPropagation();LV3.openProduct('${u.id}')">${esc(u.name)}</button>`).join('')}${
             uses.length>2?`<span class="pmeta" style="margin:0">+${uses.length-2} more</span>`:''}</div>`
@@ -25081,9 +25769,10 @@ function vComponents(){
                    menu. Four buttons on 87 rows was 348 buttons on one screen,
                    and not one of them was "buy more of this" — the thing you
                    have just been told to do. */
-                const cases=(short>0&&c.caseQty>1)?Math.ceil(short/c.caseQty):0;
-                const primary=short>0
-                  ? `<button class="btn sm pri" title="Log an order for this part" onclick="LV3.openLogOrder('${c.id}')">${cases?`Order ${fmt(cases)} case${cases===1?'':'s'}`:`Order ${fmt(short)}`}</button>`
+                const eq=EL&&EL.buyQty>0?EL.buyQty:0;
+                const cases=EL&&EL.cases?EL.cases:0;
+                const primary=eq>0
+                  ? `<button class="btn sm pri" title="Log an order for this part — the Planner's quantity" onclick="LV3.openLogOrder('${c.id}')">${cases?`Order ${fmt(cases)} case${cases===1?'':'s'}`:`Order ${fmt(eq)}`}</button>`
                   : (oo?`<button class="btn sm" title="Book in what has arrived" onclick="LV3.openAddBatch('${c.id}','component')">Receive</button>`
                        :`<button class="btn sm" title="Book in stock you already have" onclick="LV3.openAddBatch('${c.id}','component')">+ Batch</button>`);
                 return primary+`<button class="btn sm dots" title="Adjust, add to a build list, archive or delete" onclick="LV3.rowMenu(event,'component','${c.id}')">⋯</button>`;
@@ -25322,7 +26011,7 @@ async function loadPrefs(){
   try{const r=await sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle();
     if(r&&r.data&&r.data.value){const v=JSON.parse(r.data.value);
       D.settings=Object.assign({},D.settings,v);
-      D.settings.cols=Object.assign({},{pIncoming:true,pOrdered:false,pSold:true,pTarget:true,pCog:true,pSendBy:true,
+      D.settings.cols=Object.assign({},{pIncoming:true,pOrdered:false,pSold:true,pCog:true,pSendBy:true,
         cOnOrder:true,cOrdered:true,cUsed:true},v.cols||{});}}catch(e){}
 }
 function pickKind(k){
@@ -26085,10 +26774,10 @@ async function syncPurchases(){
   if(_syncing)return;_syncing=true;
   /* the same job can be started from the Purchases page or the top bar, so both
      buttons have to show it running */
-  const btns=['purchSyncBtn','lavSyncTop'].map(i=>document.getElementById(i)).filter(Boolean);
+  const btns=['purchSyncBtn','lavSyncTop','purchSyncTop'].map(i=>document.getElementById(i)).filter(Boolean);
   btns.forEach(b=>{b.dataset.was=b.textContent;b.disabled=true;b.textContent='Reading the sheet…';});
   const btn=btns[0]||null;
-  const say=t=>{_syncMsg=t;const el=document.getElementById('purchSyncNote');if(el)el.innerHTML=t;};
+  const say=t=>{_syncMsg=t;['purchSyncNote','purchSyncNoteTop'].forEach(i=>{const el=document.getElementById(i);if(el)el.innerHTML=t;});};
   try{
     const id=lavSheetId(),from=D.settings.purchFrom||'2026-08-01';
     if(!id){
@@ -26200,7 +26889,7 @@ async function syncPurchases(){
     console.warn('[lav3] purchase sync',e);
   }finally{
     _syncing=false;
-    ['purchSyncBtn','lavSyncTop'].forEach(i=>{const b=document.getElementById(i);
+    ['purchSyncBtn','lavSyncTop','purchSyncTop'].forEach(i=>{const b=document.getElementById(i);
       if(b){b.disabled=false;b.textContent=b.dataset.was||(i==='lavSyncTop'?'Sync sheet':'Sync the purchase sheet');}});
   }
 }
@@ -26344,9 +27033,7 @@ function reviewOrders(){
 }
 function reviewPanel(){
   const orders=reviewOrders();
-  if(!orders.length)return `<div class="panel"><div class="ph"><span class="t">To review</span>
-      <span class="sub">everything from the sheet is linked</span></div>
-    <div class="empty" style="padding:18px">Nothing waiting. New purchases appear here after a sync.</div></div>`;
+  if(!orders.length)return '';   /* the strip already says 0 · all linked */
   const lines=orders.reduce((t,o)=>t+o.lines.length,0);
   const value=orders.reduce((t,o)=>t+o.value,0);
   const ready=orders.filter(o=>o.ready===o.lines.length).length;
@@ -26523,6 +27210,18 @@ let RS_PICKS=(()=>{
 })(),RS_Q='';
 /* Called on every change to the basket. Silent on purpose — a toast per
    keystroke would be worse than the bug. */
+/* THE RESTOCK GOAL (spec §6): "I want 1,000 ready by 15 October." A date and
+   what it means — ready to send, or actually sellable at Amazon — per picked
+   bundle. From that, each part gets a latest safe order date, worked BACK
+   through prep, the FBA pipeline where it applies, production and freight. */
+let RS_DATES=(function(){try{return JSON.parse(localStorage.getItem('lv3_rs_dates')||'{}');}catch(e){return{};}})();
+function rsDatesSave(){try{localStorage.setItem('lv3_rs_dates',JSON.stringify(RS_DATES));}catch(e){}}
+function rsDate(id,v){
+  if(v)RS_DATES[id]=Object.assign({mode:'prime'},RS_DATES[id]||{},{date:v});
+  else delete RS_DATES[id];
+  rsDatesSave();render();
+}
+function rsGoalMode(id,v){RS_DATES[id]=Object.assign({},RS_DATES[id]||{},{mode:v});rsDatesSave();render();}
 function rsSave(){
   try{
     if(Object.keys(RS_PICKS).length)localStorage.setItem(RS_KEY,JSON.stringify(RS_PICKS));
@@ -26543,8 +27242,24 @@ function rsSet(id){
   RS_Q='';render();
 }
 function rsQty(id,v){RS_PICKS[id]=Math.max(0,parseInt(v)||0);rsSave();render();}
-function rsDrop(id){delete RS_PICKS[id];rsSave();render();}
+function rsDrop(id){delete RS_PICKS[id];delete RS_DATES[id];rsSave();rsDatesSave();render();}
 function rsPicked(){return Object.keys(RS_PICKS).map(id=>prod(id)).filter(Boolean);}
+/* Incoming, judged. "On order" used to count toward a plan whatever its
+   state — including the order that is 40 days late and the one nobody has
+   dated. A plan built on those is a plan built on hope. Only units with a
+   real, still-future ETA count; the rest are shown, named, and excluded. */
+function rsIncoming(c){
+  const t=dayISO();
+  let ok=0,late=0,blind=0,eta='';
+  (c.layers||[]).filter(l=>!l.arr&&!l.writtenOff).forEach(l=>{
+    const q=l.qty||0;
+    const e=String(l.eta2||l.eta1||'').slice(0,10);
+    if(!e){blind+=q;return;}
+    if(e<t){late+=q;return;}
+    ok+=q;if(!eta||e>eta)eta=e;
+  });
+  return{ok,late,blind,eta};
+}
 /* Every part across every picked bundle, added up, with stock counted once. */
 function restockPlanMulti(){
   const byComp={};
@@ -26559,14 +27274,43 @@ function restockPlanMulti(){
       e.from.push({p,per,qty:target,need:per*target});
     });
   });
+  const today=dayISO();
   return Object.values(byComp).map(e=>{
-    const stock=onHand(e.c)||0,coming=onOrder(e.c)||0;
+    const stock=onHand(e.c)||0,inc=rsIncoming(e.c);
+    /* the strictest deadline this part serves: each dated pick's need-by, less
+       prep, less the FBA pipeline when the goal is "sellable by then" */
+    let arriveBy=null;
+    e.from.forEach(f=>{
+      const g=RS_DATES[f.p.id];if(!g||!g.date)return;
+      let d=String(g.date).slice(0,10);
+      d=addCalDays(d,-prepDaysN());
+      if((g.mode||'prime')==='prime')d=addCalDays(d,-fbaCalDays());
+      if(arriveBy==null||d<arriveBy)arriveBy=d;
+    });
+    /* with a deadline, incoming only counts if it lands BEFORE the parts are
+       needed on the bench — the whole Wedding Cards failure in one rule */
+    const coming=arriveBy==null?inc.ok
+      :(e.c.layers||[]).filter(l=>!l.arr&&!l.writtenOff).reduce((t,l)=>{
+        const et=String(l.eta2||l.eta1||'').slice(0,10);
+        return t+((et&&et>=today&&et<=arriveBy)?(l.qty||0):0);},0);
     const shortfall=Math.max(0,e.need-stock-coming);
     const caseQty=parseInt(e.c.caseQty)||0;
     const cases=shortfall>0?(caseQty>1?Math.ceil(shortfall/caseQty):shortfall):0;
     const buying=caseQty>1?cases*caseQty:cases;
-    return{...e,stock,coming,shortfall,caseQty,cases,buying,ok:shortfall===0,shared:e.from.length>1};
-  }).sort((a,b)=>b.shortfall-a.shortfall||a.c.name.localeCompare(b.c.name));
+    /* latest safe order date = arrival deadline minus production minus route */
+    let orderBy=null,orderLate=false,routeMissing=false;
+    if(arriveBy!=null&&shortfall>0){
+      const route=routeDaysFor(compSupplier(e.c));
+      if(!route)routeMissing=true;
+      else{
+        const lead=route.hi+(prodTimeOf(e.c)||0);
+        orderBy=addCalDays(arriveBy,-lead);
+        orderLate=orderBy<today;
+      }
+    }
+    return{...e,stock,coming,cLate:inc.late,cBlind:inc.blind,cEta:inc.eta,shortfall,caseQty,cases,buying,
+      ok:shortfall===0,shared:e.from.length>1,arriveBy,orderBy,orderLate,routeMissing,goal:arriveBy!=null};
+  }).sort((a,b)=>(b.orderLate?1:0)-(a.orderLate?1:0)||b.shortfall-a.shortfall||a.c.name.localeCompare(b.c.name));
 }
 function restockPlan(p,target){
   if(!p||p.type!=='bundle')return[];
@@ -26575,14 +27319,14 @@ function restockPlan(p,target){
     const per=r.q||1;
     const need=per*target;
     const stock=onHand(c)||0;
-    const coming=onOrder(c)||0;
-    /* what is already here and already paid for both count — ordering on top of
-       them is how you end up with a shelf full of the same part */
+    const inc=rsIncoming(c),coming=inc.ok;
+    /* what is here and what is credibly on its way both count — but an overdue
+       or undated order counts for nothing until it actually lands */
     const shortfall=Math.max(0,need-stock-coming);
     const caseQty=parseInt(c.caseQty)||0;
     const cases=shortfall>0?(caseQty>1?Math.ceil(shortfall/caseQty):shortfall):0;
     const buying=caseQty>1?cases*caseQty:cases;
-    return{c,per,need,stock,coming,shortfall,caseQty,cases,buying,
+    return{c,per,need,stock,coming,cLate:inc.late,cBlind:inc.blind,cEta:inc.eta,shortfall,caseQty,cases,buying,
       ok:shortfall===0,kind:c.kind==='packaging'?'Packaging':'Component'};
   }).filter(Boolean).sort((a,b)=>b.shortfall-a.shortfall||a.c.name.localeCompare(b.c.name));
 }
@@ -26636,6 +27380,7 @@ function vRestocks(){
      about — and looked broken when that one had no build list. */
   if(!picks.length){
     $('lav3View').innerHTML=`<div class="rsStart">
+      <div class="pmeta" style="max-width:760px;margin:0 auto 12px;padding:9px 13px;background:var(--bg2);border:1px solid var(--border2);border-left:3px solid var(--blu);border-radius:9px;text-align:left;">This page works out parts for a target <b>you pick</b> \u2014 a planning tool. For what to buy day-to-day, timing included, the <a href="javascript:void(0)" onclick="LV3.go('planner')" style="color:var(--blu)">Planner</a> is the authority.</div>
       <div class="rsStartT">What do you want to build?</div>
       <div class="rsStartB">Pick one bundle or several. It adds up every part across all of them, counts what you
         already have and what is on its way <b>once</b>, and tells you how many cases to order for the rest.</div>
@@ -26662,6 +27407,8 @@ function vRestocks(){
   const multi=picks.length>1;
 
   $('lav3View').innerHTML=`
+    <div class="pmeta" style="max-width:1560px;margin:0 auto 10px;padding:9px 13px;background:var(--bg2);border:1px solid var(--border2);border-left:3px solid var(--blu);border-radius:9px;">
+      This page works out parts for a target <b>you pick</b> — a planning tool. For what to buy day-to-day, timing included, the <a href="javascript:void(0)" onclick="LV3.go('planner')" style="color:var(--blu)">Planner</a> is the authority: this page counts stock on order as available even when it lands too late.</div>
     <div class="rsPicks">
       <div class="rsPicksH">
         <span class="t">Building ${fmt(picks.length)} product${picks.length===1?'':'s'}</span>
@@ -26686,7 +27433,12 @@ function vRestocks(){
                number the page itself recommends. */
             const cq=own.map(y=>parseInt(y.caseQty)||0).filter(v=>v>1);
             const step=cq.length?Math.min.apply(null,cq):10;
-            const per=n=>(n===2&&s2.n!=null)?s2.n:(sold!=null?sold*n:null);
+            /* one rate for every option — the planner's own (last full month,
+               or the typed planning figure). The old 2-month option summed
+               actual Jun+Jul while 1 and 3 extrapolated July, so "2 months"
+               could suggest LESS than 1 month twice over. */
+            const pd=planDemandOf(x);
+            const per=n=>(pd&&pd.m>0)?Math.round(pd.m*n):null;
             const opts=[1,2,3].map(n=>{const v=per(n);
               return `<option value="${v==null?'':v}"${v!=null&&v===q?' selected':''}${v==null?' disabled':''}>${n} month${n===1?'':'s'}${v==null?'':' · '+fmt(v)}</option>`;}).join('');
             return `
@@ -26703,7 +27455,7 @@ function vRestocks(){
             </div>
             <div class="rsMx">
               <span><i class="k">Sold ${esc(ymName(hubMonth().ym))}</i><b class="v${sold!=null?'':' none'}">${sold!=null?fmt(sold):'—'}</b><i class="u">${sold!=null?'units':'no figure'}</i></span>
-              <span><i class="k">2-month sales</i><b class="v${s2.n==null?' none':''}">${s2.n==null?'—':fmt(s2.n)}</b><i class="u">${s2.n==null?'no figure':'units'}</i></span>
+              <span><i class="k">2-month actual</i><b class="v${s2.n==null?' none':''}">${s2.n==null?'—':fmt(s2.n)}</b><i class="u">${s2.n==null?'no figure':'Jun+Jul, for reference'}</i></span>
               <span><i class="k">At Amazon</i><b class="v${at==null?' none':''}">${at==null?'—':fmt(at)}${amzIn(x)?`<span style="color:var(--blu);font-size:11px"> +${fmt(amzIn(x))}</span>`:''}</b><i class="u">${at==null?'never counted':'units'}</i></span>
               <span><i class="k">Backstock</i><b class="v">${fmt(have)}</b><i class="u">unit${have===1?'':'s'}</i></span>
             </div>
@@ -26724,6 +27476,15 @@ function vRestocks(){
                   <option value="" disabled${[1,2,3].every(n=>per(n)!==q)?' selected':''}>Custom</option>
                   ${opts}
                 </select></div>
+              <div><span class="k">Need by <i style="font-weight:400;color:var(--text3)">(optional)</i></span>
+                <div style="display:flex;gap:5px;align-items:center">
+                  <input class="in" type="date" style="width:130px" value="${esc((RS_DATES[x.id]||{}).date||'')}"
+                    onchange="LV3.rsDate('${x.id}',this.value)">
+                  ${(RS_DATES[x.id]||{}).date?`<select class="in" style="width:150px" onchange="LV3.rsGoalMode('${x.id}',this.value)">
+                    <option value="prime" ${((RS_DATES[x.id]||{}).mode||'prime')==='prime'?'selected':''}>sellable by then</option>
+                    <option value="send" ${(RS_DATES[x.id]||{}).mode==='send'?'selected':''}>ready to send by then</option>
+                  </select>`:''}
+                </div></div>
               <div><span class="k">&nbsp;</span>
                 <button class="btn sm dots" title="Take this one out" onclick="LV3.rsDrop('${x.id}')">&#10005;</button></div>
             </div>
@@ -26737,7 +27498,7 @@ function vRestocks(){
                   <div class="pmeta">${y.kind}${y.caseQty>1?` · case of ${fmt(y.caseQty)}`:' · singles'}</div></td>
                 <td class="mono">&times;${fmt(y.per)}</td>
                 <td class="mono b">${fmt(y.need)}</td>
-                <td class="mono">${fmt(y.stock)}${y.coming?`<div class="pmeta" style="color:var(--blu)">+${fmt(y.coming)}</div>`:''}</td>
+                <td class="mono">${fmt(y.stock)}${y.coming?`<div class="pmeta" style="color:var(--blu)">+${fmt(y.coming)} due ${dshort(y.cEta)}</div>`:''}${y.cLate?`<div class="pmeta" style="color:var(--red)">+${fmt(y.cLate)} late</div>`:''}${y.cBlind?`<div class="pmeta" style="color:var(--amb)">+${fmt(y.cBlind)} no ETA</div>`:''}</td>
                 <td class="mono">${y.ok?'<span class="chip ok">covered</span>'
                   :`<b style="color:var(--amb)">${fmt(y.cases)}</b> ${y.caseQty>1?`case${y.cases===1?'':'s'}`:'units'}`}</td>
               </tr>`).join('')}
@@ -26793,6 +27554,8 @@ function vRestocks(){
           <span class="t">What to order${multi?` — all ${fmt(picks.length)} logs`:''}</span>
           <span class="sub">to build ${fmt(totalUnits)} unit${totalUnits===1?'':'s'}</span>
           ${short.length?`<span class="chip bad">${fmt(short.length)} to order</span>`:'<span class="chip ok">all covered</span>'}
+          ${plan.some(x=>x.orderLate)?`<span class="chip bad">${fmt(plan.filter(x=>x.orderLate).length)} already late for the date</span>`:''}
+          ${plan.some(x=>x.goal&&x.routeMissing&&!x.ok)?`<span class="chip warn">${fmt(plan.filter(x=>x.goal&&x.routeMissing&&!x.ok).length)} need a route set</span>`:''}
 </div>
         ${!RS_TBL?'':`
         ${/* Nine columns for a five-column question. "In one" and "Case size" are
@@ -26803,6 +27566,7 @@ function vRestocks(){
           <th>Required<span>to build ${fmt(totalUnits)}</span></th>
           <th>In stock<span>available</span></th>
           <th>Buy<span>to order</span></th>
+          ${plan.some(x=>x.goal)?'<th>Order by<span>to hit the date</span></th>':''}
         </tr></thead><tbody>
         ${plan.map(x=>{
           const per=x.from[0]?x.from[0].per:1;
@@ -26815,16 +27579,22 @@ function vRestocks(){
                 ${esc(f.p.name)}<b>${fmt(f.need)}</b></span>`).join('')}</div></td>`:''}
           <td class="mono b">${fmt(x.need)}</td>
           <td class="mono"><span style="color:${x.stock?'var(--text)':'var(--red)'}">${fmt(x.stock)}</span>
-            ${x.coming?`<div class="pmeta" style="color:var(--blu)">+${fmt(x.coming)} coming</div>`:''}</td>
+            ${x.coming?`<div class="pmeta" style="color:var(--blu)">+${fmt(x.coming)} due by ${dshort(x.cEta)}</div>`:''}
+            ${x.cLate?`<div class="pmeta" style="color:var(--red)">+${fmt(x.cLate)} late — not counted</div>`:''}
+            ${x.cBlind?`<div class="pmeta" style="color:var(--amb)">+${fmt(x.cBlind)} no ETA — not counted</div>`:''}</td>
           <td class="rsCases">${x.ok
-            ? '<span class="chip ok">Covered</span><div class="pmeta">sufficient stock</div>'
+            ? `<span class="chip ok">Covered</span><div class="pmeta">${x.coming&&x.stock<x.need?'once the '+dshort(x.cEta)+' order lands':'sufficient stock'}${x.goal&&x.coming&&x.stock<x.need?' — in time for the date':''}</div>`
             : `<span class="rsBig">${fmt(x.cases)}</span>
                <div class="pmeta">${x.caseQty>1?`case${x.cases===1?'':'s'} · ${fmt(x.buying)} units${spare>0?` · ${fmt(spare)} spare`:''}`:'units'}</div>`}</td>
-
+          ${plan.some(y=>y.goal)?`<td>${!x.goal||x.ok?'<span class="dim">—</span>'
+            :x.routeMissing?'<span style="font-size:11.5px;color:var(--amb);font-weight:700">SET ROUTE</span><div class="pmeta">no lead time known</div>'
+            :x.orderLate?`<span style="font-size:12px;color:var(--red);font-weight:800">ALREADY LATE</span><div class="pmeta">was ${dshort(x.orderBy)} — needs a faster route or a later date</div>`
+            :`<span class="num b" style="color:${workDaysBetween(dayISO(),x.orderBy)<=5?'var(--amb)':'var(--text)'}">${dshort(x.orderBy)}</span><div class="pmeta">parts on the bench by ${dshort(x.arriveBy)}</div>`}</td>`:''}
         </tr>`;}).join('')}
         </tbody></table>
         <div class="pmeta" style="padding:9px 14px;border-top:1px solid var(--border)">
-          <b>need &minus; what you have &minus; what is already on order</b>${plan.some(x=>x.caseQty>1)?', divided by the case size and rounded up':''}.
+          <b>need &minus; what you have &minus; what is credibly on its way</b>${plan.some(x=>x.caseQty>1)?', divided by the case size and rounded up':''}.
+          An order that is overdue or has no delivery date counts for <b>nothing</b> here — it is shown in red or amber on its row instead of quietly promising stock that may never come.
           ${multi?'Stock and on-order count <b>once per part</b>, not once per product — that is the point of keeping several logs.':''}
         </div>`}
       </div>`}`;
@@ -26844,6 +27614,13 @@ function rsNextOrder(){
   openLogOrder(id);
 }
 
+function ppGo(id){
+  const e=document.getElementById(id);
+  if(e){e.scrollIntoView({behavior:'smooth',block:'start'});
+    e.style.transition='box-shadow .5s';e.style.boxShadow='0 0 0 2px var(--accent)';
+    setTimeout(()=>{e.style.boxShadow='';},1200);}
+  else toast('Nothing there right now — that stage is empty','ok');
+}
 function vPurchases(){
   const unl=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k));
   const part=D.purchases.filter(p=>allocState(p).k==='part');
@@ -26856,7 +27633,7 @@ function vPurchases(){
   /* A purchase has a life: it arrives from the sheet, someone says what it is,
      it sits on order, then it lands. Four unrelated tiles hid that. This is the
      same journey left to right, and each step jumps to the panel that handles it. */
-  const inb=inboundAll();
+  const inb=inboundAll().filter(x=>!x.l.short);   /* shorts have their own stage */
   const shorts=shortLines();
   const orders=reviewOrders();
   const recent=D.purchases.filter(p=>allocState(p).k!=='none').length;
@@ -26866,24 +27643,29 @@ function vPurchases(){
   <div class="ppStack">
   <div class="ppFlow">
     ${step('To review',fmt(orders.length),orders.length?`${fmt(orders.reduce((t,o)=>t+o.lines.length,0))} lines · ${gbp(orders.reduce((t,o)=>t+o.value,0))}`:'all linked',
-      orders.length?'var(--amb)':'var(--text3)',"go('purchases')",orders.length)}
+      orders.length?'var(--amb)':'var(--text3)',"ppGo('revPanel')",orders.length)}
     <span class="ppArrow">→</span>
     ${step('On order',fmt(inb.length),inb.length?`${fmt(inb.reduce((t,x)=>t+x.l.qty,0))} units on the way`:'nothing outstanding',
-      inb.length?'var(--blu)':'var(--text3)',"openDeliveries()",0)}
+      inb.length?'var(--blu)':'var(--text3)',"ppGo('onOrderPanel')",0)}
     <span class="ppArrow">→</span>
-    ${step('Received',fmt(recent),'linked and accounted for','var(--grn)',"setFilter('u','done')",0)}
+    ${step('Received',fmt(recent),'linked and accounted for','var(--grn)',"ppGo('arrivedPanel')",0)}
     ${shorts.length?`<span class="ppArrow">·</span>
-      ${step('Short',fmt(shorts.length),`${fmt(shorts.reduce((t,x)=>t+x.l.qty,0))} units never arrived`,'var(--red)',"go('purchases')",1)}`:''}
+      ${step('Short',fmt(shorts.length),`${fmt(shorts.reduce((t,x)=>t+x.l.qty,0))} units never arrived`,'var(--red)',"ppGo('shortPanel')",1)}`:''}
   </div>
-  ${notesPanel()}
-  ${buyPanel()}
-  ${/* above everything else — an unanswered "is this two purchases?" is the one
-        thing that makes the numbers below it wrong */''}
-  ${dupPanel()}
-  ${damagedPanel()}
-  ${shortPanel()}
+  <div class="panel" style="border-left:3px solid var(--accent);display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:11px 14px;">
+    <button class="btn pri" id="purchSyncTop" onclick="LV3.syncPurchases()" style="font-size:13px;padding:9px 18px;">Sync the purchase sheet</button>
+    <span style="flex:1;min-width:260px;font-size:12px;color:var(--text2);" id="purchSyncNoteTop">${_syncMsg||`Reads <b>${esc(LAV_TABS.join(', '))}</b> from ${dshort(D.settings.purchFrom||'2026-08-01')} onwards — new lines land in <b>To review</b> below, ready to link.`}</span>
+    <button class="btn sm" onclick="if(!_purchAll)LV3.togglePurchAll();setTimeout(function(){var e=document.getElementById('allPurch');if(e)e.scrollIntoView({behavior:'smooth'});},60);">All ${fmt(D.purchases.length)} lines</button>
+  </div>
+  ${/* the panels follow the strip's journey: review it, receive it, buy what's
+        next, then the problems and the paperwork */''}
   ${reviewPanel()}
   ${deliveriesPanel()}
+  ${buyPanel()}
+  ${shortPanel()}
+  ${damagedPanel()}
+  ${notesPanel()}
+  ${dupPanel()}
   ${historyPanel()}
   <div class="panel" id="allPurch">
     <div class="ph">
@@ -27399,19 +28181,12 @@ function paintHealth(){
   if(!issues.length){el.innerHTML='';return;}
   const total=issues.reduce((t,i)=>t+i.n,0);
   const worst=issues.some(i=>i.sev==='bad')?'bad':'warn';
-  el.innerHTML=`<div class="hlth ${worst}">
+  /* the full list lives ONCE, on Overview — repeating it on five tabs pushed
+     every page down and taught everyone to scroll past it */
+  el.innerHTML=`<div class="hlth ${worst}" style="cursor:pointer" onclick="LV3.go('overview')">
     <div class="hlthTop"><span class="hlthDot">${worst==='bad'?'!':'i'}</span>
       <b>${fmt(total)} thing${total===1?'':'s'} to sort out</b>
-      <span class="hlthSub">${worst==='bad'
-        ? 'some of these make the numbers wrong until they are dealt with'
-        : 'nothing is broken — this is work waiting, and none of it shows anywhere else'}</span></div>
-    ${issues.map(i=>`<div class="hlthRow ${i.sev}">
-      <span class="hlthN">${fmt(i.n)}</span>
-      <div class="hlthTxt"><b>${i.label}</b><span>${i.detail}</span></div>
-      <div class="hlthBtns">
-        ${i.fix?`<button class="btn sm warn" onclick="${i.fix}">${esc(i.btn||'Repair')}</button>`:''}
-        ${i.go?`<button class="btn sm" onclick="LV3.${i.go}">Show me</button>`:''}
-      </div></div>`).join('')}
+      <span class="hlthSub">the list is on Overview — click to see it</span></div>
   </div>`;
 }
 /* The Kingdom Coffee hole, level two. A purchase can point at a component that
@@ -27618,6 +28393,8 @@ function dupPanel(){
     return `<div class="panel">
       <div class="ph"><span class="t">Duplicate checks</span>
         <span class="sub">nothing waiting — every purchase line on the sheet has come through</span>
+        ${(()=>{const k=Object.keys(purchKilled()).length;
+          return k?`<span class="chip warn">${fmt(k)} ignored line${k===1?'':'s'}</span>`:'';})()}
         <span class="chip ok">all clear</span></div>
       <div class="ordNote">When two sheet lines look identical — same day, same product, same money, no order number — both are kept and the question lands here rather than the sync deciding on its own.${
       (()=>{const k=Object.entries(purchKilled());
@@ -28665,7 +29442,7 @@ function historyPanel(){
      One rule now: the goods are the content, so they read as plain sentence
      case and get the room. Numbers are white. Amber appears once, and only when
      an order genuinely dragged. Everything else is quiet. */
-  return `<div class="panel">
+  return `<div class="panel" id="arrivedPanel">
     <div class="ph"><span class="t">What has arrived</span>
       <span class="sub">${fmt(all.length)} order${all.length===1?'':'s'} · ${fmt(units)} units · ${gbp(val)}</span>
       ${all.length>6?`<div class="r"><button class="btn sm" onclick="LV3.toggleHist()">${_histAll?'Recent only':`All ${fmt(all.length)}`}</button></div>`:''}
@@ -28705,56 +29482,72 @@ function historyPanel(){
 let _buyAll=false;
 const BUY_SHOW=8;
 function buyToggle(){_buyAll=!_buyAll;render();}
+function copyBuyList(){
+  const P=plData();
+  const list=P.buys.filter(L=>!L.isProd&&L.buyQty>0&&['buy','soon'].indexOf(L.state)>=0);
+  if(!list.length){toast('Nothing due to order right now');return;}
+  const lines=list.map(L=>[L.o.name,L.buyQty,(L.sup||''),L.cases?L.cases+' cases':''].join('\t'));
+  const txt='Part\tUnits\tSupplier\tCases\n'+lines.join('\n');
+  try{navigator.clipboard.writeText(txt).then(
+    ()=>toast('\u2713 '+list.length+' lines copied — paste straight into the purchase sheet','ok'),
+    ()=>toast('Could not reach the clipboard','er'));}
+  catch(e){toast('Could not reach the clipboard','er');}
+}
 function buyPanel(){
-  const list=buyList();
-  if(!list.length)return '';
+  /* Rebuilt 29 Aug: this list IS the Planner's buy list — same engine, same
+     numbers. The old version ran its own 60-day-target maths with guessed
+     freight routes and disagreed with the Planner by thousands of pounds. */
+  const P=plData();
+  const list=P.buys.filter(L=>!L.isProd&&L.buyQty>0&&['buy','soon','upcoming'].indexOf(L.state)>=0);
+  const gated=P.buys.filter(L=>!L.isProd&&(L.state==='noroute'||L.state==='nosup'));
+  if(!list.length&&!gated.length)return '';
   const shown=_buyAll?list:list.slice(0,BUY_SHOW);
   const hidden=list.length-shown.length;
-  const late=list.filter(x=>x.urgency==='late').length;
-  const now=list.filter(x=>x.urgency==='now').length;
-  const spend=list.reduce((t,x)=>t+x.qty*(avgCostOf(x.c)||0),0);
-  return `<div class="panel" id="buyPanel">
+  const now=list.filter(x=>x.buyByDays<=0).length;
+  const week=list.filter(x=>x.buyByDays>0&&x.buyByDays<=7).length;
+  const spend=list.reduce((t,x)=>t+(x.cost||0),0);
+  return `<div class="panel" id="buyPanel" style="border-left:3px solid var(--amb);">
     <div class="ph"><span class="t">What to buy</span>
-      <span class="sub">${fmt(list.length)} part${list.length===1?'':'s'} worth ordering${spend?` · about ${gbp(spend)}`:''}</span>
-      ${late?`<span class="chip bad">${fmt(late)} already late</span>`:''}
-      ${now?`<span class="chip warn">${fmt(now)} order this week</span>`:''}
+      <span class="sub">${fmt(list.length)} part${list.length===1?'':'s'} · about ${gbp(spend)} — the Planner's numbers</span>
+      ${now?`<span class="chip bad">${fmt(now)} order now</span>`:''}
+      ${week?`<span class="chip warn">${fmt(week)} this week</span>`:''}
+      <div class="r"><button class="btn sm" title="Copies part · units · supplier · cases, ready to paste into the Google Sheet" onclick="LV3.copyBuyList()">Copy for the sheet</button></div>
     </div>
     <table><thead><tr>
-      <th class="l" style="width:210px">Part</th>
-      <th style="width:76px">On hand</th>
-      <th style="width:76px">Coming</th>
-      <th style="width:92px">Cover</th>
-      <th class="l" style="width:150px">Usually from</th>
-      <th style="width:110px">Order by</th>
-      <th style="width:108px">Order about</th>
-      <th class="acts" style="width:104px"></th>
+      <th class="l" style="width:220px">Part</th>
+      <th style="width:78px">On hand</th>
+      <th style="width:84px">Coming</th>
+      <th style="width:74px">Cover</th>
+      <th class="l" style="width:168px">Route</th>
+      <th style="width:104px">Order by</th>
+      <th style="width:104px">Order</th>
+      <th class="acts" style="width:112px"></th>
     </tr></thead><tbody>
     ${shown.map(x=>{
-      const col=x.urgency==='late'?'var(--red)':x.urgency==='now'?'var(--amb)':x.urgency==='soon'?'var(--blu)':'var(--text2)';
-      const when=x.slack<0?`${fmt(-x.slack)}d overdue`:x.slack===0?'today':`in ${fmt(x.slack)}d`;
+      const col=x.buyByDays<=0?'var(--red)':x.buyByDays<=7?'var(--amb)':'var(--text2)';
+      const drv=(x.drivers||[]);
       return `<tr>
-        <td class="l"><div class="pname" style="font-size:12.5px">${esc(x.c.name)}</div>
-          <div class="pmeta">used in ${fmt(usedIn(x.c.id).length)} product${usedIn(x.c.id).length===1?'':'s'} · ${fmt(Math.round(x.perDay*7))}/week</div></td>
-        <td><span class="num" style="color:${x.have?'var(--text)':'var(--red)'}">${fmt(x.have)}</span></td>
-        <td>${x.coming?`<span class="num" style="color:var(--blu)">${fmt(x.coming)}</span>`:'<span class="dim">—</span>'}</td>
-        <td><span class="num" style="color:${col}">${fmt(x.coverDays)}d</span></td>
-        <td class="l">${x.sup?esc(x.sup):'<span class="dim">not bought yet</span>'}
-          <div class="pmeta">${esc((shipMode(x.mode)||{}).label||'').split('—')[0].trim()} · ${x.lead.lo}–${x.lead.hi}d</div></td>
-        <td><span class="num" style="color:${col};font-size:12.5px">${when}</span>
-          <div class="pmeta" style="text-align:center">${x.urgency==='late'?'order now':'to stay covered'}</div></td>
-        <td><span class="num b">${x.qty?fmt(x.qty):'—'}</span>
-          ${x.c.caseQty>0&&x.qty?`<div class="pmeta" style="text-align:center">${fmt(x.qty/x.c.caseQty)} case${x.qty/x.c.caseQty===1?'':'s'}</div>`:''}</td>
-        <td class="acts"><button class="btn sm ${x.urgency==='late'?'warn':'pri'}" onclick="LV3.openLogOrder('${x.c.id}')">Log the order</button></td>
+        <td class="l"><div class="pname" style="font-size:12.5px">${esc(x.o.name)}${x.chase?' <span class="chip" style="background:#2b1a3d;color:#c084fc">CHASE</span>':''}</div>
+          <div class="pmeta">${esc(drv.slice(0,2).join(', '))}${drv.length>2?' +'+(drv.length-2):''} · ${(x.daily*7).toFixed(1)}/wk</div></td>
+        <td><span class="num" style="color:${x.hand?'var(--text)':'var(--red)'}">${fmt(x.hand)}</span></td>
+        <td>${x.inTime?`<span class="num" style="color:var(--blu)">${fmt(x.inTime)}</span>`:'<span class="dim">—</span>'}
+          ${x.pendNoEta?`<div class="pmeta" style="color:var(--amb)">+${fmt(x.pendNoEta)} no ETA</div>`:''}</td>
+        <td><span class="num" style="color:${col}">${x.cover!=null?fmt(Math.round(x.cover))+'d':'—'}</span></td>
+        <td class="l" style="font-size:12px;color:var(--text2)">${esc(x.sup)}
+          <div class="pmeta">${esc(x.route?x.route.label:'')} · ${x.lead}d${x.prodDays?' incl. '+x.prodDays+'d made-to-order':''}</div></td>
+        <td><span class="num" style="color:${col};font-size:12.5px">${x.buyByDays<0?fmt(-x.buyByDays)+'d overdue':x.buyByDays===0?'today':dshort(x.buyBy)}</span></td>
+        <td><span class="num b">${fmt(x.buyQty)}</span>
+          ${x.cases?`<div class="pmeta" style="text-align:center">${fmt(x.cases)} case${x.cases===1?'':'s'}</div>`:''}</td>
+        <td class="acts"><button class="btn sm ${x.buyByDays<=0?'warn':'pri'}" onclick="LV3.openLogOrder('${x.o.id}')">Log the order</button></td>
       </tr>`;}).join('')}
     </tbody></table>
     ${(hidden>0||_buyAll)?`<div style="padding:8px 14px;border-top:1px solid var(--border);text-align:center">
-      <button class="btn sm" onclick="LV3.buyToggle()">${_buyAll
-        ? `Show just the ${BUY_SHOW} most urgent`
-        : `Show all ${fmt(list.length)} — ${fmt(hidden)} more below this`}</button></div>`:''}
+      <button class="btn sm" onclick="LV3.buyToggle()">${_buyAll?`Show just the ${BUY_SHOW} most urgent`:`Show all ${fmt(list.length)} — ${fmt(hidden)} more`}</button></div>`:''}
+    ${gated.length?`<div class="pmeta" style="padding:9px 14px;border-top:1px solid var(--border)">
+      <b style="color:var(--amb)">${fmt(gated.length)} more part${gated.length===1?'':'s'} cannot be given a date</b> — the supplier has no route yet.
+      <a href="javascript:void(0)" onclick="LV3.go('planner')" style="color:var(--blu)">Set the routes</a> and they appear here, priced and dated.</div>`:''}
     <div class="pmeta" style="padding:9px 14px;border-top:1px solid var(--border)">
-      Worked out from what each part is used for over ${D.settings.targetDays||60} days, minus what you have and what is already coming,
-      then set against how long that supplier takes. Change a lead time in <b>Settings</b> and these dates move with it.
-    </div>
+      Buy enough that after it lands you hold ${cycleDaysN()} + ${safetyDays()} days, worked from the position projected at arrival and rounded to cases. Routes and timings live in <b>Settings → Who ships how</b>.</div>
   </div>`;
 }
 const avgCostOf=c=>{const ls=arrLayers(c).filter(l=>l.rem>0&&l.cost>0);
@@ -28812,7 +29605,7 @@ function shortPanel(){
   const bySup={};
   list.forEach(x=>{const k=x.l.sup||'—';bySup[k]=(bySup[k]||0)+x.l.qty;});
   const worst=Object.keys(bySup).sort((a,b)=>bySup[b]-bySup[a]).slice(0,3);
-  return `<div class="panel">
+  return `<div class="panel" id="shortPanel" style="border-left:3px solid var(--red);">
     <div class="ph"><span class="t" style="color:var(--red)">Short deliveries</span>
       <span class="sub">${fmt(list.length)} order${list.length===1?'':'s'} arrived light · ${fmt(units)} units · ${gbp(value)} paid for and not here</span>
       ${worst.length>1?`<span class="chip warn" title="${worst.map(w=>esc(w)+': '+fmt(bySup[w])).join(' · ')}">worst: ${esc(worst[0])}</span>`:''}
@@ -28852,13 +29645,16 @@ function shortPanel(){
         <td class="acts">
           <button class="btn sm" title="Record that you've asked — sets a reply-by date three working days out"
             onclick="LV3.markChased('${x.o.id}','${l.id}')">${l.chased?'Chased again':'Chased'}</button>
-          <button class="btn sm" title="They agreed to send more — stops it being chased, keeps the units owed"
-            onclick="LV3.openRepl('${x.o.id}','${l.id}')">${l.repl?'Change replacement':'Replacement coming'}</button>
-          <button class="btn sm go" title="It turned up after all" onclick="LV3.openReceive('${comp(x.o.id)?'component':'product'}','${x.o.id}','${l.id}')">Arrived</button>
-          <button class="btn sm" title="The supplier refunded these on their own — closes it here, Sarah is never asked to chase it" onclick="LV3.shortEnd('${x.o.id}','${l.id}','auto')">Auto refunded</button>
-          <button class="btn sm" title="Money back — closes it without writing off stock" onclick="LV3.shortEnd('${x.o.id}','${l.id}','refund')">Refunded</button>
-          <button class="btn sm" title="It was on the shelf all along" onclick="LV3.shortEnd('${x.o.id}','${l.id}','miscount')">Miscount</button>
-          <button class="btn sm dgr" title="Accept it's never coming" onclick="LV3.writeOffShort('${x.o.id}','${l.id}')">Write off</button>
+          <button class="btn sm go" title="It turned up after all" onclick="LV3.openReceive('${comp(x.o.id)?'component':'product'}','${x.o.id}','${l.id}')">Receive</button>
+          <select class="in" style="width:98px;font-size:12px" title="How it was resolved"
+            onchange="if(this.value)LV3.shortMore('${x.o.id}','${l.id}',this.value);this.value=''">
+            <option value="">More…</option>
+            <option value="repl">${l.repl?'Change replacement':'Replacement coming'}</option>
+            <option value="auto">Auto refunded</option>
+            <option value="refund">Refunded</option>
+            <option value="miscount">Miscount</option>
+            <option value="writeoff">Write off</option>
+          </select>
         </td></tr>`;}).join('')}
     </tbody></table></div>
     <div class="pmeta" style="padding:9px 14px;border-top:1px solid var(--border)">
@@ -28881,6 +29677,11 @@ function shortState(l){
   if(l.replyBy&&l.replyBy<dayISO())return{k:'noreply',label:'No reply',col:'var(--red)',ord:1};
   if(!l.chased)return{k:'new',label:'Not chased yet',col:'var(--amb)',ord:2};
   return{k:'waiting',label:'Waiting on them',col:'var(--text2)',ord:3};
+}
+function shortMore(oid,lid,k){
+  if(k==='repl')return openRepl(oid,lid);
+  if(k==='writeoff')return writeOffShort(oid,lid);
+  return shortEnd(oid,lid,k);
 }
 function markChased(oid,lid){
   const o=comp(oid)||prod(oid);if(!o)return;
@@ -28975,7 +29776,7 @@ function deliveriesPanel(){
   const soon=open.filter(x=>etaState(x.l).k==='soon').length;
   const units=open.reduce((t,x)=>t+(x.l.qty||0),0);
   const value=open.reduce((t,x)=>t+(x.l.qty||0)*(x.l.cost||0),0);
-  return `<div class="panel">
+  return `<div class="panel" id="onOrderPanel">
     <div class="ph"><span class="t">On order</span>
       <span class="sub">${open.length?`${fmt(orderCount)} order${orderCount===1?'':'s'} · ${fmt(open.length)} line${open.length===1?'':'s'} · ${fmt(units)} units${value?` · ${gbp(value)}`:''}`:'nothing outstanding'}</span>
       ${late?`<span class="chip bad">${fmt(late)} overdue</span>`:''}
@@ -30329,7 +31130,6 @@ function salesPanel(){
 function vSettings(){
   $('lav3View').innerHTML=`
   <div class="cols2">
-    <div>
       <div class="panel">
         <div class="ph"><span class="t">Purchase sheet</span><span class="sub">the same Lavarion tabs spend.dash reads</span>
           <div class="r"><button class="btn sm pri" onclick="LV3.go('purchases')">Go and sync</button></div></div>
@@ -30346,7 +31146,6 @@ function vSettings(){
       <!-- "Who ships how" sat fifth, nearly 2,000px down, and went unfound for
            weeks. It decides every expected date on the page, so it goes first. -->
       ${supplierPanel()}
-      ${leadPanel()}
       ${salesPanel()}
       ${overridePanel()}
       ${ignoredPanel()}
@@ -30389,7 +31188,7 @@ function vSettings(){
         <div style="padding:12px 14px">
           <div class="lab" style="margin-bottom:7px">Products table</div>
           <div class="colgrid">
-            ${[['pIncoming','Incoming'],['pOrdered','Ordered date'],['pSold','Sold 30d'],['pTarget',(D.settings.targetDays||60)+'d target'],['pSendBy','Send by'],['pCog','COG / unit']]
+            ${[['pIncoming','Incoming'],['pOrdered','Ordered date'],['pSold','Sold 30d'],['pSendBy','Action'],['pCog','COG / unit']]
               .map(([k,l])=>`<label><input type="checkbox" ${COL(k)?'checked':''} onchange="LV3.setCol('${k}',this.checked)"> ${l}</label>`).join('')}
           </div>
           <div class="lab" style="margin:14px 0 7px">Components table</div>
@@ -30431,8 +31230,6 @@ function vSettings(){
         </div>
       </div>
 
-    </div>
-    <div>
       <details class="panel lvFold"><summary class="ph"><span class="fArr">\u25b6</span><span class="t">How this works</span><span class="sub">the whole system on one card</span></summary>
         <div style="padding:13px 14px;font-size:12px;line-height:1.75;color:var(--text2)">
           <b style="color:var(--text)">Products</b> are what we sell, tagged <span class="chip bundle">Bundle</span> <span class="chip pl">Private label</span> <span class="chip single">Single</span>.<br>
@@ -30516,7 +31313,6 @@ function vSettings(){
           · Separate availability per location (pooled for now)
         </div>
       </details>
-    </div>
   </div>`;
 }
 
@@ -30814,7 +31610,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,localDT,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
-  shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,
+  shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,copyBuyList,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
