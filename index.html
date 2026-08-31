@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v35.6</title>
+<title>BDL PrepHub v35.8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3401,7 +3401,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v35.6</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v35.8</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3435,7 +3435,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v35.6</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v35.8</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3569,7 +3569,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
         <option value="expected">Expected Units</option>
       </select>
       <button class="btn-add" onclick="openAdd()">+ Add Row</button>
-      <button onclick="triggerManualSync()" id="prepSyncBtn" style="padding:5px 14px;background:rgba(96,165,250,.18);border:1px solid rgba(96,165,250,.5);color:#60a5fa;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:background .15s;"><span id="prepSyncIcon" style="display:inline-block;transition:transform .4s;">⟳</span><span id="prepSyncLabel">Sync Now</span></button>
+      <button onclick="triggerManualSync()" id="prepSyncBtn" style="padding:5px 14px;background:rgba(96,165,250,.18);border:1px solid rgba(96,165,250,.5);color:#60a5fa;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:background .15s;"><span id="prepSyncIcon" style="display:inline-block;transition:transform .4s;">⟳</span><span id="prepSyncLabel">Sync Now</span><span id="prepSyncAge" style="font-size:9.5px;font-weight:600;color:var(--text3);"></span></button>
       <div id="bulkActions" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:4px 10px;">
         <span style="font-size:11px;color:var(--accent);font-weight:800;" id="bulkCount">0 selected</span>
         <button onclick="doBulkAmazonFile()" title="Build the Send to Amazon upload file from the ticked rows — SKU and quantity, ready to drop into Seller Central" style="padding:3px 9px;background:rgba(74,222,128,.16);border:1px solid rgba(74,222,128,.45);color:#4ade80;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⬇ Amazon file</button>
@@ -4138,7 +4138,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v35.6</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v35.8</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -5794,10 +5794,11 @@ function updatePrepSearchUI(){}
 function paintAcctFilter(){
   const sel=document.getElementById('prepAcctF');if(!sel)return;
   const seen={};
-  rows.forEach(r=>{const a=String(r.acct||'').trim();if(a)seen[a]=(seen[a]||0)+1;});
+  const inView=r=>(typeof _showArchived!=='undefined'&&_showArchived)?r.archived:!r.archived;
+  rows.filter(inView).forEach(r=>{const a=String(r.acct||'').trim();if(a)seen[a]=(seen[a]||0)+1;});
   const names=Object.keys(seen).sort();
   const cur=sel.value;
-  const want=''+names.join('|');
+  const want=''+names.map(n=>n+':'+seen[n]).join('|');
   if(sel.dataset.built===want)return;            // nothing new — leave it alone
   sel.dataset.built=want;
   sel.innerHTML='<option value="">All accounts</option>'
@@ -6033,6 +6034,9 @@ document.addEventListener('visibilitychange',()=>{
 function renderPrep(){
   /* invisible → not painted, only owed */
   if(document.hidden||!_pageActive('page-prep')){_dirtyR.prep=true;return;}
+  /* restored bulk ticks (they survive a hard refresh now) need their counter
+     bar woken too, not just the checkboxes */
+  if(_selectedIds.size)setTimeout(()=>{try{updateBulkUI();}catch(e){}},0);
   _dirtyR.prep=false;
   sortRows();
   renderStats();
@@ -7412,11 +7416,12 @@ function _who(){return window.currentUserName||'Sarah';}
 // ── LOADING / SAVING ──────────────────────────────────────────────────────────
 async function loadVaState(){
   try{
-    const r=await sb.from('app_settings').select('key,value').in('key',['webhook_cfg','admin_checkin','va_actions','resolution_types','follow_up_types','jack_suppliers','srt_drafts','row_seen']);
+    const r=await sb.from('app_settings').select('key,value').in('key',['webhook_cfg','admin_checkin','va_actions','resolution_types','follow_up_types','jack_suppliers','srt_drafts','row_seen','sheet_sync_at']);
     (r.data||[]).forEach(row=>{
       let v=null;try{v=JSON.parse(row.value||'null');}catch(e){return;}
       if(row.key==='srt_drafts'&&v&&typeof v==='object')SRT_DRAFTS=v;
       if(row.key==='row_seen'&&v&&typeof v==='object'&&!Array.isArray(v))ROW_SEEN=v;
+      if(row.key==='sheet_sync_at'&&v&&typeof v==='object'){window._sheetSyncAt=v;setTimeout(paintSyncAge,500);}
       if(row.key==='webhook_cfg'&&v)WEBHOOK_CFG=Object.assign(WEBHOOK_CFG,v);
       if(row.key==='admin_checkin'&&v)ADMIN_CHECK=Object.assign(ADMIN_CHECK,v);
       if(row.key==='va_actions'&&Array.isArray(v))VA_ACTIONS=v;
@@ -15885,12 +15890,13 @@ function confirmOk(){
   if(_confirmCb)_confirmCb();
   _confirmCb=null;
 }
-let _selectedIds=new Set(); // persists checkbox state across re-renders
+let _selectedIds=(()=>{try{return new Set(JSON.parse(sessionStorage.getItem('bulkSel')||'[]'));}catch(e){return new Set();}})(); // survives re-renders AND a hard refresh (same tab)
 
 function getSelectedRows(){
   return Array.from(_selectedIds);
 }
 function updateBulkUI(){
+  try{sessionStorage.setItem('bulkSel',JSON.stringify([..._selectedIds]));}catch(e){}
   const selected=_selectedIds.size;
   const bulkEl=document.getElementById('bulkActions');
   const countEl=document.getElementById('bulkCount');
@@ -17092,7 +17098,10 @@ function updateSheetSyncToggleUI(){
   if(badge){badge.textContent=on?'LIVE':'OFF';badge.style.background=on?'rgba(34,197,94,.2)':'rgba(100,116,139,.2)';badge.style.color=on?'#22c55e':'var(--text3)';}
 }
 function setSheetSyncLog(msg,isErr){
-  try{if(msg&&window.SyncUI){isErr?SyncUI.fail(msg):SyncUI.step(msg);}}catch(e){}
+  try{if(msg&&window.SyncUI){
+    if(!isErr&&SyncUI._n===1&&/add|import|row|new/i.test(msg))SyncUI.stage(2);
+    isErr?SyncUI.fail(msg):SyncUI.step(msg);
+  }}catch(e){}
   const el=document.getElementById('sheetSyncLog');
   if(el){el.textContent=msg;el.style.color=isErr?'var(--red)':'var(--text2)';}
 }
@@ -17141,6 +17150,10 @@ function initSheetSyncLeader(){
 // ── TIMER ─────────────────────────────────────────────────────────────────────
 function restartSheetSyncTimer(){
   clearTimeout(_ssTimer);_ssTimer=null;
+  /* AUTO SHEET-SYNC RETIRED — Jack, 30 Aug: "stop all this auto sync, it's
+     becoming a pain. UK staff presses Sync." Manual only, like the Lavarion
+     purchase sheet. Every call still clears any old timer; none is re-armed. */
+  return;
   if(!_ssConfig.enabled)return;
   const ms=(_ssConfig.interval||120)*1000;
   _ssTimer=setTimeout(()=>{
@@ -17160,26 +17173,52 @@ function restartSheetSyncTimer(){
 
 /* ── live feedback while the sheet sync runs ── */
 const SyncUI={
-  _t:null,
+  /* Jack, 30 Aug: "a polished staged loading experience with animated
+     progress" — and above all, DONE must mean the screen matches the
+     database, so nobody ever double-checks finished work again. */
+  _t:null,_n:0,
+  _stages:['Reading the Purchase Sheet','Importing anything new','Waking up &amp; pulling everything down','Double-checking nothing is missing','Painting the screen'],
   show(title){const p=document.getElementById('syncPanel');if(!p)return;
-    p.className='on';document.getElementById('spTitle').textContent=title||'Syncing with the sheet';
-    document.getElementById('spLog').innerHTML='<div class="cur">Starting…</div>';
-    clearTimeout(this._t);},
-  step(msg){const l=document.getElementById('spLog');if(!l||!msg)return;
-    l.innerHTML='';                       // one line, replaced — not a growing list
-    const d=document.createElement('div');d.className='cur';d.textContent=msg;
-    l.appendChild(d);},
+    clearTimeout(this._t);this._n=0;
+    p.className='on';
+    p.innerHTML=`<div class="sp-top"><span class="sp-spin"></span><span class="sp-title" id="spTitle">${title||'Syncing with the Purchase Sheet'}</span>
+      <button class="sp-x" title="Hide — the sync carries on" onclick="SyncUI.hide()">&#10005;</button></div>
+      <div class="sp-stages">${this._stages.map((s,i)=>`<div class="sp-stage" id="spStg${i+1}"><span class="sp-ico"></span><span>${s}</span></div>`).join('')}</div>
+      <div class="sp-log" id="spLog"></div>
+      <div class="sp-bar"><div class="sp-fill" id="spFill"></div></div>`;
+    this.stage(1);},
+  stage(n){this._n=n;
+    for(let i=1;i<=this._stages.length;i++){const el=document.getElementById('spStg'+i);if(!el)continue;
+      el.className='sp-stage'+(i<n?' ok':i===n?' run':'');}
+    const f=document.getElementById('spFill');
+    if(f)f.style.width=Math.min(100,Math.round((n-0.5)/this._stages.length*100))+'%';},
+  step(msg){const l=document.getElementById('spLog');if(!l||!msg)return;l.textContent=msg;},
   done(msg){const p=document.getElementById('syncPanel');if(!p)return;
-    p.classList.add('done');document.getElementById('spTitle').textContent='Sync finished';
+    this.stage(this._stages.length+1);
+    const f=document.getElementById('spFill');if(f)f.style.width='100%';
+    p.classList.add('done');const t=document.getElementById('spTitle');if(t)t.textContent='Sync finished';
     if(msg)this.step(msg);
-    clearTimeout(this._t);this._t=setTimeout(()=>this.hide(),1600);},
+    clearTimeout(this._t);this._t=setTimeout(()=>this.hide(),4000);},
   fail(msg){const p=document.getElementById('syncPanel');if(!p)return;
-    p.classList.add('err');document.getElementById('spTitle').textContent='Sync problem';
+    p.classList.add('err');const t=document.getElementById('spTitle');if(t)t.textContent='Sync problem';
     this.step(msg||'Something went wrong — check Settings');
-    clearTimeout(this._t);this._t=setTimeout(()=>this.hide(),8000);},
+    clearTimeout(this._t);this._t=setTimeout(()=>this.hide(),10000);},
   hide(){const p=document.getElementById('syncPanel');if(p)p.className='';}
 };
 
+function paintSyncAge(){
+  try{
+    const el=document.getElementById('prepSyncAge');if(!el)return;
+    const at=window._sheetSyncAt&&window._sheetSyncAt.at;
+    if(!at){el.textContent='';return;}
+    const m=Math.floor((Date.now()-new Date(at).getTime())/60000);
+    const t=m<1?'just now':m<60?m+'m ago':m<1440?Math.floor(m/60)+'h ago':Math.floor(m/1440)+'d ago';
+    el.textContent='· '+t;
+    el.style.color=m>=1440?'#f87171':m>=240?'#fbbf24':'var(--text3)';
+    const btn2=document.getElementById('prepSyncBtn');
+    if(btn2)btn2.title='Last sheet sync: '+t+(window._sheetSyncAt.by?' by '+window._sheetSyncAt.by:'')+'. Auto-sync is off — pressing this is the only way sheet rows come in.';
+  }catch(e){}
+}
 async function triggerManualSync(){
   const btn=document.getElementById('prepSyncBtn');
   const icon=document.getElementById('prepSyncIcon');
@@ -17190,9 +17229,36 @@ async function triggerManualSync(){
   // Spin the icon — CSS does the animating, zero JS wake-ups
   if(icon)icon.style.animation='prepSpin 1.2s linear infinite';
   let _syncErr=null;
+  const _before=rows.length;
   try{await runSheetSync(true);}catch(e){_syncErr=e;}finally{
     _ssBusy=false;                      // a throw must never leave sync jammed shut
-    if(_syncErr)SyncUI.fail(_syncErr.message);else SyncUI.done('Up to date');
+    let _verifyBad='';
+    if(!_syncErr){
+      /* pull-back: what the sync wrote must be ON SCREEN before "done" */
+      SyncUI.stage(3);SyncUI.step('Waking the live connection to the other laptops\u2026');
+      try{await reviveRealtime();}catch(e){}
+      SyncUI.step('Pulling the freshest copy of everything\u2026');
+      try{await resyncNow('after Sync Now',true);}catch(e){}
+      /* the never-again guarantee: count the database, compare to the screen.
+         A mismatch re-pulls once; still wrong = say so in red, never "done". */
+      SyncUI.stage(4);SyncUI.step('Counting the database against the screen\u2026');
+      try{
+        const _c=await sb.from('prep_rows').select('id',{count:'exact',head:true});
+        const dbN=_c&&_c.count;
+        if(dbN!=null&&dbN!==rows.length){
+          try{await dbLoad();renderPrep();}catch(e){}
+          if(dbN!==rows.length)_verifyBad='The database holds '+dbN+' rows but the screen shows '+rows.length+' \u2014 press Sync Now again, and tell Jack if it repeats.';
+        }
+      }catch(e){}
+      SyncUI.stage(5);
+      window._sheetSyncAt={at:new Date().toISOString(),by:(window.currentUserName||'')};
+      try{_putSetting('sheet_sync_at',window._sheetSyncAt);}catch(e){}
+      paintSyncAge();
+    }
+    const _newN=Math.max(0,rows.length-_before);
+    if(_syncErr)SyncUI.fail(_syncErr.message);
+    else if(_verifyBad)SyncUI.fail(_verifyBad);
+    else SyncUI.done((_newN>0?_newN+' new row'+(_newN===1?'':'s')+' \u2014 on screen now':'No new rows')+' \u00b7 '+fmt(rows.length)+' rows total \u00b7 screen matches the database \u2713');
     if(icon){icon.style.animation='';icon.style.transform='rotate(0deg)';}
     if(label)label.textContent='Sync Now';
     if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';}
@@ -17496,8 +17562,25 @@ async function runSheetSync(manual){
 
   const allRowsBySyncId=new Map();
   const allRowsBySku=new Map();
-  rows.forEach(r=>{if(r.sheetSyncId)allRowsBySyncId.set(r.sheetSyncId,r);allRowsBySku.set((r.sku||'').toLowerCase(),r);});
+  /* Jack, 31 Aug: "SKU should always stay the same unless she changes it,
+     which sometimes happens." A renamed SKU used to look like a brand-new row
+     AND leave the old one to be archived — taking its received qty, notes,
+     shipments and case file with it. Index by order id as well so a rename can
+     be recognised as the SAME row. One Amazon order can hold several products,
+     so this fallback only fires when the order id points at exactly one row
+     AND the ASIN matches — a true rename, never a guess. */
+  const allRowsByOid=new Map();
+  rows.forEach(r=>{if(r.sheetSyncId)allRowsBySyncId.set(r.sheetSyncId,r);
+    /* 7 archived rows share a SKU with a live one (old reorders). The SKU
+       fallback must always find the LIVE row, never its archived twin. */
+    const _k=(r.sku||'').toLowerCase();
+    const _prev=allRowsBySku.get(_k);
+    if(!_prev||(_prev.archived&&!r.archived))allRowsBySku.set(_k,r);
+    const _o=(r.oid||'').trim();
+    if(_o&&!r.archived){const a=allRowsByOid.get(_o)||[];a.push(r);allRowsByOid.set(_o,a);}});
+  const _claimedRows=new Set();   // one existing row can only be claimed by ONE sheet line per pass
 
+  window._noOidSeen={};
   const toAdd=[],toUpdate=[],toDeactivate=[],toReactivate=[];
   /* every row the sheet says YES to, and what became of it */
   const _eligible=[],_issues=[];
@@ -17568,8 +17651,32 @@ async function runSheetSync(manual){
     }
     const trigger=getTrigger(row);
     const fields=sheetFields(row);
-    const existing=allRowsBySyncId.get(syncId)||allRowsBySku.get(sku.toLowerCase());
+    let existing=allRowsBySyncId.get(syncId)||allRowsBySku.get(sku.toLowerCase());
+    if(!existing&&oid){
+      /* SKU renamed on the sheet? Same order, same ASIN, one candidate only. */
+      const asinS=String(fields.asin||'').trim().toUpperCase();
+      const cands=(allRowsByOid.get(oid)||[]).filter(r=>!_claimedRows.has(r)
+        &&asinS&&String(r.asin||'').trim().toUpperCase()===asinS);
+      if(cands.length===1){
+        existing=cands[0];
+        _flag(sku,oid,'SKU changed on the sheet — history kept',
+          'This line used to be "'+(existing.sku||'?')+'". Matched on the order number and ASIN, so the row keeps everything already recorded against it — units received, notes, shipments and any open issue. Nothing was duplicated.');
+      }else if(cands.length>1){
+        _flag(sku,oid,'Could not tell which row this is',
+          'The order number '+oid+' has more than one row with this ASIN, so a renamed SKU cannot be matched safely. It has been left alone — fix the SKU on the sheet to match the app, or tell Jack.');
+      }
+    }
+    if(existing)_claimedRows.add(existing);
     if(trigger==='yes'){
+      /* no order id means identity is the SKU alone — two such lines would
+         quietly collapse into one row. Name it rather than merge it. */
+      if(!oid){
+        window._noOidSeen=window._noOidSeen||{};
+        const k=sku.toLowerCase();
+        if(window._noOidSeen[k])_flag(sku,'','Two sheet lines share this SKU and have no order number',
+          'Without an order number the app can only tell rows apart by SKU, so these two lines look like one row and only the first is kept. Put the order number on the sheet (or make the SKUs different) and sync again.');
+        window._noOidSeen[k]=1;
+      }
       _eligible.push({sku,oid,syncId,qty});
       /* It still comes through — but at 0 units, which reads as "nothing
          ordered" on the floor. Worth saying out loud rather than leaving
@@ -19540,6 +19647,23 @@ function watchForSleep(){
   setInterval(()=>{if(!document.hidden)resyncNow('routine check',true);},15*60*1000);
 }
 
+/* setupRealtime runs ONCE at boot. A laptop that sleeps for hours can come
+   back with dead websockets — the page then looks fine and quietly stops
+   hearing anything the other staff do. Pressing Sync now tears the old
+   channels down and builds fresh ones, so "Sync" really does mean "wake up".
+   Duplicate channels would double-process every event, so the removal is not
+   optional. */
+async function reviveRealtime(){
+  try{
+    if(typeof sb==='undefined'||!sb)return false;
+    if(sb.getChannels&&sb.removeChannel){
+      const chans=sb.getChannels()||[];
+      for(const ch of chans){try{await sb.removeChannel(ch);}catch(e){}}
+    }else if(sb.removeAllChannels){try{await sb.removeAllChannels();}catch(e){}}
+    setupRealtime();
+    return true;
+  }catch(e){console.warn('[realtime] revive failed',e);return false;}
+}
 function setupRealtime(){
   sb.channel('prep_rows').on('postgres_changes',{event:'*',schema:'public',table:'prep_rows'},payload=>{
     if(payload.eventType==='INSERT'){
@@ -19558,8 +19682,15 @@ function setupRealtime(){
     }else if(payload.eventType==='UPDATE'){
       const i=rows.findIndex(x=>x.uuid===payload.new.id);
       if(i>=0){
-        // Ignore the realtime echo of our own in-flight write.
-        if(rows[i]._dirty)return;
+        // Ignore the realtime echo of our own in-flight write — but if it is
+        // a REAL update from the other laptop crossing our edit, discarding it
+        // forever was the last staleness hole (the audit's "_dirty drop").
+        // Note it and quietly re-pull once our edit has had time to save.
+        if(rows[i]._dirty){
+          clearTimeout(window._dirtyCatchT);
+          window._dirtyCatchT=setTimeout(()=>{try{resyncNow('catching up a crossed edit',true);}catch(e){}},25000);
+          return;
+        }
         const incoming=dbToRow(payload.new);
         // If nothing actually changed, don't repaint — a stale/no-op echo
         // arriving mid-edit would otherwise rebuild the table and reset the
@@ -21659,7 +21790,7 @@ function updateClock(){
   if(el)el.textContent=`${dd}.${mm} ${hh}:${min}`;
 }
 updateClock();
-setInterval(updateClock,60000);
+setInterval(()=>{updateClock();paintSyncAge();},60000);
 </script>
 <!-- SHIPMENT ID MODAL -->
 <div class="overlay" id="shipIdModal">
@@ -22196,7 +22327,7 @@ setInterval(updateClock,60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v35.6 · lav3 · 2026-08-30 · b406';
+const BUILD='v35.8 · lav3 · 2026-08-31 · b416';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -33035,6 +33166,19 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 #page-returns td{font-size:12.5px;line-height:1.5;}
 #page-returns th{font-size:10.5px;letter-spacing:.06em;}
 #page-returns{--text3:#a6a094;}
+#syncPanel.on{width:330px;}
+.sp-stages{display:flex;flex-direction:column;gap:6px;padding:10px 2px 8px;}
+.sp-stage{display:flex;gap:9px;align-items:center;font-size:11.5px;color:var(--text3);transition:color .25s;}
+.sp-stage .sp-ico{width:14px;height:14px;flex:none;border-radius:50%;border:2px solid var(--border2);position:relative;box-sizing:border-box;transition:border-color .25s,background .25s;}
+.sp-stage.run{color:var(--text);font-weight:700;}
+.sp-stage.run .sp-ico{border-color:var(--accent);border-top-color:transparent;animation:prepSpin .9s linear infinite;}
+.sp-stage.ok{color:var(--text2);}
+.sp-stage.ok .sp-ico{border-color:#4ade80;background:rgba(74,222,128,.14);animation:none;}
+.sp-stage.ok .sp-ico:after{content:'\2713';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#4ade80;font-weight:900;}
+#syncPanel .sp-fill{transition:width .45s ease;}
+#syncPanel.done .sp-fill{background:#4ade80;}
+#syncPanel.done .sp-stage .sp-ico{border-color:#4ade80;background:rgba(74,222,128,.14);animation:none;}
+#syncPanel .sp-log{min-height:16px;font-size:11px;color:var(--text2);}
 .tfu td.tfuWrong{white-space:normal;}
 .tfu .tfuProd2{margin-bottom:4px!important;}
 .tfu .s-sku{margin-top:7px!important;}
