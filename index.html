@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v36.2</title>
+<title>BDL PrepHub v37.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -264,7 +264,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 
 /* ── MAIN ── */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
-.topbar{height:54px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0;gap:14px;}
+.topbar{height:46px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;gap:12px;}
 .topbar .page-title{font-weight:800;letter-spacing:.01em;}
 #globalSrch:focus{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(245,158,11,.12);}
 .page-title{font-size:15px;font-weight:600;color:var(--text);}
@@ -277,7 +277,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .user-chip-av{width:28px;height:28px;border-radius:50%;background:var(--bg4);color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;font-family:var(--mono);}
 
 /* ── STATS ── */
-.stats{display:flex;border-bottom:2px solid var(--accent);background:var(--bg2);flex-shrink:0;gap:6px;padding:8px;flex-wrap:wrap;}
+.stats{display:flex;border-bottom:2px solid var(--accent);background:var(--bg2);flex-shrink:0;gap:5px;padding:5px 6px;flex-wrap:wrap;}
 /* Dashboard activity widget — added counts + in-transit/arrived split (condensed) */
 .pa-bar{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;gap:6px;}
 .pa-title{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);}
@@ -292,13 +292,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .pa-cell .pa-it{color:#5599ff;font-weight:700;}
 .pa-cell .pa-arr{color:#86efac;font-weight:700;}
 .pa-cell .pa-none{color:var(--text3);}
-.stat{flex:1;padding:10px 10px;text-align:center;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--border);border-radius:8px;transition:all .2s;cursor:pointer;min-width:100px;display:flex;flex-direction:column;justify-content:center;align-items:center;}
+.stat{flex:1;padding:7px 10px;text-align:center;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--border);border-radius:8px;transition:all .2s;cursor:pointer;min-width:100px;display:flex;flex-direction:column;justify-content:center;align-items:center;}
 .stat:hover{border-color:var(--accent);box-shadow:0 0 12px rgba(245,158,11,.2);}
 /* tiles that open the shipments behind the number say so on hover */
 .stat-go:hover{transform:translateY(-1px);}
 .stat-go:active{transform:translateY(0);}
 /* shipments still missing a box count — the prep bill is wrong until they have one */
-.nbBanner{margin:8px 0 0;padding:9px 12px;border:1px solid var(--red);border-left:4px solid var(--red);
+.nbBanner{margin:6px 0 0;padding:7px 11px;border:1px solid var(--red);border-left:4px solid var(--red);
   border-radius:8px;background:rgba(248,113,113,.07);}
 .nbTop{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12px;color:var(--text);}
 .nbTop b{font-size:12.5px;font-weight:800;color:var(--red);}
@@ -307,8 +307,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .nbGo{margin-left:auto;font-size:11px;font-weight:700;padding:4px 11px;border-radius:6px;cursor:pointer;
   background:var(--red);border:1px solid var(--red);color:#1a1113;}
 .nbGo:hover{filter:brightness(1.12);}
-.nbChips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-.nbChip{display:inline-flex;align-items:center;gap:7px;padding:3px 9px;border-radius:6px;cursor:pointer;
+.nbChips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+.nbChip{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:6px;cursor:pointer;
   background:var(--bg2);border:1px solid var(--red);color:var(--text);}
 .nbChip:hover{background:rgba(248,113,113,.16);}
 .nbId{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--accent);}
@@ -316,7 +316,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .nbMore{align-self:center;font-size:11px;color:var(--text3);}
 /* the shipment you were sent to, so you can see which one it is */
 .nbFlash{box-shadow:0 0 0 3px var(--amber);transition:box-shadow .25s;}
-.stat-label{font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-weight:800;white-space:nowrap;}
+.stat-label{font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;font-weight:800;white-space:nowrap;}
 .stat-val{font-size:32px;font-weight:900;font-family:var(--num);font-variant-numeric:tabular-nums;line-height:1;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;letter-spacing:-.5px;}
 .sv-blue{color:var(--blue);}
 .sv-green{color:var(--green);}
@@ -3147,6 +3147,10 @@ html.light-mode{
 #page-lavarion .ordSt.repl,.lav3 .ordSt.repl{color:var(--text2);border-color:var(--border2);background:var(--bg3);}
 #page-lavarion .ordSt.done,.lav3 .ordSt.done{color:#4ade80;border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.14);}
 #page-lavarion .ordSplit,.lav3 .ordSplit{margin-top:3px;font:700 10.5px var(--sans);line-height:1.4;}
+/* case maths under the ordered figure — counting a delivery is counting boxes */
+#page-lavarion .ordCases,.lav3 .ordCases{margin-top:2px;text-align:center;font:700 10px var(--sans);color:#93c5fd;white-space:nowrap;letter-spacing:.01em;}
+/* the Deliveries table carried a lot of dead height per row */
+#page-lavarion table.dlvTbl td,.lav3 table.dlvTbl td{padding-top:7px;padding-bottom:7px;}
 #page-lavarion .ordSplit .ok,.lav3 .ordSplit .ok{color:var(--green);display:block;}
 #page-lavarion .ordSplit .out,.lav3 .ordSplit .out{color:#fbbf24;display:block;}
 /* Actioned, replacement agreed — nothing to do today, so it reads that way.
@@ -3401,7 +3405,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v36.2</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v37.0</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3435,7 +3439,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v36.2</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v37.0</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -4142,7 +4146,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v36.2</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v37.0</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -5275,9 +5279,9 @@ function renderStats(){
       go?(String(go).startsWith('filter:')
           ? ` onclick="statFilter('${String(go).slice(7)}')" title="Show only these rows on the prep sheet"`
           : ` onclick="jumpToShipments('${go}')" title="Show these shipments"`):''}>
-    <div style="font-size:10px;font-weight:800;color:${col};text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">${label}</div>
+    <div style="font-size:10px;font-weight:800;color:${col};text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;line-height:1.15;">${label}</div>
     <div style="font-size:26px;font-weight:900;font-family:var(--num);font-variant-numeric:tabular-nums;color:${col};line-height:1;">${val}</div>
-    <div style="font-size:11px;color:var(--text2);margin-top:4px;letter-spacing:.005em;">${sub}</div>
+    <div style="font-size:11px;color:var(--text2);margin-top:2px;letter-spacing:.005em;line-height:1.3;">${sub}</div>
   </div>`;
   const shipWord=n=>`${fmt(n)} shipment${n===1?'':'s'}`;
 
@@ -8877,7 +8881,21 @@ const REC_MARKETPLACES=['eBay','Vinted','Facebook Marketplace','Other Marketplac
 
 /* ── tiny helpers ──────────────────────────────────────────────────────────── */
 const recDays=iso=>{if(!iso)return 0;const d=new Date(iso);return isNaN(d)?0:Math.max(0,Math.floor((Date.now()-d.getTime())/864e5));};
-const recAgeCol=d=>d>=30?'#f87171':d>=15?'#fbbf24':d>=8?'#e2c68a':'var(--text2)';
+/* Jack, 3 Sep: on eBay 30-45 days is NORMAL and healthy, and he would not drop
+   a price before 90 days. The old 30+ = red painted every healthy listing red
+   within a month, which is how a warning turns into wallpaper. Two clocks:
+   a LISTED item is judged on how long the listing has been up, an UNLISTED one
+   on how long it has sat here doing nothing — that is dead money from day one,
+   so it goes amber far sooner. */
+const recListedOn=i=>{if(i.listed_at)return i.listed_at;const d=recChs(i).map(c=>c.date).filter(Boolean).sort();return d[0]||null;};
+const recClock=i=>{const on=(i.status==='listed'||i.status==='topack')?recListedOn(i):null;
+  return on?{days:recDays(on),listed:true}:{days:recDays(i.created_at),listed:false};};
+const recAgeCol=(d,listed)=>listed?(d>=90?'#f87171':d>=46?'#fbbf24':'var(--text2)')
+                                  :(d>=30?'#f87171':d>=14?'#fbbf24':'var(--text2)');
+/* "Get the money back" — a listing nobody has bought in 90 days, or anything
+   still not listed after a month. */
+const recNeedsClearing=i=>{if(!recActive(i))return false;const c=recClock(i);
+  return c.listed?c.days>=90:c.days>=30;};
 const recActive=i=>i.status!=='gone'&&i.status!=='archived'&&!i.archived;
 const recQty=i=>Math.max(0,parseInt(i.qty)||0);
 const recPackQty=i=>(i.pack||[]).reduce((t,p)=>t+(parseInt(p.qty)||0),0);
@@ -8919,13 +8937,17 @@ function recRowFromDb(d){
     qty:d.qty||0,locations:d.locations||[],condition:d.condition||'Good',condition_notes:d.condition_notes||'',
     cost:d.cost==null?null:+d.cost,status:d.status||'sorting',channels:d.channels||[],notes:d.notes||'',
     batch_id:d.batch_id||'',pack:d.pack||[],added_by:d.added_by||'',created_at:d.created_at,last_action_at:d.last_action_at||d.created_at,
-    last_action:d.last_action||'',archived:!!d.archived,gone_at:d.gone_at||null};
+    last_action:d.last_action||'',archived:!!d.archived,gone_at:d.gone_at||null,
+    listed_at:d.listed_at||null,sold_price:d.sold_price==null?null:+d.sold_price,
+    source:d.source||'',source_ref:d.source_ref||'',rack:d.rack||''};
 }
 function recRowToDb(i){
   return {id:i.id,name:i.name,id_type:i.id_type,id_value:i.id_value,amz_sku:i.amz_sku||'',extra_ids:i.extra_ids||[],qty:recQty(i),locations:recLocs(i),
     condition:i.condition,condition_notes:i.condition_notes||'',cost:i.cost==null||i.cost===''?null:+i.cost,status:i.status,
     channels:recChs(i),notes:i.notes||'',batch_id:i.batch_id||null,pack:i.pack||[],added_by:i.added_by||'',
-    created_at:i.created_at,last_action_at:i.last_action_at,last_action:i.last_action||'',archived:!!i.archived,gone_at:i.gone_at||null};
+    created_at:i.created_at,last_action_at:i.last_action_at,last_action:i.last_action||'',archived:!!i.archived,gone_at:i.gone_at||null,
+    listed_at:i.listed_at||null,sold_price:i.sold_price==null||i.sold_price===''?null:+i.sold_price,
+    source:i.source||'',source_ref:i.source_ref||'',rack:i.rack||''};
 }
 async function recLoad(){
   try{
@@ -8979,7 +9001,7 @@ function recFiltered(){
     if(tab==='listed')return recActive(i)&&i.status==='listed';
     if(tab==='topack')return recActive(i)&&recPackQty(i)>0;
     if(tab==='clearance')return !!i.batch_id;
-    if(tab==='stale')return recActive(i)&&recDays(i.created_at)>=30;
+    if(tab==='stale')return recNeedsClearing(i);
     if(tab==='archived')return !recActive(i);
     return true;});
   if(q)list=list.filter(i=>[i.name,i.id_value,i.id_type,i.amz_sku,i.notes,i.condition_notes,i.batch_id,recLocStr(i),
@@ -8988,8 +9010,8 @@ function recFiltered(){
   if(_recF.loc)list=list.filter(i=>_recF.loc==='__none'?!recLocs(i).length:recLocs(i).some(l=>l.loc===_recF.loc));
   if(_recF.cond)list=list.filter(i=>i.condition===_recF.cond);
   if(_recF.ch)list=list.filter(i=>recChs(i).some(c=>c.ch===_recF.ch));
-  if(_recF.age){const d=i=>recDays(i.created_at);
-    list=list.filter(i=>_recF.age==='0-7'?d(i)<=7:_recF.age==='8-14'?(d(i)>=8&&d(i)<=14):_recF.age==='15-29'?(d(i)>=15&&d(i)<=29):d(i)>=30);}
+  if(_recF.age){const d=i=>recClock(i).days;
+    list=list.filter(i=>_recF.age==='0-45'?d(i)<=45:_recF.age==='46-89'?(d(i)>=46&&d(i)<=89):_recF.age==='90+'?d(i)>=90:recNeedsClearing(i));}
   const s=_recSort;
   list.sort((a,b)=>{
     switch(s){
@@ -9010,12 +9032,13 @@ function recKpis(){
   const act=REC.filter(recActive);
   const units=act.reduce((t,i)=>t+recQty(i),0);
   const notListed=act.filter(i=>i.status==='sorting'||i.status==='ready').reduce((t,i)=>t+recQty(i),0);
-  const stale=act.filter(i=>recDays(i.created_at)>=30);
-  const idle=act.filter(i=>recDays(i.last_action_at)>=30);
-  const needs=new Set([...act.filter(i=>i.status==='sorting'),...stale,...idle,...act.filter(i=>recPackQty(i)>0)]).size;
+  const stale=act.filter(recNeedsClearing);
   const listed=act.filter(i=>i.status==='listed').reduce((t,i)=>t+recQty(i),0);
-  const value=act.reduce((t,i)=>t+recQty(i)*(i.cost||0),0);
-  return {units,items:act.length,notListed,needs,listed,value,stale:stale.length,topack:act.filter(i=>recPackQty(i)>0).length};
+  const cash=a=>a.reduce((t,i)=>t+recQty(i)*(i.cost||0),0);
+  const value=cash(act);
+  return {units,items:act.length,notListed,listed,value,
+    idleCash:cash(act.filter(i=>i.status==='sorting'||i.status==='ready')),
+    staleCash:cash(stale),stale:stale.length,topack:act.filter(i=>recPackQty(i)>0).length};
 }
 function recLocCounts(){
   const m={};let none=0;
@@ -9048,7 +9071,7 @@ function renderRecovery(){
 
   const rowHtml=i=>{
     const st=REC_STATUS[i.status]||REC_STATUS.sorting;
-    const age=recDays(i.created_at),idle=recDays(i.last_action_at);
+    const clk=recClock(i),age=clk.days,idle=recDays(i.last_action_at);
     const pk=recPackQty(i);
     const locs=recLocs(i);
     const locHtml=locs.length?locs.map(l=>`<span class="recLoc" title="${fmt(l.qty)} units here">${esc(l.loc)}${locs.length>1?' <span style="opacity:.7">×'+fmt(l.qty)+'</span>':''}</span>`).join('')
@@ -9061,9 +9084,9 @@ function renderRecovery(){
     const quickList=(recActive(i)&&!chs.length&&!pk)?`<div class="recQuick" onclick="event.stopPropagation()"><span>Listed on:</span>${['eBay','Vinted','Facebook Marketplace'].map(c=>`<button onclick="recToggleChannel('${i.id}','${esc(c)}')">${c==='Facebook Marketplace'?'FB':c}</button>`).join('')}</div>`:'';
     return `<tr class="row ${_recSel.has(i.id)?'sel':''} ${_recOpen===i.id?'open':''} ${recActive(i)?'':'dim'}" onclick="recOpen('${i.id}')">
       <td class="c" onclick="event.stopPropagation()"><input type="checkbox" ${_recSel.has(i.id)?'checked':''} onchange="recToggle('${i.id}',this.checked)"></td>
-      <td>${locHtml}</td>
       <td><div class="recName">${esc(i.name||'(no name)')}</div><div class="recId">${idLabel}</div></td>
       <td class="c"><div class="recNum">${fmt(recQty(i))}</div>${pk?`<div class="recSub" style="color:#c084fc;font-weight:800">${fmt(pk)} to pack</div>`:''}</td>
+      <td>${locHtml}</td>
       <td><span class="recChip" style="color:${/^new|^good/i.test(i.condition)?'#4ade80':/bad|ood/i.test(i.condition)?'#f87171':'#e2c68a'};border-color:currentColor;opacity:.95">${esc(i.condition||'Good')}</span>${i.condition_notes?`<div class="recSub" title="${esc(i.condition_notes)}">${esc(i.condition_notes.slice(0,34))}${i.condition_notes.length>34?'…':''}</div>`:''}</td>
       <td class="r"><span class="recNum">${i.cost!=null&&i.cost!==''?fmtGBP2(i.cost):'<span style="color:var(--text3)">—</span>'}</span></td>
       <td>${(()=>{
@@ -9074,8 +9097,9 @@ function renderRecovery(){
         ${i.batch_id?`<div class="recSub" style="font-family:var(--mono);font-weight:800;color:#fb923c">${esc(i.batch_id)}</div>`:''}</td>
       <td>${chs.length?chHtml:quickList||'<span style="color:var(--text3)">—</span>'}</td>
       <td>${refs}</td>
-      <td class="c"><span class="recAge" style="color:${recAgeCol(age)}">${age}d</span></td>
-      <td><div style="font-size:11.5px;color:${recAgeCol(idle)};font-weight:700">${idle===0?'today':idle+'d ago'}</div><div class="recSub">${esc(i.last_action||'Added')}</div></td>
+      <td class="c"><span class="recAge" style="color:${recAgeCol(age,clk.listed)}" title="${clk.listed?'days since it was listed':'days sitting here, not listed yet'}">${age}d</span>
+        <div class="recSub">${clk.listed?'listed':'held'}</div></td>
+      <td><div style="font-size:11.5px;color:${recAgeCol(idle,false)};font-weight:700">${idle===0?'today':idle+'d ago'}</div><div class="recSub">${esc(i.last_action||'Added')}</div></td>
       <td><div class="recNote" title="${esc(i.notes||'')}">${esc(i.notes||'—')}</div></td>
       <td class="r" onclick="event.stopPropagation()"><div class="recRowActs">
         ${pk?`<button onclick="recPackedModal('${i.id}')" style="border-color:rgba(192,132,252,.5);color:#c084fc">Packed &amp; sent</button>`:''}
@@ -9095,16 +9119,14 @@ function renderRecovery(){
   </div>
   ${setup}
   <div class="recKpis">
-    ${kpi('units','Recovery stock',fmt(k.units),fmt(k.items)+' item'+(k.items===1?'':'s')+' physically held','#a78bfa','all')}
-    ${kpi('not','Not listed / sent',fmt(k.notListed),'units with no recovery route yet','#fbbf24','sorting')}
-    ${kpi('needs','Needs action',fmt(k.needs),'sorting, packing or stale','#f87171','sorting')}
+    ${kpi('units','Recovery stock',fmt(k.units),fmt(k.items)+' item'+(k.items===1?'':'s')+' held &middot; '+fmtGBP2(k.value)+' at cost','#a78bfa','all')}
+    ${kpi('not','Not listed yet',fmtGBP2(k.idleCash),fmt(k.notListed)+' unit'+(k.notListed===1?'':'s')+' earning nothing','#fbbf24','sorting')}
     ${kpi('listed','Listed / sent',fmt(k.listed),'units on a recovery route','#4ade80','listed')}
-    ${kpi('value','Cost value held',fmtGBP2(k.value),'recorded cost of active stock','#e2c68a','all')}
-    ${kpi('stale','30+ days',fmt(k.stale),k.stale?'items sitting a month or more':'nothing stale','#f87171','stale')}
+    ${kpi('stale','Needs clearing',fmtGBP2(k.staleCash),k.stale?fmt(k.stale)+' item'+(k.stale===1?'':'s')+' — 90d listed or 30d unlisted':'nothing stuck','#f87171','stale')}
   </div>
   <div class="recTabs">
     ${tabBtn('all','All')}${tabBtn('sorting','Needs Sorting')}${tabBtn('ready','Ready to List')}${tabBtn('listed','Listed / Sent')}
-    ${tabBtn('topack','To pack — Becki')}${tabBtn('clearance','Clearance')}${tabBtn('stale','30+ Days')}${tabBtn('archived','Archived / Gone')}
+    ${tabBtn('topack','To pack — Becki')}${tabBtn('clearance','Clearance')}${tabBtn('stale','Needs clearing')}${tabBtn('archived','Archived / Gone')}
   </div>
   <div class="recBar">
     <div class="recSearch"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="4"/><path d="M9 9l3.5 3.5"/></svg>
@@ -9112,7 +9134,7 @@ function renderRecovery(){
     <select class="recSel" onchange="_recF.loc=this.value;renderRecovery()"><option value="">All locations</option>${locOpts}</select>
     <select class="recSel" onchange="_recF.cond=this.value;renderRecovery()"><option value="">All conditions</option>${REC_COND.map(c=>opt(c,c,_recF.cond)).join('')}</select>
     <select class="recSel" onchange="_recF.ch=this.value;renderRecovery()"><option value="">All channels</option>${REC_CHANNELS.map(c=>opt(c,c,_recF.ch)).join('')}</select>
-    <select class="recSel" onchange="_recF.age=this.value;renderRecovery()"><option value="">Age: all</option>${opt('0-7','0–7 days',_recF.age)}${opt('8-14','8–14 days',_recF.age)}${opt('15-29','15–29 days',_recF.age)}${opt('30+','30+ days',_recF.age)}</select>
+    <select class="recSel" onchange="_recF.age=this.value;renderRecovery()"><option value="">Age: all</option>${opt('0-45','0–45 days — normal',_recF.age)}${opt('46-89','46–89 days — watch it',_recF.age)}${opt('90+','90+ days — clear it out',_recF.age)}${opt('clear','30+ days',_recF.age)}</select>
     <select class="recSel" onchange="_recSort=this.value;renderRecovery()">${opt('work','Sort: what needs doing first',_recSort)}${opt('newest','Sort: newest added',_recSort)}${opt('oldest','Sort: oldest added',_recSort)}${opt('idle','Sort: longest without action',_recSort)}${opt('qty','Sort: highest quantity',_recSort)}${opt('value','Sort: highest cost value',_recSort)}${opt('name','Sort: product A–Z',_recSort)}${opt('loc','Sort: location',_recSort)}</select>
     ${(_recQ||_recF.loc||_recF.cond||_recF.ch||_recF.age)?`<button class="recBtn sm" onclick="_recQ='';_recF={loc:'',cond:'',ch:'',age:''};renderRecovery()">&#10005; Clear filters</button>`:''}
   </div>
@@ -9130,9 +9152,10 @@ function renderRecovery(){
     <div>
       <div class="recTableWrap"><table class="rec"><thead><tr>
         <th class="c" style="width:30px"><input type="checkbox" ${list.length&&list.every(i=>_recSel.has(i.id))?'checked':''} onchange="recToggleAll(this.checked)" title="Select all shown"></th>
-        <th onclick="_recSort='loc';renderRecovery()" class="${_recSort==='loc'?'on':''}">Location</th>
+
         <th onclick="_recSort='name';renderRecovery()" class="${_recSort==='name'?'on':''}">Product</th>
         <th class="c" onclick="_recSort='qty';renderRecovery()" class="${_recSort==='qty'?'on':''}">Qty</th>
+        <th onclick="_recSort='loc';renderRecovery()" class="${_recSort==='loc'?'on':''}">Location</th>
         <th>Condition</th>
         <th class="r" onclick="_recSort='value';renderRecovery()">Cost / unit</th>
         <th>Status</th><th>Channel(s)</th><th>Channel SKU / link</th>
@@ -9143,7 +9166,7 @@ function renderRecovery(){
         ${list.length?list.map(rowHtml).join(''):`<tr><td colspan="13"><div class="recEmpty">${REC.length?'Nothing matches these filters.':'Nothing here yet.'}<small>${REC.length?'Clear the filters or pick another tab.':'Use <b>+ Bulk add stock</b> to enter the pile — you can paste straight from a spreadsheet.'}</small></div></td></tr>`}
       </tbody></table></div>
       <div class="recFoot" style="margin-top:8px"><span>Showing ${fmt(list.length)} of ${fmt(counts[_recTab]||REC.length)} in this view · ${fmt(REC.length)} records total</span>
-        <span style="margin-left:auto">Age colours: 0–7 normal · 8–14 mild · 15–29 amber · 30+ red</span></div>
+        <span style="margin-left:auto">Listed: 0–45 normal · 46–89 amber · 90+ red &middot; Not listed yet: 14d amber · 30d red</span></div>
     </div>
     <div class="recDrawer" id="recDrawer">${_recOpen?recDrawerHtml(REC.find(i=>i.id===_recOpen)):''}</div>
   </div>`;
@@ -9236,6 +9259,7 @@ async function recToggleChannel(id,ch){
   const chs=recChs(i);const at=chs.findIndex(c=>c.ch===ch);
   if(at>=0){chs.splice(at,1);i.channels=chs;await recSave(i,'Channel removed',ch);}
   else{chs.push({ch,ref:'',url:'',date:recNow(),note:''});i.channels=chs;
+    if(!i.listed_at)i.listed_at=recNow();      /* the clock the 90-day rule reads */
     if(i.status==='sorting'||i.status==='ready')i.status='listed';   // a channel IS a route
     await recSave(i,'Channel added',ch);}
   renderRecovery();
@@ -9388,12 +9412,41 @@ async function recGridCommit(){
   for(const r of rows){
     const i={id:recUid(),name:r.name,id_type:r.id_value?r.id_type:'None',id_value:r.id_value,amz_sku:r.amz_sku||'',extra_ids:[],qty:r.qty,
       locations:r.loc?[{loc:r.loc,qty:r.qty}]:[],condition:r.condition||'Good',condition_notes:'',cost:r.cost,status:'sorting',
-      channels:[],notes:r.notes||'',batch_id:'',pack:[],added_by:_who(),created_at:recNow(),last_action_at:recNow(),last_action:'Added',archived:false,gone_at:null};
+      channels:[],notes:r.notes||'',batch_id:'',pack:[],added_by:_who(),created_at:recNow(),last_action_at:recNow(),last_action:'Added',archived:false,gone_at:null,
+      listed_at:null,sold_price:null,source:'Added by hand',source_ref:'',rack:''};
     REC.unshift(i);n++;
     await recSave(i,'Added',`${fmt(r.qty)} × ${r.condition}${r.loc?' @ '+r.loc:''}${r.cost!=null?' · '+fmtGBP2(r.cost)+'/unit':''}`);
   }
   recModalClose();toast(`${n} item${n===1?'':'s'} added to Recovery Stock`,'ok');
   _recTab='all';renderRecovery();
+}
+
+/* ── GATED AMAZON STOCK → RECOVERY STOCK ──────────────────────────────────
+   Jack, 3 Sep: "I can send stuff to Recovery Stock then can't I?" — he could
+   not: "eBay it" on his admin page only recorded the decision and handed the
+   claim back to Sarah, so the units he had just decided to sell on eBay never
+   appeared anywhere. One press now does both. It never invents a second copy:
+   the same Amazon SKU already in recovery is left alone. */
+async function recFromClaim(c){
+  if(typeof REC==='undefined'||!c)return null;
+  if(!_recLoaded){try{await recLoad();}catch(e){}}
+  if(_recErr)return 'nosetup';
+  const sku=(c.sku||'').trim();
+  if(sku&&REC.some(i=>!i.archived&&(i.amz_sku||'').trim().toLowerCase()===sku.toLowerCase()))return 'dupe';
+  const qty=parseInt(c.dif)||parseInt(c.exp)||1;
+  const unit=(c.claimValue&&qty)?Math.round((c.claimValue/qty)*100)/100:null;   /* £36.70 / 10 is 3.6700000000000004 */
+  let cost=unit;
+  if(cost==null){try{cost=parseSKU(sku).cogs||null;}catch(e){cost=null;}}
+  const i={id:recUid(),name:c.prod||sku||'(no name)',id_type:c.asin?'ASIN':'None',id_value:c.asin||'',
+    amz_sku:sku,extra_ids:[],qty,locations:[],condition:'New',condition_notes:'',cost,
+    status:'sorting',channels:[],notes:'Gated on Amazon'+(c.sup?' — '+c.sup:'')+(c.oid?' · '+c.oid:''),
+    source:'Gated Amazon stock',source_ref:c.oid||'',listed_at:null,sold_price:null,rack:'',
+    batch_id:'',pack:[],added_by:_who(),created_at:recNow(),last_action_at:recNow(),
+    last_action:'Added',archived:false,gone_at:null};
+  REC.unshift(i);
+  await recSave(i,'Added','from a gated Amazon claim'+(c.oid?' · '+c.oid:''));
+  try{if(_pageActive('page-recovery'))renderRecovery();}catch(e){}
+  return i;
 }
 
 /* ── sold / gone → to pack → packed ────────────────────────────────────────── */
@@ -12065,17 +12118,21 @@ function renderAdmin(){
                    claims and jobs were pushed with units:0 and then given the
                    transit row's "nothing arrived" line. Each type now says what
                    its number actually is. */''}
-              ${i.kind==='job'
-                ? `<div class="tfuBig" style="color:var(--text3);">—</div>`
-                : `<div class="tfuBig">${i.units}</div>
-                   <div class="tfuUnits">
-                   ${i.kind==='lav'||i.kind==='claim'
-                     ? `<span>unit${i.units===1?'':'s'} affected</span>`
-                     : (i.got?`<span style="color:var(--green);">${i.got} arrived</span>`:'<span style="color:#fca5a5;">nothing arrived</span>')
-                       +(i.cancelled?`<br><span style="color:#fca5a5;">${i.cancelled} cancelled</span>`:'')
-                       +(i.got||i.cancelled?`<br><b>${i.outstanding} still out</b>`:'')}
-                   </div>`}
-              ${i.value?`<div class="tfuVal" title="Money tied up in this line">${fmtGBP2(i.value)}</div>`:''}
+              ${/* Jack, 3 Sep: "10 nothing arrived haha". The big number had no
+                    label, so it ran straight into the line under it. Every
+                    number now says what it IS, on the same line as itself. */''}
+              ${(()=>{const lbl=t=>`<span style="font-size:9.5px;font-weight:700;color:var(--text3);margin-left:4px;letter-spacing:.02em;">${t}</span>`;
+                if(i.kind==='job')return `<div class="tfuBig" style="color:var(--text3);">&mdash;</div>`;
+                const claim=i.kind==='lav'||i.kind==='claim';
+                if(claim)return `<div class="tfuBig">${i.units}${lbl('affected')}</div>`;
+                return `<div class="tfuBig">${i.units}${lbl('ordered')}</div>
+                  <div class="tfuUnits">
+                  ${i.got
+                    ? `<span style="color:var(--green);">${i.got} in</span> &middot; <b>${i.outstanding} still out</b>`
+                    : `<span style="color:#fca5a5;">none arrived yet</span>`}
+                  ${i.cancelled?`<br><span style="color:#fca5a5;">${i.cancelled} cancelled</span>`:''}
+                  </div>`;})()}
+              ${i.value?`<div class="tfuVal" title="Money tied up in this line">${fmtGBP2(i.value)}<span style="display:block;font-size:9.5px;font-weight:700;color:var(--text3);letter-spacing:.02em;">at stake</span></div>`:''}
             </td>
             <td class="tfuWrong" style="text-align:center;vertical-align:middle;">
               ${(()=>{const K=_typeOf(i);
@@ -12932,8 +12989,15 @@ function setGatedDecision(id,dec){
   }
   saveClaim(c);renderClaims();if(typeof renderAdmin==='function')renderAdmin();
   try{renderJack();paintJackBadge();}catch(e){}
-  toast(dec==='eBay'?'Decision: eBay — back with Sarah with the instruction':'Decision: ungate — back with Sarah with the instruction');
   logAudit('Gated decision',(c.sku||'')+' → '+dec);
+  if(dec!=='eBay'){toast('Decision: ungate — back with Sarah with the instruction');return;}
+  /* eBay it also PUTS IT IN Recovery Stock, so the units land somewhere. */
+  toast('Decision: eBay — back with Sarah with the instruction');
+  if(typeof recFromClaim==='function')recFromClaim(c).then(r=>{
+    if(r==='nosetup')toast('Recovery Stock needs its one-time setup before it can hold this — run the SQL, then add it there','er');
+    else if(r==='dupe')toast('Already in Recovery Stock — not added twice','ok');
+    else if(r)toast('Added to Recovery Stock — '+fmt(r.qty)+' unit'+(r.qty===1?'':'s')+' waiting to be sorted','ok');
+  }).catch(e=>console.warn('[recovery] from claim',e));
 }
 function setClaimNext(id,field,val){
   const c=claims.find(x=>String(x.id)===String(id));if(!c)return;
@@ -23120,7 +23184,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v36.2 · lav3 · 2026-09-03 · b422';
+const BUILD='v37.0 · lav3 · 2026-09-03 · b430';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -28696,8 +28760,8 @@ function reviewPanel(){
   const dupes=staleDupes();
   const dupStrip=dupes.length?`<div class="panel" id="dupStrip" style="border-color:var(--red)">
     <div class="ph" style="align-items:center">
-      <span class="t" style="color:var(--red)">${fmt(dupes.length)} leftover cop${dupes.length===1?'y':'ies'} of purchases already on order</span>
-      <span class="sub">${esc(dupes.slice(0,3).map(x=>x.p.name).join(', '))}${dupes.length>3?` +${dupes.length-3} more`:''} — same day, quantity, price and supplier as a line that is already linked. Not work: duplicates. Linking one would book stock never bought.</span>
+      <span class="t" style="color:var(--red)">${fmt(dupes.length)} duplicate line${dupes.length===1?'':'s'} — safe to remove</span>
+      <span class="sub">The sheet sent these twice. Each one is the same day, quantity, price and supplier as an order you have <b>already linked</b>, so they are copies, not new purchases — that is why they are not in the list below. Removing them changes nothing on the Google Sheet.<br>${esc(dupes.slice(0,3).map(x=>x.p.name).join(', '))}${dupes.length>3?` and ${dupes.length-3} more`:''}</span>
       <div class="r"><button class="btn sm dgr" onclick="LV3.dropDupes()">Remove ${dupes.length===1?'it':'all '+fmt(dupes.length)}</button></div>
     </div></div>`:'';
   if(!orders.length)return dupStrip;   /* the strip already says 0 · all linked */
@@ -29452,9 +29516,11 @@ function quickLinkSilent(pid,to){
 function modeHint(l,needsPick){
   const sup=(l.sup||'').trim();
   if(needsPick&&!supplierAsks(sup)){
-    const g=((shipMode(guessMode(sup))||{}).label||'courier').split('—')[0].trim();
-    return '<div class="pmeta" style="margin:3px 0 0;color:var(--amb)"><b>Not confirmed</b> — the dates are a guess ('+esc(g)+'). '
-      +'Pick how '+esc(sup||'this supplier')+' sends it once and every order from them dates itself.</div>';
+    /* Jack, 3 Sep: this was a paragraph, repeated on every row, and it was the
+       single biggest thing making the table tall. The dropdown next to it
+       already says "pick how it's coming"; this only has to say why. */
+    return '<div class="pmeta" style="margin:3px 0 0;color:var(--amb)" title="Nobody has said how '
+      +esc(sup||'this supplier')+' sends things, so the dates are worked out from a guess. Pick once and every future order from them is dated automatically."><b>Not confirmed</b> &mdash; dates are a guess</div>';
   }
   if(needsPick)
     return '<div class="pmeta" style="margin:3px 0 0;color:var(--amb)">'
@@ -29471,11 +29537,10 @@ function modeHint(l,needsPick){
   const on=saved===l.mode;
   return '<div class="pmeta" style="margin:3px 0 0">'
     +'<label style="cursor:pointer;display:inline-flex;gap:5px;align-items:center;" onclick="event.stopPropagation()"'
-    +' title="Tick it and every future order from '+esc(sup)+' is dated as '+esc(label)+' automatically — new suppliers get set right here as UK staff receive them">'
+    +' title="'+(on?('Confirmed'+(supplierModeBy(sup)?' by '+esc(supplierModeBy(sup).by)+' on '+dshort(supplierModeBy(sup).on):'')+' — every order from '+esc(sup)+' is dated as '+esc(label)+' automatically. Untick to stop that.'):('Tick it and every future order from '+esc(sup)+' is dated as '+esc(label)+' automatically'))+'">'
     +'<input type="checkbox" '+(on?'checked':'')
     +' onchange="LV3.setSupplierMode(&quot;'+esc(key)+'&quot;,this.checked?&quot;'+esc(l.mode)+'&quot;:&quot;&quot;)">'
-    +'<span style="color:'+(on?'var(--grn)':'var(--blu)')+'">use '+esc(label)+' for future '+esc(sup)+' orders</span></label>'
-    +(on&&supplierModeBy(sup)?'<span style="margin-left:6px;color:var(--text3)">&#10003; confirmed by '+esc(supplierModeBy(sup).by)+' '+dshort(supplierModeBy(sup).on)+'</span>':on?'<span style="margin-left:6px;color:var(--text3)">&#10003; confirmed</span>':'')
+    +'<span style="color:'+(on?'var(--grn)':'var(--blu)')+'">'+(on?'&#10003; always for '+esc(sup):'always for '+esc(sup))+'</span></label>'
     +'</div>';
 }
 const ASK_MODE='__ask';
@@ -31569,7 +31634,7 @@ function deliveriesPanel(){
       <div class="r"><button class="btn sm" onclick="LV3.openLogOrder()">+ Log an order</button>
         ${open.length>1?`<button class="btn sm" title="Tick several at once instead of one row at a time" onclick="LV3.openDeliveries()">Receive several</button>`:''}</div></div>
     ${open.length?`<div class="ordNote">Grouped by order — the same orders you linked above. Change the number if only part of it turned up, then press <b>Receive</b>. For a whole box at once use <b>Receive several</b>.</div>
-    <div class="tblScroll"><table class="stickHead"><thead><tr>
+    <div class="tblScroll"><table class="stickHead dlvTbl"><thead><tr>
       <th class="l" style="min-width:230px">What's coming</th>
       <th style="width:104px" title="The original order. This never changes as deliveries come in — what has been counted in and what is still owed are shown underneath it.">Ordered</th>
       <th style="width:82px">Unit</th>
@@ -31597,7 +31662,15 @@ function deliveriesPanel(){
         <td><span class="num">${fmt(ordQty(l))}</span>
           ${rcvdQty(l)?`<div class="ordSplit"><span class="ok">${fmt(rcvdQty(l))} in</span>
             <span class="${outQty(l)?'out':''}">${fmt(outQty(l))} left</span></div>`
-            :`<div class="pmeta" style="margin:2px 0 0;text-align:center">ordered</div>`}</td>
+            :`<div class="pmeta" style="margin:2px 0 0;text-align:center">ordered</div>`}
+          ${/* Jack, 3 Sep: "400 units — is that 4 cases of 100 or 2 of 200?"
+                Counting a delivery is counting BOXES, so the box maths is done
+                here rather than in his head. Case size already lives on the
+                component (caseQty), so nothing new had to be stored. */''}
+          ${(()=>{const cq=parseInt(x.o&&x.o.caseQty)||0;if(cq<2)return'';
+            const n=ordQty(l),full=Math.floor(n/cq),rem=n%cq;
+            if(full<1)return'';                       /* under a full case — "0 × 100" helps nobody */
+            return `<div class="ordCases" title="Case size ${fmt(cq)} — set on the component">${fmt(full)} case${full===1?'':'s'} of ${fmt(cq)}${rem?` + ${fmt(rem)}`:''}</div>`;})()}</td>
         <td>${l.cost>0?`<span class="num quiet">${gbp(l.cost)}</span>`:'<span class="dim" style="font-size:11.5px">no price</span>'}</td>
         <td class="l">${esc(l.sup||'—')}
           ${(()=>{const u=unlocks(x);
@@ -31768,6 +31841,10 @@ function openDeliveries(){
             ${(()=>{const e=etaState(x.l);return `<span class="pmeta" style="margin:0;color:${e.col};font-weight:700">${e.txt}${e.sub?` · ${e.sub}`:''}</span>`;})()}</div></div>
         <div style="text-align:right"><span class="pmeta" style="margin:0">${rcvdQty(x.l)?'still owed':'ordered'}</span>
           <div class="num">${fmt(outQty(x.l))}</div>
+          ${(()=>{const cq=parseInt(x.o&&x.o.caseQty)||0;if(cq<2)return'';
+            const n=outQty(x.l),full=Math.floor(n/cq),rem=n%cq;
+            if(full<1)return'';
+            return `<div class="pmeta" style="margin:1px 0 0;color:#93c5fd;font-weight:700" title="Case size ${fmt(cq)}">${fmt(full)} case${full===1?'':'s'} of ${fmt(cq)}${rem?` + ${fmt(rem)}`:''}</div>`;})()}
           ${rcvdQty(x.l)?`<div class="pmeta" style="margin:2px 0 0;color:var(--grn)">${fmt(rcvdQty(x.l))} of ${fmt(ordQty(x.l))} already in</div>`:''}</div>
         <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end">
           <span class="pmeta" style="margin:0">received</span>
@@ -33708,7 +33785,7 @@ html.light-mode body tbody tr.st-issue{background:#fef2f2!important;border-left:
 html.light-mode body tbody tr.st-issue td{color:#111827!important;}
 
 /* PREP / PAGE STAT TILES — same chrome as the modernised dashboard cards */
-.stat{border-radius:12px!important;border-left:1px solid var(--border)!important;border-right:1px solid var(--border)!important;border-bottom:1px solid var(--border)!important;box-shadow:0 2px 10px rgba(0,0,0,.28)!important;padding:13px 12px!important;}
+.stat{border-radius:12px!important;border-left:1px solid var(--border)!important;border-right:1px solid var(--border)!important;border-bottom:1px solid var(--border)!important;box-shadow:0 2px 10px rgba(0,0,0,.28)!important;padding:9px 12px!important;}
 html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 
 /* SETTINGS — readable text floor (no more squinting at 9px) */
@@ -34033,7 +34110,7 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 #page-recovery .recBtn.good{border-color:rgba(74,222,128,.45);color:#4ade80;background:rgba(74,222,128,.08);}
 #page-recovery .recBtn.sm{padding:5px 10px;font-size:11px;}
 #page-recovery .recBtn[disabled]{opacity:.4;cursor:not-allowed;}
-#page-recovery .recKpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;}
+#page-recovery .recKpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;}
 #page-recovery .recKpi{position:relative;padding:12px 14px 11px;border-radius:11px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--kc,#94a3b8);cursor:pointer;transition:background .15s;}
 #page-recovery .recKpi:hover{background:var(--bg3);}
 #page-recovery .recKpi.on{outline:2px solid var(--kc);outline-offset:1px;}
@@ -34152,7 +34229,7 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 #page-recovery .recQuick button{padding:3px 8px;border-radius:6px;border:1px dashed rgba(74,222,128,.5);background:transparent;color:#4ade80;font-size:10.5px;font-weight:800;cursor:pointer;}
 #page-recovery .recQuick button:hover{background:rgba(74,222,128,.12);border-style:solid;}
 .recPaste{width:100%;box-sizing:border-box;min-height:70px;padding:8px 10px;background:var(--bg3);border:1px dashed var(--border2);border-radius:8px;color:var(--text);font:12px var(--mono);resize:vertical;}
-@media (max-width:1400px){#page-recovery .recKpis{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media (max-width:1100px){#page-recovery .recKpis{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
 /* Jack, 30 Aug: dashboard greys hard to read — brighter muted tones, page-scoped */
 #page-dashboard{--text3:#a6a094;--text2:#c8c2b6;}
