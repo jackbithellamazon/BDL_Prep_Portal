@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v37.1</title>
+<title>BDL PrepHub v38.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -866,6 +866,11 @@ tbody tr:hover .row-acts{opacity:1;}
 .tfu .tfuOid{font-size:11.5px;color:var(--text2);font-family:var(--mono);margin-top:3px;
   letter-spacing:.2px;user-select:all;cursor:text;}
 .tfu .tfuOid.none{color:var(--text3);font-family:inherit;font-style:italic;letter-spacing:0;}
+/* Jack, 3 Sep: the SKU and the order number are the two things she reads out
+   loud and types elsewhere, and they were the smallest text on the row. */
+#page-admin .tfu .tfuOid{font-size:12px;letter-spacing:.03em;color:var(--text);}
+#page-admin .tfu .s-sku{font-family:var(--mono)!important;font-size:11.5px!important;
+  letter-spacing:.02em!important;line-height:1.45;}
 .tfu .tfuWhen{font-size:11px;color:var(--text2);margin-top:2px;}
 .tfu .tfuWhen b{color:var(--text);font-weight:700;}
 .tfu .tfuAcct{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;
@@ -1656,6 +1661,17 @@ html.light-mode{
 #page-lavarion .wlHead b,.lav3 .wlHead b{font:800 14px var(--num);color:var(--text);}
 #page-lavarion .wlHead span,.lav3 .wlHead span{font-size:12px;color:var(--text3);}
 #page-lavarion .wlRow,.lav3 .wlRow{display:flex;gap:12px;align-items:center;padding:11px 15px;border-bottom:1px solid var(--border);}
+/* Action centre item rows — Jack, 3 Sep: "loads of dead space, no colours,
+   very boring". Name and urgency travel together on the left; the row lights
+   up on hover so a long list stops reading as one grey slab. */
+#page-lavarion .wlItem,.lav3 .wlItem{display:flex;align-items:center;gap:9px;padding:7px 8px;border-top:1px solid var(--border);border-radius:6px;transition:background .12s;}
+#page-lavarion .wlItem:hover,.lav3 .wlItem:hover{background:rgba(255,255,255,.035);}
+#page-lavarion .wlItem.grp,.lav3 .wlItem.grp{background:rgba(96,165,250,.06);border-left:3px solid #60a5fa;padding-left:9px;}
+#page-lavarion .wlItem .wlName,.lav3 .wlItem .wlName{font-size:12px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;}
+#page-lavarion .wlItem .wlWait,.lav3 .wlItem .wlWait{color:var(--text3);font-weight:600;}
+#page-lavarion .wlItem .wlChip,.lav3 .wlItem .wlChip{font:800 10px var(--sans);letter-spacing:.02em;padding:2px 8px;border-radius:999px;border:1px solid;white-space:nowrap;flex:none;}
+#page-lavarion .wlItem .wlMoney,.lav3 .wlItem .wlMoney{font:800 11.5px var(--num);font-variant-numeric:tabular-nums;color:#e2c68a;white-space:nowrap;flex:none;}
+#page-lavarion .wlItem .wlGap,.lav3 .wlItem .wlGap{flex:1 1 auto;min-width:8px;}
 #page-lavarion .wlRow:last-child,.lav3 .wlRow:last-child{border-bottom:0;}
 #page-lavarion .wlDot,.lav3 .wlDot{flex:0 0 8px;height:8px;border-radius:50%;background:var(--text3);}
 #page-lavarion .wlRow.s1 .wlDot,.lav3 .wlRow.s1 .wlDot{background:var(--red);box-shadow:0 0 0 3px rgba(248,113,113,.18);}
@@ -1894,16 +1910,38 @@ html.light-mode{
 #page-lavarion .seg.on,.lav3 .seg.on{background:var(--accent);color:var(--accent-ink);}
 #page-lavarion .amzHelp,.lav3 .amzHelp{font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:12px;
   padding:10px 13px;border-left:3px solid var(--blu);background:var(--bg3);border-radius:0 8px 8px 0;}
-#page-lavarion .amzGrid,.lav3 .amzGrid{border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+/* Jack, 3 Sep: "maybe freeze heading". Thirty-nine rows of two identical
+   number boxes, and by row ten you cannot remember which column is Available
+   and which is Inbound. The header now stays put while the list scrolls. */
+/* Jack, 3 Sep: "centralise this info — also dead space". The modal is far
+   wider than the content needs, so a 1fr product column swallowed ~400px of
+   nothing while the numbers were squeezed against the right edge. Cap the
+   width and centre the lot; the number columns get room and sit together. */
+#page-lavarion .amzGrid,.lav3 .amzGrid{border:1px solid var(--border);border-radius:10px;overflow:visible;
+  max-width:1000px;margin-left:auto;margin-right:auto;}
+#page-lavarion .amzWhen,.lav3 .amzWhen,#page-lavarion .amzHelp,.lav3 .amzHelp{max-width:1000px;margin-left:auto;margin-right:auto;}
+/* the two numbers are the job — make them big enough to hit and read */
+#page-lavarion .amzQ,.lav3 .amzQ,#page-lavarion .amzI,.lav3 .amzI{text-align:center;font:800 14px var(--num);
+  font-variant-numeric:tabular-nums;padding:7px 6px;}
+#page-lavarion .amzGrid .amzHead,.lav3 .amzGrid .amzHead{position:sticky;top:0;z-index:6;
+  box-shadow:0 1px 0 var(--border2),0 6px 12px rgba(0,0,0,.35),0 -18px 0 #131311;
+  border-radius:10px 10px 0 0;}
+/* the wrapper used overflow:hidden to round its corners, but that also stops
+   a sticky child from sticking — so the corners are done on the ends instead */
+#page-lavarion .amzGrid .amzRow:last-child,.lav3 .amzGrid .amzRow:last-child{border-radius:0 0 10px 10px;}
+/* the line you are actually typing on, so the eye never loses its place */
+#page-lavarion .amzRow:focus-within,.lav3 .amzRow:focus-within{background:rgba(245,158,11,.09);
+  box-shadow:inset 3px 0 0 var(--accent);}
+#page-lavarion .amzRow:focus-within .amzNm,.lav3 .amzRow:focus-within .amzNm{color:var(--text);font-weight:700;}
 #page-lavarion .amzHead,.lav3 .amzHead,#page-lavarion .amzRow,.lav3 .amzRow{
-  display:grid;grid-template-columns:minmax(0,1fr) 130px 100px 110px 78px;gap:12px;align-items:center;padding:8px 14px;}
+  display:grid;grid-template-columns:minmax(0,1fr) 124px 120px 116px 78px;gap:12px;align-items:center;padding:8px 14px;}
 #page-lavarion .amzHead,.lav3 .amzHead{background:var(--bg3);font:800 9.5px var(--num);letter-spacing:.07em;
   text-transform:uppercase;color:var(--text3);}
 #page-lavarion .amzRow,.lav3 .amzRow{border-top:1px solid var(--border);}
 /* two numbers off the same SAS panel: available, then inbound */
 #page-lavarion .amzGrid.two .amzHead,.lav3 .amzGrid.two .amzHead,
 #page-lavarion .amzGrid.two .amzRow,.lav3 .amzGrid.two .amzRow{
-  grid-template-columns:minmax(0,1fr) 130px 116px 96px 96px 78px;}
+  grid-template-columns:minmax(0,1fr) 124px 120px 116px 116px 78px;}
 #page-lavarion .amzI,.lav3 .amzI{border-color:rgba(96,165,250,.35)!important;}
 #page-lavarion .amzI:focus,.lav3 .amzI:focus{border-color:var(--blu)!important;}
 #page-lavarion .amzSent,.lav3 .amzSent{display:inline-block;margin-left:7px;font:700 9.5px var(--sans);
@@ -2838,21 +2876,26 @@ html.light-mode{
 .jkHero h2{margin:0;font-size:19px;font-weight:800;color:var(--text);}
 .jkHero p{margin:5px 0 0;font-size:12.5px;font-weight:600;color:#b3ada1;}
 .jkKpis{display:flex;gap:9px;}
-.jkKpi{min-width:84px;padding:10px 14px;border-radius:11px;text-align:center;
-  background:var(--bg2);border:1px solid var(--border2);}
-.jkKpi b{display:block;font:800 22px var(--num);font-variant-numeric:tabular-nums;color:var(--text3);}
-.jkKpi span{display:block;font-size:9.5px;font-weight:800;color:#8a857b;
-  text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
-.jkKpi.hot{border-color:rgba(96,165,250,.55);background:rgba(96,165,250,.12);}
+/* Jack, 3 Sep: "improve KPI colours — looks shit". The number was drawn in
+   --text3 and the label in a muddy olive, so a card with nothing wrong looked
+   the same as one with money at risk. Number in full white, label in proper
+   grey, and a coloured edge so the state reads before the number does. */
+.jkKpi{min-width:84px;padding:11px 14px;border-radius:11px;text-align:center;
+  background:linear-gradient(180deg,var(--bg3),var(--bg2));border:1px solid var(--border2);
+  border-left:3px solid var(--border2);transition:border-color .15s,background .15s;}
+.jkKpi b{display:block;font:800 23px var(--num);font-variant-numeric:tabular-nums;color:var(--text);letter-spacing:-.4px;}
+.jkKpi span{display:block;font-size:9.5px;font-weight:800;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.07em;margin-top:3px;}
+.jkKpi.hot{border-color:rgba(96,165,250,.55);background:rgba(96,165,250,.12);border-left-color:#60a5fa;}
 .jkKpi.hot b{color:#93c5fd;}
-.jkKpi.warn{border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.1);}
+.jkKpi.warn{border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.1);border-left-color:var(--accent);}
 .jkKpi.warn b{color:var(--accent);}
 /* money promised but not landed — his side of a closed case */
-.jkKpi.bad{border-color:rgba(239,68,68,.55);background:rgba(239,68,68,.1);}
+.jkKpi.bad{border-color:rgba(239,68,68,.55);background:rgba(239,68,68,.1);border-left-color:#f87171;}
 .jkKpi.bad b{color:#f87171;}
-.jkKpi.ok{border-color:rgba(74,222,128,.4);background:rgba(74,222,128,.07);}
+.jkKpi.ok{border-color:rgba(74,222,128,.4);background:rgba(74,222,128,.07);border-left-color:#4ade80;}
 .jkKpi.ok b{color:#4ade80;}
-.jkKpi.owed{border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.1);}
+.jkKpi.owed{border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.1);border-left-color:#34d399;}
 .jkKpi.owed b{color:#34d399;font-size:19px;}
 .jkHd{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 12px;margin:20px 0 10px;}
 .jkHd h3{margin:0;font-size:13.5px;font-weight:800;color:var(--text);
@@ -3362,7 +3405,17 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 #syncPanel .sp-spin{width:15px;height:15px;border-radius:50%;border:2px solid rgba(245,158,11,.25);
   border-top-color:var(--accent);animation:spSpin .8s linear infinite;flex-shrink:0;}
 @keyframes spSpin{to{transform:rotate(360deg);}}
-#syncPanel.done .sp-spin{border-color:#55ff55;border-top-color:#55ff55;animation:none;}
+/* Jack, 3 Sep: "maybe a tick or something like all synced". The header ring
+   stayed an empty circle even when everything had gone green — the one place
+   the eye lands first was still saying "in progress". */
+#syncPanel.done .sp-spin{border-color:#4ade80;border-top-color:#4ade80;background:rgba(74,222,128,.16);
+  animation:spTickIn .34s cubic-bezier(.34,1.56,.64,1);position:relative;}
+#syncPanel.done .sp-spin:after{content:'\2713';position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-size:10px;font-weight:900;color:#4ade80;}
+@keyframes spTickIn{from{transform:scale(.5);opacity:.3}to{transform:scale(1);opacity:1}}
+/* one soft green breath on the card so a finish is felt, not just read */
+#syncPanel.done{animation:spDoneGlow 1.1s ease-out 1;}
+@keyframes spDoneGlow{0%{box-shadow:0 0 0 0 rgba(74,222,128,.45)}70%{box-shadow:0 0 0 12px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
 #syncPanel.err  .sp-spin{border-color:#ff5555;border-top-color:#ff5555;animation:none;}
 #syncPanel .sp-title{font-size:12.5px;font-weight:650;color:var(--text);white-space:nowrap;}
 #syncPanel .sp-x{margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0 0 0 8px;}
@@ -3375,8 +3428,11 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 #syncPanel.err .sp-fill{background:#ff5555;}
 /* only the line that is happening NOW — the history of a four-second job is
    not information, it is noise that makes it look hung */
+/* it ended "...screen matches the databas…" — the reassuring half was the bit
+   being cut off. Two lines is fine; the card is not short of room. */
 #syncPanel .sp-log{font-size:11.5px;color:var(--text2);line-height:1.45;margin-bottom:7px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  white-space:normal;overflow-wrap:anywhere;}
+#syncPanel.done .sp-log{color:var(--text);}
 #syncPanel .sp-log div{display:none;padding:0;}
 #syncPanel .sp-log div.cur{display:block;color:var(--text2);font-weight:500;}
 /* ══════════ BOOT LOADER — covers the blank gap between sign-in and data ══════════ */
@@ -3405,7 +3461,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v37.1</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v38.7</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3439,7 +3495,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v37.1</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v38.7</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3599,6 +3655,8 @@ html.light-mode .tfu thead th{background:#d8dde3;}
         <button onclick="doBulkAllArrived()" style="padding:4px 10px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">✈ All Arrived</button>
         <button onclick="doBulkAllShipped()" style="padding:4px 10px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">✓ All Shipped</button>
         <button onclick="doBulkArchive()" style="padding:4px 10px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">🗑 Archive Sent</button>
+        <button id="bulkClearOld" onclick="doBulkClearOld()" style="display:none" title="For rows that were sorted long ago outside the app — marks them Sorted outside the app and archives them, so they leave Sarah's Admin and the Prep Sheet. Nothing is deleted and Undo puts them back."
+          style="padding:4px 10px;background:rgba(148,163,184,.16);border:1px solid var(--border2);color:var(--text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">Clear as sorted</button>
         <div style="width:1px;height:18px;background:var(--border2);"></div>
         <!-- Stamp FBA ID group -->
         <div style="display:flex;align-items:center;gap:4px;" title="Stamp a single FBA ID across all selected rows and mark as Sent to Amazon">
@@ -4146,7 +4204,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v37.1</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v38.7</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -5737,7 +5795,12 @@ function _prepBaseSig(){
 function _prepBaseRows(){
   const st=(document.getElementById('prepStF')||{}).value||'';
   const _acctF=(document.getElementById('prepAcctF')||{}).value||'';
-  const base=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
+  /* Jack, 3 Sep: "happy for it to archive but I don't want it to show on the
+     Prep Sheet." Cleared-out history is not archived STOCK — it is noise from
+     before the app existed, and it would have swamped Show Archived. It never
+     appears on this page in either mode; it lives in History Lookup and the
+     audit log, and Undo still works from the toast. */
+  const base=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_isClearedOld(r));
   if(!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive)return base;
   return base.filter(r=>{
     const rid=r.uuid||String(r.id);
@@ -5809,7 +5872,7 @@ function updatePrepSearchUI(){}
 function paintAcctFilter(){
   const sel=document.getElementById('prepAcctF');if(!sel)return;
   const seen={};
-  const inView=r=>(typeof _showArchived!=='undefined'&&_showArchived)?r.archived:!r.archived;
+  const inView=r=>!_isClearedOld(r)&&((typeof _showArchived!=='undefined'&&_showArchived)?r.archived:!r.archived);
   rows.filter(inView).forEach(r=>{const a=String(r.acct||'').trim();if(a)seen[a]=(seen[a]||0)+1;});
   const names=Object.keys(seen).sort();
   const cur=sel.value;
@@ -5839,7 +5902,7 @@ function prepEmptyState(){
   if(st)active.push(`the status filter (<b>${esc(st)}</b>)`);
   const q=((document.getElementById('prepSrch')||{}).value||'').trim();
   if(q)active.push(`your search (<b>&ldquo;${esc(q)}&rdquo;</b>)`);
-  const hidden=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).length;
+  const hidden=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_isClearedOld(r)).length;
   if(!active.length||!hidden)
     return `<div class="empty"><div class="empty-ico">📦</div><div class="empty-t">No rows found</div></div>`;
   return `<div class="empty"><div class="empty-ico">📦</div>
@@ -5869,7 +5932,8 @@ function filterPrep(skipFlush){
   const st=document.getElementById('prepStF').value;
   const _acctF=(document.getElementById('prepAcctF')||{}).value||'';
   // _showArchived ON = show ONLY archived rows; OFF = show only active rows.
-  const baseRows=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
+  // Rows cleared as "sorted outside the app" are excluded from BOTH modes.
+  const baseRows=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_isClearedOld(r));
   if(!q&&!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive){renderPrepRows(baseRows);}
   else{
     const filtered=baseRows.filter(r=>{
@@ -6066,7 +6130,7 @@ function renderPrep(){
   // Archived rows are hidden from the active prep sheet (but kept in `rows` so
   // the shipments page and stats still see them). _showArchived flips to an
   // archived-ONLY view rather than mixing archived in with active rows.
-  const baseRows=_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived);
+  const baseRows=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_isClearedOld(r));
   if(q||st||_acctF||_issuesFilterActive||_lateFilterActive||_readyFilterActive){
     const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
@@ -6495,6 +6559,80 @@ function acStart(){
   });
 }
 
+/* Clear a batch of rows that were sorted before the app existed. Archives them
+   — off Sarah's Admin (it skips archived rows) and off the active Prep Sheet —
+   with a real resolution attached so the history says what happened. Nothing is
+   deleted, the rows stay under Show Archived, and Undo puts them straight back. */
+const _isJack=()=>/^jack/i.test(String(window.currentUserName||'').trim());
+/* rows cleared as "sorted outside the app" — off the Prep Sheet for good */
+const _isClearedOld=r=>!!(r&&r.archived&&r.resolution&&r.resolution.what==='cleared-old');
+/* Same job as the bulk button, for one row, from Sarah's Admin where he is
+   actually looking at them. TEMPORARY — goes when the clear-out is done. */
+async function clearOldRow(rid){
+  if(!_isJack()){toast('Jack only','er');return;}
+  const r=rows.find(x=>String(x.uuid)===String(rid)||String(x.id)===String(rid));
+  if(!r){toast('Row not found','er');return;}
+  showConfirm('Clear this off both sheets?',
+    `${r.prod||r.sku||'This row'}\n\nMarked "Sorted outside the app" and archived. It leaves this page and the Prep Sheet, and a sync will not bring it back.\n\nNothing is deleted — it stays under Show Archived, and Undo puts it back.`,
+    async()=>{
+      const stamp=new Date().toISOString();
+      const was={archived:r.archived,resolution:r.resolution,transitAction:r.transitAction};
+      r.resolution={state:'approved',kind:'ops',what:'cleared-old',
+        note:'Cleared from Admin — dealt with before PrepHub tracked it',
+        by:_who(),at:stamp,approvedAt:stamp,filed:true};
+      r.archived=true;r.transitAction='';
+      try{renderAdmin();}catch(e){}try{renderPrep();}catch(e){}
+      try{await saveRow(r);}catch(e){console.warn('[clearOld]',e);}
+      try{logAudit('Old row cleared',`${r.sku||r.prod||''} — sorted outside the app`);}catch(e){}
+      toastUndo(`${r.prod||r.sku||'Row'} cleared`,async()=>{
+        r.archived=was.archived;r.resolution=was.resolution;r.transitAction=was.transitAction;
+        try{renderAdmin();}catch(e){}try{renderPrep();}catch(e){}
+        try{await saveRow(r);}catch(e){}
+        toast('Put back','ok');
+      });
+    });
+}
+async function doBulkClearOld(){
+  if(!/^jack/i.test(String(window.currentUserName||'').trim())){toast('Jack only','er');return;}
+  const selIds=getSelectedRows();
+  if(!selIds.length){toast('Tick the rows you want cleared first','er');return;}
+  const selRows=selIds.map(id=>rows.find(x=>String(x.id)===String(id)||x.uuid===String(id))).filter(Boolean);
+  if(!selRows.length){toast('No rows found','er');return;}
+  const already=selRows.filter(r=>r.archived).length;
+  const todo=selRows.filter(r=>!r.archived);
+  if(!todo.length){toast('Those are already archived','er');return;}
+  showConfirm('Clear these off both sheets?',
+    `${todo.length} row${todo.length===1?'':'s'} will be marked "Sorted outside the app" and archived.${already?' ('+already+' already archived, skipped.)':''}\n\n`
+    +'They come off Sarah\u2019s Admin and off the active Prep Sheet, and a sheet sync will not bring them back.\n\n'
+    +'Nothing is deleted \u2014 they stay under Show Archived with their full history, and Undo puts them back.',
+    async()=>{
+      const btn=document.querySelector('[onclick="doBulkClearOld()"]');
+      if(btn){btn.disabled=true;btn.textContent='Clearing…';}
+      setSyncStatus('syncing');
+      const stamp=new Date().toISOString();
+      const ids=[];
+      todo.forEach(r=>{
+        r.resolution={state:'approved',kind:'ops',what:'cleared-old',
+          note:'Cleared in bulk — this was dealt with before PrepHub tracked it',
+          by:_who(),at:stamp,approvedAt:stamp,filed:true};
+        r.archived=true;
+        r.transitAction='';
+        if(r.uuid)ids.push(r.uuid);
+      });
+      clearBulkSelect();
+      renderPrep();try{renderAdmin();}catch(e){}try{renderDashboard();}catch(e){}
+      for(const r of todo){try{await saveRow(r);}catch(e){console.warn('[clearOld]',e);}}
+      try{logAudit('Old rows cleared',`${todo.length} row${todo.length===1?'':'s'} archived as sorted outside the app`);}catch(e){}
+      if(btn){btn.disabled=false;btn.textContent='Clear as sorted';}
+      setSyncStatus('synced');
+      toastUndo(`${todo.length} row${todo.length===1?'':'s'} cleared — under Show Archived if you need them`,async()=>{
+        todo.forEach(r=>{r.archived=false;r.resolution=null;});
+        renderPrep();try{renderAdmin();}catch(e){}
+        for(const r of todo){try{await saveRow(r);}catch(e){}}
+        toast('Put back','ok');
+      });
+    });
+}
 async function doBulkArchive(){
   const selIds=getSelectedRows(); // returns array of IDs
   if(!selIds.length){toast('No rows selected','er');return;}
@@ -7342,8 +7480,32 @@ let RESOLUTIONS=[
    d:'Cannot be sold — Jack decides what happens',todo:[],sheet:''},
   {v:'no-refund',     t:'Never arrived — refund required',      kind:'biz', ask:[], claim:true,
    d:'Money is gone — a claim is needed',todo:['Raise a claim for the loss'],sheet:'Keep the purchase record — money left the account'},
+  /* Jack, 3 Sep: "add in how they refused to refund it and we have to take the
+     loss — or she can send it to me to escalate. Most of the time with that,
+     next time we say X amount are missing." So a refusal is a real ending, not
+     a dead chase: either it is written off here, or it goes to him. The note
+     reminds whoever reads it that the usual recovery is on the NEXT order. */
+  /* Jack, 3 Sep: May and June rows that were dealt with in real life long
+     before PrepHub tracked any of it. Closing them as "arrived and correct"
+     would put a fact in the history that nobody actually checked, so they get
+     their own honest outcome. */
+  {v:'cleared-old',   t:'Sorted outside the app',                kind:'ops', ask:[],
+   d:'Dealt with before PrepHub was tracking it — cleared to start clean. History kept.',
+   todo:[],sheet:''},
+  {v:'refused-loss',  t:'They refused — we take the loss',      kind:'ops', ask:[],
+   d:'Supplier will not refund. Written off here, and normally recovered on the next order.',
+   todo:['Update Purchase Sheet'],sheet:'Note against the SKU: supplier refused the refund — written off, recover on the next order'},
   {v:'refund-done',   t:'Refund claimed',                       kind:'ops', ask:[],
    d:'Already claimed — money coming back',todo:['Update Purchase Sheet'],sheet:'Keep the purchase record and note the refund'},
+  /* Jack, 3 Sep: "sometimes we sent it but it didn't make it on PrepHub as the
+     UK staff forgot to add it." The stock is at Amazon and the row is sitting
+     in Sarah's queue looking lost. She types the FBA shipment ID, the row is
+     stamped exactly as the Prep Sheet would stamp it — so it appears on the
+     Shipments page under that shipment — and it closes through the normal
+     sorted flow. */
+  {v:'sent-not-stamped',t:'Already sent — the shipment ID was never added',kind:'ops',ask:['shipid'],
+   d:'It went to Amazon, nobody stamped it here — add the ID and it lands on the Shipments page',
+   todo:[],sheet:''},
   {v:'qty-wrong',     t:'Expected quantity corrected',          kind:'ops', ask:[],
    d:'The sheet was wrong — not missing stock',todo:['Update Purchase Sheet'],sheet:'Correct the quantity on the Purchase Sheet'},
   {v:'in-transit',    t:'Still in transit — not late yet',      kind:'date',ask:[],
@@ -7442,7 +7604,15 @@ async function loadVaState(){
       if(row.key==='va_actions'&&Array.isArray(v))VA_ACTIONS=v;
       /* saved closure types replace the built-ins entirely — Jack edits them in
          Settings, so his list wins. Falls back to the defaults if empty. */
-      if(row.key==='resolution_types'&&Array.isArray(v)&&v.length){RESOLUTIONS=v;_reapplyResFlags();}
+      if(row.key==='resolution_types'&&Array.isArray(v)&&v.length){
+        /* A list saved before today cannot know about outcomes added since, so
+           replacing wholesale silently drops them — his wording is kept, but
+           anything new in the code is appended rather than lost. */
+        const _seen=new Set(v.map(x=>x&&x.v));
+        const _missing=RESOLUTIONS.filter(x=>!_seen.has(x.v));
+        RESOLUTIONS=v.concat(_missing);_reapplyResFlags();
+        if(_missing.length)console.warn('[admin] kept '+_missing.length+' newer outcome(s) the saved list did not have: '+_missing.map(x=>x.v).join(', '));
+      }
       if(row.key==='follow_up_types'&&Array.isArray(v)&&v.length)FOLLOW_UPS=v;
       if(row.key==='jack_suppliers'&&Array.isArray(v))JACK_SUPPLIERS=v;
     });
@@ -7749,7 +7919,7 @@ function tfuSort(k){
 }
 function _rowById(rid){return rows.find(x=>x.uuid===String(rid)||String(x.id)===String(rid));}
 function openSorted(rid,preset){
-  markSeen(rid);
+  logOpened(rid,'close it off');markSeen(rid);
   const r=_rowById(rid);if(!r){toast('Row not found','er');return;}
   /* The popup already knows what she answered on the row. Arrived + wrong SKU
      → that outcome, ready to confirm or change. Arrived with nothing else said
@@ -7847,6 +8017,14 @@ function openSorted(rid,preset){
           <div class="srtComboList" id="srtSkuList" style="display:none;"></div>
         </div>
         <div class="srtHint" id="srtSkuHint"></div>
+      </div>
+
+      <div id="srtAskShipid" style="display:none;margin-top:14px;">
+        <label class="srtLab">Which FBA shipment did it go on?</label>
+        <input id="srtShipId" class="srtSel" autocomplete="off" placeholder="FBA15ABCDEFG"
+          style="text-transform:uppercase;font-family:var(--mono);letter-spacing:.04em;"
+          oninput="this.value=this.value.toUpperCase()">
+        <div class="srtHint">The row is stamped as <b>Sent to Amazon</b> and joins that shipment on the Shipments page, exactly as if it had been stamped there.</div>
       </div>
 
       <div id="srtAskArrived" style="display:none;margin-top:14px;">
@@ -8090,10 +8268,8 @@ function _srtStepList(picked,want){
     out.push({k:'full-off',text:'Take the whole line off the Purchase Sheet. Nothing arrived and nothing is coming, so it was never really a purchase.'});
   if(paid==='no')
     out.push({k:'paid-no',text:'Nothing to do about the money — it never left the account.'});
-  if(paid==='yes'&&refunded==='yes')
-    out.push({k:'paid-yes',text:'Note the refund against the purchase so the money stays traceable, even though the order itself has gone.'});
-  if(paid==='yes'&&refunded==='no')
-    out.push({k:'refund-chase',text:'Chase the refund — the money left the account and has not come back. Record who you chased and when.'});
+  if(paid==='yes')
+    out.push({k:'paid-yes',text:'Note the refund against the purchase so the money stays traceable. Whether it has actually landed is tracked on Jack\u2019s money-owed list, not here.'});
   return out;
 }
 function _srtPaintSteps(picked,want){
@@ -8163,6 +8339,27 @@ function _srtCollect(){
    actually finished. */
 let ROW_SEEN={};
 let _seenT=null;
+/* Jack, 3 Sep: "worth adding — only for Sarah's Admin page, I wanna know what
+   she clicks." The audit log recorded what she DID but never what she LOOKED
+   at, so the rows she opened and walked away from left no trace — and those
+   are the interesting ones. Once per row per day, so a row she keeps coming
+   back to in one sitting does not bury everything else. Jack's and Becki's
+   looks are ignored, same rule as the seen flag. */
+let _OPEN_LOG={};
+function logOpened(rid,how){
+  try{
+    if(!rid)return;
+    if(/^(jack|beck)/i.test(String(window.currentUserName||'').trim()))return;
+    /* dayISO() lives in the Lavarion closure, not here — calling it threw and
+       the try/catch swallowed it, so nothing was ever logged. Self-contained. */
+    const k=String(rid),day=new Date().toISOString().slice(0,10);
+    if(_OPEN_LOG[k]===day)return;
+    _OPEN_LOG[k]=day;
+    const r=rows.find(x=>String(x.uuid)===k||String(x.id)===k);
+    const first=!ROW_SEEN[k]?' — first look':'';
+    logAudit('Admin row opened',(r?`${String(r.prod||r.sku||'').slice(0,60)}${r.sku?' · '+r.sku:''}`:k)+(how?` (${how})`:'')+first);
+  }catch(e){}
+}
 function markSeen(rid){
   try{
     if(!rid)return;
@@ -8290,6 +8487,7 @@ function srtSync(){
   show('srtAskPaid',ask.includes('paid'));
   show('srtAskSku',ask.includes('sku'));
   show('srtAskArrived',ask.includes('arrived'));
+  show('srtAskShipid',ask.includes('shipid'));
   show('srtDateBox',kind==='date');
   /* show() writes display:block; these are grid items whose column assignment
      only holds while the parent stays a grid — the parent is set in srtPick. */
@@ -8302,7 +8500,10 @@ function srtSync(){
      two different events, and the gap between them is the only part of a
      cancellation that can quietly cost real money. */
   const refunded=(document.getElementById('srtRefund')||{}).value||'';
-  show('srtAskRefund',ask.includes('paid')&&paid==='yes');
+  /* Jack, 3 Sep: "has the refund come doesn't need to be there — that's not
+     her job." Whether the money actually landed is watched on HIS Money-owed
+     list, not asked of the person closing the row. */
+  show('srtAskRefund',false);
   const rh=document.getElementById('srtRefundHint');
   if(rh){
     rh.textContent=refunded==='no'
@@ -8532,6 +8733,19 @@ async function submitSorted(){
      whole log rides into the closed resolution so the audit trail reads end to
      end: diagnosed, chased, replied, resolved. */
   const _priorCase=_caseOf(r);
+  /* Stamp it onto the shipment before the row is closed off, so the Shipments
+     page and the Prep Sheet tell the same story. Same fields the Prep Sheet's
+     own Stamp ID uses — nothing bespoke to drift. */
+  if(what==='sent-not-stamped'){
+    const sid=((document.getElementById('srtShipId')||{}).value||'').trim().toUpperCase();
+    if(!sid){toast('Enter the FBA shipment ID','er');_unlatch();return;}
+    if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
+    const remain=remainingToShip(r);
+    if(remain>0)addSegment(r,sid,remain,r.shipType||'Standard');
+    else{const ids=r.allShipIds||[];if(!ids.includes(sid))ids.push(sid);r.allShipIds=ids;r.shipId=sid;}
+    r.status='Sent to Amazon';r.sent='Yes';r.sentDate=shipDateFor(sid);r.sentAt=getNowUK();
+    try{logAudit('Shipment ID added from Admin',`${r.sku||''} → ${sid}`);}catch(e){}
+  }
   r.resolution={state:kind==='ops'?'approved':'proposed',kind,what,note,fix,followUps:follow,
     paid,refunded,arrived,wentAs,by:_who(),at:new Date().toISOString(),claim:_resClaim(what),
     chase:_priorCase||undefined,
@@ -10397,7 +10611,13 @@ const CASE_PATHS={
           /* Jack, 30 Aug: "sometimes VA will message me rather than sending to
              Jack — they know the answer anyway as I've already told them, so
              let them put the date in, or send to Jack — either or." */
-          {k:'due-date',t:'Jack already told me — set the date',tone:'plain',log:'Date from Jack directly — recording it',due:7}]},
+          {k:'due-date',t:'Jack already told me — set the date',tone:'plain',log:'Date from Jack directly — recording it',due:7},
+          /* Jack, 3 Sep: "I already told her — this hasn't arrived and needs a
+             refund sorting, no date for it coming at all, it's missing." The
+             only "already told me" route was a DATE, so a row he had already
+             ruled dead had nowhere to go but back to him. This is the other
+             half of that answer. */
+          {k:'amazon-lost',t:'Jack already told me — it never arrived',tone:'plain',log:'Jack had already confirmed it never arrived — refund route'}]},
       /* Where an Amazon row lands once he has answered. She cannot open a case
          on his account either, so her last job is to close it as a refund
          claim — which the existing rules route back to him to action. */
@@ -10440,7 +10660,10 @@ const CASE_PATHS={
              what stops a promise quietly never landing. */
           {k:'_close',t:'They are refunding it',tone:'good',log:'Supplier confirmed a refund is coming',close:'refund-done'},
           {k:'replacement',t:'They are replacing it',tone:'go',log:'Supplier is sending a replacement',due:7},
-          {k:'waiting',t:'No reply — chase again',tone:'warn',log:'Chased again — still no reply',dueW:2}]},
+          {k:'waiting',t:'No reply — chase again',tone:'warn',log:'Chased again — still no reply',dueW:2},
+          /* the two ways a refusal ends: written off, or his problem */
+          {k:'_close',t:'They refused — take the loss',tone:'plain',log:'Supplier refused to refund — written off, recover on the next order',close:'refused-loss'},
+          {k:'_jack',t:'They refused — escalate to Jack',tone:'warn',log:'Supplier refused to refund — sent to Jack to escalate'}]},
       'replacement':{
         now:'Replacement promised — when is it due?',
         why:'A replacement normally lands inside seven days. Putting the date in tells the Prep Sheet to expect the stock, and brings this row back the moment the date passes.',
@@ -11256,7 +11479,7 @@ function lavIssueSave(){
    old row used. Escape closes. */
 let _workRid=null;
 function openWork(rid){
-  _workRid=rid;markSeen(rid);
+  _workRid=rid;logOpened(rid,'work it');markSeen(rid);
   let el=document.getElementById('workModal');
   if(!el){el=document.createElement('div');el.id='workModal';el.className='overlay';
     el.style.zIndex='120';document.body.appendChild(el);
@@ -12353,7 +12576,11 @@ function renderAdmin(){
                   `openWork('${i.rid}')`}" title="Everything on this issue — it is locked while Jack has it">Details</button>`;
                 if(i.kind==='transit')return `<button class="tfuWork" onclick="openSorted('${i.rid}')" title="Close it off — the popup opens already filled in with everything recorded">Sorted</button>
                   <button class="tfuAsk" onclick="askJackAsk('${i.rid}')" title="${isAmz?'Amazon order — only Jack can see this account':'Hand it to Jack — the row goes grey until he answers'}">Send to Jack</button>
-                  <button class="tfuMore" onclick="openWork('${i.rid}')" title="The full issue — source, notes, dates, history">Details</button>`;
+                  <button class="tfuMore" onclick="openWork('${i.rid}')" title="The full issue — source, notes, dates, history">Details</button>
+                  ${/* TEMPORARY, JACK ONLY (3 Sep): the one-off clear-out of rows
+                        settled long before PrepHub tracked them. Remove this,
+                        clearOldRow() and the Prep Sheet twin when he says done. */''}
+                  ${_isJack()?`<button class="tfuMore" style="border-color:rgba(148,163,184,.5);color:var(--text2)" onclick="clearOldRow('${i.rid}')" title="TEMPORARY — this was sorted outside the app. Archives it off this page and the Prep Sheet, keeps the history, and a sync will not bring it back.">Clear</button>`:''}`;
                 if(i.kind==='claim')return `<button class="tfuWork" onclick="openClaimCase('${i.claimId}')" title="Everything on this claim in one place — how it ends is one press inside">Sorted</button>
                   <button class="tfuAsk" onclick="claimToJack('${i.claimId}')" title="Hand this claim to Jack — the row goes grey until he answers">Send to Jack</button>`;
                 if(i.kind==='lav')return `<button class="tfuWork" onclick="openLavIssue('${esc1(i.lavKey)}')" title="Everything on this shortage in one place — how it ends is one press inside">Sorted</button>
@@ -16756,6 +16983,11 @@ function updateBulkUI(){
     bulkEl.style.display='flex';
     if(countEl)countEl.textContent=selected+' selected';
   }else{bulkEl.style.display='none';}
+  /* TEMPORARY (Jack, 3 Sep): the one-off clear-out of pre-app history. It bulk
+     archives live rows, so only Jack sees it — Sarah must never meet it. Take
+     the button, doBulkClearOld() and this block out once he says it is done. */
+  const co=document.getElementById('bulkClearOld');
+  if(co)co.style.display=/^jack/i.test(String(window.currentUserName||'').trim())?'':'none';
 }
 function toggleSelectAll(checked){
   if(checked){
@@ -18048,7 +18280,7 @@ const SyncUI={
   done(msg){const p=document.getElementById('syncPanel');if(!p)return;
     this.stage(this._stages.length+1);
     const f=document.getElementById('spFill');if(f)f.style.width='100%';
-    p.classList.add('done');const t=document.getElementById('spTitle');if(t)t.textContent='Sync finished';
+    p.classList.add('done');const t=document.getElementById('spTitle');if(t)t.textContent='All synced';
     if(msg)this.step(msg);
     clearTimeout(this._t);this._t=setTimeout(()=>this.hide(),4000);},
   fail(msg){const p=document.getElementById('syncPanel');if(!p)return;
@@ -18095,11 +18327,21 @@ async function triggerManualSync(){
          A mismatch re-pulls once; still wrong = say so in red, never "done". */
       SyncUI.stage(4);SyncUI.step('Counting the database against the screen\u2026');
       try{
-        const _c=await sb.from('prep_rows').select('id',{count:'exact',head:true});
+        /* Jack, 3 Sep: "sync issue?" — it cried wolf. This counted EVERY row
+           in the table including archived ones, but boot deliberately loads
+           only the active ones (`archived.is.null,archived.eq.false`), with
+           archived pulled later in Phase B. So a healthy app with 237 archived
+           rows reported "1374 in the database, 1137 on screen" and went red.
+           Count and compare the SAME population — active rows — which is right
+           whether or not Phase B has merged the archived ones in yet. */
+        const _c=await sb.from('prep_rows').select('id',{count:'exact',head:true})
+          .or('archived.is.null,archived.eq.false');
         const dbN=_c&&_c.count;
-        if(dbN!=null&&dbN!==rows.length){
+        const memN=rows.filter(r=>!r.archived).length;
+        if(dbN!=null&&dbN!==memN){
           try{await dbLoad();renderPrep();}catch(e){}
-          if(dbN!==rows.length)_verifyBad='The database holds '+dbN+' rows but the screen shows '+rows.length+' \u2014 press Sync Now again, and tell Jack if it repeats.';
+          const memN2=rows.filter(r=>!r.archived).length;
+          if(dbN!==memN2)_verifyBad='The database holds '+dbN+' active rows but the screen shows '+memN2+' \u2014 press Sync Now again, and tell Jack if it repeats.';
         }
       }catch(e){}
       SyncUI.stage(5);
@@ -22591,6 +22833,15 @@ function applyIdentity(user){
     ||localPart.slice(0,2)).toUpperCase();
   const col=m.color||m.col||_seatColor(seat);
   cu={id:seat,name,role,init,col};
+  /* Jack, 3 Sep: his Clear button never appeared even signed in as Jack. Cause:
+     the header name comes from `cu`, but everything that asks WHO reads
+     `window.currentUserName` — which nothing ever set. So `_who()` fell back to
+     'Sarah' for everyone: her name went on Jack's notes, resolutions, chase
+     logs and audit entries, the "only Sarah's look counts" rule never skipped
+     Jack or Becki (so their opens inflated her not-opened figures), and every
+     Jack-only control stayed hidden. One assignment fixes all of it — and it
+     had to be right before 20 days of tracking who does what. */
+  window.currentUserName=name;
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   set('sbAv',cu.init);set('sbName',cu.name);set('sbRole',cu.role||'');
   set('topAv',cu.init);set('topName',cu.name);
@@ -23184,7 +23435,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v37.1 · lav3 · 2026-09-03 · b431';
+const BUILD='v38.7 · lav3 · 2026-09-03 · b447';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -23960,8 +24211,16 @@ const sasUrl=asin=>String(D.settings.sasUrl||SAS_DEFAULT).split('{ASIN}').join(e
 function openAtAmz(keepWhen){
   _amzRows=[];
   if(!keepWhen||!_amzWhen)_amzWhen=localDT(new Date());
+  /* Jack, 3 Sep: "can this popup be sorted from highest sales to lowest." A-Z
+     put 151 Filler Wall Repair Kit above everything that actually sells, so the
+     count started on the things that matter least. Anything with no sales
+     figure sits at the bottom, still in name order. */
   const live=D.products.filter(x=>!x.archived&&x.asin)
-    .sort((a,b)=>a.name.localeCompare(b.name));
+    .sort((a,b)=>{const sa=sold30(a),sb=sold30(b);
+      const na=(sa==null||!(sa>0)),nb=(sb==null||!(sb>0));
+      if(na!==nb)return na?1:-1;
+      if(!na&&sb!==sa)return sb-sa;
+      return a.name.localeCompare(b.name);});
   $('lav3Mod2').className='mod xl';
   $('lav3Mod2').innerHTML=`
     <div class="mh"><h3>Stock at Amazon</h3>
@@ -25081,16 +25340,20 @@ function planAmazon(){
 function plGapInfo(r){
   const c=r.lim;if(!c)return null;
   const pend=(c.layers||[]).filter(l=>!l.arr&&!l.writtenOff);
-  if(!pend.length)return{kind:'none',
+  /* Jack, 3 Sep: "way way way too overcomplicated". Every card carried a full
+     sentence of reasoning. The long version still exists for the details pane
+     and the why-line; the card face gets `short`. */
+  if(!pend.length)return{kind:'none',short:'none on order',
     txt:'nothing on order for '+c.name+' — the shortfall has no incoming cover at all'};
   const qty=pend.reduce((t,l)=>t+(l.qty||0),0);
   const withEta=pend.filter(l=>l.eta1||l.eta2);
-  if(!withEta.length)return{kind:'noeta',qty,
+  if(!withEta.length)return{kind:'noeta',qty,short:fmt(qty)+' on order &middot; no ETA set',
     txt:fmt(qty)+' × '+c.name+' on order but NO delivery method or ETA is set, so nobody can say if it lands in time. Set the method on the Purchases tab.'};
   const eta=withEta.map(l=>String(l.eta2||l.eta1).slice(0,10)).sort()[0];
   const usable=workDaysAfter(addCalDays(eta,prepDaysN()),primeDays());
   const late=usable>r.stockout;
   return{kind:late?'late':'intime',eta,usable,qty,
+    short:fmt(qty)+' due '+dshort(eta)+(late?' &mdash; too late':''),
     txt:fmt(qty)+' × '+c.name+' due '+dshort(eta)+' → built and sellable ~'+dshort(usable)
       +(late?' — AFTER the projected stock-out on '+dshort(r.stockout)+'. That is a supply gap this order cannot close.'
              :' — before the projected stock-out on '+dshort(r.stockout)+'.')};
@@ -25267,26 +25530,26 @@ function _plannerSimple(az,buys,gaps,fba,saf){
       const gap=more>0?plGapInfo(r):null;
       cards.push({ord:0,col:'#ef4444',label:'OUT OF STOCK',name:r.p.name,onclick:open,
         act:'<b style="color:#ef4444">Amazon is empty — losing sales every day.</b> '+(send>0?'<b>Send '+fmt(send)+' now.</b>':'')+(more>0?' <b style="color:var(--amb)">Buy parts for '+fmt(more)+' more.</b>':''),
-        sub:gap?esc(gap.txt):''});
+        sub:gap?(gap.short||esc(gap.txt)):''});
     }else if((r.state==='act'||r.state==='critical')&&send>0&&more>0){
       const gap=plGapInfo(r);
       cards.push({ord:1,col:'#fb923c',label:'SEND + BUY',name:r.p.name,onclick:open,
         act:'<b>Send '+fmt(send)+' now</b> \u00b7 <b style="color:var(--amb)">buy parts for '+fmt(more)+' more</b>',
-        sub:'Send by: today \u00b7 expected out of stock: ~'+oos+(gap?' \u00b7 '+esc(gap.txt):'')});
+        sub:'send today \u00b7 empty ~'+oos+(gap?' \u00b7 '+(gap.short||esc(gap.txt)):'')});
     }else if((r.state==='act'||r.state==='critical')&&send>0){
       cards.push({ord:2,col:'#fbbf24',label:'SEND NOW',name:r.p.name,onclick:open,
         act:'<b>Send '+fmt(send)+'</b> through the normal Shipments page',
-        sub:'Send by: today \u00b7 expected out of stock: ~'+oos});
+        sub:'send today \u00b7 empty ~'+oos});
     }else if((r.state==='act'||r.state==='critical')&&more>0){
       const gap=plGapInfo(r);
       if(gap&&gap.kind==='intime'){
         cards.push({ord:4,col:'#60a5fa',label:'PARTS ON THE WAY',name:r.p.name,onclick:open,
           act:'Nothing to do yet — parts land, then build &amp; send '+fmt(more),
-          sub:esc(gap.txt)});
+          sub:(gap.short||esc(gap.txt))});
       }else{
         cards.push({ord:1,col:'#f87171',label:'BUY NOW',name:r.p.name,onclick:open,
-          act:'<b style="color:#f87171">Buy parts for '+fmt(more)+'</b> — nothing can be built until they arrive',
-          sub:(gap?esc(gap.txt)+' \u00b7 ':'')+'expected out of stock: ~'+oos});
+          act:'<b style="color:#f87171">Buy parts for '+fmt(more)+'</b>',
+          sub:(gap?(gap.short||esc(gap.txt))+' \u00b7 ':'')+'empty ~'+oos});
       }
     }else if(r.state==='waiting'||r.state==='watch'){
       cards.push({ord:5,col:'#60a5fa',label:'STOCK ON ITS WAY',name:r.p.name,onclick:open,
@@ -25304,7 +25567,9 @@ function _plannerSimple(az,buys,gaps,fba,saf){
     }
   });
   cards.sort((a,b)=>a.ord-b.ord);
-  const buyRows=buys.filter(L=>['buy','soon'].includes(L.state));
+  /* Jack, 3 Sep: "if stuff is on the way it's n/a." Same rule as the Action
+     centre, so the two pages can never disagree about what needs ordering. */
+  const buyRows=buys.filter(L=>['buy','soon'].includes(L.state)&&!((L.pendQty||0)>0));
   const buyCost=buyRows.reduce((t,L)=>t+(L.cost||0),0);
   const sendN=cards.filter(c=>c.ord<=3&&/SEND/.test(c.label)).length;
   const buyN=buyRows.length;
@@ -25673,23 +25938,48 @@ function workList(){
     t:`${fmt(needParts.length)} product${needParts.length===1?' needs':'s need'} parts before anything can be sent`,
     s:'open the row for the list — each names its blocking part',
     btn:'Planner',go:"go('planner')",
-    items:needParts.map(r=>({k:'parts_'+r.p.id,
-      t:esc(r.p.name)+(r.lim?' — waiting on <b>'+esc(r.lim.name)+'</b>':''),
-      s:(r.protDays!=null?fmt(Math.round(r.protDays))+'d protection':''),
-      btn:'Open',go:`openPlanRow('${r.p.id}')`}))});
+    /* Jack, 3 Sep: five rows in a row all read "waiting on Exfoliating Glove".
+       The page was stating the same fact five times and never once said the
+       useful version: order that ONE part and five products unblock. Rows are
+       grouped by the part that is blocking them, worst protection first. */
+    items:(()=>{const by={};
+      needParts.forEach(r=>{const k=r.lim?r.lim.name:'—';(by[k]=by[k]||[]).push(r);});
+      return Object.keys(by).sort((a,b)=>by[b].length-by[a].length).flatMap(part=>{
+        const g=by[part].sort((a,b)=>(a.protDays==null?1e9:a.protDays)-(b.protDays==null?1e9:b.protDays));
+        const worst=g[0]&&g[0].protDays!=null?Math.round(g[0].protDays):null;
+        if(part==='—'||g.length===1)return g.map(r=>({k:'parts_'+r.p.id,
+          t:esc(r.p.name)+(r.lim?' <span class="wlWait">waiting on</span> <b>'+esc(r.lim.name)+'</b>':''),
+          s:(r.protDays!=null?fmt(Math.round(r.protDays))+'d cover':''),days:r.protDays,
+          btn:'Open',go:`openPlanRow('${r.p.id}')`}));
+        return [{k:'partgrp_'+part.replace(/[^a-z0-9]/gi,'_'),
+          t:'<b>'+esc(part)+'</b> <span class="wlWait">is blocking</span> <b>'+fmt(g.length)+' products</b> &mdash; <span class="wlWait">'+esc(g.map(r=>r.p.name).join(', ')).slice(0,90)+'</span>',
+          s:(worst!=null?fmt(worst)+'d cover':''),days:worst,group:true,
+          btn:'Open',go:`openPlanRow('${g[0].p.id}')`}];});})()});
   /* Sarah's chases live on HER Admin page — Jack, 30 Aug: "nothing for Sarah
      should be on here." Shorts/damage already flow there as supplier rows;
      overdue deliveries get a banner on her page (lavLateCount). */
-  const engBuys=PE?PE.buys.filter(L=>!L.isProd&&L.buyQty>0&&(L.state==='buy'||L.state==='soon')):[];
+  /* Jack, 3 Sep: "what needs ordering — if stuff is on the way it's n/a."
+     A part with stock already on order is not a thing to order. It drops out
+     of the job and out of the count, and is named once underneath so it is
+     not simply hidden. */
+  const _allBuys=PE?PE.buys.filter(L=>!L.isProd&&L.buyQty>0&&(L.state==='buy'||L.state==='soon')):[];
+  const onWay=_allBuys.filter(L=>(L.pendQty||0)>0);
+  const engBuys=_allBuys.filter(L=>!((L.pendQty||0)>0));
   if(engBuys.length){const spend=engBuys.reduce((t,x)=>t+(x.cost||0),0);
     jobs.push({k:'buys',o:'wh',sev:1,n:engBuys.length,
       t:`${fmt(engBuys.length)} part${engBuys.length===1?'':'s'} need${engBuys.length===1?'s':''} ordering — about ${gbp(spend)}`,
       s:'open the row — order each one right here',
       btn:'What to buy',go:"go('purchases')",
       items:engBuys.map(L=>({k:'buy_'+L.o.id,
-        t:esc(L.o.name)+' — <b>'+fmt(L.buyQty)+'</b>'+(L.cases?' ('+fmt(L.cases)+' cases)':'')+' from '+esc(L.sup||'?'),
+        /* only say "cases" when a case is actually more than one — a case size
+           of 1 turned "order 599" into the nonsense "599 · 599 cases" */
+        t:'<b>'+esc(L.o.name)+'</b> <span class="wlWait">'+fmt(L.buyQty)+((L.cases&&L.caseQty>1)?' &middot; '+fmt(L.cases)+' case'+(L.cases===1?'':'s')+' of '+fmt(L.caseQty):'')+' from '+esc(L.sup||'?')+'</span>',
+        money:L.cost||0,
         s:L.buyByDays<0?fmt(-L.buyByDays)+'d late':L.buyByDays===0?'order today':'by '+dshort(L.buyBy),
-        btn:'Log order',go:`openLogOrder('${L.o.id}')`}))});}
+        days:L.buyByDays,
+        btn:'Log order',go:`openLogOrder('${L.o.id}')`}))
+      .concat(onWay.length?[{k:'onway_note',t:'<span class="wlWait">'+fmt(onWay.length)+' more '+(onWay.length===1?'is':'are')+' already on order &mdash; nothing to do: '+esc(onWay.slice(0,4).map(L=>L.o.name).join(', '))+(onWay.length>4?' +'+(onWay.length-4)+' more':'')+'</span>',
+          s:'',btn:'Deliveries',go:"openDeliveries()"}]:[])});}
   if(orders.length)jobs.push({k:'link',o:'wh',sev:2,n:orders.length,
     t:`${fmt(orders.length)} order${orders.length===1?'':'s'} waiting to be linked`,
     s:'They are not stock until someone says what they are',btn:'Review',go:"go('purchases')"});
@@ -25773,12 +26063,24 @@ function workList(){
         ${done?`<span style="font-size:11px;font-weight:700;color:var(--grn);white-space:nowrap;">${fmt(done)} done</span>`:''}
       </summary>
       <div style="padding:0 14px 10px 38px;">
-        ${live.map(i=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--border);">
-          <span style="flex:1;min-width:0;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${i.t}</span>
-          ${i.s?`<span style="font-size:11px;color:var(--text3);white-space:nowrap;">${i.s}</span>`:''}
+        ${/* Jack, 3 Sep: "loads of dead space, no colours, very boring." The
+              name was flex:1 so it shoved the only meaningful thing — how late
+              it is — to the far right in grey 11px. Name and its urgency now
+              sit together on the left, and the urgency is a coloured chip
+              because that is the whole point of the line. */''}
+        ${live.map(i=>{
+          const d=(i.days==null)?null:+i.days;
+          const late=(/late|today/.test(i.s||''))||(d!=null&&d<=0);
+          const soon=d!=null&&d>0&&d<=7;
+          const col=late?'#f87171':soon?'#fbbf24':'#7f8896';
+          return `<div class="wlItem${i.group?' grp':''}">
+          <span class="wlName">${i.t}</span>
+          ${i.s?`<span class="wlChip" style="color:${col};border-color:${col}55;background:${col}1a;">${esc(i.s)}</span>`:''}
+          ${i.money?`<span class="wlMoney">${gbp(i.money)}</span>`:''}
+          <span class="wlGap"></span>
           <button class="btn sm" onclick="LV3.${i.go}">${esc(i.btn)}</button>
           <button class="btn sm" title="Done — it leaves the list. The numbers catch up on the next sheet sync." onclick="LV3.wlTick('${i.k}')">DONE</button>
-        </div>`).join('')||'<div class="pmeta" style="padding:6px 0;">All ticked off for today.</div>'}
+        </div>`;}).join('')||'<div class="pmeta" style="padding:6px 0;">All ticked off for today.</div>'}
       </div>
     </details>`;
   };
@@ -25796,7 +26098,8 @@ function workList(){
     const az=plData().az,buys=plData().buys;
     const outN=(az.act||[]).filter(r=>(r.sell||0)<=0).length;
     const sendN=(az.act||[]).filter(r=>(r.alloc||0)>0).length;
-    const buyN=buys.filter(L=>['buy','soon'].includes(L.state)).length;
+    /* same rule as the list below it — anything already on order is not a buy */
+    const buyN=buys.filter(L=>['buy','soon'].includes(L.state)&&!((L.pendQty||0)>0)).length;
     if(!outN&&!sendN&&!buyN)return '';
     return `<div onclick="LV3.go('planner')" style="display:flex;gap:12px;align-items:center;padding:10px 14px;margin-bottom:9px;border:1px solid ${outN?'rgba(239,68,68,.5)':'var(--border)'};border-left:4px solid ${outN?'#ef4444':'#fbbf24'};border-radius:10px;cursor:pointer;background:var(--bg2);" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background='var(--bg2)'">
       <span style="font-size:10px;font-weight:800;letter-spacing:.05em;color:${outN?'#ef4444':'#fbbf24'};">PLANNER</span>
@@ -26125,7 +26428,10 @@ function vProducts(){
   <div class="panel stick">
     <div class="ph">
       <div class="seg">${[['all','All'],['act','Needs action'],['bundle','Bundles'],['pl','Private label'],['blocked','Out of stock']]
-        .concat(archP.length?[['archived','Archived']]:[])
+        /* Jack, 3 Sep: "where is active and not filter?" — it was here all
+           along, but it only appeared once something had been archived, so
+           there was no way to discover it. Always shown now. */
+        .concat([['archived','Archived']])
         .map(([k,l])=>`<button class="${pFilter===k?'on':''}" onclick="LV3.setFilter('p','${k}')">${l}<span class="cnt">${fmt(counts[k])}</span></button>`).join('')}</div>
       <input class="srch" placeholder="Search product, ASIN, SKU…" value="${esc(Q)}" oninput="LV3.setQ(this.value)">
       ${sortPicker('p',pSort,P_SORTS)}
@@ -34277,9 +34583,27 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 .sp-stage.ok{color:var(--text2);}
 .sp-stage.ok .sp-ico{border-color:#4ade80;background:rgba(74,222,128,.14);animation:none;}
 .sp-stage.ok .sp-ico:after{content:'\2713';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#4ade80;font-weight:900;}
-#syncPanel .sp-fill{transition:width .45s ease;}
+/* Jack, 3 Sep: "better sync animation for user experience". The bar jumped in
+   five hard steps and the running line looked the same as the finished ones. */
+#syncPanel .sp-fill{transition:width .55s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;}
+#syncPanel .sp-fill:after{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);
+  transform:translateX(-100%);animation:spSheen 1.25s ease-in-out infinite;}
+#syncPanel.done .sp-fill:after,#syncPanel.bad .sp-fill:after{animation:none;opacity:0;}
+@keyframes spSheen{to{transform:translateX(100%);}}
+/* the line being worked on breathes, so your eye knows where it is */
+.sp-stage.run{animation:spBreathe 1.6s ease-in-out infinite;}
+@keyframes spBreathe{0%,100%{opacity:1}50%{opacity:.62}}
+.sp-stage.ok .sp-ico:after{animation:spPop .32s cubic-bezier(.34,1.56,.64,1);}
+@keyframes spPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
 #syncPanel.done .sp-fill{background:#4ade80;}
-#syncPanel.done .sp-stage .sp-ico{border-color:#4ade80;background:rgba(74,222,128,.14);animation:none;}
+#syncPanel.done .sp-stage .sp-ico{border-color:#4ade80;background:rgba(74,222,128,.14);}
+#syncPanel.done .sp-stage:nth-child(1) .sp-ico:after{animation-delay:0s}
+#syncPanel.done .sp-stage:nth-child(2) .sp-ico:after{animation-delay:.06s}
+#syncPanel.done .sp-stage:nth-child(3) .sp-ico:after{animation-delay:.12s}
+#syncPanel.done .sp-stage:nth-child(4) .sp-ico:after{animation-delay:.18s}
+#syncPanel.done .sp-stage:nth-child(5) .sp-ico:after{animation-delay:.24s}
+#syncPanel.done .sp-stage{animation:none;opacity:1;}
 #syncPanel .sp-log{min-height:16px;font-size:11px;color:var(--text2);}
 .tfu td.tfuWrong{white-space:normal;}
 .tfu .tfuProd2{margin-bottom:4px!important;}
