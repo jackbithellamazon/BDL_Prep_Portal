@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v35.8</title>
+<title>BDL PrepHub v36.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3401,7 +3401,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v35.8</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v36.2</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3435,7 +3435,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v35.8</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v36.2</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3462,6 +3462,10 @@ html.light-mode .tfu thead th{background:#d8dde3;}
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.4V1.9h3.6a2.7 2.7 0 010 5.4H4"/><path d="M7.2 7.3l3.1 5.1"/></svg>
       <span>Returns</span>
           </button>
+    <button class="sb-item" onclick="goPage('recovery',this)">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.2 7 2.4l5 2.8v4.4L7 12.4 2 9.6z"/><path d="M2 5.2 7 8l5-2.8M7 8v4.4"/></svg>
+      <span>Recovery Stock</span>
+    </button>
     <button class="sb-item" onclick="goPage('admin',this)">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.1 3.2a3.4 3.4 0 00-2.8-1.3c-1.7 0-2.9.9-2.9 2.3 0 3 6 1.6 6 4.7 0 1.5-1.4 2.5-3.2 2.5a3.8 3.8 0 01-3.2-1.5"/></svg>
       <span>Sarah's Admin</span>
@@ -4138,7 +4142,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v35.8</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v36.2</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -4149,6 +4153,12 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
   <!-- INSIGHTS PAGE -->
   <div class="page" id="page-insights">
     <div class="insights-wrap" id="insightsWrap"></div>
+  </div>
+
+  <!-- RECOVERY STOCK PAGE — stock that is NOT going back to Amazon: eBay, Vinted,
+       Facebook, clearance, disposal. Spec: BDL-Recovery-Stock-Developer-Spec.md -->
+  <div class="page" id="page-recovery">
+    <div class="recWrap" id="recWrap"><div class="recEmpty">Loading Recovery Stock…</div></div>
   </div>
 
   <!-- HISTORY LOOKUP PAGE -->
@@ -4878,11 +4888,12 @@ function goPage(n,btn){
   if(btn&&btn.classList)btn.classList.add('on');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+n).classList.add('active');
-  const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'Lavarion ASINs',returns:'Returns',admin:"Sarah's Admin",jack:"Jack's Admin",claims:'Issues (old view)',insights:'Insights',audit:'Audit Log',lookup:'History Lookup',settings:'Settings'};
+  const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'Lavarion ASINs',returns:'Returns',admin:"Sarah's Admin",jack:"Jack's Admin",claims:'Issues (old view)',insights:'Insights',audit:'Audit Log',lookup:'History Lookup',recovery:'Recovery Stock',settings:'Settings'};
   document.getElementById('pageTitle').textContent=t[n]||n;
   /* a page skipped while it was off-screen owes itself one repaint */
   if(n==='prep'&&_dirtyR.prep)renderPrep();
   if(n==='jack'){window._jkFreshVisit=true;renderJack();}
+  if(n==='recovery'){_recSel.clear();renderRecovery();}
   if(n==='settings'){try{renderSyncIssues();}catch(e){}}
   if(n==='dashboard')renderDashboard();
   if(n==='insights')renderInsights();
@@ -8832,6 +8843,783 @@ function lkOpen(rid){
       <pre style="white-space:pre-wrap;font-family:var(--mono);font-size:11.5px;line-height:1.6;color:var(--text2);margin:0;">${esc(story)}</pre>
     </div>`;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RECOVERY STOCK — stock Bithell Distribution still owns but is NOT sending back
+   to Amazon: eBay, Vinted, Facebook, clearance/liquidator, disposal, donation.
+   Spec: ~/Downloads/BDL-Recovery-Stock-Developer-Spec.md (Jack, 2 Sep 2026).
+
+   Four questions the page must answer in seconds:
+     what have we got · where is it · have we listed/sent it · how long has it sat.
+
+   Decisions from Jack's answers (2 Sep):
+     · locations OPTIONAL in phase 1 — no racking exists yet; "no rack yet" is a
+       quiet chip, not a warning, until the first real location is used
+     · one physical product = ONE row, locations are chips on it (split qty)
+     · Sold on a marketplace → "To pack — Becki" → "Packed & sent" → gone.
+       Becki packs; Jack lists. A row never vanishes the moment it sells.
+     · clearance: items leave active stock when the BATCH is marked Sent
+     · duplicates are EXPECTED (the same product comes back) — soft warning,
+       one click to add anyway
+     · eBay comebacks are simply re-added; no special un-sell flow
+     · cost auto-fills from a PrepHub SKU (SKU encodes COG); never a sale price
+     · hard delete = Jack only, typed confirmation, audit line
+   ═══════════════════════════════════════════════════════════════════════════ */
+let REC=[],REC_BATCH=[],_recLoaded=false,_recErr='',_recTab='all',_recQ='',_recSel=new Set();
+let _recSort='work',_recF={loc:'',cond:'',ch:'',age:''},_recOpen=null,_recEvCache={};
+const REC_WORK_ORDER={sorting:0,ready:1,topack:2,listed:3,gone:4,archived:5};
+const REC_STATUS={sorting:['Needs Sorting','#fbbf24'],ready:['Ready to List / Send','#60a5fa'],listed:['Listed / Sent','#4ade80'],topack:['Sold — to pack','#c084fc'],gone:['Sold / Gone','#94a3b8'],archived:['Archived','#64748b']};
+const REC_COND=['New','Good','Used — damaged','Used — OOD','Used — bad'];
+function recCondMatch(t){t=String(t||'').trim().toLowerCase();if(!t)return '';const x=REC_COND.find(c=>c.toLowerCase()===t);if(x)return x;if(/ood/.test(t))return 'Used — OOD';if(/dam|dent|scratch|crack/.test(t))return 'Used — damaged';if(/bad|fault|broke|poor|parts|incomplete/.test(t))return 'Used — bad';if(/new|sealed|unopened/.test(t))return 'New';if(/good|like|open|fine|ok/.test(t))return 'Good';return '';}
+const REC_CHANNELS=['eBay','Vinted','Facebook Marketplace','Clearance / Liquidator','Other Marketplace','Bulk Sale','Donate','Dispose','Other'];
+const REC_IDTYPES=['ASIN','EAN','UPC','Internal SKU','eBay SKU','Other','None'];
+const REC_MARKETPLACES=['eBay','Vinted','Facebook Marketplace','Other Marketplace'];   // sold here → Becki packs
+
+/* ── tiny helpers ──────────────────────────────────────────────────────────── */
+const recDays=iso=>{if(!iso)return 0;const d=new Date(iso);return isNaN(d)?0:Math.max(0,Math.floor((Date.now()-d.getTime())/864e5));};
+const recAgeCol=d=>d>=30?'#f87171':d>=15?'#fbbf24':d>=8?'#e2c68a':'var(--text2)';
+const recActive=i=>i.status!=='gone'&&i.status!=='archived'&&!i.archived;
+const recQty=i=>Math.max(0,parseInt(i.qty)||0);
+const recPackQty=i=>(i.pack||[]).reduce((t,p)=>t+(parseInt(p.qty)||0),0);
+const recLocs=i=>(Array.isArray(i.locations)?i.locations:[]).filter(l=>l&&l.loc);
+const recLocStr=i=>recLocs(i).map(l=>l.loc+(recLocs(i).length>1?' ×'+l.qty:'')).join(', ')||'';
+const recChs=i=>(Array.isArray(i.channels)?i.channels:[]).filter(c=>c&&c.ch);
+const recUid=()=>(window.crypto&&crypto.randomUUID)?crypto.randomUUID():('rec_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
+const recNow=()=>new Date().toISOString();
+const recWhen=iso=>{const d=new Date(iso);return isNaN(d)?'—':d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});};
+const recDay=iso=>{const d=new Date(iso);return isNaN(d)?'—':d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'});};
+function recNormLoc(s){return String(s||'').trim().toUpperCase().replace(/\s+/g,'');}
+/* PrepHub SKUs encode cost: Amuk_108.04_… → £108.04. Free cost, no typing. */
+function recCostFromSku(sku){
+  try{const p=parseSKU(String(sku||''));if(p&&p.cogs>0)return +p.cogs;}catch(e){}
+  const m=String(sku||'').match(/^[A-Za-z]+_(\d+(?:\.\d+)?)_/);return m?+m[1]:null;
+}
+/* what kind of identifier is this? Nobody should have to pick from a dropdown. */
+function recDetectIdType(v){
+  v=String(v||'').trim();
+  if(!v)return 'None';
+  if(/^B0[A-Z0-9]{8}$/i.test(v))return 'ASIN';
+  if(/^\d{13}$/.test(v))return 'EAN';
+  if(/^\d{12}$/.test(v))return 'UPC';
+  if(/^[A-Za-z]{2,6}_\d/.test(v))return 'Amazon SKU';
+  return 'Internal SKU';
+}
+/* an Amazon return carries its PrepHub SKU — that one string knows the product
+   name, the ASIN and the cost. Look it up on the Prep Sheet rows. */
+function recPrepRowBySku(sku){
+  const k=String(sku||'').trim().toLowerCase();if(!k||typeof rows==='undefined')return null;
+  return rows.find(r=>String(r.sku||'').toLowerCase()===k)||null;
+}
+/* any location ever used → phase 2 has started → missing location becomes a warning */
+function recRackingLive(){return REC.some(i=>recLocs(i).length);}
+
+/* ── data ──────────────────────────────────────────────────────────────────── */
+function recRowFromDb(d){
+  return {id:d.id,name:d.name||'',id_type:d.id_type||'None',id_value:d.id_value||'',amz_sku:d.amz_sku||'',extra_ids:d.extra_ids||[],
+    qty:d.qty||0,locations:d.locations||[],condition:d.condition||'Good',condition_notes:d.condition_notes||'',
+    cost:d.cost==null?null:+d.cost,status:d.status||'sorting',channels:d.channels||[],notes:d.notes||'',
+    batch_id:d.batch_id||'',pack:d.pack||[],added_by:d.added_by||'',created_at:d.created_at,last_action_at:d.last_action_at||d.created_at,
+    last_action:d.last_action||'',archived:!!d.archived,gone_at:d.gone_at||null};
+}
+function recRowToDb(i){
+  return {id:i.id,name:i.name,id_type:i.id_type,id_value:i.id_value,amz_sku:i.amz_sku||'',extra_ids:i.extra_ids||[],qty:recQty(i),locations:recLocs(i),
+    condition:i.condition,condition_notes:i.condition_notes||'',cost:i.cost==null||i.cost===''?null:+i.cost,status:i.status,
+    channels:recChs(i),notes:i.notes||'',batch_id:i.batch_id||null,pack:i.pack||[],added_by:i.added_by||'',
+    created_at:i.created_at,last_action_at:i.last_action_at,last_action:i.last_action||'',archived:!!i.archived,gone_at:i.gone_at||null};
+}
+async function recLoad(){
+  try{
+    const a=await sb.from('recovery_items').select('*').order('created_at',{ascending:false});
+    if(a.error)throw a.error;
+    REC=(a.data||[]).map(recRowFromDb);
+    const b=await sb.from('recovery_batches').select('*').order('created_at',{ascending:false});
+    REC_BATCH=b.error?[]:(b.data||[]);
+    _recErr='';_recLoaded=true;
+  }catch(e){
+    const msg=String((e&&e.message)||e||'');
+    _recErr=/does not exist|42P01|relation|schema cache|Could not find the table/i.test(msg)?'setup':msg;
+    _recLoaded=true;
+    console.warn('[recovery] load',msg);
+  }
+}
+/* every mutation goes through here: stamp, persist, audit, event. Saves that
+   fail (offline / test mode) keep the change on screen and say so once. */
+async function recSave(i,action,detail,prev,next){
+  i.last_action_at=recNow();i.last_action=action;
+  const row=recRowToDb(i);
+  let ok=true;
+  try{const r=await sb.from('recovery_items').upsert(row,{onConflict:'id'});if(r.error)throw r.error;}
+  catch(e){ok=false;console.warn('[recovery] save',e);toast('Not saved to the cloud — '+String((e&&e.message)||e).slice(0,60),'er');}
+  const ev={id:recUid(),item_id:i.id,at:i.last_action_at,who:_who(),action,prev:prev==null?null:String(prev),next:next==null?null:String(next),note:detail||''};
+  (_recEvCache[i.id]=_recEvCache[i.id]||[]).unshift(ev);
+  try{await sb.from('recovery_events').insert(ev);}catch(e){}
+  try{logAudit('Recovery: '+action,(i.name||i.id_value||'item')+(detail?' — '+detail:''));}catch(e){}
+  return ok;
+}
+async function recEvents(id){
+  if(_recEvCache[id]&&_recEvCache[id]._full)return _recEvCache[id];
+  try{const r=await sb.from('recovery_events').select('*').eq('item_id',id).order('at',{ascending:false}).limit(200);
+    if(!r.error){const list=r.data||[];list._full=true;_recEvCache[id]=list;return list;}}catch(e){}
+  return _recEvCache[id]||[];
+}
+function recNextBatchId(){
+  const n=REC_BATCH.map(b=>parseInt(String(b.id||'').replace(/\D/g,''))||0).reduce((m,x)=>Math.max(m,x),0)+1;
+  return 'CLR-'+String(n).padStart(3,'0');
+}
+
+/* ── derived views ─────────────────────────────────────────────────────────── */
+function recFiltered(){
+  const q=_recQ.trim().toLowerCase();
+  let list=REC.slice();
+  const tab=_recTab;
+  list=list.filter(i=>{
+    if(tab==='all')return recActive(i);
+    if(tab==='sorting')return recActive(i)&&i.status==='sorting';
+    if(tab==='ready')return recActive(i)&&i.status==='ready';
+    if(tab==='listed')return recActive(i)&&i.status==='listed';
+    if(tab==='topack')return recActive(i)&&recPackQty(i)>0;
+    if(tab==='clearance')return !!i.batch_id;
+    if(tab==='stale')return recActive(i)&&recDays(i.created_at)>=30;
+    if(tab==='archived')return !recActive(i);
+    return true;});
+  if(q)list=list.filter(i=>[i.name,i.id_value,i.id_type,i.amz_sku,i.notes,i.condition_notes,i.batch_id,recLocStr(i),
+    ...recChs(i).map(c=>c.ch+' '+(c.ref||'')+' '+(c.url||'')),...(i.extra_ids||[]).map(x=>x.value||x)]
+    .join(' ').toLowerCase().includes(q));
+  if(_recF.loc)list=list.filter(i=>_recF.loc==='__none'?!recLocs(i).length:recLocs(i).some(l=>l.loc===_recF.loc));
+  if(_recF.cond)list=list.filter(i=>i.condition===_recF.cond);
+  if(_recF.ch)list=list.filter(i=>recChs(i).some(c=>c.ch===_recF.ch));
+  if(_recF.age){const d=i=>recDays(i.created_at);
+    list=list.filter(i=>_recF.age==='0-7'?d(i)<=7:_recF.age==='8-14'?(d(i)>=8&&d(i)<=14):_recF.age==='15-29'?(d(i)>=15&&d(i)<=29):d(i)>=30);}
+  const s=_recSort;
+  list.sort((a,b)=>{
+    switch(s){
+      case 'work':{const w=(REC_WORK_ORDER[a.status]??9)-(REC_WORK_ORDER[b.status]??9);if(w)return w;
+        if(recPackQty(b)-recPackQty(a))return recPackQty(b)-recPackQty(a);
+        return recDays(b.created_at)-recDays(a.created_at);}
+      case 'oldest':return String(a.created_at).localeCompare(String(b.created_at));
+      case 'idle':return recDays(b.last_action_at)-recDays(a.last_action_at);
+      case 'qty':return recQty(b)-recQty(a);
+      case 'value':return (recQty(b)*(b.cost||0))-(recQty(a)*(a.cost||0));
+      case 'name':return String(a.name).localeCompare(String(b.name));
+      case 'loc':return recLocStr(a).localeCompare(recLocStr(b));
+      default:return String(b.created_at).localeCompare(String(a.created_at));
+    }});
+  return list;
+}
+function recKpis(){
+  const act=REC.filter(recActive);
+  const units=act.reduce((t,i)=>t+recQty(i),0);
+  const notListed=act.filter(i=>i.status==='sorting'||i.status==='ready').reduce((t,i)=>t+recQty(i),0);
+  const stale=act.filter(i=>recDays(i.created_at)>=30);
+  const idle=act.filter(i=>recDays(i.last_action_at)>=30);
+  const needs=new Set([...act.filter(i=>i.status==='sorting'),...stale,...idle,...act.filter(i=>recPackQty(i)>0)]).size;
+  const listed=act.filter(i=>i.status==='listed').reduce((t,i)=>t+recQty(i),0);
+  const value=act.reduce((t,i)=>t+recQty(i)*(i.cost||0),0);
+  return {units,items:act.length,notListed,needs,listed,value,stale:stale.length,topack:act.filter(i=>recPackQty(i)>0).length};
+}
+function recLocCounts(){
+  const m={};let none=0;
+  REC.filter(recActive).forEach(i=>{const ls=recLocs(i);if(!ls.length){none+=recQty(i);return;}ls.forEach(l=>{m[l.loc]=(m[l.loc]||0)+(parseInt(l.qty)||0);});});
+  return {m,none};
+}
+
+/* ── render ────────────────────────────────────────────────────────────────── */
+function renderRecovery(){
+  const w=document.getElementById('recWrap');if(!w)return;
+  if(document.hidden||!_pageActive('page-recovery'))return;
+  if(!_recLoaded){recLoad().then(()=>renderRecovery());return;}
+  const k=recKpis();
+  const counts={all:REC.filter(recActive).length,sorting:REC.filter(i=>recActive(i)&&i.status==='sorting').length,
+    ready:REC.filter(i=>recActive(i)&&i.status==='ready').length,listed:REC.filter(i=>recActive(i)&&i.status==='listed').length,
+    topack:k.topack,clearance:REC.filter(i=>!!i.batch_id).length,stale:k.stale,archived:REC.filter(i=>!recActive(i)).length};
+  const list=recFiltered();
+  const lc=recLocCounts();
+  const rackLive=recRackingLive();
+  const kpi=(key,label,val,sub,col,tab)=>`<div class="recKpi ${_recTab===tab?'on':''}" style="--kc:${col}" onclick="_recTab='${tab}';_recSel.clear();renderRecovery();" title="Click to filter">
+      <div class="l">${label}</div><div class="v">${val}</div><div class="s">${sub}</div></div>`;
+  const tabBtn=(key,label)=>`<button class="recTab ${_recTab===key?'on':''}" onclick="_recTab='${key}';_recSel.clear();renderRecovery();">${label} <b>${fmt(counts[key]||0)}</b></button>`;
+  const opt=(v,l,cur)=>`<option value="${esc(v)}" ${cur===v?'selected':''}>${esc(l)}</option>`;
+  const locOpts=Object.keys(lc.m).sort().map(l=>opt(l,l+' · '+fmt(lc.m[l])+' units',_recF.loc)).join('')+(lc.none?opt('__none','No rack yet · '+fmt(lc.none)+' units',_recF.loc):'');
+  const selUnits=[...list.filter(i=>_recSel.has(i.id))].reduce((t,i)=>t+recQty(i),0);
+
+  const setup=_recErr==='setup'?`<div class="recSetup"><b>One-time setup needed.</b> The Recovery Stock tables are not in the database yet. Run
+      <code>BDL-Recovery-Stock-run-in-supabase.sql</code> (in your Downloads) once in the Supabase SQL editor, then press <b>Sync Now</b> or reload. Nothing else in the app is affected.</div>`
+    :_recErr?`<div class="recSetup"><b>Could not load Recovery Stock:</b> ${esc(_recErr)}</div>`:'';
+
+  const rowHtml=i=>{
+    const st=REC_STATUS[i.status]||REC_STATUS.sorting;
+    const age=recDays(i.created_at),idle=recDays(i.last_action_at);
+    const pk=recPackQty(i);
+    const locs=recLocs(i);
+    const locHtml=locs.length?locs.map(l=>`<span class="recLoc" title="${fmt(l.qty)} units here">${esc(l.loc)}${locs.length>1?' <span style="opacity:.7">×'+fmt(l.qty)+'</span>':''}</span>`).join('')
+      :`<span class="recLoc none" title="${rackLive?'No location — assign one':'Racking not set up yet (phase 2)'}">${rackLive?'⚠ no rack':'no rack yet'}</span>`;
+    const chs=recChs(i);
+    const chHtml=chs.length?chs.map(c=>`<span class="recChip" style="color:#4ade80;border-color:rgba(74,222,128,.45);background:rgba(74,222,128,.08)" title="${esc(c.date?'since '+recDay(c.date):'')}">${esc(c.ch)}</span>`).join(' '):'<span style="color:var(--text3)">—</span>';
+    const refs=chs.filter(c=>c.ref||c.url).map(c=>c.url?`<a href="${esc(c.url)}" target="_blank" onclick="event.stopPropagation()" style="color:#60a5fa;font:600 10.5px var(--mono)">${esc(c.ref||c.ch+' link')}</a>`:`<span style="font:600 10.5px var(--mono);color:#93c5fd">${esc(c.ref)}</span>`).join('<br>')||'<span style="color:var(--text3)">—</span>';
+    const idLabel=(i.id_type&&i.id_type!=='None'?`<i>${esc(i.id_type)}</i>${esc(i.id_value||'')}`:(i.id_value?esc(i.id_value):(i.amz_sku?'':'<span style="color:var(--text3)">no identifier</span>')))
+      +(i.amz_sku?`<div><i>AMZ SKU</i>${esc(i.amz_sku)}</div>`:'');
+    const quickList=(recActive(i)&&!chs.length&&!pk)?`<div class="recQuick" onclick="event.stopPropagation()"><span>Listed on:</span>${['eBay','Vinted','Facebook Marketplace'].map(c=>`<button onclick="recToggleChannel('${i.id}','${esc(c)}')">${c==='Facebook Marketplace'?'FB':c}</button>`).join('')}</div>`:'';
+    return `<tr class="row ${_recSel.has(i.id)?'sel':''} ${_recOpen===i.id?'open':''} ${recActive(i)?'':'dim'}" onclick="recOpen('${i.id}')">
+      <td class="c" onclick="event.stopPropagation()"><input type="checkbox" ${_recSel.has(i.id)?'checked':''} onchange="recToggle('${i.id}',this.checked)"></td>
+      <td>${locHtml}</td>
+      <td><div class="recName">${esc(i.name||'(no name)')}</div><div class="recId">${idLabel}</div></td>
+      <td class="c"><div class="recNum">${fmt(recQty(i))}</div>${pk?`<div class="recSub" style="color:#c084fc;font-weight:800">${fmt(pk)} to pack</div>`:''}</td>
+      <td><span class="recChip" style="color:${/^new|^good/i.test(i.condition)?'#4ade80':/bad|ood/i.test(i.condition)?'#f87171':'#e2c68a'};border-color:currentColor;opacity:.95">${esc(i.condition||'Good')}</span>${i.condition_notes?`<div class="recSub" title="${esc(i.condition_notes)}">${esc(i.condition_notes.slice(0,34))}${i.condition_notes.length>34?'…':''}</div>`:''}</td>
+      <td class="r"><span class="recNum">${i.cost!=null&&i.cost!==''?fmtGBP2(i.cost):'<span style="color:var(--text3)">—</span>'}</span></td>
+      <td>${(()=>{
+          if(!recActive(i))return `<span class="recChip" style="color:${st[1]};border-color:${st[1]}66;background:${st[1]}14">${st[0]}</span>`;
+          if(pk)return `<span class="recChip" style="color:#c084fc;border-color:#c084fc66;background:#c084fc14">&#9679; TO PACK</span><div class="recSub">${fmt(pk)} sold, waiting for Becki</div>`;
+          if(chs.length)return `<span class="recChip" style="color:#4ade80;border-color:#4ade8066;background:#4ade8014">&#10003; LISTED</span><div class="recSub">${esc(chs.map(c=>c.ch==='Facebook Marketplace'?'Facebook':c.ch).join(' · '))}</div>`;
+          return `<span class="recChip" style="color:#fbbf24;border-color:#fbbf2466;background:#fbbf2414">&#9675; NOT LISTED</span><div class="recSub">${i.status==='ready'?'ready — list it':'needs sorting first'}</div>`;})()}
+        ${i.batch_id?`<div class="recSub" style="font-family:var(--mono);font-weight:800;color:#fb923c">${esc(i.batch_id)}</div>`:''}</td>
+      <td>${chs.length?chHtml:quickList||'<span style="color:var(--text3)">—</span>'}</td>
+      <td>${refs}</td>
+      <td class="c"><span class="recAge" style="color:${recAgeCol(age)}">${age}d</span></td>
+      <td><div style="font-size:11.5px;color:${recAgeCol(idle)};font-weight:700">${idle===0?'today':idle+'d ago'}</div><div class="recSub">${esc(i.last_action||'Added')}</div></td>
+      <td><div class="recNote" title="${esc(i.notes||'')}">${esc(i.notes||'—')}</div></td>
+      <td class="r" onclick="event.stopPropagation()"><div class="recRowActs">
+        ${pk?`<button onclick="recPackedModal('${i.id}')" style="border-color:rgba(192,132,252,.5);color:#c084fc">Packed &amp; sent</button>`:''}
+        ${recActive(i)&&!pk?`<button onclick="recSoldModal(['${i.id}'])">Sold</button>`:''}
+        <button onclick="recOpen('${i.id}')">Open</button></div></td>
+    </tr>`;};
+
+  w.innerHTML=`
+  <div class="recHead">
+    <div><h2>Recovery Stock</h2><p>Stock that isn't going back to Amazon — track it, list it, clear it. What have we got · where is it · have we listed it · how long has it sat.</p></div>
+    <div class="recActs">
+      <button class="recBtn" onclick="recExport()">&#8681; Export CSV</button>
+      <button class="recBtn" onclick="recBatchesModal()">Clearance batches <b style="font-family:var(--num)">${fmt(REC_BATCH.length)}</b></button>
+      <button class="recBtn" onclick="recAddModal(1)">+ Add item</button>
+      <button class="recBtn pri" onclick="recAddModal(10)">+ Bulk add stock</button>
+    </div>
+  </div>
+  ${setup}
+  <div class="recKpis">
+    ${kpi('units','Recovery stock',fmt(k.units),fmt(k.items)+' item'+(k.items===1?'':'s')+' physically held','#a78bfa','all')}
+    ${kpi('not','Not listed / sent',fmt(k.notListed),'units with no recovery route yet','#fbbf24','sorting')}
+    ${kpi('needs','Needs action',fmt(k.needs),'sorting, packing or stale','#f87171','sorting')}
+    ${kpi('listed','Listed / sent',fmt(k.listed),'units on a recovery route','#4ade80','listed')}
+    ${kpi('value','Cost value held',fmtGBP2(k.value),'recorded cost of active stock','#e2c68a','all')}
+    ${kpi('stale','30+ days',fmt(k.stale),k.stale?'items sitting a month or more':'nothing stale','#f87171','stale')}
+  </div>
+  <div class="recTabs">
+    ${tabBtn('all','All')}${tabBtn('sorting','Needs Sorting')}${tabBtn('ready','Ready to List')}${tabBtn('listed','Listed / Sent')}
+    ${tabBtn('topack','To pack — Becki')}${tabBtn('clearance','Clearance')}${tabBtn('stale','30+ Days')}${tabBtn('archived','Archived / Gone')}
+  </div>
+  <div class="recBar">
+    <div class="recSearch"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="4"/><path d="M9 9l3.5 3.5"/></svg>
+      <input id="recQ" value="${esc(_recQ)}" placeholder="Search product, ASIN, EAN, SKU, location, batch, notes…" oninput="_recQ=this.value;renderRecovery();setTimeout(()=>{const b=document.getElementById('recQ');if(b){b.focus();b.setSelectionRange(b.value.length,b.value.length);}},0)"></div>
+    <select class="recSel" onchange="_recF.loc=this.value;renderRecovery()"><option value="">All locations</option>${locOpts}</select>
+    <select class="recSel" onchange="_recF.cond=this.value;renderRecovery()"><option value="">All conditions</option>${REC_COND.map(c=>opt(c,c,_recF.cond)).join('')}</select>
+    <select class="recSel" onchange="_recF.ch=this.value;renderRecovery()"><option value="">All channels</option>${REC_CHANNELS.map(c=>opt(c,c,_recF.ch)).join('')}</select>
+    <select class="recSel" onchange="_recF.age=this.value;renderRecovery()"><option value="">Age: all</option>${opt('0-7','0–7 days',_recF.age)}${opt('8-14','8–14 days',_recF.age)}${opt('15-29','15–29 days',_recF.age)}${opt('30+','30+ days',_recF.age)}</select>
+    <select class="recSel" onchange="_recSort=this.value;renderRecovery()">${opt('work','Sort: what needs doing first',_recSort)}${opt('newest','Sort: newest added',_recSort)}${opt('oldest','Sort: oldest added',_recSort)}${opt('idle','Sort: longest without action',_recSort)}${opt('qty','Sort: highest quantity',_recSort)}${opt('value','Sort: highest cost value',_recSort)}${opt('name','Sort: product A–Z',_recSort)}${opt('loc','Sort: location',_recSort)}</select>
+    ${(_recQ||_recF.loc||_recF.cond||_recF.ch||_recF.age)?`<button class="recBtn sm" onclick="_recQ='';_recF={loc:'',cond:'',ch:'',age:''};renderRecovery()">&#10005; Clear filters</button>`:''}
+  </div>
+  ${_recSel.size?`<div class="recBulk"><span class="n">${fmt(_recSel.size)} item${_recSel.size===1?'':'s'} · ${fmt(selUnits)} units selected</span>
+    <select class="recSel" onchange="if(this.value)recBulkStatus(this.value);this.value=''"><option value="">Change status…</option>${Object.keys(REC_STATUS).filter(s=>s!=='gone'&&s!=='archived'&&s!=='topack').map(s=>`<option value="${s}">${REC_STATUS[s][0]}</option>`).join('')}</select>
+    <select class="recSel" onchange="if(this.value)recBulkChannel(this.value,true);this.value=''"><option value="">Add channel…</option>${REC_CHANNELS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select>
+    <select class="recSel" onchange="if(this.value)recBulkChannel(this.value,false);this.value=''"><option value="">Remove channel…</option>${REC_CHANNELS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select>
+    <button class="recBtn sm" onclick="recMoveModal([..._recSel])">Move location</button>
+    <button class="recBtn sm warn" onclick="recClearanceModal([..._recSel])">Send to clearance</button>
+    <button class="recBtn sm good" onclick="recSoldModal([..._recSel])">Mark sold / gone</button>
+    <button class="recBtn sm" onclick="recNoteModal([..._recSel])">Add note</button>
+    <button class="recBtn sm bad" onclick="recArchive([..._recSel])">Archive</button>
+    <button class="recBtn sm" onclick="_recSel.clear();renderRecovery()" style="margin-left:auto">Clear selection</button></div>`:''}
+  <div class="recBody ${_recOpen?'hasDrawer':''}">
+    <div>
+      <div class="recTableWrap"><table class="rec"><thead><tr>
+        <th class="c" style="width:30px"><input type="checkbox" ${list.length&&list.every(i=>_recSel.has(i.id))?'checked':''} onchange="recToggleAll(this.checked)" title="Select all shown"></th>
+        <th onclick="_recSort='loc';renderRecovery()" class="${_recSort==='loc'?'on':''}">Location</th>
+        <th onclick="_recSort='name';renderRecovery()" class="${_recSort==='name'?'on':''}">Product</th>
+        <th class="c" onclick="_recSort='qty';renderRecovery()" class="${_recSort==='qty'?'on':''}">Qty</th>
+        <th>Condition</th>
+        <th class="r" onclick="_recSort='value';renderRecovery()">Cost / unit</th>
+        <th>Status</th><th>Channel(s)</th><th>Channel SKU / link</th>
+        <th class="c" onclick="_recSort='oldest';renderRecovery()" class="${_recSort==='oldest'?'on':''}">Age</th>
+        <th onclick="_recSort='idle';renderRecovery()" class="${_recSort==='idle'?'on':''}">Last action</th>
+        <th>Notes</th><th class="r">Actions</th>
+      </tr></thead><tbody>
+        ${list.length?list.map(rowHtml).join(''):`<tr><td colspan="13"><div class="recEmpty">${REC.length?'Nothing matches these filters.':'Nothing here yet.'}<small>${REC.length?'Clear the filters or pick another tab.':'Use <b>+ Bulk add stock</b> to enter the pile — you can paste straight from a spreadsheet.'}</small></div></td></tr>`}
+      </tbody></table></div>
+      <div class="recFoot" style="margin-top:8px"><span>Showing ${fmt(list.length)} of ${fmt(counts[_recTab]||REC.length)} in this view · ${fmt(REC.length)} records total</span>
+        <span style="margin-left:auto">Age colours: 0–7 normal · 8–14 mild · 15–29 amber · 30+ red</span></div>
+    </div>
+    <div class="recDrawer" id="recDrawer">${_recOpen?recDrawerHtml(REC.find(i=>i.id===_recOpen)):''}</div>
+  </div>`;
+  if(_recOpen)recEvents(_recOpen).then(()=>{const d=document.getElementById('recTL');if(d)d.innerHTML=recTimelineHtml(_recOpen);});
+}
+function recToggle(id,on){if(on)_recSel.add(id);else _recSel.delete(id);renderRecovery();}
+function recToggleAll(on){recFiltered().forEach(i=>on?_recSel.add(i.id):_recSel.delete(i.id));renderRecovery();}
+function recOpen(id){_recOpen=(_recOpen===id)?null:id;renderRecovery();}
+function recClose(){_recOpen=null;renderRecovery();}
+
+/* ── drawer ────────────────────────────────────────────────────────────────── */
+function recTimelineHtml(id){
+  const ev=_recEvCache[id]||[];
+  const i=REC.find(x=>x.id===id);
+  const head=i?`<div class="recEv"><span class="w">${recWhen(i.created_at)}</span><span><b>Added</b>${i.added_by?' by '+esc(i.added_by):''} · ${recDays(i.created_at)}d in recovery</span></div>`:'';
+  return (ev.length?ev.map(e=>`<div class="recEv"><span class="w">${recWhen(e.at)}</span><span><b>${esc(e.action)}</b>${e.who?' · '+esc(e.who):''}${e.note?' — '+esc(e.note):''}${(e.prev||e.next)&&!e.note?` — ${esc(e.prev||'—')} → ${esc(e.next||'—')}`:''}</span></div>`).join(''):'')+head;
+}
+function recDrawerHtml(i){
+  if(!i)return '';
+  const st=REC_STATUS[i.status]||REC_STATUS.sorting;
+  const chs=recChs(i);
+  const locs=recLocs(i);
+  const pk=recPackQty(i);
+  const chBtn=c=>{const on=chs.find(x=>x.ch===c);return `<button class="recCh ${on?'on':''}" onclick="recToggleChannel('${i.id}','${esc(c)}')">${esc(c)}</button>`;};
+  return `<div class="recDH"><div><b>${esc(i.name||'(no name)')}</b><div class="recId" style="margin-top:3px">${i.id_type&&i.id_type!=='None'?`<i>${esc(i.id_type)}</i>`:''}${esc(i.id_value||'no identifier')}</div></div><button class="x" onclick="recClose()">&#10005;</button></div>
+  <div class="recDSec"><h4>Product</h4><div class="recF">
+    <label>Name</label><input value="${esc(i.name)}" onchange="recField('${i.id}','name',this.value)">
+    <label>Amazon SKU</label><input value="${esc(i.amz_sku||'')}" placeholder="Amuk_… if it came back from Amazon" onchange="recField('${i.id}','amz_sku',this.value)">
+    <label>Identifier</label><div><input value="${esc(i.id_value)}" placeholder="ASIN / EAN / UPC / other" onchange="recField('${i.id}','id_value',this.value);recField('${i.id}','id_type',recDetectIdType(this.value))"><div class="recSub">${i.id_type&&i.id_type!=='None'?esc(i.id_type)+' — recognised automatically':'type or paste any identifier'}</div></div>
+    <label>Cost / unit</label><input type="number" step="0.01" value="${i.cost==null?'':i.cost}" placeholder="£" onchange="recField('${i.id}','cost',this.value===''?null:+this.value)">
+  </div></div>
+  <div class="recDSec"><h4>Inventory · ${fmt(recQty(i))} units${pk?` · <span style="color:#c084fc">${fmt(pk)} to pack</span>`:''}</h4>
+    <div class="recF"><label>Quantity</label><input type="number" min="0" value="${recQty(i)}" onchange="recSetQty('${i.id}',this.value)">
+    <label>Locations</label><div>${locs.length?locs.map(l=>`<span class="recLoc">${esc(l.loc)} <span style="opacity:.7">×${fmt(l.qty)}</span></span>`).join(''):`<span class="recLoc none">${recRackingLive()?'⚠ no rack':'no rack yet'}</span>`}
+      <div style="margin-top:6px"><button class="recBtn sm" onclick="recMoveModal(['${i.id}'])">Move / split</button></div></div></div></div>
+  <div class="recDSec"><h4>Condition</h4><div class="recF">
+    <label>Condition</label><div>${recPickBtn('cond',i.condition||'Good','data-id="'+i.id+'"')}</div>
+    <label>Condition notes</label><textarea placeholder="e.g. box crushed, seal broken, tested working" onchange="recField('${i.id}','condition_notes',this.value)">${esc(i.condition_notes)}</textarea>
+  </div></div>
+  <div class="recDSec"><h4>Recovery</h4><div class="recF">
+    <label>Status</label><div>${recActive(i)&&!pk?recPickBtn('status',i.status,'data-id="'+i.id+'"'):`<span class="recChip" style="color:${st[1]};border-color:${st[1]}66">${st[0]}</span>`}</div>
+    <label>Channels</label><div class="recChs">${REC_CHANNELS.map(chBtn).join('')}</div>
+    ${chs.map((c,n)=>`<label style="color:#4ade80">${esc(c.ch)}</label><div><div class="recChRef">
+      <input value="${esc(c.ref||'')}" placeholder="${/ebay/i.test(c.ch)?'eBay SKU / item no.':'reference'}" onchange="recChannelField('${i.id}',${n},'ref',this.value)">
+      <input value="${esc(c.url||'')}" placeholder="listing link (optional)" onchange="recChannelField('${i.id}',${n},'url',this.value)"></div>
+      <div class="recSub">${c.date?'since '+recDay(c.date):''}</div></div>`).join('')}
+    ${i.batch_id?`<label>Clearance batch</label><div style="font:800 12px var(--mono);color:#fb923c">${esc(i.batch_id)}</div>`:''}
+  </div></div>
+  <div class="recDSec"><h4>Notes</h4><textarea style="width:100%;box-sizing:border-box;min-height:56px;padding:7px 9px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px" placeholder="Anything worth knowing" onchange="recField('${i.id}','notes',this.value)">${esc(i.notes)}</textarea></div>
+  <div class="recDSec"><h4>Timeline · in recovery ${recDays(i.created_at)}d · last action ${recDays(i.last_action_at)===0?'today':recDays(i.last_action_at)+'d ago'}</h4><div class="recTL" id="recTL">${recTimelineHtml(i.id)}</div></div>
+  <div class="recDActs">
+    ${pk?`<button class="recBtn span" style="border-color:rgba(192,132,252,.5);color:#c084fc" onclick="recPackedModal('${i.id}')">&#10003; Packed &amp; sent — ${fmt(pk)} unit${pk===1?'':'s'}</button>`:''}
+    ${recActive(i)?`<button class="recBtn good" onclick="recSoldModal(['${i.id}'])">Mark sold / gone</button><button class="recBtn warn" onclick="recClearanceModal(['${i.id}'])">Send to clearance</button>`:''}
+    <button class="recBtn" onclick="recMoveModal(['${i.id}'])">Move stock</button>
+    ${recActive(i)?`<button class="recBtn bad" onclick="recArchive(['${i.id}'])">Archive</button>`:`<button class="recBtn good" onclick="recUnarchive('${i.id}')">Bring back to stock</button>`}
+    ${/^jack/i.test(String(window.currentUserName||''))?`<button class="recBtn span bad" style="opacity:.7" onclick="recDelete('${i.id}')">Delete permanently (Jack only)</button>`:''}
+  </div>`;
+}
+
+/* ── field edits ───────────────────────────────────────────────────────────── */
+const REC_FIELD_LABEL={name:'Name',id_type:'Identifier type',id_value:'Identifier',amz_sku:'Amazon SKU',cost:'Cost / unit',condition:'Condition',condition_notes:'Condition notes',notes:'Notes'};
+async function recField(id,field,val){
+  const i=REC.find(x=>x.id===id);if(!i)return;
+  const prev=i[field];if(String(prev==null?'':prev)===String(val==null?'':val))return;
+  i[field]=val;
+  await recSave(i,(REC_FIELD_LABEL[field]||field)+' changed','',prev,val);
+  renderRecovery();
+}
+async function recSetQty(id,v){
+  const i=REC.find(x=>x.id===id);if(!i)return;
+  const n=Math.max(0,parseInt(v)||0),prev=recQty(i);if(n===prev)return;
+  i.qty=n;
+  /* keep a single location in step; multi-location edits go through Move / split */
+  const ls=recLocs(i);if(ls.length===1){ls[0].qty=n;i.locations=ls;}
+  await recSave(i,n>prev?'Quantity added':'Quantity removed',`${fmt(prev)} → ${fmt(n)}`,prev,n);
+  if(n===0&&recActive(i))await recMarkGone(i,'quantity set to 0');
+  renderRecovery();
+}
+async function recSetStatus(id,s){
+  const i=REC.find(x=>x.id===id);if(!i||!REC_STATUS[s])return;
+  if(s==='gone'){return recSoldModal([id]);}
+  if(s==='archived'){return recArchive([id]);}
+  const prev=i.status;if(prev===s)return;
+  i.status=s;i.archived=false;
+  await recSave(i,'Status changed','',REC_STATUS[prev]?REC_STATUS[prev][0]:prev,REC_STATUS[s][0]);
+  renderRecovery();
+}
+async function recToggleChannel(id,ch){
+  const i=REC.find(x=>x.id===id);if(!i)return;
+  const chs=recChs(i);const at=chs.findIndex(c=>c.ch===ch);
+  if(at>=0){chs.splice(at,1);i.channels=chs;await recSave(i,'Channel removed',ch);}
+  else{chs.push({ch,ref:'',url:'',date:recNow(),note:''});i.channels=chs;
+    if(i.status==='sorting'||i.status==='ready')i.status='listed';   // a channel IS a route
+    await recSave(i,'Channel added',ch);}
+  renderRecovery();
+}
+async function recChannelField(id,n,field,val){
+  const i=REC.find(x=>x.id===id);if(!i)return;const chs=recChs(i);if(!chs[n])return;
+  chs[n][field]=val;i.channels=chs;
+  await recSave(i,(field==='ref'?'Channel reference':'Listing link')+' set',chs[n].ch+': '+val);
+  renderRecovery();
+}
+
+/* ── modal plumbing ────────────────────────────────────────────────────────── */
+/* a picker that reads like the app, not the browser: click → list, click → set */
+function recPickOpen(btn,kind,cb){
+  document.querySelectorAll('.recPickPop').forEach(p=>p.remove());
+  const opts=kind==='cond'?REC_COND:kind==='status'?Object.keys(REC_STATUS).filter(s=>!['gone','archived','topack'].includes(s)).map(s=>[s,REC_STATUS[s][0]]):[];
+  const cur=btn.dataset.v||'';
+  const pop=document.createElement('div');pop.className='recPickPop';
+  pop.innerHTML=opts.map(o=>{const v=Array.isArray(o)?o[0]:o,l=Array.isArray(o)?o[1]:o;
+    return `<div class="recPickOpt ${v===cur?'on':''}" data-v="${esc(v)}">${esc(l)}</div>`;}).join('');
+  document.body.appendChild(pop);
+  const r=btn.getBoundingClientRect();
+  pop.style.left=Math.min(r.left,window.innerWidth-260)+'px';
+  pop.style.top=(r.bottom+4+pop.offsetHeight>window.innerHeight?r.top-pop.offsetHeight-4:r.bottom+4)+'px';
+  const close=()=>{pop.remove();document.removeEventListener('mousedown',outside,true);};
+  const outside=e=>{if(!pop.contains(e.target)&&e.target!==btn)close();};
+  setTimeout(()=>document.addEventListener('mousedown',outside,true),0);
+  pop.querySelectorAll('.recPickOpt').forEach(el=>el.onmousedown=e=>{e.preventDefault();const v=el.dataset.v;
+    btn.dataset.v=v;btn.innerHTML=esc(el.textContent)+' <span style="opacity:.5">&#9662;</span>';close();if(cb)cb(v);});
+}
+function recPickBtn(kind,v,attrs){
+  const label=kind==='status'?(REC_STATUS[v]||[v])[0]:v;
+  return `<button type="button" class="recPk" ${attrs||''} data-v="${esc(v)}" onclick="recPickOpen(this,'${kind}',${kind==='status'?'v=>recSetStatus(this.dataset.id,v)':'this.dataset.id?v=>recField(this.dataset.id,\'condition\',v):null'})">${esc(label)} <span style="opacity:.5">&#9662;</span></button>`;
+}
+function recModal(html,wide){
+  let el=document.getElementById('recModalHost');
+  if(!el){el=document.createElement('div');el.id='recModalHost';el.className='overlay recModal';el.style.zIndex='150';document.body.appendChild(el);
+    el.addEventListener('click',e=>{if(e.target===el)recModalClose();});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&el.style.display==='flex')recModalClose();});}
+  el.innerHTML=`<div class="modal ${wide?'wide':''}">${html}</div>`;el.style.display='flex';
+  setTimeout(()=>{const f=el.querySelector('input,select,textarea');if(f)f.focus();},40);
+}
+function recModalClose(){const el=document.getElementById('recModalHost');if(el)el.style.display='none';}
+
+/* ── add / bulk add ────────────────────────────────────────────────────────── */
+function recAddModal(rowsN){
+  const locOpts=Object.keys(recLocCounts().m).sort();
+  const row=n=>`<tr id="recAR${n}"><td class="n">${n+1}</td>
+    <td><input data-f="name" placeholder="Product name" oninput="recGridCheck()"></td>
+    <td><input data-f="amz_sku" placeholder="Amuk_… (if an Amazon return)" oninput="recGridAmz(this)"></td>
+    <td><input data-f="id_value" placeholder="ASIN / EAN / UPC / other" oninput="recGridCheck();recGridCost(this);recGridIdHint(this)"><div class="recIdHint"></div></td>
+    <td><input data-f="qty" type="number" min="1" value="1" style="width:64px"></td>
+    <td>${recPickBtn('cond','Good','data-f="condition"')}</td>
+    <td><input data-f="cost" type="number" step="0.01" placeholder="£" style="width:84px"></td>
+    <td><input data-f="loc" list="recLocList" placeholder="${locOpts.length?'REC-A1':'later'}" style="width:96px"></td>
+    <td><input data-f="notes" placeholder="optional"></td></tr>`;
+  recModal(`<h3>${rowsN>1?'Bulk add stock':'Add an item'}</h3>
+    <div class="sub">One row per product. <b>Product name</b>, <b>quantity</b> and <b>condition</b> are required — everything else can come later. ${recRackingLive()?'':'Racking isn&rsquo;t set up yet, so location is optional for now.'}</div>
+    <div class="recGridWrap"><table class="recGrid"><thead><tr><th></th><th class="req">Product</th><th>Amazon SKU</th><th>Identifier</th><th class="req">Qty</th><th class="req">Condition</th><th>Cost / unit</th><th>Location</th><th>Notes</th></tr></thead>
+      <tbody id="recGridBody">${Array.from({length:rowsN},(_,n)=>row(n)).join('')}</tbody></table></div>
+    <datalist id="recLocList">${locOpts.map(l=>`<option value="${esc(l)}">`).join('')}</datalist>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+      <button class="recBtn sm" onclick="recGridAddRows(5)">+ 5 rows</button>
+      <button class="recBtn sm" onclick="recGridAddRows(20)">+ 20 rows</button>
+      <span class="recHint" style="margin:0">Tip: type the <b>Amazon SKU</b> from the return and the name, ASIN and cost fill themselves from the Prep Sheet. Identifiers are recognised automatically — no type to pick.</span></div>
+    <details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px;font-weight:800;color:var(--accent)">Paste from a spreadsheet instead &#9662;</summary>
+      <div class="recHint" style="margin:6px 0">Copy the rows from your sheet and paste below. Columns in this order, tab-separated (blank cells are fine):<br>
+        <code style="font-family:var(--mono)">Product · Amazon SKU · Identifier · Qty · Condition · Cost · Location · Notes</code></div>
+      <textarea class="recPaste" id="recPasteBox" placeholder="Paste here…" onpaste="setTimeout(recGridPaste,10)"></textarea></details>
+    <div id="recGridWarn"></div>
+    <div class="foot"><span class="left" id="recGridCount"></span>
+      <button class="recBtn" onclick="recModalClose()">Cancel</button>
+      <button class="recBtn pri" id="recGridGo" onclick="recGridCommit()">Add to Recovery Stock</button></div>`,true);
+  recGridCheck();
+}
+function recGridRows(){
+  return [...document.querySelectorAll('#recGridBody tr')].map(tr=>{
+    const g=f=>{const el=tr.querySelector(`[data-f="${f}"]`);return el?String(el.dataset&&el.dataset.v!=null?el.dataset.v:(el.value||'')).trim():'';};
+    return {tr,name:g('name'),amz_sku:g('amz_sku'),id_value:g('id_value'),id_type:recDetectIdType(g('id_value')),qty:parseInt(g('qty'))||0,condition:g('condition')||'Good',cost:g('cost')===''?null:+g('cost'),loc:recNormLoc(g('loc')),notes:g('notes')};
+  });
+}
+function recGridAddRows(n){
+  const tb=document.getElementById('recGridBody');if(!tb)return;
+  const start=tb.children.length;
+  for(let k=0;k<n;k++){const tr=tb.children[0].cloneNode(true);tr.id='recAR'+(start+k);tr.querySelector('.n').textContent=start+k+1;
+    tr.querySelectorAll('input').forEach(x=>{x.value=x.dataset.f==='qty'?'1':'';});
+    const pk=tr.querySelector('.recPk');if(pk){pk.dataset.v='Good';pk.innerHTML='Good <span style="opacity:.5">&#9662;</span>';}
+    const h=tr.querySelector('.recIdHint');if(h)h.textContent='';tr.classList.remove('dupe','bad');tb.appendChild(tr);}
+  recGridCheck();
+}
+function recGridIdHint(inp){const h=inp.parentElement.querySelector('.recIdHint');if(!h)return;const t=recDetectIdType(inp.value);h.textContent=t==='None'?'':t;}
+/* Amazon SKU typed → the Prep Sheet row fills the rest */
+function recGridAmz(inp){
+  const tr=inp.closest('tr');const r=recPrepRowBySku(inp.value);
+  const set=(f,v)=>{const el=tr.querySelector(`[data-f="${f}"]`);if(el&&!el.value&&v!=null&&v!=='')el.value=v;};
+  if(r){set('name',r.prod||'');set('id_value',r.asin||'');if(r.asin)recGridIdHint(tr.querySelector('[data-f="id_value"]'));
+    const cost=parseSKU(String(r.sku||'')).cogs;if(cost>0)set('cost',cost);inp.title='matched Prep Sheet row — name, ASIN and cost filled';}
+  else{const c=recCostFromSku(inp.value);if(c!=null)set('cost',c);}
+  recGridCheck();
+}
+function recGridCost(inp){
+  const tr=inp.closest('tr');const cost=tr.querySelector('[data-f="cost"]');if(!cost||cost.value)return;
+  const c=recCostFromSku(inp.value);if(c!=null){cost.value=c;cost.title='filled from the SKU — edit if wrong';}
+}
+function recGridPaste(){
+  const box=document.getElementById('recPasteBox');if(!box)return;
+  const lines=box.value.split(/\r?\n/).map(l=>l.replace(/\s+$/,'')).filter(l=>l.trim());
+  if(!lines.length)return;
+  const tb=document.getElementById('recGridBody');
+  let rows=recGridRows();
+  let target=rows.findIndex(r=>!r.name);if(target<0)target=rows.length;
+  const need=target+lines.length-rows.length;if(need>0)recGridAddRows(need);
+  rows=recGridRows();
+  lines.forEach((ln,k)=>{
+    const cells=ln.split('\t').map(s=>s.trim());
+    /* tolerate a header row */
+    if(k===0&&/^product/i.test(cells[0]||''))return;
+    const tr=rows[target+k].tr;const set=(f,v)=>{const el=tr.querySelector(`[data-f="${f}"]`);if(!el||v==null||v==='')return;
+      if(el.tagName==='SELECT'){const o=[...el.options].find(o=>o.value.toLowerCase()===String(v).toLowerCase());if(o)el.value=o.value;}else el.value=v;};
+    set('name',cells[0]);set('amz_sku',cells[1]);set('id_value',cells[2]);set('qty',cells[3]);
+    const pk=tr.querySelector('.recPk');const cond=recCondMatch(cells[4]);
+    if(pk&&cond){pk.dataset.v=cond;pk.innerHTML=esc(cond)+' <span style="opacity:.5">&#9662;</span>';}
+    set('cost',cells[5]?String(cells[5]).replace(/[£,]/g,''):'');set('loc',cells[6]);set('notes',cells.slice(7).join(' '));
+    const amz=tr.querySelector('[data-f="amz_sku"]');if(amz&&amz.value)recGridAmz(amz);
+    if(!cells[5]&&cells[2]){const c=recCostFromSku(cells[2]);if(c!=null)set('cost',c);}
+    recGridIdHint(tr.querySelector('[data-f="id_value"]'));
+  });
+  box.value='';recGridCheck();toast(lines.length+' line'+(lines.length===1?'':'s')+' pasted — check them, then add','ok');
+}
+function recGridCheck(){
+  const rows=recGridRows();let filled=0,bad=0,dupes=0;
+  const active=REC.filter(recActive);
+  rows.forEach(r=>{r.tr.classList.remove('dupe','bad');
+    const any=r.name||r.id_value||r.amz_sku||r.notes||r.loc||r.cost!=null;
+    if(!any)return;filled++;
+    if(!r.name||r.qty<1){r.tr.classList.add('bad');bad++;}
+    else if(r.id_value&&active.some(i=>(i.id_value||'').toLowerCase()===r.id_value.toLowerCase())){r.tr.classList.add('dupe');dupes++;}
+  });
+  const c=document.getElementById('recGridCount');if(c)c.textContent=filled?`${filled} row${filled===1?'':'s'} filled${bad?` · ${bad} missing a name or quantity`:''}${dupes?` · ${dupes} already in stock (fine — it comes back, add anyway)`:''}`:'Nothing entered yet';
+  const go=document.getElementById('recGridGo');if(go)go.disabled=!filled||!!bad;
+  const w=document.getElementById('recGridWarn');
+  if(w)w.innerHTML=dupes?`<div class="recWarn"><b>${dupes} possible duplicate${dupes===1?'':'s'}</b> — the identifier is already in active Recovery Stock (amber rows). Returns come back, so this is usually fine: they'll be added as separate records. Use the drawer afterwards to merge quantities if it really is the same unit.</div>`:'';
+}
+async function recGridCommit(){
+  const rows=recGridRows().filter(r=>r.name||r.id_value||r.amz_sku);
+  if(!rows.length)return;
+  if(rows.some(r=>!r.name||r.qty<1)){toast('Every filled row needs a name and a quantity','er');return;}
+  const go=document.getElementById('recGridGo');if(go){go.disabled=true;go.textContent='Adding…';}
+  let n=0;
+  for(const r of rows){
+    const i={id:recUid(),name:r.name,id_type:r.id_value?r.id_type:'None',id_value:r.id_value,amz_sku:r.amz_sku||'',extra_ids:[],qty:r.qty,
+      locations:r.loc?[{loc:r.loc,qty:r.qty}]:[],condition:r.condition||'Good',condition_notes:'',cost:r.cost,status:'sorting',
+      channels:[],notes:r.notes||'',batch_id:'',pack:[],added_by:_who(),created_at:recNow(),last_action_at:recNow(),last_action:'Added',archived:false,gone_at:null};
+    REC.unshift(i);n++;
+    await recSave(i,'Added',`${fmt(r.qty)} × ${r.condition}${r.loc?' @ '+r.loc:''}${r.cost!=null?' · '+fmtGBP2(r.cost)+'/unit':''}`);
+  }
+  recModalClose();toast(`${n} item${n===1?'':'s'} added to Recovery Stock`,'ok');
+  _recTab='all';renderRecovery();
+}
+
+/* ── sold / gone → to pack → packed ────────────────────────────────────────── */
+function recSoldModal(ids){
+  const items=ids.map(id=>REC.find(i=>i.id===id)).filter(Boolean).filter(recActive);
+  if(!items.length)return;
+  const one=items.length===1?items[0]:null;
+  const maxQ=one?recQty(one)-recPackQty(one):0;
+  recModal(`<h3>${one?'Sold / gone — '+esc(one.name):fmt(items.length)+' items sold / gone'}</h3>
+    <div class="sub">${one?`${fmt(maxQ)} unit${maxQ===1?'':'s'} available${recPackQty(one)?` (${fmt(recPackQty(one))} already waiting to be packed)`:''}.`:'Every unit of every selected item leaves.'}</div>
+    <div class="recF">
+      ${one&&maxQ>1?`<label>How many are leaving?</label><input id="recSoldQty" type="number" min="1" max="${maxQ}" value="${maxQ}">`:''}
+      <label>Where did it go?</label><select id="recSoldCh" onchange="recSoldChChange(this)">
+        ${REC_MARKETPLACES.map(c=>`<option>${c}</option>`).join('')}<option>Bulk Sale</option><option>Donate</option><option>Dispose</option><option>Other</option></select>
+      <label>Reference</label><input id="recSoldRef" placeholder="eBay order / buyer / anything useful (optional)">
+    </div>
+    <div id="recSoldPackRow" class="recWarn" style="margin-top:10px"><label style="display:flex;gap:8px;align-items:center;cursor:pointer;font-size:12.5px"><input type="checkbox" id="recSoldPack" checked> <span><b>Becki still needs to pack &amp; send it.</b> It goes to the <b>To pack</b> tab with its rack location; she presses <i>Packed &amp; sent</i> and only then does it leave stock.</span></label></div>
+    <div class="foot"><button class="recBtn" onclick="recModalClose()">Cancel</button><button class="recBtn good" onclick="recSoldGo(${JSON.stringify(ids)})">Confirm</button></div>`);
+}
+/* marketplace sale → Becki still packs it; disposal/donation/bulk → it just leaves */
+function recSoldChChange(sel){
+  const row=document.getElementById('recSoldPackRow');if(!row)return;
+  const mkt=REC_MARKETPLACES.includes(sel.value);
+  row.style.display=mkt?'':'none';
+  const cb=document.getElementById('recSoldPack');if(cb)cb.checked=mkt;
+}
+async function recSoldGo(ids){
+  const ch=(document.getElementById('recSoldCh')||{}).value||'Other';
+  const ref=((document.getElementById('recSoldRef')||{}).value||'').trim();
+  const packRow=document.getElementById('recSoldPackRow');
+  const wantPack=packRow&&packRow.style.display!=='none'&&(document.getElementById('recSoldPack')||{}).checked;
+  const qEl=document.getElementById('recSoldQty');
+  recModalClose();
+  for(const id of ids){
+    const i=REC.find(x=>x.id===id);if(!i||!recActive(i))continue;
+    const avail=recQty(i)-recPackQty(i);
+    const n=qEl&&ids.length===1?Math.min(avail,Math.max(1,parseInt(qEl.value)||avail)):avail;
+    if(n<=0)continue;
+    if(wantPack){
+      i.pack=(i.pack||[]).concat([{qty:n,ch,ref,at:recNow(),by:_who()}]);
+      await recSave(i,'Sold — to pack',`${fmt(n)} × sold on ${ch}${ref?' ('+ref+')':''} — waiting for Becki to pack`);
+    }else{
+      await recRemoveUnits(i,n,`${ch}${ref?' ('+ref+')':''}`);
+    }
+  }
+  _recSel.clear();renderRecovery();
+}
+/* the physical leave: reduce, and when nothing is left the row is gone */
+async function recRemoveUnits(i,n,why){
+  const prev=recQty(i);const left=Math.max(0,prev-n);
+  i.qty=left;
+  const ls=recLocs(i);let take=n;
+  for(const l of ls){const t=Math.min(take,parseInt(l.qty)||0);l.qty=(parseInt(l.qty)||0)-t;take-=t;if(take<=0)break;}
+  i.locations=ls.filter(l=>(parseInt(l.qty)||0)>0);
+  await recSave(i,'Units left stock',`${fmt(n)} × ${why} · ${fmt(left)} remaining`,prev,left);
+  if(left===0)await recMarkGone(i,why);
+}
+async function recMarkGone(i,why){
+  i.status='gone';i.gone_at=recNow();i.pack=[];
+  await recSave(i,'Sold / Gone',why||'');
+  if(_recOpen===i.id)_recOpen=null;
+}
+function recPackedModal(id){
+  const i=REC.find(x=>x.id===id);if(!i||!recPackQty(i))return;
+  const pk=i.pack||[];
+  recModal(`<h3>Packed &amp; sent — ${esc(i.name)}</h3>
+    <div class="sub">${recLocs(i).length?'On the rack at <b>'+esc(recLocStr(i))+'</b>.':'No rack recorded.'} Tick what has actually gone out the door.</div>
+    ${pk.map((p,n)=>`<label style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;cursor:pointer"><input type="checkbox" class="recPk" data-n="${n}" checked>
+      <span><b>${fmt(p.qty)} unit${p.qty===1?'':'s'}</b> · sold on ${esc(p.ch)}${p.ref?' · '+esc(p.ref):''}<div class="recSub">sold ${recWhen(p.at)}${p.by?' by '+esc(p.by):''}</div></span></label>`).join('')}
+    <div class="foot"><button class="recBtn" onclick="recModalClose()">Cancel</button><button class="recBtn good" onclick="recPackedGo('${id}')">&#10003; Packed &amp; sent</button></div>`);
+}
+async function recPackedGo(id){
+  const i=REC.find(x=>x.id===id);if(!i)return;
+  const ticked=[...document.querySelectorAll('.recPk:checked')].map(x=>+x.dataset.n);
+  recModalClose();
+  const done=(i.pack||[]).filter((p,n)=>ticked.includes(n));
+  i.pack=(i.pack||[]).filter((p,n)=>!ticked.includes(n));
+  const n=done.reduce((t,p)=>t+(parseInt(p.qty)||0),0);
+  if(n>0)await recRemoveUnits(i,n,'packed & sent — '+done.map(p=>p.ch).filter((v,k,a)=>a.indexOf(v)===k).join(', '));
+  toast(`${fmt(n)} unit${n===1?'':'s'} packed & sent`,'ok');
+  renderRecovery();
+}
+
+/* ── move / split ──────────────────────────────────────────────────────────── */
+let _recMoveId=null;
+function recMoveModal(ids){
+  _recMoveId=ids.length===1?ids[0]:null;
+  const items=ids.map(id=>REC.find(i=>i.id===id)).filter(Boolean);if(!items.length)return;
+  const one=items.length===1?items[0]:null;
+  const known=Object.keys(recLocCounts().m).sort();
+  const dl=`<datalist id="recLocList2">${known.map(l=>`<option value="${esc(l)}">`).join('')}</datalist>`;
+  if(one){
+    const ls=recLocs(one).length?recLocs(one):[{loc:'',qty:recQty(one)}];
+    recModal(`<h3>Move / split — ${esc(one.name)}</h3><div class="sub">${fmt(recQty(one))} units in total. Split across racks or move the lot — the quantities must add up.</div>
+      <div id="recSplitRows">${ls.map((l,n)=>`<div class="recF" style="grid-template-columns:1fr 90px 34px;margin-bottom:6px"><input list="recLocList2" class="recSpL" value="${esc(l.loc)}" placeholder="REC-A1"><input type="number" min="0" class="recSpQ" value="${l.qty}"><button class="recBtn sm" onclick="this.parentElement.remove();recSplitSum()">&#10005;</button></div>`).join('')}</div>${dl}
+      <button class="recBtn sm" onclick="recSplitAdd()">+ another rack</button>
+      <div class="recHint" id="recSplitSum"></div>
+      <div class="foot"><button class="recBtn" onclick="recModalClose()">Cancel</button><button class="recBtn pri" onclick="recMoveGo('${one.id}')">Save locations</button></div>`);
+    recSplitSum();
+  }else{
+    recModal(`<h3>Move ${fmt(items.length)} items</h3><div class="sub">Every selected item moves in full to one rack.</div>
+      <div class="recF"><label>New location</label><input id="recMoveTo" list="recLocList2" placeholder="REC-A1"></div>${dl}
+      <div class="foot"><button class="recBtn" onclick="recModalClose()">Cancel</button><button class="recBtn pri" onclick="recBulkMoveGo(${JSON.stringify(ids)})">Move</button></div>`);
+  }
+}
+function recSplitAdd(){const h=document.getElementById('recSplitRows');if(!h)return;h.insertAdjacentHTML('beforeend',`<div class="recF" style="grid-template-columns:1fr 90px 34px;margin-bottom:6px"><input list="recLocList2" class="recSpL" placeholder="REC-A2"><input type="number" min="0" class="recSpQ" value="0" oninput="recSplitSum()"><button class="recBtn sm" onclick="this.parentElement.remove();recSplitSum()">&#10005;</button></div>`);
+  h.querySelectorAll('.recSpQ').forEach(q=>q.oninput=recSplitSum);recSplitSum();}
+function recSplitSum(){
+  const i=REC.find(x=>x.id===_recMoveId);
+  const qs=[...document.querySelectorAll('.recSpQ')].map(x=>parseInt(x.value)||0);
+  const total=qs.reduce((a,b)=>a+b,0);
+  const el=document.getElementById('recSplitSum');
+  document.querySelectorAll('.recSpQ').forEach(q=>q.oninput=recSplitSum);
+  if(!el)return;
+  const target=i?recQty(i):null;
+  el.innerHTML=target==null?'':(total===target?`<span style="color:#4ade80">&#10003; ${fmt(total)} of ${fmt(target)} placed</span>`:`<span style="color:#fbbf24">${fmt(total)} placed — item holds ${fmt(target)}. ${total<target?'The rest will be "no rack".':'That is more than exists — it will be capped.'}</span>`);
+}
+async function recMoveGo(id){
+  const i=REC.find(x=>x.id===id);if(!i)return;
+  const rowsEl=[...document.querySelectorAll('#recSplitRows .recF')];
+  let locs=rowsEl.map(r=>({loc:recNormLoc(r.querySelector('.recSpL').value),qty:parseInt(r.querySelector('.recSpQ').value)||0})).filter(l=>l.loc&&l.qty>0);
+  const total=recQty(i);let placed=locs.reduce((a,l)=>a+l.qty,0);
+  if(placed>total){let over=placed-total;for(let k=locs.length-1;k>=0&&over>0;k--){const t=Math.min(over,locs[k].qty);locs[k].qty-=t;over-=t;}locs=locs.filter(l=>l.qty>0);}
+  const prev=recLocStr(i);i.locations=locs;
+  recModalClose();
+  await recSave(i,'Location moved',`${prev||'no rack'} → ${recLocStr(i)||'no rack'}`,prev,recLocStr(i));
+  renderRecovery();
+}
+async function recBulkMoveGo(ids){
+  const to=recNormLoc((document.getElementById('recMoveTo')||{}).value);if(!to){toast('Type a location','er');return;}
+  recModalClose();let n=0;
+  for(const id of ids){const i=REC.find(x=>x.id===id);if(!i)continue;const prev=recLocStr(i);i.locations=[{loc:to,qty:recQty(i)}];await recSave(i,'Location moved',`${prev||'no rack'} → ${to}`,prev,to);n++;}
+  toast(`${n} item${n===1?'':'s'} moved to ${to}`,'ok');_recSel.clear();renderRecovery();
+}
+
+/* ── clearance batches ─────────────────────────────────────────────────────── */
+function recClearanceModal(ids){
+  const items=ids.map(id=>REC.find(i=>i.id===id)).filter(Boolean).filter(recActive);if(!items.length)return;
+  const units=items.reduce((t,i)=>t+recQty(i),0);
+  const next=recNextBatchId();
+  const open=REC_BATCH.filter(b=>!b.sent_at);
+  recModal(`<h3>Send to clearance</h3><div class="sub">${fmt(items.length)} item${items.length===1?'':'s'} · ${fmt(units)} units. They stay as your stock until the batch is marked <b>Sent</b>.</div>
+    <div class="recF">
+      <label>Batch</label><select id="recClrBatch" onchange="document.getElementById('recClrNew').style.display=this.value==='__new'?'':'none'"><option value="__new">New batch — ${next}</option>${open.map(b=>`<option value="${esc(b.id)}">${esc(b.id)} · ${esc(b.company||'')} (open)</option>`).join('')}</select>
+    </div>
+    <div id="recClrNew"><div class="recF" style="margin-top:8px">
+      <label>Clearance company</label><input id="recClrCo" placeholder="e.g. Gem Wholesale, Wibbly Wobbly Liquidators">
+      <label>Their reference</label><input id="recClrRef" placeholder="optional">
+      <label>Notes</label><textarea id="recClrNotes" placeholder="pallet count, collection date, agreed price… (optional)"></textarea>
+    </div></div>
+    <div class="recHint">Everything in the batch shows under the <b>Clearance</b> tab with its batch number, and Export CSV gives you the manifest to send them.</div>
+    <div class="foot"><button class="recBtn" onclick="recModalClose()">Cancel</button><button class="recBtn pri" onclick="recClearanceGo(${JSON.stringify(ids)})">Create batch &amp; add items</button></div>`);
+}
+async function recClearanceGo(ids){
+  let bid=(document.getElementById('recClrBatch')||{}).value||'__new';
+  if(bid==='__new'){
+    const b={id:recNextBatchId(),company:((document.getElementById('recClrCo')||{}).value||'').trim(),ref:((document.getElementById('recClrRef')||{}).value||'').trim(),
+      notes:((document.getElementById('recClrNotes')||{}).value||'').trim(),created_at:recNow(),created_by:_who(),sent_at:null};
+    REC_BATCH.unshift(b);bid=b.id;
+    try{const r=await sb.from('recovery_batches').insert(b);if(r.error)throw r.error;}catch(e){toast('Batch not saved to the cloud — '+String((e&&e.message)||e).slice(0,50),'er');}
+    try{logAudit('Recovery: clearance batch created',bid+(b.company?' — '+b.company:''));}catch(e){}
+  }
+  recModalClose();let n=0;
+  for(const id of ids){const i=REC.find(x=>x.id===id);if(!i||!recActive(i))continue;
+    i.batch_id=bid;const chs=recChs(i);if(!chs.some(c=>c.ch==='Clearance / Liquidator'))chs.push({ch:'Clearance / Liquidator',ref:bid,url:'',date:recNow(),note:''});i.channels=chs;
+    i.status='listed';await recSave(i,'Sent to clearance batch',bid);n++;}
+  toast(`${n} item${n===1?'':'s'} added to ${bid}`,'ok');_recSel.clear();_recTab='clearance';renderRecovery();
+}
+function recBatchesModal(){
+  const rowsHtml=REC_BATCH.map(b=>{const its=REC.filter(i=>i.batch_id===b.id);const u=its.reduce((t,i)=>t+recQty(i),0);
+    return `<div style="display:flex;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px">
+      <span style="font:800 12.5px var(--mono);color:#fb923c;flex:0 0 76px">${esc(b.id)}</span>
+      <span style="flex:1;min-width:0"><b>${esc(b.company||'(no company)')}</b>${b.ref?' · '+esc(b.ref):''}<div class="recSub">${fmt(its.length)} item${its.length===1?'':'s'} · ${fmt(u)} units · created ${recDay(b.created_at)}${b.created_by?' by '+esc(b.created_by):''}${b.notes?' · '+esc(b.notes):''}</div></span>
+      ${b.sent_at?`<span class="recChip" style="color:#94a3b8;border-color:#94a3b866">Sent ${recDay(b.sent_at)}</span>`:`<button class="recBtn sm good" onclick="recBatchSent('${esc(b.id)}')">Mark sent — stock leaves</button>`}
+      <button class="recBtn sm" onclick="recModalClose();_recQ='${esc(b.id)}';_recTab='clearance';renderRecovery()">Show items</button></div>`;}).join('');
+  recModal(`<h3>Clearance batches</h3><div class="sub">Each batch is exactly what went to a liquidator, and when. Marking it Sent takes those units out of active stock — history stays.</div>
+    ${rowsHtml||'<div class="recEmpty">No batches yet — select items and press <b>Send to clearance</b>.</div>'}
+    <div class="foot"><button class="recBtn" onclick="recModalClose()">Close</button></div>`);
+}
+async function recBatchSent(bid){
+  const b=REC_BATCH.find(x=>x.id===bid);if(!b)return;
+  const its=REC.filter(i=>i.batch_id===bid&&recActive(i));
+  if(!confirm(`Mark ${bid} as SENT?\n\n${its.length} item(s) leave active stock. Their history stays and they remain under the Clearance tab.`))return;
+  b.sent_at=recNow();b.sent_by=_who();
+  try{await sb.from('recovery_batches').update({sent_at:b.sent_at,sent_by:b.sent_by}).eq('id',bid);}catch(e){}
+  for(const i of its){i.qty=0;i.locations=[];await recMarkGone(i,'clearance batch '+bid+' sent');}
+  try{logAudit('Recovery: clearance batch sent',bid+' — '+its.length+' items');}catch(e){}
+  recModalClose();toast(`${bid} marked sent — ${its.length} item${its.length===1?'':'s'} left stock`,'ok');renderRecovery();
+}
+
+/* ── bulk helpers, archive, notes, delete, export ──────────────────────────── */
+async function recBulkStatus(s){for(const id of [..._recSel]){const i=REC.find(x=>x.id===id);if(!i||!recActive(i)||i.status===s)continue;const p=i.status;i.status=s;await recSave(i,'Status changed','',REC_STATUS[p][0],REC_STATUS[s][0]);}_recSel.clear();renderRecovery();}
+async function recBulkChannel(ch,add){for(const id of [..._recSel]){const i=REC.find(x=>x.id===id);if(!i)continue;const chs=recChs(i);const at=chs.findIndex(c=>c.ch===ch);
+  if(add&&at<0){chs.push({ch,ref:'',url:'',date:recNow(),note:''});i.channels=chs;if(i.status==='sorting'||i.status==='ready')i.status='listed';await recSave(i,'Channel added',ch);}
+  else if(!add&&at>=0){chs.splice(at,1);i.channels=chs;await recSave(i,'Channel removed',ch);}}_recSel.clear();renderRecovery();}
+function recNoteModal(ids){recModal(`<h3>Add a note to ${fmt(ids.length)} item${ids.length===1?'':'s'}</h3><div class="recF"><label>Note</label><textarea id="recNoteTxt" placeholder="appended to each item's notes"></textarea></div>
+  <div class="foot"><button class="recBtn" onclick="recModalClose()">Cancel</button><button class="recBtn pri" onclick="recNoteGo(${JSON.stringify(ids)})">Add note</button></div>`);}
+async function recNoteGo(ids){const t=((document.getElementById('recNoteTxt')||{}).value||'').trim();if(!t)return;recModalClose();
+  for(const id of ids){const i=REC.find(x=>x.id===id);if(!i)continue;i.notes=(i.notes?i.notes+' · ':'')+t;await recSave(i,'Note added',t);}_recSel.clear();renderRecovery();}
+async function recArchive(ids){
+  const items=ids.map(id=>REC.find(i=>i.id===id)).filter(Boolean).filter(recActive);if(!items.length)return;
+  if(!confirm(`Archive ${items.length} item${items.length===1?'':'s'}?\n\nThey leave the active list but keep every record. You can bring them back.`))return;
+  for(const i of items){i.status='archived';i.archived=true;await recSave(i,'Archived','');}
+  _recSel.clear();if(items.some(i=>i.id===_recOpen))_recOpen=null;renderRecovery();
+}
+async function recUnarchive(id){const i=REC.find(x=>x.id===id);if(!i)return;i.archived=false;i.status='sorting';i.gone_at=null;if(recQty(i)===0)i.qty=1;await recSave(i,'Brought back to stock','');renderRecovery();}
+async function recDelete(id){
+  if(!/^jack/i.test(String(window.currentUserName||''))){toast('Only Jack can delete permanently','er');return;}
+  const i=REC.find(x=>x.id===id);if(!i)return;
+  const typed=prompt(`PERMANENT DELETE — this cannot be undone and is only for genuine mistakes (a wrong row typed in). Archive instead for anything real.\n\nType DELETE to confirm removing "${i.name}".`);
+  if(typed!=='DELETE')return;
+  try{logAudit('Recovery: PERMANENT DELETE',`${i.name} (${i.id_value||'no id'}) · ${fmt(recQty(i))} units · by ${_who()}`);}catch(e){}
+  try{await sb.from('recovery_items').delete().eq('id',id);}catch(e){}
+  REC=REC.filter(x=>x.id!==id);_recOpen=null;toast('Deleted — an audit line records it','ok');renderRecovery();
+}
+function recExport(){
+  const list=recFiltered();
+  const cols=['Product','ID type','Identifier','Qty','To pack','Locations','Condition','Condition notes','Cost/unit','Cost value','Status','Channels','Channel refs','Batch','Date added','Age (days)','Last action','Days since action','Notes'];
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const lines=[cols.join(',')].concat(list.map(i=>[i.name,i.id_type,i.id_value,recQty(i),recPackQty(i),recLocStr(i),i.condition,i.condition_notes,i.cost==null?'':i.cost,(recQty(i)*(i.cost||0)).toFixed(2),
+    (REC_STATUS[i.status]||[''])[0],recChs(i).map(c=>c.ch).join(' | '),recChs(i).map(c=>c.ref||c.url).filter(Boolean).join(' | '),i.batch_id,recDay(i.created_at),recDays(i.created_at),i.last_action,recDays(i.last_action_at),i.notes].map(q).join(',')));
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='Recovery-Stock-'+(_recTab==='all'?'all':_recTab)+'-'+todayISO()+'.csv';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+  toast(`Exported ${fmt(list.length)} rows`,'ok');
+}
+
 function jackTodo(){
   /* No !archived guard on the decisions: a row archived by some other path is
      still a decision he owes an answer to, and hiding it was how items got
@@ -19800,6 +20588,11 @@ function setupRealtime(){
   }
   sb.channel('lavarion_components').on('postgres_changes',{event:'*',schema:'public',table:'lavarion_components'},_lv2RemoteRefresh).subscribe();
   sb.channel('lavarion_recipes').on('postgres_changes',{event:'*',schema:'public',table:'lavarion_recipes'},_lv2RemoteRefresh).subscribe();
+  /* Recovery Stock — quiet re-pull on any change from the other laptop */
+  try{sb.channel('recovery_items').on('postgres_changes',{event:'*',schema:'public',table:'recovery_items'},()=>{
+    if(typeof recLoad!=='function')return;
+    clearTimeout(window._recRtT);window._recRtT=setTimeout(()=>{recLoad().then(()=>{if(_pageActive('page-recovery'))renderRecovery();});},600);
+  }).subscribe();}catch(e){console.warn('[recovery] realtime',e);}
 }
 
 // ── PATCH UF() TO ALSO SAVE TO SUPABASE ──────────────────────────────────────
@@ -22327,7 +23120,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v35.8 · lav3 · 2026-08-31 · b416';
+const BUILD='v36.2 · lav3 · 2026-09-03 · b422';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -24836,6 +25629,11 @@ function workList(){
   if(orders.length)jobs.push({k:'link',o:'wh',sev:2,n:orders.length,
     t:`${fmt(orders.length)} order${orders.length===1?'':'s'} waiting to be linked`,
     s:'They are not stock until someone says what they are',btn:'Review',go:"go('purchases')"});
+  const ra=routeAsks();
+  if(ra.lines.length)jobs.push({k:'route',o:'wh',sev:2,n:ra.lines.length,
+    t:`${fmt(ra.lines.length)} deliver${ra.lines.length===1?'y':'ies'} — nobody has said how ${ra.lines.length===1?'it is':'they are'} coming`,
+    s:`${esc(ra.sups.slice(0,3).join(', '))}${ra.sups.length>3?` +${ra.sups.length-3} more`:''} — the dates shown are guesses. Pick the route once per supplier on Deliveries and every order from them dates itself.`,
+    btn:'Deliveries',go:"openDeliveries()"});
   if(dueSoon.length)jobs.push({k:'duesoon',o:'wh',sev:2,n:dueSoon.length,
     t:`${fmt(dueSoon.length)} deliver${dueSoon.length===1?'y':'ies'} due this week`,
     s:'Be ready to receive them',btn:'Deliveries',go:"openDeliveries()"});
@@ -26817,7 +27615,7 @@ function savePrefs(){
       let remote={};
       try{const r=await sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle();
         if(r&&r.data&&r.data.value)remote=JSON.parse(r.data.value)||{};}catch(e){}
-      const MAPS=['supplierModes','sold30','sold30At','untracked','aliases','modeDays','hubMap','hubSkip','atAmz','atAmzIn','atAmzAt'];
+      const MAPS=['supplierModes','supplierModesBy','sold30','sold30At','untracked','aliases','modeDays','hubMap','hubSkip','atAmz','atAmzIn','atAmzAt'];
       const merged={...remote,...D.settings};
       MAPS.forEach(k=>{
         const a=remote[k],b=D.settings[k];
@@ -27617,6 +28415,14 @@ async function syncPurchases(){
   const btn=btns[0]||null;
   const say=t=>{_syncMsg=t;['purchSyncNote','purchSyncNoteTop'].forEach(i=>{const el=document.getElementById(i);if(el)el.innerHTML=t;});};
   try{
+    /* The copies Jack found were born here: a sync that ran before the saved
+       purchases had loaded saw an empty list, so every sheet line looked new and
+       was added — and saved — a second time. No data, no sync. */
+    if(!READY||!Array.isArray(D.purchases)||(_layersLoadedCount===0&&!D.purchases.length&&!(D.components||[]).length)){
+      say('<span style="color:var(--red)"><b>Not synced — the saved purchases have not loaded yet.</b> Reload the page and press this again. Syncing now would import every line a second time.</span>');
+      try{toast('Purchases not loaded — reload before syncing','er');}catch(e){}
+      return;
+    }
     const id=lavSheetId(),from=D.settings.purchFrom||'2026-08-01';
     if(!id){
       say('<b>No purchase sheet linked.</b> Paste the sheet link in <b>Settings → Purchase sheet</b> and press this again. Nothing is wrong — the address just is not saved yet.');
@@ -27711,11 +28517,22 @@ async function syncPurchases(){
         qty:r.qty,price:r.price,sup:r.sup,oid:r.oid,loc:'Warehouse',arr:0,alloc:[],
         acct:r.acct,invoice:r.invoice,notes:r.notes,spend:r.spend,mismatch:r.mismatch});
     });
+    /* Exact copies — same date, order, name AND quantity as a line that is
+       already linked — cannot be a second real purchase: the sheet holds that
+       line once. They are removed here, quietly, and said so below. A near
+       copy (name differs by a typo) is left for a person, with its own Remove. */
+    let healed=0;
+    D.purchases.slice().forEach(p=>{
+      const tw=dupTwin(p);
+      if(tw&&purchKey(tw)===purchKey(p)){dropReview(p.id,true,true);healed++;}
+    });
+    if(healed)logIt('edit',`Purchase sync removed ${healed} leftover cop${healed===1?'y':'ies'} of lines already on order`);
     PURCH=D.purchases;
     save();
-    const un=D.purchases.filter(x=>allocState(x).k==='none').length;
+    const un=D.purchases.filter(x=>allocState(x).k==='none'&&!dupTwin(x)).length;
     say(`<b style="color:var(--grn)">${fmt(added)} new</b>${updated?` · ${fmt(updated)} price${updated===1?'':'s'} refreshed`:''}${renamed?` · <b style="color:var(--blu)">${fmt(renamed)} renamed on the sheet</b>`:''} · ${fmt(all.length)} row${all.length===1?'':'s'} read
       ${un?` · <b style="color:var(--amb)">${fmt(un)} waiting to be linked</b>`:''}
+      ${healed?` · <b style="color:var(--red)">${fmt(healed)} leftover cop${healed===1?'y':'ies'} removed</b> <span class="pmeta" style="margin:0">(the same line was already on order — nothing on the sheet changed)</span>`:''}
       ${skipped?`<br><span class="pmeta" style="margin:0">${fmt(skipped)} row${skipped===1?'':'s'} before ${dshort(from)} left out — that stock is covered by the physical count.</span>`:''}
       ${ahead?`<br><span style="color:var(--amb)">${fmt(ahead)} row${ahead===1?'':'s'} dated years in the future left out — check the date column on the sheet, it's usually a typo.</span>`:''}
       ${absent.length?`<br><span class="pmeta" style="margin:0">${esc(absent.join(', '))} ${absent.length===1?'does':'do'} not exist on the sheet yet — that's normal.</span>`:''}
@@ -27854,7 +28671,12 @@ function reviewOrders(){
   /* A broken link is work waiting, same as an unlinked purchase. Excluding it
    meant the health banner said "5 purchases" and there was nowhere on the whole
    app you could actually see or fix those five. */
-  const todo=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k));
+  /* Jack, 2 Sep: six exact copies of an order already linked sat here as a
+     6-line order with a green "Link this order" — one click would have booked
+     1,368 units never bought. A copy is not work waiting; it is a duplicate.
+     It is excluded from the list, every count built from it, and every link
+     path — and offered a Remove button of its own instead. */
+  const todo=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k)&&!dupTwin(p));
   const by={};
   todo.forEach(p=>{
     const k=(p.oid&&p.oid!=='—')?('o:'+p.oid.toLowerCase()) : ('x:'+p.id);
@@ -27871,7 +28693,14 @@ function reviewOrders(){
 }
 function reviewPanel(){
   const orders=reviewOrders();
-  if(!orders.length)return '';   /* the strip already says 0 · all linked */
+  const dupes=staleDupes();
+  const dupStrip=dupes.length?`<div class="panel" id="dupStrip" style="border-color:var(--red)">
+    <div class="ph" style="align-items:center">
+      <span class="t" style="color:var(--red)">${fmt(dupes.length)} leftover cop${dupes.length===1?'y':'ies'} of purchases already on order</span>
+      <span class="sub">${esc(dupes.slice(0,3).map(x=>x.p.name).join(', '))}${dupes.length>3?` +${dupes.length-3} more`:''} — same day, quantity, price and supplier as a line that is already linked. Not work: duplicates. Linking one would book stock never bought.</span>
+      <div class="r"><button class="btn sm dgr" onclick="LV3.dropDupes()">Remove ${dupes.length===1?'it':'all '+fmt(dupes.length)}</button></div>
+    </div></div>`:'';
+  if(!orders.length)return dupStrip;   /* the strip already says 0 · all linked */
   const lines=orders.reduce((t,o)=>t+o.lines.length,0);
   const value=orders.reduce((t,o)=>t+o.value,0);
   const ready=orders.filter(o=>o.ready===o.lines.length).length;
@@ -27881,11 +28710,11 @@ function reviewPanel(){
   const revHead=`<span class="t">To review</span>
       <span class="sub">${fmt(orders.length)} order${orders.length===1?'':'s'} · ${fmt(lines)} line${lines===1?'':'s'} · ${gbp(value)}</span>
       ${ready?`<span class="chip info">${fmt(ready)} ready to go</span>`:''}`;
-  if(!_revOpen)return `<div class="panel" id="revPanel">
+  if(!_revOpen)return dupStrip+`<div class="panel" id="revPanel">
     <div class="ph" style="cursor:pointer" onclick="LV3.revToggle()">${revHead}
       <div class="r"><button class="btn sm" onclick="event.stopPropagation();LV3.revToggle()">Show the list</button></div>
     </div></div>`;
-  return `<div class="panel" id="revPanel">
+  return dupStrip+`<div class="panel" id="revPanel">
     <div class="ph" style="cursor:pointer" onclick="LV3.revToggle()">${revHead}
       <div class="r" onclick="event.stopPropagation()">
         ${ready?`<button class="btn sm pri" onclick="LV3.applyAllSuggestions()">Link all ${fmt(ready)}</button>`:''}
@@ -27971,13 +28800,13 @@ function _orderLines(key){
    app you could actually see or fix those five. */
   const todo=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k));
   const byRef=todo.filter(p=>(p.oid||'').toLowerCase()===String(key).toLowerCase()&&p.oid&&p.oid!=='—');
-  return byRef.length?byRef:todo.filter(p=>p.id===key);
+  return (byRef.length?byRef:todo.filter(p=>p.id===key)).filter(p=>!dupTwin(p));
 }
 function linkOrder(key){
   const lines=_orderLines(key);
   if(!lines.length)return;
   snap();let n=0;
-  lines.forEach(p=>{const s=suggestFor(p);if(s){quickLinkSilent(p.id,s.id);n++;}});
+  lines.forEach(p=>{const s=suggestFor(p);if(s&&quickLinkSilent(p.id,s.id))n++;});
   save();render();
   toastUndo(`${fmt(n)} line${n===1?'':'s'} linked — the order is now in Deliveries`,'ok');
 }
@@ -28008,7 +28837,7 @@ function applyAllSuggestions(){
   /* A broken link is work waiting, same as an unlinked purchase. Excluding it
    meant the health banner said "5 purchases" and there was nowhere on the whole
    app you could actually see or fix those five. */
-  const todo=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k));
+  const todo=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k)&&!dupTwin(p));
   const withSug=todo.map(p=>({p,s:suggestFor(p)})).filter(x=>x.s&&x.s.sure);
   if(!withSug.length){toast('No suggestions to accept','er');return;}
   confirmBox(`Accept ${fmt(withSug.length)} suggestion${withSug.length===1?'':'s'}?`,
@@ -28595,13 +29424,17 @@ function killPurch(pid){
 }
 function quickLink(pid,to){
   const p=D.purchases.find(x=>x.id===pid);
+  if(!p)return;
+  if(dupTwin(p)){toast('This is a leftover copy of a line already on order — remove it instead of linking it','er');return;}
   snap();rememberAlias(p.name,to);setAlloc(p,[{to,qty:p.qty}]);
   render();toastUndo(`All ${fmt(p.qty)} allocated to ${(targetOf(to)||{}).name}`,'ok');
 }
 /* same thing without the snapshot/toast, for accepting a batch of suggestions */
 function quickLinkSilent(pid,to){
   const p=D.purchases.find(x=>x.id===pid);
+  if(p&&dupTwin(p))return false;             /* a leftover copy is never linked */
   if(p){rememberAlias(p.name,to);setAlloc(p,[{to,qty:p.qty}]);}
+  return !!p;
 }
 /* rebuild the stock batches this purchase created — always from scratch, so
    changing an allocation can never leave orphaned stock behind */
@@ -28618,6 +29451,11 @@ function quickLinkSilent(pid,to){
    pixels down a settings page. */
 function modeHint(l,needsPick){
   const sup=(l.sup||'').trim();
+  if(needsPick&&!supplierAsks(sup)){
+    const g=((shipMode(guessMode(sup))||{}).label||'courier').split('—')[0].trim();
+    return '<div class="pmeta" style="margin:3px 0 0;color:var(--amb)"><b>Not confirmed</b> — the dates are a guess ('+esc(g)+'). '
+      +'Pick how '+esc(sup||'this supplier')+' sends it once and every order from them dates itself.</div>';
+  }
   if(needsPick)
     return '<div class="pmeta" style="margin:3px 0 0;color:var(--amb)">'
       +esc(sup||'this supplier')+' uses more than one route — pick one and it will date itself</div>';
@@ -28636,10 +29474,28 @@ function modeHint(l,needsPick){
     +' title="Tick it and every future order from '+esc(sup)+' is dated as '+esc(label)+' automatically — new suppliers get set right here as UK staff receive them">'
     +'<input type="checkbox" '+(on?'checked':'')
     +' onchange="LV3.setSupplierMode(&quot;'+esc(key)+'&quot;,this.checked?&quot;'+esc(l.mode)+'&quot;:&quot;&quot;)">'
-    +'<span style="color:'+(on?'var(--grn)':'var(--blu)')+'">use '+esc(label)+' for future '+esc(sup)+' orders</span></label></div>';
+    +'<span style="color:'+(on?'var(--grn)':'var(--blu)')+'">use '+esc(label)+' for future '+esc(sup)+' orders</span></label>'
+    +(on&&supplierModeBy(sup)?'<span style="margin-left:6px;color:var(--text3)">&#10003; confirmed by '+esc(supplierModeBy(sup).by)+' '+dshort(supplierModeBy(sup).on)+'</span>':on?'<span style="margin-left:6px;color:var(--text3)">&#10003; confirmed</span>':'')
+    +'</div>';
 }
 const ASK_MODE='__ask';
 const supplierAsks=sup=>((D.settings.supplierModes||{})[(sup||'').toLowerCase().trim()])===ASK_MODE;
+/* Jack, 2 Sep: a supplier nobody has answered for showed "Courier / parcel" as
+   if somebody had chosen it. A guess must LOOK like a guess. Confirmed means a
+   person saved a route for this supplier (any route, including "ask me"). */
+const supplierConfirmed=sup=>{const k=(sup||'').toLowerCase().trim();return !!k&&Object.prototype.hasOwnProperty.call(D.settings.supplierModes||{},k);};
+const supplierModeBy=sup=>((D.settings.supplierModesBy||{})[(sup||'').toLowerCase().trim()])||null;
+/* Does this line still need a person to say how it is coming? ASK suppliers:
+   until this line has a mode. Everyone else: until the supplier is confirmed. */
+const lineNeedsRoute=l=>!l.arr&&!l.writtenOff&&(supplierAsks(l.sup)?!l.mode:!supplierConfirmed(l.sup));
+function routeAsks(){
+  const lines=[],sups={};
+  D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{
+    if(!lineNeedsRoute(l))return;
+    if(!(parseInt(l.qty)||0)&&!(parseInt(l.ord)||0))return;
+    lines.push(l);const k=(l.sup||'—').trim();sups[k]=(sups[k]||0)+1;}));
+  return {lines,sups:Object.keys(sups).sort((a,b)=>sups[b]-sups[a])};
+}
 function guessMode(sup){
   const s=(sup||'').toLowerCase().trim();
   const learned=(D.settings.supplierModes||{})[s];
@@ -28825,6 +29681,8 @@ function rememberMode(sup,mode){
   const s=(sup||'').toLowerCase().trim();if(!s)return;
   D.settings.supplierModes=D.settings.supplierModes||{};
   D.settings.supplierModes[s]=mode;
+  D.settings.supplierModesBy=D.settings.supplierModesBy||{};
+  D.settings.supplierModesBy[s]={by:(window.currentUserName||'').trim()||'UK staff',on:dayISO()};
   savePrefs();
 }
 /* Repair pass. A dead allocation is nearly always repairable: the component it
@@ -29665,6 +30523,7 @@ function allocSum(){
       <span style="color:${left<0?'var(--red)':left>0?'var(--amb)':'var(--grn)'}">${left<0?`${fmt(-left)} over — reduce a line`:left>0?`${fmt(left)} left unallocated`:'All units allocated'}</span></div>`;
 }
 function saveAlloc(){
+  if(LINKP&&dupTwin(LINKP)){toast('This is a leftover copy of a line already on order — remove it instead of linking it','er');return;}
   const rows=readAlloc().filter(a=>a.to&&a.qty>0);
   snap();
   const used=rows.reduce((s,a)=>s+a.qty,0);
@@ -30752,11 +31611,11 @@ function deliveriesPanel(){
                chosen, so an Alibaba order silently claimed it would land in
                1–4 days. When the supplier is set to ask every time, the cell
                starts empty and says so until somebody picks. */
-            const needsPick=!l.mode&&supplierAsks(l.sup);
+            const needsPick=lineNeedsRoute(l);
             return `<select class="in etaSel${needsPick?' needPick':''}"
               onchange="LV3.setEta('${x.kind}','${x.o.id}','${l.id}','mode',this.value)">
-              ${needsPick?'<option value="" selected>— how did it come? —</option>':''}
-              ${shipModes().map(m=>`<option value="${m.k}" ${((l.mode||(needsPick?'':'courier'))===m.k)?'selected':''}>${esc(m.label.split('—')[0].trim())}</option>`).join('')}
+              ${needsPick?`<option value="" selected>${supplierAsks(l.sup)?'— how did it come? —':'— pick how it\'s coming —'}</option>`:''}
+              ${shipModes().map(m=>`<option value="${m.k}" ${((needsPick?'':(l.mode||'courier'))===m.k)?'selected':''}>${esc(m.label.split('—')[0].trim())}</option>`).join('')}
             </select>${modeHint(l,needsPick)}`;})()}</td>
         <td class="l" onclick="event.stopPropagation()">
           <div style="display:flex;gap:5px;align-items:center">
@@ -33159,6 +34018,142 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .stLog b{color:var(--text);font-weight:700;}
 .stLogWhen{color:var(--text3);font-variant-numeric:tabular-nums;}
 .stLogMore{color:var(--text3);font-style:italic;border-left-color:transparent;}
+/* ═══ RECOVERY STOCK — page styles (house language: jkKpi cards, admChip tabs, tfu table) ═══ */
+#page-recovery .recWrap{padding:14px 18px 40px;display:flex;flex-direction:column;gap:12px;}
+#page-recovery .recHead{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;}
+#page-recovery .recHead h2{margin:0;font-size:19px;font-weight:800;letter-spacing:.01em;}
+#page-recovery .recHead p{margin:3px 0 0;font-size:12px;color:var(--text2);font-weight:600;}
+#page-recovery .recActs{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+#page-recovery .recBtn{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;border:1px solid var(--border2);background:var(--bg2);color:var(--text);white-space:nowrap;}
+#page-recovery .recBtn:hover{background:var(--bg3);}
+#page-recovery .recBtn.pri{background:var(--accent);border-color:var(--accent);color:#14120f;}
+#page-recovery .recBtn.pri:hover{filter:brightness(1.08);}
+#page-recovery .recBtn.warn{border-color:rgba(251,191,36,.5);color:#fbbf24;background:rgba(251,191,36,.08);}
+#page-recovery .recBtn.bad{border-color:rgba(239,68,68,.5);color:#f87171;background:rgba(239,68,68,.08);}
+#page-recovery .recBtn.good{border-color:rgba(74,222,128,.45);color:#4ade80;background:rgba(74,222,128,.08);}
+#page-recovery .recBtn.sm{padding:5px 10px;font-size:11px;}
+#page-recovery .recBtn[disabled]{opacity:.4;cursor:not-allowed;}
+#page-recovery .recKpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;}
+#page-recovery .recKpi{position:relative;padding:12px 14px 11px;border-radius:11px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--kc,#94a3b8);cursor:pointer;transition:background .15s;}
+#page-recovery .recKpi:hover{background:var(--bg3);}
+#page-recovery .recKpi.on{outline:2px solid var(--kc);outline-offset:1px;}
+#page-recovery .recKpi .l{font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);}
+#page-recovery .recKpi .v{font:800 24px var(--num);font-variant-numeric:tabular-nums;color:var(--kc);margin-top:3px;line-height:1.1;}
+#page-recovery .recKpi .s{font-size:10.5px;color:var(--text3);margin-top:3px;font-weight:600;}
+#page-recovery .recBar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+#page-recovery .recSearch{flex:1;min-width:240px;position:relative;}
+#page-recovery .recSearch input{width:100%;box-sizing:border-box;padding:9px 12px 9px 32px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12.5px;}
+#page-recovery .recSearch svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text3);}
+#page-recovery .recSel{padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:11.5px;font-weight:700;cursor:pointer;max-width:200px;}
+#page-recovery .recTabs{display:flex;gap:6px;flex-wrap:wrap;}
+#page-recovery .recTab{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:11.5px;font-weight:800;cursor:pointer;display:flex;gap:6px;align-items:center;}
+#page-recovery .recTab b{font:800 11px var(--num);color:var(--text3);}
+#page-recovery .recTab.on{background:var(--accent);border-color:var(--accent);color:#14120f;}
+#page-recovery .recTab.on b{color:#14120f;}
+#page-recovery .recBulk{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:9px 12px;border-radius:10px;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.35);}
+#page-recovery .recBulk .n{font-size:12px;font-weight:800;color:#93c5fd;margin-right:6px;}
+#page-recovery .recTableWrap{overflow:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg2);}
+#page-recovery table.rec{width:100%;border-collapse:collapse;min-width:1180px;font-size:12px;}
+#page-recovery table.rec th{position:sticky;top:0;z-index:2;background:var(--bg3);color:var(--text3);font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;text-align:left;padding:9px 10px;border-bottom:1px solid var(--border2);white-space:nowrap;cursor:pointer;user-select:none;}
+#page-recovery table.rec th.c,#page-recovery table.rec td.c{text-align:center;}
+#page-recovery table.rec th.r,#page-recovery table.rec td.r{text-align:right;}
+#page-recovery table.rec th.on{color:var(--accent);}
+#page-recovery table.rec td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+#page-recovery table.rec tr.row{cursor:pointer;}
+#page-recovery table.rec tr.row:hover td{background:rgba(255,255,255,.025);}
+#page-recovery table.rec tr.row.sel td{background:rgba(96,165,250,.07);}
+#page-recovery table.rec tr.row.open td{background:rgba(245,158,11,.07);}
+#page-recovery table.rec tr.row.dim td{opacity:.55;}
+#page-recovery .recName{font-weight:700;color:var(--text);line-height:1.3;overflow-wrap:anywhere;}
+#page-recovery .recId{font:600 10.5px var(--mono);color:var(--text2);margin-top:2px;overflow-wrap:anywhere;}
+#page-recovery .recId i{font-style:normal;font-family:inherit;font-size:9.5px;color:var(--text3);font-weight:800;letter-spacing:.06em;margin-right:5px;}
+#page-recovery .recChip{display:inline-block;padding:2px 8px;border-radius:7px;font-size:10.5px;font-weight:800;border:1px solid;white-space:nowrap;line-height:1.5;}
+#page-recovery .recLoc{display:inline-block;padding:2px 7px;border-radius:6px;font:700 10.5px var(--mono);background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.35);color:#93c5fd;white-space:nowrap;margin:1px 3px 1px 0;}
+#page-recovery .recLoc.none{background:transparent;border-style:dashed;color:var(--text3);border-color:var(--border2);font-family:inherit;font-weight:600;}
+#page-recovery .recAge{font:800 12px var(--num);font-variant-numeric:tabular-nums;}
+#page-recovery .recNum{font:700 12.5px var(--num);font-variant-numeric:tabular-nums;color:var(--text);}
+#page-recovery .recSub{font-size:10.5px;color:var(--text3);margin-top:1px;}
+#page-recovery .recNote{font-size:11px;color:var(--text2);max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-recovery .recRowActs{display:flex;gap:4px;justify-content:flex-end;}
+#page-recovery .recRowActs button{padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:10.5px;font-weight:800;cursor:pointer;white-space:nowrap;}
+#page-recovery .recRowActs button:hover{border-color:var(--accent);color:var(--accent);}
+#page-recovery .recEmpty{padding:34px 20px;text-align:center;color:var(--text3);font-weight:700;font-size:13px;}
+#page-recovery .recEmpty small{display:block;margin-top:6px;font-weight:600;font-size:11.5px;}
+#page-recovery .recFoot{display:flex;gap:12px;align-items:center;font-size:11.5px;color:var(--text3);font-weight:600;}
+#page-recovery .recSetup{padding:14px 16px;border-radius:10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.45);color:var(--text);font-size:12.5px;line-height:1.55;}
+#page-recovery .recSetup b{color:#fbbf24;}
+#page-recovery .recSetup code{font-family:var(--mono);font-size:11.5px;background:var(--bg3);padding:1px 6px;border-radius:4px;}
+/* layout with drawer */
+#page-recovery .recBody{display:grid;grid-template-columns:minmax(0,1fr) 0;gap:12px;transition:grid-template-columns .15s;}
+#page-recovery .recBody.hasDrawer{grid-template-columns:minmax(0,1fr) 380px;}
+#page-recovery .recDrawer{display:none;}
+#page-recovery .recBody.hasDrawer .recDrawer{display:block;position:sticky;top:12px;align-self:start;max-height:calc(100vh - 110px);overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:12px;}
+#page-recovery .recDH{display:flex;gap:10px;align-items:flex-start;padding:13px 14px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:1;}
+#page-recovery .recDH b{font-size:13.5px;line-height:1.3;overflow-wrap:anywhere;}
+#page-recovery .recDH .x{margin-left:auto;background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;flex:none;}
+#page-recovery .recDSec{padding:11px 14px;border-bottom:1px solid var(--border);}
+#page-recovery .recDSec h4{margin:0 0 8px;font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);}
+#page-recovery .recF{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;align-items:center;font-size:12px;}
+#page-recovery .recF label{color:var(--text3);font-weight:700;font-size:11px;}
+#page-recovery .recF input,#page-recovery .recF select,#page-recovery .recF textarea{width:100%;box-sizing:border-box;padding:6px 8px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;}
+#page-recovery .recF textarea{min-height:52px;resize:vertical;}
+#page-recovery .recChs{display:flex;gap:5px;flex-wrap:wrap;}
+#page-recovery .recCh{padding:4px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:11px;font-weight:800;cursor:pointer;}
+#page-recovery .recCh.on{background:rgba(74,222,128,.14);border-color:rgba(74,222,128,.5);color:#4ade80;}
+#page-recovery .recChRef{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:6px 0 2px;}
+#page-recovery .recChRef input{padding:5px 7px;font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);}
+#page-recovery .recTL{display:flex;flex-direction:column;gap:6px;}
+#page-recovery .recEv{display:flex;gap:8px;font-size:11.5px;line-height:1.4;padding-left:9px;border-left:2px solid var(--border2);}
+#page-recovery .recEv .w{color:var(--text3);font:600 10.5px var(--num);flex:0 0 96px;}
+#page-recovery .recEv b{color:var(--text);}
+#page-recovery .recDActs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:12px 14px;}
+#page-recovery .recDActs .recBtn{text-align:center;}
+#page-recovery .recDActs .recBtn.span{grid-column:1/-1;}
+/* modals */
+.recModal .modal{max-width:760px;width:min(96vw,760px);padding:18px 20px;max-height:88vh;overflow:auto;}
+.recModal .modal.wide{max-width:1180px;width:min(97vw,1180px);}
+.recModal h3{margin:0 0 4px;font-size:15px;font-weight:800;}
+.recModal .sub{font-size:12px;color:var(--text2);margin-bottom:12px;font-weight:600;}
+.recModal .foot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);align-items:center;flex-wrap:wrap;}
+.recModal .foot .left{margin-right:auto;font-size:11.5px;color:var(--text3);font-weight:600;}
+.recModal .recBtn{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;border:1px solid var(--border2);background:var(--bg2);color:var(--text);}
+.recModal .recBtn.pri{background:var(--accent);border-color:var(--accent);color:#14120f;}
+.recModal .recBtn.bad{border-color:rgba(239,68,68,.5);color:#f87171;background:rgba(239,68,68,.08);}
+.recModal .recBtn.good{border-color:rgba(74,222,128,.45);color:#4ade80;background:rgba(74,222,128,.08);}
+.recModal .recBtn.sm{padding:5px 10px;font-size:11px;}
+.recModal .recBtn[disabled]{opacity:.4;cursor:not-allowed;}
+.recModal .recF{display:grid;grid-template-columns:130px 1fr;gap:7px 10px;align-items:center;font-size:12.5px;}
+.recModal .recF label{color:var(--text3);font-weight:700;font-size:11px;}
+.recModal .recF input,.recModal .recF select,.recModal .recF textarea{width:100%;box-sizing:border-box;padding:7px 9px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12.5px;}
+.recModal .recF textarea{min-height:56px;resize:vertical;}
+.recModal .recHint{font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5;}
+.recModal .recWarn{padding:9px 12px;border-radius:8px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.45);font-size:12px;margin:10px 0;line-height:1.5;}
+.recModal .recWarn b{color:#fbbf24;}
+/* bulk-add grid */
+.recGridWrap{overflow:auto;border:1px solid var(--border);border-radius:8px;max-height:52vh;}
+table.recGrid{border-collapse:collapse;width:100%;min-width:1040px;font-size:12px;}
+table.recGrid th{position:sticky;top:0;background:var(--bg3);color:var(--text3);font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 6px;text-align:left;border-bottom:1px solid var(--border2);white-space:nowrap;}
+table.recGrid th.req::after{content:' *';color:#f87171;}
+table.recGrid td{padding:3px 4px;border-bottom:1px solid var(--border);}
+table.recGrid td.n{color:var(--text3);font:600 10.5px var(--num);text-align:center;width:28px;}
+table.recGrid input,table.recGrid select{width:100%;box-sizing:border-box;padding:6px 7px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;}
+table.recGrid input:focus,table.recGrid select:focus{border-color:var(--accent);outline:none;}
+table.recGrid tr.dupe td{background:rgba(251,191,36,.07);}
+table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
+.recPk{width:100%;box-sizing:border-box;text-align:left;padding:6px 8px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.recPk:hover{border-color:var(--accent);}
+.recPickPop{position:fixed;z-index:400;min-width:220px;max-height:320px;overflow:auto;background:var(--bg2);border:1px solid var(--border2);border-radius:9px;box-shadow:0 12px 30px rgba(0,0,0,.55);padding:4px;}
+.recPickOpt{padding:8px 11px;border-radius:6px;font-size:12.5px;font-weight:700;color:var(--text2);cursor:pointer;}
+.recPickOpt:hover{background:var(--bg3);color:var(--text);}
+.recPickOpt.on{color:var(--accent);background:rgba(245,158,11,.1);}
+.recIdHint{font-size:9.5px;font-weight:800;letter-spacing:.06em;color:var(--text3);text-transform:uppercase;padding:2px 2px 0;min-height:12px;}
+#page-recovery .recQuick{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+#page-recovery .recQuick span{font-size:10px;color:var(--text3);font-weight:700;margin-right:2px;}
+#page-recovery .recQuick button{padding:3px 8px;border-radius:6px;border:1px dashed rgba(74,222,128,.5);background:transparent;color:#4ade80;font-size:10.5px;font-weight:800;cursor:pointer;}
+#page-recovery .recQuick button:hover{background:rgba(74,222,128,.12);border-style:solid;}
+.recPaste{width:100%;box-sizing:border-box;min-height:70px;padding:8px 10px;background:var(--bg3);border:1px dashed var(--border2);border-radius:8px;color:var(--text);font:12px var(--mono);resize:vertical;}
+@media (max-width:1400px){#page-recovery .recKpis{grid-template-columns:repeat(3,minmax(0,1fr));}}
+
 /* Jack, 30 Aug: dashboard greys hard to read — brighter muted tones, page-scoped */
 #page-dashboard{--text3:#a6a094;--text2:#c8c2b6;}
 /* Returns: light readability refresh — smaller calmer mono, wrapped notes-in-SKU */
