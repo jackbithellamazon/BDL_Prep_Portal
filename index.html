@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v37.0</title>
+<title>BDL PrepHub v37.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3405,7 +3405,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v37.0</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v37.1</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3439,7 +3439,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v37.0</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v37.1</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -4146,7 +4146,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v37.0</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v37.1</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -23184,7 +23184,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v37.0 · lav3 · 2026-09-03 · b430';
+const BUILD='v37.1 · lav3 · 2026-09-03 · b431';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -28585,12 +28585,7 @@ async function syncPurchases(){
        already linked — cannot be a second real purchase: the sheet holds that
        line once. They are removed here, quietly, and said so below. A near
        copy (name differs by a typo) is left for a person, with its own Remove. */
-    let healed=0;
-    D.purchases.slice().forEach(p=>{
-      const tw=dupTwin(p);
-      if(tw&&purchKey(tw)===purchKey(p)){dropReview(p.id,true,true);healed++;}
-    });
-    if(healed)logIt('edit',`Purchase sync removed ${healed} leftover cop${healed===1?'y':'ies'} of lines already on order`);
+    const healed=healExactCopies('sync');
     PURCH=D.purchases;
     save();
     const un=D.purchases.filter(x=>allocState(x).k==='none'&&!dupTwin(x)).length;
@@ -28613,6 +28608,33 @@ async function syncPurchases(){
   }
 }
 
+/* ── EXACT COPIES CLEAR THEMSELVES ────────────────────────────────────────
+   Jack, 3 Sep: "why does the UK staff have to do it and it isn't auto done —
+   this is a huge bug." He is right. An EXACT copy — identical date, order,
+   name AND quantity to a line that is already linked — cannot be a second real
+   purchase, because the sheet only holds that line once. There is no judgement
+   to make, so there is nothing to ask a person. It now runs on LOAD as well as
+   on sync, so nobody ever meets one.
+   It is not silent: every removal is written to the audit log, and the row is
+   removed with keep=true so the sheet line is never added to the ignore list —
+   a genuine re-order of the same thing on another day still comes in.
+   NEAR copies (the name differs by a typo) are deliberately NOT touched: those
+   might be a real second purchase, so they stay on the strip for a human. */
+function healExactCopies(why){
+  if(!READY||!Array.isArray(D.purchases))return 0;
+  let n=0;
+  D.purchases.slice().forEach(p=>{
+    const tw=dupTwin(p);
+    if(tw&&purchKey(tw)===purchKey(p)){dropReview(p.id,true,true);n++;}
+  });
+  if(n){
+    PURCH=D.purchases;
+    logIt('edit',`Removed ${n} exact cop${n===1?'y':'ies'} of purchases already on order (${why})`);
+    try{logAudit('Duplicate purchases removed',`${n} exact cop${n===1?'y':'ies'} — ${why}`);}catch(e){}
+    console.warn('[lav3] removed '+n+' exact duplicate purchase line(s) on '+why);
+  }
+  return n;
+}
 function allocState(p){
   const a=allocOf(p),n=allocated(p);
   if(!a.length||n===0)return{k:'none',label:'Not linked',chip:'warn'};
@@ -28760,8 +28782,8 @@ function reviewPanel(){
   const dupes=staleDupes();
   const dupStrip=dupes.length?`<div class="panel" id="dupStrip" style="border-color:var(--red)">
     <div class="ph" style="align-items:center">
-      <span class="t" style="color:var(--red)">${fmt(dupes.length)} duplicate line${dupes.length===1?'':'s'} — safe to remove</span>
-      <span class="sub">The sheet sent these twice. Each one is the same day, quantity, price and supplier as an order you have <b>already linked</b>, so they are copies, not new purchases — that is why they are not in the list below. Removing them changes nothing on the Google Sheet.<br>${esc(dupes.slice(0,3).map(x=>x.p.name).join(', '))}${dupes.length>3?` and ${dupes.length-3} more`:''}</span>
+      <span class="t" style="color:var(--red)">${fmt(dupes.length)} possible duplicate${dupes.length===1?'':'s'} — your call</span>
+      <span class="sub">Same day, quantity, price and supplier as an order you have <b>already linked</b>, but the name is spelt slightly differently — so this app cannot be certain whether it is a copy or a second real purchase, and will not guess. <b>Exact</b> copies are now deleted on their own; only these need an eye. Removing them changes nothing on the Google Sheet.<br>${esc(dupes.slice(0,3).map(x=>x.p.name).join(', '))}${dupes.length>3?` and ${dupes.length-3} more`:''}</span>
       <div class="r"><button class="btn sm dgr" onclick="LV3.dropDupes()">Remove ${dupes.length===1?'it':'all '+fmt(dupes.length)}</button></div>
     </div></div>`:'';
   if(!orders.length)return dupStrip;   /* the strip already says 0 · all linked */
@@ -33445,7 +33467,15 @@ async function boot(){
   /* Nothing is repaired on load any more. Quietly re-pointing links is how this
      went wrong in the first place: the app decided, nobody saw it, and when it
      decided wrongly there was no trace. It flags what it found and a person
-     approves it — see openFixLinks. */
+     approves it — see openFixLinks.
+     The ONE exception, and only because there is no judgement in it: a line
+     identical to an already-linked one in date, order, name, quantity, price
+     AND supplier is a copy of that line, full stop — the sheet holds it once.
+     Jack, 3 Sep: "why does the UK staff have to do it?" They should not.
+     It still leaves a trace: the audit log, the console and a toast. */
+  try{const _h=healExactCopies('page load');
+    if(_h){save();toast(`${fmt(_h)} duplicate purchase line${_h===1?'':'s'} cleared automatically`,'ok');}
+  }catch(e){console.warn('[lav3] heal on load',e);}
   paint();
   /* Sales come from the hub, over the network, so they are not held up behind
      the page drawing. The page appears with the sold column reading "reading
