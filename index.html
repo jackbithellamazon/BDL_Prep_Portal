@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v39.2</title>
+<title>BDL PrepHub v39.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3461,7 +3461,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v39.2</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v39.3</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3495,7 +3495,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v39.2</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v39.3</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3655,8 +3655,6 @@ html.light-mode .tfu thead th{background:#d8dde3;}
         <button onclick="doBulkAllArrived()" style="padding:4px 10px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">✈ All Arrived</button>
         <button onclick="doBulkAllShipped()" style="padding:4px 10px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">✓ All Shipped</button>
         <button onclick="doBulkArchive()" style="padding:4px 10px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">🗑 Archive Sent</button>
-        <button id="bulkClearOld" onclick="doBulkClearOld()" style="display:none" title="For rows that were sorted long ago outside the app — marks them Sorted outside the app and archives them, so they leave Sarah's Admin and the Prep Sheet. Nothing is deleted and Undo puts them back."
-          style="padding:4px 10px;background:rgba(148,163,184,.16);border:1px solid var(--border2);color:var(--text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">Clear as sorted</button>
         <div style="width:1px;height:18px;background:var(--border2);"></div>
         <!-- Stamp FBA ID group -->
         <div style="display:flex;align-items:center;gap:4px;" title="Stamp a single FBA ID across all selected rows and mark as Sent to Amazon">
@@ -4204,7 +4202,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v39.2</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v39.3</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -11936,6 +11934,18 @@ function _allAdminRows(){
     }).forEach(c=>{
       const t=new Date(c.created_at||c.raisedAt||c.raised||Date.now()).getTime();
       const _cl=(c.log||[]).slice(-1)[0]||null;
+      /* Jack, 4 Sep: "it should merge as it's one issue to one supplier." The
+         same order was listed twice — once as the late delivery, once as the
+         claim raised against it — so the same job could be chased twice by two
+         people. If the claim points at a row already in this queue, it rides on
+         that row instead of creating a second one. */
+      const _host=out.find(x=>x.kind==='transit'&&c.prepRowId&&String(x.rid)===String(c.prepRowId));
+      if(_host){
+        _host.claimId=c.id;_host.claimC=c;_host.claimVal=c.claimValue||0;
+        _host.claimType=c.issT||'Claim';_host.claimState=c.cst||'';
+        if((c.claimValue||0)>(_host.value||0))_host.value=c.claimValue;
+        return;
+      }
       out.push({kind:'claim',rid:'claim:'+c.id,claimId:c.id,claimC:c,
         prod:c.prod||c.sku||'(claim)',sku:c.sku||'',asin:c.asin||'',
         sup:c.sup||'',oid:c.oid||'',acct:c.acct||'',
@@ -12384,7 +12394,14 @@ function renderAdmin(){
   /* Built as a string rather than appended, so the sections can be ordered by
      who has to act rather than by the order they happen to be coded in. */
   let _transitSec='';
-  if(items.length){
+  /* Jack, 4 Sep: "I was typing in search — where the fuck did it all go." A
+     search that matched nothing emptied `items`, and the whole panel — SEARCH
+     BOX INCLUDED — stopped rendering. The term stayed set with no way to clear
+     it, so the page read "Nothing to chase. All quiet." while 23 jobs sat
+     behind the filter. The panel now stays put whenever a search or a tab
+     filter is on, so there is always a way back. */
+  const _filtering=!!((_admQ||'').trim())||_admKind!=='all';
+  if(items.length||_filtering){
     const _dLate=items.filter(i=>i.sev>=3).length;
     _transitSec=`<div class="tfuPanel" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;padding:0 6px 6px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(239,68,68,.06);gap:10px;flex-wrap:wrap;">
@@ -12524,6 +12541,7 @@ function renderAdmin(){
               ${/* The note typed by whoever RAISED it — the context Jack wants
                     Sarah to see without digging. Different from the chase notes:
                     this is why it exists, those are what has happened since. */''}
+              ${i.claimId&&i.kind==='transit'?`<div class="tfuRaiseNote" style="border-left-color:#fbbf24;color:#fcd34d" title="A claim is already open on this same order — one job, not two">&#163;${(i.claimVal||0).toFixed(2)} claim open &middot; ${esc(i.claimType||'')}${i.claimState?' &middot; '+esc(i.claimState):''}</div>`:''}
               ${i.srcNote?`<div class="tfuRaiseNote" title="Written when the issue was raised">&ldquo;${esc(i.srcNote)}&rdquo;</div>`:''}
               ${i.packNote?`<div class="tfuRaiseNote" style="border-left-color:#fb923c;color:#fdba74;" title="The packing note from the Prep Sheet row">&#128230; ${esc(i.packNote)}</div>`:''}
               ${i.vaNote?`<div class="tfuRaiseNote" style="border-left-color:#60a5fa;color:#93c5fd;" title="The VA note from the Prep Sheet row">VA: ${esc(i.vaNote)}</div>`:''}
@@ -12737,16 +12755,11 @@ function renderAdmin(){
                 if(i.kind==='transit')return `<button class="tfuWork" onclick="openSorted('${i.rid}')" title="Close it off — the popup opens already filled in with everything recorded">Sorted</button>
                   <button class="tfuAsk" onclick="askJackAsk('${i.rid}')" title="${isAmz?'Amazon order — only Jack can see this account':'Hand it to Jack — the row goes grey until he answers'}">Send to Jack</button>
                   <button class="tfuMore" onclick="openWork('${i.rid}')" title="The full issue — source, notes, dates, history">Details</button>
-                  ${/* TEMPORARY, JACK ONLY (3 Sep): the one-off clear-out of rows
-                        settled long before PrepHub tracked them. Remove this,
-                        clearOldRow() and the Prep Sheet twin when he says done. */''}
-                  ${_isJack()?`<button class="tfuMore" style="border-color:rgba(148,163,184,.5);color:var(--text2)" onclick="clearOldRow('${i.rid}')" title="TEMPORARY — this was sorted outside the app. Archives it off this page and the Prep Sheet, keeps the history, and a sync will not bring it back.">Clear</button>`:''}`;
+                  ${i.claimId?`<button class="tfuMore" style="border-color:rgba(251,191,36,.5);color:#fcd34d" onclick="openClaimCase('${i.claimId}')" title="The claim on this same order — chase it here">Claim &#163;${(i.claimVal||0).toFixed(2)}</button>`:''}`;
                 if(i.kind==='claim')return `<button class="tfuWork" onclick="openClaimCase('${i.claimId}')" title="Everything on this claim in one place — how it ends is one press inside">Sorted</button>
-                  <button class="tfuAsk" onclick="claimToJack('${i.claimId}')" title="Hand this claim to Jack — the row goes grey until he answers">Send to Jack</button>
-                  ${_isJack()?`<button class="tfuMore" style="border-color:rgba(148,163,184,.5);color:var(--text2)" onclick="clearOldClaim('${i.claimId}')" title="TEMPORARY — sorted outside the app. Closes and archives it, keeping the record.">Clear</button>`:''}`;
+                  <button class="tfuAsk" onclick="claimToJack('${i.claimId}')" title="Hand this claim to Jack — the row goes grey until he answers">Send to Jack</button>`;
                 if(i.kind==='lav')return `<button class="tfuWork" onclick="openLavIssue('${esc1(i.lavKey)}')" title="Everything on this shortage in one place — how it ends is one press inside">Sorted</button>
-                  <button class="tfuAsk" onclick="lavToJack('${esc1(i.lavKey)}')" title="Hand it to Jack — the row goes grey until he answers">Send to Jack</button>
-                  ${_isJack()?`<button class="tfuMore" style="border-color:rgba(148,163,184,.5);color:var(--text2)" onclick="clearOldLav('${esc1(i.lavKey)}')" title="TEMPORARY — sorted outside the app. Takes it off this page; the check-in figures are untouched.">Clear</button>`:''}`;
+                  <button class="tfuAsk" onclick="lavToJack('${esc1(i.lavKey)}')" title="Hand it to Jack — the row goes grey until he answers">Send to Jack</button>`;
                 if(i.kind==='job')return `<button class="tfuWork" onclick="doneVaAction('${i.jobId}')" title="Tell Jack it is done">Mark done</button>`;
                 return `<button class="tfuWork" onclick="openWork('${i.rid}')">Details</button>`;
               })()}
@@ -12757,6 +12770,10 @@ function renderAdmin(){
            48 working hours like the prep sheet — so we can undo" */
         const _work=items.filter(i=>!(i.sortedGrace||i.parkedRow));
         const _done=items.filter(i=>i.sortedGrace||i.parkedRow);
+        if(!items.length)return `<tr><td colspan="99" style="padding:26px 16px;text-align:center;color:var(--text2);">
+          <div style="font-size:13px;font-weight:800;margin-bottom:5px;">Nothing matches ${(_admQ||'').trim()?`&ldquo;${esc((_admQ||'').trim())}&rdquo;`:'that filter'}</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:11px;">The queue is not empty — this is just the search.</div>
+          <button class="tfuWork" onclick="_admQ='';_admKind='all';renderAdmin();">Clear the search</button></td></tr>`;
         return _work.map(_rowHtml).join('')
           +(_done.length?`<tr><td colspan="8" style="background:transparent;border:none;padding:16px 12px 6px;">
               <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;border-top:1px dashed var(--border);padding-top:13px;">
@@ -17153,11 +17170,6 @@ function updateBulkUI(){
     bulkEl.style.display='flex';
     if(countEl)countEl.textContent=selected+' selected';
   }else{bulkEl.style.display='none';}
-  /* TEMPORARY (Jack, 3 Sep): the one-off clear-out of pre-app history. It bulk
-     archives live rows, so only Jack sees it — Sarah must never meet it. Take
-     the button, doBulkClearOld() and this block out once he says it is done. */
-  const co=document.getElementById('bulkClearOld');
-  if(co)co.style.display=/^jack/i.test(String(window.currentUserName||'').trim())?'':'none';
 }
 function toggleSelectAll(checked){
   if(checked){
@@ -23605,7 +23617,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v39.2 · lav3 · 2026-09-04 · b452';
+const BUILD='v39.3 · lav3 · 2026-09-04 · b453';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
