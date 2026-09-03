@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v38.7</title>
+<title>BDL PrepHub v39.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3461,7 +3461,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v38.7</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v39.2</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3495,7 +3495,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v38.7</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v39.2</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -4204,7 +4204,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v38.7</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v39.2</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -5800,7 +5800,7 @@ function _prepBaseRows(){
      before the app existed, and it would have swamped Show Archived. It never
      appears on this page in either mode; it lives in History Lookup and the
      audit log, and Undo still works from the toast. */
-  const base=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_isClearedOld(r));
+  const base=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_offPrepSheet(r));
   if(!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive)return base;
   return base.filter(r=>{
     const rid=r.uuid||String(r.id);
@@ -5872,7 +5872,7 @@ function updatePrepSearchUI(){}
 function paintAcctFilter(){
   const sel=document.getElementById('prepAcctF');if(!sel)return;
   const seen={};
-  const inView=r=>!_isClearedOld(r)&&((typeof _showArchived!=='undefined'&&_showArchived)?r.archived:!r.archived);
+  const inView=r=>!_offPrepSheet(r)&&((typeof _showArchived!=='undefined'&&_showArchived)?r.archived:!r.archived);
   rows.filter(inView).forEach(r=>{const a=String(r.acct||'').trim();if(a)seen[a]=(seen[a]||0)+1;});
   const names=Object.keys(seen).sort();
   const cur=sel.value;
@@ -5902,7 +5902,7 @@ function prepEmptyState(){
   if(st)active.push(`the status filter (<b>${esc(st)}</b>)`);
   const q=((document.getElementById('prepSrch')||{}).value||'').trim();
   if(q)active.push(`your search (<b>&ldquo;${esc(q)}&rdquo;</b>)`);
-  const hidden=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_isClearedOld(r)).length;
+  const hidden=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_offPrepSheet(r)).length;
   if(!active.length||!hidden)
     return `<div class="empty"><div class="empty-ico">📦</div><div class="empty-t">No rows found</div></div>`;
   return `<div class="empty"><div class="empty-ico">📦</div>
@@ -5933,7 +5933,7 @@ function filterPrep(skipFlush){
   const _acctF=(document.getElementById('prepAcctF')||{}).value||'';
   // _showArchived ON = show ONLY archived rows; OFF = show only active rows.
   // Rows cleared as "sorted outside the app" are excluded from BOTH modes.
-  const baseRows=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_isClearedOld(r));
+  const baseRows=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_offPrepSheet(r));
   if(!q&&!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive){renderPrepRows(baseRows);}
   else{
     const filtered=baseRows.filter(r=>{
@@ -6130,7 +6130,7 @@ function renderPrep(){
   // Archived rows are hidden from the active prep sheet (but kept in `rows` so
   // the shipments page and stats still see them). _showArchived flips to an
   // archived-ONLY view rather than mixing archived in with active rows.
-  const baseRows=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_isClearedOld(r));
+  const baseRows=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_offPrepSheet(r));
   if(q||st||_acctF||_issuesFilterActive||_lateFilterActive||_readyFilterActive){
     const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
@@ -6565,9 +6565,59 @@ function acStart(){
    deleted, the rows stay under Show Archived, and Undo puts them straight back. */
 const _isJack=()=>/^jack/i.test(String(window.currentUserName||'').trim());
 /* rows cleared as "sorted outside the app" — off the Prep Sheet for good */
+/* Rows the Prep Sheet should never show: cleared pre-app history, and gated
+   stock Jack has taken onto his own plate (nobody else can act on it, so it
+   only crowds the list). */
 const _isClearedOld=r=>!!(r&&r.archived&&r.resolution&&r.resolution.what==='cleared-old');
+const _offPrepSheet=r=>_isClearedOld(r)||!!(r&&r.jackGated);
 /* Same job as the bulk button, for one row, from Sarah's Admin where he is
    actually looking at them. TEMPORARY — goes when the clear-out is done. */
+/* Jack, 3 Sep: "no clear on this either" — the button only existed on transit
+   rows, but plenty of his old ones are claims and Lavarion check-ins. Each
+   closes through its own subsystem, so Clear does the right thing per type
+   rather than one blunt archive. */
+/* `D` belongs to the Lavarion closure and is NOT reachable from admin scope —
+   reading it here threw. Kept in the same app_settings store as ROW_SEEN. */
+let LAV_CLEARED={};
+const lavCleared=()=>LAV_CLEARED;
+async function clearOldClaim(id){
+  if(!_isJack()){toast('Jack only','er');return;}
+  const c=claims.find(x=>String(x.id)===String(id));if(!c)return;
+  showConfirm('Clear this off the list?',
+    `${c.prod||c.sku||'This claim'}\n\nClosed as sorted outside the app and archived. It leaves Sarah's Admin and the Claims list.\n\nNothing is deleted — the whole record is kept, and Undo puts it back.`,
+    async()=>{
+      const was={cst:c.cst,archived:c.archived,resolvedAt:c.resolvedAt};
+      if(!c.log)c.log=[];
+      c.log.push({t:getNowUK(),msg:'Cleared — sorted outside the app ('+_who()+')'});
+      c.cst='Resolved';c.resolvedAt=todayISO();c.archived=true;
+      try{await saveClaim(c);}catch(e){console.warn('[clearOld claim]',e);}
+      try{renderAdmin();renderClaims();}catch(e){}
+      try{logAudit('Old claim cleared',`${c.sku||c.sup||''} — sorted outside the app`);}catch(e){}
+      toastUndo('Claim cleared',async()=>{
+        c.cst=was.cst;c.archived=was.archived;c.resolvedAt=was.resolvedAt;
+        try{await saveClaim(c);}catch(e){}
+        try{renderAdmin();renderClaims();}catch(e){}
+        toast('Put back','ok');});
+    });
+}
+async function clearOldLav(key){
+  if(!_isJack()){toast('Jack only','er');return;}
+  /* a Lavarion shortage is recalculated from the check-ins every time, so
+     "quiet" cannot be stored on it — the cleared keys are remembered instead */
+  showConfirm('Clear this off the list?',
+    `This supplier shortage is marked as sorted outside the app and leaves Sarah's Admin.\n\nThe check-in figures behind it are untouched — nothing is deleted, and Undo puts it back.`,
+    async()=>{
+      LAV_CLEARED[String(key)]={at:new Date().toISOString(),by:_who()};
+      try{await _putSetting('lav_cleared',LAV_CLEARED);}catch(e){}
+      try{renderAdmin();}catch(e){}
+      try{logAudit('Old supplier shortage cleared',String(key));}catch(e){}
+      toastUndo('Shortage cleared',async()=>{
+        delete LAV_CLEARED[String(key)];
+        try{await _putSetting('lav_cleared',LAV_CLEARED);}catch(e){}
+        try{renderAdmin();}catch(e){}
+        toast('Put back','ok');});
+    });
+}
 async function clearOldRow(rid){
   if(!_isJack()){toast('Jack only','er');return;}
   const r=rows.find(x=>String(x.uuid)===String(rid)||String(x.id)===String(rid));
@@ -7044,10 +7094,23 @@ function _adminItems(){
     const expDate=r.expectedDelivery?new Date(r.expectedDelivery):null;
     const expPassed=!expDate||today>expDate;
     const isSubSave=r.subSave==='Yes';
-    const isStuck=days>20&&r.status==='In-Transit'&&expPassed&&!isSubSave;
+    /* Jack, 4 Sep: letting Part Sent through the status gate was not enough —
+       "stuck" itself demanded In-Transit, so a Part Sent row with nothing
+       received still qualified for nothing and stayed invisible. What makes a
+       row stuck is that stock is owed and time has passed, not the label on it. */
+    const _stillOwed=(r.exp||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0);
+    const isStuck=days>20&&expPassed&&!isSubSave&&
+      (r.status==='In-Transit'||(r.status==='Part Sent'&&_stillOwed>0));
     const ta=r.transitAction||'';
-    // Arrived/shipped rows are never "in transit to chase" — keep them out.
-    if(['Sent to Amazon','Part Sent','Delivered','In Warehouse','Returned'].includes(r.status))return;
+    /* Arrived/shipped rows are never "in transit to chase" — keep them out.
+       Jack, 4 Sep: "where is this late but not on Sarah's page?" — Part Sent was
+       in this list, but it describes what went OUT to Amazon, not what came IN
+       from the supplier. So a row that shipped 4 units onward while NOTHING ever
+       arrived was invisible to her: three of his were 70+ days old. Part Sent is
+       judged on what is still owed, like any other row — the outstanding test a
+       few lines down drops it the moment nothing is left. */
+    if(['Sent to Amazon','Delivered','In Warehouse','Returned'].includes(r.status))return;
+    if(r.status==='Part Sent'&&((r.exp||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0))<=0)return;
     /* Sorted AND approved by Jack. Sarah proposes a closure, Jack approves it —
        nothing leaves the queue on the VA's say-so alone. Approved rows keep
        everything they had; they just stop being someone's job. This is what
@@ -7593,11 +7656,12 @@ function _who(){return window.currentUserName||'Sarah';}
 // ── LOADING / SAVING ──────────────────────────────────────────────────────────
 async function loadVaState(){
   try{
-    const r=await sb.from('app_settings').select('key,value').in('key',['webhook_cfg','admin_checkin','va_actions','resolution_types','follow_up_types','jack_suppliers','srt_drafts','row_seen','sheet_sync_at']);
+    const r=await sb.from('app_settings').select('key,value').in('key',['webhook_cfg','admin_checkin','va_actions','resolution_types','follow_up_types','jack_suppliers','srt_drafts','row_seen','lav_cleared','sheet_sync_at']);
     (r.data||[]).forEach(row=>{
       let v=null;try{v=JSON.parse(row.value||'null');}catch(e){return;}
       if(row.key==='srt_drafts'&&v&&typeof v==='object')SRT_DRAFTS=v;
       if(row.key==='row_seen'&&v&&typeof v==='object'&&!Array.isArray(v))ROW_SEEN=v;
+      if(row.key==='lav_cleared'&&v&&typeof v==='object'&&!Array.isArray(v))LAV_CLEARED=v;
       if(row.key==='sheet_sync_at'&&v&&typeof v==='object'){window._sheetSyncAt=v;setTimeout(paintSyncAge,500);}
       if(row.key==='webhook_cfg'&&v)WEBHOOK_CFG=Object.assign(WEBHOOK_CFG,v);
       if(row.key==='admin_checkin'&&v)ADMIN_CHECK=Object.assign(ADMIN_CHECK,v);
@@ -9663,6 +9727,101 @@ async function recFromClaim(c){
   return i;
 }
 
+/* ── GATED → RECOVERY, WITH A FORM ────────────────────────────────────────
+   Jack, 3 Sep: "button for recovery page and then a popup where I have to fill
+   in the info". The one-click version guessed condition, quantity and cost from
+   the claim; a gated item is often a part of the order, in a state only he can
+   see. He fills it in, the claim's numbers just start it off. */
+/* Jack, 3 Sep: "the stuff that is gated — I want a way to accept it going off
+   Sarah's page and the Prep Sheet page so it's clear for UK staff and Sarah and
+   not cramped full of stuff they won't deal with." Gated is his call alone, so
+   it becomes his: ownership moves, the waiting flag clears (which is what her
+   page keys off), and the Prep Sheet row is marked so it stops taking a line.
+   Nothing is closed or deleted — Undo puts it straight back on their lists. */
+async function takeGatedMine(claimId){
+  const c=(typeof claims!=='undefined'?claims:[]).find(x=>String(x.id)===String(claimId));
+  if(!c){toast('Claim not found','er');return;}
+  const was={owner:c.owner,sentToJack:c.sentToJack};
+  if(!c.log)c.log=[];
+  c.log.push({t:getNowUK(),msg:'Taken off Sarah and the Prep Sheet — gated, Jack\u2019s call ('+_who()+')'});
+  c.owner='Jack';c.sentToJack=null;
+  const r=(typeof rows!=='undefined'?rows:[]).find(x=>String(x.uuid)===String(c.prepRowId)||String(x.id)===String(c.prepRowId));
+  const wasGated=r?r.jackGated:null;
+  if(r){r.jackGated=true;try{await saveRow(r);}catch(e){}}
+  try{await saveClaim(c);}catch(e){}
+  try{renderAdmin();renderJack();renderPrep();paintJackBadge();}catch(e){}
+  try{logAudit('Gated taken off the team',`${c.sku||c.prod||''} — stays on Jack's Admin`);}catch(e){}
+  toastUndo('Off their lists — still on yours',async()=>{
+    c.owner=was.owner;c.sentToJack=was.sentToJack;
+    if(r){r.jackGated=wasGated;try{await saveRow(r);}catch(e){}}
+    try{await saveClaim(c);}catch(e){}
+    try{renderAdmin();renderJack();renderPrep();paintJackBadge();}catch(e){}
+    toast('Back on their lists','ok');});
+}
+function recFromClaimModal(claimId){
+  const c=(typeof claims!=='undefined'?claims:[]).find(x=>String(x.id)===String(claimId));
+  if(!c){toast('Claim not found','er');return;}
+  if(typeof REC==='undefined'){toast('Recovery Stock is not loaded yet','er');return;}
+  if(_recErr){toast('Recovery Stock needs its one-time setup first — run the SQL','er');return;}
+  const qty=parseInt(c.dif)||parseInt(c.exp)||1;
+  const unit=(c.claimValue&&qty)?Math.round((c.claimValue/qty)*100)/100:'';
+  const dupe=(c.sku||'').trim()&&REC.some(i=>!i.archived&&(i.amz_sku||'').trim().toLowerCase()===(c.sku||'').trim().toLowerCase());
+  recModal(`<div class="recMH"><h3>Send to Recovery Stock</h3>
+      <button class="recX" onclick="recModalClose()">&#10005;</button></div>
+    <div class="recMB">
+      ${dupe?`<div class="recWarn">This Amazon SKU is already in Recovery Stock. Adding it again will make a second entry.</div>`:''}
+      <div class="recFormRow"><label>Product</label>
+        <input id="rfcName" value="${esc(c.prod||c.sku||'')}"></div>
+      <div class="recFormRow"><label>Amazon SKU</label>
+        <input id="rfcSku" value="${esc(c.sku||'')}" style="font-family:var(--mono)"></div>
+      <div class="recFormRow"><label>ASIN</label>
+        <input id="rfcAsin" value="${esc(c.asin||'')}" style="font-family:var(--mono)"></div>
+      <div class="recFormRow"><label>How many</label>
+        <input id="rfcQty" type="number" min="1" value="${qty}" style="max-width:120px">
+        <span class="recHint">${fmt(qty)} on the claim</span></div>
+      <div class="recFormRow"><label>Condition</label>
+        <div>${recPickBtn('cond','New','id="rfcCond"')}</div></div>
+      <div class="recFormRow"><label>Cost / unit</label>
+        <input id="rfcCost" type="number" step="0.01" min="0" value="${unit}" style="max-width:140px">
+        <span class="recHint">${c.claimValue?fmtGBP2(c.claimValue)+' over '+fmt(qty):'no value on the claim'}</span></div>
+      <div class="recFormRow"><label>Where is it</label>
+        <input id="rfcLoc" placeholder="Leave blank until racking is in" style="max-width:200px"></div>
+      <div class="recFormRow"><label>Notes</label>
+        <textarea id="rfcNote" rows="2">Gated on Amazon${c.sup?' — '+esc(c.sup):''}${c.oid?' · '+esc(c.oid):''}</textarea></div>
+    </div>
+    <div class="recMF">
+      <span class="recHint">It lands under <b>Needs Sorting</b>. Listing it is a separate step.</span>
+      <button class="recBtn" onclick="recModalClose()">Cancel</button>
+      <button class="recBtn pri" onclick="recFromClaimGo('${String(claimId).replace(/'/g,"\\'")}')">Add to Recovery Stock</button>
+    </div>`,true);
+}
+async function recFromClaimGo(claimId){
+  const c=(typeof claims!=='undefined'?claims:[]).find(x=>String(x.id)===String(claimId));
+  if(!c)return;
+  const g=id=>(document.getElementById(id)||{}).value;
+  const name=String(g('rfcName')||'').trim();
+  const qty=parseInt(g('rfcQty'))||0;
+  if(!name){toast('Give it a name','er');return;}
+  if(qty<1){toast('How many?','er');return;}
+  const costRaw=g('rfcCost');
+  const loc=recNormLoc(g('rfcLoc'));
+  const asin=String(g('rfcAsin')||'').trim();
+  const i={id:recUid(),name,id_type:asin?'ASIN':'None',id_value:asin,
+    amz_sku:String(g('rfcSku')||'').trim(),extra_ids:[],qty,
+    locations:loc?[{loc,qty}]:[],
+    condition:((document.getElementById('rfcCond')||{}).dataset||{}).v||'New',condition_notes:'',
+    cost:costRaw===''||costRaw==null?null:+costRaw,
+    status:'sorting',channels:[],notes:String(g('rfcNote')||'').trim(),
+    source:'Gated Amazon stock',source_ref:c.oid||'',listed_at:null,sold_price:null,rack:'',
+    batch_id:'',pack:[],added_by:_who(),created_at:recNow(),last_action_at:recNow(),
+    last_action:'Added',archived:false,gone_at:null};
+  REC.unshift(i);
+  await recSave(i,'Added','from a gated Amazon claim'+(c.oid?' · '+c.oid:''));
+  recModalClose();
+  toast(`${fmt(qty)} × ${name.slice(0,28)} added to Recovery Stock`,'ok');
+  try{if(_pageActive('page-recovery'))renderRecovery();}catch(e){}
+}
+
 /* ── sold / gone → to pack → packed ────────────────────────────────────────── */
 function recSoldModal(ids){
   const items=ids.map(id=>REC.find(i=>i.id===id)).filter(Boolean).filter(recActive);
@@ -10010,8 +10169,9 @@ function renderJack(){
       type:gated?['GATED','#c084fc','Cannot be sold — eBay it or ungate it']:['CLAIM','#fbbf24','A claim she sent over'],
       why:esc((c.issT||'Issue')+' · '+(c.dif||0)+' unit'+((c.dif||0)===1?'':'s')),note:c.notes||'',
       value:c.claimValue||0,left:null,
-      acts:(gated?`<button class="csAct go" onclick="setGatedDecision('${c.id}','eBay')">eBay it</button>
-          <button class="csAct go" onclick="setGatedDecision('${c.id}','Ungate')">Ungate</button>`:'')+
+      acts:(gated?`<button class="csAct go" onclick="recFromClaimModal('${c.id}')" title="Fill in what it is, then it lands in Recovery Stock under Needs Sorting">eBay it &rarr; Recovery</button>
+          <button class="csAct go" onclick="setGatedDecision('${c.id}','Ungate')">Ungate</button>
+          <button class="csAct plain" onclick="takeGatedMine('${c.id}')" title="Nobody but you can act on a gated item — this takes it off Sarah's Admin and off the Prep Sheet and leaves it here. Undo puts it back.">Off their lists</button>`:'')+
         `<button class="csAct good" onclick="claimBackFromJack('${c.id}')">Answer &amp; hand back</button>`});});
   (lavQ||[]).forEach(g=>{let tj={};try{tj=JSON.parse(g.toJack||'{}');}catch(e){}
     items.push({kind:'lav',id:g.key,prod:g.lines.map(x=>x.name).join(', '),sup:g.sup,oid:g.ref,acct:'',sku:'',
@@ -11746,7 +11906,7 @@ function _allAdminRows(){
   const out=_adminItems().map(i=>Object.assign({kind:'transit'},i));
   /* Lavarion shortages and damage — one row per supplier conversation */
   try{
-    (_lavIssues(true)||[]).filter(g=>!g.quiet).forEach(g=>{
+    (_lavIssues(true)||[]).filter(g=>!g.quiet&&!lavCleared()[String(g.key)]).forEach(g=>{
       const _last=(g.log&&g.log.length)?g.log[g.log.length-1]:null;
       let _tj=null;try{_tj=g.toJack?JSON.parse(g.toJack):null;}catch(e){_tj={at:''};}
       out.push({kind:'lav',rid:'lav:'+g.key,lavKey:g.key,
@@ -12582,9 +12742,11 @@ function renderAdmin(){
                         clearOldRow() and the Prep Sheet twin when he says done. */''}
                   ${_isJack()?`<button class="tfuMore" style="border-color:rgba(148,163,184,.5);color:var(--text2)" onclick="clearOldRow('${i.rid}')" title="TEMPORARY — this was sorted outside the app. Archives it off this page and the Prep Sheet, keeps the history, and a sync will not bring it back.">Clear</button>`:''}`;
                 if(i.kind==='claim')return `<button class="tfuWork" onclick="openClaimCase('${i.claimId}')" title="Everything on this claim in one place — how it ends is one press inside">Sorted</button>
-                  <button class="tfuAsk" onclick="claimToJack('${i.claimId}')" title="Hand this claim to Jack — the row goes grey until he answers">Send to Jack</button>`;
+                  <button class="tfuAsk" onclick="claimToJack('${i.claimId}')" title="Hand this claim to Jack — the row goes grey until he answers">Send to Jack</button>
+                  ${_isJack()?`<button class="tfuMore" style="border-color:rgba(148,163,184,.5);color:var(--text2)" onclick="clearOldClaim('${i.claimId}')" title="TEMPORARY — sorted outside the app. Closes and archives it, keeping the record.">Clear</button>`:''}`;
                 if(i.kind==='lav')return `<button class="tfuWork" onclick="openLavIssue('${esc1(i.lavKey)}')" title="Everything on this shortage in one place — how it ends is one press inside">Sorted</button>
-                  <button class="tfuAsk" onclick="lavToJack('${esc1(i.lavKey)}')" title="Hand it to Jack — the row goes grey until he answers">Send to Jack</button>`;
+                  <button class="tfuAsk" onclick="lavToJack('${esc1(i.lavKey)}')" title="Hand it to Jack — the row goes grey until he answers">Send to Jack</button>
+                  ${_isJack()?`<button class="tfuMore" style="border-color:rgba(148,163,184,.5);color:var(--text2)" onclick="clearOldLav('${esc1(i.lavKey)}')" title="TEMPORARY — sorted outside the app. Takes it off this page; the check-in figures are untouched.">Clear</button>`:''}`;
                 if(i.kind==='job')return `<button class="tfuWork" onclick="doneVaAction('${i.jobId}')" title="Tell Jack it is done">Mark done</button>`;
                 return `<button class="tfuWork" onclick="openWork('${i.rid}')">Details</button>`;
               })()}
@@ -13423,7 +13585,11 @@ function renderDashboard(){
   const weekShipments=weekRoll.shipments; // unique shipment IDs incl. Lavarion + Part-Sent, matches the Weekly Activity total
 
   // ── TRANSIT ──────────────────────────────────────────────────────────────────
-  const transitRows=rows.filter(r=>r.status==='In-Transit');
+  /* Jack, 4 Sep: "KPIs not matching" — Dashboard said 1,149 units / £26,407 in
+     transit while the Prep Sheet said 477 / £14,497 for the same thing. This
+     line counted ARCHIVED rows too, so every old cleared row still read as
+     stock on the road. Archived is not in transit. */
+  const transitRows=rows.filter(r=>r.status==='In-Transit'&&!r.archived);
   const transit={units:transitRows.reduce((a,r)=>a+(r.exp||0),0),value:transitRows.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0),skus:transitRows.length,asins:new Set(transitRows.map(r=>r.asin)).size};
 
   // ── PIPELINE ─────────────────────────────────────────────────────────────────
@@ -13990,7 +14156,7 @@ function renderDashboard(){
         })()}
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Pipeline</div>
-          ${(()=>{const st=[['In-Transit',transit.units,COL.transit],['Delivered',rows.filter(r=>r.status==='Delivered').reduce((a,r)=>a+(r.exp||0),0),COL.today],['In Warehouse',rows.filter(r=>r.status==='In Warehouse').reduce((a,r)=>a+(r.exp||0),0),COL.asin],['Part Sent',rows.filter(r=>r.status==='Part Sent').reduce((a,r)=>a+(r.exp||0),0),COL.box],['Issue',rows.filter(r=>r.status==='Issue').reduce((a,r)=>a+(r.exp||0),0),'#f87171']];
+          ${(()=>{const st=[['In-Transit',transit.units,COL.transit],['Delivered',rows.filter(r=>r.status==='Delivered'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),COL.today],['In Warehouse',rows.filter(r=>r.status==='In Warehouse'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),COL.asin],['Part Sent',rows.filter(r=>r.status==='Part Sent'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),COL.box],['Issue',rows.filter(r=>r.status==='Issue'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),'#f87171']];
             const pmax=Math.max(...st.map(s=>s[1]),1);
             return st.map(([l,u,col])=>`
             <div style="padding:5px 0 6px;border-bottom:1px solid rgba(255,255,255,.05);">
@@ -14004,10 +14170,13 @@ function renderDashboard(){
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Active Inventory</div><div style="font-size:10px;color:#aeb9c9;margin:-3px 0 7px;">In-Transit + Delivered + In-Warehouse + Part-Sent</div>
           ${(()=>{
-            const inTR=rows.filter(r=>['In-Transit','Delivered','In Warehouse','Part Sent'].includes(r.status));
+            /* Jack, 4 Sep KPI sweep: "Active Inventory" was counting ARCHIVED
+               rows — 1,622 units instead of 950. Archived is by definition not
+               active. Same omission as the in-transit tile. */
+            const inTR=rows.filter(r=>['In-Transit','Delivered','In Warehouse','Part Sent'].includes(r.status)&&!r.archived);
             const inTU=inTR.reduce((a,r)=>a+(r.exp||0),0);
             const inTC=inTR.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
-            const issR=rows.filter(r=>r.status==='Issue');
+            const issR=rows.filter(r=>r.status==='Issue'&&!r.archived);
             const issU=issR.reduce((a,r)=>a+(r.exp||0),0);
             const issC=issR.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
             const actA=new Set(inTR.map(r=>r.asin)).size;
@@ -14738,7 +14907,8 @@ function renderInsights(){
   oaLines.forEach(l=>{ if(l.type==='DG')dgUnits+=l.units; else if(l.type==='Oversize')osUnits+=l.units; else stdUnits+=l.units; });
 
   // Pipeline (not range-bound — current state)
-  const pipe=st=>{const rr=rows.filter(r=>r.status===st);return{u:rr.reduce((a,r)=>a+(r.exp||0),0),v:rr.reduce((a,r)=>a+parseSKU(r.sku).cogs*(r.exp||0),0),n:rr.length};};
+  /* the pipeline is what is moving NOW — archived rows are finished with */
+  const pipe=st=>{const rr=rows.filter(r=>r.status===st&&!r.archived);return{u:rr.reduce((a,r)=>a+(r.exp||0),0),v:rr.reduce((a,r)=>a+parseSKU(r.sku).cogs*(r.exp||0),0),n:rr.length};};
   const transit=pipe('In-Transit'),warehouse=pipe('In Warehouse'),delivered=pipe('Delivered');
 
   // ── SUPPLIER ANALYSIS (segment-based) ──────────────────────────────────────
@@ -23435,7 +23605,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v38.7 · lav3 · 2026-09-03 · b447';
+const BUILD='v39.2 · lav3 · 2026-09-04 · b452';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -34432,6 +34602,14 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .stLogWhen{color:var(--text3);font-variant-numeric:tabular-nums;}
 .stLogMore{color:var(--text3);font-style:italic;border-left-color:transparent;}
 /* ═══ RECOVERY STOCK — page styles (house language: jkKpi cards, admChip tabs, tfu table) ═══ */
+#recModalHost .recFormRow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);}
+#recModalHost .recFormRow:last-child{border-bottom:none;}
+#recModalHost .recFormRow label{flex:0 0 118px;font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+#recModalHost .recFormRow input,#recModalHost .recFormRow textarea{flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:7px;color:var(--text);font:inherit;font-size:12.5px;padding:7px 9px;}
+#recModalHost .recFormRow textarea{resize:vertical;}
+#recModalHost .recHint{font-size:11px;color:var(--text3);font-weight:600;}
+#recModalHost .recWarn{margin-bottom:10px;padding:9px 11px;border-radius:8px;font-size:12px;
+  background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.45);color:#fbbf24;font-weight:600;}
 #page-recovery .recWrap{padding:14px 18px 40px;display:flex;flex-direction:column;gap:12px;}
 #page-recovery .recHead{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;}
 #page-recovery .recHead h2{margin:0;font-size:19px;font-weight:800;letter-spacing:.01em;}
