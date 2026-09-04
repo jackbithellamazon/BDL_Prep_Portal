@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v39.9</title>
+<title>BDL PrepHub v40.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3227,9 +3227,22 @@ html.light-mode{
   white-space:normal;overflow-wrap:anywhere;text-align:center;}
 .expPack b{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:13px;font-weight:800;}
 /* the impossible-state flag: shipped more than was received */
+/* the received number is the point of this column; the mismatch is a footnote */
+.qtyFlag{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:3px;
+  font-size:9.5px;font-weight:800;color:#fca5a5;line-height:1.2;white-space:nowrap;cursor:help;letter-spacing:.01em;}
+.qtyFlagDot{font-size:10px;opacity:.9;}
 .impossible{font-size:9.5px;font-weight:800;color:#fca5a5;background:rgba(239,68,68,.14);
   border:1px solid rgba(239,68,68,.5);border-radius:5px;padding:2px 5px;margin-bottom:3px;
   line-height:1.2;white-space:normal;cursor:help;}
+/* the little date pad that drops out of "Amazon says it'll arrive…" */
+.amzDateBox{margin-top:6px;padding:9px 10px;border-radius:8px;background:var(--bg2);
+  border:1px solid rgba(96,165,250,.45);display:flex;flex-direction:column;gap:6px;text-align:left;}
+.amzDateT{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#93c5fd;}
+.amzDateIn{background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);
+  font:inherit;font-size:12px;padding:6px 8px;}
+.amzDateActs{display:flex;gap:6px;}
+.amzDateActs .csAct{flex:1;margin:0;}
+.amzDateHint{font-size:10px;color:var(--text3);font-weight:600;line-height:1.35;}
 /* Jack, 17 Aug: on a DG + bundle row ("DG" AND "5 in 1" chips side by side)
    this cell was nowrap, so the pair rendered wider than its column and ran
    underneath the Expected Qty numbers — his "1620 over 324" screenshot. The
@@ -3463,7 +3476,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v39.9</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v40.7</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3497,7 +3510,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v39.9</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v40.7</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -4204,7 +4217,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v39.9</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v40.7</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -5084,8 +5097,19 @@ function cycleUser(){ /* disabled — identity now comes only from the signed-in
 function copyVal(text,el){
   if(!text||text==='—')return;
   navigator.clipboard.writeText(text).then(()=>{
-    const orig=el.textContent;const origCol=el.style.color||'';el.style.color='#22c55e';el.textContent='✓ copied';
-    setTimeout(()=>{el.textContent=orig;el.style.color=origCol;},1200);
+    /* Jack, 4 Sep: "copied it but still want to see the order id." It replaced
+       the value with the word "copied" — so the thing he had just copied, and
+       usually still needs to read while pasting it somewhere, vanished for a
+       second. Same treatment copyShipId already used: keep the value, flash it
+       green, and hang a tick off the end. */
+    if(el.dataset.copying)return;
+    el.dataset.copying='1';
+    const oc=el.style.color||'';const obg=el.style.background||'';
+    el.style.color='#22c55e';el.style.background='rgba(34,197,94,.14)';
+    const tick=document.createElement('span');
+    tick.className='copyTick';tick.textContent=' ✓';
+    el.insertAdjacentElement('afterend',tick);
+    setTimeout(()=>{el.style.color=oc;el.style.background=obg;tick.remove();delete el.dataset.copying;},1100);
   }).catch(()=>{});
 }
 // Copy a shipment ID. Keeps the ID text in place (so the row doesn't reflow) and
@@ -5590,7 +5614,14 @@ function renderPrepRows(data){
            the row says so out loud and he decides. New ones cannot be created
            (see the invariant in addSegment). */
         const _out=parseInt(r.ship)||0,_in=parseInt(r.rcvd)||0;
-        return (_out>_in)?`<div class="impossible" title="Impossible state: ${_out} unit${_out===1?'':'s'} were put on a shipment but only ${_in} were ever booked in. Either the count-in was missed, or these units never actually went. Fix the received figure, or undo the shipment from the Shipments page.">&#9888; ${_out} sent, ${_in} in</div>`:'';})()}${isBundle(r)
+        /* Jack, 4 Sep: "sent and in looks wrong in qty received." The figures
+           are right — 4 units went onto a shipment and none were ever booked
+           in — but "4 sent, 0 in" sat in the QTY RECEIVED column repeating the
+           0 underneath it, so it read like a miscount rather than a warning. */
+        /* Jack, 4 Sep: this shouted over the very number the column exists to
+           show. The received figure leads; the mismatch is one quiet line under
+           it, in the same shape as every other sub-line on this table. */
+        return (_out>_in)?`<div class="qtyFlag" title="${_out} unit${_out===1?'':'s'} were put on a shipment but ${_in===0?'none were':'only '+_in+' were'} ever booked in as received. Either the count-in was missed, or they never actually went. Fix the received figure, or undo the shipment on the Shipments page."><span class="qtyFlagDot">&#9888;</span>${_out} already sent out</div>`:'';})()}${isBundle(r)
         /* A bundle row is counted in ITEMS, because that is what comes out of
            the box. It was being typed straight into a box compared against the
            ASIN figure — 92 bottles against 49 units — which is where Becki's
@@ -5655,6 +5686,7 @@ function renderPrepRows(data){
       <td class="td-left"><div class="noteCell va${r.vaNote?'':' empty'}" tabindex="0"
         title="Sarah's progress note — click to edit" onclick="editNote(this,'${r.uuid||r.id}','vaNote')"
         onkeydown="if(event.key==='Enter'){event.preventDefault();editNote(this,'${r.uuid||r.id}','vaNote');}"
+        data-note-va="${r.uuid||r.id}"
         >${r.vaNote?esc(r.vaNote):'<span class="noteAdd">+ note</span>'}</div></td>
       <td style="text-align:center;min-width:160px;">
         <select class="ci" onchange="uf('${r.uuid||r.id}','transitAction',this.value);" style="font-size:10px;padding:2px 6px;background:${{'Urgent — Chase Now':'rgba(239,68,68,.2)','Late — Needs Chasing':'rgba(239,68,68,.15)','Delayed':'rgba(251,146,60,.15)','Chasing Supplier':'rgba(251,146,60,.12)','Awaiting Update':'rgba(251,146,60,.1)','On Its Way':'rgba(34,197,94,.08)'}[r.transitAction]||'var(--bg3)'};color:${{'Urgent — Chase Now':'#f87171','Late — Needs Chasing':'#f87171','Delayed':'#fb923c','Chasing Supplier':'#fb923c','Awaiting Update':'#fbbf24','On Its Way':'var(--green)'}[r.transitAction]||'var(--text2)'};border:1px solid ${{'Urgent — Chase Now':'rgba(239,68,68,.4)','Late — Needs Chasing':'rgba(239,68,68,.3)','Delayed':'rgba(251,146,60,.35)','Chasing Supplier':'rgba(251,146,60,.3)','Awaiting Update':'rgba(251,191,36,.3)','On Its Way':'rgba(34,197,94,.3)'}[r.transitAction]||'var(--border2)'};border-radius:3px;width:100%;cursor:pointer;font-weight:${r.transitAction?'600':'400'};" tabindex="-1">
@@ -6569,7 +6601,37 @@ const _isJack=()=>/^jack/i.test(String(window.currentUserName||'').trim());
    stock Jack has taken onto his own plate (nobody else can act on it, so it
    only crowds the list). */
 const _isClearedOld=r=>!!(r&&r.archived&&r.resolution&&r.resolution.what==='cleared-old');
-const _offPrepSheet=r=>_isClearedOld(r)||!!(r&&r.jackGated);
+/* Jack, 4 Sep: "why is this still on the Prep Sheet if I took it off both?"
+   Because `r.jackGated` was invented in memory and there is NO `jack_gated`
+   COLUMN on prep_rows — saveRow dropped it without a word, so the next load
+   brought the row straight back. Same silent-failure class as the job bug.
+   Nothing new is stored now: the CLAIM already records the truth (gated, owned
+   by Jack, still open), so the Prep Sheet asks it. That survives any reload,
+   resync or another machine, and undoing on Jack's page puts the row back on
+   its own. Rebuilt once per render — not per row — so 1,300 rows stay cheap. */
+let _gatedOffCache={ids:null,at:0};
+function _gatedOffRowIds(){
+  const now=Date.now();
+  if(_gatedOffCache.ids&&now-_gatedOffCache.at<800)return _gatedOffCache.ids;
+  const set=new Set();
+  try{
+    (typeof claims!=='undefined'?claims:[]).forEach(c=>{
+      if(!c||c.archived)return;
+      if((c.issT||'')!=='Gated')return;
+      if((c.owner||'')!=='Jack'||c.sentToJack)return;   // hers, or waiting on him for her
+      if(c.cst==='Resolved'||c.cst==='Closed')return;
+      if(c.prepRowId)set.add(String(c.prepRowId));
+    });
+  }catch(e){}
+  _gatedOffCache={ids:set,at:now};
+  return set;
+}
+const _offPrepSheet=r=>{
+  if(_isClearedOld(r))return true;
+  if(!r)return false;
+  const ids=_gatedOffRowIds();
+  return ids.has(String(r.uuid||''))||ids.has(String(r.id||''));
+};
 /* Same job as the bulk button, for one row, from Sarah's Admin where he is
    actually looking at them. TEMPORARY — goes when the clear-out is done. */
 /* Jack, 3 Sep: "no clear on this either" — the button only existed on transit
@@ -7065,6 +7127,7 @@ function addClaimLog(){
 // roll-up of open Issues. Anything red/amber on the Prep Sheet lands here.
 const ADMIN_CHASE_STATES=['Urgent — Chase Now','Late — Needs Chasing','Delayed','Chasing Supplier','Awaiting Update'];
 
+const _dmy=iso=>{const p=String(iso||'').slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}`:String(iso||'');};
 function _adminItems(){
   const today=new Date();
   /* one-time sweep: the year-0002 dates the old input let through poisoned
@@ -7121,7 +7184,11 @@ function _adminItems(){
         out.push({rid:r.uuid||r.id,sku:r.sku,asin:r.asin,prod:r.prod,sup:r.sup,oid:r.oid,
           date:r.date,acct:r.acct||'',units:0,got:0,cancelled:0,outstanding:0,
           sortedGrace:true,sortedAt:at,sortedWhat:(r.resolution.what||''),sev:0,col:'#94a3b8',
-          reason:'Sorted — still undoable',value:0,waiting:false,delivered:r.delivered||'',wrongSku:r.wrongSku||''});
+          /* a row parked on a promised date is not "sorted" — say what it is */
+          reason:(r.expectedDelivery&&new Date(r.expectedDelivery)>today&&(r.resolution.what==='in-transit'))
+            ? ('Parked until '+_dmy(r.expectedDelivery)+' — the date Amazon gave')
+            : 'Sorted — still undoable',
+          value:0,waiting:false,delivered:r.delivered||'',wrongSku:r.wrongSku||''});
       }
       return;
     }
@@ -7185,6 +7252,10 @@ function _adminItems(){
          into the portal. She asks the two suppliers different questions. */
       source:r.sheetSyncId?'Sheet':(r.importedFrom||'PrepHub'),
       delivered:r.delivered||'',wrongSku:r.wrongSku||'',
+      /* Jack, 4 Sep: "what SKU did it go out under — I need to know this."
+         The closure already records it (`resolution.wentAs`); the row just
+         never said it out loud. */
+      wentAs:(r.resolution&&r.resolution.wentAs)||'',
       caseC:_caseOf(r),
       sentBack:(r.resolution&&r.resolution.state==='rejected')?r.resolution:null,
       /* 'asked' is Sarah handing an Amazon order over for Jack to look at — not
@@ -10149,6 +10220,7 @@ function renderJack(){
       left:refundLeft(r.date,r),
       acts:`<button class="csAct good" onclick="jackAnswered('${r.uuid||r.id}','Arrived — YES. Carry on with the wrong-SKU check.')">Arrived — YES</button>
         <button class="csAct warn" onclick="jackNoSplit('${r.uuid||r.id}',this)">Not arrived — NO</button>
+        <button class="csAct plain" onclick="jackAmzDate('${r.uuid||r.id}',this)">Amazon says it&rsquo;ll arrive&hellip;</button>
         <button class="csAct plain" onclick="jackAnswerAsk('${r.uuid||r.id}')">Answer with a note</button>`});});
   closures.forEach(r=>{const q=r.resolution||{};
     items.push({kind:'dec',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
@@ -11318,6 +11390,53 @@ function caseStanding(c){
 /* The supplier gives a new date; it goes in the row's real expected-delivery
    field, the same one the Prep Sheet and every late calculation already read.
    One field, so the whole app agrees — and it comes back louder if it slips. */
+/* Jack, 4 Sep: on a "check the Amazon order" row the useful answer is often a
+   DATE — Amazon has told him when it will land. A date is not a note: it parks
+   the row until then and brings it back on its own if it passes, which is what
+   setDueDate already does. This just puts it one click from his queue. */
+function jackAmzDate(rid,btn){
+  const r=_rowById(rid);if(!r){toast('Row not found','er');return;}
+  const host=btn&&btn.parentElement;if(!host)return;
+  if(host.querySelector('.amzDateBox'))return;
+  const box=document.createElement('div');
+  box.className='amzDateBox';
+  const min=new Date().toISOString().slice(0,10);
+  box.innerHTML=`<div class="amzDateT">When did Amazon say?</div>
+    <input type="date" class="amzDateIn" min="${min}" max="2030-12-31">
+    <div class="amzDateActs">
+      <button class="csAct plain" data-x="1">Cancel</button>
+      <button class="csAct good" data-go="1">Save the date</button>
+    </div>
+    <div class="amzDateHint">It comes off the chase list until then, and comes back on its own if the date passes.</div>`;
+  host.appendChild(box);
+  const inp=box.querySelector('.amzDateIn');setTimeout(()=>inp.focus(),30);
+  box.querySelector('[data-x]').onclick=()=>box.remove();
+  box.querySelector('[data-go]').onclick=async()=>{
+    const v=inp.value;
+    if(!v||!saneDate(v)){toast('Pick a date first','er');return;}
+    box.remove();
+    /* Answering through jackAnswered marks the case REJECTED, which is the
+       "here you go, carry on" route and puts the row straight back on her chase
+       list — the opposite of parking it. A date is not a job: record it, take it
+       off his queue, and let setDueDate hold the row until the date passes. */
+    const _res=r.resolution||{};
+    r.resolution=Object.assign({},_res,{
+      state:'approved',kind:'ops',what:'in-transit',
+      answeredBy:_who(),answeredAt:new Date().toISOString(),
+      rejectNote:'Amazon says it will arrive '+v});
+    const _ch=r.resolution.chase||{path:'never-arrived',step:'due-date',due:'',log:[]};
+    _ch.log=(_ch.log||[]).concat([{at:new Date().toISOString(),by:_who(),
+      what:'Amazon says it will arrive '+v+' — parked until then'}]);
+    _ch.step='due-date';_ch.due=v;r.resolution.chase=_ch;
+    r.sentToJack=null;
+    r._dirty=true;
+    try{await _mustSave(r);}catch(e){}
+    await setDueDate(rid,v);
+    try{renderJack();renderAdmin();renderPrep();paintJackBadge();}catch(e){}
+    try{logAudit('Amazon delivery date set',`${r.sku||''} → ${v}`);}catch(e){}
+    toast('Parked until '+v+' — back on the list if it slips','ok');
+  };
+}
 async function setDueDate(rid,val){
   const r=_rowById(rid);if(!r)return;
   if(val&&!saneDate(val))return;         /* half-typed year — let them finish */
@@ -12732,7 +12851,9 @@ function renderAdmin(){
                        "nothing to do" next to a red CHASE flag */
                     if(sd.overdue&&i.caseC.step==='due-date')next='The promised date has passed — arrived, or still nothing?';
                   }
-                  else if(i.delivered==='Yes'&&i.wrongSku==='Yes'){state='WRONG SKU';scol='#fbbf24';last='Arrived, went out under another SKU';next='Press Sorted — nothing is lost';}
+                  else if(i.delivered==='Yes'&&i.wrongSku==='Yes'){state='WRONG SKU';scol='#fbbf24';
+                    last=i.wentAs?('Arrived — it went out under <b>'+esc(i.wentAs)+'</b>'):'Arrived, went out under another SKU';
+                    next=i.wentAs?'Press Sorted — nothing is lost':'Press Sorted — say which SKU if you know it';}
                   else if(i.delivered==='Yes'&&i.wrongSku==='No'){state='STOCK HUNT';scol='#ef4444';last='Arrived — but not a wrong SKU';next='Dig in, then send it to Jack';}
                   else if(i.delivered==='Yes'){state='ARRIVED \u2713';scol='#4ade80';last='Marked as arrived';next='Answer Wrong SKU? on the row';}
                   else if(i.delivered==='No'){state='NOT ARRIVED';scol='#f87171';last='Confirmed it never turned up';next='Work the refund steps in Triage';}
@@ -12785,7 +12906,7 @@ function renderAdmin(){
                 return `<div class="standBox" style="border-left-color:${scol};">
                   <div class="stState" style="color:${scol};">${state}</div>
                   ${expLine}
-                  ${hist||(last?`<div class="stLast">${esc(last)}</div>`:'')}
+                  ${hist||(last?`<div class="stLast">${(i.wentAs&&/<b>/.test(last))?last:esc(last)}</div>`:'')}
                   ${next?`<div class="stNext">&#10132; ${esc(next)}</div>`:''}
                   ${(i.kind==='job'&&i.jobList&&i.jobList.length)?`<div class="jobList">${i.jobList.map((j,n)=>
                     `<div class="jobLi"><span class="jobN">${n+1}</span><span class="jobT">${esc(j.task||'')}</span>
@@ -22803,6 +22924,19 @@ function mkAddVa(id){
    as text when you click away. No scrollbars, no drag handles, no clipping. */
 function editNote(el,id,field){
   if(el.querySelector('textarea'))return;
+  /* Jack, 4 Sep: "packing notes should be Becki only — Sarah has to use VA
+     note." The login already says who is typing, so the column can hold the
+     line itself rather than relying on people remembering. It is a stop, not a
+     lecture: it names the right box and offers to open it. */
+  if(field==='notes'&&/^sarah/i.test(String(window.currentUserName||'').trim())){
+    const row0=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
+    showConfirm('Packing Notes are the warehouse\u2019s',
+      'This column is for Becki and the UK team \u2014 what to do with the box.\n\nAnything you find out about the order goes in <b>VA Note</b>, the column just to the right.\n\nOpen VA Note instead?',
+      ()=>{const cell=document.querySelector(`[data-note-va="${id}"]`);
+           if(cell)editNote(cell,id,'vaNote');
+           else toast('Use the VA Note column on this row','ok');});
+    return;
+  }
   const row=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
   const cur=(row&&row[field])||'';
   const ta=document.createElement('textarea');
@@ -23679,7 +23813,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v39.9 · lav3 · 2026-09-04 · b459';
+const BUILD='v40.7 · lav3 · 2026-09-04 · b467';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -34567,7 +34701,12 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
   border:1px solid var(--border);border-radius:10px;background:var(--bg2);}
 .tfuScroll .tfu{min-width:1280px;}
 .tfuScroll .tfu thead th{position:sticky;top:0;z-index:6;background:#181d26;
-  border-bottom:2px solid var(--border2);box-shadow:0 2px 6px rgba(0,0,0,.35);}
+  border-bottom:2px solid var(--border2);
+  /* Jack, 4 Sep: on his admin the rows showed THROUGH above the frozen header.
+     Since v39.5 that table scrolls inside #jackWrap, whose own top padding sits
+     above the sticky row — so a row passing behind it was visible in the gap.
+     The upward shadow paints that strip in the page colour. */
+  box-shadow:0 2px 6px rgba(0,0,0,.35),0 -22px 0 var(--bg);}
 .tfuScroll .tfu tbody tr:nth-child(even){background:rgba(255,255,255,.018);}
 .tfuScroll .tfu tbody tr:nth-child(odd){background:transparent;}
 .tfuScroll .tfu tbody tr:hover{background:rgba(96,165,250,.05);}
@@ -34664,6 +34803,9 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
   background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.45);color:#4ade80;}
 .jobTick:hover{background:rgba(74,222,128,.22);}
 .jobFoot{font-size:10.5px;color:var(--text3);font-weight:600;margin-top:2px;}
+.copyTick{color:#22c55e;font:800 10px var(--sans);margin-left:3px;
+  animation:copyPop .3s cubic-bezier(.34,1.56,.64,1);}
+@keyframes copyPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
 .tfuRaiseNote{font-size:10.5px;margin-top:4px;-webkit-line-clamp:2;}
 .csNowCap{margin-bottom:2px;}
 .csNowTxt{font-size:11px;margin-bottom:5px;}
