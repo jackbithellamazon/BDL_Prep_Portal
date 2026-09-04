@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v39.3</title>
+<title>BDL PrepHub v39.9</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -2880,23 +2880,25 @@ html.light-mode{
    --text3 and the label in a muddy olive, so a card with nothing wrong looked
    the same as one with money at risk. Number in full white, label in proper
    grey, and a coloured edge so the state reads before the number does. */
-.jkKpi{min-width:84px;padding:11px 14px;border-radius:11px;text-align:center;
-  background:linear-gradient(180deg,var(--bg3),var(--bg2));border:1px solid var(--border2);
-  border-left:3px solid var(--border2);transition:border-color .15s,background .15s;}
-.jkKpi b{display:block;font:800 23px var(--num);font-variant-numeric:tabular-nums;color:var(--text);letter-spacing:-.4px;}
-.jkKpi span{display:block;font-size:9.5px;font-weight:800;color:var(--text3);
-  text-transform:uppercase;letter-spacing:.07em;margin-top:3px;}
-.jkKpi.hot{border-color:rgba(96,165,250,.55);background:rgba(96,165,250,.12);border-left-color:#60a5fa;}
-.jkKpi.hot b{color:#93c5fd;}
-.jkKpi.warn{border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.1);border-left-color:var(--accent);}
-.jkKpi.warn b{color:var(--accent);}
+/* Jack, 4 Sep: "this looks like shit and not relevant at all to the colour
+   scheme we have". My fault — I gave these tinted backgrounds, which turned
+   into olive and maroon blocks. The house KPI card is the Prep Sheet's `.stat`:
+   a NEUTRAL dark card, one coloured line across the top, and the colour carried
+   by the number itself. Same language here now. */
+.jkKpi{min-width:84px;padding:11px 14px 12px;border-radius:10px;text-align:center;
+  background:linear-gradient(135deg,var(--bg3),var(--bg2));
+  border:1px solid var(--border);border-top:3px solid var(--border2);
+  transition:border-top-color .15s;}
+.jkKpi b{display:block;font:800 26px var(--num);font-variant-numeric:tabular-nums;
+  color:var(--text);letter-spacing:-.5px;line-height:1.05;}
+.jkKpi span{display:block;font-size:9px;font-weight:800;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.08em;margin-top:5px;}
+.jkKpi.hot{border-top-color:#60a5fa;}   .jkKpi.hot b{color:#60a5fa;}
+.jkKpi.warn{border-top-color:var(--accent);} .jkKpi.warn b{color:var(--accent);}
 /* money promised but not landed — his side of a closed case */
-.jkKpi.bad{border-color:rgba(239,68,68,.55);background:rgba(239,68,68,.1);border-left-color:#f87171;}
-.jkKpi.bad b{color:#f87171;}
-.jkKpi.ok{border-color:rgba(74,222,128,.4);background:rgba(74,222,128,.07);border-left-color:#4ade80;}
-.jkKpi.ok b{color:#4ade80;}
-.jkKpi.owed{border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.1);border-left-color:#34d399;}
-.jkKpi.owed b{color:#34d399;font-size:19px;}
+.jkKpi.bad{border-top-color:#f87171;}   .jkKpi.bad b{color:#f87171;}
+.jkKpi.ok{border-top-color:#4ade80;}    .jkKpi.ok b{color:#4ade80;}
+.jkKpi.owed{border-top-color:#34d399;}  .jkKpi.owed b{color:#34d399;font-size:22px;}
 .jkHd{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 12px;margin:20px 0 10px;}
 .jkHd h3{margin:0;font-size:13.5px;font-weight:800;color:var(--text);
   display:flex;align-items:center;gap:8px;}
@@ -3461,7 +3463,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v39.3</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v39.9</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3495,7 +3497,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v39.3</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v39.9</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -4202,7 +4204,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;" data-sset="data">
         <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px;">App Info</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
-          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v39.3</div>
+          <div style="color:var(--text3);">Version</div><div style="color:var(--text);font-family:var(--mono);">v39.9</div>
           <div style="color:var(--text3);">Database</div><div style="color:#55ff55;font-family:var(--mono);">Supabase ✓</div>
           <div style="color:var(--text3);">Real-time</div><div style="color:#55ff55;font-family:var(--mono);">Active ✓</div>
         </div>
@@ -10349,7 +10351,16 @@ function renderJack(){
       ${[['#60a5fa','Check an Amazon order'],['#c084fc','A decision or gated call'],['#fbbf24','A claim sent to you'],['#38bdf8','Short or damaged at check-in'],['#94a3b8','Qty fix — read and wave through'],['#34d399','Money owed to you']]
         .map(([c,t])=>`<span class="admKeyI"><span class="admKeyD" style="background:${c};"></span>${t}</span>`).join('')}
     </div>
-    <div class="tfuScroll" style="margin:0;">
+    ${/* Jack, 4 Sep: "my sheet only goes to 4 — scrolling issue on Jack's admin
+         page." `.tfuScroll` caps itself at calc(100vh - 250px), a guess made
+         when this page was just a table. It now carries the KPI row, four stat
+         panels, a search bar and the stripe legend above it — well over 250px —
+         so the box ran off the bottom of the window while its own scrollbar
+         thought it had already reached the end, and the last rows were
+         unreachable. Two nested scrollers, neither able to finish the job.
+         Here the outer #jackWrap does the scrolling and the table lays out in
+         full; the sticky header still sticks, just to the outer one. */''}
+    <div class="tfuScroll" style="margin:0;max-height:none;overflow:visible;">
     <table class="tfu">
       <thead><tr>
         <th style="width:2%;text-align:center;">#</th>
@@ -11922,6 +11933,19 @@ function _allAdminRows(){
         chased:g.chased});
     });
   }catch(e){}
+  /* Overdue Lavarion deliveries — a supplier who has not delivered is hers to
+     chase, the same as any late prep row. It was only ever a banner. */
+  try{
+    ((window.LV3&&LV3.lavLateList)?LV3.lavLateList():[]).forEach(g=>{
+      out.push({kind:'lavlate',rid:'lavlate:'+g.key,lavLateKey:g.key,
+        prod:g.name,sku:'',asin:'',sup:g.sup,oid:g.oid,acct:'',
+        date:'',units:g.owed,got:0,cancelled:0,outstanding:g.owed,
+        value:g.cost||0,days:g.days,sev:3,col:'#c084fc',
+        reason:g.eta?('due '+g.eta+' — nothing booked in'):'past its window — nothing booked in',
+        src:'Lavarion order',notes:'',srcNote:'',waiting:false,left:null,
+        acts:`<button class="tfuWork" onclick="LV3.openDeliveries&&LV3.openDeliveries()" title="Open the delivery and chase the supplier">Open the order</button>`});
+    });
+  }catch(e){}
   /* Claims she owns */
   try{
     claims.filter(c=>{
@@ -11966,14 +11990,28 @@ function _allAdminRows(){
   }catch(e){}
   /* Jobs Jack sent over */
   try{
+    /* Jack, 4 Sep: "shouldn't it all be done on one row, not more tasks?"
+       Right — closing ONE issue was spawning THREE rows, so finishing work made
+       her queue longer. The follow-ups belong to the item, not beside it: they
+       are grouped onto a single row as a checklist, and the row clears once the
+       last one is ticked.
+       (Earlier bug in the same place: `prod:a.what` — a field that does not
+       exist on a job — fell through to `a.detail`, printing the whole
+       instruction paragraph where the product name goes.) */
+    const _byRow={};
     (typeof VA_ACTIONS!=='undefined'?VA_ACTIONS:[]).filter(a=>!a.done).forEach(a=>{
+      const k=String(a.rid||a.id);(_byRow[k]=_byRow[k]||[]).push(a);});
+    Object.keys(_byRow).forEach(k=>{
+      const list=_byRow[k],a=list[0];
       const t=new Date(a.at||Date.now()).getTime();
-      out.push({kind:'job',rid:'job:'+a.id,jobId:a.id,
-        prod:a.what||a.detail||'Job from Jack',sku:a.sku||'',asin:'',
-        sup:'',oid:'',acct:'',units:0,got:0,cancelled:0,outstanding:0,
+      const by=String(a.by||'').trim();
+      out.push({kind:'job',rid:'job:'+k,jobId:a.id,jobList:list.map(x=>({id:x.id,task:x.task||''})),
+        prod:a.prod||a.task||'Job',sku:a.sku||'',asin:a.asin||'',
+        sup:a.sup||'',oid:a.oid||'',acct:'',units:0,got:0,cancelled:0,outstanding:0,
         value:0,days:Math.floor((Date.now()-t)/864e5),sev:1,col:'#94a3b8',
-        src:'From Jack',
-        reason:'Job from Jack',notes:a.detail||''});
+        jobBy:by,src:/^jack/i.test(by)?'From Jack':(by?'Follow-up · '+by:'Follow-up'),
+        srcNote:'',reason:list.length===1?(a.task||'Job'):list.length+' things to finish off',
+        notes:a.detail||''});
     });
   }catch(e){}
   /* The sort belongs HERE, on the merged list — sorting only the transit rows
@@ -12002,6 +12040,7 @@ function _allAdminRows(){
 function _typeOf(i){
   if(i.kind==='job')return['JOB','#94a3b8','A job Jack sent over'];
   if(i.kind==='transit')return['LATE','#f87171','Still in transit past when it should have landed — needs chasing'];
+  if(i.kind==='lavlate')return['DELIVERY LATE','#c084fc','A Lavarion order past its expected window with nothing booked in'];
   if(i.kind==='lav'){
     if(i.lavDmg&&i.lavShort)return['MISSING + DMG','#fb7185','Units short AND damaged at check-in'];
     if(i.lavDmg)return['DAMAGED','#fb7185','Stock arrived damaged — the supplier has to put it right'];
@@ -12478,10 +12517,25 @@ function renderAdmin(){
              them actually mean." Every coloured edge explains itself. */
           const edgeCol=waiting?'#94a3b8':i.col;
           const edgeTip=waiting?'Light grey — with Jack, waiting for his answer':({'#ef4444':'Red — late or urgent, money at risk','#fb923c':'Orange — delayed or being chased','#fbbf24':'Amber — needs following up','#38bdf8':'Blue — supplier shortage or damage','#94a3b8':'Grey — job from Jack or already sorted'}[i.col]||'');
+          /* Jack, 4 Sep: "these should be hoverable and tell you the current
+             status." The stripe only said what its colour meant. It now reports
+             where the row actually stands — who has it, how old, what is at
+             stake and why it is here — so the colour can be interrogated
+             without opening anything. */
+          const _sb=[];
+          if(waiting)_sb.push('With Jack'+(i.wait?' — '+i.wait+' day'+(i.wait===1?'':'s'):''));
+          else if(i.sortedGrace)_sb.push('Sorted — still undoable');
+          else if(i.parkedRow)_sb.push('Parked on a date');
+          else if(i.kind==='job')_sb.push((i.jobList&&i.jobList.length>1)?i.jobList.length+' things to finish off':'One thing to finish off');
+          if(i.days!=null&&i.days>0)_sb.push(i.days+' day'+(i.days===1?'':'s')+' old');
+          if(i.value>0)_sb.push(fmtGBP2(i.value)+' at stake');
+          if(i.outstanding>0)_sb.push(fmt(i.outstanding)+' still owed');
+          if(i.reason&&i.kind!=='job')_sb.push(String(i.reason));
+          const edgeTitle=edgeTip+(_sb.length?' — '+_sb.join(' · '):'');
           return`<tr class="${(waiting||i.sortedGrace||i.parkedRow)?'tfuWaiting':''}"${sentBack?' style="background:rgba(239,68,68,.05);"':''}>
             <td class="tfuNumCell" style="text-align:center;padding-top:13px;">
-              <span class="tfuStripe" style="background:${edgeCol};" title="${edgeTip}. ${esc(i.reason||'')}"></span>
-              <span style="font:800 12px var(--mono);color:var(--text3);" title="${edgeTip}. ${esc(i.reason||'')}">${n+1}</span>
+              <span class="tfuStripe" style="background:${edgeCol};" title="${esc(edgeTitle)}"></span>
+              <span style="font:800 12px var(--mono);color:var(--text3);cursor:help;" title="${esc(edgeTitle)}">${n+1}</span>
             </td>
             <td>
               <div class="tfuProd2" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</div>
@@ -12710,7 +12764,9 @@ function renderAdmin(){
                   if(i.lastLog&&i.lastLog.what)last=i.lastLog.what+(i.lastLog.by?' — '+i.lastLog.by:'')+(i.lastLog.at?' · '+lw(i.lastLog.at):'');
                   next=i.chased?'Wait for the reply, then record it':'Tell the supplier today';
                 }else{
-                  state='JOB FROM JACK';scol='#94a3b8';last=i.notes||'';next='Do it, then press Mark done';
+                  state=/^jack/i.test(String(i.jobBy||''))?'JOB FROM JACK'
+                        :(i.jobBy?'FOLLOW-UP FROM CLOSING A ROW':'JOB');
+                  scol='#94a3b8';last=i.notes||'';next='';
                 }
                 const note=(i.notes||'').trim();
                 /* Jack, 30 Aug: "this needs to be super informative — the vital
@@ -12731,6 +12787,10 @@ function renderAdmin(){
                   ${expLine}
                   ${hist||(last?`<div class="stLast">${esc(last)}</div>`:'')}
                   ${next?`<div class="stNext">&#10132; ${esc(next)}</div>`:''}
+                  ${(i.kind==='job'&&i.jobList&&i.jobList.length)?`<div class="jobList">${i.jobList.map((j,n)=>
+                    `<div class="jobLi"><span class="jobN">${n+1}</span><span class="jobT">${esc(j.task||'')}</span>
+                      <button class="jobTick" title="Tick this one off" onclick="event.stopPropagation();doneVaAction('${j.id}')">Done</button></div>`).join('')}
+                    <div class="jobFoot">The row clears once all ${i.jobList.length} are ticked.</div></div>`:''}
                   ${(note&&i.kind==='transit'&&!waiting)?`<div class="csNote" title="${note.replace(/"/g,'&quot;')}">&ldquo;${esc(note)}&rdquo;</div>`:''}
                 </div>`;
               })()}
@@ -12760,7 +12820,9 @@ function renderAdmin(){
                   <button class="tfuAsk" onclick="claimToJack('${i.claimId}')" title="Hand this claim to Jack — the row goes grey until he answers">Send to Jack</button>`;
                 if(i.kind==='lav')return `<button class="tfuWork" onclick="openLavIssue('${esc1(i.lavKey)}')" title="Everything on this shortage in one place — how it ends is one press inside">Sorted</button>
                   <button class="tfuAsk" onclick="lavToJack('${esc1(i.lavKey)}')" title="Hand it to Jack — the row goes grey until he answers">Send to Jack</button>`;
-                if(i.kind==='job')return `<button class="tfuWork" onclick="doneVaAction('${i.jobId}')" title="Tell Jack it is done">Mark done</button>`;
+                if(i.kind==='job')return (i.jobList&&i.jobList.length>1)
+                  ? `<button class="tfuWork" onclick="if(confirm('Tick off all ${i.jobList.length}?')){${i.jobList.map(j=>`doneVaAction('${j.id}')`).join(';')}}" title="All of them are done">All done</button>`
+                  : `<button class="tfuWork" onclick="doneVaAction('${i.jobId}')" title="Tell Jack it is done">Mark done</button>`;
                 return `<button class="tfuWork" onclick="openWork('${i.rid}')">Details</button>`;
               })()}
             </td>
@@ -23617,7 +23679,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v39.3 · lav3 · 2026-09-04 · b453';
+const BUILD='v39.9 · lav3 · 2026-09-04 · b459';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -29876,7 +29938,24 @@ function rsNextOrder(){
 }
 
 function lavLateCount(){
-  try{return inboundAll().filter(x=>!x.l.short&&etaState(x.l).k==='late').length;}catch(e){return 0;}
+  try{return lavLateList().length;}catch(e){return 0;}
+}
+/* Jack, 4 Sep: "this should be on Sarah's sheet — all late on the prep hub
+   sheet and any issues should go on hers too." An overdue Lavarion delivery was
+   a purple banner she had to click through; it is a supplier who has not
+   delivered, which is exactly her job. Exposed as data so her queue can list it
+   as a row like everything else. */
+function lavLateList(){
+  try{
+    return inboundAll().filter(x=>!x.l.short&&etaState(x.l).k==='late').map(x=>{
+      const owed=outQty(x.l)||0;
+      return{key:String(x.kind)+':'+String(x.o.id)+':'+String(x.l.id),
+        name:x.o.name||'',sup:x.l.sup||'',oid:x.l.oid||'',
+        owed,cost:(x.l.cost||0)*owed,
+        ordered:x.l.date||'',eta:String(x.l.eta2||x.l.eta1||'').slice(0,10),
+        days:x.l.date?Math.max(0,Math.floor((Date.now()-new Date(x.l.date).getTime())/864e5)):0};
+    });
+  }catch(e){return [];}
 }
 function ppGo(id){
   const e=document.getElementById(id);
@@ -34004,7 +34083,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,localDT,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
-  shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,copyBuyList,lavLateCount,rsCopyList,
+  shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,copyBuyList,lavLateCount,lavLateList,rsCopyList,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
@@ -34524,7 +34603,10 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 /* one stripe, one element — it cannot double, and it is wide enough to hover.
    The tooltip names the colour AND the reason. */
 .tfuNumCell{position:relative;}
-.tfuStripe{position:absolute;left:0;top:5px;bottom:5px;width:4px;border-radius:0 3px 3px 0;cursor:help;}
+.tfuStripe{position:absolute;left:0;top:5px;bottom:5px;width:4px;border-radius:0 3px 3px 0;cursor:help;
+  transition:width .12s,box-shadow .12s;}
+/* it is hoverable, so it should look it */
+.tfuStripe:hover{width:7px;box-shadow:0 0 0 1px rgba(255,255,255,.25);}
 /* where-it-stands: a soft panel with the state colour down its edge, instead
    of loose lines floating in the cell */
 .standBox{background:rgba(255,255,255,.025);border:1px solid var(--border);border-left:3px solid var(--border2);
@@ -34571,6 +34653,17 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .tfuSrcLine{margin-top:3px;font-size:9.5px;padding:1px 7px;}
 .tfu .tfuWhy{font-size:10.5px;padding:3px 8px;}
 .tfuClock{margin-top:4px;font-size:10px;}
+/* one issue, one row, its outstanding jobs as a checklist */
+.jobList{margin-top:7px;display:flex;flex-direction:column;gap:4px;}
+.jobLi{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text);
+  background:rgba(148,163,184,.07);border:1px solid var(--border);border-radius:6px;padding:5px 8px;}
+.jobN{flex:none;width:16px;height:16px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);
+  font:800 9.5px var(--num);display:flex;align-items:center;justify-content:center;color:var(--text3);}
+.jobT{flex:1;min-width:0;overflow-wrap:anywhere;}
+.jobTick{flex:none;font:800 10px var(--sans);padding:3px 9px;border-radius:5px;cursor:pointer;
+  background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.45);color:#4ade80;}
+.jobTick:hover{background:rgba(74,222,128,.22);}
+.jobFoot{font-size:10.5px;color:var(--text3);font-weight:600;margin-top:2px;}
 .tfuRaiseNote{font-size:10.5px;margin-top:4px;-webkit-line-clamp:2;}
 .csNowCap{margin-bottom:2px;}
 .csNowTxt{font-size:11px;margin-bottom:5px;}
