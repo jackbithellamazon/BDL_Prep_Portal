@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v42.0</title>
+<title>BDL PrepHub v42.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3560,7 +3560,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v42.0</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v42.7</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3594,7 +3594,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v42.0</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v42.7</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3910,7 +3910,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v42.0</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v42.7</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -3934,6 +3934,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
             <div class="setCard acc"><h3>When a delivery counts as late</h3><p class="setWhy">Drives the red rows on the Prep Sheet and what reaches Sarah’s Admin.</p>
               <div class="setRow"><div class="l"><b>Normal orders</b><span>days since the order date with nothing booked in</span></div><div class="unit"><input class="fi-in tmIn" id="tm-lateDays" type="number" min="1"><span>days</span></div></div>
               <div class="setRow"><div class="l"><b>Subscribe &amp; Save</b><span>S&amp;S deliveries come on a schedule — they get longer</span></div><div class="unit"><input class="fi-in tmIn" id="tm-ssLateDays" type="number" min="1"><span>days</span></div></div>
+              <div class="setRow"><div class="l"><b>Part arrived — rest overdue after</b><span>9 of 10 turn up; if the last one hasn’t followed by then it goes to Sarah’s Admin as PART ARRIVED</span></div><div class="unit"><input class="fi-in tmIn" id="tm-partDays" type="number" min="1"><span>working days</span></div></div>
               <div class="setRow"><div class="l"><b>Refund window</b><span>how long after ordering a claim can still be made — the “Nd to claim” chip</span></div><div class="unit"><input class="fi-in tmIn" id="tm-refundDays" type="number" min="1"><span>days</span></div></div>
             </div>
             <div class="setCard blu"><h3>Sarah’s Admin</h3><p class="setWhy">She works the page every Monday, so nothing shouts before a week has passed.</p>
@@ -4107,6 +4108,10 @@ ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS resolution jsonb;
 ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS qty_fix jsonb;
 ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS delivered text DEFAULT '';
 ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS wrong_sku text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS rcvd_at timestamptz;
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS va_note_by text DEFAULT '';
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS va_note_at timestamptz;
+ALTER TABLE prep_rows ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 
 -- actions (claims) ------------------------------------------------------------
 ALTER TABLE actions ADD COLUMN IF NOT EXISTS local_id integer;
@@ -5280,6 +5285,8 @@ function sentRollup(start,end){
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
 function renderStats(){
+  {const _stEl=document.getElementById('prepStats');
+   if(_histStreaming&&_stEl&&_stEl.children.length)return;}
   const inTransitRows=rows.filter(r=>r.status==='In-Transit'&&!r.archived);
   const inTransitUnits=inTransitRows.reduce((a,r)=>a+(r.exp||0),0);
   const inTransitValue=inTransitRows.reduce((a,r)=>{const sku=parseSKU(r.sku);return a+(sku.cogs*(r.exp||0));},0);
@@ -5655,7 +5662,7 @@ function renderPrepRows(data){
         onkeydown="if(event.key==='Enter'){event.preventDefault();editNote(this,'${r.uuid||r.id}','notes');}"
         >${r.notes?esc(r.notes):'<span class="noteAdd">+ note</span>'}</div></td>
       <td class="td-left"><div class="noteCell va${r.vaNote?'':' empty'}" tabindex="0"
-        title="Sarah's progress note — click to edit" onclick="editNote(this,'${r.uuid||r.id}','vaNote')"
+        title="${r.vaNoteBy?esc(r.vaNoteBy)+(r.vaNoteAt?' · '+new Date(r.vaNoteAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'')+' — click to edit':"Sarah's progress note — click to edit"}" onclick="editNote(this,'${r.uuid||r.id}','vaNote')"
         onkeydown="if(event.key==='Enter'){event.preventDefault();editNote(this,'${r.uuid||r.id}','vaNote');}"
         data-note-va="${r.uuid||r.id}"
         >${r.vaNote?esc(r.vaNote):'<span class="noteAdd">+ note</span>'}</div></td>
@@ -5707,6 +5714,33 @@ function deferClearNav(){}
 
    `_sentOut` is the truth about what has left the building: the segments are
    authoritative, r.ship is the legacy mirror, so take whichever is larger. */
+/* Jack, 6 Sep: "thought we fixed this" — a row showing 4 SHIPPED and 0
+   RECEIVED. Units on a shipment were, by definition, here; typing the ship
+   figure has raised the received count since 4 Sep, but rows that were
+   already wrong stayed wrong. Every load and every sync now brings received
+   up to what has gone out, and says so in the audit log. */
+function healSentBelowReceived(why){
+  let n=0;
+  (rows||[]).forEach(r=>{
+    if(!r||r.archived)return;
+    const out=_sentOut(r),inn=parseInt(r.rcvd)||0;
+    if(out>inn){
+      r.rcvd=out;r._dirty=true;n++;
+      debounce('healrcvd_'+(r.uuid||r.id),()=>saveRow(r),1500);
+      try{logAudit('Received corrected to match what shipped',`${r.sku||r.asin||''} — was ${inn}, now ${out} (${why||'auto'})`);}catch(e){}
+    }
+    /* Jack, 6 Sep: a row still owed units is Part Sent, whatever went out */
+    if(r.status==='Sent to Amazon'&&_owedUnits(r)>0){
+      r.status='Part Sent';r.sent='No';r._dirty=true;n++;
+      debounce('healst_'+(r.uuid||r.id),()=>saveRow(r),1500);
+      try{logAudit('Status corrected to Part Sent',`${r.sku||r.asin||''} — ${_owedUnits(r)} still owed (${why||'auto'})`);}catch(e){}
+    }
+  });
+  if(n)console.log('[heal] received raised to match shipped on '+n+' row(s) — '+(why||''));
+  return n;
+}
+/* units the supplier still owes on a row */
+function _owedUnits(r){return Math.max(0,(parseInt(r&&r.exp)||0)-(parseInt(r&&r.rcvd)||0)-(parseInt(r&&r.cancelledQty)||0));}
 function _sentOut(r){
   let segs=0;
   try{segs=segmentsSentTotal(r);}catch(e){}
@@ -5755,6 +5789,11 @@ function uf(id,field,val){
     try{logAudit('Received corrected to match what shipped',
       `${r.sku||r.asin||''} — was ${was}, now ${val} (typed on the sheet)`);}catch(e){}
   }
+  /* the 48-hour part-arrival clock reads this: when did the count last move */
+  if(field==='rcvd'&&(parseInt(val)||0)!==(parseInt(r.rcvd)||0))r.rcvdAt=new Date().toISOString();
+  /* who wrote the VA note and when — survives a refresh once the SQL adds the columns */
+  if(field==='vaNote'&&String(val||'').trim()!==String(r.vaNote||'').trim()){
+    r.vaNoteBy=String(val||'').trim()?_who():'';r.vaNoteAt=String(val||'').trim()?new Date().toISOString():'';}
   r[field]=val;
   // Keep shipment segments coherent for SIMPLE rows (one shipment). For rows
   // split across multiple shipments we leave segments as the source of truth —
@@ -6128,6 +6167,7 @@ document.addEventListener('visibilitychange',()=>{
     try{if(_ssConfig.enabled&&!_ssBusy)runSheetSync(false);}catch(e){}}
 });
 function renderPrep(){
+  try{healSentBelowReceived('prep sheet');}catch(e){}
   /* invisible → not painted, only owed */
   if(document.hidden||!_pageActive('page-prep')){_dirtyR.prep=true;return;}
   /* restored bulk ticks (they survive a hard refresh now) need their counter
@@ -6911,8 +6951,10 @@ function saveRowForm(){
      Correcting a supplier's spelling must not delete a fortnight of chasing. */
   if(existing)['resolution','qtyFix','cancelledQty','delivered','wrongSku','archived',
     'sheetSyncId','sheetRow','importedFrom','expectedDelivery','chaseSnoozeUntil',
-    'transitAction','notesBy','notesAt','vaNote','allShipIds','shipSegments','sentAt']
+    'transitAction','notesBy','notesAt','vaNote','vaNoteBy','vaNoteAt','allShipIds','shipSegments','sentAt']
     .forEach(k=>{if(!(k in r)&&existing[k]!==undefined)r[k]=existing[k];});
+  if(existing&&String(r.vaNote||'').trim()!==String(existing.vaNote||'').trim()){
+    r.vaNoteBy=String(r.vaNote||'').trim()?_who():'';r.vaNoteAt=String(r.vaNote||'').trim()?new Date().toISOString():'';}
   /* The form rebuilds received and shipped as two independent boxes with no
      relationship between them, so clearing one while the other held units
      saved the impossible state — and reconcileSegs then rebuilt the segments
@@ -7225,7 +7267,13 @@ function _adminItems(){
     /* a question from the warehouse — "is more on the way?" — is hers to
        answer whether or not the row is late yet */
     const _q=_ukQuery(r);
-    if(!isStuck&&!inChase&&!expOverdue&&!_liveCase&&!_handedBack&&!_q)return;
+    /* Jack, 6 Sep: "9 out of 10 arrive — if the other one hasn't arrived within
+       48 hours it gets flagged on Sarah's page." Working hours, S&S longer. */
+    const _partMs=r.rcvdAt?_workMsSince(r.rcvdAt):0;
+    const _partDays=TM.partDays;   /* Jack, 6 Sep: S&S arrives together — same clock as everything else */
+    const _part=_got>0&&(_units-_got-_cx)>0&&!!r.rcvdAt&&_partMs>=_partDays*24*3600e3&&!_q;
+    const _partRed=_part&&_partMs>=(_partDays+1)*24*3600e3;
+    if(!isStuck&&!inChase&&!expOverdue&&!_liveCase&&!_handedBack&&!_q&&!_part)return;
     let sev,col;
     if(ta==='Urgent — Chase Now'){sev=4;col='#ef4444';}
     else if(ta==='Late — Needs Chasing'||isStuck){sev=3;col='#ef4444';}
@@ -7233,6 +7281,7 @@ function _adminItems(){
     else if(ta==='Delayed'||ta==='Chasing Supplier'){sev=2;col='#fb923c';}
     else{sev=1;col='#fbbf24';}
     if(_q){const _qw=_queryWait(_q);if(_qw>=TM.queryRedDays){sev=4;col='#ef4444';}else if(sev<=2){sev=2;col='#38bdf8';}}
+    if(_part&&sev<=2){sev=_partRed?3:2;col=_partRed?'#ef4444':'#fb923c';}
     /* a chase gone quiet past its 2-working-day due is the most actionable
        thing here — it rises to the top instead of fading (Jack, 30 Aug) */
     if(_c0&&!_parked){const _od=_caseDue(_c0);if(_od!==null&&_od>0){sev=4;col='#ef4444';}}
@@ -7241,6 +7290,7 @@ function _adminItems(){
     /* "(threshold: 20 days)" was printed on all nineteen rows. It is one fact
        about the whole queue, so it is said once in the heading instead. */
     const reason=_q?`${_q.by||'Warehouse'} asked — ${_q.got?_q.short+' of '+_q.exp+' still to come?':'has it been dispatched?'}${_queryWait(_q)>=TM.queryRedDays?' · '+_queryWait(_q)+'d unanswered':''}`
+      :_part?`${_got} of ${_units} in ${_dmy(r.rcvdAt)} — the other ${_units-_got-_cx} never followed`
       :(isStuck?`${days} days in transit`:(expOverdue?`Past expected (${expStr}) — confirm arrival`:(ta||'Needs follow-up')));
     const cogs=parseSKU(r.sku).cogs||0;
     const units=_units,got=_got,cancelled=_cx;
@@ -7251,7 +7301,7 @@ function _adminItems(){
     const partArrived=got>0&&got<units;
     const missing=partArrived?outstanding:0;
     out.push({rid:r.uuid||r.id,sku:r.sku,asin:r.asin,prod:r.prod,sup:r.sup,oid:r.oid,date:r.date,
-      parkedRow:_parkGrace===true,query:_q||null,
+      parkedRow:_parkGrace===true,query:_q||null,partOverdue:_part,partSince:_part?_dmy(r.rcvdAt):'',
       acct:r.acct||'',units,got,cancelled,outstanding,partArrived,missing,
       sheetRow:r.sheetRow||'',expDate:r.expectedDelivery||'',
       /* where the row came from — the Purchase Sheet (Sarah types it) or straight
@@ -7681,7 +7731,7 @@ let REFUND_DAYS=30;
    Jack, 5 Sep: "every clock in plain English" on the Settings page. Each
    number below used to be a literal somewhere in the code; the sites now read
    TM.* so one edit moves every page. Saved in app_settings.timings. */
-const TM_DEF={lateDays:20,ssLateDays:35,refundDays:30,caseWorkDays:5,queryRedDays:2,undoHours:48,recListedAmber:46,recListedRed:90,recUnlistedAmber:14,recUnlistedRed:30};
+const TM_DEF={lateDays:20,ssLateDays:35,partDays:2,refundDays:30,caseWorkDays:5,queryRedDays:2,undoHours:48,recListedAmber:46,recListedRed:90,recUnlistedAmber:14,recUnlistedRed:30};
 let TM=Object.assign({},TM_DEF);
 function _tmApply(v){
   if(v&&typeof v==='object')Object.keys(TM_DEF).forEach(k=>{const n=parseInt(v[k]);if(Number.isFinite(n)&&n>0)TM[k]=n;});
@@ -9338,7 +9388,7 @@ function recRackingLive(){return REC.filter(i=>recActive(i)&&recLocs(i).length).
 /* ── data ──────────────────────────────────────────────────────────────────── */
 function recRowFromDb(d){
   return {id:d.id,name:d.name||'',id_type:d.id_type||'None',id_value:d.id_value||'',amz_sku:d.amz_sku||'',extra_ids:d.extra_ids||[],
-    qty:d.qty||0,locations:d.locations||[],condition:d.condition||'Good',condition_notes:d.condition_notes||'',
+    qty:d.qty||0,locations:d.locations||[],condition:d.condition||'New',condition_notes:d.condition_notes||'',
     cost:d.cost==null?null:+d.cost,status:recStatusOf(d.status),gone_how:d.gone_how||'',gone_qty:parseInt(d.gone_qty)||0,channels:d.channels||[],notes:d.notes||'',
     batch_id:d.batch_id||'',pack:d.pack||[],added_by:d.added_by||'',created_at:d.created_at,last_action_at:d.last_action_at||d.created_at,
     last_action:d.last_action||'',archived:!!d.archived||d.status==='archived',gone_at:d.gone_at||null,
@@ -9478,7 +9528,7 @@ function renderRecovery(){
     const locs=recLocs(i);
     const gone=!recActive(i),removed=recRemoved(i);
     const locHtml=locs.length?locs.map(l=>`<span class="recLoc" title="${fmt(l.qty)} units here">${esc(l.loc)}${locs.length>1?' <span style="opacity:.7">×'+fmt(l.qty)+'</span>':''}</span>`).join('')
-      :`<span class="recLoc none" title="${rackLive?'No location — assign one':'Racking not set up yet'}">${rackLive?'⚠ no rack':'—'}</span>`;
+      :(rackLive?`<span class="recLoc none" title="No location — assign one">⚠ no rack</span>`:`<span class="recDash" title="Racking not set up yet">—</span>`);
     const chs=recChs(i);
     const chLabel=chs.length?chs.map(c=>c.ch==='Facebook Marketplace'?'Facebook':c.ch).join(' · '):'';
     const link=chs.find(c=>c.url);
@@ -9487,22 +9537,21 @@ function renderRecovery(){
     const stateHtml=gone
       ?`<span class="recState gone">GONE</span><div class="recSub">${esc(REC_GONE_HOW[recGoneHow(i)]||'gone')}${i.gone_at?' · '+recDay(i.gone_at):''}${removed?' · removed':''}</div>`
       :i.status==='listed'
-        ?`<span class="recState listed">LISTED<span class="recEb">${esc(chLabel||'—')}</span></span>${link?`<div class="recSub"><a href="${esc(link.url)}" target="_blank" onclick="event.stopPropagation()" style="color:#60a5fa">open listing</a></div>`:(chs[0]&&chs[0].ref?`<div class="recSub" style="font-family:var(--mono)">${esc(chs[0].ref)}</div>`:'')}`
+        ?`<span class="recState listed">LISTED<span class="recEb">${esc(chLabel||'—')}</span></span>${link?` <a href="${esc(link.url)}" target="_blank" onclick="event.stopPropagation()" class="recLink">open ↗</a>`:(chs[0]&&chs[0].ref?` <span class="recSub" style="display:inline;font-family:var(--mono)">${esc(chs[0].ref)}</span>`:'')}`
         :`<span class="recState here">SITTING HERE</span>`;
-    const sinceHtml=gone?'<span class="recAge" style="color:var(--text3)">—</span>'
-      :`<span class="recAge" style="color:${recAgeCol(age,clk.listed)}">${age}d</span><div class="recSub">${clk.listed?'listed '+recDay(recListedOn(i)):'not listed'}${recNeedsClearing(i)?' — needs clearing':''}</div>`;
+    const sinceHtml=gone?''
+      :`<div class="recSince"><span class="recAge" style="color:${recAgeCol(age,clk.listed)}">${age===0?'today':age+'d'}</span><span class="recSub" style="display:inline">${clk.listed?' · listed '+recDay(recListedOn(i)):' · not listed'}${recNeedsClearing(i)?' · <b style="color:#f87171">needs clearing</b>':''}</span></div>`;
     return `<tr class="row ${_recSel.has(i.id)?'sel':''} ${_recOpen===i.id?'open':''} ${gone?'dim':''} ${(!gone&&recNeedsClearing(i))?'late':''}" onclick="recOpen('${i.id}')">
       <td class="recStripeTd"><span class="recStripe" style="background:${stripe}"></span></td>
       <td class="c" onclick="event.stopPropagation()"><input type="checkbox" ${_recSel.has(i.id)?'checked':''} onchange="recToggle('${i.id}',this.checked)"></td>
-      <td><div class="recName">${esc(i.name||'(no name)')}</div><div class="recId">${i.id_value?esc(i.id_value):''}${i.amz_sku?(i.id_value?' · ':'')+esc(i.amz_sku):''}${src?` <span style="opacity:.75">· ${esc(src)}</span>`:''}</div>${i.notes?`<div class="recNoteLine" title="${esc(i.notes)}">${esc(i.notes)}</div>`:''}</td>
+      <td class="recProdTd"><div class="recName" title="${esc(i.name||'')}">${esc(i.name||'(no name)')}</div><div class="recId">${i.id_value?esc(i.id_value):''}${i.amz_sku?(i.id_value?' · ':'')+esc(i.amz_sku):''}${src?` <span style="opacity:.75">· ${esc(src)}</span>`:''}</div>${i.notes?`<div class="recNoteLine" title="${esc(i.notes)}">${esc(i.notes)}</div>`:''}</td>
       <td class="r"><div class="recNum">${fmt(recQty(i))}</div></td>
       <td>${locHtml}</td>
-      <td><span class="recCond" style="color:${/^new|^good/i.test(i.condition)?'#4ade80':/bad|ood/i.test(i.condition)?'#f87171':'#e2c68a'}">${esc(i.condition||'Good')}</span>${i.condition_notes?`<div class="recSub" title="${esc(i.condition_notes)}">${esc(i.condition_notes)}</div>`:''}</td>
-      <td class="r"><span class="recNum" style="color:${gone?'var(--text3)':'var(--accent)'}">${i.cost!=null&&i.cost!==''?fmtGBP2(recQty(i)*i.cost):'<span style="color:var(--text3)">—</span>'}</span>${i.cost!=null&&i.cost!==''&&recQty(i)>1?`<div class="recSub">${fmtGBP2(i.cost)} each</div>`:''}</td>
-      <td>${stateHtml}</td>
-      <td>${sinceHtml}</td>
+      <td><span class="recCond" style="color:${/^new|^good/i.test(i.condition)?'#4ade80':/bad|ood/i.test(i.condition)?'#f87171':'#e2c68a'}">${esc(i.condition||'New')}</span>${i.condition_notes?`<div class="recSub" title="${esc(i.condition_notes)}">${esc(i.condition_notes)}</div>`:''}</td>
+      <td class="r"><span class="recNum" style="color:${gone?'var(--text3)':'var(--accent)'}">${i.cost!=null&&i.cost!==''?fmtGBP2(recQty(i)*i.cost):'<span class="recDash" title="No cost recorded — open ··· to add it">—</span>'}</span>${i.cost!=null&&i.cost!==''&&recQty(i)>1?`<div class="recSub">${fmtGBP2(i.cost)} each</div>`:''}</td>
+      <td class="recStateTd">${stateHtml}${sinceHtml}</td>
       <td class="r recActsTd" onclick="event.stopPropagation()"><div class="recRowActs">
-        ${!gone&&i.status==='here'?`<button class="go" onclick="recListModal(['${i.id}'])" title="It is on eBay / Vinted now — starts the listed clock">List it</button>`:''}
+        ${!gone&&i.status==='here'?`<button class="go" onclick="recListModal(['${i.id}'])" title="It is on eBay / Vinted — say where and since when">Listed on…</button>`:''}
         ${!gone?`<button class="ok" onclick="recGoneModal(['${i.id}'])" title="Sold, cleared or back to Amazon — no price asked">Gone</button>`:''}
         ${gone&&!removed?`<button class="ok" onclick="recRemove(['${i.id}'])" title="Off every view and every number. Kept in the audit log — Show removed brings it back">Remove</button><button onclick="recUnarchive('${i.id}')" title="It is back on the shelf after all">Undo</button>`:''}
         ${removed?`<button onclick="recUnarchive('${i.id}')">Bring back</button>`:''}
@@ -9536,7 +9585,7 @@ function renderRecovery(){
     ${(_recQ||_recF.loc||_recF.cond)?`<button class="recBtn sm" onclick="_recQ='';_recF={loc:'',cond:''};renderRecovery()">&#10005; Clear filters</button>`:''}
   </div>
   ${_recSel.size?`<div class="recBulk"><span class="n">${fmt(_recSel.size)} line${_recSel.size===1?'':'s'} · ${fmt(selUnits)} units selected</span>
-    <button class="recBtn sm" onclick="recListModal([..._recSel])">List them</button>
+    <button class="recBtn sm good" onclick="recListModal([..._recSel])">Mark listed…</button>
     <button class="recBtn sm good" onclick="recGoneModal([..._recSel])">Gone</button>
     <button class="recBtn sm" onclick="recMoveModal([..._recSel])">Move location</button>
     <button class="recBtn sm" onclick="recNoteModal([..._recSel])">Add note</button>
@@ -9552,11 +9601,10 @@ function renderRecovery(){
         <th onclick="_recSort='loc';renderRecovery()" class="${_recSort==='loc'?'on':''}">Where</th>
         <th>Condition</th>
         <th class="r" onclick="_recSort='money';renderRecovery()" class="${_recSort==='money'?'on':''}">Cost sitting</th>
-        <th>State</th>
-        <th onclick="_recSort='sitting';renderRecovery()" class="${_recSort==='sitting'?'on':''}">Since</th>
+        <th onclick="_recSort='sitting';renderRecovery()" class="${_recSort==='sitting'?'on':''}">State · since</th>
         <th class="r recActsTh">Actions</th>
       </tr></thead><tbody>
-        ${list.length?list.map(rowHtml).join(''):`<tr><td colspan="10"><div class="recEmpty">${REC.length?'Nothing matches these filters.':'Nothing here yet.'}<small>${REC.length?'Clear the filters or pick another tab.':'Use <b>+ Add stock</b> to paste the stocktake, or send a gated item over from Jack’s Admin.'}</small></div></td></tr>`}
+        ${list.length?list.map(rowHtml).join(''):`<tr><td colspan="9"><div class="recEmpty">${REC.length?'Nothing matches these filters.':'Nothing here yet.'}<small>${REC.length?'Clear the filters or pick another tab.':'Use <b>+ Add stock</b> to paste the stocktake, or send a gated item over from Jack’s Admin.'}</small></div></td></tr>`}
       </tbody></table></div>
       <div class="recFoot" style="margin-top:8px"><span>Showing ${fmt(list.length)} of ${fmt(counts[_recTab]||0)} in this view · ${fmt(REC.filter(i=>!recRemoved(i)).length)} lines${REC.some(recRemoved)?` · <label style="cursor:pointer;color:var(--text2)"><input type="checkbox" ${_recShowRemoved?'checked':''} onchange="_recShowRemoved=this.checked;renderRecovery()"> show removed (${fmt(REC.filter(recRemoved).length)})</label>`:''}</span>
         <span style="margin-left:auto">Not listed: <b style="color:#fbbf24">${TM.recUnlistedAmber}d</b> amber · <b style="color:#f87171">${TM.recUnlistedRed}d</b> red &nbsp;·&nbsp; Listed: <b style="color:#fbbf24">${TM.recListedAmber}d</b> amber · <b style="color:#f87171">${TM.recListedRed}d</b> red &nbsp;· Gone lines tidy themselves away after 30 days · Settings → Timings</span></div>
@@ -9590,7 +9638,7 @@ function recDrawerHtml(i){
     <label>Name</label><input value="${esc(i.name)}" onchange="recField('${i.id}','name',this.value)">
     <label>Qty</label><input type="number" min="0" value="${recQty(i)}" onchange="recSetQty('${i.id}',this.value)" ${gone?'disabled':''}>
     <label>Rack</label><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${locs.length?locs.map(l=>`<span class="recLoc">${esc(l.loc)}${locs.length>1?' <span style="opacity:.7">×'+fmt(l.qty)+'</span>':''}</span>`).join(''):'<span class="recLoc none">—</span>'}${!gone?`<button class="recBtn sm" onclick="recMoveModal(['${i.id}'])">Move / split</button>`:''}</div>
-    <label>Condition</label><div>${recPickBtn('cond',i.condition||'Good','data-id="'+i.id+'"')}</div>
+    <label>Condition</label><div>${recPickBtn('cond',i.condition||'New','data-id="'+i.id+'"')}</div>
     <label>Cost / unit</label><input type="number" step="0.01" value="${i.cost==null?'':i.cost}" placeholder="£" onchange="recField('${i.id}','cost',this.value===''?null:+this.value)">
     <label>Identifier</label><input value="${esc(i.id_value)}" placeholder="ASIN / EAN / SKU" onchange="recField('${i.id}','id_value',this.value);recField('${i.id}','id_type',recDetectIdType(this.value))">
     <label>Note</label><textarea placeholder="anything worth remembering — a line is enough" onchange="recField('${i.id}','notes',this.value)">${esc(i.notes||'')}</textarea>
@@ -9599,7 +9647,7 @@ function recDrawerHtml(i){
     ${chs.map((c,n)=>`<div class="recChRef" style="margin-top:6px"><input value="${esc(c.ref||'')}" placeholder="${/ebay/i.test(c.ch)?'eBay SKU / item no.':'reference'}" onchange="recChannelField('${i.id}',${n},'ref',this.value)"><input value="${esc(c.url||'')}" placeholder="listing link (optional)" onchange="recChannelField('${i.id}',${n},'url',this.value)"></div>`).join('')}</div>`:''}
   <div class="recDSec"><h4>History · added ${recDay(i.created_at)}${i.added_by?' by '+esc(i.added_by):''}</h4><div class="recTL" id="recTL">${recTimelineHtml(i.id)}</div></div>
   <div class="recDActs">
-    ${!gone&&i.status==='here'?`<button class="recBtn good" onclick="recListModal(['${i.id}'])">List it</button>`:''}
+    ${!gone&&i.status==='here'?`<button class="recBtn good" onclick="recListModal(['${i.id}'])">Listed on…</button>`:''}
     ${!gone?`<button class="recBtn" onclick="recGoneModal(['${i.id}'])">Gone</button>`:''}
     ${gone&&!recRemoved(i)?`<button class="recBtn bad" onclick="recRemove(['${i.id}'])">Remove</button>`:''}
     ${gone?`<button class="recBtn good" onclick="recUnarchive('${i.id}')">Bring back to stock</button>`:''}
@@ -9688,18 +9736,24 @@ function recModalClose(){const el=document.getElementById('recModalHost');if(el)
 /* ── add / bulk add ────────────────────────────────────────────────────────── */
 function recAddModal(rowsN){
   const locOpts=Object.keys(recLocCounts().m).sort();
+  const today=new Date().toISOString().slice(0,10);
+  /* Jack, 6 Sep: "where is listed in all of this?" — a stocktake line is often
+     already on eBay, so it says so here and enters as LISTED with the right
+     clock, instead of Sitting here and a second trip to press List it. */
   const row=n=>`<tr id="recAR${n}"><td class="n">${n+1}</td>
     <td><input data-f="name" placeholder="Product name" oninput="recGridCheck()"></td>
-    <td><input data-f="amz_sku" placeholder="Amuk_… (if an Amazon return)" oninput="recGridAmz(this)"></td>
-    <td><input data-f="id_value" placeholder="ASIN / EAN / UPC / other" oninput="recGridCheck();recGridCost(this);recGridIdHint(this)"><div class="recIdHint"></div></td>
-    <td><input data-f="qty" type="number" min="1" value="1" style="width:64px"></td>
-    <td>${recPickBtn('cond','Good','data-f="condition"')}</td>
-    <td><input data-f="cost" type="number" step="0.01" placeholder="£" style="width:84px"></td>
-    <td><input data-f="loc" list="recLocList" placeholder="${locOpts.length?'REC-A1':'later'}" style="width:96px"></td>
+    <td><input data-f="amz_sku" placeholder="Amuk_… — fills the rest" oninput="recGridAmz(this)"></td>
+    <td><input data-f="id_value" placeholder="ASIN / EAN" oninput="recGridCheck();recGridCost(this);recGridIdHint(this)"><div class="recIdHint"></div></td>
+    <td><input data-f="qty" type="number" min="1" value="1" oninput="recGridCheck()"></td>
+    <td>${recPickBtn('cond','New','data-f="condition"')}</td>
+    <td><select data-f="listed" onchange="recGridListed(this);recGridCheck()"><option value="">Not listed</option>${REC_CHANNELS.map(c=>`<option value="${esc(c)}">${esc(c==='Facebook Marketplace'?'Facebook':c)}</option>`).join('')}</select></td>
+    <td><input data-f="since" type="date" value="${today}" max="${today}" disabled title="When it went up — sets the listed clock"></td>
+    <td><input data-f="cost" type="number" step="0.01" placeholder="£"></td>
+    <td><input data-f="loc" list="recLocList" placeholder="${locOpts.length?'RACK-A1':'optional'}"></td>
     <td><input data-f="notes" placeholder="optional"></td></tr>`;
   recModal(`<h3>${rowsN>1?'Bulk add stock':'Add an item'}</h3>
-    <div class="sub">One row per product. <b>Product name</b>, <b>quantity</b> and <b>condition</b> are required — everything else can come later. ${recRackingLive()?'':'Racking isn&rsquo;t set up yet, so location is optional for now.'}</div>
-    <div class="recGridWrap"><table class="recGrid"><thead><tr><th></th><th class="req">Product</th><th>Amazon SKU</th><th>Identifier</th><th class="req">Qty</th><th class="req">Condition</th><th>Cost / unit</th><th>Location</th><th>Notes</th></tr></thead>
+    <div class="sub">One row per product. <b>Product</b>, <b>qty</b> and <b>condition</b> are required. Already on eBay? Pick it under <b>Listed on</b> and the line enters as Listed with its clock set from <b>Since</b>. ${recRackingLive()?'':'Racking isn&rsquo;t set up yet, so rack is optional.'}</div>
+    <div class="recGridWrap"><table class="recGrid"><thead><tr><th></th><th class="req" style="min-width:220px">Product</th><th style="width:170px">Amazon SKU</th><th style="width:150px">Identifier</th><th class="req" style="width:64px">Qty</th><th class="req" style="width:120px">Condition</th><th style="width:118px">Listed on</th><th style="width:136px">Since</th><th style="width:88px">Cost / unit</th><th style="width:104px">Rack</th><th>Note</th></tr></thead>
       <tbody id="recGridBody">${Array.from({length:rowsN},(_,n)=>row(n)).join('')}</tbody></table></div>
     <datalist id="recLocList">${locOpts.map(l=>`<option value="${esc(l)}">`).join('')}</datalist>
     <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
@@ -9708,7 +9762,7 @@ function recAddModal(rowsN){
       <span class="recHint" style="margin:0">Tip: type the <b>Amazon SKU</b> from the return and the name, ASIN and cost fill themselves from the Prep Sheet. Identifiers are recognised automatically — no type to pick.</span></div>
     <details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px;font-weight:800;color:var(--accent)">Paste from a spreadsheet instead &#9662;</summary>
       <div class="recHint" style="margin:6px 0">Copy the rows from your sheet and paste below. Columns in this order, tab-separated (blank cells are fine):<br>
-        <code style="font-family:var(--mono)">Product · Amazon SKU · Identifier · Qty · Condition · Cost · Location · Notes</code></div>
+        <code style="font-family:var(--mono)">Product · Amazon SKU · Identifier · Qty · Condition · Listed on · Since (dd/mm/yyyy) · Cost · Rack · Note</code> — the old 8-column order (Cost after Condition) still works.</div>
       <textarea class="recPaste" id="recPasteBox" placeholder="Paste here…" onpaste="setTimeout(recGridPaste,10)"></textarea></details>
     <div id="recGridWarn"></div>
     <div class="foot"><span class="left" id="recGridCount"></span>
@@ -9719,18 +9773,20 @@ function recAddModal(rowsN){
 function recGridRows(){
   return [...document.querySelectorAll('#recGridBody tr')].map(tr=>{
     const g=f=>{const el=tr.querySelector(`[data-f="${f}"]`);return el?String(el.dataset&&el.dataset.v!=null?el.dataset.v:(el.value||'')).trim():'';};
-    return {tr,name:g('name'),amz_sku:g('amz_sku'),id_value:g('id_value'),id_type:recDetectIdType(g('id_value')),qty:parseInt(g('qty'))||0,condition:g('condition')||'Good',cost:g('cost')===''?null:+g('cost'),loc:recNormLoc(g('loc')),notes:g('notes')};
+    return {tr,name:g('name'),amz_sku:g('amz_sku'),id_value:g('id_value'),id_type:recDetectIdType(g('id_value')),qty:parseInt(g('qty'))||0,condition:g('condition')||'New',cost:g('cost')===''?null:+g('cost'),loc:recNormLoc(g('loc')),notes:g('notes'),listed:g('listed'),since:g('since')};
   });
 }
 function recGridAddRows(n){
   const tb=document.getElementById('recGridBody');if(!tb)return;
   const start=tb.children.length;
   for(let k=0;k<n;k++){const tr=tb.children[0].cloneNode(true);tr.id='recAR'+(start+k);tr.querySelector('.n').textContent=start+k+1;
-    tr.querySelectorAll('input').forEach(x=>{x.value=x.dataset.f==='qty'?'1':'';});
-    const pk=tr.querySelector('.recPk');if(pk){pk.dataset.v='Good';pk.innerHTML='Good <span style="opacity:.5">&#9662;</span>';}
+    tr.querySelectorAll('input').forEach(x=>{x.value=x.dataset.f==='qty'?'1':(x.dataset.f==='since'?new Date().toISOString().slice(0,10):'');if(x.dataset.f==='since')x.disabled=true;});
+    tr.querySelectorAll('select').forEach(x=>{x.value='';});
+    const pk=tr.querySelector('.recPk');if(pk){pk.dataset.v='New';pk.innerHTML='New <span style="opacity:.5">&#9662;</span>';}
     const h=tr.querySelector('.recIdHint');if(h)h.textContent='';tr.classList.remove('dupe','bad');tb.appendChild(tr);}
   recGridCheck();
 }
+function recGridListed(sel){const tr=sel.closest('tr');const d=tr.querySelector('[data-f="since"]');if(d){d.disabled=!sel.value;if(sel.value&&!d.value)d.value=new Date().toISOString().slice(0,10);}}
 function recGridIdHint(inp){const h=inp.parentElement.querySelector('.recIdHint');if(!h)return;const t=recDetectIdType(inp.value);h.textContent=t==='None'?'':t;}
 /* Amazon SKU typed → the Prep Sheet row fills the rest */
 function recGridAmz(inp){
@@ -9763,7 +9819,17 @@ function recGridPaste(){
     set('name',cells[0]);set('amz_sku',cells[1]);set('id_value',cells[2]);set('qty',cells[3]);
     const pk=tr.querySelector('.recPk');const cond=recCondMatch(cells[4]);
     if(pk&&cond){pk.dataset.v=cond;pk.innerHTML=esc(cond)+' <span style="opacity:.5">&#9662;</span>';}
-    set('cost',cells[5]?String(cells[5]).replace(/[£,]/g,''):'');set('loc',cells[6]);set('notes',cells.slice(7).join(' '));
+    /* new order has Listed on + Since after Condition; the old order put Cost there */
+    const chName=REC_CHANNELS.find(c=>c.toLowerCase()===String(cells[5]||'').toLowerCase()||(String(cells[5]||'').toLowerCase()==='facebook'&&c==='Facebook Marketplace'));
+    const newOrder=!!chName||/^(not listed|—|-)$/i.test(String(cells[5]||''));
+    if(newOrder){
+      const sel=tr.querySelector('[data-f="listed"]');if(sel){sel.value=chName||'';recGridListed(sel);}
+      const d=tr.querySelector('[data-f="since"]');const m=/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/.exec(String(cells[6]||'').trim());
+      if(d&&m){const y=m[3].length===2?'20'+m[3]:m[3];d.value=`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;}else if(d&&/^\d{4}-\d{2}-\d{2}$/.test(String(cells[6]||'')))d.value=cells[6];
+      set('cost',cells[7]?String(cells[7]).replace(/[£,]/g,''):'');set('loc',cells[8]);set('notes',cells.slice(9).join(' '));
+    }else{
+      set('cost',cells[5]?String(cells[5]).replace(/[£,]/g,''):'');set('loc',cells[6]);set('notes',cells.slice(7).join(' '));
+    }
     const amz=tr.querySelector('[data-f="amz_sku"]');if(amz&&amz.value)recGridAmz(amz);
     if(!cells[5]&&cells[2]){const c=recCostFromSku(cells[2]);if(c!=null)set('cost',c);}
     recGridIdHint(tr.querySelector('[data-f="id_value"]'));
@@ -9779,7 +9845,8 @@ function recGridCheck(){
     if(!r.name||r.qty<1){r.tr.classList.add('bad');bad++;}
     else if(r.id_value&&active.some(i=>(i.id_value||'').toLowerCase()===r.id_value.toLowerCase())){r.tr.classList.add('dupe');dupes++;}
   });
-  const c=document.getElementById('recGridCount');if(c)c.textContent=filled?`${filled} row${filled===1?'':'s'} filled${bad?` · ${bad} missing a name or quantity`:''}${dupes?` · ${dupes} already in stock (fine — it comes back, add anyway)`:''}`:'Nothing entered yet';
+  const _u=rows.filter(r=>r.name).reduce((t,r)=>t+(r.qty||0),0),_c=rows.filter(r=>r.name).reduce((t,r)=>t+(r.qty||0)*(r.cost||0),0),_l=rows.filter(r=>r.name&&r.listed).length;
+  const c=document.getElementById('recGridCount');if(c)c.innerHTML=filled?`<b>${filled}</b> line${filled===1?'':'s'} · <b>${fmt(_u)}</b> units · <b>${fmtGBP2(_c)}</b> at cost${_l?` · <b>${_l}</b> already listed`:''}${bad?` · <span style="color:#f87171">${bad} missing a name or qty</span>`:''}${dupes?` · <span style="color:#fbbf24">${dupes} already in stock</span>`:''}`:'Nothing entered yet';
   const go=document.getElementById('recGridGo');if(go)go.disabled=!filled||!!bad;
   const w=document.getElementById('recGridWarn');
   if(w)w.innerHTML=dupes?`<div class="recWarn"><b>${dupes} possible duplicate${dupes===1?'':'s'}</b> — the identifier is already in active Recovery Stock (amber rows). Returns come back, so this is usually fine: they'll be added as separate records. Use the drawer afterwards to merge quantities if it really is the same unit.</div>`:'';
@@ -9791,12 +9858,13 @@ async function recGridCommit(){
   const go=document.getElementById('recGridGo');if(go){go.disabled=true;go.textContent='Adding…';}
   let n=0;
   for(const r of rows){
+    const _since=r.listed?(r.since?new Date(r.since+'T12:00:00').toISOString():recNow()):null;
     const i={id:recUid(),name:r.name,id_type:r.id_value?r.id_type:'None',id_value:r.id_value,amz_sku:r.amz_sku||'',extra_ids:[],qty:r.qty,
-      locations:r.loc?[{loc:r.loc,qty:r.qty}]:[],condition:r.condition||'Good',condition_notes:'',cost:r.cost,status:'here',
-      channels:[],notes:r.notes||'',batch_id:'',pack:[],added_by:_who(),created_at:recNow(),last_action_at:recNow(),last_action:'Added',archived:false,gone_at:null,
-      listed_at:null,sold_price:null,source:'Added by hand',source_ref:'',rack:''};
+      locations:r.loc?[{loc:r.loc,qty:r.qty}]:[],condition:r.condition||'New',condition_notes:'',cost:r.cost,status:r.listed?'listed':'here',
+      channels:r.listed?[{ch:r.listed,ref:'',url:'',date:_since,note:''}]:[],notes:r.notes||'',batch_id:'',pack:[],added_by:_who(),created_at:recNow(),last_action_at:recNow(),last_action:'Added',archived:false,gone_at:null,
+      listed_at:r.listed?_since:null,sold_price:null,source:'Added by hand',source_ref:'',rack:''};
     REC.unshift(i);n++;
-    await recSave(i,'Added',`${fmt(r.qty)} × ${r.condition}${r.loc?' @ '+r.loc:''}${r.cost!=null?' · '+fmtGBP2(r.cost)+'/unit':''}`);
+    await recSave(i,'Added',`${fmt(r.qty)} × ${r.condition}${r.loc?' @ '+r.loc:''}${r.cost!=null?' · '+fmtGBP2(r.cost)+'/unit':''}${r.listed?' · already listed on '+r.listed+' since '+recDay(_since):''}`);
   }
   recModalClose();toast(`${n} item${n===1?'':'s'} added to Recovery Stock`,'ok');
   _recTab='all';renderRecovery();
@@ -9931,23 +9999,27 @@ function recListModal(ids){
   const items=ids.map(id=>REC.find(i=>i.id===id)).filter(Boolean).filter(i=>recActive(i)&&i.status==='here');
   if(!items.length){toast('Nothing here to list — pick lines that are sitting here','er');return;}
   const one=items.length===1?items[0]:null;
-  recModal(`<h3>${one?'List it — '+esc(one.name):'List '+fmt(items.length)+' lines'}</h3>
-    <div class="sub">Where is it up for sale? The listed clock starts today.</div>
+  const _today=new Date().toISOString().slice(0,10);
+  recModal(`<h3>${one?'Listed on… — '+esc(one.name):'Mark '+fmt(items.length)+' lines as listed'}</h3>
+    <div class="sub">Where is it up for sale, and since when? Already been on eBay a while — set the date and the clock is right from the start.</div>
     <div class="recF">
-      <label>Listed on</label><select id="recLstCh">${REC_CHANNELS.map(c=>`<option>${c}</option>`).join('')}</select>
+      <label>Listed on</label><select id="recLstCh">${REC_CHANNELS.map(c=>`<option>${c==='Facebook Marketplace'?'Facebook':c}</option>`).join('')}</select>
+      <label>Since</label><input id="recLstSince" type="date" value="${_today}" max="${_today}">
       ${one?`<label>eBay SKU / item no.</label><input id="recLstRef" placeholder="optional">
       <label>Listing link</label><input id="recLstUrl" placeholder="paste it if you have it (optional)">`:''}
     </div>
-    <div class="foot"><button class="recBtn" onclick="recModalClose()">Cancel</button><button class="recBtn good" onclick="recListGo(${JSON.stringify(items.map(i=>i.id))})">Listed &#10003;</button></div>`);
+    <div class="foot"><button class="recBtn" onclick="recModalClose()">Cancel</button><button class="recBtn good" onclick="recListGo(${JSON.stringify(items.map(i=>i.id))})">It’s listed &#10003;</button></div>`);
 }
 async function recListGo(ids){
-  const ch=(document.getElementById('recLstCh')||{}).value||'eBay';
+  let ch=(document.getElementById('recLstCh')||{}).value||'eBay';if(ch==='Facebook')ch='Facebook Marketplace';
   const ref=((document.getElementById('recLstRef')||{}).value||'').trim(),url=((document.getElementById('recLstUrl')||{}).value||'').trim();
+  const sinceV=((document.getElementById('recLstSince')||{}).value||'').trim();
+  const since=sinceV?new Date(sinceV+'T12:00:00').toISOString():recNow();
   recModalClose();
   for(const id of ids){const i=REC.find(x=>x.id===id);if(!i||!recActive(i))continue;
-    i.channels=[{ch,ref,url,date:recNow(),note:''}];i.listed_at=recNow();i.status='listed';
-    await recSave(i,'Listed',ch+(ref?' · '+ref:''));}
-  _recSel.clear();toast(`Listed on ${ch}`,'ok');renderRecovery();
+    i.channels=[{ch,ref,url,date:since,note:''}];i.listed_at=since;i.status='listed';
+    await recSave(i,'Listed',ch+(ref?' · '+ref:'')+' · since '+recDay(since));}
+  _recSel.clear();toast(`Listed on ${ch}${sinceV?' since '+recDay(since):''}`,'ok');renderRecovery();
 }
 /* ── Gone ──────────────────────────────────────────────────────────────────── */
 function recGoneModal(ids){
@@ -10984,6 +11056,7 @@ function _qryReplyNote(r,text){
   const d=new Date(),dd=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
   const line=`${_who()} ${dd}: ${text}`;
   r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+line;
+  r.vaNoteBy=_who();r.vaNoteAt=new Date().toISOString();
 }
 /* the question is answered: an approved, filed record on the row — kept, never deleted */
 function _qryClose(r,answer,what,logWhat){
@@ -12373,6 +12446,7 @@ function _allAdminRows(){
 function _typeOf(i){
   if(i.kind==='job')return['JOB','#94a3b8','A job Jack sent over'];
   if(i.kind==='transit'&&i.query)return['QUERY','#38bdf8','The warehouse asked whether more is on the way — answer it here, or send it to Jack'];
+  if(i.kind==='transit'&&i.partOverdue)return['PART ARRIVED','#fb923c','Some of it arrived and the rest has not followed in time — more coming, or is it missing?'];
   if(i.kind==='transit')return['LATE','#f87171','Still in transit past when it should have landed — needs chasing'];
   if(i.kind==='lavlate')return['DELIVERY LATE','#c084fc','A Lavarion order past its expected window with nothing booked in'];
   if(i.kind==='lav'){
@@ -13027,10 +13101,10 @@ function renderAdmin(){
                 /* a question from the warehouse: four answers, each one press;
                    the row parks or balances itself and the VA Note carries the
                    reply back to the Prep Sheet */
-                if(i.query){
-                  const Q=i.query;
+                if(i.query||i.partOverdue){
+                  const Q=i.query||{got:i.got,exp:i.units,ask:`${i.got} of ${i.units} arrived ${i.partSince} — the rest has not followed`,note:''};
                   return `<div class="csNow">
-                    <div class="csNowCap" style="color:#38bdf8;">Question from the warehouse</div>
+                    <div class="csNowCap" style="color:${i.query?'#38bdf8':'#fb923c'};">${i.query?'Question from the warehouse':'Part arrived — rest overdue'}</div>
                     <div class="csNowTxt" title="${esc(Q.ask||'')}">${Q.got?`${Q.got} of ${Q.exp} booked in — is more on the way?`:`Nothing booked in yet — has it been dispatched?`}</div>
                     ${Q.note?`<div class="csNote" title="${esc(Q.note)}">&ldquo;${esc(Q.note)}&rdquo;</div>`:''}
                     <div class="csActs">
@@ -13104,6 +13178,11 @@ function renderAdmin(){
                     state=_qw>=TM.queryRedDays?`QUESTION — ${_qw}D UNANSWERED`:'QUESTION FROM THE WAREHOUSE';scol=_qw>=TM.queryRedDays?'#ef4444':'#38bdf8';
                     last=`${i.query.by||'Warehouse'} — ${i.query.got?i.query.got+' of '+i.query.exp+' booked in. Is more on the way?':'Nothing booked in. Has it been dispatched?'}`+(i.query.at?' · '+lw(i.query.at):'');
                     next=isAmz?'Check the order \u2014 or Send to Jack if you can\u2019t see the account':'Check with the supplier \u2014 more coming (set the date) or nothing more (raise the shortfall)';
+                  }
+                  else if(i.partOverdue){
+                    state='PART ARRIVED \u2014 REST OVERDUE';scol=i.col;
+                    last=`${i.got} of ${i.units} booked in ${i.partSince} \u2014 nothing since`;
+                    next=isAmz?'Check the order \u2014 or Send to Jack if you can\u2019t see the account':'Ask the supplier \u2014 more coming (set the date) or nothing more (raise the shortfall)';
                   }
                   else if(sd){
                     state=sd.overdue?`CHASE — ${sd.overdue}D OVERDUE`:(sd.dueIn!==null?'WAITING ON SUPPLIER':'BEING WORKED');
@@ -15772,7 +15851,8 @@ function buildMonthMap(filterFn){
     map[key].lavRows.push(s);
     if(s.shipId)map[key].shipIds.add(s.shipId);
   };
-  rows.filter(r=>r.sent==='Yes'&&r.sentDate&&(!filterFn||filterFn(r.sentDate))).forEach(r=>{
+  /* Part Sent rows shipped real units too — they count in the month they went */
+  rows.filter(r=>r.sentDate&&(r.sent==='Yes'||(parseInt(r.ship)||0)>0)&&(!filterFn||filterFn(r.sentDate))).forEach(r=>{
     const[y,m]=r.sentDate.split('-');
     const key=y+'-'+m;
     addRow(key,new Date(+y,+m-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'}),r);
@@ -17378,8 +17458,9 @@ function openSendModal(r,isPartial,allowExtra){
       // Record this shipment as its own segment — never merge into a prior one.
       addSegment(r,shipId,sendQty,type);
       r.sentDate=shipDateFor(shipId);r.sentAt=getNowUK();
-      // Fully sent only when nothing is left to ship.
-      if(remainingToShip(r)>0){
+      // Fully sent only when nothing is left to ship AND nothing is still owed
+      // (Jack, 6 Sep: 3 expected, 2 in, 2 sent must read Part Sent, not Sent).
+      if(remainingToShip(r)>0||_owedUnits(r)>0){
         r.status='Part Sent';r.sent='No';
       }else{
         r.status='Sent to Amazon';r.sent='Yes';
@@ -20541,6 +20622,14 @@ function setSyncStatus(status){
      replayed at finalize, so nothing another laptop does in the gap is lost.
    localStorage ph_boot_mode='legacy' boots the old single-phase path. */
 let _historyReady=false;
+/* Jack, 6 Sep: "when it's syncing it moves stuff down and then back up."
+   Sync Now re-runs dbLoad: Phase A swaps `rows` for the ACTIVE ones and paints
+   at once, Phase B streams the archive back in over the next few seconds. The
+   stats strip above the Prep Sheet painted in that gap with most of the sent
+   rows missing, so its subtitles shortened, a tile un-wrapped, the strip lost a
+   line and the whole table jumped — then jumped back when the archive landed.
+   While the archive is streaming the strip keeps the last complete picture. */
+let _histStreaming=false;
 let _pendingRt=[];       // realtime events for rows not yet merged
 let _pendingEan=[];      // EAN lookups deferred until history lands (no Keepa waste)
 let _syncQueued=false;   // a sync requested mid-gap fires at finalize
@@ -20619,6 +20708,7 @@ async function dbLoad(){
     }
     _totalRowCount=(countRes&&countRes.count)||0;
     rows=(rowsRes.data||[]).map(dbToRow);
+    if(!LEGACY)_histStreaming=true;
     {
       const dbMax=parseInt(maxIdRes&&maxIdRes.data&&maxIdRes.data[0]&&maxIdRes.data[0].local_id)||0;
       const memMax=rows.reduce((m,r)=>{const n=parseInt(r.id);return(Number.isFinite(n)&&n>m)?n:m;},0);
@@ -20658,6 +20748,7 @@ async function dbLoad(){
       setTimeout(()=>{_loadHistory().then(ok=>{if(ok)return _finalizeHistory();}).catch(e=>{console.error('[boot] history phase:',e);_histFail();});},0);
     }
   }catch(err){
+    _histStreaming=false;
     console.error('Load error:',err);
     // Only show offline if it's a real network error, not a schema issue
     const isNetworkErr=err.message&&(err.message.includes('fetch')||err.message.includes('network')||err.message.includes('Failed to fetch'));
@@ -20686,6 +20777,7 @@ function _histPill(txt){
 /* Loud, persistent failure. A quietly incomplete history is exactly the kind
    of silent wrongness this app keeps getting bitten by — never allowed. */
 function _histFail(){
+  _histStreaming=false;
   setSyncStatus('error');
   try{toast('Could not load full history — reload when connected','er');}catch(e){}
   _histPill(null);
@@ -20837,6 +20929,7 @@ async function _finalizeHistory(){
   }catch(e){console.warn('[boot] integrity check:',e);}
   /* (f) open the gates */
   _historyReady=true;
+  _histStreaming=false;
   _histPill(null);
   /* (g) EAN lookups deferred in the gap — cache-first, so archived rows that
      just arrived answer them without a single Keepa call */
@@ -20847,6 +20940,7 @@ async function _finalizeHistory(){
   if(_syncQueued){_syncQueued=false;try{runSheetSync(false);}catch(e){}}
   /* (i) one repaint with the full picture */
   try{rtRepaint();}catch(e){}
+  try{if(!document.hidden&&_pageActive('page-prep'))renderStats();}catch(e){}
   try{updateArchivedBtn();}catch(e){}
   try{updateCB();}catch(e){}
 }
@@ -20874,6 +20968,7 @@ function rowToDb(r){
     sub_save:r.subSave||'No',
     status:r.status||'In-Transit',
     qty_received:r.rcvd||0,
+    rcvd_at:r.rcvdAt||null,
     issue_type:r.issueType||'',
     issue_qty:r.issueQty||0,
     shipped_qty:r.ship||0,
@@ -20891,7 +20986,8 @@ function rowToDb(r){
        columns the database does not have yet and says so once, so this is safe
        to send either way — but the SQL is in Settings → Database. */
     notes:r.notes||'',note_by:r.notesBy||'',note_at:r.notesAt||null,
-    va_note:r.vaNote||'',transit_action:r.transitAction||'',
+    va_note:r.vaNote||'',va_note_by:r.vaNoteBy||'',va_note_at:r.vaNoteAt||null,
+    transit_action:r.transitAction||'',
     expected_delivery:r.expectedDelivery||null,
     chase_snooze_until:r.chaseSnoozeUntil||null,
     imported_from:r.importedFrom||'',
@@ -20935,6 +21031,7 @@ function dbToRow(d){
     subSave:d.sub_save||'No',
     status:d.status||'In-Transit',
     rcvd:d.qty_received||0,
+    rcvdAt:d.rcvd_at||null,
     issueType:d.issue_type||'',
     issueQty:d.issue_qty||0,
     ship:d.shipped_qty||0,
@@ -20956,6 +21053,9 @@ function dbToRow(d){
     notesBy:d.note_by||'',
     notesAt:d.note_at||'',
     vaNote:d.va_note||'',
+    vaNoteBy:d.va_note_by||'',
+    vaNoteAt:d.va_note_at||'',
+    updatedAt:d.updated_at||'',
     transitAction:d.transit_action||'',
     expectedDelivery:d.expected_delivery||'',
     chaseSnoozeUntil:d.chase_snooze_until||'',
@@ -21529,6 +21629,7 @@ function setupRealtime(){
         // Preserve portal-owned fields — never let a realtime echo overwrite them
         incoming.notes=rows[i].notes;
         incoming.vaNote=rows[i].vaNote;
+        incoming.vaNoteBy=rows[i].vaNoteBy;incoming.vaNoteAt=rows[i].vaNoteAt;
         incoming.transitAction=rows[i].transitAction||incoming.transitAction;
         rows[i]=incoming;
       }else if(!_historyReady){
@@ -21959,7 +22060,7 @@ function undoSegment(id,shipId,dateISO,units){
       r.shipId=remaining.length?remaining[remaining.length-1].shipId:'';
       if(remaining.length===0){
         r.status='In Warehouse';r.sent='No';r.sentDate='';r.sentAt='';
-      }else if(remainingToShip(r)>0){
+      }else if(remainingToShip(r)>0||_owedUnits(r)>0){
         r.status='Part Sent';r.sent='No';
       }else{
         r.status='Sent to Amazon';r.sent='Yes';
@@ -24182,7 +24283,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v42.0 · lav3 · 2026-09-06 · b480';
+const BUILD='v42.7 · lav3 · 2026-09-06 · b487';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -29465,6 +29566,7 @@ async function syncPurchases(){
    NEAR copies (the name differs by a typo) are deliberately NOT touched: those
    might be a real second purchase, so they stay on the strip for a human. */
 function healExactCopies(why){
+  try{healSentBelowReceived(why);}catch(e){console.warn('[heal] rcvd',e);}
   if(!READY||!Array.isArray(D.purchases))return 0;
   let n=0;
   D.purchases.slice().forEach(p=>{
@@ -34870,6 +34972,9 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .pcmSid{font:700 11.5px var(--mono);letter-spacing:.03em;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pcmType{font:800 10px var(--num);letter-spacing:.04em;padding:2px 7px;border-radius:5px;border:1px solid;font-style:normal;}
 @media(max-width:900px){.pcmGrid{grid-template-columns:1fr;}}
+/* Jack, 6 Sep: "when it's syncing the rows move slightly" — the header pill grew from “Synced” to “Syncing…” and pushed everything beside it. Fixed width, centred text, no reflow. */
+#syncIndicator{min-width:104px;justify-content:center;box-sizing:border-box;transition:background .2s,border-color .2s,color .2s;}
+#syncText{font-variant-numeric:tabular-nums;}
 /* Sarah's Admin — recently-actioned strip (5 Sep) + brief-notes hint */
 .doneStrip{display:flex;gap:10px;align-items:center;border-top:1px dashed var(--border);padding-top:11px;}
 .doneLab{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--text3);white-space:nowrap;}
@@ -35068,6 +35173,24 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 #page-recovery table.rec tr.row{cursor:pointer;}
 /* stocktake rebuild (5 Sep) */
 #page-recovery .recStripeTd{width:6px;padding:0!important;}
+/* visual pass, 6 Sep — "looks shit": left-aligned names clamped to two lines,
+   quiet dashes for missing data, State and Since in one cell, tighter rows */
+#page-recovery table.rec td.recProdTd{text-align:left;min-width:260px;max-width:520px;}
+#page-recovery table.rec td.recProdTd .recName{text-align:left;font:700 12.5px var(--num);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text);white-space:normal!important;overflow-wrap:anywhere;}
+#page-recovery table.rec td.recProdTd .recId{text-align:left;font:600 10.5px var(--mono);color:var(--text3);margin-top:3px;letter-spacing:.02em;}
+#page-recovery table.rec td.recProdTd .recId i{font-style:normal;}
+#page-recovery .recDash{color:var(--text3);opacity:.6;font-weight:600;}
+#page-recovery .recStateTd{white-space:nowrap;}
+#page-recovery .recSince{margin-top:4px;font-size:11px;}
+#page-recovery .recSince .recAge{font:800 11.5px var(--num);}
+#page-recovery .recLink{color:#60a5fa;font-size:10.5px;font-weight:700;text-decoration:none;margin-left:4px;}
+#page-recovery table.rec td{padding:8px 10px;}
+#page-recovery table.rec tbody tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+#page-recovery table.rec tbody tr:nth-child(even) td.recActsTd{background:#171a1e!important;}
+#page-recovery .recKpi{padding:10px 14px 9px;}
+#page-recovery .recKpi .v{font-size:22px;}
+#page-recovery .recCond{font-size:11px;}
+#page-recovery .recNum{font:800 12.5px var(--num);font-variant-numeric:tabular-nums;}
 #page-recovery .recNoteLine{font-size:11px;color:var(--text3);margin-top:2px;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:italic;}
 #page-recovery .recName{max-width:420px;}
 #page-recovery table.rec th.recActsTh,#page-recovery table.rec td.recActsTd{position:sticky;right:0;z-index:1;background:var(--bg2);box-shadow:-10px 0 12px -8px rgba(0,0,0,.65);}
@@ -35165,10 +35288,16 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .recModal .recWarn b{color:#fbbf24;}
 /* bulk-add grid */
 .recGridWrap{overflow:auto;border:1px solid var(--border);border-radius:8px;max-height:52vh;}
-table.recGrid{border-collapse:collapse;width:100%;min-width:1040px;font-size:12px;}
+table.recGrid{border-collapse:collapse;width:100%;min-width:1240px;font-size:12px;}
+table.recGrid tbody tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+table.recGrid tbody tr:hover td{background:rgba(255,255,255,.03);}
+table.recGrid input[type=date]{font-variant-numeric:tabular-nums;color-scheme:dark;}
+table.recGrid input:disabled{opacity:.35;}
+table.recGrid input[data-f=qty],table.recGrid input[data-f=cost]{text-align:right;font-variant-numeric:tabular-nums;}
+.recGridWrap{max-height:56vh;}
 table.recGrid th{position:sticky;top:0;background:var(--bg3);color:var(--text3);font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 6px;text-align:left;border-bottom:1px solid var(--border2);white-space:nowrap;}
 table.recGrid th.req::after{content:' *';color:#f87171;}
-table.recGrid td{padding:3px 4px;border-bottom:1px solid var(--border);}
+table.recGrid td{padding:4px 5px;border-bottom:1px solid var(--border);vertical-align:top;}
 table.recGrid td.n{color:var(--text3);font:600 10.5px var(--num);text-align:center;width:28px;}
 table.recGrid input,table.recGrid select{width:100%;box-sizing:border-box;padding:6px 7px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;}
 table.recGrid input:focus,table.recGrid select:focus{border-color:var(--accent);outline:none;}
