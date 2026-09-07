@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v43.2</title>
+<title>BDL PrepHub v43.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3566,7 +3566,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v43.2</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v43.4</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3600,7 +3600,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v43.2</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v43.4</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3916,7 +3916,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v43.2</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v43.4</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -7286,9 +7286,15 @@ function _adminItems(){
     const _q=_ukQuery(r);
     /* Jack, 6 Sep: "9 out of 10 arrive — if the other one hasn't arrived within
        48 hours it gets flagged on Sarah's page." Working hours, S&S longer. */
-    const _partMs=r.rcvdAt?_workMsSince(r.rcvdAt):0;
+    /* Jack, 7 Sep: "is this not going on Sarah's admin page now?" — the
+       received-time column only exists from today, so every older Part Sent
+       row had no clock and never qualified. When the count time is unknown,
+       the day the part went to Amazon is a safe floor: it was booked in before
+       it was shipped. Rows with neither stay on the late rule as before. */
+    const _partSince=r.rcvdAt||(r.sentDate?String(r.sentDate).slice(0,10)+'T12:00:00Z':'');
+    const _partMs=_partSince?_workMsSince(_partSince):0;
     const _partDays=TM.partDays;   /* Jack, 6 Sep: S&S arrives together — same clock as everything else */
-    const _part=_got>0&&(_units-_got-_cx)>0&&!!r.rcvdAt&&_partMs>=_partDays*24*3600e3&&!_q;
+    const _part=_got>0&&(_units-_got-_cx)>0&&!!_partSince&&_partMs>=_partDays*24*3600e3&&!_q;
     const _partRed=_part&&_partMs>=(_partDays+1)*24*3600e3;
     if(!isStuck&&!inChase&&!expOverdue&&!_liveCase&&!_handedBack&&!_q&&!_part)return;
     let sev,col;
@@ -7307,7 +7313,7 @@ function _adminItems(){
     /* "(threshold: 20 days)" was printed on all nineteen rows. It is one fact
        about the whole queue, so it is said once in the heading instead. */
     const reason=_q?`${_q.by||'Warehouse'} asked — ${_q.got?_q.short+' of '+_q.exp+' still to come?':'has it been dispatched?'}${_queryWait(_q)>=TM.queryRedDays?' · '+_queryWait(_q)+'d unanswered':''}`
-      :_part?`${_got} of ${_units} in ${_dmy(r.rcvdAt)} — the other ${_units-_got-_cx} never followed`
+      :_part?`${_got} of ${_units} in${r.rcvdAt?' '+_dmy(r.rcvdAt):(r.sentDate?' by '+_dmy(r.sentDate):'')} — the other ${_units-_got-_cx} never followed`
       :(isStuck?`${days} days in transit`:(expOverdue?`Past expected (${expStr}) — confirm arrival`:(ta||'Needs follow-up')));
     const cogs=parseSKU(r.sku).cogs||0;
     const units=_units,got=_got,cancelled=_cx;
@@ -17830,7 +17836,10 @@ function debounce(key,fn,delay=400){
 let _confirmCb=null;
 function showConfirm(title,text,cb){
   document.getElementById('confirmTitle').textContent=title;
-  document.getElementById('confirmText').textContent=text;
+  /* Jack, 7 Sep: the box showed "<b>60 × Tea &amp; Biscuits Hamper</b><br>" as
+     letters. Our own emphasis and line breaks render; anything else is text. */
+  const _ct=document.getElementById('confirmText'),_t=String(text||'');
+  if(/<(b|br|i|u)\b[^>]*>/.test(_t))_ct.innerHTML=_t.replace(/\n/g,'<br>');else _ct.textContent=_t;
   _confirmCb=cb;
   om('confirmModal');
 }
@@ -24393,7 +24402,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v43.2 · lav3 · 2026-09-07 · b492';
+const BUILD='v43.4 · lav3 · 2026-09-07 · b494';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
