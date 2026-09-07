@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v42.9</title>
+<title>BDL PrepHub v43.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3566,7 +3566,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v42.9</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v43.2</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3600,7 +3600,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v42.9</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v43.2</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3916,7 +3916,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v42.9</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v43.2</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -15457,7 +15457,8 @@ async function confirmLavShipMulti(){
   for(const entry of lines){
     const meta=entry._meta;delete entry._meta;
     lavShipments.push(entry);
-    await saveLavShipment(entry);
+    const _ok=await saveLavShipment(entry);
+    if(_ok===false){const _i=lavShipments.indexOf(entry);if(_i>=0)lavShipments.splice(_i,1);continue;}
     logAudit('Lavarion added to shipment',entry.asin+' x '+entry.units+' -> '+_lavShipId
       +(meta?` — COG £${entry.cost} blended across two purchase prices by ${window.currentUserName||'Unknown'} (${meta.why}${meta.note?': '+meta.note:''})`:''));
     /* a blend is a decision, counted the same way the Lavarion page counts its own */
@@ -20798,6 +20799,8 @@ async function dbLoad(){
     setSyncStatus('synced');
     // Clear any previous error state
     renderPrep();renderDashboard();updateCB();
+    /* the Lavarion page builds its product list from lavAsins — refresh it now the data is here */
+    try{if(window.LV3&&LV3.rehydrate&&LV3.isReady&&LV3.isReady())LV3.rehydrate();}catch(e){}
     // Auto-clean any legacy return rows that still have " - name" stuck in the SKU.
     repairLegacyReturnSkus(true);
     if(LEGACY){
@@ -23313,6 +23316,35 @@ async function deleteShipment(){
 
 // ── LAVARION SHIPMENT LINE EDIT ───────────────────────────────────────────────
 let _editLavLineId=null;
+/* Becki, 7 Sep: a line recorded while the Lavarion data had not loaded left
+   every part on the bench. The hook now refuses that; this is the repair for
+   a line that already went through. Deliberately one click, one confirm, and
+   named in the audit log — it takes stock off, so it must be seen. */
+function lavLineConsumeNow(){
+  const ls=lavShipments.find(s=>s.uuid===_editLavLineId||(s.uuid||String(lavShipments.indexOf(s)))===String(_editLavLineId));
+  if(!ls)return;
+  const n=parseInt(ls.units)||0;if(!n){toast('No units on this line','er');return;}
+  showConfirm('Take the parts off for this line?',
+    `<b>${n} × ${esc(ls.prod||ls.asin)}</b> on ${esc(ls.shipId||'')}.<br><br>Every part in its build list comes off the bench now, oldest batch first, exactly as the send should have done. Only do this once per line — check the Components tab still shows the stock first.`,
+    async()=>{
+      if(!(window.LV3&&LV3.shipConsume)){toast('Lavarion page not available','er');return;}
+      if(!(LV3.isReady&&LV3.isReady())){try{await LV3.boot();}catch(e){}}
+      if(!(LV3.isReady&&LV3.isReady())){toast('Lavarion stock is not loaded — reload the page and try again','er');return;}
+      const r=LV3.shipConsume(ls.asin,n);
+      if(!r){toast(`${ls.prod||ls.asin} is not a product the Lavarion page knows`,'er');return;}
+      if(r.over>0){try{LV3.noteOverSent(ls.asin,r.over,ls.shipId);}catch(e){}
+        toast(`Only ${fmt(r.consumed)} were on the bench — ${fmt(r.over)} recorded as owed`,'er');}
+      /* do not say done until the database has it — a toast on a debounced
+         save is how a green tick and a stale shelf happened on the same day */
+      let _saved=true;try{if(LV3.flush)await LV3.flush();}catch(e){_saved=false;}
+      if(!_saved)toast('Taken off on screen but the save FAILED — check the sync badge, then Settings → Check the database','er');
+      else if(!(r.over>0))toast(`✓ Parts for ${fmt(n)} × ${ls.prod||ls.asin} taken off the bench and saved`,'ok');
+      try{logAudit('Lavarion parts taken off by hand',`${ls.asin} x${n} on ${ls.shipId} — the send had not taken them off (${window.currentUserName||'someone'})`);}catch(e){}
+      cm('editLavLineModal');
+      try{LV3.render();}catch(e){}
+      try{renderShipments();}catch(e){}
+    });
+}
 function editLavShipLine(uuid){
 
   const ls=lavShipments.find(s=>s.uuid===uuid||(s.uuid||String(lavShipments.indexOf(s)))===String(uuid));
@@ -23655,7 +23687,8 @@ async function saveNewShipment(){
   for(const ls of lavRows){
     const meta=ls._meta;delete ls._meta;
     lavShipments.push(ls);
-    await saveLavShipment(ls);
+    const _ok=await saveLavShipment(ls);
+    if(_ok===false){const _i=lavShipments.indexOf(ls);if(_i>=0)lavShipments.splice(_i,1);continue;}
     if(meta){
       logAudit('Lavarion added to shipment',
         `${ls.asin} x ${ls.units} -> ${shipId} — COG £${ls.cost} blended across two purchase prices by ${window.currentUserName||'Unknown'} (${meta.why}${meta.note?': '+meta.note:''})`);
@@ -24057,6 +24090,9 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
         <div class="fi"><label class="fl">Cost per Unit (£)</label><input class="fi-in" type="number" id="editLavCog" step="0.01" min="0"></div>
       </div>
     </div>
+    <div style="padding:0 18px 12px;">
+      <button class="btn-cancel" style="width:100%;text-align:left;white-space:normal;line-height:1.35;" onclick="lavLineConsumeNow()" title="Use this once, only when the bench still shows the parts this line should have used">Parts never came off the bench for this line? Take them off now</button>
+    </div>
     <div class="mf">
       <button class="btn-cancel" onclick="cm('editLavLineModal')">Cancel</button>
       <button class="btn-save" onclick="saveEditLavLine()">Save Changes</button>
@@ -24357,7 +24393,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v42.9 · lav3 · 2026-09-07 · b489';
+const BUILD='v43.2 · lav3 · 2026-09-07 · b492';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -24570,6 +24606,12 @@ async function loadCloud(){
     });
     if(_healed)console.warn('[lav3] repaired the ordered quantity on '+_healed+' part-received order(s)');
     _layersLoadedCount=LAYERS.length;
+    /* Jack, 7 Sep: his 60-hamper deduction reached the database and was back at
+       300 minutes later. Every save pushed EVERY batch with whatever this tab
+       held, so any other open tab's next save rewrote stock it never touched.
+       Remember what each batch looked like when it loaded (or was last
+       pushed) and only send the ones that differ. */
+    LAYERS.forEach(l=>{l._pushed=JSON.stringify(layerRow(l));});
     const pr=await sb.from('lavarion_purchases').select('*').order('bought_on',{ascending:false});
     if(pr.error)throw pr.error;
     PURCH=(pr.data||[]).map(d=>({uuid:d.id,id:d.id,tab:d.sheet_tab||'',date:(d.bought_on||'').slice(0,10),
@@ -24697,10 +24739,11 @@ async function pushNow(){
     status('syncing');
     for(const l of LAYERS){
       if(l._failed&&Date.now()-l._failed<15000)continue;   // recently failed — back off briefly
-      if(l.uuid){const r=await sb.from('lavarion_stock_layers').update(layerRow(l)).eq('id',l.uuid);if(r.error)throw r.error;}
-      else{const r=await sb.from('lavarion_stock_layers').insert(layerRow(l)).select('id').single();
+      if(l.uuid){const row=layerRow(l),sig=JSON.stringify(row);if(l._pushed===sig)continue;
+        const r=await sb.from('lavarion_stock_layers').update(row).eq('id',l.uuid);if(r.error)throw r.error;l._pushed=sig;}
+      else{const row=layerRow(l);const r=await sb.from('lavarion_stock_layers').insert(row).select('id').single();
         if(r.error){l._failed=true;if(!_layerErr){_layerErr=true;console.warn('[lav3] layer insert',r.error);}}
-        else l.uuid=r.data.id;}
+        else{l.uuid=r.data.id;l._pushed=JSON.stringify(row);}}
     }
     if(_layerTombs.size){
       const ids=[..._layerTombs];
@@ -34320,7 +34363,7 @@ function doUndo(){
    stock moves. Take what is genuinely on the shelf, and hand the gap back so
    the caller can record it instead of losing it. */
 function shipConsume(asin,units){
-  const p=D.products.find(x=>x.asin===asin);
+  const p=_prodByAsin(asin);
   if(!p||!units)return null;
   const av=avail(p)||{};
   const have=(av.n==null)?units:av.n;              // no recipe = no ceiling to enforce
@@ -34344,7 +34387,7 @@ function shipConsume(asin,units){
    (rem), so the inverse of a FIFO draw is exact: refill oldest-first, capped
    at what that batch ever held, so a restore can never invent stock. */
 function shipRestore(asin,units){
-  const p=D.products.find(x=>x.asin===asin);
+  const p=_prodByAsin(asin);
   if(!p||!units||units<=0)return null;
   const give=(o,n)=>{
     let need=n;
@@ -34436,8 +34479,18 @@ function settleOverSent(asin){
   savePrefs();render();
 }
 /* what a shipment would cost / whether it can go — no mutation */
+/* Jack, 7 Sep, live: "Tea & Biscuits Hamper is not a product the Lavarion
+   page knows" — on a tab that had never opened the Lavarion page. hydrate()
+   runs at boot (before login, so lavAsins is still empty) and again only on
+   paint. Anything that touches stock from another page must hydrate first.
+   This is the 6 Sep hole too: same tab state, same empty list, no deduction. */
+function _prodByAsin(asin){
+  let p=D.products.find(x=>x.asin===asin);
+  if(!p&&typeof lavAsins!=='undefined'&&lavAsins.length){hydrate();p=D.products.find(x=>x.asin===asin);}
+  return p||null;
+}
 function shipCheck(asin,units){
-  const p=D.products.find(x=>x.asin===asin);
+  const p=_prodByAsin(asin);
   if(!p)return null;
   const cg=cogOf(p,units||1);
   return{ok:!cg.blocked.length,per:cg.per,available:avail(p).n,type:p.type,
@@ -34510,6 +34563,8 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
+  rehydrate:()=>{try{hydrate();}catch(e){}},
+  flush:()=>{clearTimeout(_pt);return pushNow();},
   isReady:()=>READY};
 return API;
 })();
@@ -34540,6 +34595,17 @@ return API;
     try{
       const n=parseInt(sh.units)||0;
       if(n>0&&window.LV3){
+        /* Becki, 7 Sep: FBA15MCJBV68 — 60 hampers recorded, not one teabag
+           taken off. The Lavarion data had not loaded in that tab, so
+           shipConsume found no product, returned nothing, and the line was
+           written anyway. Stock has to move when stock moves: load first,
+           and if it still cannot, refuse the line rather than write a lie. */
+        if(!(LV3.isReady&&LV3.isReady())){try{await LV3.boot();}catch(e){}}
+        if(!(LV3.isReady&&LV3.isReady())){
+          toast('BLOCKED — the Lavarion stock is not loaded in this tab, so the parts cannot be taken off. Reload the page and send again.','er');
+          try{logAudit('Lavarion send refused',`${sh.asin} x${n} on ${sh.shipId} — stock not loaded, nothing recorded`);}catch(e){}
+          return false;
+        }
         /* Jack, 30 Aug: oversending is a HARD BLOCK now, not a warning. */
         try{
           const pre=LV3.shipCheck?LV3.shipCheck(sh.asin,n):null;
@@ -34552,6 +34618,10 @@ return API;
            so the warning is driven off what happened rather than off a check
            that ran beforehand and could disagree with it. */
         const res=LV3.shipConsume(sh.asin,n);
+        if(!res){
+          toast(`⚠ ${sh.prod||sh.asin} is not a product the Lavarion page knows — recorded, but no parts were taken off. Check the ASIN on the Products tab.`,'er');
+          try{logAudit('Lavarion sent — parts NOT taken off',`${sh.asin} x${n} on ${sh.shipId} — ASIN not found on the Lavarion page`);}catch(e){}
+        }
         if(res){
           if(res.per!=null&&res.per>0&&(!sh.cost||sh.cost===0))sh.cost=Math.round(res.per*10000)/10000;
           if(res.per!=null)sh.cogAuto=res.per;
