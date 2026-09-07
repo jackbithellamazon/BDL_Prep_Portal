@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v42.7</title>
+<title>BDL PrepHub v42.9</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3325,6 +3325,12 @@ html.light-mode{
 .amzDateIn{background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);
   font:inherit;font-size:12px;padding:6px 8px;}
 .amzDateActs{display:flex;gap:6px;}
+.amzDateIn,.amzDateNote{width:100%;box-sizing:border-box;text-align:center;}
+.amzDateNote{background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);font:inherit;font-size:12px;padding:6px 8px;}
+.jkAnsBox{display:flex;flex-direction:column;gap:6px;white-space:normal;text-align:center;}
+.jkAnsT{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fbbf24;}
+.jkAnsDate{width:100%;box-sizing:border-box;padding:7px 9px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font:inherit;font-size:12px;text-align:center;}
+.jkAnsBox .csAct{width:100%;margin:0;box-sizing:border-box;}
 .amzDateActs .csAct{flex:1;margin:0;}
 .amzDateHint{font-size:10px;color:var(--text3);font-weight:600;line-height:1.35;}
 /* Jack, 17 Aug: on a DG + bundle row ("DG" AND "5 in 1" chips side by side)
@@ -3560,7 +3566,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v42.7</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v42.9</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3594,7 +3600,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v42.7</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v42.9</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3910,7 +3916,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v42.7</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v42.9</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -5522,7 +5528,11 @@ function renderPrepRows(data){
       isSubSaveInTransit?'🔄 Subscribe & Save — expected delivery window applies':
       hasIssue?`⚑ Issue: ${r.issueType}${r.issueQty?' ('+r.issueQty+' units)':''}`:
       r.status==='Sent to Amazon'?'✓ Sent to Amazon':
-      r.status==='Part Sent'?'↗ Part Sent — some units still in warehouse':
+      /* Jack, 7 Sep: "not true as only 1 arrived so not rest in warehouse is it" —
+         the hover said every Part Sent row had units sitting here. Say the real
+         split: what went, what is still here to send, what has not arrived. */
+      r.status==='Part Sent'?(()=>{const _snt=segmentsSentTotal(r),_left=remainingToShip(r),_owe=_owedUnits(r);
+        return '↗ Part Sent — '+_snt+' of '+(parseInt(r.exp)||0)+' sent'+(_left>0?' · '+_left+' here still to send':'')+(_owe>0?' · '+_owe+' still to arrive':'');})():
       r.status==='In Warehouse'?'📦 In Warehouse — ready to prep':
       r.status==='Delivered'?'✅ Delivered':
       r.pri==='Yes'?'⭐ Priority row':'';
@@ -6149,7 +6159,7 @@ function _rtFlush(){
   /* Jack's queue and its sidebar badge are live too: Sarah pressing Send to
      Jack should light up his screen without him touching anything. renderJack
      gates itself when unseen; the badge is cheap and always worth updating. */
-  renderJack();
+  renderJackAuto();
   try{paintJackBadge();}catch(e){}
 }
 function rtRepaint(){
@@ -6282,6 +6292,13 @@ function openEdit(id){
   document.getElementById('f-pri').value=r.pri||'No';
   document.getElementById('f-notes').value=r.notes||'';
   const vaN=document.getElementById('f-vaNotes');if(vaN)vaN.value=r.vaNote||'';
+  /* Jack, 7 Sep: "who is writing these?" — Sarah, through this form: the stop
+     on the Packing Notes cell never covered the edit form, so twelve order
+     references landed in the warehouse column on 4 Sep. Same rule here. */
+  {const pn=document.getElementById('f-notes');
+   if(pn){const sar=/^sarah/i.test(String(window.currentUserName||'').trim());
+     pn.readOnly=sar;pn.style.opacity=sar?'.55':'';
+     pn.title=sar?'Packing Notes are Becki\u2019s \u2014 what to do with the box. What you found out goes in VA Notes below.':'';}}
   const exD=document.getElementById('f-expectedDelivery');if(exD)exD.value=r.expectedDelivery||'';
   const srEl=document.getElementById('f-sheetRow');if(srEl)srEl.value=r.sheetRow||'';
   const pS=document.getElementById('f-prepStatus');if(pS)pS.value=r.prepStatus||'Pending';
@@ -7260,8 +7277,8 @@ function _adminItems(){
     /* parked on a promised delivery date = nobody's job until it slips —
        but it goes grey to the BOTTOM for 3 days first, undoable ("it went
        too quick — what if we need to undo it", Jack 30 Aug) */
-    const _parked=!!(_c0&&_c0.step==='due-date'&&expDate&&!expPassed);
-    const _parkGrace=_parked&&!_c0.filed&&_c0.parkedAt&&(_workMsSince(_c0.parkedAt)<TM.undoHours*3600e3);
+    const _parked=!!(expDate&&!expPassed&&((_c0&&_c0.step==='due-date')||(r.resolution&&r.resolution.state==='asked')));
+    const _parkGrace=_parked&&!!_c0&&!_c0.filed&&!!_c0.parkedAt&&(_workMsSince(_c0.parkedAt)<TM.undoHours*3600e3);
     const _liveCase=(!!_c0&&!_parked)||_parkGrace;
     const _handedBack=!!(r.resolution&&r.resolution.state==='rejected');
     /* a question from the warehouse — "is more on the way?" — is hers to
@@ -9988,6 +10005,15 @@ async function recFromClaimGo(claimId){
     last_action:'Added',archived:false,gone_at:null};
   REC.unshift(i);
   await recSave(i,'Added','from a gated Amazon claim'+(c.oid?' · '+c.oid:''));
+  /* Jack, 7 Sep: "this has been removed to Recovery yet still on this page."
+     Sending it to Recovery IS the decision — the claim closes with the note. */
+  try{
+    if(!c.log)c.log=[];
+    c.log.push({t:getNowUK(),msg:`Sent to Recovery Stock — ${qty} × ${name.slice(0,40)} (${_who()})`});
+    c.cst='Resolved';
+    await saveClaim(c);
+  }catch(e){console.warn('[recovery] claim close:',e);}
+  try{renderJack();renderAdmin();paintJackBadge();}catch(e){}
   recModalClose();
   toast(`${fmt(qty)} × ${name.slice(0,28)} added to Recovery Stock`,'ok');
   try{if(_pageActive('page-recovery'))renderRecovery();}catch(e){}
@@ -10166,13 +10192,20 @@ function recExport(){
   toast(`Exported ${fmt(list.length)} rows`,'ok');
 }
 
+function _parkedOnDate(r){
+  const v=r&&r.expectedDelivery;if(!v||!saneDate(v))return false;
+  const t=new Date();t.setHours(0,0,0,0);return new Date(v)>t;
+}
 function jackTodo(){
   /* No !archived guard on the decisions: a row archived by some other path is
      still a decision he owes an answer to, and hiding it was how items got
      stuck with nobody able to act. Quantity fixes keep the guard — those are a
      read-only digest, not work. */
   const closures=rows.filter(r=>r.resolution&&r.resolution.state==='proposed');
-  const checks=rows.filter(r=>r.resolution&&r.resolution.state==='asked');
+  /* Jack, 7 Sep: "it should clear off both mine and Sarah's sheet, with the
+     date on the Prep Sheet." A promised date that has not passed parks the
+     row — however the date got there. It returns by itself if it slips. */
+  const checks=rows.filter(r=>r.resolution&&r.resolution.state==='asked'&&!_parkedOnDate(r));
   /* Jack, 5 Sep: qty fixes are read-and-wave-through — they vanish on their
      own after a week so they cannot pile up */
   const fixes=rows.filter(r=>!r.archived&&r.qtyFix&&!r.qtyFix.seen&&(Date.now()-new Date(r.qtyFix.at||0).getTime())<7*864e5);
@@ -10180,7 +10213,10 @@ function jackTodo(){
      over and Lavarion shortages she hands across land HERE — before this they
      fell off her page and never appeared on his. Same issue, his side. */
   const claimsQ=claims.filter(c=>!c.archived&&c.cst!=='Resolved'
-    &&(((c.owner)||('VA'))==='Jack'));
+    &&(((c.owner)||('VA'))==='Jack')
+    /* already sitting in Recovery Stock under this order = dealt with */
+    &&!((c.issT||'')==='Gated'&&c.oid&&typeof REC!=='undefined'&&Array.isArray(REC)
+        &&REC.some(i=>!i.archived&&i.source==='Gated Amazon stock'&&String(i.source_ref||'').trim()===String(c.oid).trim())));
   let lavQ=[];try{lavQ=(_lavIssues(true)||[]).filter(g=>g.toJack&&!g.quiet);}catch(e){}
   /* Jack, 5 Sep: "refund processed = done, I watch the bank myself." The
      waiting-to-land list is gone. What stays is the JOB: an Amazon order Sarah
@@ -10267,6 +10303,7 @@ function renderJack(){
      return. */
   if(document.hidden||!_pageActive('page-jack')){_dirtyR.jack=true;return;}
   _dirtyR.jack=false;
+  const _st=w.scrollTop||0;   /* a repaint must not throw him back to the top */
   /* Jack, 17 Aug: "jack's admin needs a whole redesign — make it more table
      like, like Sarah's… way too much wasted space, but like the idea of having
      KPIs there." So: a slim KPI strip of real numbers, then ONE table in the
@@ -10598,6 +10635,27 @@ function renderJack(){
     :`<div class="jkEmpty"><b>All clear</b><span>When Sarah sends something over it lands here.</span></div>`}
     `;/* Issues page killed — Jack, 30 Aug: "issues are split into Sarah Admin + Jack Admin. Remove it." */
   paintJackBadge();
+  if(_st)w.scrollTop=_st;
+}
+/* Jack, 7 Sep: "buggy — typed date and then it went off this page." A live
+   event from another laptop (or his own echo) rebuilt the page under his
+   hands and threw away the half-typed date. Automatic repaints wait while a
+   date pad or an answer box is open, or a field on the page has focus; the
+   debt is paid the moment the box closes. His own button presses still
+   repaint at once through renderJack(). */
+function _jkBusy(){
+  const ae=document.activeElement;
+  const typing=!!(ae&&ae.closest&&ae.closest('#page-jack')&&['INPUT','SELECT','TEXTAREA'].includes(ae.tagName));
+  return typing||!!document.querySelector('#jackWrap .amzDateBox,#jackWrap [data-jk-edit]');
+}
+function renderJackAuto(){
+  if(_pageActive('page-jack')&&!document.hidden&&_jkBusy()){
+    _dirtyR.jack=true;
+    const ae=document.activeElement;
+    if(ae&&ae.closest&&ae.closest('#page-jack'))ae.addEventListener('blur',()=>{setTimeout(()=>{if(_dirtyR.jack&&!_jkBusy())renderJack();},150);},{once:true});
+    return;
+  }
+  renderJack();
 }
 /* Answering is a real reply, not a status flip — he types what he found and it
    goes back to her with the answer attached. */
@@ -10801,11 +10859,15 @@ async function unparkDate(rid){
 }
 function jackNoSplit(rid,btn){
   const td=btn&&btn.closest('td');if(!td)return;
-  td.innerHTML=`<div style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#fbbf24;margin-bottom:5px;">NOT ARRIVED — IS IT STILL COMING?</div>
-    <input type="date" id="jkD_${rid}" min="2024-01-01" max="2030-12-31" style="width:100%;box-sizing:border-box;margin:0 0 5px;padding:7px 9px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;">
-    <button class="csAct go" onclick="jackStillComing('${rid}')" title="The account shows a delivery date — park it until then">Still coming — record the date</button>
-    <button class="csAct warn" onclick="jackAnswered('${rid}','NOT arrived — nothing delivered on the account. Chase or claim.')" title="No delivery showing and none coming — Sarah starts the refund road">Nothing coming — chase or claim</button>
-    <button class="csAct plain" onclick="renderJack()">Back</button>`;
+  /* Jack, 7 Sep: the three buttons sat on one line off the right edge of the
+     cell — only the date box showed. Stack it, centre it, Enter saves. */
+  td.innerHTML=`<div class="jkAnsBox" data-jk-edit="1">
+    <div class="jkAnsT">Not arrived — is it still coming?</div>
+    <input type="date" id="jkD_${rid}" min="2024-01-01" max="2030-12-31" class="jkAnsDate" onkeydown="if(event.key==='Enter'){event.preventDefault();jackStillComing('${rid}');}">
+    <button class="csAct go" onclick="jackStillComing('${rid}')" title="The account shows a delivery date — it comes off your list and Sarah's until then, the date shows on the Prep Sheet">Still coming — save the date</button>
+    <button class="csAct warn" onclick="jackAnswered('${rid}','NOT arrived — cancelled or nothing coming. Chase or claim.')" title="Cancelled, or no delivery showing — Sarah starts the refund road">Cancelled / nothing coming — chase or claim</button>
+    <button class="csAct plain" onclick="renderJack()">Back</button></div>`;
+  setTimeout(()=>{const el=document.getElementById('jkD_'+rid);if(el)el.focus();},30);
 }
 async function jackStillComing(rid,vGiven){
   const el=document.getElementById('jkD_'+rid);const v=vGiven||(el&&el.value);
@@ -21601,12 +21663,24 @@ function setupRealtime(){
         // a REAL update from the other laptop crossing our edit, discarding it
         // forever was the last staleness hole (the audit's "_dirty drop").
         // Note it and quietly re-pull once our edit has had time to save.
+        const incoming=dbToRow(payload.new);
+        /* Jack, 7 Sep: "the whole page is very glitchy and jumpy." Every save
+           held _dirty for 1.5s; the echo of OUR OWN write landed inside that
+           window, was read as another laptop crossing the edit, and booked a
+           full re-pull 25s later — so every count typed rebuilt every page.
+           An echo that matches what we hold is ours: nothing to catch up. */
+        const _sameAsMine=(a,b)=>a.status===b.status&&a.rcvd===b.rcvd&&a.ship===b.ship&&a.sent===b.sent
+           &&a.notes===b.notes&&a.delivered===b.delivered&&a.wrongSku===b.wrongSku
+           &&a.expectedDelivery===b.expectedDelivery
+           &&JSON.stringify(a.resolution||null)===JSON.stringify(b.resolution||null)
+           &&JSON.stringify(a.shipSegments||[])===JSON.stringify(b.shipSegments||[]);
         if(rows[i]._dirty){
-          clearTimeout(window._dirtyCatchT);
-          window._dirtyCatchT=setTimeout(()=>{try{resyncNow('catching up a crossed edit',true);}catch(e){}},25000);
+          if(!_sameAsMine(rows[i],incoming)){
+            clearTimeout(window._dirtyCatchT);
+            window._dirtyCatchT=setTimeout(()=>{try{resyncNow('catching up a crossed edit',true);}catch(e){}},25000);
+          }
           return;
         }
-        const incoming=dbToRow(payload.new);
         // If nothing actually changed, don't repaint — a stale/no-op echo
         // arriving mid-edit would otherwise rebuild the table and reset the
         // status dropdown the user just changed.
@@ -24283,7 +24357,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v42.7 · lav3 · 2026-09-06 · b487';
+const BUILD='v42.9 · lav3 · 2026-09-07 · b489';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -25992,7 +26066,11 @@ function fbaCalDays(){
 /* ── demand: hub sales first, the owner's planning figure second, never a
    guess (spec §63). Zero sales is its own honest state, not a blank. */
 function planDemandOf(p){
-  if(hubSkipped(p))return{m:0,src:'skip',label:'marked as not selling'};
+  /* Becki, 7 Sep: three bundles marked "not selling yet" in the July review
+     sold in August, and the planner still ignored them. The mark means "no
+     sales yet, stop asking" — the moment the hub shows real sales, the sales
+     win. The mark stays on the row (and can be cleared) but no longer blocks. */
+  if(hubSkipped(p)&&!(hubUnits(p)>0))return{m:0,src:'skip',label:'marked as not selling'};
   const s=sold30(p);
   if(s!=null&&s>0)return{m:s,src:'hub',label:ymName(hubMonth().ym)+' sales'};
   const v=parseFloat((D.settings.planDemand||{})[p.asin]);
@@ -26007,7 +26085,17 @@ function plSkip(asin){
   D.settings.hubSkip=D.settings.hubSkip||{};
   D.settings.hubSkip[asin]=true;
   savePrefs();render();
-  toast('Marked as not selling — it stops nagging everywhere. Un-mark it in the sales review if it comes back.','ok');
+  toast('Marked as not selling — it stops nagging everywhere. Press “Selling again” on its row when it comes back.','ok');
+}
+/* Becki, 7 Sep: "where is the sales review part to unmark this product as
+   not selling?" — the only way back was a button at the bottom of the hub
+   review popup, which nobody could find. One click, from the product's row,
+   its popup, or the Planner. */
+function plUnskip(asin){
+  if(D.settings.hubSkip)delete D.settings.hubSkip[asin];
+  savePrefs();render();
+  const p=D.products.find(x=>x.asin===asin);
+  toast('Selling again — the planner is back on '+(p?p.name:'it'),'ok');
 }
 function setPlanDemand(asin,v){
   D.settings.planDemand=D.settings.planDemand||{};
@@ -26099,7 +26187,7 @@ function plAmazonRow(p){
     out.why='No sales figure and no planning demand. Nothing is planned for it — type a monthly estimate below and it joins in.';return out;}
   if(d.m===0){out.state='paused';
     out.why=d.src==='skip'
-      ?'Marked as not selling, so the planner leaves it alone completely. Un-mark it in the sales review if it comes back.'
+      ?'Marked as not selling, so the planner leaves it alone completely. Press “Selling again” below when it comes back.'
       :'Sold none in '+ymName(hubMonth().ym)+', so nothing is planned. Give it a planning figure if it should still be stocked.';return out;}
   if(sell==null){out.state='nocount';
     out.why='Amazon stock has never been counted for this one, so there is no starting point to plan from.';return out;}
@@ -26333,6 +26421,7 @@ function openPlanRow(pid){
     <div class="mf"><span class="pmeta" style="margin:0">the same row, with the same working, lives on the Planner</span>
       <div class="sp">
         ${R.alloc>0?`<button class="btn go" onclick="LV3.cm('lav3Ov2');LV3.openShip('${p.id}')">Ship units</button>`:''}
+        ${hubSkipped(p)?`<button class="btn pri" onclick="LV3.cm('lav3Ov2');LV3.plUnskip('${esc(p.asin)}')" title="Take the not-selling mark off — the planner picks it up again on the spot">Selling again</button>`:''}
         <button class="btn" onclick="LV3.cm('lav3Ov2');LV3.go('planner')">Planner</button>
         <button class="btn" onclick="LV3.cm('lav3Ov2')">Close</button></div></div>`;
   om('lav3Ov2');
@@ -26413,7 +26502,8 @@ function _plannerTable(az,buys,gaps,fba,saf,setBox){
     <div class="panel"><div class="ph"><span class="t">Products</span><span class="sub">${fmt(live.length)} need watching · ${fmt(safe.length)} safe · click a row for the working</span></div>
       <div class="plnTbl">${head}${live.map(pRow).join('')||'<div class="ovEmpty"><span class="ovTick">✓</span>Everything is protected.</div>'}</div>
       ${safe.length?`<details class="plnMore"><summary>SAFE — ${fmt(safe.length)} products, nothing to do ▾</summary><div class="plnTbl">${safe.map(pRow).join('')}</div></details>`:''}
-      ${paused?`<div class="pmeta" style="padding:6px 14px 10px;">${fmt(paused)} marked not selling — hidden. Manage them from the product details popup.</div>`:''}</div>
+      ${paused?`<div class="pmeta" style="padding:6px 14px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">${fmt(paused)} marked not selling — hidden. Selling again?
+        ${az.rows.filter(r=>r.state==='paused'&&hubSkipped(r.p)).map(r=>`<button class="btn sm" onclick="LV3.plUnskip('${esc(r.p.asin)}')" title="Take the not-selling mark off">${esc(r.p.name)}</button>`).join('')}</div>`:''}</div>
     <div class="panel"><div class="ph"><span class="t">Parts</span><span class="sub">what to buy, how much, by when · full detail on Purchases</span></div>
       <div class="plnTbl">${bHead}${bRows.map(bRow).join('')||'<div class="ovEmpty"><span class="ovTick">✓</span>Every part is covered.</div>'}</div></div>
     ${gaps?`<details class="plnMore panel" style="margin-top:8px;"><summary>Setup gaps — routes, sales figures, counts the planner is missing ▾</summary><div style="display:grid;gap:10px;padding:10px 14px 12px;">${gaps}</div></details>`:''}
@@ -27355,9 +27445,9 @@ function prodRow(p){
         /* Blank is not zero. Zero says it did not sell; blank says we do not
            know — and the two lead to opposite decisions. */
         const src=soldSrc(p);
-        if(!src)return hubSkipped(p)?'<span class="est">not selling yet</span>'
+        if(!src)return hubSkipped(p)?`<button class="sldFix" title="Marked as not selling. Click if it is selling again — the planner picks it up on the spot." onclick="event.stopPropagation();LV3.plUnskip('${esc(p.asin)}')">not selling — selling again?</button>`
           :`<button class="sldFix" onclick="event.stopPropagation();LV3.openHubReview()">no figure — check</button>`;
-        if(src==='hub')return esc(ymName(hubMonth().ym));
+        if(src==='hub')return esc(ymName(hubMonth().ym))+(hubSkipped(p)?` · <button class="sldFix" title="Was marked not selling in the review; it is selling now, so the planner uses these sales. Click to clear the old mark." onclick="event.stopPropagation();LV3.plUnskip('${esc(p.asin)}')">clear old not-selling mark</button>`:'');
         const age=sold30Age(p);
         return `<span class="est">typed in${age!=null?` ${age}d ago`:''}</span>`;})()}</div></td>`:''}
     ${COL('pSendBy')?`<td onclick="event.stopPropagation()">${(()=>{
@@ -27367,14 +27457,19 @@ function prodRow(p){
       const k=blockedBuild?'parts':R.state;
       const SHORT={critical:'SEND NOW',act:'SEND',parts:'GET PARTS',gap:'GAP',waiting:'WAIT',watch:'WATCH',safe:'SAFE',paused:'NOT PLANNED',nodata:'NO SALES',nocount:'COUNT IT'};
       const chip='<span style="display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:800;white-space:nowrap;color:#14120f;background:'+plStateCol(k)+'">'+(SHORT[k]||k)+'</span>';
-      if(R.protDays==null)return `<div style="display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer" onclick="LV3.openPlanRow('${p.id}')">${chip}</div>`;
+      if(R.protDays==null)return `<div style="display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer" onclick="LV3.openPlanRow('${p.id}')">${chip}${(k==='paused'&&hubSkipped(p))?`<button class="sldFix" title="Marked as not selling. Click if it is selling again — the planner picks it up on the spot." onclick="event.stopPropagation();LV3.plUnskip('${esc(p.asin)}')">selling again?</button>`:''}</div>`;
       const trig=fbaCalDays()+safetyDays();
       const col=R.protDays<=fbaCalDays()?'var(--red)':R.protDays<=trig?'var(--amb)':'var(--grn)';
+      /* Becki, 7 Sep: "show the restock number straight off the bat here
+         without having to click into each one." The recommended send, and
+         how much of it the bench can build, under the chip. */
+      const _rec=R.rec||0,_al=R.alloc||0;
+      const _need=_rec>0?`<span class="pmeta" style="margin:0;white-space:nowrap;color:${_al>=_rec?'var(--grn)':_al>0?'var(--amb)':'var(--text3)'}" title="Recommended send: ${fmt(_rec)} units${R.want!=null?' · aim for '+fmt(R.want)+' at Amazon when it lands ('+(D.settings.targetDays||60)+' days\u2019 worth)':''}${_al<_rec?' · only '+fmt(_al)+' buildable now':''}">send <b>${fmt(_rec)}</b>${_al<_rec?` · ${fmt(_al)} now`:''}</span>`:'';
       return `<div style="display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer"
         onclick="LV3.openPlanRow('${p.id}')"
         title="${Math.round(R.protDays)} days of protection against a ${trig}-day trigger. Click for the full working.">
         <span class="num b" style="font-size:13.5px;color:${col}">${fmt(Math.round(R.protDays))}d</span>
-        ${chip}</div>`;})()}</td>`:''}
+        ${chip}${_need}</div>`;})()}</td>`:''}
     ${COL('pCog')?`<td>${cg.short
       ? (cg.noPrice
         ? `<span style="font-size:12px;color:var(--red)">!</span><div class="pmeta" style="text-align:center;color:var(--red);font-weight:700">price missing</div>`
@@ -27621,6 +27716,7 @@ function openProduct(id){
           `${up?'+':''}${gbp(nx.diff)} a unit · in ${fmt(nx.after)} unit${nx.after===1?'':'s'}`)}
           ${stat(isB?'Sendable value':'Stock value',gbp(cg.per*(a.n||0)||stockVal),null,'at what you paid')}`;})()}
     </div>
+    ${hubSkipped(p)?`<div class="note warn" style="margin:0 0 13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="flex:1"><b>Marked as not selling.</b> The planner leaves it alone: no send, no parts, no restock.</span><button class="btn sm pri" onclick="LV3.plUnskip('${esc(p.asin)}');LV3.openProduct('${p.id}')">Selling again</button></div>`:''}
     ${(()=>{const nx=nextCog(p);if(!nx)return '';
       const up=nx.diff>0;
       return `<div class="note ${up?'warn':'good'}" style="margin:0 0 13px">
@@ -34410,7 +34506,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,localDT,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
-  shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
+  shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},
