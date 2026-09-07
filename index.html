@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v43.4</title>
+<title>BDL PrepHub v43.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3566,7 +3566,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v43.4</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v43.6</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3600,7 +3600,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v43.4</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v43.6</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3916,7 +3916,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v43.4</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v43.6</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -10227,7 +10227,9 @@ function jackTodo(){
   /* Jack, 5 Sep: "refund processed = done, I watch the bank myself." The
      waiting-to-land list is gone. What stays is the JOB: an Amazon order Sarah
      closed as never-arrived, whose refund only he can raise in the account. */
-  return{closures,checks,fixes,claimsQ,lavQ,owed:moneyOwed().filter(o=>o.q.what==='no-refund'&&!o.q.refundRaised),
+  /* Jack, 7 Sep: "idk why this got sent to me, it's Argos" — only an Amazon
+     account refund is his to raise; a supplier refund is Sarah's road. */
+  return{closures,checks,fixes,claimsQ,lavQ,owed:moneyOwed().filter(o=>o.q.what==='no-refund'&&!o.q.refundRaised&&_amazonRow(o.r)),
     n:closures.length+checks.length+fixes.length+claimsQ.length+lavQ.length};
 }
 /* ── MONEY PROMISED BUT NOT PAID ────────────────────────────────────────────
@@ -10336,7 +10338,7 @@ function renderJack(){
         <button class="csAct plain" onclick="queryBalance('${_id}','cancelled')">Supplier cancelled the rest</button>
         <button class="csAct plain" onclick="queryBalance('${_id}','refunded')">Already refunded</button>
         <button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`
-      :`<button class="csAct good" onclick="jackAnswered('${_id}','Arrived — YES. Carry on with the wrong-SKU check.')">Arrived — YES</button>
+      :`<button class="csAct good" onclick="jackAnswered('${_id}','Arrived — YES, the account shows it delivered.')">Arrived — YES</button>
         <button class="csAct warn" onclick="jackNoSplit('${_id}',this)">Not arrived — NO</button>
         <button class="csAct plain" onclick="jackAmzDate('${_id}',this)">Amazon says it&rsquo;ll arrive&hellip;</button>
         <button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`});});
@@ -10355,7 +10357,8 @@ function renderJack(){
       perUnit:(c.claimValue&&(c.dif||c.exp))?(c.claimValue/(c.dif||c.exp)):0,
       raisedDays:c.raisedAt?Math.max(0,Math.floor((Date.now()-new Date(c.raisedAt).getTime())/864e5)):null,
       na:c.nextAction||'',
-      by:sj.by||c.raisedBy||'Sarah',at:sj.at,wait:days(sj.at),
+      /* a gated claim he took off Sarah himself is his, not something she is waiting on */
+      by:sj.at?(sj.by||c.raisedBy||'Sarah'):(gated?'Yours — gated':(c.raisedBy||'Sarah')),at:sj.at||c.raisedAt,wait:days(sj.at||c.raisedAt),noNag:!sj.at,
       type:gated?['GATED','#c084fc','Cannot be sold — eBay it or ungate it']:['CLAIM','#fbbf24','A claim she sent over'],
       why:esc((c.issT||'Issue')+' · '+(c.dif||0)+' unit'+((c.dif||0)===1?'':'s')),note:c.notes||'',
       value:c.claimValue||0,left:null,
@@ -10484,7 +10487,7 @@ function renderJack(){
         </td>
         <td style="text-align:center;">
           <div style="font-size:11.5px;font-weight:800;color:var(--text);">${esc(it.by)}</div>
-          <div style="font-size:10px;color:${it.wait>=2?'#f87171':it.wait>=1?'#fbbf24':'var(--text2)'};font-weight:${it.wait>=1?'800':'600'};margin-top:2px;">${it.wait===0?'today':it.wait+'d ago'}${it.wait>=2&&it.kind!=='fix'?'<br>they are waiting on you':''}</div>
+          <div style="font-size:10px;color:${it.wait>=2?'#f87171':it.wait>=1?'#fbbf24':'var(--text2)'};font-weight:${it.wait>=1?'800':'600'};margin-top:2px;white-space:normal;line-height:1.3;">${it.wait===0?'today':it.wait+'d ago'}${it.wait>=2&&it.kind!=='fix'&&!it.noNag?'<br>they are waiting on you':''}</div>
         </td>
         <td style="text-align:center;">
           ${it.value?`<div class="tfuVal" style="margin-top:0;">${fmtGBP2(it.value)}</div>`:'<span style="color:var(--text3);">—</span>'}
@@ -10505,7 +10508,12 @@ function renderJack(){
           ${it.kind==='claim'?`<div class="stExp" style="color:var(--text2);">${it.raisedDays!=null?`gated/raised ${it.raisedDays}d ago`:''}${it.units?` · ${fmt(it.units)} unit${it.units===1?'':'s'}`:''}${it.perUnit?` · ${fmtGBP2(it.perUnit)}/unit`:''}${it.acct?` · ${esc(it.acct)}`:''}</div>`:''}
           ${(it.claimLog&&it.claimLog.length)?it.claimLog.map(L=>`<div class="stLog"><span class="stLogWhen">${esc(String(L.t||'').slice(0,17))}</span> — ${esc(L.msg||'')}</div>`).join(''):''}
           ${it.na?`<div class="stNext">&#10132; ${esc(it.na)}</div>`:''}
+          ${(()=>{/* Jack, 7 Sep: "I can't see her message" — the packing note and VA note live on the row, so they show here */
+            if(it.kind==='claim'||it.kind==='lav')return '';const r=_rowById(it.id);if(!r)return '';
+            return (r.notes?`<div class="tfuRaiseNote" style="border-left-color:#fbbf24;color:#fde68a;" title="Packing note${r.notesBy?' — '+esc(r.notesBy):''}">&#128230; ${esc(r.notes)}</div>`:'')
+              +(r.vaNote?`<div class="tfuRaiseNote" style="border-left-color:#60a5fa;color:#93c5fd;" title="VA note${r.vaNoteBy?' — '+esc(r.vaNoteBy):''}">VA: ${esc(String(r.vaNote).slice(0,180))}${String(r.vaNote).length>180?'…':''}</div>`:'');})()}
           ${(!it.note&&!it.fix&&!(it.clog&&it.clog.length)&&!(it.claimLog&&it.claimLog.length)&&!it.expDate&&it.kind!=='claim')?`<div style="font-size:10.5px;color:var(--text3);font-weight:600;">Nothing written yet</div>`:''}
+          <button class="stMore" style="margin-top:5px;" onclick="jkStory('${it.kind}','${esc1(String(it.id))}')" title="Everything on this one — order, units, notes, every step, who and when">&#9656; Full story</button>
         </td>
         <td style="text-align:center;">
           ${(()=>{const _b=(it.acts.match(/<button[\s\S]*?<\/button>/g)||[]);
@@ -13169,6 +13177,33 @@ function renderAdmin(){
                 /* a question from the warehouse: four answers, each one press;
                    the row parks or balances itself and the VA Note carries the
                    reply back to the Prep Sheet */
+                /* Jack, 7 Sep: "why is this asking if things arrived in triage when
+                   I've just sent it back saying nothing is coming — this is a mess."
+                   His answer settles the question. What belongs here now is the
+                   move that follows from it, not the question again. */
+                if((i.query||i.partOverdue)&&sentBack&&sentBack.rejectNote){
+                  const a=String(sentBack.rejectNote||'');
+                  const notComing=/not arrived|nothing coming|cancel/i.test(a);
+                  const arrivedYes=!notComing&&/arrived\s*[—-]\s*yes|shows it delivered|delivered/i.test(a);
+                  const short=i.outstanding||Math.max(0,(i.units||0)-(i.got||0));
+                  return `<div class="csNow">
+                    <div class="csNowCap" style="color:#f87171;">Jack checked the account</div>
+                    <div class="csNowTxt" title="${esc(a)}">${esc(a)}</div>
+                    <div class="csActs">
+                      ${notComing?`<button class="csAct warn" onclick="openSorted('${i.rid}','no-refund')" title="Nothing more is coming and there is no refund yet — close it as never arrived so the claim starts">Never arrived &mdash; close it, claim the ${fmt(short)}</button>
+                        <button class="csAct good" onclick="openSorted('${i.rid}','refund-done')" title="They have said the refund is coming — that is processed. Close it; Jack watches the bank himself.">Refund being processed &mdash; done</button>
+                        <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')" title="The supplier cancelled the rest — the row balances, nothing missing">Supplier cancelled the rest</button>`
+                      :arrivedYes?`<button class="csAct warn" onclick="queryNoneComing('${i.rid}')" title="The account shows it delivered but ${fmt(short)} never reached the warehouse — raise them as Missing">Account says delivered &mdash; raise ${fmt(short)} missing</button>
+                        <button class="csAct good" onclick="openSorted('${i.rid}','refund-done')" title="They have said the refund is coming — that is processed. Close it.">Refund being processed &mdash; done</button>
+                        <button class="csAct plain" onclick="jackAmzDate('${i.rid}',this)" title="It is still coming after all — record the date and the row parks">Still coming &mdash; date&hellip;</button>`
+                      :`<button class="csAct go" onclick="jackAmzDate('${i.rid}',this)">More still coming &mdash; date&hellip;</button>
+                        <button class="csAct warn" onclick="queryNoneComing('${i.rid}')">Nothing more &mdash; raise ${fmt(short)} missing</button>
+                        <button class="csAct good" onclick="openSorted('${i.rid}','refund-done')">Refund being processed &mdash; done</button>
+                        <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')">Supplier cancelled the rest</button>`}
+                      <button class="csAct plain" onclick="openSorted('${i.rid}')" title="The full Close-off popup — every outcome, including a wrong quantity on the sheet">Close it off another way&hellip;</button>
+                    </div>
+                  </div>`;
+                }
                 if(i.query||i.partOverdue){
                   const Q=i.query||{got:i.got,exp:i.units,ask:`${i.got} of ${i.units} arrived ${i.partSince} — the rest has not followed`,note:''};
                   return `<div class="csNow">
@@ -23323,6 +23358,46 @@ async function deleteShipment(){
     });
 }
 
+/* Jack, 7 Sep: "a dropdown or popup for more info" — one place with everything
+   the app holds on a row or claim: order, units, both notes with who wrote
+   them, the case, the warehouse question, and every step in order. */
+function jkStory(kind,id){
+  const H=[];const when=t=>t?esc(_logWhen(t)):'';
+  const line=(k,v)=>{if(v===undefined||v===null||v==='')return;H.push(`<div class="jkSt"><span>${k}</span><div>${v}</div></div>`);};
+  let title='';
+  if(kind==='claim'){
+    const c=claims.find(x=>String(x.id)===String(id));if(!c){toast('Claim not found','er');return;}
+    title=c.prod||c.sku||'Claim';
+    line('Order',esc(c.oid||'—')+(c.sup?' · '+esc(c.sup):'')+(c.acct?' · '+esc(c.acct):''));
+    line('SKU / ASIN',esc(c.sku||'')+(c.asin?' · '+esc(c.asin):''));
+    line('Issue',esc(c.issT||'')+((c.dif||c.exp)?' · '+fmt(c.dif||c.exp)+' units':'')+(c.claimValue?' · '+fmtGBP2(c.claimValue):''));
+    line('Raised',when(c.raisedAt)+(c.raisedBy?' by '+esc(c.raisedBy):''));
+    line('Status',esc(c.cst||'')+(c.owner?' · with '+esc(c.owner):''));
+    line('Next action',esc(c.nextAction||''));
+    line('Notes',esc(c.notes||''));line('VA note',esc(c.vaNote||''));line('Jack note',esc(c.jackNote||''));
+    const lg=(c.log||[]).slice().reverse();
+    if(lg.length)line('History',lg.map(L=>`<div class="stLog"><span class="stLogWhen">${esc(String(L.t||'').slice(0,17))}</span> — ${esc(L.msg||'')}</div>`).join(''));
+  }else{
+    const r=_rowById(id);if(!r){toast('Row not found','er');return;}
+    title=r.prod||r.sku||'Row';const q=r.resolution||{};
+    line('Order',esc(r.oid||'—')+(r.sup?' · '+esc(r.sup):'')+(r.acct?' · '+esc(r.acct):'')+(r.date?' · ordered '+esc(r.date):''));
+    line('SKU / ASIN',esc(r.sku||'')+(r.asin?' · '+esc(r.asin):''));
+    line('Units',`${fmt(r.exp||0)} expected · ${fmt(parseInt(r.rcvd)||0)} received · ${fmt(parseInt(r.ship)||0)} shipped${r.cancelledQty?' · '+fmt(r.cancelledQty)+' cancelled':''} · ${esc(r.status||'')}`);
+    if(r.expectedDelivery)line('Expected delivery',esc(_dmy(r.expectedDelivery)));
+    if(r.notes)line('Packing notes',esc(r.notes)+(r.notesBy?` <i>— ${esc(r.notesBy)}${r.notesAt?', '+when(r.notesAt):''}</i>`:''));
+    if(r.vaNote)line('VA note',esc(r.vaNote).replace(/\n/g,'<br>')+(r.vaNoteBy?` <i>— ${esc(r.vaNoteBy)}${r.vaNoteAt?', '+when(r.vaNoteAt):''}</i>`:''));
+    if(q.state)line('Case',esc(q.state)+(q.what?' · '+esc(typeof _resText==='function'?_resText(q.what):q.what):'')+(q.by?' · by '+esc(q.by):'')+(q.at?' · '+when(q.at):''));
+    line('Sarah asked',esc(q.ask||''));line('Her note',esc(q.note||''));line('She suggests',esc(q.fix||''));
+    if(q.rejectNote)line('Answer given',esc(q.rejectNote)+(q.rejectedBy?' — '+esc(q.rejectedBy):''));
+    const Q=(typeof _ukQuery==='function')?_ukQuery(r):null;
+    if(Q)line('Warehouse question',esc(Q.ask||'')+(Q.note?' — “'+esc(Q.note)+'”':'')+(Q.by?' · '+esc(Q.by):'')+(Q.at?' · '+when(Q.at):'')+(Q.answer?'<br>Answer: '+esc(Q.answer)+(Q.reply?' — '+esc(Q.reply):''):''));
+    const lg=((q.chase&&q.chase.log)||[]).slice().reverse();
+    if(lg.length)line('History',lg.map(L=>`<div class="stLog"><span class="stLogWhen">${when(L.at)}</span>${L.by?' · <b>'+esc(L.by)+'</b>':''} — ${esc(L.what||'')}</div>`).join(''));
+  }
+  document.getElementById('jkStoryTitle').textContent=title;
+  document.getElementById('jkStoryBody').innerHTML=H.join('')||'<div style="color:var(--text3);font-size:12px;">Nothing recorded on this one yet.</div>';
+  om('jkStoryModal');
+}
 // ── LAVARION SHIPMENT LINE EDIT ───────────────────────────────────────────────
 let _editLavLineId=null;
 /* Becki, 7 Sep: a line recorded while the Lavarion data had not loaded left
@@ -24089,6 +24164,13 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
 </div>
 
 <!-- EDIT LAVARION LINE MODAL -->
+<div class="overlay" id="jkStoryModal">
+  <div class="modal" style="max-width:660px;">
+    <div class="mh"><div class="mh-title" id="jkStoryTitle">Full story</div><button class="mh-close" onclick="cm('jkStoryModal')">✕</button></div>
+    <div class="mb" id="jkStoryBody" style="max-height:70vh;overflow:auto;"></div>
+    <div class="mf"><button class="btn-cancel" onclick="cm('jkStoryModal')">Close</button></div>
+  </div>
+</div>
 <div class="overlay" id="editLavLineModal">
   <div class="modal" style="max-width:380px;">
     <div class="mh"><div class="mh-title">Edit Lavarion Line</div><button class="mh-close" onclick="cm('editLavLineModal')">✕</button></div>
@@ -24402,7 +24484,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v43.4 · lav3 · 2026-09-07 · b494';
+const BUILD='v43.6 · lav3 · 2026-09-07 · b496';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -35254,6 +35336,10 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .jkMore[open]>summary .jkMoreHint{display:none;}
 .tfu tr.jkLate td:first-child .tfuStripe{box-shadow:0 0 0 2px rgba(248,113,113,.55);}
 .jkMove .jkRest{display:none;}
+.jkSt{display:grid;grid-template-columns:130px 1fr;gap:4px 14px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;line-height:1.45;color:var(--text);}
+.jkSt>span{color:var(--text3);font-weight:800;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;padding-top:2px;}
+.jkSt i{color:var(--text3);font-style:normal;font-size:11px;}
+.jkSt .stLog{margin:2px 0;}
 .jkMove.open .jkRest{display:contents;}
 .jkMove .jkMoreBtn{opacity:.75;}
 .jkInfo,.jkDone{margin-top:14px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
