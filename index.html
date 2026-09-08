@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v45.5</title>
+<title>BDL PrepHub v46.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -75,6 +75,13 @@ html.light-mode{
 /* SUB & SAVE ROW */
 html:not(.light-mode) tbody tr.row-query{background:rgba(148,163,184,.11)!important;border-left:3px solid #94a3b8!important;}
 html:not(.light-mode) tbody tr.row-amzdel{background:rgba(34,211,238,.09)!important;border-left:3px solid #22d3ee!important;}
+html:not(.light-mode) tbody tr.row-issue{background:rgba(248,113,113,.09)!important;border-left:3px solid #ef4444!important;}
+html:not(.light-mode) tbody tr.row-issue:hover{background:rgba(248,113,113,.16)!important;}
+html.light-mode body tbody tr.row-issue{background:#fef2f2!important;border-left:5px solid #dc2626!important;}
+.issTag{display:block;margin:0 auto 4px;max-width:132px;padding:2px 8px;border-radius:5px;cursor:pointer;
+  font:800 10px var(--sans);letter-spacing:.02em;color:#fca5a5;background:rgba(248,113,113,.12);
+  border:1px solid rgba(248,113,113,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.issTag:hover{background:rgba(248,113,113,.22);color:#fecaca;}
 html:not(.light-mode) tbody tr.row-amzdel:hover{background:rgba(34,211,238,.15)!important;}
 .qryTag.amz{color:#22d3ee!important;border-color:rgba(34,211,238,.5)!important;background:rgba(34,211,238,.1)!important;}
 html:not(.light-mode) tbody tr.row-query td{border-color:rgba(148,163,184,.25)!important;color:#c3ccd8!important;}
@@ -3570,7 +3577,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v45.5</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v46.4</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3604,7 +3611,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v45.5</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v46.4</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3731,6 +3738,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
       </select>
       <button id="showIssuesBtn" onclick="toggleIssuesFilter()" style="padding:5px 10px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⚑ Issues</button>
       <button id="showLateBtn" onclick="toggleLateFilter()" style="padding:5px 10px;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.4);color:#fb923c;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⏱ Late</button>
+      <button id="showSSBtn" onclick="toggleSubSaveFilter()" title="Show only Subscribe &amp; Save orders — they run to a longer clock than everything else" style="padding:5px 10px;background:rgba(96,165,250,.13);border:1px solid rgba(96,165,250,.4);color:#60a5fa;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">S&amp;S</button>
       <button id="showReadyBtn" onclick="toggleReadyFilter()" style="padding:5px 10px;background:rgba(74,222,128,.13);border:1px solid rgba(74,222,128,.4);color:#4ade80;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Ready to clear 0</button>
       <button id="showArchivedBtn" onclick="toggleArchivedView()" title="Show rows that were sent to Amazon and archived" style="padding:5px 10px;background:var(--bg2);border:1px solid rgba(96,165,250,.4);color:var(--text3);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Show Archived</button>
       <select class="fsel" id="prepSortF" onchange="sortTable(this.value)">
@@ -3921,7 +3929,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v45.5</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v46.4</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -5519,9 +5527,14 @@ function renderPrepRows(data){
        greys the whole row, like a row that is with Jack: someone else has it. */
     const _qOpen=!hasIssue&&!!_ukQuery(r);
     const _amzDel=_isAmzDel(r);   /* the flag colours the row whatever else is on it */
+    /* Jack, 8 Sep: "thought we had a row turn another colour on issues — is
+       that not happening any more?" It only ever fired when the STATUS itself
+       was 'Issue'. A gated claim on an In-Warehouse row is still an issue, so
+       the row says so — and the status colour no longer buries it. */
     const rowCls=[
       _amzDel?'row-amzdel':
       isStuck?'row-stuck':
+      hasIssue?'row-issue':
       _qOpen?'row-query':
       isSubSaveInTransit?'row-subsave':
       statusClass,
@@ -5628,6 +5641,13 @@ function renderPrepRows(data){
       }</td>
       <td id="diff-${r.id}">${diffEl}</td>
       <td style="text-align:center;">
+        ${(()=>{const _rk=r.uuid||r.id;
+          const _cl=claims.filter(c=>(c.prepRowId===_rk||c.prepRowId===r.id||c.prepRowId===r.uuid)&&c.cst!=='Resolved'&&c.cst!=='Closed');
+          const _seen=[];
+          if(_cl.length)_cl.forEach(c=>{const t=(c.issT||'Issue');const q=parseInt(c.dif)||parseInt(c.exp)||0;const k=t+'|'+q;if(_seen.some(x=>x.k===k))return;_seen.push({k,t,q,id:c.id});});
+          else if(hasIssue)_seen.push({k:'row',t:r.issueType||'Issue',q:parseInt(r.issueQty)||0,id:null});
+          if(!_seen.length)return '';
+          return _seen.map(x=>`<div class="issTag" onclick="openIssueModal('${r.uuid||r.id}')" title="Open the issue — ${esc(x.t)}${x.q?' · '+x.q+' unit'+(x.q===1?'':'s'):''}. Click to change or close it.">&#9873; ${esc(x.t)}${x.q?` &middot; ${x.q}`:''}</div>`).join('');})()}
         <button onclick="openIssueModal('${r.uuid||r.id}')" id="ib-${r.id}"
           style="padding:4px 10px;background:transparent;border:1px dashed var(--border2);color:var(--text3);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;min-width:32px;"
           title="Raise an issue against this row">+ issue</button>
@@ -5785,8 +5805,45 @@ function amzFoundIt(rid){
   if(inp){try{inp.scrollIntoView({block:'center'});}catch(e){}inp.focus();inp.select();}
   toast('Type what you found — when it matches what was expected the flag clears by itself','ok');
 }
+/* Jack, 8 Sep: "Sarah flags it → goes to me → I check whether Amazon says it
+   has arrived." One press, no popup — the question is always the same one. */
+async function amzAskJack(rid){
+  const r=_rowById(rid);if(!r)return;
+  const now=new Date().toISOString();
+  const riding=(typeof _caseOf==='function')?_caseOf(r):null;
+  if(riding)riding.log=(riding.log||[]).concat([{at:now,by:_who(),what:'Sent to Jack — has Amazon delivered it?'}]);
+  r.resolution=Object.assign({},r.resolution||{},{state:'asked',kind:'check',what:'jack-check',
+    ask:'Has Amazon delivered it?',note:'',by:_who(),at:now,chase:riding||undefined});
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
+  logAudit('Sent to Jack — Amazon delivery check',`${r.sku||r.asin||''}`);
+  toast('Sent to Jack — he checks the Amazon account and answers','ok');
+  renderAdmin();try{renderJack();renderPrep();}catch(e){}
+}
 /* Jack, 8 Sep: "send to Becki to check if we have it — button there." His
    answer is a finding; SHE starts the shelf check. */
+/* Jack, 8 Sep: "if Amazon says it hasn't arrived that needs to stay with me —
+   Sarah can't deal with Amazon refunds anyway. She should still be able to see
+   the status, but she doesn't have an action." So it never goes back to her
+   list: it stays his, and her row shows his status line, read-only. */
+async function amzClaimMine(rid){
+  const r=_rowById(rid);if(!r)return;
+  const now=new Date().toISOString(),owe=_owedUnits(r);
+  const d=new Date(),dd=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
+  const ch=(r.resolution&&r.resolution.chase)||{path:'never-arrived',step:'',due:'',log:[]};
+  ch.log=(ch.log||[]).concat([{at:now,by:_who(),what:'Amazon say it was never delivered — following it up with Amazon for a refund'}]);
+  r.delivered='No';
+  r.resolution=Object.assign({},r.resolution||{},{state:'asked',kind:'check',what:'amz-claim',
+    ask:`${_who()} confirmed it hasn\u2019t arrived — following up with Amazon for a refund${owe?` (${owe} unit${owe===1?'':'s'})`:''}`,
+    note:'',by:_who(),at:now,chase:ch});
+  r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${dd}: Amazon say it was never delivered — not coming, I am claiming it with Amazon`;
+  r.vaNoteBy=_who();r.vaNoteAt=now;
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
+  logAudit('Amazon never delivered — with Jack',`${r.sku||r.asin||''} — ${owe} unit(s)`);
+  toast('Yours until it is sorted — Sarah can see the status but has nothing to do','ok');
+  renderJack();try{renderAdmin();renderPrep();}catch(e){}
+}
 async function amzToBecki(rid){
   const r=_rowById(rid);if(!r)return;
   const now=new Date().toISOString(),d=new Date(),dd=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
@@ -5840,10 +5897,15 @@ async function amzNotHere(rid){
 async function amzMissingDone(rid){
   const r=_rowById(rid);if(!r||!r.resolution)return;
   const now=new Date().toISOString();
+  const owe=_owedUnits(r);
   const ch=r.resolution.chase||{path:'never-arrived',step:'',due:'',log:[]};
-  ch.log=(ch.log||[]).concat([{at:now,by:_who(),what:'Sorted with Amazon — refund or replacement raised'}]);
+  ch.log=(ch.log||[]).concat([{at:now,by:_who(),what:`Sorted with Amazon — refund or reimbursement raised${owe?` · ${owe} unit${owe===1?'':'s'} written off`:''}`}]);
   r.resolution=Object.assign({},r.resolution,{state:'approved',kind:'ops',what:'refund-done',approvedBy:_who(),approvedAt:now,
     refundRaised:{by:_who(),at:now},chase:ch});
+  /* Jack, 8 Sep: a processed refund is closed and done. The units are not
+     coming, so they stop being owed — otherwise the row resurfaces forever. */
+  if(owe>0)r.cancelledQty=(parseInt(r.cancelledQty)||0)+owe;
+  try{if(_owedUnits(r)===0&&remainingToShip(r)===0&&(parseInt(r.ship)||0)>0){r.status='Sent to Amazon';r.sent='Yes';}}catch(e){}
   r._dirty=true;
   try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
   logAudit('Amazon missing sorted',`${r.sku||r.asin||''} — ${_who()}`);
@@ -5963,7 +6025,7 @@ let _prepDomSig=null; // signature of the un-searched base set currently in the 
 function _prepBaseSig(){
   const st=(document.getElementById('prepStF')||{}).value||'';
   const ac=(document.getElementById('prepAcctF')||{}).value||'';
-  return st+'|'+ac+'|'+(_issuesFilterActive?1:0)+'|'+(_lateFilterActive?1:0)+'|'+(_readyFilterActive?1:0)+'|'+(_amzFilterActive?1:0)+'|'+(_showArchived?1:0);
+  return st+'|'+ac+'|'+(_issuesFilterActive?1:0)+'|'+(_lateFilterActive?1:0)+'|'+(_readyFilterActive?1:0)+'|'+(_amzFilterActive?1:0)+'|'+(_ssFilterActive?1:0)+'|'+(_showArchived?1:0);
 }
 // Base set = every filter EXCEPT the search query (mirrors filterPrep's logic)
 function _prepBaseRows(){
@@ -5975,7 +6037,7 @@ function _prepBaseRows(){
      appears on this page in either mode; it lives in History Lookup and the
      audit log, and Undo still works from the toast. */
   const base=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_offPrepSheet(r));
-  if(!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive&&!_amzFilterActive)return base;
+  if(!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive&&!_amzFilterActive&&!_ssFilterActive)return base;
   return base.filter(r=>{
     const rid=r.uuid||String(r.id);
     if(_acctF&&String(r.acct||'').trim()!==_acctF)return false;
@@ -5985,6 +6047,7 @@ function _prepBaseRows(){
       if(!hasIssue)return false;
     }
     if(_amzFilterActive&&!_isAmzDel(r))return false;
+    if(_ssFilterActive&&r.subSave!=='Yes')return false;
     if(_lateFilterActive){
       if(r.status!=='In-Transit')return false;
       const[dd,mm]=(r.date||'').split('/');
@@ -6073,6 +6136,7 @@ function prepEmptyState(){
   if(_ac)active.push(`the account filter (<b>${esc(_ac)}</b>)`);
   if(_issuesFilterActive)active.push('the <b>Issues</b> filter');
   if(_lateFilterActive)active.push('the <b>Late</b> filter');
+  if(_ssFilterActive)active.push('the <b>S&amp;S</b> filter');
   const st=(document.getElementById('prepStF')||{}).value||'';
   if(st)active.push(`the status filter (<b>${esc(st)}</b>)`);
   const q=((document.getElementById('prepSrch')||{}).value||'').trim();
@@ -6091,6 +6155,7 @@ function prepShowEverything(){
   if(typeof _readyFilterActive!=='undefined'&&_readyFilterActive)toggleReadyFilter();
   if(_issuesFilterActive)toggleIssuesFilter();
   if(_lateFilterActive)toggleLateFilter();
+  if(_ssFilterActive)toggleSubSaveFilter();
   const st=document.getElementById('prepStF');if(st)st.value='';
   const ac=document.getElementById('prepAcctF');if(ac)ac.value='';
   const q=document.getElementById('prepSrch');if(q)q.value='';
@@ -6109,13 +6174,15 @@ function filterPrep(skipFlush){
   // _showArchived ON = show ONLY archived rows; OFF = show only active rows.
   // Rows cleared as "sorted outside the app" are excluded from BOTH modes.
   const baseRows=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_offPrepSheet(r));
-  if(!q&&!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive&&!_amzFilterActive){renderPrepRows(baseRows);}
+  if(!q&&!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive&&!_amzFilterActive&&!_ssFilterActive){renderPrepRows(baseRows);}
   else{
     const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
       if(_acctF&&String(r.acct||'').trim()!==_acctF)return false;
       if(_readyFilterActive&&acHold(r)!==null)return false;
       if(_amzFilterActive&&!_isAmzDel(r))return false;
+    if(_ssFilterActive&&r.subSave!=='Yes')return false;
+      if(_ssFilterActive&&r.subSave!=='Yes')return false;
       if(_issuesFilterActive){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
         if(!hasIssue)return false;
@@ -6308,12 +6375,14 @@ function renderPrep(){
   // the shipments page and stats still see them). _showArchived flips to an
   // archived-ONLY view rather than mixing archived in with active rows.
   const baseRows=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_offPrepSheet(r));
-  if(q||st||_acctF||_issuesFilterActive||_lateFilterActive||_readyFilterActive||_amzFilterActive){
+  if(q||st||_acctF||_issuesFilterActive||_lateFilterActive||_readyFilterActive||_amzFilterActive||_ssFilterActive){
     const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
       if(_acctF&&String(r.acct||'').trim()!==_acctF)return false;
       if(_readyFilterActive&&acHold(r)!==null)return false;
       if(_amzFilterActive&&!_isAmzDel(r))return false;
+    if(_ssFilterActive&&r.subSave!=='Yes')return false;
+      if(_ssFilterActive&&r.subSave!=='Yes')return false;
       if(_issuesFilterActive){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
         if(!hasIssue)return false;
@@ -6692,6 +6761,7 @@ function toggleReadyFilter(){
   if(_readyFilterActive){
     if(_issuesFilterActive)toggleIssuesFilter();
     if(_lateFilterActive)toggleLateFilter();
+  if(_ssFilterActive)toggleSubSaveFilter();
     _readyFilterActive=true;
   }
   acPaintChip();
@@ -8250,7 +8320,10 @@ async function addVaActions(row,tasks,detail){
   tasks.filter(t=>t&&t!=='No further action required').forEach(t=>{
     /* belt and braces on top of the double-submit guard — the same job on the
        same row can only be outstanding once */
-    if(VA_ACTIONS.some(a=>!a.done&&a.rid===rid&&a.task===t))return;
+    const _n=x=>String(x||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+    const _t=_n(t);
+    if(VA_ACTIONS.some(a=>{if(a.done||a.rid!==rid)return false;const o=_n(a.task);
+      return o===_t||(o.length>12&&_t.length>12&&(o.includes(_t)||_t.includes(o)));}))return;
     VA_ACTIONS.unshift({
       id:'a'+Date.now().toString(36)+Math.floor(Math.random()*1296).toString(36),
       rid:row.uuid||row.id,sku:row.sku||'',asin:row.asin||'',prod:row.prod||'',
@@ -9231,7 +9304,15 @@ async function submitSorted(){
        popup has genuinely happened — sending it to the Action Centre anyway is
        how a to-do list stops being believed. */
     const jobs=stepsOpen.slice();
-    follow.forEach(f=>{if(!ticks[f]&&!jobs.some(j=>j===f||j.indexOf(f)===0))jobs.push(f);});
+    /* Jack, 8 Sep: "Raise a claim for the loss" and "Raise the claim with the
+       supplier or Amazon before the window shuts" landed as two jobs on the
+       same row — they are one job, the short name and its own wording. A
+       follow-up that already has a step of its own is never added twice. */
+    const stepKeys=new Set(stepsAll.map(s=>s.k));
+    follow.forEach(f=>{
+      if(ticks[f]||stepKeys.has(f))return;
+      if(jobs.some(j=>j===f||j.indexOf(f)===0))return;
+      jobs.push(f);});
     await addVaActions(r,jobs,[overrideWhy?('Left open: '+overrideWhy):'',sheetNote,fix].filter(Boolean).join(' — ')||_resText(what));
   }
   r.cancelledQty=cx;
@@ -10512,14 +10593,19 @@ function renderJack(){
         <button class="csAct good" onclick="lavLateNewDate('${esc1(g.key)}',document.getElementById('${_id}').value)" title="The order's window moves to this date, it stops being late and leaves Sarah's list by itself">New date &mdash; send back</button>
         <button class="csAct plain" onclick="lavLateBack('${esc1(g.key)}')" title="No date from the supplier — back to Sarah to chase">Hand back &mdash; no date</button>`});});
   checks.forEach(r=>{const q=r.resolution||{};const Q=_ukQuery(r);const _id=r.uuid||r.id;
-    if(q.what==='amz-missing'){
+    if(q.what==='amz-missing'||q.what==='amz-claim'){
       const _owe=Math.max(0,(r.exp||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0));
       items.push({kind:'check',id:_id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,asin:r.asin||'',
-        by:q.by||'someone',at:q.at,wait:days(q.at),type:['AMAZON SAYS DELIVERED','#22d3ee','Becki checked the shelves — not there. Raise it with Amazon.'],
-        why:esc(`${fmt(_owe)} unit${_owe===1?'':'s'} Amazon say ${_owe===1?'was':'were'} delivered — not in the warehouse`),note:'',
+        by:q.by||'someone',at:q.at,wait:days(q.at),
+        type:q.what==='amz-claim'
+          ?['AMAZON — WITH YOU','#22d3ee','Amazon say it was never delivered — yours to claim']
+          :['AMAZON SAYS DELIVERED','#22d3ee','Becki checked the shelves — not there. Raise it with Amazon.'],
+        why:esc(q.what==='amz-claim'
+          ?`${fmt(_owe)} unit${_owe===1?'':'s'} never delivered — refund or reimbursement to raise`
+          :`${fmt(_owe)} unit${_owe===1?'':'s'} Amazon say ${_owe===1?'was':'were'} delivered — not in the warehouse`),note:'',
         clog:(q.chase&&q.chase.log)||[],expDate:r.expectedDelivery||'',
         value:(parseSKU(r.sku).cogs||0)*_owe,left:refundLeft(r.date,r),
-        acts:`<button class="csAct good" onclick="amzMissingDone('${_id}')" title="Refund or replacement raised with Amazon — it closes on every page">Sorted with Amazon &mdash; done</button>
+        acts:`<button class="csAct good" onclick="amzMissingDone('${_id}')" title="Refund or reimbursement sorted — the units are written off, the row balances and closes on every page">Sorted with Amazon &mdash; done</button>
           <button class="csAct plain" onclick="jackAmzDate('${_id}',this)" title="Amazon are sending it again — record the date, the row parks">Replacement coming &mdash; date&hellip;</button>
           <button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Back to Sarah with a note</button>`});
       return;
@@ -11102,7 +11188,9 @@ function jackNoSplit(rid,btn){
     <div class="jkAnsT">Not arrived — is it still coming?</div>
     <input type="date" id="jkD_${rid}" min="2024-01-01" max="2030-12-31" class="jkAnsDate" onkeydown="if(event.key==='Enter'){event.preventDefault();jackStillComing('${rid}');}">
     <button class="csAct go" onclick="jackStillComing('${rid}')" title="The account shows a delivery date — it comes off your list and Sarah's until then, the date shows on the Prep Sheet">Still coming — save the date</button>
-    <button class="csAct warn" onclick="jackAnswered('${rid}','NOT arrived — cancelled or nothing coming. Chase or claim.')" title="Cancelled, or no delivery showing — it goes back to Sarah with your answer and she closes it off">Cancelled / nothing coming — chase or claim</button>
+    ${_amazonRow(_rowById(rid))
+      ?`<button class="csAct warn" onclick="amzClaimMine('${rid}')" title="Amazon say it was never delivered — it stays with you for the refund. Sarah sees the status, nothing lands on her list.">Not arrived &mdash; I&rsquo;ll claim it with Amazon</button>`
+      :`<button class="csAct warn" onclick="jackAnswered('${rid}','NOT arrived — cancelled or nothing coming. Chase or claim.')" title="Cancelled, or no delivery showing — it goes back to Sarah with your answer and she closes it off">Cancelled / nothing coming — chase or claim</button>`}
     <button class="csAct plain" onclick="renderJack()">Back</button></div>`;
   setTimeout(()=>{const el=document.getElementById('jkD_'+rid);if(el)el.focus();},30);
 }
@@ -13305,18 +13393,21 @@ function renderAdmin(){
             const _e1=s=>String(s).replace(/'/g,"\\'");
             const _wAge=waiting.at?Math.max(0,Math.floor((Date.now()-new Date(waiting.at).getTime())/864e5)):null;
             const _wWhat=waiting.state==='asked'?(waiting.ask||'Amazon order check'):_resText(waiting.what);
+            /* Jack, 8 Sep: an Amazon claim is his until it is sorted — she can
+               see where it stands, but there is nothing for her to undo. */
+            const _jackOwned=waiting.what==='amz-claim'||waiting.what==='amz-missing';
             const _q=i.query;
             return`<tr class="tfuWaiting tfuCompact">
               <td class="tfuNumCell" style="text-align:center;"><span class="tfuStripe" style="background:#94a3b8;" title="${esc(edgeTitle)}"></span><span style="font:800 12px var(--mono);color:var(--text3);cursor:help;" title="${esc(edgeTitle)}">${n+1}</span></td>
               <td colspan="6"><div class="tfuCmp">
                 <span class="tfuCmpName" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</span>
                 <span class="tfuCmpMeta">${esc(i.sup||'')}${i.oid?' · '+esc(i.oid):''}${i.acct?' · '+esc(i.acct):''}</span>
-                <span class="tfuCmpChip">With Jack${_wAge!=null?' · '+_wAge+'d':''}</span>
+                <span class="tfuCmpChip"${_jackOwned?' style="background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.5);color:#22d3ee;"':''}>With Jack${_wAge!=null?' · '+_wAge+'d':''}</span>
                 <span class="tfuCmpAsk" title="${esc(_wWhat)}">${_q?'Warehouse asked: '+esc(_q.got?_q.got+' of '+_q.exp+' in — is more coming?':'has it been dispatched?')+' · ':''}${esc(_wWhat)}</span>
                 ${i.value?`<span class="tfuCmpVal">${fmtGBP2(i.value)}</span>`:''}
               </div></td>
               <td class="tfuActs" style="text-align:center;">
-                <button class="tfuAsk" style="margin-top:0;" onclick="undoSend('${i.kind}','${i.kind==='claim'?i.claimId:i.kind==='lav'?_e1(i.lavKey):i.rid}')" title="Changed your mind — pull it back off Jack's list and carry on yourself">Undo</button>
+                ${_jackOwned?'':`<button class="tfuAsk" style="margin-top:0;" onclick="undoSend('${i.kind}','${i.kind==='claim'?i.claimId:i.kind==='lav'?_e1(i.lavKey):i.rid}')" title="Changed your mind — pull it back off Jack's list and carry on yourself">Undo</button>`}
                 <button class="tfuMore" onclick="${i.kind==='claim'?`openClaimCase('${i.claimId}')`:i.kind==='lav'?`openLavIssue('${_e1(i.lavKey)}')`:`openWork('${i.rid}')`}" title="Everything on this issue — it is locked while Jack has it">Details</button>
               </td></tr>`;
           }
@@ -13478,17 +13569,15 @@ function renderAdmin(){
                         <button class="csAct ${/cancel/i.test(a)?'plain':'warn'}" onclick="openSorted('${i.rid}','no-refund')" title="Nothing more is coming and there is no refund yet — close it as never arrived so the claim starts">Never arrived &mdash; close it, claim the ${fmt(short)}</button>
                         <button class="csAct good" onclick="openSorted('${i.rid}','refund-done')" title="They have said the refund is coming — that is processed. Close it; Jack watches the bank himself.">Refund being processed &mdash; done</button>
                         <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')" title="The supplier cancelled the rest — the row balances, nothing missing">Supplier cancelled the rest</button>`
-                      :arrivedYes?`<button class="csAct go" onclick="amzToBecki('${i.rid}')" title="Amazon say it was delivered — ask Becki to check the shelves. It is flagged on the Prep Sheet and comes back with her answer.">Send to Becki &mdash; check if we have it</button>
-                        ${_amazonRow(_rowById(i.rid))
-                          ?`<button class="csAct warn" onclick="amzRaiseToJack('${i.rid}')" title="Not in the warehouse — Jack raises the missing units with Amazon">Not here &mdash; send to Jack to raise it</button>`
-                          :`<button class="csAct warn" onclick="queryNoneComing('${i.rid}')" title="Delivered but ${fmt(short)} never reached the warehouse — raise them as Missing">Delivered &mdash; raise ${fmt(short)} missing</button>`}
-                        <button class="csAct good" onclick="openSorted('${i.rid}','refund-done')" title="They have said the refund is coming — that is processed. Close it.">Refund being processed &mdash; done</button>
-                        <button class="csAct plain" onclick="jackAmzDate('${i.rid}',this)" title="It is still coming after all — record the date and the row parks">Still coming &mdash; date&hellip;</button>`
+                      :arrivedYes?`<div class="csNowTxt" style="margin:2px 0 4px;color:#fbbf24;">Has it gone out on the wrong SKU?</div>
+                        <button class="csAct good" onclick="openSorted('${i.rid}','wrong-sku')" title="The unit is accounted for — it went out on another listing. Close it off here; the popup asks which SKU if you know it.">Yes &mdash; sort it and close it</button>
+                        <button class="csAct go" onclick="amzToBecki('${i.rid}')" title="Not the wrong SKU — Becki checks the shelves, back stock and anywhere it could have been put. It is flagged on the Prep Sheet and comes back with her answer.">No &mdash; send to Becki to check the warehouse</button>
+                        ${!_amazonRow(_rowById(i.rid))?`<button class="csAct warn" onclick="queryNoneComing('${i.rid}')" title="Delivered but ${fmt(short)} never reached the warehouse — raise them as Missing">Delivered &mdash; raise ${fmt(short)} missing</button>`:''}`
                       :`<button class="csAct go" onclick="jackAmzDate('${i.rid}',this)">More still coming &mdash; date&hellip;</button>
                         <button class="csAct warn" onclick="queryNoneComing('${i.rid}')">Nothing more &mdash; raise ${fmt(short)} missing</button>
                         <button class="csAct good" onclick="openSorted('${i.rid}','refund-done')">Refund being processed &mdash; done</button>
                         <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')">Supplier cancelled the rest</button>`}
-                      <button class="csAct plain" onclick="refundWait('${i.rid}')" title="They have promised a refund — park it two days and come back to check the emails">Refund promised &mdash; check emails in 2 days</button>
+                      ${_amazonRow(_rowById(i.rid))?'':`<button class="csAct plain" onclick="refundWait('${i.rid}')" title="They have promised a refund — park it two days and come back to check the emails">Refund promised &mdash; check emails in 2 days</button>`}
                       <button class="csAct plain" onclick="openSorted('${i.rid}')" title="The full Close-off popup — every outcome, including a wrong quantity on the sheet">Close it off another way&hellip;</button>
                     </div>
                   </div>`;
@@ -13500,13 +13589,20 @@ function renderAdmin(){
                     <div class="csNowTxt" title="${esc(Q.ask||'')}">${Q.got?`${Q.got} of ${Q.exp} booked in — is more on the way?`:`Nothing booked in yet — has it been dispatched?`}</div>
                     ${Q.note?`<div class="csNote" title="${esc(Q.note)}">&ldquo;${esc(Q.note)}&rdquo;</div>`:''}
                     <div class="csActs">
-                      <button class="csAct go" onclick="jackAmzDate('${i.rid}',this)" title="It is still coming — record the date. The row parks until then and the warehouse sees the date on the Prep Sheet.">More still coming &mdash; date&hellip;</button>
-                      <button class="csAct warn" onclick="queryNoneComing('${i.rid}')" title="The order shows fully delivered — the ${i.outstanding} short become a Missing issue">Nothing more &mdash; fully delivered</button>
-                      <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')" title="The supplier cancelled the rest — the row balances, nothing missing">Supplier cancelled the rest</button>
-                      <button class="csAct plain" onclick="queryBalance('${i.rid}','refunded')" title="Already refunded for the shortfall — the row balances, nothing missing">Already refunded</button>
-                      <button class="csAct plain" onclick="refundWait('${i.rid}')" title="They have promised a refund — park it two days and come back to check the emails">Refund promised &mdash; check emails in 2 days</button>
+                      ${isAmz
+                        /* Jack, 8 Sep: on an Amazon order every one of these is an
+                           answer only he can give — the date is on the account, a
+                           cancellation or a refund is his to confirm, and raising
+                           the short units as Missing is his claim. One press. */
+                        ?`<button class="csAct go" onclick="amzAskJack('${i.rid}')" title="An Amazon order — Jack checks the account first and answers. One press, nothing to type.">Send to Jack &mdash; has Amazon delivered it?</button>
+                          <button class="csAct plain" onclick="openSorted('${i.rid}')" title="You already know exactly what happened — record it yourself">Close it off another way&hellip;</button>`
+                        :`<button class="csAct go" onclick="jackAmzDate('${i.rid}',this)" title="It is still coming — record the date. The row parks until then and the warehouse sees the date on the Prep Sheet.">More still coming &mdash; date&hellip;</button>
+                          <button class="csAct warn" onclick="queryNoneComing('${i.rid}')" title="The order shows fully delivered — the ${i.outstanding} short become a Missing issue">Nothing more &mdash; fully delivered</button>
+                          <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')" title="The supplier cancelled the rest — the row balances, nothing missing">Supplier cancelled the rest</button>
+                          <button class="csAct plain" onclick="queryBalance('${i.rid}','refunded')" title="Already refunded for the shortfall — the row balances, nothing missing">Already refunded</button>
+                          <button class="csAct plain" onclick="refundWait('${i.rid}')" title="They have promised a refund — park it two days and come back to check the emails">Refund promised &mdash; check emails in 2 days</button>`}
                     </div>
-                    ${isAmz?`<div class="tfuGuide">Amazon order &mdash; can&rsquo;t see it? Send it to Jack (right).</div>`:''}
+                    ${isAmz?`<div class="tfuGuide">Amazon order &mdash; Jack checks the account. Every other answer here is his to give.</div>`:''}
                   </div>`;
                 }
                 /* A live case takes the column over: the verdict is settled, so
@@ -14603,6 +14699,13 @@ function renderDashboard(){
   // ── STUCK ────────────────────────────────────────────────────────────────────
   const stuckRows=rows.filter(r=>{
     if(r.status!=='In-Transit')return false;
+    /* Jack, 8 Sep: "some of these have been cleared but are still on the
+       overview." This list only ever asked "In-Transit and older than 20 days",
+       so a row Sarah had sorted, archived or balanced still counted against the
+       money at risk. It now means what it says: still open, still owed. */
+    if(r.archived)return false;
+    if(r.resolution&&(r.resolution.state==='approved'||r.resolution.filed))return false;
+    if(_owedUnits(r)<=0)return false;
     if(r.subSave==='Yes')return false;
     if(r.expectedDelivery&&new Date()<=new Date(r.expectedDelivery))return false;
     const[dd,mm]=(r.date||'').split('/');
@@ -16356,10 +16459,12 @@ function openPrepHistory(){
     el.style.zIndex='130';document.body.appendChild(el);
     el.addEventListener('click',e=>{if(e.target===el)el.style.display='none';});}
   el.innerHTML=`<div class="modal" style="max-width:1040px;max-height:88vh;overflow:auto;padding:20px 22px;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-      <b style="font-size:15px;">Prep cost — month by month</b>
-      <span style="font-size:11px;color:var(--text3);">what the warehouse bill should come to, worked out from what was sent · click a month for the full breakdown</span>
-      <button onclick="document.getElementById('prepHistModal').style.display='none'" style="margin-left:auto;background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;">&#10005;</button></div>
+    <div class="pcmHdr">
+      <div>
+        <div class="pcmTtl">Prep cost — month by month</div>
+        <div class="pcmSub">What the warehouse bill should come to, worked out from what was sent. Click a month for the full breakdown.</div>
+      </div>
+      <button class="pcmX" onclick="document.getElementById('prepHistModal').style.display='none'" title="Close">&#10005;</button></div>
     <div id="prepHistBody"></div></div>`;
   el.style.display='flex';
   try{renderInsMonthly(document.getElementById('prepHistBody'));}
@@ -16384,6 +16489,38 @@ function _pcmShipments(md,key){
   });
   md.lavRows.forEach(l=>{if(!l.shipId)return;const x=put(l.shipId,l.date,_shipTypeCache[l.shipId]);x.lav+=l.units||0;});
   return Object.values(S).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+}
+/* Jack, 8 Sep: "information on the popup is great, the UI/UX design is a bit
+   meh… looks cartoony." Same numbers, house style: colour on the top border and
+   on the figure, never a wash; slim bars with their value on top, an average
+   line to read them against, and the running month marked as partial. */
+function _pcmKpi(label,value,sub,col){
+  return `<div class="pcmKpi" style="border-top-color:${col};">
+    <div class="pcmKpiL">${label}</div>
+    <div class="pcmKpiV" style="color:${col};">${value}</div>
+    ${sub?`<div class="pcmKpiS">${sub}</div>`:''}
+  </div>`;
+}
+function _pcmChart(months,avg){
+  if(months.length<2)return '';
+  const data=months.slice().reverse();                 // oldest → newest, left to right
+  const max=Math.max(...data.map(d=>d.prep),1);
+  const now=new Date();const curKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const gbp0=v=>'£'+Math.round(v||0).toLocaleString('en-GB');
+  return `<div class="pcmChart">
+    <div class="pcmChartH"><span>Prep cost inc. VAT — month by month</span>
+      <span class="pcmAvg">average ${gbp0(avg)} a month</span></div>
+    <div class="pcmPlot">
+      ${data.map(d=>{
+        const h=Math.max(3,Math.round((d.prep/max)*100));
+        const part=d.key===curKey;
+        return `<div class="pcmB${part?' part':''}" title="${esc(d.label)} — ${gbp0(d.prep)} inc. VAT · ${fmt(d.units)} units · ${fmt(d.ships)} shipments">
+          <span class="pcmBv">${gbp0(d.prep)}</span>
+          <span class="pcmBk" style="height:${h}%;"></span>
+          <span class="pcmBl">${esc(d.shortLabel)}${part?' <i>so far</i>':''}</span>
+        </div>`;}).join('')}
+    </div>
+  </div>`;
 }
 function renderInsMonthly(body){
   const map=buildMonthMap(null);
@@ -16411,14 +16548,13 @@ function renderInsMonthly(body){
     return `<span class="pcmD ${good?'g':bad?'b':'n'}" title="${prev!=null?'was '+(fmtFn?fmtFn(prev):prev):''}">${up?'▲':dn?'▼':'→'} ${Math.abs(p).toFixed(1)}%</span>`;};
   const head=`
     <div class="pcmKpis">
-      ${kpiCard('Months tracked',fmt(months.length),'with shipment activity','#60a5fa')}
-      ${kpiCard('Total prep',money(totPrep),`inc. VAT · ${money(totPrep/(prepFees.vatRate||1.2))} ex. VAT`,'#fbbf24')}
-      ${kpiCard('Avg / month',money(avgPrep),'mean monthly bill','#f59e0b')}
-      ${kpiCard('Avg / unit','£'+avgPerUnit.toFixed(2),`across ${fmt(totUnits)} units`,'#94a3b8')}
-      ${kpiCard('Shipments',fmt(totShips),`${fmt(totBoxes)} boxes · ${totShips?(totUnits/totShips).toFixed(0):'—'} units per shipment`,'#c084fc')}
+      ${_pcmKpi('Months tracked',fmt(months.length),'with shipment activity','#60a5fa')}
+      ${_pcmKpi('Total prep',money(totPrep),`inc. VAT · ${money(totPrep/(prepFees.vatRate||1.2))} ex. VAT`,'#fbbf24')}
+      ${_pcmKpi('Average a month',money(avgPrep),'across every month tracked','#f59e0b')}
+      ${_pcmKpi('Average a unit','£'+avgPerUnit.toFixed(2),`over ${fmt(totUnits)} units`,'#34d399')}
+      ${_pcmKpi('Shipments',fmt(totShips),`${fmt(totBoxes)} boxes · ${totShips?(totUnits/totShips).toFixed(0):'—'} units each`,'#c084fc')}
     </div>`;
-  const chartData=months.map(m=>({label:m.label,shortLabel:m.shortLabel,prep:m.prep}));
-  const chart=chartData.length>1?`<div style="margin-bottom:14px;">${insBarChart(chartData,'prep','Prep cost (inc. VAT)','#fbbf24')}</div>`:'';
+  const chart=_pcmChart(months,avgPrep);
   const detail=(m,prev)=>{
     const M=m.m;const rateStr=r=>r==null?'—':(r<1?(r*100).toFixed(0)+'p':'£'+r.toFixed(2));
     const vat=(M.withVat||0)-(M.subtotal||0);
@@ -16469,7 +16605,7 @@ function renderInsMonthly(body){
       <div class="pcmMon"><span class="pcmCh">${open?'▾':'▸'}</span>${m.label}</div>
       <div class="pcmBar"><div style="width:${barW}%"></div></div>
       <div class="pcmVal" style="color:#fbbf24">${money(m.prep)}</div>
-      <div class="pcmVal" style="color:#60a5fa">${fmt(m.units)}<small>u</small></div>
+      <div class="pcmVal" style="color:#60a5fa">${fmt(m.units)}<small>units</small></div>
       <div class="pcmVal" style="color:#c084fc">${fmt(m.ships)}</div>
       <div class="pcmVal">${m.boxes?fmt(m.boxes):'<span style="color:#f87171">none</span>'}</div>
       <div class="pcmVal" style="color:var(--text2)">£${m.ppu.toFixed(2)}</div>
@@ -17548,6 +17684,7 @@ let _issuesFilterActive=false;
 // from the active sheet but still kept on the shipments page + in stats).
 let _showArchived=false;
 let _lateFilterActive=false;
+let _ssFilterActive=false;   /* Jack, 8 Sep: show only Subscribe & Save rows */
 function toggleArchivedView(){
   _showArchived=!_showArchived;
   updateArchivedBtn();
@@ -17575,6 +17712,16 @@ function toggleIssuesFilter(){
     btn.textContent=_issuesFilterActive?'⚑ Issues ✓':'⚑ Issues';
   }
   filterPrep();
+}
+function toggleSubSaveFilter(){
+  _ssFilterActive=!_ssFilterActive;
+  const btn=document.getElementById('showSSBtn');
+  if(btn){
+    btn.textContent=_ssFilterActive?'S&S ✓':'S&S';
+    btn.style.background=_ssFilterActive?'rgba(96,165,250,.35)':'rgba(96,165,250,.13)';
+    btn.style.borderColor=_ssFilterActive?'#60a5fa':'rgba(96,165,250,.4)';
+  }
+  renderPrep();
 }
 function toggleLateFilter(){
   _lateFilterActive=!_lateFilterActive;
@@ -22148,6 +22295,30 @@ function setupRealtime(){
 let _issueRowId=null;
 let _issueLineCount=0;
 
+/* Jack, 8 Sep: "let me check it in here — mark it as delivered here." A gated
+   row with nothing counted in is a delivery problem, not a business decision,
+   and sending her back to the Prep Sheet to type one number was the long way
+   round. Same write the sheet does, same guards, from inside the popup. */
+async function riBookIn(){
+  const r=rows.find(x=>String(x.id)===String(_issueRowId)||x.uuid===String(_issueRowId));
+  if(!r){toast('Row not found','er');return;}
+  const el=document.getElementById('riBookQty');
+  const n=parseInt(el&&el.value);
+  const exp=parseInt(r.exp)||0;
+  if(!Number.isFinite(n)||n<1){toast('How many actually turned up?','er');return;}
+  if(n>exp){toast(`Only ${exp} were ordered — book in ${exp} or fewer`,'er');return;}
+  if(_blockRcvdBelowSent(r,n))return;
+  const was=parseInt(r.rcvd)||0;
+  r.rcvd=n;
+  r.rcvdAt=new Date().toISOString();
+  if(r.status==='In-Transit'||r.status==='Not Arrived')r.status=(n>=exp)?'In Warehouse':'In-Transit';
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');r.rcvd=was;return;}
+  logAudit('Booked in from the issue popup',`${r.sku||r.asin||''} — ${was} → ${n} of ${exp}`);
+  toast(`${fmt(n)} of ${fmt(exp)} booked in`+(n>=exp?' — nothing outstanding':` — ${fmt(exp-n)} still unaccounted for`),'ok');
+  try{renderPrep();renderStats();}catch(e){}
+  openIssueModal(_issueRowId);
+}
 function openIssueModal(rowId){
   _issueRowId=rowId;
   _issueLineCount=0;
@@ -22163,7 +22334,13 @@ function openIssueModal(rowId){
        <div><span>Booked in</span><b style="color:${_got?'var(--green)':'var(--text3)'};">${_got}</b></div>
        <div><span>Unaccounted for</span><b style="color:${_short?'#fbbf24':'var(--green)'};">${_short}</b></div>
      </div>
-     ${_got===0&&_exp>0?`<div class="riWarn">Nothing has been booked in yet. If the delivery is still coming, book it in first — only raise an issue for what is genuinely wrong.</div>`:''}
+     ${_short>0&&_exp>0?`<div class="riWarn">${_got===0?'Nothing has been booked in yet.':`${_got} of ${_exp} booked in.`} If the stock is here, count it in first — only raise an issue for what is genuinely wrong.</div>
+       <div class="riBookIn">
+         <span class="riBookL">It is here — book it in now</span>
+         <input id="riBookQty" type="number" min="1" max="${_exp}" value="${_short}" onkeydown="if(event.key==='Enter'){event.preventDefault();riBookIn();}">
+         <span class="riBookU">of ${_exp}</span>
+         <button class="riBookGo" onclick="riBookIn()" title="Counts the units in on the Prep Sheet without leaving this popup — then raise an issue only for what is genuinely wrong">Book it in</button>
+       </div>`:''}
      ${(()=>{const _q=_ukQuery(r);const _rs=r.resolution||{};
        if(_q)return `<div class="riAsk open"><b>Question already with ${_rs.state==='asked'?'Jack':'the admin team'}</b> — ${esc(_q.by||'')} asked on ${_qryWhen(_q.at)} whether more is on the way. The answer comes back in the VA Note. Raise an issue here only for what is genuinely wrong now.</div>`;
        if(_qryOwed(r)>0&&!['Delivered','In Warehouse','Returned'].includes(r.status))return `<div class="riAsk">${_got?`${_got} of ${_exp} booked in — not sure if the rest is still coming?`:`Nothing booked in — not sure if it has been dispatched?`} <button class="riAskBtn" onclick="cm('issueModal');openQuery('${r.uuid||r.id}')">Ask: is more on the way?</button><div class="riAskSub">A question for Sarah, not an issue. Raise Missing only once someone confirms nothing more is due.</div></div>`;
@@ -24789,7 +24966,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v45.5 · lav3 · 2026-09-08 · b515';
+const BUILD='v46.4 · lav3 · 2026-09-08 · b524';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -35552,18 +35729,45 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
    of loose lines floating in the cell */
 .standBox{background:rgba(255,255,255,.025);border:1px solid var(--border);border-left:3px solid var(--border2);
   border-radius:7px;padding:7px 9px;text-align:left;}
-/* Prep cost — month by month (5 Sep) */
-.pcmKpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0 16px;}
+/* Prep cost — month by month (5 Sep · design pass 8 Sep) */
+.pcmHdr{display:flex;align-items:flex-start;gap:14px;padding-bottom:14px;margin-bottom:16px;border-bottom:1px solid var(--border);}
+.pcmTtl{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.01em;}
+.pcmSub{font-size:11.5px;color:var(--text3);margin-top:3px;line-height:1.45;max-width:620px;}
+.pcmX{margin-left:auto;background:var(--bg3);border:1px solid var(--border2);color:var(--text3);
+  width:28px;height:28px;border-radius:8px;font-size:13px;cursor:pointer;flex:none;}
+.pcmX:hover{color:var(--text);border-color:var(--text3);}
+.pcmKpis{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin:0 0 18px;}
+.pcmKpi{background:var(--bg3);border:1px solid var(--border);border-top:3px solid var(--accent);
+  border-radius:10px;padding:11px 13px 12px;min-width:0;}
+.pcmKpiL{font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);}
+.pcmKpiV{font:900 21px var(--num);font-variant-numeric:tabular-nums;line-height:1.15;margin-top:5px;letter-spacing:-.01em;}
+.pcmKpiS{font-size:10.5px;color:var(--text3);margin-top:4px;line-height:1.4;}
+.pcmChart{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:13px 15px 10px;margin-bottom:16px;}
+.pcmChartH{display:flex;align-items:baseline;gap:12px;font-size:9.5px;font-weight:800;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--text3);margin-bottom:14px;}
+.pcmAvg{margin-left:auto;font-size:10px;letter-spacing:.03em;text-transform:none;color:var(--text2);font-weight:700;}
+.pcmPlot{position:relative;display:flex;align-items:flex-end;gap:10px;height:150px;padding:0 2px 1px;
+  background:linear-gradient(to top,var(--border) 0 1px,transparent 1px);}
+.pcmB{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;}
+.pcmBv{font:800 11px var(--num);font-variant-numeric:tabular-nums;color:var(--text2);white-space:nowrap;}
+.pcmBk{width:100%;max-width:54px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#fbbf24,#b57d0a);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25);transition:filter .15s;}
+.pcmB:hover .pcmBk{filter:brightness(1.15);}
+.pcmB:hover .pcmBv{color:var(--text);}
+.pcmB.part .pcmBk{background:repeating-linear-gradient(135deg,#8a6410 0 6px,#a97b13 6px 12px);}
+.pcmBl{font-size:10px;font-weight:700;color:var(--text3);white-space:nowrap;height:14px;}
+.pcmBl i{font-style:normal;color:var(--text3);opacity:.75;font-weight:600;}
 .pcmTbl{background:var(--bg3);border:1px solid var(--border);border-radius:9px;overflow:hidden;}
 .pcmRow{display:grid;grid-template-columns:150px 1fr 110px 80px 78px 66px 70px 82px;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;}
-.pcmRow:hover{background:rgba(255,255,255,.025);}
+.pcmRow:hover{background:rgba(255,255,255,.04);}
+.pcmRow:not(.pcmHead):not(.open):nth-of-type(even){background:rgba(255,255,255,.012);}
 .pcmRow.open{background:rgba(251,191,36,.05);border-bottom-color:transparent;}
 .pcmRow.pcmHead{cursor:default;font-size:9.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;border-bottom:2px solid var(--border);}
 .pcmRow.pcmHead .pcmVal{font:800 9.5px var(--num);color:var(--text3);letter-spacing:.06em;}
 .pcmMon{font-size:12.5px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:7px;}
 .pcmCh{color:var(--text3);font-size:10px;width:10px;}
-.pcmBar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;}
-.pcmBar div{height:100%;background:#fbbf24;border-radius:3px;}
+.pcmBar{height:5px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;}
+.pcmBar div{height:100%;background:linear-gradient(90deg,rgba(251,191,36,.55),#fbbf24);border-radius:3px;}
 .pcmVal{font:800 12px var(--num);font-variant-numeric:tabular-nums;text-align:right;color:var(--text);white-space:nowrap;}
 .pcmVal small{font-size:9.5px;color:var(--text3);margin-left:1px;font-weight:700;}
 .pcmD{display:inline-block;font:800 11px var(--num);font-variant-numeric:tabular-nums;}
@@ -35588,7 +35792,7 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .pcmShip .r,.pcmShipH .r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;}
 .pcmSid{font:700 11.5px var(--mono);letter-spacing:.03em;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pcmType{font:800 10px var(--num);letter-spacing:.04em;padding:2px 7px;border-radius:5px;border:1px solid;font-style:normal;}
-@media(max-width:900px){.pcmGrid{grid-template-columns:1fr;}}
+@media(max-width:900px){.pcmGrid{grid-template-columns:1fr;}.pcmKpis{grid-template-columns:repeat(2,1fr);}}
 /* Jack, 6 Sep: "when it's syncing the rows move slightly" — the header pill grew from “Synced” to “Syncing…” and pushed everything beside it. Fixed width, centred text, no reflow. */
 #syncIndicator{min-width:104px;justify-content:center;box-sizing:border-box;transition:background .2s,border-color .2s,color .2s;}
 #syncText{font-variant-numeric:tabular-nums;}
@@ -35656,6 +35860,15 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
   background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.45);color:#4ade80;}
 .jobTick:hover{background:rgba(74,222,128,.22);}
 .jobFoot{font-size:10.5px;color:var(--text3);font-weight:600;margin-top:2px;}
+.riBookIn{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:8px;padding:9px 11px;border-radius:9px;
+  background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.4);}
+.riBookL{font-size:11.5px;font-weight:800;color:#86efac;flex:1 1 auto;min-width:120px;}
+.riBookIn input{width:66px;padding:5px 8px;border-radius:6px;background:var(--bg);border:1px solid var(--border2);
+  color:var(--text);font:800 13px var(--num);text-align:center;}
+.riBookU{font-size:11px;color:var(--text3);font-weight:700;}
+.riBookGo{font:800 11px var(--sans);padding:6px 13px;border-radius:7px;cursor:pointer;
+  background:rgba(74,222,128,.16);border:1px solid rgba(74,222,128,.55);color:#4ade80;}
+.riBookGo:hover{background:rgba(74,222,128,.26);}
 .copyTick{color:#22c55e;font:800 10px var(--sans);margin-left:3px;
   animation:copyPop .3s cubic-bezier(.34,1.56,.64,1);}
 @keyframes copyPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
