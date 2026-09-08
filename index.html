@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v44.3</title>
+<title>BDL PrepHub v44.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3566,7 +3566,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v44.3</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v44.4</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3600,7 +3600,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v44.3</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v44.4</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3916,7 +3916,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v44.3</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v44.4</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -10280,8 +10280,9 @@ function jackTodo(){
      closed as never-arrived, whose refund only he can raise in the account. */
   /* Jack, 7 Sep: "idk why this got sent to me, it's Argos" — only an Amazon
      account refund is his to raise; a supplier refund is Sarah's road. */
-  return{closures,checks,fixes,claimsQ,lavQ,owed:moneyOwed().filter(o=>o.q.what==='no-refund'&&!o.q.refundRaised&&_amazonRow(o.r)),
-    n:closures.length+checks.length+fixes.length+claimsQ.length+lavQ.length};
+  let lavLate=[];try{lavLate=((window.LV3&&LV3.lavLateList)?LV3.lavLateList():[]).filter(g=>g.toJack);}catch(e){}
+  return{closures,checks,fixes,claimsQ,lavQ,lavLate,owed:moneyOwed().filter(o=>o.q.what==='no-refund'&&!o.q.refundRaised&&_amazonRow(o.r)),
+    n:closures.length+checks.length+fixes.length+claimsQ.length+lavQ.length+lavLate.length};
 }
 /* ── MONEY PROMISED BUT NOT PAID ────────────────────────────────────────────
    Jack, 16 Aug: "turns grey as it's sorted and that gets put on my sheets
@@ -10368,10 +10369,19 @@ function renderJack(){
      KPIs there." So: a slim KPI strip of real numbers, then ONE table in the
      same anatomy as her page — product, who sent it, the money, what is wrong,
      and his move inline on the row. No cards, no dead columns of air. */
-  const{closures,checks,fixes,claimsQ,lavQ,owed,n}=jackTodo();
+  const{closures,checks,fixes,claimsQ,lavQ,lavLate,owed,n}=jackTodo();
   const esc1=s=>String(s).replace(/'/g,"\\'");
   const items=[];
   const days=t=>t?Math.floor((Date.now()-new Date(t).getTime())/864e5):0;
+  (lavLate||[]).forEach(g=>{let tj={};try{tj=JSON.parse(g.toJack||'{}');}catch(e){}
+    const _id='jkLD_'+String(g.key).replace(/[^a-z0-9]/gi,'_');
+    items.push({kind:'lavlate',id:g.key,prod:g.name,sup:g.sup,oid:g.oid,acct:'',sku:'',asin:'',
+      by:tj.by||'Sarah',at:tj.at,wait:days(tj.at),type:['LATE ORDER','#c084fc','A Lavarion order past its window with nothing booked in — Sarah needs a date from the supplier'],
+      why:esc(`${fmt(g.owed)} still owed · ordered ${g.ordered?_dmy(g.ordered):'—'} · ${g.eta?'was due '+_dmy(g.eta):'no window'} · ${g.days}d`),
+      note:'',value:g.cost||0,left:null,
+      acts:`<input type="date" id="${_id}" class="jkAnsDate" min="2024-01-01" max="2030-12-31" title="The date the supplier gave" onkeydown="if(event.key==='Enter'){event.preventDefault();lavLateNewDate('${esc1(g.key)}',this.value);}">
+        <button class="csAct good" onclick="lavLateNewDate('${esc1(g.key)}',document.getElementById('${_id}').value)" title="The order's window moves to this date, it stops being late and leaves Sarah's list by itself">New date &mdash; send back</button>
+        <button class="csAct plain" onclick="lavLateBack('${esc1(g.key)}')" title="No date from the supplier — back to Sarah to chase">Hand back &mdash; no date</button>`});});
   checks.forEach(r=>{const q=r.resolution||{};const Q=_ukQuery(r);const _id=r.uuid||r.id;
     /* a warehouse question Sarah passed over is answered in its own terms —
        "is more on the way?" — not with Arrived YES/NO */
@@ -11715,6 +11725,38 @@ function lavQuick(key,act){
   toast('Logged — '+msg,'ok');
   renderAdmin();
 }
+/* A late Lavarion order handed to Jack. He usually answers with a date: the
+   order's window moves, it stops being late, and it leaves her list by itself. */
+function _lavLateParts(key){const p=String(key||'').split(':');return{kind:p[0],oid:p[1],lid:p[2]};}
+function lavLateToJack(key){
+  const k=_lavLateParts(key);
+  try{LV3.setEta(k.kind,k.oid,k.lid,'lateToJack',JSON.stringify({by:_who(),at:new Date().toISOString()}));}
+  catch(e){toast('Could not send it — open the order instead','er');return;}
+  logAudit('Late Lavarion order to Jack',key);
+  try{fireWebhook(`${_who()} sent a late Lavarion order to Jack`,{event:'lav_late_to_jack'});}catch(e){}
+  toast('Sent to Jack — grey on your list until he answers, usually with a new date','ok');
+  renderAdmin();try{renderJack();}catch(e){}
+}
+function lavLateNewDate(key,v){
+  if(!v||!saneDate(v)){toast('Pick the date the supplier gave','er');return;}
+  const k=_lavLateParts(key);
+  try{
+    LV3.setEta(k.kind,k.oid,k.lid,'eta1',v);
+    LV3.setEta(k.kind,k.oid,k.lid,'eta2',v);
+    LV3.setEta(k.kind,k.oid,k.lid,'_etaTouched',1);
+    LV3.setEta(k.kind,k.oid,k.lid,'lateToJack','');
+  }catch(e){toast('Could not set the date','er');return;}
+  logAudit('Late Lavarion order — new date from Jack',key+' → '+v);
+  toast('New date '+new Date(v).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' — off Sarah\u2019s list until then','ok');
+  renderJack();try{renderAdmin();}catch(e){}
+}
+function lavLateBack(key){
+  const k=_lavLateParts(key);
+  try{LV3.setEta(k.kind,k.oid,k.lid,'lateToJack','');}catch(e){toast('Could not hand it back','er');return;}
+  logAudit('Late Lavarion order handed back',key);
+  toast('Back with Sarah — no new date','ok');
+  renderJack();try{renderAdmin();}catch(e){}
+}
 /* A Lavarion shortage handed to Jack — same two-sides rule as everything else:
    grey and locked on her page, a card on his, back with his answer. */
 function lavToJack(key){
@@ -12474,13 +12516,18 @@ function _allAdminRows(){
      chase, the same as any late prep row. It was only ever a banner. */
   try{
     ((window.LV3&&LV3.lavLateList)?LV3.lavLateList():[]).forEach(g=>{
+      let _tj=null;try{_tj=g.toJack?JSON.parse(g.toJack):null;}catch(e){_tj={at:''};}
       out.push({kind:'lavlate',rid:'lavlate:'+g.key,lavLateKey:g.key,
         prod:g.name,sku:'',asin:'',sup:g.sup,oid:g.oid,acct:'',
         date:'',units:g.owed,got:0,cancelled:0,outstanding:g.owed,
         value:g.cost||0,days:g.days,sev:3,col:'#c084fc',
         reason:g.eta?('due '+g.eta+' — nothing booked in'):'past its window — nothing booked in',
-        src:'Lavarion order',notes:'',srcNote:'',waiting:false,left:null,
-        acts:`<button class="tfuWork" onclick="LV3.openDeliveries&&LV3.openDeliveries()" title="Open the delivery and chase the supplier">Open the order</button>`});
+        src:'Lavarion order',notes:'',srcNote:'',left:null,
+        /* Jack, 8 Sep: "Alibaba stuff — she sends it to me and most of the time
+           I'll send it back with an updated date." Same two-sides rule. */
+        waiting:_tj?{state:'asked',at:_tj.at||'',ask:'Late delivery — is there a new date?'}:null,
+        acts:_tj?'':`<button class="tfuAsk" onclick="lavLateToJack('${String(g.key).replace(/'/g,"\\'")}')" title="Jack checks with the supplier and usually sends it back with a new arrival date">Send to Jack</button>
+          <button class="tfuWork" onclick="LV3.openDeliveries&&LV3.openDeliveries()" title="Open the delivery and chase the supplier yourself">Open the order</button>`});
     });
   }catch(e){}
   /* Claims she owns */
@@ -13229,7 +13276,9 @@ function renderAdmin(){
                 }
                 if(i.sortedGrace)return '<div class="tfuSelf" style="text-align:center;">Closed — undoable for 48 working hours. Undo is on the right.</div>';
                 if(i.parkedRow)return '<div class="tfuSelf" style="text-align:center;">Parked — expected '+(i.expDate?new Date(i.expDate).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):'')+'. It comes back by itself if the date slips. Undo is on the right.</div>';
-                if(i.kind==='lavlate')return '<div class="tfuSelf" style="text-align:center;">Chase the supplier for a delivery date &mdash; <b>Open the order</b> is on the right.</div>';
+                if(i.kind==='lavlate')return waiting
+                  ?'<div class="tfuSelf" style="color:#93c5fd;font-weight:700;text-align:center;">With Jack &mdash; he usually comes back with a new date</div>'
+                  :'<div class="tfuSelf" style="text-align:center;"><b>Send to Jack</b> (right) &mdash; he checks with the supplier and sends it back with a date. Or open the order and chase it yourself.</div>';
                 if(i.kind!=='transit')return '<div class="tfuSelf" style="text-align:center;">Open it to work through this one.</div>';
                 if(waiting)return '<div class="tfuSelf" style="color:#93c5fd;font-weight:700;text-align:center;">Waiting on Jack</div>';
                 /* a question from the warehouse: four answers, each one press;
@@ -13389,7 +13438,7 @@ function renderAdmin(){
                   if(i.lastLog&&i.lastLog.what)last=i.lastLog.what+(i.lastLog.by?' — '+i.lastLog.by:'')+(i.lastLog.at?' · '+lw(i.lastLog.at):'');
                   next=i.chased?'Wait for the reply, then record it':'Tell the supplier today';
                 }else if(i.kind==='lavlate'){
-                  state='DELIVERY LATE';scol='#c084fc';last=i.reason||'';next='Open the order (right) \u2014 chase the supplier for a date';
+                  state=i.waiting?'WITH JACK':'DELIVERY LATE';scol=i.waiting?'#93c5fd':'#c084fc';last=i.reason||'';next=i.waiting?'Jack is checking \u2014 it comes back with a new date':'Send to Jack (right) \u2014 or open the order and chase for a date';
                 }else{
                   state=/^jack/i.test(String(i.jobBy||''))?'JOB FROM JACK'
                         :(i.jobBy?'FOLLOW-UP FROM CLOSING A ROW':'JOB');
@@ -23424,7 +23473,15 @@ function jkStory(kind,id){
   const H=[];const when=t=>t?esc(_logWhen(t)):'';
   const line=(k,v)=>{if(v===undefined||v===null||v==='')return;H.push(`<div class="jkSt"><span>${k}</span><div>${v}</div></div>`);};
   let title='';
-  if(kind==='claim'){
+  if(kind==='lavlate'){
+    const g=((window.LV3&&LV3.lavLateList)?LV3.lavLateList():[]).find(x=>x.key===id);if(!g){toast('Order not found','er');return;}
+    title=g.name||'Late order';let tj=null;try{tj=g.toJack?JSON.parse(g.toJack):null;}catch(e){}
+    line('Order',esc(g.oid||'—')+(g.sup?' · '+esc(g.sup):''));
+    line('Units',fmt(g.owed)+' still owed'+(g.cost?' · '+fmtGBP2(g.cost)+' at stake':''));
+    line('Ordered',g.ordered?esc(_dmy(g.ordered))+' · '+g.days+' days ago':'—');
+    line('Was due',g.eta?esc(_dmy(g.eta)):'no window set');
+    if(tj)line('Sent to Jack',when(tj.at)+(tj.by?' by '+esc(tj.by):''));
+  }else if(kind==='claim'){
     const c=claims.find(x=>String(x.id)===String(id));if(!c){toast('Claim not found','er');return;}
     title=c.prod||c.sku||'Claim';
     line('Order',esc(c.oid||'—')+(c.sup?' · '+esc(c.sup):'')+(c.acct?' · '+esc(c.acct):''));
@@ -24543,7 +24600,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v44.3 · lav3 · 2026-09-08 · b503';
+const BUILD='v44.4 · lav3 · 2026-09-08 · b504';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -24820,6 +24877,8 @@ const LAYER_META=['mode','eta1','eta2','_etaTouched','_etaGuess',
   /* the supplier put it right on their own — kept so reporting can tell that
      apart from a refund somebody had to go and chase */
   'autoRefund',
+  /* Jack, 8 Sep: a late Alibaba order goes to him; he sends it back with a date */
+  'lateToJack',
   /* damaged units: arrived, so nothing outstanding — but never sellable stock */
   'dmg','dmgOn','dmgBy','dmgEnd',
   /* one order, many deliveries: what was ordered, what has come in so far, and
@@ -30645,6 +30704,7 @@ function lavLateList(){
     return inboundAll().filter(x=>!x.l.short&&etaState(x.l).k==='late').map(x=>{
       const owed=outQty(x.l)||0;
       return{key:String(x.kind)+':'+String(x.o.id)+':'+String(x.l.id),
+        kind:x.kind,oid2:String(x.o.id),lid:String(x.l.id),toJack:x.l.lateToJack||'',
         name:x.o.name||'',sup:x.l.sup||'',oid:x.l.oid||'',
         owed,cost:(x.l.cost||0)*owed,
         ordered:x.l.date||'',eta:String(x.l.eta2||x.l.eta1||'').slice(0,10),
