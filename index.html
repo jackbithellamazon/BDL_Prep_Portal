@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v43.6</title>
+<title>BDL PrepHub v43.8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3566,7 +3566,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v43.6</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v43.8</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3600,7 +3600,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v43.6</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v43.8</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3916,7 +3916,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v43.6</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v43.8</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -24484,7 +24484,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v43.6 · lav3 · 2026-09-07 · b496';
+const BUILD='v43.8 · lav3 · 2026-09-08 · b498';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -29727,7 +29727,12 @@ async function syncPurchases(){
         D.purchases.push({id:newId('P'),uuid:null,tab:r.tab,date:r.date,name:r.name,
           qty:r.qty,price:r.price,sup:r.sup,oid:r.oid,loc:'Warehouse',arr:0,alloc:[],
           acct:r.acct,invoice:r.invoice,notes:r.notes,spend:r.spend,mismatch:r.mismatch,
-          dupCheck:{of:twinId,on:dayISO()}});
+          /* Jack, 8 Sep: "99.999% of the time Becki won't do it as a dup — it's
+             super rare." So the app no longer asks: both lines are kept as
+             separate purchases, it says so, and "Same one — remove it" stays
+             one click away for the once-a-year case. */
+          dupCheck:{of:twinId,on:dayISO(),answered:'separate',by:'auto'}});
+        logIt('edit',`Kept as a second purchase — ${r.name} ${dshort(r.date)} · ${r.sup||'supplier'} (an identical line on the sheet — two shops in one day)`);
         return;
       }
       /* Renamed on the sheet. A row's identity WAS its name, so changing
@@ -29800,6 +29805,11 @@ function healExactCopies(why){
   if(!READY||!Array.isArray(D.purchases))return 0;
   let n=0;
   D.purchases.slice().forEach(p=>{
+    /* Becki, 8 Sep: two real Tesco purchases, same day, same line — the sync
+       added the second one and flagged it to be ASKED about (dupCheck), and
+       this then removed it as a "leftover copy" before anyone saw the
+       question. A flagged second line is a question, never a copy. */
+    if(p.dupCheck)return;
     const tw=dupTwin(p);
     if(tw&&purchKey(tw)===purchKey(p)){dropReview(p.id,true,true);n++;}
   });
@@ -31312,6 +31322,9 @@ function typoOf(a,b){
 }
 function dupTwin(p){
   const norm=x=>(x||'').toLowerCase().replace(/\s+/g,' ').trim();
+  /* answered "a separate purchase" — it is its own line from here on, and it
+     can be linked like any other */
+  if(p&&p.dupCheck&&p.dupCheck.answered==='separate')return null;
   const st=allocState(p).k;
   if(st!=='none'&&st!=='broken')return null;
   return D.purchases.find(q=>q.id!==p.id
@@ -31457,10 +31470,14 @@ function dupPanel(){
         ${(()=>{const k=Object.keys(purchKilled()).length;
           return k?`<span class="chip warn">${fmt(k)} ignored line${k===1?'':'s'}</span>`:'';})()}
         <span class="chip ok">all clear</span></div>
-      <div class="ordNote">When two sheet lines look identical — same day, same product, same money, no order number — both are kept and the question lands here rather than the sync deciding on its own.${
+      <div class="ordNote">When two sheet lines look identical — same day, same product, same money, no order number — both are kept as separate purchases automatically; two shops in one day is normal. If one really is the same purchase written twice, remove it here.${
       (()=>{const k=Object.entries(purchKilled());
         return k.length?` <b style="color:var(--amb)">${fmt(k.length)} sheet line${k.length===1?'':'s'}</b> ${k.length===1?'is':'are'} being ignored because somebody removed ${k.length===1?'it':'them'} — <button class="btn sm" style="padding:1px 8px" onclick="LV3.openKilled()">show ${k.length===1?'it':'them'}</button>`:'';})()}${
-        done.length?` Last ${done.length} confirmed: ${done.map(p=>esc(p.name)+' ('+dshort(p.date)+')').join(', ')}.`:''}</div>
+        ''}</div>
+      ${done.length?`<div style="padding:4px 14px 12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+        <span class="pmeta" style="margin:0">Kept as separate purchases:</span>
+        ${done.map(p=>`<span class="chip info" style="display:inline-flex;gap:6px;align-items:center;">${esc(p.name)} · ${fmt(p.qty)} · ${dshort(p.date)}${(p.dupCheck||{}).by==='auto'?'':' · '+esc((p.dupCheck||{}).by||'')}
+          <button class="btn sm dgr" style="padding:1px 7px;" title="One purchase written on the sheet twice — remove this copy. The sync will not bring it back." onclick="LV3.dupConfirm('${p.id}',false)">Same one — remove it</button></span>`).join('')}</div>`:''}
     </div>`;
   }
   return `<div class="panel">
@@ -34610,6 +34627,12 @@ async function boot(){
   try{const _h=healExactCopies('page load');
     if(_h){save();toast(`${fmt(_h)} duplicate purchase line${_h===1?'':'s'} cleared automatically`,'ok');}
   }catch(e){console.warn('[lav3] heal on load',e);}
+  /* lines the old sync flagged as a question are answered the way Jack says
+     they always are — kept as separate purchases; removable in one click */
+  try{const _pend=dupPending();
+    if(_pend.length){_pend.forEach(p=>{p.dupCheck={...(p.dupCheck||{}),answered:'separate',by:'auto',on:dayISO()};
+      logIt('edit',`Kept as a second purchase — ${p.name} ${dshort(p.date)} (identical sheet line, answered automatically)`);});save();}
+  }catch(e){console.warn('[lav3] dup auto-keep',e);}
   paint();
   /* Sales come from the hub, over the network, so they are not held up behind
      the page drawing. The page appears with the sold column reading "reading
