@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v43.8</title>
+<title>BDL PrepHub v44.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3566,7 +3566,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v43.8</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v44.3</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3600,7 +3600,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v43.8</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v44.3</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3916,7 +3916,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v43.8</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v44.3</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -7689,7 +7689,7 @@ let RESOLUTIONS=[
    todo:['Update Purchase Sheet','Mark order as cancelled','Remove outstanding quantity'],sheet:''},
   {v:'part-cancelled',t:'Part arrived, the rest cancelled',      kind:'ops', ask:['paid'],
    d:'Some came, the rest never will — the row stays with its real numbers',
-   todo:['Update Purchase Sheet','Remove outstanding quantity'],sheet:'Note against the SKU: part delivered, remainder cancelled'},
+   todo:['Update Purchase Sheet'],sheet:'Note against the SKU: part delivered, remainder cancelled'},
   {v:'duplicate',     t:'Duplicate record',                     kind:'ops', ask:[],
    d:'The same order twice — this one is not real',todo:['Remove from Prep Sheet','Update Purchase Sheet'],sheet:'Remove the duplicate line from the Purchase Sheet'},
   {v:'gated',         t:'Gated — business decision',            kind:'gated',ask:['arrived'],
@@ -8247,6 +8247,9 @@ function openSorted(rid,preset){
         </select>
         <div class="srtHint" id="srtPaidHint"></div>
       </div>
+      <div id="srtAmzCx" class="srtWarn" style="display:none;margin-top:14px;background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.4);color:#86efac;">
+        Amazon order — cancelled units are refunded by Amazon automatically. Nothing to chase: note it on the Purchase Sheet and close it off.
+      </div>
 
       <!-- Only asked when the money did leave the account. "Cancelled" and
            "refunded" are not the same thing, and the gap between them is the
@@ -8361,7 +8364,12 @@ function openSorted(rid,preset){
   _srtTicks={};
   const _draft=srtDraft(rid);
   if(_draft)_srtApplyDraft(_draft);
-  else if(preset)srtPick(preset);
+  else if(preset){srtPick(preset);
+    if(preset==='part-cancelled'||preset==='cancelled'){
+      const _cx=document.getElementById('srtCx');
+      const _owed=Math.max(0,(parseInt(r.exp)||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0));
+      if(_cx&&!(parseInt(_cx.value)||0)&&_owed>0){_cx.value=_owed;try{srtSync();}catch(e){}}
+    }}
   else srtSync();
   requestAnimationFrame(()=>requestAnimationFrame(()=>{el.style.transition='opacity .12s';el.style.opacity='1';}));
 }
@@ -8507,7 +8515,7 @@ function _srtStepList(picked,want){
   const wentAs=((document.getElementById('srtSku')||{}).value||'').trim();
   const line=r.sheetRow?(', line '+r.sheetRow):'';
   const how={
-    'Update Purchase Sheet':'Open the Purchase Sheet'+line+' and write what happened in the notes — include this order number ('+(r.oid||'no order ref')+')'+(picked==='wrong-sku'||picked==='cancel-wrong-sku'?' and the SKU it went out under'+(wentAs?' ('+wentAs+')':''):'')+'.',
+    'Update Purchase Sheet':(picked==='part-cancelled')?('Open the Purchase Sheet'+line+' and write against order '+(r.oid||'no order ref')+': '+(parseInt(r.rcvd)||0)+' arrived, '+(parseInt((document.getElementById('srtCx')||{}).value)||0)+' cancelled.'):(picked==='cancelled')?('Open the Purchase Sheet'+line+' and write against order '+(r.oid||'no order ref')+': order cancelled, nothing arrived.'):'Open the Purchase Sheet'+line+' and write what happened in the notes — include this order number ('+(r.oid||'no order ref')+')'+(picked==='wrong-sku'||picked==='cancel-wrong-sku'?' and the SKU it went out under'+(wentAs?' ('+wentAs+')':''):'')+'.',
     'Remove from Prep Sheet':'This row comes off the active prep sheet — the app does that when you close it, and the sheet sync will no longer bring it back. The record is kept.',
     'Remove outstanding quantity':'Set the outstanding units to zero so it stops showing as on its way.',
     'Mark order as cancelled':'Mark the order cancelled on the account so nobody chases it again.',
@@ -8695,7 +8703,8 @@ function srtStartAgain(){
 function _srtLeft(){
   const what=(document.getElementById('srtWhat')||{}).value||'';
   if(!what)return[];
-  return _srtStepList(what,_resTodo(what)).filter(s=>!_srtTicks[s.k]);
+  /* a step that says there is nothing to do is already done */
+  return _srtStepList(what,_resTodo(what)).filter(s=>!_srtTicks[s.k]&&!/^nothing (to do|else)/i.test(String(s.text||'')));
 }
 function closeSorted(){
   const el=document.getElementById('sortedModal');
@@ -8737,7 +8746,16 @@ function srtSync(){
      cancelled order is noise, and noise is why nobody fills these in. */
   const ask=_resAsk(what);
   const show=(id,on)=>{const e=document.getElementById(id);if(e)e.style.display=on?'block':'none';};
-  show('srtAskPaid',ask.includes('paid'));
+  /* Jack, 8 Sep: "if it's cancelled from Amazon the refund is n/a to her".
+     Amazon refunds a cancelled unit by itself, so the money question is
+     answered for her and hidden — one tick left: the Purchase Sheet. */
+  /* Jack, 8 Sep, the rule: on an Amazon order anything refund-related is his —
+     she sends it to him. So the money question never appears for her on an
+     Amazon row, whichever cancellation outcome she picks. */
+  const _amzCx=ask.includes('paid')&&_r0&&_amazonRow(_r0);
+  if(_amzCx){const _p=document.getElementById('srtPaid');if(_p&&!_p.value)_p.value='no';}
+  show('srtAskPaid',ask.includes('paid')&&!_amzCx);
+  show('srtAmzCx',!!_amzCx);
   show('srtAskSku',ask.includes('sku'));
   show('srtAskArrived',ask.includes('arrived'));
   show('srtAskShipid',ask.includes('shipid'));
@@ -8809,8 +8827,11 @@ function srtSync(){
             :(what==='part-cancelled'&&got===0&&ord>0)?'part':'';
   const todoLeft=(kind==='date')?[]:_srtLeft();
   const ok=!!what&&left>=0&&(!needFix||!!fix)&&!missingAsk&&!mism&&!todoLeft.length;
+  /* Jack, 8 Sep (Sarah stuck on a grey button): the button always works —
+     press it and it says exactly what still needs doing, then lets her close. */
+  window._srtGate={ok,what,left,mism,missingAsk,needFix:!!(needFix&&!fix),todoLeft,paid,ask};
   if(go){
-    go.disabled=!ok;go.style.opacity=ok?'1':'.45';go.style.cursor=ok?'pointer':'not-allowed';
+    go.disabled=!what;go.style.opacity=what?'1':'.45';go.style.cursor=what?'pointer':'not-allowed';
     /* nothing reaches Jack before the investigation is written down */
     go.textContent=kind==='date'?'Set the date':(kind==='ops'?'Close it off':'Send to Jack');
   }
@@ -8857,6 +8878,36 @@ function srtAskClose(override){
   const what=(document.getElementById('srtWhat')||{}).value||'';
   if(!what)return;
   const kind=_resKind(what,r);
+  /* Say what is in the way, in her words, on the button she just pressed. */
+  const G=window._srtGate||{};
+  if(!override&&G.ok===false){
+    const need=[];let focusId='';
+    if(G.left<0)need.push('The units don\u2019t add up — arrived plus cancelled is more than ordered.');
+    if(G.mism==='full')need.push('Some units did arrive — pick “Part arrived, the rest cancelled” instead.');
+    if(G.mism==='part')need.push('Nothing arrived at all — pick “Cancelled — the whole order” instead.');
+    if(G.missingAsk){
+      if((G.ask||[]).includes('paid')&&!G.paid){need.push('Answer “Had the money already left the account?” — the dropdown on the left.');focusId=focusId||'srtPaid';}
+      else if((G.ask||[]).includes('paid')&&G.paid==='yes'){need.push('Say whether it has been refunded — the dropdown under the money question.');focusId=focusId||'srtRefund';}
+      else if((G.ask||[]).includes('arrived')){need.push('Say whether the stock arrived — the question on the left.');focusId=focusId||'srtArrived';}
+      else need.push('Set the date.');
+    }
+    if(G.needFix){need.push('Say what you suggest we do — the box on the right.');focusId=focusId||'srtFix';}
+    /* a step that says there is nothing to do is not a job — it never blocks */
+    const jobs=(G.todoLeft||[]).filter(j=>!/^nothing (to do|else)/i.test(String(j.text||'')));
+    const msg=document.getElementById('srtMsg');
+    if(need.length){
+      if(msg)msg.innerHTML=`<div class="srtNeed"><b>Before this can close:</b><ul>${need.map(t=>'<li>'+esc(t)+'</li>').join('')}</ul></div>`;
+      const f=focusId&&document.getElementById(focusId);if(f){try{f.scrollIntoView({block:'center'});f.focus();}catch(e){}}
+      toast(need[0],'er');
+      return;
+    }
+    if(jobs.length){
+      if(msg)msg.innerHTML=`<div class="srtNeed"><b>To close this off you need to:</b><ul>${jobs.map(j=>'<li>'+esc(j.text)+'</li>').join('')}</ul>
+        <div>Tick each one as you do it, then press Close it off — or <button type="button" class="srtSwap" onclick="srtAskClose(true)">close it anyway and log ${jobs.length===1?'it':'them'} as jobs still to do →</button></div></div>`;
+      try{msg.scrollIntoView({block:'nearest'});}catch(e){}
+      return;
+    }
+  }
   /* "Still in transit" only puts a date on the row. Nothing closes, nothing
      leaves a queue — a confirmation there is just a click tax. */
   if(kind==='date'){submitSorted();return;}
@@ -11263,7 +11314,14 @@ async function raiseQuery(){
 /* Jack, 16 Aug: "Sarah is NOT allowed to deal with the Amazon account side
    herself. Anything that requires checking something on Amazon gets sent
    STRAIGHT TO ME." One test, used everywhere the path forks. */
-function _amazonRow(r){return typeof _jackSupplier==='function'&&_jackSupplier(r&&r.sup);}
+/* Jack, 8 Sep: a Starbucks row whose supplier cell on the sheet read "538.73"
+   was not treated as Amazon. The order number is the honest tell — the
+   3-7-7 pattern is Amazon's and nobody else's. */
+function _amazonRow(r){
+  if(!r)return false;
+  if(typeof _jackSupplier==='function'&&_jackSupplier(r.sup))return true;
+  return /^\d{3}-\d{7}-\d{7}$/.test(String(r.oid||'').trim());
+}
 /* saveRow signals failure by RETURNING FALSE, not by throwing — so a plain
    try/catch around it is dead code and the caller sails on to a green toast
    and a log line that never reached the database. Every case action goes
@@ -13190,7 +13248,8 @@ function renderAdmin(){
                     <div class="csNowCap" style="color:#f87171;">Jack checked the account</div>
                     <div class="csNowTxt" title="${esc(a)}">${esc(a)}</div>
                     <div class="csActs">
-                      ${notComing?`<button class="csAct warn" onclick="openSorted('${i.rid}','no-refund')" title="Nothing more is coming and there is no refund yet — close it as never arrived so the claim starts">Never arrived &mdash; close it, claim the ${fmt(short)}</button>
+                      ${notComing?`${/cancel/i.test(a)?`<button class="csAct good" onclick="openSorted('${i.rid}','${(i.got||0)>0?'part-cancelled':'cancelled'}')" title="Jack says it was cancelled — the popup opens filled in: ${fmt(short)} cancelled, one tick for the Purchase Sheet, then close">Cancelled &mdash; note the sheet, close it</button>`:''}
+                        <button class="csAct ${/cancel/i.test(a)?'plain':'warn'}" onclick="openSorted('${i.rid}','no-refund')" title="Nothing more is coming and there is no refund yet — close it as never arrived so the claim starts">Never arrived &mdash; close it, claim the ${fmt(short)}</button>
                         <button class="csAct good" onclick="openSorted('${i.rid}','refund-done')" title="They have said the refund is coming — that is processed. Close it; Jack watches the bank himself.">Refund being processed &mdash; done</button>
                         <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')" title="The supplier cancelled the rest — the row balances, nothing missing">Supplier cancelled the rest</button>`
                       :arrivedYes?`<button class="csAct warn" onclick="queryNoneComing('${i.rid}')" title="The account shows it delivered but ${fmt(short)} never reached the warehouse — raise them as Missing">Account says delivered &mdash; raise ${fmt(short)} missing</button>
@@ -24484,7 +24543,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v43.8 · lav3 · 2026-09-08 · b498';
+const BUILD='v44.3 · lav3 · 2026-09-08 · b503';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -35359,6 +35418,10 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .jkMore[open]>summary .jkMoreHint{display:none;}
 .tfu tr.jkLate td:first-child .tfuStripe{box-shadow:0 0 0 2px rgba(248,113,113,.55);}
 .jkMove .jkRest{display:none;}
+.srtNeed{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.45);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;line-height:1.45;text-align:left;}
+.srtNeed b{color:#fca5a5;}
+.srtNeed ul{margin:5px 0 6px 18px;padding:0;}
+.srtNeed li{margin:2px 0;}
 .jkSt{display:grid;grid-template-columns:130px 1fr;gap:4px 14px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;line-height:1.45;color:var(--text);}
 .jkSt>span{color:var(--text3);font-weight:800;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;padding-top:2px;}
 .jkSt i{color:var(--text3);font-style:normal;font-size:11px;}
