@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v44.4</title>
+<title>BDL PrepHub v44.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3566,7 +3566,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v44.4</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v44.7</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3600,7 +3600,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v44.4</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v44.7</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3916,7 +3916,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v44.4</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v44.7</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -7438,7 +7438,7 @@ async function saveTransitNote(rid,val){
   const txt=(val||'').trim();
   if((r.notes||'')===txt)return;                 // nothing changed — don't churn the database
   r.notes=txt;
-  r.notesBy=txt?(window.currentUserName||'Sarah'):'';
+  r.notesBy=txt?(window.currentUserName||'someone'):'';
   r.notesAt=txt?new Date().toISOString():'';
   r._dirty=true;
   try{
@@ -7558,7 +7558,7 @@ async function saveAdminNotes(){
     return false;
   }
 }
-function noteAuthor(){return window.currentUserName||'Sarah';}
+function noteAuthor(){return window.currentUserName||'someone';}
 async function addAdminNote(){
   const box=document.getElementById('noteInput');
   const txt=(box?box.value:'').trim();
@@ -7838,7 +7838,7 @@ const _kindWord=k=>k==='gated'?'Gated — always Jack\'s decision'
   :k==='biz'?'A business decision — Jack decides'
   :k==='date'?'Not late — just needs its expected date'
   :'Admin — you can finish this yourself';
-function _who(){return window.currentUserName||'Sarah';}
+function _who(){return window.currentUserName||'someone';}
 
 // ── LOADING / SAVING ──────────────────────────────────────────────────────────
 async function loadVaState(){
@@ -10375,8 +10375,8 @@ function renderJack(){
   const days=t=>t?Math.floor((Date.now()-new Date(t).getTime())/864e5):0;
   (lavLate||[]).forEach(g=>{let tj={};try{tj=JSON.parse(g.toJack||'{}');}catch(e){}
     const _id='jkLD_'+String(g.key).replace(/[^a-z0-9]/gi,'_');
-    items.push({kind:'lavlate',id:g.key,prod:g.name,sup:g.sup,oid:g.oid,acct:'',sku:'',asin:'',
-      by:tj.by||'Sarah',at:tj.at,wait:days(tj.at),type:['LATE ORDER','#c084fc','A Lavarion order past its window with nothing booked in — Sarah needs a date from the supplier'],
+    items.push({kind:'lavlate',id:g.key,prod:g.name,sup:g.sup,oid:g.oid,acct:g.acct||'',sku:'',asin:'',
+      by:tj.by||'someone',at:tj.at,wait:days(tj.at),type:['LATE ORDER','#c084fc','A Lavarion order past its window with nothing booked in — Sarah needs a date from the supplier'],
       why:esc(`${fmt(g.owed)} still owed · ordered ${g.ordered?_dmy(g.ordered):'—'} · ${g.eta?'was due '+_dmy(g.eta):'no window'} · ${g.days}d`),
       note:'',value:g.cost||0,left:null,
       acts:`<input type="date" id="${_id}" class="jkAnsDate" min="2024-01-01" max="2030-12-31" title="The date the supplier gave" onkeydown="if(event.key==='Enter'){event.preventDefault();lavLateNewDate('${esc1(g.key)}',this.value);}">
@@ -10386,7 +10386,7 @@ function renderJack(){
     /* a warehouse question Sarah passed over is answered in its own terms —
        "is more on the way?" — not with Arrived YES/NO */
     items.push({kind:'check',id:_id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
-      asin:r.asin||'',by:q.by||'Sarah',at:q.at,wait:days(q.at),
+      asin:r.asin||'',by:q.by||'someone',at:q.at,wait:days(q.at),
       type:Q?['QUERY','#38bdf8','The warehouse asked whether more is on the way — Sarah passed it to you']:['CHECK','#60a5fa','An Amazon order she cannot see — did it arrive?'],
       why:esc(Q?`${Q.by||'Warehouse'} asked: ${Q.got?Q.got+' of '+Q.exp+' booked in — is more on the way?':'nothing booked in — has it been dispatched?'}${Q.note?' — “'+Q.note+'”':''}${q.ask?' · Sarah: '+q.ask:''}`:(q.ask||'Check this order')),
       note:q.note||'',
@@ -10405,7 +10405,7 @@ function renderJack(){
         <button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`});});
   closures.forEach(r=>{const q=r.resolution||{};
     items.push({kind:'dec',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
-      asin:r.asin||'',by:q.by||'Sarah',at:q.at,wait:days(q.at),type:['DECISION','#c084fc','She investigated — your call'],
+      asin:r.asin||'',by:q.by||'someone',at:q.at,wait:days(q.at),type:['DECISION','#c084fc','She investigated — your call'],
       why:esc(_resText(q.what))+(q.claim?' · money at risk':''),note:q.note||'',fix:q.fix||'',
       clog:(q.chase&&q.chase.log)||[],expDate:r.expectedDelivery||'',
       value:(parseSKU(r.sku).cogs||0)*(r.exp||r.ship||0),left:refundLeft(r.date,r),
@@ -10419,7 +10419,7 @@ function renderJack(){
       raisedDays:c.raisedAt?Math.max(0,Math.floor((Date.now()-new Date(c.raisedAt).getTime())/864e5)):null,
       na:c.nextAction||'',
       /* a gated claim he took off Sarah himself is his, not something she is waiting on */
-      by:sj.at?(sj.by||c.raisedBy||'Sarah'):(gated?'Yours — gated':(c.raisedBy||'Sarah')),at:sj.at||c.raisedAt,wait:days(sj.at||c.raisedAt),noNag:!sj.at,
+      by:sj.at?(sj.by||c.raisedBy||'someone'):(gated?'Yours — gated':(c.raisedBy||'someone')),at:sj.at||c.raisedAt,wait:days(sj.at||c.raisedAt),noNag:!sj.at,
       type:gated?['GATED','#c084fc','Cannot be sold — eBay it or ungate it']:['CLAIM','#fbbf24','A claim she sent over'],
       why:esc((c.issT||'Issue')+' · '+(c.dif||0)+' unit'+((c.dif||0)===1?'':'s')),note:c.notes||'',
       value:c.claimValue||0,left:null,
@@ -10429,19 +10429,19 @@ function renderJack(){
         `<button class="csAct good" onclick="claimBackFromJack('${c.id}')">Answer &amp; hand back</button>`});});
   (lavQ||[]).forEach(g=>{let tj={};try{tj=JSON.parse(g.toJack||'{}');}catch(e){}
     items.push({kind:'lav',id:g.key,prod:g.lines.map(x=>x.name).join(', '),sup:g.sup,oid:g.ref,acct:'',sku:'',
-      by:tj.by||'Sarah',at:tj.at,wait:days(tj.at),type:['SHORTAGE','#38bdf8','Short or damaged at check-in'],
+      by:tj.by||'someone',at:tj.at,wait:days(tj.at),type:['SHORTAGE','#38bdf8','Short or damaged at check-in'],
       why:esc([g.short?g.short+' short':'',g.dmg?g.dmg+' damaged':''].filter(Boolean).join(' · ')),
       note:(g.log&&g.log.length?g.log[g.log.length-1].msg:''),value:g.val||0,left:null,
       acts:`<button class="csAct good" onclick="lavBackFromJack('${esc1(g.key)}')">Answer &amp; hand back</button>`});});
   fixes.forEach(r=>{const f=r.qtyFix||{};
     items.push({kind:'fix',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,asin:r.asin||'',
-      by:f.by||'Sarah',at:f.at,wait:days(f.at),type:['QTY FIX','#94a3b8','The sheet was wrong — read and wave through'],
+      by:f.by||'someone',at:f.at,wait:days(f.at),type:['QTY FIX','#94a3b8','The sheet was wrong — read and wave through'],
       why:esc(String(f.from??'?'))+' &rarr; '+esc(String(f.to??'?'))+' units',note:f.why||'',value:0,left:null,
       acts:`<button class="csAct plain" onclick="ackQtyFix('${r.uuid||r.id}')">Seen it</button>`});});
   (owed||[]).forEach(o=>{const r=o.r;const _u=Math.max(0,(r.exp||r.ship||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0));
     items.push({kind:'refund',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,asin:r.asin||'',
-      by:o.q.by||'Sarah',at:o.q.approvedAt||o.q.at,wait:o.waiting,type:['REFUND TO RAISE','#34d399','Sarah closed it as never arrived — only you can raise the refund in the Amazon account'],
-      why:esc(`Never arrived · ${fmt(_u||r.exp||0)} unit${(_u||r.exp||0)===1?'':'s'} · closed by ${o.q.by||'Sarah'}`),
+      by:o.q.by||'someone',at:o.q.approvedAt||o.q.at,wait:o.waiting,type:['REFUND TO RAISE','#34d399','Sarah closed it as never arrived — only you can raise the refund in the Amazon account'],
+      why:esc(`Never arrived · ${fmt(_u||r.exp||0)} unit${(_u||r.exp||0)===1?'':'s'} · closed by ${o.q.by||'someone'}`),
       note:(o.q.chase&&(o.q.chase.log||[]).length)?o.q.chase.log.slice(-1)[0].what:'',
       clog:(o.q.chase&&o.q.chase.log)||[],expDate:'',
       value:o.value||0,left:refundLeft(r.date,r),
@@ -10747,7 +10747,7 @@ function jackAnswerAsk(rid){
   el.innerHTML=`<div class="modal srtCfm">
     <div class="srtCfmTtl">What did you find?</div>
     <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${esc(r.oid||'no order id')}</div>
-    <div class="srtCfmOpen"><b>${esc(q.by||'Sarah')} asked</b>
+    <div class="srtCfmOpen"><b>${esc(q.by||'someone')} asked</b>
       <ul><li>${esc(q.ask||'Check this order')}</li></ul>
       ${q.note?`<span>${esc(q.note)}</span>`:''}</div>
     <div class="srtCfmLab">Still coming? Answer with the date — it parks the order and comes back by itself if it slips</div>
@@ -10759,7 +10759,7 @@ function jackAnswerAsk(rid){
     <textarea id="askNote" class="srtNote" rows="3" oninput="jackAnsCheck()"
       placeholder="e.g. Amazon shows it delivered on 12 July, signed for — book it in"></textarea>
     <div class="srtCfmKeep"><b>What happens</b><ul>
-      <li>It goes straight back to ${esc(q.by||'Sarah')} with your answer on the row</li>
+      <li>It goes straight back to ${esc(q.by||'someone')} with your answer on the row</li>
       <li>She can act on it and close it off herself</li>
       <li>The audit record is kept — no history is ever deleted</li></ul></div>
     <div class="srtCfmFoot">
@@ -12518,7 +12518,7 @@ function _allAdminRows(){
     ((window.LV3&&LV3.lavLateList)?LV3.lavLateList():[]).forEach(g=>{
       let _tj=null;try{_tj=g.toJack?JSON.parse(g.toJack):null;}catch(e){_tj={at:''};}
       out.push({kind:'lavlate',rid:'lavlate:'+g.key,lavLateKey:g.key,
-        prod:g.name,sku:'',asin:'',sup:g.sup,oid:g.oid,acct:'',
+        prod:g.name,sku:'',asin:'',sup:g.sup,oid:g.oid,acct:g.acct||'',
         date:'',units:g.owed,got:0,cancelled:0,outstanding:g.owed,
         value:g.cost||0,days:g.days,sev:3,col:'#c084fc',
         reason:g.eta?('due '+g.eta+' — nothing booked in'):'past its window — nothing booked in',
@@ -15609,7 +15609,7 @@ async function confirmLavShipMulti(){
     const _ok=await saveLavShipment(entry);
     if(_ok===false){const _i=lavShipments.indexOf(entry);if(_i>=0)lavShipments.splice(_i,1);continue;}
     logAudit('Lavarion added to shipment',entry.asin+' x '+entry.units+' -> '+_lavShipId
-      +(meta?` — COG £${entry.cost} blended across two purchase prices by ${window.currentUserName||'Unknown'} (${meta.why}${meta.note?': '+meta.note:''})`:''));
+      +(meta?` — COG £${entry.cost} blended across two purchase prices by ${window.currentUserName||'someone'} (${meta.why}${meta.note?': '+meta.note:''})`:''));
     /* a blend is a decision, counted the same way the Lavarion page counts its own */
     if(meta){try{if(window.LV3&&LV3.noteOverride)LV3.noteOverride({k:meta.why||'other',
       shipId:_lavShipId,prod:entry.prod,units:entry.units,cost:entry.cost,note:meta.note});}catch(e){}}
@@ -23476,7 +23476,7 @@ function jkStory(kind,id){
   if(kind==='lavlate'){
     const g=((window.LV3&&LV3.lavLateList)?LV3.lavLateList():[]).find(x=>x.key===id);if(!g){toast('Order not found','er');return;}
     title=g.name||'Late order';let tj=null;try{tj=g.toJack?JSON.parse(g.toJack):null;}catch(e){}
-    line('Order',esc(g.oid||'—')+(g.sup?' · '+esc(g.sup):''));
+    line('Order',esc(g.oid||'—')+(g.sup?' · '+esc(g.sup):'')+(g.acct?' · '+esc(g.acct):''));
     line('Units',fmt(g.owed)+' still owed'+(g.cost?' · '+fmtGBP2(g.cost)+' at stake':''));
     line('Ordered',g.ordered?esc(_dmy(g.ordered))+' · '+g.days+' days ago':'—');
     line('Was due',g.eta?esc(_dmy(g.eta)):'no window set');
@@ -23891,7 +23891,7 @@ async function saveNewShipment(){
     if(_ok===false){const _i=lavShipments.indexOf(ls);if(_i>=0)lavShipments.splice(_i,1);continue;}
     if(meta){
       logAudit('Lavarion added to shipment',
-        `${ls.asin} x ${ls.units} -> ${shipId} — COG £${ls.cost} blended across two purchase prices by ${window.currentUserName||'Unknown'} (${meta.why}${meta.note?': '+meta.note:''})`);
+        `${ls.asin} x ${ls.units} -> ${shipId} — COG £${ls.cost} blended across two purchase prices by ${window.currentUserName||'someone'} (${meta.why}${meta.note?': '+meta.note:''})`);
       try{if(window.LV3&&LV3.noteOverride)LV3.noteOverride({k:meta.why||'other',
         shipId,prod:ls.prod,units:ls.units,cost:ls.cost,note:meta.note});}catch(e){}
     }
@@ -24600,7 +24600,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v44.4 · lav3 · 2026-09-08 · b504';
+const BUILD='v44.7 · lav3 · 2026-09-08 · b507';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -25099,7 +25099,7 @@ function doUndo(){
 }
 function om(id){const e=$(id);if(e){e.classList.add('on');e.classList.add('open');}}
 function cm(id){const e=$(id);if(e){e.classList.remove('on');e.classList.remove('open');}}
-function logIt(k,txt){D.log.unshift({t:new Date().toISOString(),k,txt,who:(window.currentUserName||'Becki')});
+function logIt(k,txt){D.log.unshift({t:new Date().toISOString(),k,txt,who:(window.currentUserName||'someone')});
   if(D.log.length>4000)D.log.length=4000;saveState();}
 
 /* stock of a component or a product's own layers */
@@ -28606,7 +28606,7 @@ function doShip(){
      Stored as a record so Settings can answer "how often, and why". */
   if(chk.mixed.length&&SHIP.override){
     D.settings.overrides=D.settings.overrides||[];
-    D.settings.overrides.unshift({on:dayISO(),by:(window.currentUserName||'Becki'),
+    D.settings.overrides.unshift({on:dayISO(),by:(window.currentUserName||'someone'),
       shipId:fba,prod:p.name,units:n,k:SHIP.reasonK||'other',why:SHIP.reason||'',
       cost:Number(cg.per.toFixed(4))});
     D.settings.overrides=D.settings.overrides.slice(0,300);
@@ -29123,7 +29123,24 @@ function findLayer(kind,oid,lid){
   if(!hit)D.products.forEach(o=>(o.layers||[]).forEach(l=>{if(!hit&&String(l.id)===String(lid))hit={o,l,kind:'product'};}));
   return hit;
 }
+/* Jack, 8 Sep (Sarah: "I'm just checking the item and it turned to landed"):
+   Lavarion stock is checked in by the UK team. Sarah is stopped with a
+   Cancel / Proceed box on every receive or arrived button; Jack and Becki
+   are not. A deliberate Proceed still works — it is a stop, not a lock. */
+let _lavGateOk=false;
+function _lavIsSarah(){return /^sarah/i.test(String(window.currentUserName||'').trim());}
+function lavGate(retry){
+  if(!_lavIsSarah())return false;
+  if(_lavGateOk){_lavGateOk=false;return false;}
+  confirmBox('Checking stock in is the UK team\u2019s job',
+    `<div style="margin-bottom:10px">Receiving and marking arrived on the Lavarion page is Becki\u2019s. A press here moves real stock on the bench.</div>
+     <div class="pmeta" style="margin:0">If you are doing it on purpose, carry on \u2014 it is logged under your name.</div>`,
+    ()=>{_lavGateOk=true;try{retry();}finally{_lavGateOk=false;}},
+    {danger:true,ok:'Proceed anyway'});
+  return true;
+}
 function openReceive(kind,oid,lid){
+  if(lavGate(()=>openReceive(kind,oid,lid)))return;
   const found=findLayer(kind,oid,lid);
   if(!found){toast('That order is no longer on the list — refresh and try again','er');return;}
   const o=found.o,l=found.l;kind=found.kind;oid=o.id;
@@ -29330,7 +29347,7 @@ function rcvConfirm(){
   if(got<1){
     if(!that){toast('Enter how many arrived \u2014 or press None, then tick that the delivery is finished','er');return;}
     const o=found.o,l=found.l;
-    const who=(window.currentUserName||'Becki');
+    const who=(window.currentUserName||'someone');
     const landed=dayISO();
     _rcvCtx=null;_rcvThat=false;
     cm('lav3Ov2');
@@ -29357,7 +29374,7 @@ function receiveRow(kind,oid,lid,qtyIn,noteIn,dmgIn,thatsIt,opts){
   const found=findLayer(kind,oid,lid);
   if(!found){toast('Could not find that order — nothing has been booked in','er');return;}
   const o=found.o,l=found.l;
-  const who=(window.currentUserName||'Becki');
+  const who=(window.currentUserName||'someone');
   const landed=opts.landed||dayISO();
   const quiet=!!opts.quiet;                 // one snap/save/render for the whole batch
   const say=(msg,tone)=>{if(!quiet)toastUndo(msg,tone);};   // `kind` is taken
@@ -29434,6 +29451,7 @@ function receiveRow(kind,oid,lid,qtyIn,noteIn,dmgIn,thatsIt,opts){
   return{got,dmg,left,closed:left<=0,short:!!l.short};
 }
 function markArrived(kind,oid,lid){
+  if(lavGate(()=>markArrived(kind,oid,lid)))return;
   const o=kind==='component'?comp(oid):prod(oid);
   const l=(o.layers||[]).find(x=>x.id===lid);if(!l)return;
   snap();
@@ -29529,7 +29547,7 @@ function doAddBatch(oid,kind){
   snap();
   (o.layers=o.layers||[]).push({id:newId('B'),date,qty,rem:qty,cost,sup,oid:ref,loc,arr:1,
     src:'backstock',note:note||(cost>0?'':'price missing'),
-    recvOn:dayISO(),recvBy:(window.currentUserName||'Becki')});
+    recvOn:dayISO(),recvBy:(window.currentUserName||'someone')});
   logIt('recv',`Batch added: ${fmt(qty)} × ${o.name}${cost>0?' @ '+gbp(cost):' (no price)'} — ${sup}${note?' · '+note:''}`);
   save();cm('lav3Ov2');render();
   if($('lav3Ov1').classList.contains('on')){kind==='component'?openComp(oid):openProduct(oid);}
@@ -30703,8 +30721,13 @@ function lavLateList(){
   try{
     return inboundAll().filter(x=>!x.l.short&&etaState(x.l).k==='late').map(x=>{
       const owed=outQty(x.l)||0;
+      /* Jack, 8 Sep: "hold the account from the Lavarion sheet too — Sarah and I
+         need to know which account, Becki doesn't." The batch remembers which
+         purchase it came from, and the purchase carries the sheet's Account. */
+      const _pu=(D.purchases||[]).find(p=>('P:'+p.id)===x.l.src)||(x.l.oid?(D.purchases||[]).find(p=>p.oid===x.l.oid):null);
       return{key:String(x.kind)+':'+String(x.o.id)+':'+String(x.l.id),
         kind:x.kind,oid2:String(x.o.id),lid:String(x.l.id),toJack:x.l.lateToJack||'',
+        acct:(_pu&&_pu.acct)||'',
         name:x.o.name||'',sup:x.l.sup||'',oid:x.l.oid||'',
         owed,cost:(x.l.cost||0)*owed,
         ordered:x.l.date||'',eta:String(x.l.eta2||x.l.eta1||'').slice(0,10),
@@ -31547,7 +31570,7 @@ function dupConfirm(pid,separate){
   const p=D.purchases.find(x=>x.id===pid);if(!p)return;
   const twin=D.purchases.find(x=>x.id===(p.dupCheck||{}).of);
   if(separate){
-    p.dupCheck={...p.dupCheck,answered:'separate',by:(window.currentUserName||'Becki'),on:dayISO()};
+    p.dupCheck={...p.dupCheck,answered:'separate',by:(window.currentUserName||'someone'),on:dayISO()};
     logIt('edit',`Confirmed a real second purchase — “${p.name}” ${dshort(p.date)} from ${p.sup||'supplier'}`);
     save();render();toastUndo('Kept — two separate purchases','ok');
     return;
@@ -32189,7 +32212,7 @@ function saveOrder(){
     mode:($('lo-ship')||{}).value||'courier',
     leadLo:parseInt(($('lo-lo')||{}).value)||null,leadHi:parseInt(($('lo-hi')||{}).value)||null,
     eta1:($('lo-eta1')||{}).value||'',eta2:($('lo-eta2')||{}).value||'',
-    manual:1,why,whoAdded:(window.currentUserName||'Becki'),
+    manual:1,why,whoAdded:(window.currentUserName||'someone'),
     note:parseFloat($('lo-cost').value)>0?'':'price missing'});
   logIt('order',`Ordered ${fmt(qty)} × ${o.name}${$('lo-sup').value?' from '+$('lo-sup').value:''}`);
   save();cm('lav3Ov2');render();
@@ -32395,7 +32418,7 @@ function saveRepl(oid,lid){
   const note=(($('rplNote')||{}).value||'').trim();
   snap();
   l.short=1;                                        // still owed, just not chased
-  l.repl={qty:n,on:dayISO(),by:(window.currentUserName||'Becki'),note};
+  l.repl={qty:n,on:dayISO(),by:(window.currentUserName||'someone'),note};
   cm('lav3Ov2');
   logIt('edit',`Replacement agreed — ${fmt(n)} × ${o.name} from ${l.sup||'supplier'}${note?' · '+note:''}`);
   save();render();
@@ -32437,7 +32460,7 @@ function dmgEnd(oid,lid,kind){
        : 'This closes the damage off. The stock stays out of the sellable count either way.'}</div>`,
     ()=>{
       snap();
-      l.dmgEnd={k:kind,on:dayISO(),by:(window.currentUserName||'Becki')};
+      l.dmgEnd={k:kind,on:dayISO(),by:(window.currentUserName||'someone')};
       logIt('edit',`${e.t} — ${fmt(n)} damaged × ${o.name} from ${l.sup||'supplier'}${val?' ('+val+')':''}`);
       save();render();toastUndo(e.t,'ok');
     },{ok:e.ok,danger:kind==='binned'});
@@ -32885,7 +32908,7 @@ function shortMore(oid,lid,k){
 function markChased(oid,lid){
   const o=comp(oid)||prod(oid);if(!o)return;
   const l=(o.layers||[]).find(x=>x.id===lid);if(!l)return;
-  l.chased=dayISO();l.chasedBy=(window.currentUserName||'Becki');
+  l.chased=dayISO();l.chasedBy=(window.currentUserName||'someone');
   l.replyBy=replyByDate(3);
   logIt('edit',`Chased ${o.name} — ${fmt(l.qty)} short from ${l.sup||'supplier'}, reply due ${dshort(l.replyBy)}`);
   save();render();toast(`Chase recorded — reply due ${dshort(l.replyBy)}`,'ok');
@@ -32895,7 +32918,7 @@ function markChased(oid,lid){
 function shortEnd(oid,lid,kind){
   const o=comp(oid)||prod(oid);if(!o)return;
   const l=(o.layers||[]).find(x=>x.id===lid);if(!l)return;
-  const who=(window.currentUserName||'Becki');
+  const who=(window.currentUserName||'someone');
   /* Becki: Amazon and some suppliers refund short units automatically, before
      anybody has asked. Those are not a problem anybody needs to chase — and
      sending them to Sarah as "missing" costs her real time on something that is
@@ -33072,20 +33095,22 @@ function deliveriesPanel(){
    unrecorded until someone had time to count it, or got waved through at the
    ordered quantity and the shortfall was never noticed. */
 function dlvArrived(lid,on){
+  if(lavGate(()=>dlvArrived(lid,on)))return;
   let hit=null;
   D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{if(l.id===lid)hit={o,l};}));
   if(!hit)return;
-  const who=(window.currentUserName||'Becki');
+  const who=(window.currentUserName||'someone');
   if(on===false){delete hit.l.arrivedOn;delete hit.l.arrivedBy;}
   else{hit.l.arrivedOn=dayISO();hit.l.arrivedBy=who;
     logIt('recv',`Arrived — ${hit.o.name}${hit.l.sup?' from '+hit.l.sup:''} · marked by ${who}, not counted yet`);}
   save();openDeliveries();
 }
 function dlvArrivedOrder(key){
+  if(lavGate(()=>dlvArrivedOrder(key)))return;
   (window._dlvWait||[]).forEach(x=>{
     const k=(x.l.oid&&x.l.oid!=='—')?x.l.oid:('#'+x.l.id);
     if(k!==key)return;
-    x.l.arrivedOn=dayISO();x.l.arrivedBy=(window.currentUserName||'Becki');
+    x.l.arrivedOn=dayISO();x.l.arrivedBy=(window.currentUserName||'someone');
   });
   save();openDeliveries();
 }
@@ -33333,6 +33358,7 @@ function dlvSum(){
    on the road. It now runs the same function the single button does, with
    thatsIt FALSE — a partial here means "part of it is in", nothing more. */
 function dlvReceive(){
+  if(lavGate(()=>dlvReceive()))return;
   const open=window._dlv||[];let items=0,units=0,partials=0,dmgTot=0,done=0;
   snap();
   open.forEach((x,i)=>{
@@ -34676,7 +34702,7 @@ function openOverSent(){
 function noteOverride(o){
   D.settings.overrides=D.settings.overrides||[];
   const label=(OV_REASONS.find(r=>r[0]===o.k)||[])[1]||'';
-  D.settings.overrides.unshift({on:dayISO(),by:(window.currentUserName||'Unknown'),
+  D.settings.overrides.unshift({on:dayISO(),by:(window.currentUserName||'someone'),
     shipId:o.shipId||'',prod:o.prod||'',units:o.units||0,k:o.k||'other',
     why:o.note||label||'blended across two purchase prices',
     cost:Number(o.cost||0)});
@@ -34692,7 +34718,7 @@ function noteOverSent(asin,units,shipId,who){
   D.settings.overSent=D.settings.overSent||{};
   const list=D.settings.overSent[asin]=D.settings.overSent[asin]||[];
   list.push({on:new Date().toISOString(),units:units,shipId:shipId||'',
-             by:who||(window.currentUserName||'Unknown'),settled:false});
+             by:who||(window.currentUserName||'someone'),settled:false});
   savePrefs();
 }
 function overSentFor(asin){
@@ -34702,7 +34728,7 @@ function overSentFor(asin){
 function settleOverSent(asin){
   const l=((D.settings||{}).overSent||{})[asin]||[];
   l.forEach(x=>{if(!x.settled){x.settled=true;x.settledOn=new Date().toISOString();
-                               x.settledBy=(window.currentUserName||'Unknown');}});
+                               x.settledBy=(window.currentUserName||'someone');}});
   savePrefs();render();
 }
 /* what a shipment would cost / whether it can go — no mutation */
