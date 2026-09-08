@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v44.7</title>
+<title>BDL PrepHub v45.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -74,6 +74,9 @@ html.light-mode{
 
 /* SUB & SAVE ROW */
 html:not(.light-mode) tbody tr.row-query{background:rgba(148,163,184,.11)!important;border-left:3px solid #94a3b8!important;}
+html:not(.light-mode) tbody tr.row-amzdel{background:rgba(34,211,238,.09)!important;border-left:3px solid #22d3ee!important;}
+html:not(.light-mode) tbody tr.row-amzdel:hover{background:rgba(34,211,238,.15)!important;}
+.qryTag.amz{color:#22d3ee!important;border-color:rgba(34,211,238,.5)!important;background:rgba(34,211,238,.1)!important;}
 html:not(.light-mode) tbody tr.row-query td{border-color:rgba(148,163,184,.25)!important;color:#c3ccd8!important;}
 html:not(.light-mode) tbody tr.row-query:hover{background:rgba(148,163,184,.18)!important;}
 html:not(.light-mode) tbody tr.row-subsave{background:rgba(85,153,255,.1)!important;border-left:3px solid #5599ff!important;}
@@ -353,6 +356,7 @@ html.light-mode body tbody tr.st-issue td{color:#111827!important;}
 html.light-mode body tbody tr.row-stuck{background:#fecaca!important;border-left:5px solid #ef4444!important;}
 html.light-mode body tbody tr.row-stuck td{color:#111827!important;}
 html.light-mode body tbody tr.row-query{background:#e2e8f0!important;border-left:5px solid #64748b!important;}
+html.light-mode body tbody tr.row-amzdel{background:#cffafe!important;border-left:5px solid #0891b2!important;}
 html.light-mode body tbody tr.row-query td{color:#111827!important;}
 html.light-mode body tbody tr.row-subsave{background:#bfdbfe!important;border-left:5px solid #1d4ed8!important;}
 html.light-mode body tbody tr.row-subsave td{color:#111827!important;}
@@ -3566,7 +3570,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v44.7</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v45.4</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3600,7 +3604,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v44.7</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v45.4</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3706,6 +3710,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
   <div class="page" id="page-prep">
     <div class="stats" id="prepStats"></div>
     <div id="noBoxBanner"></div>
+    <div id="amzDelBanner"></div>
     <div class="toolbar" style="flex-direction:column;align-items:stretch;gap:6px;padding:8px 12px;">
       <!-- Row 1: Search -->
       <div class="search-box" style="width:100%;position:relative;">
@@ -3916,7 +3921,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v44.7</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v45.4</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -5351,6 +5356,7 @@ function renderStats(){
     mk('Sent This Week',fmt(sentWeekUnits)+' units',`${shipWord(weekRoll.shipments)} · ${fmt(sentWeekSkus)} SKU lines · ${fmt(sentWeekAsins)} ASINs · ${fmtGBP2(weekRoll.value)} COG`,'#a78bfa','week')+
     mk('Sent This Month',fmt(totalSentMonth)+' units',`${shipWord(monthRoll.shipments)} · ${fmt(monthRoll.skus)} SKU lines · ${fmt(monthRoll.asins)} ASINs · ${fmtGBP2(monthRoll.value)} COG`,'#34d399','mtd');
   renderNoBoxBanner();
+  try{renderAmzBanner();}catch(e){}
 }
 
 /* A shipment with no box count can't be costed — every box carries a charge, so
@@ -5512,7 +5518,9 @@ function renderPrepRows(data){
     /* Jack, 4 Sep: "it didn't turn a colour" — a question with the admin team
        greys the whole row, like a row that is with Jack: someone else has it. */
     const _qOpen=!hasIssue&&!!_ukQuery(r);
+    const _amzDel=_isAmzDel(r);   /* the flag colours the row whatever else is on it */
     const rowCls=[
+      _amzDel?'row-amzdel':
       isStuck?'row-stuck':
       _qOpen?'row-query':
       isSubSaveInTransit?'row-subsave':
@@ -5523,6 +5531,7 @@ function renderPrepRows(data){
     const rcvdColor=r.rcvd>0&&r.rcvd>=r.exp?'var(--green)':r.rcvd>0?'var(--amber)':'';
     // Build tooltip explaining why this row is coloured
     const rowTooltip=
+      _amzDel?`&#9679; Amazon say delivered — ${esc(r.resolution.amzDelivered.by||'Jack')} checked the account ${_qryWhen(r.resolution.amzDelivered.at)}. Check the shelves: book it in, or press Not here.`:
       isStuck?`⏱ Late — ${daysSinceCreate} days in transit (threshold: ${_lateAfter} days)`:
       _qOpen?`❓ Question with the admin team — ${_ukQuery(r).by||'warehouse'} asked ${_qryWhen(_ukQuery(r).at)}: is more on the way? The answer comes back in the VA Note.`:
       isSubSaveInTransit?'🔄 Subscribe & Save — expected delivery window applies':
@@ -5537,6 +5546,7 @@ function renderPrepRows(data){
       r.status==='Delivered'?'✅ Delivered':
       r.pri==='Yes'?'⭐ Priority row':'';
     const rowBorder=
+      _amzDel?'border-left:4px solid #22d3ee!important;':
       isStuck?'border-left:4px solid #ef4444!important;':
       _qOpen?'border-left:4px solid #94a3b8!important;':
       isSubSaveInTransit?'border-left:4px solid #5599ff!important;':
@@ -5622,6 +5632,8 @@ function renderPrepRows(data){
           style="padding:4px 10px;background:transparent;border:1px dashed var(--border2);color:var(--text3);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;min-width:32px;"
           title="Raise an issue against this row">+ issue</button>
         ${(()=>{const _q=_ukQuery(r);const _rs=r.resolution||{};
+          if(_isAmzDel(r))return `<div class="qryTag amz" title="Amazon say this was delivered. If it is on the shelves, book it in and the flag clears. If not, press Not here and it goes to Jack to raise with Amazon.">Amazon say delivered — check</div>
+            <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk" style="color:#4ade80;border-color:rgba(74,222,128,.5);" onclick="amzFoundIt('${r.uuid||r.id}')">Found it</button><button class="qryAsk" style="color:#f87171;border-color:rgba(248,113,113,.5);" onclick="amzNotHere('${r.uuid||r.id}')">Not here</button></div>`;
           if(_q)return `<div class="qryTag" onclick="openQuery('${r.uuid||r.id}')" title="${esc(_q.ask||'')}${_q.note?' — “'+esc(_q.note)+'”':''} — asked by ${esc(_q.by||'')} ${_qryWhen(_q.at)} · with ${_rs.state==='asked'?'Jack':'the admin team'}. The answer comes back in the VA Note.">&#10148; Admin team</div>`;
           const _aq=_rs.query;
           if(_aq&&_aq.answer==='more-coming'&&r.expectedDelivery&&new Date(r.expectedDelivery)>=new Date(new Date().toDateString()))return `<div class="qryTag ok" title="${esc(_aq.answeredBy||'')} answered ${_qryWhen(_aq.answeredAt)}: more is still coming${_aq.reply?' — “'+esc(_aq.reply)+'”':''}. See the VA Note.">&#10003; Due ${new Date(r.expectedDelivery).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}</div>`;
@@ -5750,6 +5762,60 @@ function healSentBelowReceived(why){
   return n;
 }
 /* units the supplier still owes on a row */
+/* Amazon say delivered, warehouse not sure — Becki's to check. Clears itself
+   when received catches up, or when she answers Not here. */
+function _isAmzDel(r){const a=r&&r.resolution&&r.resolution.amzDelivered;return !!(a&&!a.done&&_owedUnits(r)>0);}
+function _amzDelRows(){return rows.filter(r=>!r.archived&&_isAmzDel(r));}
+let _amzFilterActive=false;
+function toggleAmzFilter(){_amzFilterActive=!_amzFilterActive;renderPrep();}
+function renderAmzBanner(){
+  const el=document.getElementById('amzDelBanner');if(!el)return;
+  const n=_amzDelRows().length;
+  if(!n){if(_amzFilterActive){_amzFilterActive=false;}el.innerHTML='';return;}
+  el.innerHTML=`<div class="nbBanner" style="border-color:rgba(34,211,238,.5);">
+    <div class="nbTop">
+      <span class="nbDot" style="color:#22d3ee;">&#9679;</span>
+      <b>${n} order${n===1?'':'s'} Amazon say ${n===1?'was':'were'} delivered but ${n===1?'is':'are'}n\u2019t fully booked in</b>
+      <span class="nbSub">check the shelves — book it in if it is here, or press Not here on the row</span>
+      <button class="nbGo" style="background:rgba(34,211,238,.18);border-color:rgba(34,211,238,.5);color:#22d3ee;" onclick="toggleAmzFilter()">${_amzFilterActive?'Show everything':'Show just those'}</button>
+    </div></div>`;
+}
+function amzFoundIt(rid){
+  const inp=document.querySelector(`input[onchange*="ufRcvdTyped('${rid}'"]`);
+  if(inp){try{inp.scrollIntoView({block:'center'});}catch(e){}inp.focus();inp.select();}
+  toast('Type what you found — when it matches what was expected the flag clears by itself','ok');
+}
+async function amzNotHere(rid){
+  const r=_rowById(rid);if(!r||!r.resolution||!r.resolution.amzDelivered)return;
+  const now=new Date().toISOString(),d=new Date(),dd=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
+  r.resolution.amzDelivered.done={by:_who(),at:now,how:'not-here'};
+  r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${dd}: checked the shelves — not here`;
+  r.vaNoteBy=_who();r.vaNoteAt=now;
+  /* Jack, 8 Sep: "if it's Amazon it needs to come back to me to raise a refund /
+     speak to Amazon." Straight to his page, not Sarah's. */
+  const ch=r.resolution.chase||{path:'never-arrived',step:'',due:'',log:[]};
+  ch.log=(ch.log||[]).concat([{at:now,by:_who(),what:'Checked the shelves — not here. Amazon say delivered — to Jack to raise it'}]);
+  r.resolution=Object.assign({},r.resolution,{state:'asked',kind:'check',what:'amz-missing',
+    ask:'Amazon say delivered — Becki checked the shelves, not here. Raise it with Amazon.',note:'',by:_who(),at:now,chase:ch});
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
+  logAudit('Amazon says delivered — not in warehouse',`${r.sku||r.asin||''} — to Jack`);
+  toast('Sent to Jack — Amazon say delivered, you say not here. He raises it with Amazon.','ok');
+  renderPrep();try{renderAdmin();renderJack();}catch(e){}
+}
+async function amzMissingDone(rid){
+  const r=_rowById(rid);if(!r||!r.resolution)return;
+  const now=new Date().toISOString();
+  const ch=r.resolution.chase||{path:'never-arrived',step:'',due:'',log:[]};
+  ch.log=(ch.log||[]).concat([{at:now,by:_who(),what:'Sorted with Amazon — refund or replacement raised'}]);
+  r.resolution=Object.assign({},r.resolution,{state:'approved',kind:'ops',what:'refund-done',approvedBy:_who(),approvedAt:now,
+    refundRaised:{by:_who(),at:now},chase:ch});
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
+  logAudit('Amazon missing sorted',`${r.sku||r.asin||''} — ${_who()}`);
+  toast('Done — sorted with Amazon. It closes on every page.','ok');
+  renderJack();try{renderAdmin();renderPrep();}catch(e){}
+}
 function _owedUnits(r){return Math.max(0,(parseInt(r&&r.exp)||0)-(parseInt(r&&r.rcvd)||0)-(parseInt(r&&r.cancelledQty)||0));}
 function _sentOut(r){
   let segs=0;
@@ -5801,6 +5867,14 @@ function uf(id,field,val){
   }
   /* the 48-hour part-arrival clock reads this: when did the count last move */
   if(field==='rcvd'&&(parseInt(val)||0)!==(parseInt(r.rcvd)||0))r.rcvdAt=new Date().toISOString();
+  if(field==='rcvd'&&r.resolution&&r.resolution.amzDelivered&&!r.resolution.amzDelivered.done){
+    const _owe=Math.max(0,(parseInt(r.exp)||0)-(parseInt(val)||0)-(parseInt(r.cancelledQty)||0));
+    if(_owe===0){r.resolution.amzDelivered.done={by:_who(),at:new Date().toISOString(),how:'found'};
+      const _d=new Date(),_dd=String(_d.getDate()).padStart(2,'0')+'/'+String(_d.getMonth()+1).padStart(2,'0');
+      r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${_dd}: found it — all booked in`;
+      r.vaNoteBy=_who();r.vaNoteAt=new Date().toISOString();
+      toast('All booked in — the Amazon-says-delivered flag is cleared','ok');}
+  }
   /* who wrote the VA note and when — survives a refresh once the SQL adds the columns */
   if(field==='vaNote'&&String(val||'').trim()!==String(r.vaNote||'').trim()){
     r.vaNoteBy=String(val||'').trim()?_who():'';r.vaNoteAt=String(val||'').trim()?new Date().toISOString():'';}
@@ -5855,7 +5929,7 @@ let _prepDomSig=null; // signature of the un-searched base set currently in the 
 function _prepBaseSig(){
   const st=(document.getElementById('prepStF')||{}).value||'';
   const ac=(document.getElementById('prepAcctF')||{}).value||'';
-  return st+'|'+ac+'|'+(_issuesFilterActive?1:0)+'|'+(_lateFilterActive?1:0)+'|'+(_readyFilterActive?1:0)+'|'+(_showArchived?1:0);
+  return st+'|'+ac+'|'+(_issuesFilterActive?1:0)+'|'+(_lateFilterActive?1:0)+'|'+(_readyFilterActive?1:0)+'|'+(_amzFilterActive?1:0)+'|'+(_showArchived?1:0);
 }
 // Base set = every filter EXCEPT the search query (mirrors filterPrep's logic)
 function _prepBaseRows(){
@@ -5867,7 +5941,7 @@ function _prepBaseRows(){
      appears on this page in either mode; it lives in History Lookup and the
      audit log, and Undo still works from the toast. */
   const base=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_offPrepSheet(r));
-  if(!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive)return base;
+  if(!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive&&!_amzFilterActive)return base;
   return base.filter(r=>{
     const rid=r.uuid||String(r.id);
     if(_acctF&&String(r.acct||'').trim()!==_acctF)return false;
@@ -5876,6 +5950,7 @@ function _prepBaseRows(){
       const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
       if(!hasIssue)return false;
     }
+    if(_amzFilterActive&&!_isAmzDel(r))return false;
     if(_lateFilterActive){
       if(r.status!=='In-Transit')return false;
       const[dd,mm]=(r.date||'').split('/');
@@ -6000,12 +6075,13 @@ function filterPrep(skipFlush){
   // _showArchived ON = show ONLY archived rows; OFF = show only active rows.
   // Rows cleared as "sorted outside the app" are excluded from BOTH modes.
   const baseRows=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_offPrepSheet(r));
-  if(!q&&!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive){renderPrepRows(baseRows);}
+  if(!q&&!st&&!_acctF&&!_issuesFilterActive&&!_lateFilterActive&&!_readyFilterActive&&!_amzFilterActive){renderPrepRows(baseRows);}
   else{
     const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
       if(_acctF&&String(r.acct||'').trim()!==_acctF)return false;
       if(_readyFilterActive&&acHold(r)!==null)return false;
+      if(_amzFilterActive&&!_isAmzDel(r))return false;
       if(_issuesFilterActive){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
         if(!hasIssue)return false;
@@ -6198,11 +6274,12 @@ function renderPrep(){
   // the shipments page and stats still see them). _showArchived flips to an
   // archived-ONLY view rather than mixing archived in with active rows.
   const baseRows=(_showArchived?rows.filter(r=>r.archived):rows.filter(r=>!r.archived)).filter(r=>!_offPrepSheet(r));
-  if(q||st||_acctF||_issuesFilterActive||_lateFilterActive||_readyFilterActive){
+  if(q||st||_acctF||_issuesFilterActive||_lateFilterActive||_readyFilterActive||_amzFilterActive){
     const filtered=baseRows.filter(r=>{
       const rid=r.uuid||String(r.id);
       if(_acctF&&String(r.acct||'').trim()!==_acctF)return false;
       if(_readyFilterActive&&acHold(r)!==null)return false;
+      if(_amzFilterActive&&!_isAmzDel(r))return false;
       if(_issuesFilterActive){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
         if(!hasIssue)return false;
@@ -7470,6 +7547,21 @@ function _adminTransitSelect(i){
 // VA clicked "Chased" — snooze this row for 4 days. It returns to the queue
 // after that if it still hasn't been received. (UK staff marking it received on
 // the Prep Sheet is what clears it permanently.)
+/* Jack, 8 Sep: "she should be checking in 48 hours my emails to see if it's
+   been processed." A promised refund is a wait, not a job for him: the row
+   parks for two days and comes back to her to confirm it landed. */
+async function refundWait(rid){
+  const r=_rowById(rid);if(!r)return;
+  const until=new Date();until.setDate(until.getDate()+2);
+  r.chaseSnoozeUntil=until.toISOString();
+  const ch=(r.resolution&&r.resolution.chase)||null;
+  if(ch)ch.log=(ch.log||[]).concat([{at:new Date().toISOString(),by:_who(),what:'Refund promised — checking the emails on '+until.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}]);
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
+  logAudit('Refund wait 48h',`${r.sku||r.asin||''} — back ${until.toISOString().slice(0,10)}`);
+  toast('Parked for 2 days — it comes back for you to check the emails','ok');
+  renderAdmin();
+}
 function snoozeChase(rid){
   const r=rows.find(x=>x.uuid===String(rid)||String(x.id)===String(rid));
   if(!r)return;
@@ -10383,12 +10475,25 @@ function renderJack(){
         <button class="csAct good" onclick="lavLateNewDate('${esc1(g.key)}',document.getElementById('${_id}').value)" title="The order's window moves to this date, it stops being late and leaves Sarah's list by itself">New date &mdash; send back</button>
         <button class="csAct plain" onclick="lavLateBack('${esc1(g.key)}')" title="No date from the supplier — back to Sarah to chase">Hand back &mdash; no date</button>`});});
   checks.forEach(r=>{const q=r.resolution||{};const Q=_ukQuery(r);const _id=r.uuid||r.id;
+    if(q.what==='amz-missing'){
+      const _owe=Math.max(0,(r.exp||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0));
+      items.push({kind:'check',id:_id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,asin:r.asin||'',
+        by:q.by||'someone',at:q.at,wait:days(q.at),type:['AMAZON SAYS DELIVERED','#22d3ee','Becki checked the shelves — not there. Raise it with Amazon.'],
+        why:esc(`${fmt(_owe)} unit${_owe===1?'':'s'} Amazon say ${_owe===1?'was':'were'} delivered — not in the warehouse`),note:'',
+        clog:(q.chase&&q.chase.log)||[],expDate:r.expectedDelivery||'',
+        value:(parseSKU(r.sku).cogs||0)*_owe,left:refundLeft(r.date,r),
+        acts:`<button class="csAct good" onclick="amzMissingDone('${_id}')" title="Refund or replacement raised with Amazon — it closes on every page">Sorted with Amazon &mdash; done</button>
+          <button class="csAct plain" onclick="jackAmzDate('${_id}',this)" title="Amazon are sending it again — record the date, the row parks">Replacement coming &mdash; date&hellip;</button>
+          <button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Back to Sarah with a note</button>`});
+      return;
+    }
     /* a warehouse question Sarah passed over is answered in its own terms —
        "is more on the way?" — not with Arrived YES/NO */
     items.push({kind:'check',id:_id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
       asin:r.asin||'',by:q.by||'someone',at:q.at,wait:days(q.at),
       type:Q?['QUERY','#38bdf8','The warehouse asked whether more is on the way — Sarah passed it to you']:['CHECK','#60a5fa','An Amazon order she cannot see — did it arrive?'],
-      why:esc(Q?`${Q.by||'Warehouse'} asked: ${Q.got?Q.got+' of '+Q.exp+' booked in — is more on the way?':'nothing booked in — has it been dispatched?'}${Q.note?' — “'+Q.note+'”':''}${q.ask?' · Sarah: '+q.ask:''}`:(q.ask||'Check this order')),
+      why:Q?esc(`${Q.by||'Warehouse'} asked: ${Q.got?Q.got+' of '+Q.exp+' booked in — is more on the way?':'nothing booked in — has it been dispatched?'}${Q.note?' — “'+Q.note+'”':''}${q.ask?' · Sarah: '+q.ask:''}`)
+         :(q.note?`${esc(q.note)}<div style="font-size:9.5px;font-weight:700;color:var(--text3);margin-top:3px;">${esc(q.ask||'')}</div>`:esc(q.ask||'Check this order')),
       note:q.note||'',
       /* a fresh question has no chase yet — the question itself is the latest line */
       clog:((q.chase&&q.chase.log&&q.chase.log.length)?q.chase.log:(Q?[{at:Q.at,by:Q.by,what:'Asked — '+(Q.ask||'')+(Q.note?' — “'+Q.note+'”':'')}]:[])),expDate:r.expectedDelivery||'',
@@ -10817,14 +10922,16 @@ function askJackAsk(rid){
     el.addEventListener('click',e=>{if(e.target===el)askShut();});
   }
   el.innerHTML=`<div class="modal srtCfm">
-    <div class="srtCfmTtl">Ask Jack to check this</div>
-    <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${esc(r.oid||'no order id')}</div>
-    <div class="srtCfmLab">What do you need him to check?</div>
+    <div class="srtCfmTtl">Send this to Jack</div>
+    <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${esc(r.oid||'no order id')}${r.sup?' · '+esc(r.sup):''}${r.acct?' · '+esc(r.acct):''}</div>
+    ${!_amazonRow(r)?`<div class="srtNeed" style="margin:0 0 10px;"><b>Not an Amazon order.</b> A refund from ${esc(r.sup||'this supplier')} is yours to see through: if they have promised it, wait 48 hours, check the emails, then close it as <b>Refund being processed — done</b> or chase again. Only send it to Jack if you need something only he can do.</div>`:''}
+    <div class="srtCfmLab">What is it about?</div>
     <div class="askOpts">${ASK_REASONS.map((o,n)=>`<label class="srtChk">
       <input type="radio" name="askWhy" value="${esc(o)}" ${n===0?'checked':''}><span>${esc(o)}</span></label>`).join('')}</div>
-    <div class="srtCfmLab">Anything he should know</div>
-    <textarea id="askNote" class="srtNote" rows="2"
-      placeholder="What you have already checked, who you have spoken to…">${esc(r.notes||'')}</textarea>
+    <div class="srtCfmLab">What do you need Jack to do? <span style="color:#f87171">required</span></div>
+    <textarea id="askNote" class="srtNote" rows="3" oninput="askNoteCheck()"
+      placeholder="e.g. Argos say the refund went to a gift card on 06/09 — can you check it landed on the account?"></textarea>
+    <div class="srtHint" id="askNoteHint">Jack sees this line first. Say what you found and what you want him to check or decide.</div>
     <div class="srtCfmKeep"><b>What happens</b><ul>
       <li>This row moves to Jack — it shows as waiting on him and you can’t close it until he answers</li>
       <li>It lands on his Admin page as a job with your name on it</li>
@@ -10832,9 +10939,20 @@ function askJackAsk(rid){
       <li>Nothing is closed and nothing is deleted</li></ul></div>
     <div class="srtCfmFoot">
       <button class="srtGhost" onclick="askShut()">Cancel</button>
-      <button class="srtGo" onclick="askSend()">Send to Jack</button>
+      <button class="srtGo" id="askGo" onclick="askSend()">Send to Jack</button>
     </div></div>`;
   el.style.display='flex';
+  askNoteCheck();
+  setTimeout(()=>{const t=document.getElementById('askNote');if(t)t.focus();},60);
+}
+/* Jack, 8 Sep: "if she is sending it to me — a reason why; this should say
+   what I need to do." The line is required, and it is the headline on his row. */
+function askNoteCheck(){
+  const t=document.getElementById('askNote'),go=document.getElementById('askGo'),h=document.getElementById('askNoteHint');
+  if(!t||!go)return;
+  const ok=t.value.trim().length>=8;
+  go.disabled=!ok;go.style.opacity=ok?'1':'.45';go.style.cursor=ok?'pointer':'not-allowed';
+  if(h)h.textContent=ok?'Jack sees this line first.':'Tell Jack what you need him to do — a sentence is enough.';
 }
 async function askSend(){
   const rid=_askRid,r=_rowById(rid);if(!r)return;
@@ -10852,7 +10970,14 @@ async function askSend(){
   r.resolution={state:'asked',kind:'check',what:'jack-check',ask:why,note,
     chase:_riding||undefined,query:(r.resolution&&r.resolution.query)||undefined,
     by:_who(),at:new Date().toISOString()};
-  if(note){r.notes=note;r.notesBy=_who();r.notesAt=new Date().toISOString();}
+  /* Jack, 8 Sep: this line used to land in PACKING NOTES — Becki's column —
+     which is where the twelve order references and "refund issued in gift
+     card" came from. It is Sarah's finding, so it is a VA note. */
+  if(note){
+    const d=new Date(),dd=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
+    r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${dd} → Jack: ${note}`;
+    r.vaNoteBy=_who();r.vaNoteAt=new Date().toISOString();
+  }
   r._dirty=true;
   askShut();
   renderAdmin();                 // it leaves her queue immediately
@@ -10940,7 +11065,7 @@ function jackNoSplit(rid,btn){
     <div class="jkAnsT">Not arrived — is it still coming?</div>
     <input type="date" id="jkD_${rid}" min="2024-01-01" max="2030-12-31" class="jkAnsDate" onkeydown="if(event.key==='Enter'){event.preventDefault();jackStillComing('${rid}');}">
     <button class="csAct go" onclick="jackStillComing('${rid}')" title="The account shows a delivery date — it comes off your list and Sarah's until then, the date shows on the Prep Sheet">Still coming — save the date</button>
-    <button class="csAct warn" onclick="jackAnswered('${rid}','NOT arrived — cancelled or nothing coming. Chase or claim.')" title="Cancelled, or no delivery showing — Sarah starts the refund road">Cancelled / nothing coming — chase or claim</button>
+    <button class="csAct warn" onclick="jackAnswered('${rid}','NOT arrived — cancelled or nothing coming. Chase or claim.')" title="Cancelled, or no delivery showing — it goes back to Sarah with your answer and she closes it off">Cancelled / nothing coming — chase or claim</button>
     <button class="csAct plain" onclick="renderJack()">Back</button></div>`;
   setTimeout(()=>{const el=document.getElementById('jkD_'+rid);if(el)el.focus();},30);
 }
@@ -10986,6 +11111,15 @@ async function jackAnswered(rid,answer){
      making her re-enter what Jack just said. */
   if(/arrived — yes/i.test(answer))r.delivered='Yes';
   else if(/not arrived/i.test(answer))r.delivered='No';
+  /* Jack, 8 Sep: "if Amazon say delivered I send it back — Sarah gets Becki to
+     check — a VA note on the Prep Sheet, a banner, a colour." The flag lives on
+     the case; the row goes teal for Becki until she answers or books it in. */
+  if(/account shows it delivered/i.test(answer)&&_amazonRow(r)&&_owedUnits(r)>0){
+    r.resolution.amzDelivered={by:_who(),at:new Date().toISOString()};
+    const _d=new Date(),_dd=String(_d.getDate()).padStart(2,'0')+'/'+String(_d.getMonth()+1).padStart(2,'0');
+    r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${_dd}: Amazon say delivered — please check the shelves`;
+    r.vaNoteBy=_who();r.vaNoteAt=new Date().toISOString();
+  }
   /* His answer is a line in the case, not a separate note — and if he has just
      told her it never arrived, the chase opens itself on the next real step so
      the row lands back in her queue ready to work, not needing re-diagnosing. */
@@ -11243,6 +11377,12 @@ function queryNoneComing(rid){
 }
 /* the supplier cancelled (or already refunded) the rest: nothing is missing,
    so the row balances by recording those units as cancelled */
+/* Jack, 8 Sep — asked for, then reversed the same hour, and the reversal is
+   the rule: "no I want to wait for Sarah, that is how it should work — Sarah
+   needs to confirm it." His answer travels back to her as a finding; SHE
+   records the cancellation and closes the row. Nothing on his page closes a
+   row on her behalf. Her side is already one press: her triage reads "Jack
+   checked the account" and offers "Cancelled — note the sheet, close it". */
 function queryBalance(rid,how){
   const r=_rowById(rid);if(!r){toast('Row not found','er');return;}
   const short=_qryOwed(r);if(short<=0){toast('Nothing is owed on this row any more','er');return;}
@@ -13288,6 +13428,7 @@ function renderAdmin(){
                    I've just sent it back saying nothing is coming — this is a mess."
                    His answer settles the question. What belongs here now is the
                    move that follows from it, not the question again. */
+                {const _rr=_rowById(i.rid);if(_rr&&typeof _isAmzDel==='function'&&_isAmzDel(_rr))return '<div class="tfuSelf" style="color:#22d3ee;font-weight:700;text-align:center;">Amazon say delivered &mdash; Becki is checking the shelves. It comes back by itself.</div>';}
                 if((i.query||i.partOverdue)&&sentBack&&sentBack.rejectNote){
                   const a=String(sentBack.rejectNote||'');
                   const notComing=/not arrived|nothing coming|cancel/i.test(a);
@@ -13308,6 +13449,7 @@ function renderAdmin(){
                         <button class="csAct warn" onclick="queryNoneComing('${i.rid}')">Nothing more &mdash; raise ${fmt(short)} missing</button>
                         <button class="csAct good" onclick="openSorted('${i.rid}','refund-done')">Refund being processed &mdash; done</button>
                         <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')">Supplier cancelled the rest</button>`}
+                      <button class="csAct plain" onclick="refundWait('${i.rid}')" title="They have promised a refund — park it two days and come back to check the emails">Refund promised &mdash; check emails in 2 days</button>
                       <button class="csAct plain" onclick="openSorted('${i.rid}')" title="The full Close-off popup — every outcome, including a wrong quantity on the sheet">Close it off another way&hellip;</button>
                     </div>
                   </div>`;
@@ -13323,6 +13465,7 @@ function renderAdmin(){
                       <button class="csAct warn" onclick="queryNoneComing('${i.rid}')" title="The order shows fully delivered — the ${i.outstanding} short become a Missing issue">Nothing more &mdash; fully delivered</button>
                       <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')" title="The supplier cancelled the rest — the row balances, nothing missing">Supplier cancelled the rest</button>
                       <button class="csAct plain" onclick="queryBalance('${i.rid}','refunded')" title="Already refunded for the shortfall — the row balances, nothing missing">Already refunded</button>
+                      <button class="csAct plain" onclick="refundWait('${i.rid}')" title="They have promised a refund — park it two days and come back to check the emails">Refund promised &mdash; check emails in 2 days</button>
                     </div>
                     ${isAmz?`<div class="tfuGuide">Amazon order &mdash; can&rsquo;t see it? Send it to Jack (right).</div>`:''}
                   </div>`;
@@ -19992,6 +20135,13 @@ const sheetOnly=['sku','date','oid','sup','acct','prod','asin','dg','vat','sas',
        value against a never-loaded field is not a change. */
     sheetOnly.forEach(k=>{
       if(fields[k]===undefined)return;
+      /* Jack, 8 Sep: a "Wrong qty" fix on the row was undone by the very next
+         sync while the sheet still said the old number. Keep the fix until the
+         sheet is corrected; the moment the sheet changes, the sheet wins. */
+      if(k==='exp'&&existing.qtyFix&&!existing.qtyFix.sheetDone){
+        if(parseInt(fields[k])===parseInt(existing.qtyFix.from))return;
+        existing.qtyFix.sheetDone=true;
+      }
       const was=existing[k];
       if(was===undefined&&(fields[k]===''||fields[k]==null)){existing[k]=fields[k];return;}
       if(was!==fields[k]){existing[k]=fields[k];changed=true;}
@@ -24600,7 +24750,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v44.7 · lav3 · 2026-09-08 · b507';
+const BUILD='v45.4 · lav3 · 2026-09-08 · b514';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -35844,7 +35994,13 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
   overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
 /* the colour key — Jack: "if I hover over those colours it doesn't tell me
    what any of them mean". Said once, in the open, not hidden in a tooltip. */
-.admKey{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:0 10px 10px;}
+.admKey{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:0 10px 10px;
+  /* Jack, 8 Sep: "this still buggy — why?" The stripe legend was sliced in half.
+     The frozen table header paints a solid 22px block UPWARDS (0 -22px 0) to
+     hide rows passing behind it in the gap above, and at rest that block landed
+     on the last 14px of this row. Clear of it now; the mask still does its job
+     on empty background when the table is scrolled. */
+  margin-bottom:18px;position:relative;z-index:7;}
 .admKeyT{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);}
 .admKeyI{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--text2);}
 .admKeyD{width:9px;height:9px;border-radius:2px;flex:none;}
