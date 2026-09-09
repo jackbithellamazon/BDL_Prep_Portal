@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v47.6</title>
+<title>BDL PrepHub v47.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3584,7 +3584,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v47.6</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v47.7</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3618,7 +3618,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v47.6</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v47.7</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3936,7 +3936,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v47.6</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v47.7</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -10976,10 +10976,11 @@ function renderJack(){
         <button class="csAct plain" onclick="queryBalance('${_id}','cancelled')">Supplier cancelled the rest</button>
         <button class="csAct plain" onclick="queryBalance('${_id}','refunded')">Already refunded</button>
         <button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`
-      :`<button class="csAct good" onclick="jackAnswered('${_id}','Arrived — YES, the account shows it delivered.')">Arrived — YES</button>
+      :`<div class="jkWhere">None of these close the row &mdash; your answer goes back to Sarah.</div>
+        <button class="csAct good" onclick="jackAnswered('${_id}','Arrived — YES, the account shows it delivered.')" title="Sarah gets it back with your answer and the next question: has it gone out on the wrong SKU?">Arrived — YES</button>
         <button class="csAct warn" onclick="jackNoSplit('${_id}',this)">Not arrived — NO</button>
         <button class="csAct plain" onclick="jackAmzDate('${_id}',this)">Amazon says it&rsquo;ll arrive&hellip;</button>
-        ${(parseInt(r.rcvd)||0)>0?`<button class="csAct plain" style="border-color:rgba(251,191,36,.5);color:#fcd34d;" onclick="jackRestGone('${_id}',this)" title="Some of it is in and the rest is never coming — Amazon cancelled it, or the sheet says more than was actually ordered. Sarah gets one button: fix the sheet and close it.">Rest isn&rsquo;t coming &mdash; cancelled or fewer ordered</button>`:''}
+        ${(parseInt(r.rcvd)||0)>0?`<button class="csAct plain" style="border-color:rgba(251,191,36,.5);color:#fcd34d;" onclick="jackRestGone('${_id}',this)" title="Some of it is in and the rest is never coming — Amazon cancelled or refunded it, or the sheet says more than was actually ordered. Sarah gets one button: note the sheet and close it.">Rest isn&rsquo;t coming &mdash; cancelled, refunded or fewer ordered</button>`:''}
         <button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`});});
   closures.forEach(r=>{const q=r.resolution||{};
     items.push({kind:'dec',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
@@ -11165,9 +11166,18 @@ function renderJack(){
           <button class="stMore" style="margin-top:5px;" onclick="jkStory('${it.kind}','${esc1(String(it.id))}')" title="Everything on this one — order, units, notes, every step, who and when">&#9656; Full story</button>
         </td>
         <td style="text-align:center;">
-          ${(()=>{const _b=(it.acts.match(/<button[\s\S]*?<\/button>/g)||[]);
-            if(_b.length<=2)return `<div class="csActs jkMove">${it.acts}</div>`;
-            return `<div class="csActs jkMove">${_b.slice(0,2).join('')}<span class="jkRest">${_b.slice(2).join('')}</span><button class="csAct plain jkMoreBtn" onclick="const p=this.parentElement;p.classList.toggle('open');this.innerHTML=p.classList.contains('open')?'less &#9652;':'more &#9662;'">more &#9662;</button></div>`;})()}
+          ${(()=>{const _w=(String(it.acts).match(/<div class="jkWhere">[\s\S]*?<\/div>/)||[''])[0];
+            const _b=(it.acts.match(/<button[\s\S]*?<\/button>/g)||[]);
+            if(_b.length<=2)return _w+`<div class="csActs jkMove">${it.acts.replace(_w,'')}</div>`;
+            /* Jack, 9 Sep: "it expanded, then glitched and collapsed again —
+               I don't want rows or buttons moving while somebody is working on
+               them." It was a bare class toggle with nothing remembering it, so
+               the next repaint — a realtime update, anyone else saving a row,
+               the 60-second tick — rebuilt the card closed. The open ones are
+               remembered by row id and re-applied, the same way the Full story
+               and More panels already are. */
+            const _mo=_jkOpen.has(String(it.id));
+            return _w+`<div class="csActs jkMove${_mo?' open':''}">${_b.slice(0,2).join('')}<span class="jkRest">${_b.slice(2).join('')}</span><button class="csAct plain jkMoreBtn" onclick="jkMoreTog(this,'${esc1(String(it.id))}')">${_mo?'less &#9652;':'more &#9662;'}</button></div>`;})()}
         </td>
       </tr>`;
   /* Jack, 5 Sep: "a grey done line for the rest of the day" + the 48-hour undo
@@ -11306,6 +11316,14 @@ function renderJack(){
    date pad or an answer box is open, or a field on the page has focus; the
    debt is paid the moment the box closes. His own button presses still
    repaint at once through renderJack(). */
+/* which cards have their extra answers showing — survives every repaint */
+const _jkOpen=new Set();
+function jkMoreTog(btn,id){
+  const p=btn&&btn.parentElement;if(!p)return;
+  const open=p.classList.toggle('open');
+  if(open)_jkOpen.add(String(id));else _jkOpen.delete(String(id));
+  btn.innerHTML=open?'less &#9652;':'more &#9662;';
+}
 function _jkBusy(){
   const ae=document.activeElement;
   const typing=!!(ae&&ae.closest&&ae.closest('#page-jack')&&['INPUT','SELECT','TEXTAREA'].includes(ae.tagName));
@@ -11566,7 +11584,7 @@ function jackRestGone(rid,btn){
   const got=parseInt(r.rcvd)||0,exp=r.exp||0,owed=Math.max(0,exp-got-(parseInt(r.cancelledQty)||0));
   td.innerHTML=`<div class="jkAnsBox" data-jk-edit="1">
     <div class="jkAnsT">${fmt(got)} in &middot; ${fmt(owed)} never coming &mdash; why?</div>
-    <button class="csAct warn" onclick="jackRestGoneSend('${rid}','cancelled')" title="Amazon cancelled the rest. They refund it by themselves — nothing for anyone to chase.">Amazon cancelled the rest</button>
+    <button class="csAct warn" onclick="jackRestGoneSend('${rid}','cancelled')" title="Amazon cancelled or refunded the rest — the money is back or coming back by itself, nothing for anyone to chase.">Amazon cancelled or refunded the rest</button>
     <button class="csAct go" onclick="jackRestGoneSend('${rid}','sheet')" title="The Purchase Sheet says ${fmt(exp)} but only ${fmt(got)} were actually ordered — the sheet is wrong, not the delivery.">Only ${fmt(got)} were ordered &mdash; sheet is wrong</button>
     <button class="csAct plain" onclick="renderJack()">Back</button></div>`;
 }
@@ -11575,7 +11593,7 @@ function jackRestGoneSend(rid,why){
   const got=parseInt(r.rcvd)||0,exp=r.exp||0,owed=Math.max(0,exp-got-(parseInt(r.cancelledQty)||0));
   const text=why==='sheet'
     ?`Only ${fmt(got)} were ordered — the sheet says ${fmt(exp)}. The other ${fmt(owed)} never existed; fix the sheet and close it.`
-    :`Amazon cancelled the other ${fmt(owed)} — refunded by themselves. Note the sheet and close it.`;
+    :`Amazon cancelled or refunded the other ${fmt(owed)} — the money is back by itself. Note the sheet and close it.`;
   jackAnswered(rid,text,{restGone:{why,ordered:got,owed,at:new Date().toISOString()}});
 }
 async function jackStillComing(rid,vGiven){
@@ -25508,7 +25526,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v47.6 · lav3 · 2026-09-09 · b536';
+const BUILD='v47.7 · lav3 · 2026-09-09 · b537';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -36464,6 +36482,7 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .jkSt .stLog{margin:2px 0;}
 .jkMove.open .jkRest{display:contents;}
 .jkMove .jkMoreBtn{opacity:.75;}
+.jkWhere{font-size:10px;color:var(--text3);line-height:1.35;margin:0 0 5px;text-align:center;white-space:normal;}
 .jkInfo,.jkDone{margin-top:14px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
 .jkInfo>summary,.jkDone>summary{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;list-style:none;}
 .jkInfoT{font:800 12.5px var(--num);color:var(--text);}
