@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v47.8</title>
+<title>BDL PrepHub v47.9</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -827,12 +827,21 @@ tbody tr:hover .row-acts{opacity:1;}
 .tfuBack b{font-weight:800;color:#fecaca;}
 /* with-Jack rows, one line each (5 Sep) */
 .tfu tr.tfuCompact td{opacity:1!important;padding-top:7px!important;padding-bottom:7px!important;vertical-align:middle;}
-.tfuCmp{display:flex;align-items:center;gap:10px;min-width:0;}
-.tfuCmpName{flex:0 1 34%;min-width:120px;font-size:12px;font-weight:700;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.tfuCmpMeta{flex:0 1 auto;max-width:26%;font:600 10.5px var(--mono);color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Jack, 9 Sep: "these still visually fucked." Every grey row was a flex line
+   that sized itself from its own content, so a short product name and a long
+   one put the chip, the note and the money in different places on each row —
+   nothing lined up down the page, and the table centred them on top of that.
+   Fixed columns, left aligned, so the grey rows read as a list. */
+.tfu tr.tfuCompact td{text-align:left;}
+.tfuCmp{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(0,1.5fr) auto minmax(0,2.6fr) auto;
+  align-items:center;gap:12px;min-width:0;text-align:left;}
+.tfuCmpName{min-width:0;font-size:12px;font-weight:700;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tfuCmpMeta{min-width:0;font:600 10.5px var(--mono);color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tfuCmpChip{flex:none;font-size:10px;font-weight:800;letter-spacing:.05em;padding:2px 8px;border-radius:999px;color:#b6c2d4;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.4);white-space:nowrap;}
 .tfuCmpAsk{flex:1 1 auto;min-width:0;font-size:11px;font-weight:600;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.tfuCmpVal{flex:none;font:800 12px var(--num);color:#b6c2d4;font-variant-numeric:tabular-nums;}
+.tfuCmpVal{flex:none;font:800 12px var(--num);color:#b6c2d4;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+@media(max-width:1200px){.tfuCmp{grid-template-columns:minmax(0,2.4fr) auto minmax(0,2.6fr) auto;}
+  .tfuCmpMeta{display:none;}}
 .tfu tr.tfuCompact .tfuActs{white-space:nowrap;}
 .tfu tr.tfuCompact .tfuActs button{display:inline-block;width:auto;margin:0 2px;padding:4px 9px;font-size:10.5px;}
 /* Still on her page so the work does not disappear from the picture — but
@@ -3584,7 +3593,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v47.8</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v47.9</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3618,7 +3627,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v47.8</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v47.9</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3936,7 +3945,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v47.8</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v47.9</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -11402,12 +11411,17 @@ function jackAnsSend(){
    in the approve/reject queue. It rides in `resolution`, which already
    round-trips to the database, so there is no migration to run. */
 let _askRid=null;
+/* Jack, 9 Sep: "don't need the required if the tick says what she needs from
+   me — add other where she can freehand write the note, get rid of 3." The
+   tick IS the message on the three named reasons; the note is only compulsory
+   when she picks Something else, because then it is the only thing he gets. */
 const ASK_REASONS=[
   'Check whether this order actually arrived',
   'Check whether it was cancelled or refunded',
-  'I can’t see this order on the Amazon account',
-  'Gated — this one is your decision'
+  'Gated — this one is your decision',
+  'Something else — I’ll explain below'
 ];
+const ASK_FREE='Something else — I’ll explain below';
 function askShut(){const el=document.getElementById('askModal');if(el)el.style.display='none';_askRid=null;}
 function askJackAsk(rid){
   const r=_rowById(rid);if(!r){toast('Row not found','er');return;}
@@ -11424,11 +11438,11 @@ function askJackAsk(rid){
     ${!_amazonRow(r)?`<div class="srtNeed" style="margin:0 0 10px;"><b>Not an Amazon order.</b> A refund from ${esc(r.sup||'this supplier')} is yours to see through: if they have promised it, wait 48 hours, check the emails, then close it as <b>Refund being processed — done</b> or chase again. Only send it to Jack if you need something only he can do.</div>`:''}
     <div class="srtCfmLab">What is it about?</div>
     <div class="askOpts">${ASK_REASONS.map((o,n)=>`<label class="srtChk">
-      <input type="radio" name="askWhy" value="${esc(o)}" ${n===0?'checked':''}><span>${esc(o)}</span></label>`).join('')}</div>
-    <div class="srtCfmLab">What do you need Jack to do? <span style="color:#f87171">required</span></div>
+      <input type="radio" name="askWhy" value="${esc(o)}" ${n===0?'checked':''} onchange="askNoteCheck()"><span>${esc(o)}</span></label>`).join('')}</div>
+    <div class="srtCfmLab">Anything to add? <span id="askReq" style="color:#f87171;display:none;">required</span><span id="askOpt" style="color:var(--text3);font-weight:600;">optional</span></div>
     <textarea id="askNote" class="srtNote" rows="3" oninput="askNoteCheck()"
       placeholder="e.g. Argos say the refund went to a gift card on 06/09 — can you check it landed on the account?"></textarea>
-    <div class="srtHint" id="askNoteHint">Jack sees this line first. Say what you found and what you want him to check or decide.</div>
+    <div class="srtHint" id="askNoteHint">The option you ticked already tells Jack what you need. Add a line only if there is something he would not work out himself.</div>
     <div class="srtCfmKeep"><b>What happens</b><ul>
       <li>This row moves to Jack — it shows as waiting on him and you can’t close it until he answers</li>
       <li>It lands on his Admin page as a job with your name on it</li>
@@ -11447,15 +11461,23 @@ function askJackAsk(rid){
 function askNoteCheck(){
   const t=document.getElementById('askNote'),go=document.getElementById('askGo'),h=document.getElementById('askNoteHint');
   if(!t||!go)return;
-  const ok=t.value.trim().length>=8;
+  const picked=document.querySelector('#askModal input[name="askWhy"]:checked');
+  const free=picked&&picked.value===ASK_FREE;
+  const req=document.getElementById('askReq'),opt=document.getElementById('askOpt');
+  if(req)req.style.display=free?'':'none';
+  if(opt)opt.style.display=free?'none':'';
+  const ok=free?t.value.trim().length>=3:true;
   go.disabled=!ok;go.style.opacity=ok?'1':'.45';go.style.cursor=ok?'pointer':'not-allowed';
-  if(h)h.textContent=ok?'Jack sees this line first.':'Tell Jack what you need him to do — a sentence is enough.';
+  if(h)h.textContent=free?'Say what you need Jack to do — a sentence is enough.'
+    :'The option you ticked already tells Jack what you need. Add a line only if there is something he would not work out himself.';
 }
 async function askSend(){
   const rid=_askRid,r=_rowById(rid);if(!r)return;
   const picked=document.querySelector('#askModal input[name="askWhy"]:checked');
-  const why=picked?picked.value:ASK_REASONS[0];
+  let why=picked?picked.value:ASK_REASONS[0];
   const note=((document.getElementById('askNote')||{}).value||'').trim();
+  /* she picked Something else — her own sentence is the headline on his card */
+  if(why===ASK_FREE)why=note.split('\n')[0].slice(0,120)||'Something else — see the note';
   /* Jack, 16 Aug: "It shouldn't be SARAH → SEND TO JACK → DISAPPEARS… it's the
      same underlying issue moving between us." This used to REPLACE the whole
      resolution, so a row with a live case lost every line of its chase the
@@ -25549,7 +25571,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v47.8 · lav3 · 2026-09-09 · b538';
+const BUILD='v47.9 · lav3 · 2026-09-09 · b539';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
