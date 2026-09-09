@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v46.5</title>
+<title>BDL PrepHub v46.9</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3579,7 +3579,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v46.5</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v46.9</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3613,7 +3613,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v46.5</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v46.9</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3739,7 +3739,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
         <option>Part Sent</option><option>Sent to Amazon</option><option>Issue</option><option>Not Arrived</option><option>Returned</option>
       </select>
       <button id="showIssuesBtn" onclick="toggleIssuesFilter()" style="padding:5px 10px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⚑ Issues</button>
-      <button id="showLateBtn" onclick="toggleLateFilter()" style="padding:5px 10px;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.4);color:#fb923c;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⏱ Late</button>
+      <button id="showLateBtn" onclick="toggleLateFilter()" style="padding:5px 10px;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.4);color:#fb923c;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;" title="In transit past the late clock (20 days, 35 for Subscribe &amp; Save) with units still owed and no delivery date ahead — the same rows as the dashboard's Stuck list">⏱ Late</button>
       <button id="showSSBtn" onclick="toggleSubSaveFilter()" title="Show only Subscribe &amp; Save orders — they run to a longer clock than everything else" style="padding:5px 10px;background:rgba(96,165,250,.13);border:1px solid rgba(96,165,250,.4);color:#60a5fa;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">S&amp;S</button>
       <button id="showReadyBtn" onclick="toggleReadyFilter()" style="padding:5px 10px;background:rgba(74,222,128,.13);border:1px solid rgba(74,222,128,.4);color:#4ade80;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Ready to clear 0</button>
       <button id="showArchivedBtn" onclick="toggleArchivedView()" title="Show rows that were sent to Amazon and archived" style="padding:5px 10px;background:var(--bg2);border:1px solid rgba(96,165,250,.4);color:var(--text3);border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Show Archived</button>
@@ -3931,7 +3931,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v46.5</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v46.9</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -4051,6 +4051,11 @@ html.light-mode .tfu thead th{background:#d8dde3;}
             <div class="setCard grn"><div class="setRow"><div class="l"><b>Download a backup</b><span>every table as one file — rows, issues, Lavarion, settings. Do this before anything below.</span></div><div><button class="setBtn pri" onclick="exportBackup()">Download backup</button></div></div>
               <div class="setRow"><div class="l"><b>Discord webhook</b><span>where a hand-off to Jack is posted — leave empty for none</span></div><div style="display:flex;gap:6px;align-items:center;"><input type="text" id="whUrl" class="fi-in" placeholder="https://discord.com/api/webhooks/…" style="font-size:11px;"><button class="setBtn sm" onclick="saveWebhookSettings()">Save</button></div></div>
               <div hidden><input type="number" id="whHours"><input type="checkbox" id="whOn"><div id="whState"></div></div>
+            </div>
+            <div class="setCard blu"><h3>Tidy up &mdash; Sarah&rsquo;s notes in the packing column</h3>
+              <p class="setWhy">Until 8 Sep, a note Sarah typed when she sent a row to Jack was written into <b>Packing notes</b> &mdash; the warehouse&rsquo;s own column. That is where the order references and &ldquo;refund issued in gift card&rdquo; came from. New ones go to the VA note. This moves the old ones across: the text is copied to the VA note with who wrote it and when, then removed from packing notes. Nothing is deleted.</p>
+              <div class="setRow"><div class="l"><b id="pnFixCount">&mdash;</b><span id="pnFixWhich">checking&hellip;</span></div>
+                <div style="display:flex;gap:6px;"><button class="setBtn" onclick="pnFixPreview()">Show me them</button><button class="setBtn pri" id="pnFixGo" onclick="pnFixRun()">Move them to the VA note</button></div></div>
             </div>
             <div class="setCard red danger" id="dangerZone"><h3 style="color:#f87171;">Danger zone — Jack only</h3><p class="setWhy">These delete data for <b>everyone</b>, straight away. Each one asks you to type a word to confirm. The audit log and every shipment record are never deleted by anything here.</p>
               <div class="setRow"><div class="l"><b>Clear all Prep Sheet rows</b><span>the next Sync brings the sheet back, without history</span></div><div><button class="setBtn danger" onclick="clearTable('prep_rows','prep rows')">Clear…</button></div></div>
@@ -4933,6 +4938,7 @@ function setSettingsTab(k,btn){
   c.setAttribute('data-tab',k);
   document.querySelectorAll('#setTabs .setTabBtn').forEach(b=>b.classList.remove('on'));
   if(btn)btn.classList.add('on');
+  if(k==='data'){try{setTimeout(pnFixPaint,50);}catch(e){}}
 }
 function goPage(n,btn){
   try{paintJackBadge();}catch(e){}
@@ -6050,13 +6056,7 @@ function _prepBaseRows(){
     }
     if(_amzFilterActive&&!_isAmzDel(r))return false;
     if(_ssFilterActive&&r.subSave!=='Yes')return false;
-    if(_lateFilterActive){
-      if(r.status!=='In-Transit')return false;
-      const[dd,mm]=(r.date||'').split('/');
-      if(!dd||!mm)return false;
-      const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
-      if(Math.floor((new Date()-d)/864e5)<=20)return false;
-    }
+    if(_lateFilterActive&&!_prepRowLate(r))return false;   /* one rule, shared with the dashboard */
     if(st){
       const hasIssueFlag=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
       if(r.status!==st&&!(st==='Issue'&&hasIssueFlag))return false;
@@ -6189,20 +6189,8 @@ function filterPrep(skipFlush){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
         if(!hasIssue)return false;
       }
-      if(_lateFilterActive){
-        if(r.status!=='In-Transit')return false;
-        const[dd,mm]=(r.date||'').split('/');
-        if(!dd||!mm)return false;
-        const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
-        if(Math.floor((new Date()-d)/864e5)<=20)return false;
-      }
-      if(_lateFilterActive){
-        if(r.status!=='In-Transit')return false;
-        const[dd,mm]=(r.date||'').split('/');
-        if(!dd||!mm)return false;
-        const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
-        if(Math.floor((new Date()-d)/864e5)<=20)return false;
-      }
+      if(_lateFilterActive&&!_prepRowLate(r))return false;   /* one rule, shared with the dashboard */
+      if(_lateFilterActive&&!_prepRowLate(r))return false;   /* one rule, shared with the dashboard */
       if(st){
         const hasIssueFlag=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
         const matchesStatus=r.status===st;
@@ -6389,20 +6377,8 @@ function renderPrep(){
         const hasIssue=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved');
         if(!hasIssue)return false;
       }
-      if(_lateFilterActive){
-        if(r.status!=='In-Transit')return false;
-        const[dd,mm]=(r.date||'').split('/');
-        if(!dd||!mm)return false;
-        const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
-        if(Math.floor((new Date()-d)/864e5)<=20)return false;
-      }
-      if(_lateFilterActive){
-        if(r.status!=='In-Transit')return false;
-        const[dd,mm]=(r.date||'').split('/');
-        if(!dd||!mm)return false;
-        const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
-        if(Math.floor((new Date()-d)/864e5)<=20)return false;
-      }
+      if(_lateFilterActive&&!_prepRowLate(r))return false;   /* one rule, shared with the dashboard */
+      if(_lateFilterActive&&!_prepRowLate(r))return false;   /* one rule, shared with the dashboard */
       if(st){
         const hasIssueFlag=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
         const matchesStatus=r.status===st;
@@ -7527,6 +7503,10 @@ function _adminItems(){
          a closure she is proposing. It still locks the row: she cannot close
          something she has just told him she cannot check. */
       waiting:(r.resolution&&(r.resolution.state==='proposed'||r.resolution.state==='asked'))?r.resolution:null,
+      /* Jack, 9 Sep: "a button that the VA sends to Becki to check and then it
+         greys out — that's the last thing she needs to do." Same grey row as
+         with-Jack; nothing for Sarah to press until Becki answers. */
+      withBecki:(typeof _isAmzDel==='function'&&_isAmzDel(r))?(r.resolution.amzDelivered||{}):null,
       draft:srtDraft(r.uuid||r.id),
       packNote:(r.notes||'').trim(),vaNote:(r.vaNote||'').trim(),
       days,isStuck,ta,reason,sev,col,value:cogs*(outstanding||units)});
@@ -7955,6 +7935,34 @@ let REFUND_DAYS=30;
    Jack, 5 Sep: "every clock in plain English" on the Settings page. Each
    number below used to be a literal somewhere in the code; the sites now read
    TM.* so one edit moves every page. Saved in app_settings.timings. */
+/* Jack, 9 Sep: "Late showing all this but not all late — overview/dashboard
+   doesn't match." The Late button had its own private rule: In-Transit and
+   more than 20 days since the order date, full stop. It ignored a delivery
+   date still in the future (the Asus rows due 9 Oct), the 35-day clock for
+   Subscribe & Save, a row Jack had already closed, and rows where nothing is
+   owed any more — while the dashboard's Stuck list checked all of those. Same
+   question, two answers. This is the one answer, and both ask it. */
+function _prepRowLate(r){
+  if(!r||r.archived)return false;
+  if(['Delivered','In Warehouse','Returned'].includes(r.status))return false;
+  const owed=(r.exp||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0);
+  if(r.status==='In-Transit'){if((r.exp||0)>0&&owed<=0)return false;}
+  else if(r.status==='Part Sent'||r.status==='Sent to Amazon'){if(owed<=0)return false;}
+  else return false;
+  if(r.resolution&&r.resolution.state==='approved')return false;
+  const today=new Date();
+  let d=null;
+  if(r.date){const[dd,mm]=String(r.date).split('/');if(dd&&mm){
+    d=new Date(`${today.getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+    if(!isNaN(d)&&d>today)d.setFullYear(d.getFullYear()-1);}}
+  if(!d||isNaN(d))return false;
+  const days=Math.floor((today-d)/864e5);
+  const after=r.subSave==='Yes'?TM.ssLateDays:TM.lateDays;
+  if(days<=after)return false;
+  const exp=r.expectedDelivery?new Date(r.expectedDelivery):null;
+  if(exp&&!isNaN(exp)&&today<exp)return false;
+  return true;
+}
 const TM_DEF={lateDays:20,ssLateDays:35,partDays:2,refundDays:30,caseWorkDays:5,queryRedDays:2,undoHours:48,recListedAmber:46,recListedRed:90,recUnlistedAmber:14,recUnlistedRed:30};
 let TM=Object.assign({},TM_DEF);
 function _tmApply(v){
@@ -8334,6 +8342,60 @@ async function addVaActions(row,tasks,detail){
     });
   });
   await saveVaActions();
+}
+/* Jack, 9 Sep: yes, move them. He presses the button — the app never rewrites
+   live rows on its own. Match = the row's packing note still contains the exact
+   text of the send-to-Jack question stored on the resolution. */
+function pnFixList(){
+  try{
+    return (rows||[]).filter(r=>{
+      const n=String(r.notes||'').trim(); if(!n) return false;
+      const an=String(((r.resolution||{}).note)||'').trim();
+      return !!an && n.indexOf(an)!==-1;
+    });
+  }catch(e){return [];}
+}
+function pnFixPaint(){
+  const c=document.getElementById('pnFixCount'),w=document.getElementById('pnFixWhich'),b=document.getElementById('pnFixGo');
+  if(!c)return;
+  const l=pnFixList();
+  c.textContent=l.length?`${fmt(l.length)} row${l.length===1?'':'s'} to move`:'Nothing to move';
+  if(w)w.textContent=l.length?'each one keeps its text — it just moves to the right column':'every send-to-Jack note is already on the VA note';
+  if(b){b.disabled=!l.length;b.style.opacity=l.length?'1':'.45';b.style.cursor=l.length?'pointer':'not-allowed';}
+}
+function pnFixPreview(){
+  const l=pnFixList();
+  if(!l.length){toast('Nothing to move — they are all on the VA note already','ok');return;}
+  showConfirm('The notes that would move',
+    l.slice(0,25).map(r=>`<b>${esc(r.sku||r.prod||'—')}</b><br>${esc(String(r.notes||'').replace(/\n/g,' · ').slice(0,110))}`).join('<br><br>')
+    +(l.length>25?`<br><br>…and ${fmt(l.length-25)} more.`:'')
+    +'<br><br>Nothing has changed yet.',null,{icon:'\uD83D\uDCCB',hideOk:true,cancel:'Close'});
+}
+async function pnFixRun(){
+  const l=pnFixList();
+  if(!l.length){toast('Nothing to move','ok');return;}
+  showConfirm('Move them to the VA note?',
+    `<b>${fmt(l.length)} row${l.length===1?'':'s'}.</b><br>The text is copied to the VA note with who wrote it and when, then taken out of packing notes. Undo is not automatic — take a backup first if you want one.`,
+    async ()=>{
+      let done=0,failed=0;
+      for(const r of l){
+        const an=String(((r.resolution||{}).note)||'').trim();
+        const n=String(r.notes||'');
+        if(!an||n.indexOf(an)===-1)continue;
+        const who=((r.resolution||{}).by)||'Sarah';
+        const at=(r.resolution||{}).at?new Date(r.resolution.at):null;
+        const dd=at&&!isNaN(at)?String(at.getDate()).padStart(2,'0')+'/'+String(at.getMonth()+1).padStart(2,'0'):'';
+        r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${who}${dd?' '+dd:''} \u2192 Jack: ${an}`;
+        r.vaNoteBy=who;r.vaNoteAt=(r.resolution||{}).at||new Date().toISOString();
+        /* anything the warehouse typed alongside it stays where it is */
+        r.notes=n.replace(an,'').replace(/\n{2,}/g,'\n').trim();
+        r._dirty=true;
+        try{await saveRow(r);done++;}catch(e){failed++;}
+      }
+      logAudit('Packing notes tidied',`${done} moved to the VA note${failed?' · '+failed+' failed':''}`);
+      toast(failed?`${done} moved — ${failed} did not save, try again`:`\u2713 ${done} note${done===1?'':'s'} moved to the VA note`,failed?'er':'ok');
+      pnFixPaint();try{renderPrep();}catch(e){}try{renderAdmin();}catch(e){}
+    },{icon:'\u2192',ok:'Move them'});
 }
 /* several copies of one job, one press, one save */
 async function doneVaActions(ids){
@@ -12965,6 +13027,7 @@ function _allAdminRows(){
     if(!!a.query!==!!b.query)return a.query?-1:1;
     /* then whatever Jack has just answered — she is unblocked on those and he
        is waiting to see them moved on. Newest answer first (Jack, 8 Sep). */
+    if(_tfuSort==='priority'&&!!a.withBecki!==!!b.withBecki)return a.withBecki?1:-1;
     if(_tfuSort==='priority'&&!!a.sentBack!==!!b.sentBack)return a.sentBack?-1:1;
     if(_tfuSort==='priority'&&a.sentBack&&b.sentBack)return String(b.backAt||'').localeCompare(String(a.backAt||''));
     const ka=key(a),kb=key(b);
@@ -13318,10 +13381,12 @@ function renderAdmin(){
   const _counts={all:items.length};
   items.forEach(i=>{_counts[i.typeL]=(_counts[i.typeL]||0)+1;});
   _counts.WITHJACK=items.filter(i=>i.waiting).length;
+  _counts.WITHBECKI=items.filter(i=>i.withBecki&&!i.waiting).length;
   _counts.FROMJACK=items.filter(i=>i.sentBack).length;
   if(_aq)items=items.filter(i=>[i.prod,i.sku,i.asin,i.sup,i.oid,i.acct,i.reason,i.notes,i.srcNote,i.src,i.packNote,i.vaNote]
     .filter(Boolean).join(' ').toLowerCase().includes(_aq));
   if(_admKind==='WITHJACK')items=items.filter(i=>i.waiting);
+  else if(_admKind==='WITHBECKI')items=items.filter(i=>i.withBecki&&!i.waiting);
   else if(_admKind==='FROMJACK')items=items.filter(i=>i.sentBack);
   else if(_admKind!=='all')items=items.filter(i=>i.typeL===_admKind);
   const openIssues=claims.filter(c=>c.cst&&c.cst!=='Resolved');
@@ -13389,9 +13454,11 @@ function renderAdmin(){
     const _dLate=items.filter(i=>i.sev>=3).length;
     _transitSec=`<div class="tfuPanel" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;padding:0 6px 6px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(239,68,68,.06);gap:10px;flex-wrap:wrap;">
-        <div style="font-size:13.5px;font-weight:800;color:var(--text);">Everything to sort out — ${items.filter(x=>!x.waiting).length} open${(()=>{
+        <div style="font-size:13.5px;font-weight:800;color:var(--text);">Everything to sort out — ${items.filter(x=>!x.waiting&&!x.withBecki).length} open${(()=>{
           const w=items.filter(x=>x.waiting).length;
           return w?` <span onclick="_admKind='WITHJACK';renderAdmin();" title="Show only the grey rows that are with Jack" style="font-size:11.5px;font-weight:700;color:#b6c2d4;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">· ${w} with Jack</span>`:'';})()}${(()=>{
+          const b=items.filter(x=>x.withBecki&&!x.waiting).length;
+          return b?` <span onclick="_admKind='WITHBECKI';renderAdmin();" title="Show only the grey rows Becki is checking" style="font-size:11.5px;font-weight:700;color:#22d3ee;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">· ${b} with Becki</span>`:'';})()}${(()=>{
           const pa=items.filter(x=>x.partArrived).length;
           return pa?` <span style="font-size:11.5px;font-weight:700;color:#fbbf24;">&middot; ${pa} part arrived</span>`:'';})()}
           <span class="tfuHint" style="font-weight:600;color:var(--text2);margin-left:8px;" title="Jack’s replies first, money about to be lost next, newest & biggest after that, dead claims last">${
@@ -13421,7 +13488,7 @@ function renderAdmin(){
             .map(([k,l])=>`<option value="${k}" ${_tfuSort===k?'selected':''}>${l}</option>`).join('')}
         </select>
         <div class="admChips">
-          ${[['all','All'],['FROMJACK','Jack answered'],['QUERY','Queries'],['LATE','Late'],['MISSING','Missing'],['DAMAGED','Damaged'],['MISSING + DMG','Missing + dmg'],['WRONG ITEM','Wrong item'],['NOT ARRIVED','Not arrived'],['GATED','Gated'],['JOB','Jobs'],['WITHJACK','With Jack']]
+          ${[['all','All'],['FROMJACK','Jack answered'],['QUERY','Queries'],['LATE','Late'],['MISSING','Missing'],['DAMAGED','Damaged'],['MISSING + DMG','Missing + dmg'],['WRONG ITEM','Wrong item'],['NOT ARRIVED','Not arrived'],['GATED','Gated'],['JOB','Jobs'],['WITHJACK','With Jack'],['WITHBECKI','With Becki']]
             .filter(([k])=>k==='all'||_counts[k])
             .map(([k,l])=>`<button class="admChip${k==='FROMJACK'?' fromJack':''}${_admKind===k?' on':''}"${k==='FROMJACK'?' title="Rows Jack has answered — newest first. Act on his answer and close them off."':''} onclick="_admKind='${k.replace(/'/g,"\\'")}';renderAdmin();">${l} <b>${_counts[k]||0}</b></button>`).join('')}
         </div>
@@ -13480,6 +13547,21 @@ function renderAdmin(){
           /* Jack, 5 Sep: eleven grey "with Jack" rows, each five lines tall, all
              saying the same thing. While he has it there is nothing for her to
              read here — one line: what it is, what was asked, how long. */
+          if(i.withBecki&&!waiting&&!i.sortedGrace&&!i.parkedRow){
+            const _bAge=i.withBecki.at?Math.max(0,Math.floor((Date.now()-new Date(i.withBecki.at).getTime())/864e5)):null;
+            return`<tr class="tfuWaiting tfuCompact">
+              <td class="tfuNumCell" style="text-align:center;"><span class="tfuStripe" style="background:#22d3ee;" title="With Becki — Amazon say delivered, she is checking the shelves"></span><span style="font:800 12px var(--mono);color:var(--text3);">${n+1}</span>
+              <td colspan="6"><div class="tfuCmp">
+                <span class="tfuCmpName" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</span>
+                <span class="tfuCmpMeta">${esc(i.sup||'')}${i.oid?' · '+esc(i.oid):''}${i.acct?' · '+esc(i.acct):''}</span>
+                <span class="tfuCmpChip" style="background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.5);color:#22d3ee;">With Becki${_bAge!=null?' · '+_bAge+'d':''}</span>
+                <span class="tfuCmpAsk" title="Sent ${esc(i.withBecki.sentBy||'')}${i.withBecki.at?' '+esc(_logWhen(i.withBecki.at)):''}">Amazon say delivered &mdash; Becki is checking the shelves. Found: it books in and clears. Not there: it goes to Jack for the refund.</span>
+                ${i.value?`<span class="tfuCmpVal">${fmtGBP2(i.value)}</span>`:''}
+              </div></td>
+              <td class="tfuActs">
+                <button class="tfuMore" onclick="openWork('${i.rid}')" title="Everything on this issue — nothing to do until Becki answers">Details</button>
+              </td></tr>`;
+          }
           if(waiting&&!i.sortedGrace&&!i.parkedRow){
             const _e1=s=>String(s).replace(/'/g,"\\'");
             const _wAge=waiting.at?Math.max(0,Math.floor((Date.now()-new Date(waiting.at).getTime())/864e5)):null;
@@ -13649,7 +13731,12 @@ function renderAdmin(){
                    His answer settles the question. What belongs here now is the
                    move that follows from it, not the question again. */
                 {const _rr=_rowById(i.rid);if(_rr&&typeof _isAmzDel==='function'&&_isAmzDel(_rr))return '<div class="tfuSelf" style="color:#22d3ee;font-weight:700;text-align:center;">Amazon say delivered &mdash; Becki is checking the shelves. It comes back by itself.</div>';}
-                if((i.query||i.partOverdue)&&sentBack&&sentBack.rejectNote){
+                /* Sarah, 9 Sep (Discord): "I haven't sent to Becki yet because
+                   there is no note like the one above." The row was LATE with
+                   nothing booked in, so it missed this branch and showed the old
+                   dropdowns. On an Amazon order his answer is the whole story,
+                   whatever state the row was in. */
+                if(sentBack&&sentBack.rejectNote&&(i.query||i.partOverdue||_amazonRow(_rowById(i.rid)))){
                   const a=String(sentBack.rejectNote||'');
                   const notComing=/not arrived|nothing coming|cancel/i.test(a);
                   const arrivedYes=!notComing&&/arrived\s*[—-]\s*yes|shows it delivered|delivered/i.test(a);
@@ -13771,7 +13858,7 @@ function renderAdmin(){
                   next='Nothing for you — it comes back with his answer';
                 }else if(i.kind==='transit'){
                   const sd=caseStanding(i.caseC);
-                  if(sentBack&&sentBack.rejectNote&&(i.query||i.partOverdue)){
+                  if(sentBack&&sentBack.rejectNote&&(i.query||i.partOverdue||isAmz)){
                     /* Jack, 9 Sep: the panel still said "check the order — or
                        send to Jack" on rows he had already answered. His answer
                        is the latest line; the next move follows from it. */
@@ -13868,19 +13955,33 @@ function renderAdmin(){
                    whole story — every line, every note, the order's facts. */
                 const _all=_cl.slice().reverse();
                 const _open=_stOpen.has(String(i.rid));
-                const _line=L=>`<div class="stLog"><span class="stLogWhen">${esc(lw(L.at))}</span>${L.by?` · <b>${esc(L.by)}</b>`:''} — ${esc(L.what||'')}</div>`;
+                /* Jack, 9 Sep. The line already says who, so "· Jack — Jack
+                   answered — Arrived — YES" said his name twice and buried the
+                   answer behind two dashes. The name stays where it is; the
+                   repeat comes off the front of what he said. */
+                const _line=L=>{
+                  let w=String(L.what||'');
+                  if(L.by){const b=String(L.by).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+                    w=w.replace(new RegExp('^\\s*'+b+'\\s+(answered|said|confirmed)\\s*[—-]\\s*','i'),'')
+                       .replace(new RegExp('^\\s*'+b+'\\s*[—-]\\s*','i'),'');}
+                  return `<div class="stLog"><span class="stLogWhen">${esc(lw(L.at))}</span>${L.by?` · <b>${esc(L.by)}</b>`:''} — ${esc(w)}</div>`;};
                 const hist=_open?_all.map(_line).join(''):(_all.length?_line(_all[0]):'');
+                /* Jack, 9 Sep: "this looks horrible now." Five sentences of the
+                   same size and weight stacked on top of each other, every one
+                   repeating its own label in prose. Same facts, read as a list:
+                   a quiet label on the left, the value on the right, and only
+                   the one that costs money in red. */
                 const _facts=[];
-                if(i.kind==='transit'||i.kind==='lavlate')_facts.push(`${i.units} ordered · ${i.got} in · ${i.outstanding} still out${i.cancelled?' · '+i.cancelled+' cancelled':''}`);
-                if(i.kind==='claim'||i.kind==='lav')_facts.push(`${i.units} affected`);
-                if(i.oid)_facts.push('Order '+i.oid+(i.acct?' · '+i.acct:''));
-                if(i.sup)_facts.push(i.sup+(i.source?' · from the '+i.source:''));
-                if(i.date)_facts.push('Ordered '+(/^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/.test(String(i.date))?String(i.date):_ds(i.date))+(i.days?' — '+i.days+'d ago':''));
-                if(i.expDate)_facts.push('Expected '+_ds(i.expDate));
-                {const L2=refundLeft(i.date,i);if(L2!==null)_facts.push(L2<0?`Refund window shut ${Math.abs(L2)}d ago`:`${L2}d left to claim`);}
-                if(i.wentAs)_facts.push('Went out under '+i.wentAs);
-                if(i.query)_facts.push('Question: '+(i.query.ask||'')+(i.query.note?' — “'+i.query.note+'”':''));
-                if(i.claimId&&i.kind==='transit')_facts.push(`Claim open — ${i.claimType||''} ${fmtGBP2(i.claimVal||0)}${i.claimState?' · '+i.claimState:''}`);
+                if(i.kind==='transit'||i.kind==='lavlate')_facts.push(['Units',`${fmt(i.units)} ordered &middot; ${fmt(i.got)} in &middot; ${fmt(i.outstanding)} still out${i.cancelled?' &middot; '+fmt(i.cancelled)+' cancelled':''}`]);
+                if(i.kind==='claim'||i.kind==='lav')_facts.push(['Units',`${fmt(i.units)} affected`]);
+                if(i.oid)_facts.push(['Order',esc(i.oid)+(i.acct?' <span style="color:var(--text3);">&middot; '+esc(i.acct)+'</span>':'')]);
+                if(i.sup)_facts.push(['Supplier',esc(i.sup)+(i.source?' <span style="color:var(--text3);">&middot; from the '+esc(i.source)+'</span>':'')]);
+                if(i.date)_facts.push(['Ordered',esc(/^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/.test(String(i.date))?String(i.date):_ds(i.date))+(i.days?' <span style="color:var(--text3);">&middot; '+i.days+'d ago</span>':'')]);
+                if(i.expDate)_facts.push(['Expected',esc(_ds(i.expDate))]);
+                {const L2=refundLeft(i.date,i);if(L2!==null)_facts.push(['Refund',L2<0?`<span style="color:#f87171;">window shut ${Math.abs(L2)}d ago</span>`:`${L2}d left to claim`]);}
+                if(i.wentAs)_facts.push(['Went out as',esc(i.wentAs)]);
+                if(i.query)_facts.push(['Question',esc(i.query.ask||'')+(i.query.note?' <span style="color:var(--text3);">&ldquo;'+esc(i.query.note)+'&rdquo;</span>':'')]);
+                if(i.claimId&&i.kind==='transit')_facts.push(['Claim',`${esc(i.claimType||'')} ${fmtGBP2(i.claimVal||0)}${i.claimState?' <span style="color:var(--text3);">&middot; '+esc(i.claimState)+'</span>':''}`]);
                 const _notes=[];
                 if(i.srcNote)_notes.push(['When it was raised',i.srcNote,'#fcd34d']);
                 if(i.packNote)_notes.push(['Packing note',i.packNote,'#fdba74']);
@@ -13889,7 +13990,7 @@ function renderAdmin(){
                 const _hasMore=i.kind!=='job'&&(_all.length>1||_facts.length||_notes.length||i.photos);
                 const _ridAttr=esc(String(i.rid));
                 const _more=!_hasMore?'':(_open?`
-                  ${_facts.length?`<div class="stSec">The order</div>${_facts.map(f=>`<div class="stFact">${esc(f)}</div>`).join('')}`:''}
+                  ${_facts.length?`<div class="stSec">The order</div><div class="stGrid">${_facts.map(([k,v])=>`<span class="stK">${k}</span><span class="stV">${v}</span>`).join('')}</div>`:''}
                   ${_notes.length?`<div class="stSec">Notes</div>${_notes.map(([k,v,c])=>`<div class="stNote" style="border-left-color:${c};"><b style="color:${c};">${k}:</b> ${esc(v)}</div>`).join('')}`:''}
                   ${i.photos?`<button class="csAct go" style="margin-top:6px;padding:3px 10px;" onclick="event.stopPropagation();window.open('${esc(i.photos)}','_blank')">&#128247; View photos</button>`:''}
                   <button class="stMore" data-rid="${_ridAttr}" onclick="stToggle(this,event)">&#9652; Less</button>`
@@ -14821,24 +14922,13 @@ function renderDashboard(){
   const resolvedSuppliers=new Set(resolvedClaimsList.map(c=>c.sup).filter(Boolean)).size;
 
   // ── STUCK ────────────────────────────────────────────────────────────────────
-  const stuckRows=rows.filter(r=>{
-    if(r.status!=='In-Transit')return false;
-    /* Jack, 8 Sep: "some of these have been cleared but are still on the
-       overview." This list only ever asked "In-Transit and older than 20 days",
-       so a row Sarah had sorted, archived or balanced still counted against the
-       money at risk. It now means what it says: still open, still owed. */
-    if(r.archived)return false;
-    if(r.resolution&&(r.resolution.state==='approved'||r.resolution.filed))return false;
-    if(_owedUnits(r)<=0)return false;
-    if(r.subSave==='Yes')return false;
-    if(r.expectedDelivery&&new Date()<=new Date(r.expectedDelivery))return false;
-    const[dd,mm]=(r.date||'').split('/');
-    if(!dd||!mm)return false;
-    const d=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
-    return!isNaN(d)&&Math.floor((new Date()-d)/864e5)>20;
-  });
-  const stuckValue=stuckRows.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
-  const stuckUnits=stuckRows.reduce((a,r)=>a+(r.exp||0),0);
+  /* Jack, 9 Sep: "overview/dashboard doesn't match" the Prep Sheet's Late
+     button. It had a third private rule (In-Transit only, no S&S ever, 20
+     hard-coded). One rule now — `_prepRowLate` — and the money counts what is
+     still OWED, not the whole order. */
+  const stuckRows=rows.filter(r=>_prepRowLate(r)&&!(r.resolution&&r.resolution.filed));
+  const stuckValue=stuckRows.reduce((a,r)=>a+(parseSKU(r.sku).cogs*Math.max(0,_owedUnits(r))),0);
+  const stuckUnits=stuckRows.reduce((a,r)=>a+Math.max(0,_owedUnits(r)),0);
 
   // ── WEEKLY PER-DAY ────────────────────────────────────────────────────────────
   const weekDays=[];
@@ -15109,7 +15199,7 @@ function renderDashboard(){
       ${kTile('This Month',`#06b6d4`,
         fmt(mtdUnits),'units sent this month',
         fmtGBP2(mtdCOG),'COG value sent',
-        pill('SKUs',fmt(mtdSkus),COL.sku)+pill('ASINs',fmt(mtdAsins),COL.asin)+pill('Boxes',fmt(mtdBoxesCount),COL.box)+pill('COG/unit',mtdUnits?fmtGBP2(mtdCOG/mtdUnits):'—',GOLD)+((()=>{try{const s=_insMonthSeries();const pm=s[s.length-2];if(pm&&pm.units)return pill('vs Last Month',`${mtdUnits>=pm.units?'\u2191':'\u2193'} ${Math.abs(mtdUnits-pm.units)} units`,mtdUnits>=pm.units?'#4ade80':'#f87171');}catch(e){}return pill('vs Last Month','—','#cbd5e1');})()),
+        pill('SKUs',fmt(mtdSkus),COL.sku)+pill('ASINs',fmt(mtdAsins),COL.asin)+pill('Boxes',fmt(mtdBoxesCount),COL.box)+pill('COG/unit',mtdUnits?fmtGBP2(mtdCOG/mtdUnits):'—',GOLD)+((()=>{try{/* Jack, 9 Sep: "pro rate it." Month-to-date was being measured against last month's FULL total, so the 9th of the month always looked like a collapse. Same days, same question — and the full month is on the tooltip. */const n=new Date(),pS=new Date(n.getFullYear(),n.getMonth()-1,1),pLast=new Date(n.getFullYear(),n.getMonth(),0).getDate(),dN=Math.min(n.getDate(),pLast),pE=new Date(n.getFullYear(),n.getMonth()-1,dN,23,59,59,999),pr=sentRollup(pS,pE),nm=pS.toLocaleDateString('en-GB',{month:'short'});if(pr&&pr.units){const d=mtdUnits-pr.units,full=sentRollup(pS,new Date(n.getFullYear(),n.getMonth(),0,23,59,59,999));return pill(`<span title="${fmt(mtdUnits)} units by day ${dN} this month against ${fmt(pr.units)} by day ${dN} of ${nm}. ${nm} finished on ${fmt(full.units)} units.">vs ${nm} 1&ndash;${dN}</span>`,`${d>=0?'\u2191':'\u2193'} ${fmt(Math.abs(d))} units`,d>=0?'#4ade80':'#f87171');}}catch(e){}return pill('vs Last Month','—','#cbd5e1');})()),
         '','','openMonthHistory()',
         `${fmt(mtdShipCount)} shipment${mtdShipCount===1?'':'s'}${prepCost.lavUnits>0?` · ${fmt(prepCost.lavUnits)} Lavarion`:''} · ${fmt(mtdPrepDays)} prep day${mtdPrepDays===1?'':'s'}${prepCost.totalUnits>0?` · prep ${fmtGBP2(prepCost.withVat)}`:''}`)
       }
@@ -15118,7 +15208,7 @@ function renderDashboard(){
     <!-- ROW 2: Equal 3-col tetris — weekly+stock | type+pipeline+claims+ops | stuck -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:start;">
 
-      <!-- Col 1: Weekly Activity + Stock vs Lavarion -->
+      <!-- Col 1: how we are tracking — Weekly Activity + Month Pace -->
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;">
@@ -15283,26 +15373,6 @@ function renderDashboard(){
                 :`<div style="font-size:11px;color:${FAINT};text-align:center;padding:10px 0;">No last-week data to compare yet</div>`}
             </div>`})()}
         </div>
-
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
-          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Stock vs Lavarion</div>
-          ${(()=>{const stockU=Math.max(0,weekTotal.units-weekLav.units-(weekRet.units||0));const den=(stockU+weekLav.units)||1;const sPc=stockU/den*100,lPc=weekLav.units/den*100;
-            return `<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.06);margin-bottom:10px;">
-              ${sPc>0?`<div title="Stock (OA) ${fmt(stockU)}" style="width:${sPc}%;background:${COL.sku};"></div>`:''}
-              ${lPc>0?`<div title="Lavarion ${fmt(weekLav.units)}" style="width:${lPc}%;background:${COL.asin};"></div>`:''}
-            </div>`
-            +[['Stock (OA)',stockU,weekStock.value,COL.sku],['Lavarion',weekLav.units,weekLav.value,COL.asin],['Total',weekTotal.units,weekTotal.value,'#e6ecf5']].map(([l,u,v,col])=>`
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
-              <span style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:${col};font-weight:${l==='Total'?'800':'700'};">${l==='Total'?'':`<span style="width:8px;height:8px;border-radius:2px;background:${col};"></span>`}${l}</span>
-              <span style="font-size:12px;font-family:var(--mono);font-weight:800;color:${col};">${fmt(u)} <span style="font-size:10.5px;color:${GOLD};">${fmtGBP2(v)}</span></span>
-            </div>`).join('');})()}
-        </div>
-
-      </div>
-
-      <!-- Col 2: By Type + Pipeline + Claims + Ops -->
-      <div style="display:flex;flex-direction:column;gap:12px;">
-
         <!-- Month Pace / Health verdict -->
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
@@ -15322,79 +15392,10 @@ function renderDashboard(){
             </div>`).join('')}
           <div style="font-size:11px;color:#aeb9c9;margin-top:9px;line-height:1.5;">Projection = sent-so-far ÷ share of month elapsed (${Math.round(_frac*100)}%). Recent avg = mean of completed months.</div>
         </div>
-
-        <!-- Sent Mix stacked bar (week / month) -->
-        ${(()=>{
-          const mix=_mixPeriod==='month'?mixMonth:mixWeek;
-          const segs=[['Standard (stock)',mix.std,COL.sku],['DG (stock)',mix.dg,'#f87171'],['Oversize (stock)',mix.os,COL.box],['Lavarion',mix.lav,COL.asin]];
-          const tot=mix.total||0;
-          const tabBtn=(k,lbl)=>`<button onclick="setMixPeriod('${k}')" style="padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid ${_mixPeriod===k?'var(--accent)':'var(--border2)'};background:${_mixPeriod===k?'rgba(251,191,36,.15)':'var(--bg3)'};color:${_mixPeriod===k?'#fbbf24':'var(--text2)'};">${lbl}</button>`;
-          const bar=tot>0?segs.filter(s=>s[1]>0).map(([l,u,col])=>{
-            const pc=u/tot*100;
-            return `<div title="${l}: ${fmt(u)} (${pc.toFixed(1)}%)" style="width:${pc}%;background:${col};display:flex;align-items:center;justify-content:center;">${pc>=10?`<span style="font-size:11px;font-weight:800;color:#000;">${Math.round(pc)}%</span>`:''}</div>`;
-          }).join(''):`<div style="width:100%;display:flex;align-items:center;justify-content:center;color:#b6c2d4;font-size:11px;">No units sent ${_mixPeriod==='month'?'this month':'this week'}</div>`;
-          const overlap=(mix.lavDG+mix.lavOS)>0?`<div style="font-size:10px;color:#b6c2d4;margin-top:8px;line-height:1.45;">Of ${fmt(mix.lav)} Lavarion units, ${mix.lavDG?fmt(mix.lavDG)+' are DG-typed':''}${mix.lavDG&&mix.lavOS?' and ':''}${mix.lavOS?fmt(mix.lavOS)+' oversize-typed':''} — kept under Lavarion, not double-counted in DG/Oversize.</div>`:'';
-          return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
-              <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Sent Mix · ${tot>0?fmt(tot)+' units':'—'}</div>
-              <div style="display:flex;gap:5px;">${tabBtn('week','Week')}${tabBtn('month','Month')}</div>
-            </div>
-            <div style="display:flex;height:28px;width:100%;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.05);">${bar}</div>
-            <div style="font-size:11px;color:#aeb9c9;margin:10px 0 6px;line-height:1.55;">Standard / DG / Oversize are your <b style="color:#aeb9c9;">OA stock</b> shipments. Lavarion is shown separately — it also ships as standard, so it’s <b style="color:#aeb9c9;">not</b> counted in the Standard figure.</div>
-            <div style="display:flex;flex-direction:column;gap:0;margin-top:5px;">
-              ${segs.map(([l,u,col])=>{
-                const pc=tot?(u/tot*100):0;
-                return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
-                  <span style="width:9px;height:9px;border-radius:2px;background:${col};flex-shrink:0;"></span>
-                  <span style="flex:1;font-size:12px;color:${col};font-weight:700;">${l}</span>
-                  <span style="font-size:14px;font-family:var(--mono);font-weight:800;color:${col};">${fmt(u)} <span style="font-size:11px;color:#cbd5e1;font-weight:600;margin-left:2px;">${pc.toFixed(1)}%</span></span>
-                </div>`;
-              }).join('')}
-            </div>
-            ${overlap}
-          </div>`;
-        })()}
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
-          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Pipeline</div>
-          ${(()=>{const st=[['In-Transit',transit.units,COL.transit],['Delivered',rows.filter(r=>r.status==='Delivered'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),COL.today],['In Warehouse',rows.filter(r=>r.status==='In Warehouse'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),COL.asin],['Part Sent',rows.filter(r=>r.status==='Part Sent'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),COL.box],['Issue',rows.filter(r=>r.status==='Issue'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),'#f87171']];
-            const pmax=Math.max(...st.map(s=>s[1]),1);
-            return st.map(([l,u,col])=>`
-            <div style="padding:5px 0 6px;border-bottom:1px solid rgba(255,255,255,.05);">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                <span style="font-size:11px;color:#c3cde0;font-weight:600;">${l}</span>
-                <span style="font-size:12px;font-weight:800;font-family:var(--mono);color:${u>0?col:'#5a6b82'};">${u>0?fmt(u):'—'}</span>
-              </div>
-              <div style="height:4px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden;">${u>0?`<div style="width:${Math.max(3,u/pmax*100)}%;height:100%;background:${col};border-radius:3px;"></div>`:''}</div>
-            </div>`).join('');})()}
-        </div>
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
-          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Active Inventory</div><div style="font-size:10px;color:#aeb9c9;margin:-3px 0 7px;">In-Transit + Delivered + In-Warehouse + Part-Sent</div>
-          ${(()=>{
-            /* Jack, 4 Sep KPI sweep: "Active Inventory" was counting ARCHIVED
-               rows — 1,622 units instead of 950. Archived is by definition not
-               active. Same omission as the in-transit tile. */
-            const inTR=rows.filter(r=>['In-Transit','Delivered','In Warehouse','Part Sent'].includes(r.status)&&!r.archived);
-            const inTU=inTR.reduce((a,r)=>a+(r.exp||0),0);
-            const inTC=inTR.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
-            const issR=rows.filter(r=>r.status==='Issue'&&!r.archived);
-            const issU=issR.reduce((a,r)=>a+(r.exp||0),0);
-            const issC=issR.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
-            const actA=new Set(inTR.map(r=>r.asin)).size;
-            return[
-              ['Active pipeline units',fmt(inTU),COL.transit],
-              ['Active pipeline ASINs',fmt(actA),COL.asin],
-              ['Active pipeline COG',fmtGBP2(inTC),GOLD],
-              ['Issue Units',fmt(issU),issU>0?'#f87171':COL.today],
-              ['Issue COG at Risk',fmtGBP2(issC),issU>0?'#f87171':GOLD],
-              ['Open Actions',fmt(openClaims),openClaims>0?'#f87171':COL.today],
-            ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:11px;color:#b6c2d4;">${l}</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:${col};">${v}</span></div>`).join('');
-          })()}
-        </div>
-
       </div>
 
-      <!-- Col 3: Claims + Stuck -->
-      <div style="display:flex;flex-direction:column;gap:8px;">
+      <!-- Col 2: what needs attention — Claims + Stuck + Active Inventory -->
+      <div style="display:flex;flex-direction:column;gap:12px;">
         <div style="background:var(--bg2);border:1px solid ${totalAtRisk>0?'rgba(248,113,113,.3)':'var(--border)'};border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <!-- Header -->
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -15466,7 +15467,7 @@ function renderDashboard(){
           `}
         </div>
         <div style="background:var(--bg2);border:1px solid ${stuckRows.length>0?'rgba(248,113,113,.35)':'var(--border)'};border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
-          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Stuck In Transit <span style="color:#f87171;">&gt;20 Days</span></div>
+          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Stuck In Transit <span style="color:#f87171;">&gt;${TM.lateDays} days</span> <span style="font-weight:600;letter-spacing:.02em;text-transform:none;color:var(--text3);" title="Still owed, past the late clock, no delivery date ahead — the same rows the Prep Sheet's Late button shows">&middot; ${TM.ssLateDays} for S&amp;S</span></div>
           ${stuckRows.length?`
           <div style="display:flex;gap:16px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07);justify-content:center;width:100%;">
             <div style="text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--num);font-variant-numeric:tabular-nums;color:#f87171;">${fmt(stuckUnits)}</div><div style="font-size:10px;color:#b6c2d4;text-transform:uppercase;font-weight:600;">units at risk</div></div>
@@ -15485,6 +15486,33 @@ function renderDashboard(){
               </div>`;}).join('')}
           </div>`:`<div style="color:${COL.today};font-size:11px;padding:4px 0;text-align:center;">✓ Nothing stuck</div>`}
         </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
+          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Active Inventory</div><div style="font-size:10px;color:#aeb9c9;margin:-3px 0 7px;">In-Transit + Delivered + In-Warehouse + Part-Sent</div>
+          ${(()=>{
+            /* Jack, 4 Sep KPI sweep: "Active Inventory" was counting ARCHIVED
+               rows — 1,622 units instead of 950. Archived is by definition not
+               active. Same omission as the in-transit tile. */
+            const inTR=rows.filter(r=>['In-Transit','Delivered','In Warehouse','Part Sent'].includes(r.status)&&!r.archived);
+            const inTU=inTR.reduce((a,r)=>a+(r.exp||0),0);
+            const inTC=inTR.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
+            const issR=rows.filter(r=>r.status==='Issue'&&!r.archived);
+            const issU=issR.reduce((a,r)=>a+(r.exp||0),0);
+            const issC=issR.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
+            const actA=new Set(inTR.map(r=>r.asin)).size;
+            return[
+              ['Active pipeline units',fmt(inTU),COL.transit],
+              ['Active pipeline ASINs',fmt(actA),COL.asin],
+              ['Active pipeline COG',fmtGBP2(inTC),GOLD],
+              ['Issue Units',fmt(issU),issU>0?'#f87171':COL.today],
+              ['Issue COG at Risk',fmtGBP2(issC),issU>0?'#f87171':GOLD],
+              ['Open Actions',fmt(openClaims),openClaims>0?'#f87171':COL.today],
+            ].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:11px;color:#b6c2d4;">${l}</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:${col};">${v}</span></div>`).join('');
+          })()}
+        </div>
+      </div>
+
+      <!-- Col 3: what went out and what it cost — Prep Cost + Sent Mix + Pipeline + Stock -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
         <!-- Implied Prep Cost MTD -->
         <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <div onclick="openPrepHistory()" title="Click for the month-by-month prep cost history" style="cursor:pointer;font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;display:flex;justify-content:space-between;gap:8px;">
@@ -15542,6 +15570,63 @@ function renderDashboard(){
               <div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:10px;color:#cbd5e1;">Cost per prep day inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2((prepCost.withVat/activeDays))}</span></div>
             </div>`;
           })()}
+        </div>
+        <!-- Sent Mix stacked bar (week / month) -->
+        ${(()=>{
+          const mix=_mixPeriod==='month'?mixMonth:mixWeek;
+          const segs=[['Standard (stock)',mix.std,COL.sku],['DG (stock)',mix.dg,'#f87171'],['Oversize (stock)',mix.os,COL.box],['Lavarion',mix.lav,COL.asin]];
+          const tot=mix.total||0;
+          const tabBtn=(k,lbl)=>`<button onclick="setMixPeriod('${k}')" style="padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid ${_mixPeriod===k?'var(--accent)':'var(--border2)'};background:${_mixPeriod===k?'rgba(251,191,36,.15)':'var(--bg3)'};color:${_mixPeriod===k?'#fbbf24':'var(--text2)'};">${lbl}</button>`;
+          const bar=tot>0?segs.filter(s=>s[1]>0).map(([l,u,col])=>{
+            const pc=u/tot*100;
+            return `<div title="${l}: ${fmt(u)} (${pc.toFixed(1)}%)" style="width:${pc}%;background:${col};display:flex;align-items:center;justify-content:center;">${pc>=10?`<span style="font-size:11px;font-weight:800;color:#000;">${Math.round(pc)}%</span>`:''}</div>`;
+          }).join(''):`<div style="width:100%;display:flex;align-items:center;justify-content:center;color:#b6c2d4;font-size:11px;">No units sent ${_mixPeriod==='month'?'this month':'this week'}</div>`;
+          const overlap=(mix.lavDG+mix.lavOS)>0?`<div style="font-size:10px;color:#b6c2d4;margin-top:8px;line-height:1.45;">Of ${fmt(mix.lav)} Lavarion units, ${mix.lavDG?fmt(mix.lavDG)+' are DG-typed':''}${mix.lavDG&&mix.lavOS?' and ':''}${mix.lavOS?fmt(mix.lavOS)+' oversize-typed':''} — kept under Lavarion, not double-counted in DG/Oversize.</div>`:'';
+          return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+              <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Sent Mix · ${tot>0?fmt(tot)+' units':'—'}</div>
+              <div style="display:flex;gap:5px;">${tabBtn('week','Week')}${tabBtn('month','Month')}</div>
+            </div>
+            <div style="display:flex;height:28px;width:100%;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.05);">${bar}</div>
+            <div style="font-size:11px;color:#aeb9c9;margin:10px 0 6px;line-height:1.55;">Standard / DG / Oversize are your <b style="color:#aeb9c9;">OA stock</b> shipments. Lavarion is shown separately — it also ships as standard, so it’s <b style="color:#aeb9c9;">not</b> counted in the Standard figure.</div>
+            <div style="display:flex;flex-direction:column;gap:0;margin-top:5px;">
+              ${segs.map(([l,u,col])=>{
+                const pc=tot?(u/tot*100):0;
+                return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+                  <span style="width:9px;height:9px;border-radius:2px;background:${col};flex-shrink:0;"></span>
+                  <span style="flex:1;font-size:12px;color:${col};font-weight:700;">${l}</span>
+                  <span style="font-size:14px;font-family:var(--mono);font-weight:800;color:${col};">${fmt(u)} <span style="font-size:11px;color:#cbd5e1;font-weight:600;margin-left:2px;">${pc.toFixed(1)}%</span></span>
+                </div>`;
+              }).join('')}
+            </div>
+            ${overlap}
+          </div>`;
+        })()}
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
+          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Pipeline</div>
+          ${(()=>{const st=[['In-Transit',transit.units,COL.transit],['Delivered',rows.filter(r=>r.status==='Delivered'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),COL.today],['In Warehouse',rows.filter(r=>r.status==='In Warehouse'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),COL.asin],['Part Sent',rows.filter(r=>r.status==='Part Sent'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),COL.box],['Issue',rows.filter(r=>r.status==='Issue'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),'#f87171']];
+            const pmax=Math.max(...st.map(s=>s[1]),1);
+            return st.map(([l,u,col])=>`
+            <div style="padding:5px 0 6px;border-bottom:1px solid rgba(255,255,255,.05);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="font-size:11px;color:#c3cde0;font-weight:600;">${l}</span>
+                <span style="font-size:12px;font-weight:800;font-family:var(--mono);color:${u>0?col:'#5a6b82'};">${u>0?fmt(u):'—'}</span>
+              </div>
+              <div style="height:4px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden;">${u>0?`<div style="width:${Math.max(3,u/pmax*100)}%;height:100%;background:${col};border-radius:3px;"></div>`:''}</div>
+            </div>`).join('');})()}
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
+          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Stock vs Lavarion</div>
+          ${(()=>{const stockU=Math.max(0,weekTotal.units-weekLav.units-(weekRet.units||0));const den=(stockU+weekLav.units)||1;const sPc=stockU/den*100,lPc=weekLav.units/den*100;
+            return `<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.06);margin-bottom:10px;">
+              ${sPc>0?`<div title="Stock (OA) ${fmt(stockU)}" style="width:${sPc}%;background:${COL.sku};"></div>`:''}
+              ${lPc>0?`<div title="Lavarion ${fmt(weekLav.units)}" style="width:${lPc}%;background:${COL.asin};"></div>`:''}
+            </div>`
+            +[['Stock (OA)',stockU,weekStock.value,COL.sku],['Lavarion',weekLav.units,weekLav.value,COL.asin],['Total',weekTotal.units,weekTotal.value,'#e6ecf5']].map(([l,u,v,col])=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+              <span style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:${col};font-weight:${l==='Total'?'800':'700'};">${l==='Total'?'':`<span style="width:8px;height:8px;border-radius:2px;background:${col};"></span>`}${l}</span>
+              <span style="font-size:12px;font-family:var(--mono);font-weight:800;color:${col};">${fmt(u)} <span style="font-size:10.5px;color:${GOLD};">${fmtGBP2(v)}</span></span>
+            </div>`).join('');})()}
         </div>
       </div>
 
@@ -18430,7 +18515,16 @@ function debounce(key,fn,delay=400){
 
 // ── CONFIRM MODAL ─────────────────────────────────────────────────────────────
 let _confirmCb=null;
-function showConfirm(title,text,cb){
+/* The box wears a bin because most callers are deletions. One that is not —
+   a preview, or a tidy-up that moves text rather than removing it — says so:
+   a bin on a read-only list reads as "this is about to delete something". */
+function showConfirm(title,text,cb,opts){
+  opts=opts||{};
+  const _i=document.getElementById('confirmIco');if(_i)_i.textContent=opts.icon||'🗑️';
+  const _ok=document.getElementById('confirmOkBtn');
+  if(_ok){_ok.textContent=opts.ok||'Confirm';_ok.style.display=opts.hideOk?'none':'';}
+  const _cx=document.querySelector('#confirmModal .btn-cancel');
+  if(_cx)_cx.textContent=opts.cancel||'Cancel';
   document.getElementById('confirmTitle').textContent=title;
   /* Jack, 7 Sep: the box showed "<b>60 × Tea &amp; Biscuits Hamper</b><br>" as
      letters. Our own emphasis and line breaks render; anything else is text. */
@@ -24676,7 +24770,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
 <div class="overlay" id="confirmModal">
   <div class="modal" style="max-width:340px;">
     <div class="conf-body">
-      <div class="conf-ico">🗑️</div>
+      <div class="conf-ico" id="confirmIco">🗑️</div>
       <div class="conf-title" id="confirmTitle">Are you sure?</div>
       <div class="conf-text" id="confirmText">This cannot be undone.</div>
     </div>
@@ -25092,7 +25186,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v46.5 · lav3 · 2026-09-09 · b525';
+const BUILD='v46.9 · lav3 · 2026-09-09 · b529';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -36064,10 +36158,14 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .standBox{overflow:hidden;}
 .stLog{overflow-wrap:anywhere;}
 /* the global td{white-space:nowrap} was clipping every history line mid-word */
-.stLog,.stLast,.stNext,.stExp,.stFact,.stNote,.stSec,.riAsk,.qryTag{white-space:normal!important;}
+.stLog,.stLast,.stNext,.stExp,.stFact,.stNote,.stSec,.stV,.riAsk,.qryTag{white-space:normal!important;}
 .stMore{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:6px;background:transparent;border:1px solid var(--border2);color:var(--text3);font-size:10px;font-weight:800;letter-spacing:.03em;cursor:pointer;}
 .stMore:hover{color:var(--text);border-color:var(--text3);}
-.stSec{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin:8px 0 2px;}
+.stSec{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);
+  margin:10px 0 4px;padding-top:7px;border-top:1px solid var(--border);}
+.stGrid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;align-items:baseline;}
+.stK{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
+.stV{font-size:10.5px;font-weight:600;color:var(--text2);line-height:1.4;overflow-wrap:anywhere;min-width:0;}
 .stFact{font-size:10.5px;font-weight:600;color:var(--text2);line-height:1.4;margin-top:2px;overflow-wrap:anywhere;}
 .stNote{font-size:10.5px;font-weight:600;line-height:1.4;margin-top:3px;padding-left:7px;border-left:2px solid var(--border2);color:var(--text2);overflow-wrap:anywhere;}
 /* questions from the warehouse */
@@ -36083,7 +36181,7 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .riAskSub{font-size:10px;color:var(--text3);margin-top:5px;font-weight:600;line-height:1.4;}
 .amzDateNote{width:100%;box-sizing:border-box;margin:0 0 5px;padding:6px 9px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;}
 .stExp{font-size:11px;font-weight:800;margin-top:3px;}
-.stLog{font-size:10.5px;color:var(--text2);margin-top:3px;line-height:1.35;border-left:2px solid var(--border);padding-left:7px;}
+.stLog{font-size:10.5px;font-weight:500;color:var(--text2);margin-top:4px;line-height:1.4;border-left:2px solid var(--border);padding-left:8px;}
 .stLog b{color:var(--text);font-weight:700;}
 .stLogWhen{color:var(--text3);font-variant-numeric:tabular-nums;}
 .stLogMore{color:var(--text3);font-style:italic;border-left-color:transparent;}
