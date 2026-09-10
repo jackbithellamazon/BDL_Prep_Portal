@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v47.9</title>
+<title>BDL PrepHub v48.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -3593,7 +3593,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v47.9</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v48.2</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3627,7 +3627,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v47.9</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v48.2</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3945,7 +3945,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v47.9</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v48.2</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -8120,6 +8120,24 @@ let REFUND_DAYS=30;
 /* Jack's standing rule: the app does not change things on its own. This used
    to clear the label and save as the dashboard painted; it is now a list the
    Settle button works through, like everything else. */
+/* Jack, 10 Sep, reading his Prep Sheet: "thought some of these should have
+   been cleared." They were — the CLAIM was resolved, but the red chip on the
+   row is its own pair of fields (`issueType` / `issueQty`) and nothing ever
+   cleared them. So a settled row still shouted "Missing · 1" at the warehouse.
+   Only ever a leftover: a row with an open claim, or one still owing units,
+   keeps its chip. */
+function _staleIssueRows(){
+  try{
+    return (rows||[]).filter(r=>{
+      if(!r||r.archived)return false;
+      if(!String(r.issueType||'').trim())return false;
+      if(_owedUnits(r)>0)return false;
+      const rid=r.uuid||r.id;
+      const live=(typeof claims!=='undefined')&&claims.some(c=>(c.prepRowId===rid||c.prepRowId===r.id)&&c.cst!=='Resolved'&&!c.archived);
+      return !live;
+    });
+  }catch(e){return [];}
+}
 function _staleLateRows(){
   try{return (rows||[]).filter(r=>r&&!r.archived&&/^Late/.test(String(r.transitAction||''))&&_owedUnits(r)<=0);}catch(e){return [];}
 }
@@ -8208,7 +8226,9 @@ let FOLLOW_UPS=[
   'No further action required',
   'Other'
 ];
-const _resText=v=>(RESOLUTIONS.find(x=>x.v===v)||{}).t||v||'—';
+const _RES_EXTRA={'qty-fixed':'Sheet quantity corrected — nothing was missing',
+  'jack-check':'With Jack','amz-missing':'Amazon say delivered — not on the shelves','amz-claim':'Amazon claim'};
+const _resText=v=>(RESOLUTIONS.find(x=>x.v===v)||{}).t||_RES_EXTRA[v]||v||'—';
 const _resClaim=v=>!!(RESOLUTIONS.find(x=>x.v===v)||{}).claim;
 let JACK_SUPPLIERS=['Amazon'];
 const _resKindRaw=v=>(RESOLUTIONS.find(x=>x.v===v)||{}).kind||'biz';
@@ -8581,13 +8601,13 @@ async function pnFixRun(){
 function psFixPaint(){
   const c=document.getElementById('psFixCount'),w=document.getElementById('psFixWhich'),b=document.getElementById('psFixGo');
   if(!c)return;
-  const l=_limboRows(),st=_staleLateRows();
+  const l=_limboRows(),st=_staleLateRows(),si=_staleIssueRows();
   const traced=l.filter(r=>!_settleClosedUnits(_psClone(r),(r.resolution||{}).what).toBecki).length;
   const toBecki=l.length-traced;
   const v=l.reduce((a,r)=>a+(parseSKU(r.sku).cogs||0)*_owedUnits(r),0);
-  const n=l.length+st.length;
+  const n=l.length+st.length+si.length;
   c.textContent=n?`${fmt(n)} row${n===1?'':'s'} to put right`:'Nothing to put right';
-  if(w)w.textContent=n?[traced?`${fmt(traced)} settled here`:'',toBecki?`${fmt(toBecki)} to Becki to check the shelves`:'',st.length?`${fmt(st.length)} stale “Late” label${st.length===1?'':'s'} to clear`:''].filter(Boolean).join(' · ')+` — ${fmtGBP2(v)} at COG`:'every closed row balances';
+  if(w)w.textContent=n?[traced?`${fmt(traced)} settled here`:'',toBecki?`${fmt(toBecki)} to Becki to check the shelves`:'',st.length?`${fmt(st.length)} stale “Late” label${st.length===1?'':'s'}`:'',si.length?`${fmt(si.length)} resolved issue flag${si.length===1?'':'s'} still showing red`:''].filter(Boolean).join(' · ')+(v?` — ${fmtGBP2(v)} at COG`:''):'every closed row balances';
   if(b){b.disabled=!n;b.style.opacity=n?'1':'.45';b.style.cursor=n?'pointer':'not-allowed';}
 }
 function _psClone(r){return JSON.parse(JSON.stringify({exp:r.exp,rcvd:r.rcvd,ship:r.ship,cancelledQty:r.cancelledQty,status:r.status,archived:r.archived,transitAction:r.transitAction,resolution:r.resolution,sku:r.sku}));}
@@ -8596,17 +8616,19 @@ function _psPreviewLine(r){
   return `<b>${esc(r.prod||r.sku||'—')}</b><br>${esc(_resText((r.resolution||{}).what))} · ${fmt(_owedUnits(r))} still out → ${st.toBecki?'<span style="color:#22d3ee;">to Becki to check the shelves</span>':esc(st.note||'no change')}`;
 }
 function psFixPreview(){
-  const l=_limboRows(),st=_staleLateRows();
-  if(!l.length&&!st.length){toast('Nothing to put right','ok');return;}
+  const l=_limboRows(),st=_staleLateRows(),si=_staleIssueRows();
+  if(!l.length&&!st.length&&!si.length){toast('Nothing to put right','ok');return;}
   const body=l.slice(0,25).map(_psPreviewLine).join('<br><br>')
     +(l.length>25?`<br><br>…and ${fmt(l.length-25)} more.`:'')
-    +(st.length?`<br><br><b>Stale “Late” labels to clear</b><br>`+st.slice(0,10).map(r=>esc(r.prod||r.sku||'—')+' — nothing outstanding').join('<br>'):'');
+    +(st.length?`<br><br><b>Stale “Late” labels to clear</b><br>`+st.slice(0,10).map(r=>esc(r.prod||r.sku||'—')+' — nothing outstanding').join('<br>'):'')
+    +(si.length?`<br><br><b>Resolved issues still showing red on the Prep Sheet</b><br>`+si.slice(0,12).map(r=>esc(r.prod||r.sku||'—')+' — '+esc(r.issueType||'')+(r.issueQty?' · '+fmt(r.issueQty):'')+', claim closed, nothing owed').join('<br>'):'');
   showConfirm('What this would do',body+'<br><br>Nothing has changed yet.',null,{icon:'\uD83D\uDCCB',hideOk:true,cancel:'Close'});
 }
 async function psFixRun(){
-  const l=_limboRows(),stale=_staleLateRows();
-  if(!l.length&&!stale.length){toast('Nothing to put right','ok');return;}
-  showConfirm('Put these rows right?',`<b>${fmt(l.length+stale.length)} row${(l.length+stale.length)===1?'':'s'}.</b><br>Units Sarah traced to another SKU are accounted for and those rows come off the Prep Sheet. Units nothing accounts for go to Becki to check the shelves. Stale “Late” labels are cleared where nothing is outstanding. Nothing is deleted. Take a backup first if you want one.`,
+  const l=_limboRows(),stale=_staleLateRows(),si=_staleIssueRows();
+  const _tot=l.length+stale.length+si.length;
+  if(!_tot){toast('Nothing to put right','ok');return;}
+  showConfirm('Put these rows right?',`<b>${fmt(_tot)} row${_tot===1?'':'s'}.</b><br>Units Sarah traced to another SKU are accounted for and those rows come off the Prep Sheet. Units nothing accounts for go to Becki to check the shelves. Stale “Late” labels and red issue flags left on rows whose claim is already closed are cleared. Nothing is deleted — every claim stays in the record.`,
     async()=>{let done=0,becki=0,labels=0,failed=0;
       for(const r of l){
         const st=_settleClosedUnits(r,(r.resolution||{}).what);
@@ -8618,7 +8640,11 @@ async function psFixRun(){
         try{await saveRow(r);done++;try{logAudit('Closed row settled',`${r.sku||r.asin||''} — ${st.note}`);}catch(e){}}catch(e){failed++;}}
       for(const r of stale){r.transitAction='';r._dirty=true;
         try{await saveRow(r);labels++;try{logAudit('Stale Late label cleared',`${r.sku||r.asin||''} — nothing outstanding`);}catch(e){}}catch(e){failed++;}}
-      const bits=[done?`${done} settled`:'',becki?`${becki} to Becki`:'',labels?`${labels} label${labels===1?'':'s'} cleared`:''].filter(Boolean).join(' · ');
+      let flags=0;
+      for(const r of si){const was=(r.issueType||'')+(r.issueQty?' · '+r.issueQty:'');
+        r.issueType='';r.issueQty='';r._dirty=true;
+        try{await saveRow(r);flags++;try{logAudit('Resolved issue flag cleared',`${r.sku||r.asin||''} — ${was}, claim closed and nothing owed`);}catch(e){}}catch(e){failed++;}}
+      const bits=[done?`${done} settled`:'',becki?`${becki} to Becki`:'',labels?`${labels} label${labels===1?'':'s'} cleared`:'',flags?`${flags} issue flag${flags===1?'':'s'} cleared`:''].filter(Boolean).join(' · ');
       toast(failed?`${bits} — ${failed} did not save, try again`:`\u2713 ${bits}`,failed?'er':'ok');
       psFixPaint();try{renderPrep();renderAdmin();renderDashboard();}catch(e){}
     },{icon:'\u2192',ok:'Put them right'});
@@ -9782,12 +9808,12 @@ function openQtyFix(rid){
       </div>
       <div class="srtQty" style="grid-template-columns:1fr 1fr;margin-top:14px;">
         <div><span>Sheet says</span><input type="number" value="${r.exp||0}" disabled style="opacity:.6;"></div>
-        <div><span>Actually ordered</span><input type="number" id="qfNew" value="${r.exp||0}" onchange="qfSync()"></div>
+        <div><span>Actually ordered</span><input type="number" id="qfNew" value="${r.exp||0}" oninput="qfSync()" onchange="qfSync()"></div>
       </div>
       <div class="srtHint" id="qfHint"></div>
       ${r.sheetRow?`<div class="srtHint" style="margin-top:8px;color:var(--text3);">Purchase Sheet row <b style="color:var(--text2);">${esc(r.sheetRow)}</b> needs the same correction — it'll be added to your list.</div>`:''}
       <label class="srtLab" style="margin-top:16px;">Why is it different? <span style="color:#f87171;">required</span></label>
-      <textarea id="qfWhy" class="srtNote" rows="2" placeholder="e.g. purchase sheet was typed wrong — only 2 were ever ordered"></textarea>
+      <textarea id="qfWhy" class="srtNote" rows="2" oninput="qfSync()" placeholder="e.g. purchase sheet was typed wrong — only 9 were ever ordered"></textarea>
     </div>
     <div class="srtFoot">
       <div class="srtFootMsg" id="qfMsg"></div>
@@ -9841,16 +9867,29 @@ async function saveQtyFix(){
       });
     }catch(e){}
   }
+  /* If the real number leaves nothing outstanding there is no longer anything
+     to check — the row should not sit on Jack's page asking what happened to
+     units that were never ordered. Sarah still gets the Purchase Sheet job. */
+  let _ended=false;
+  if(nv<=got&&r.resolution&&['asked','proposed','rejected','working'].includes(r.resolution.state)){
+    const _ch=r.resolution.chase||null;
+    if(_ch)_ch.log=(_ch.log||[]).concat([{at:new Date().toISOString(),by:_who(),
+      what:`Sheet quantity corrected ${from} → ${nv} — nothing was missing`}]);
+    r.resolution=Object.assign({},r.resolution,{state:'approved',kind:'ops',what:'qty-fixed',
+      approvedBy:_who(),approvedAt:new Date().toISOString(),chase:_ch||undefined});
+    _ended=true;
+  }
   r._dirty=true;
   closeQtyFix();
   try{await _mustSave(r);}catch(e){toast('Didn\'t save — nothing was recorded. Check the connection and try again.','er');return;}
   if(r.sheetRow)await addVaActions(r,['Update Purchase Sheet'],'Expected quantity corrected '+from+' → '+nv+(why?' — '+why:''));
-  toast(cleared?'Corrected — the false issue is cleared':'Expected quantity corrected','ok');
+  toast(_ended?`Corrected to ${nv} — nothing is missing, it closes on every page`:(cleared?'Corrected — the false issue is cleared':'Expected quantity corrected'),'ok');
   logAudit('Expected qty corrected',`${r.sku||r.asin||''} — ${from} → ${nv}${why?' ('+why+')':''}`);
   fireWebhook(`${_who()} corrected the expected quantity on "${r.prod||r.sku||''}" from ${from} to ${nv}.${why?' Reason: '+why:''}`,
     {event:'qty_corrected',sku:r.sku||'',from,to:nv});
   try{renderPrepRows&&renderPrep&&renderPrep();}catch(e){}
   renderAdmin();
+  try{renderJack();}catch(e){}
   try{renderDashboard();}catch(e){}
 }
 async function ackQtyFix(rid){
@@ -11611,7 +11650,7 @@ function _jkCheckActs(r,_id){
   B.push(`<div class="jkWhere">${got>0?`${fmt(got)} of ${fmt(exp)} booked in &mdash; what happened to the other <b>${fmt(owe)}</b>?`:`Nothing booked in &mdash; what happened to all <b>${fmt(exp)}</b>?`}<br>None of these close the row; your answer goes back to Sarah.</div>`);
   B.push(`<button class="csAct good" onclick="jackAnswered('${_id}','Arrived — YES, the account shows it delivered.')" title="The account shows the full order delivered, so the missing ${fmt(owe)} are somewhere. Sarah checks the wrong SKU next, then Becki the shelves.">All ${fmt(exp)} were delivered</button>`);
   if(got>0){
-    B.push(`<button class="csAct warn" onclick="jackRestGoneSend('${_id}','cancelled')" title="${who} cancelled or refunded them — the money is back by itself. Sarah gets one button: note the sheet and close it.">The other ${fmt(owe)} were cancelled or refunded</button>`);
+    B.push(`<button class="csAct warn" onclick="jackRestGoneSend('${_id}','cancelled')" title="${who} cancelled or refunded them — the money is back by itself. Sarah gets one button: note the sheet and close it.">The other ${fmt(owe)} ${owe===1?'was':'were'} cancelled or refunded</button>`);
     B.push(`<button class="csAct plain" style="border-color:rgba(251,191,36,.5);color:#fcd34d;" onclick="jackRestGoneSend('${_id}','sheet')" title="The Purchase Sheet says ${fmt(exp)} but only ${fmt(got)} were actually ordered — the sheet is wrong, nothing is missing.">Only ${fmt(got)} were ordered &mdash; the sheet is wrong</button>`);
   }else{
     B.push(`<button class="csAct warn" onclick="jackRestGoneSend('${_id}','cancelled')" title="${who} cancelled or refunded the order — the money is back by itself. Sarah gets one button: note the sheet and close it.">The order was cancelled or refunded</button>`);
@@ -11619,7 +11658,13 @@ function _jkCheckActs(r,_id){
       ?`<button class="csAct plain" style="border-color:rgba(248,113,113,.5);color:#fca5a5;" onclick="amzClaimMine('${_id}')" title="Amazon say it was never delivered — it stays with you for the refund. Sarah sees the status, nothing lands on her list.">Never arrived &mdash; I&rsquo;ll claim it with Amazon</button>`
       :`<button class="csAct plain" style="border-color:rgba(248,113,113,.5);color:#fca5a5;" onclick="jackAnswered('${_id}','NOT arrived — cancelled or nothing coming. Chase or claim.')" title="Nothing is coming — it goes back to Sarah with your answer and she closes it off">Never arrived &mdash; nothing is coming</button>`);
   }
-  B.push(`<button class="csAct go" onclick="jackAmzDate('${_id}',this)" title="${who} gave a date — the row parks on the Prep Sheet with the date on it, off your list and Sarah's, and comes straight back if the date slips.">${got>0?`The other ${fmt(owe)} are still coming`:'Still coming'}&hellip;</button>`);
+  B.push(`<button class="csAct go" onclick="jackAmzDate('${_id}',this)" title="${who} gave a date — the row parks on the Prep Sheet with the date on it, off your list and Sarah's, and comes straight back if the date slips.">${got>0?`The other ${fmt(owe)} ${owe===1?'is':'are'} still coming`:'Still coming'}&hellip;</button>`);
+  /* Jack, 10 Sep, on the BioEars: "there's been a mistake with the original
+     order quantity — we only ordered 9, not 10. None of the buttons relate to
+     this. We need to distinguish a PHYSICAL stock discrepancy from a SYSTEM
+     quantity error." The correction already existed and does the whole job —
+     it was reachable from one button buried inside the row's own popup. */
+  B.push(`<button class="csAct plain" style="border-color:rgba(96,165,250,.5);color:#93c5fd;" onclick="openQtyFix('${_id}')" title="Nothing is missing — the Purchase Sheet quantity itself is wrong. Correct it here and the shortfall, the red flag and any claim raised off the back of it recalculate from the real number.">The sheet quantity is wrong&hellip;</button>`);
   B.push(`<button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`);
   return B.join('\n        ');
 }
@@ -14437,6 +14482,40 @@ function renderAdmin(){
           <div style="font-size:13px;font-weight:800;margin-bottom:5px;">Nothing matches ${(_admQ||'').trim()?`&ldquo;${esc((_admQ||'').trim())}&rdquo;`:'that filter'}</div>
           <div style="font-size:12px;color:var(--text3);margin-bottom:11px;">The queue is not empty — this is just the search.</div>
           <button class="tfuWork" onclick="_admQ='';_admKind='all';renderAdmin();">Clear the search</button></td></tr>`;
+        /* Jack, 10 Sep: "Sarah needs visibility of the whole journey — if her
+           view makes items disappear whenever they leave her hands she won't
+           know where the issue is, who owns it, or what has been checked. The
+           system needs to separate ACTION OWNERSHIP from VISIBILITY."
+           Same rows, same order within each group: what is hers to do, then
+           the greyed-out ones she can only watch, each under its own heading
+           with a count. */
+        const _grp=i=>i.withBecki&&!i.waiting?'becki'
+          :(i.waiting&&(i.waiting.what==='amz-claim'||i.waiting.what==='amz-missing'))?'chase'
+          :i.waiting?'jack':'mine';
+        const _order=['mine','jack','chase','becki'];
+        const _head={mine:['Yours to sort out','#fbbf24','Work these top to bottom'],
+          jack:['With Jack — checking the account','#b6c2d4','Nothing for you until he answers'],
+          chase:['With Jack — chasing Amazon','#22d3ee','Becki checked the shelves and it is not there. Jack is claiming it.'],
+          becki:['With Becki — checking the shelves','#22d3ee','Found: it books in and clears itself. Not there: it goes straight to Jack.']};
+        const _sec=(k,n)=>`<tr class="admSecRow"><td colspan="8">
+            <div class="admSec" style="border-left-color:${_head[k][1]};">
+              <span class="admSecT" style="color:${_head[k][1]};">${_head[k][0]}</span>
+              <span class="admSecN">${fmt(n)}</span>
+              <span class="admSecW">${_head[k][2]}</span>
+            </div></td></tr>`;
+        {
+          const by={};_work.forEach(i=>{(by[_grp(i)]=by[_grp(i)]||[]).push(i);});
+          const live=_order.filter(k=>(by[k]||[]).length);
+          if(live.length>1&&_admKind==='all'&&!(_admQ||'').trim()){
+            let n=0,html='';
+            live.forEach(k=>{html+=_sec(k,by[k].length)+by[k].map(i=>_rowHtml(i,n++)).join('');});
+            return html+(_done.length?`<tr><td colspan="8" style="background:transparent;border:none;padding:12px 12px 4px;">
+              <div class="doneStrip"><span class="doneLab">RECENTLY ACTIONED — ${fmt(_done.length)}</span>
+                <span class="doneSub">yours to clear — OK files it, Undo brings it back · files itself after 48 working hours</span>
+                <button class="tfuMore" style="margin:0" onclick="_showDone=!_showDone;renderAdmin();">${_showDone?'Hide':'Show'}</button></div></td></tr>`
+              +(_showDone?_done.map((i,x)=>_rowHtml(i,_work.length+x)).join(''):''):'');
+          }
+        }
         return _work.map(_rowHtml).join('')
           +(_done.length?`<tr><td colspan="8" style="background:transparent;border:none;padding:12px 12px 4px;">
               <div class="doneStrip"><span class="doneLab">RECENTLY ACTIONED — ${fmt(_done.length)}</span>
@@ -25571,7 +25650,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v47.9 · lav3 · 2026-09-09 · b539';
+const BUILD='v48.2 · lav3 · 2026-09-10 · b542';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -36404,6 +36483,11 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 #syncIndicator{min-width:104px;justify-content:center;box-sizing:border-box;transition:background .2s,border-color .2s,color .2s;}
 #syncText{font-variant-numeric:tabular-nums;}
 /* Sarah's Admin — recently-actioned strip (5 Sep) + brief-notes hint */
+.admSecRow td{background:transparent!important;border:none!important;padding:16px 12px 5px!important;}
+.admSec{display:flex;align-items:baseline;gap:10px;border-left:3px solid var(--border2);padding:2px 0 2px 10px;}
+.admSecT{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;}
+.admSecN{font:800 11px var(--num);color:var(--text3);background:rgba(148,163,184,.14);border-radius:999px;padding:1px 8px;}
+.admSecW{font-size:10.5px;color:var(--text3);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .doneStrip{display:flex;gap:14px;align-items:center;border-top:1px dashed var(--border);padding-top:11px;}
 .doneLab{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--text3);white-space:nowrap;flex:none;padding-right:2px;}
 .doneSub{font-size:10.5px;color:var(--text3);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;}
