@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v48.2</title>
+<title>BDL PrepHub v49.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -825,6 +825,10 @@ tbody tr:hover .row-acts{opacity:1;}
   /* the full answer is in Triage and Where It Stands — here it is a two-line flag, whole thing on hover */
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .tfuBack b{font-weight:800;color:#fecaca;}
+.tfuBack.tfuBackChip.req{color:#fde68a;background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.4);}
+.tfuBack.tfuBackChip.req b{color:#fbbf24;}
+.csNowTxt.jkReq{font-weight:600;color:var(--text2);text-align:left;line-height:1.45;padding:7px 9px;border-left:3px solid #fbbf24;background:rgba(251,191,36,.06);border-radius:0 6px 6px 0;margin:4px 0 8px;}
+.tfuBack.tfuBackChip{display:inline-block;-webkit-line-clamp:unset;padding:3px 9px;font-size:10.5px;border-radius:999px;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
 /* with-Jack rows, one line each (5 Sep) */
 .tfu tr.tfuCompact td{opacity:1!important;padding-top:7px!important;padding-bottom:7px!important;vertical-align:middle;}
 /* Jack, 9 Sep: "these still visually fucked." Every grey row was a flex line
@@ -1221,7 +1225,13 @@ html.light-mode{
 #page-lavarion .kpi .v,.lav3 .kpi .v{font-family:var(--num);font-size:28px;font-weight:600;line-height:1.15;letter-spacing:-.035em;margin-top:7px;
   font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1,'zero' 0;}
 #page-lavarion .kpi .s,.lav3 .kpi .s{font-size:11.5px;color:var(--text3);margin-top:5px;line-height:1.4;}
-#page-lavarion .panel,.lav3 .panel{background:var(--bg2);border:1px solid var(--border);border-radius:11px;margin-bottom:14px;}
+#page-lavarion .panel,.lav3 .dupLine{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.02);}
+.dupName{font-size:12px;font-weight:800;color:var(--text);overflow-wrap:anywhere;}
+.dupMeta{font-size:10.5px;color:var(--text3);margin-top:2px;overflow-wrap:anywhere;}
+.dupMeta b{color:var(--text2);}
+.dupMeta i{color:var(--text3);opacity:.8;}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:11px;margin-bottom:14px;}
 
 
 
@@ -2791,7 +2801,7 @@ html.light-mode{
    panel being sliced in half across the gap. */
 /* Three tracks on a wide screen, two on a laptop, one on a narrow window. A
    fixed two-column grid left a band of nothing down the right on a 1920 screen. */
-#page-lavarion .cols2,.lav3 .cols2{display:block;column-count:2;column-gap:14px;max-width:1560px;margin:0 auto;}
+#page-lavarion .cols2,.lav3 .cols2{display:block;column-count:2;column-gap:14px;max-width:none;margin:0;}
 .cols2 .panel{break-inside:avoid;-webkit-column-break-inside:avoid;}
 #lav3View table tbody tr:nth-child(even){background:rgba(255,255,255,.016);}
 #lav3View table tbody tr:hover{background:rgba(255,255,255,.045);}
@@ -3462,6 +3472,10 @@ td.dgbun .pchip{display:inline-block;margin:1px 2px;white-space:nowrap;}
 #prepTable th:nth-child(4),#prepTable td:nth-child(4){width:34px;max-width:34px;
   padding-left:2px;padding-right:2px;text-align:center;}
 .nt-wait{font-size:10.5px;font-weight:700;color:#94a3b8;font-style:italic;}
+.expLive{font:800 14px var(--num);color:var(--text);line-height:1.1;text-align:center;}
+.expLive small{display:block;font:600 9.5px var(--font,inherit);color:#fbbf24;margin-top:2px;white-space:normal;line-height:1.3;}
+.ci-num.expRaw{opacity:.5;font-size:10.5px;height:20px;margin-top:3px;}
+.ci-num.expRaw:focus{opacity:1;}
 /* The four narrow columns on the left carried the same 8px side padding as the
    wide ones, which is most of their width. */
 #prepTable th:nth-child(1),#prepTable td:nth-child(1),
@@ -3593,7 +3607,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v48.2</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v49.2</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -3627,7 +3641,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v48.2</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v49.2</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -3945,7 +3959,7 @@ html.light-mode .tfu thead th{background:#d8dde3;}
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v48.2</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v49.2</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -5493,7 +5507,7 @@ function renderPrepRows(data){
   if(!data.length){b.innerHTML=`<tr><td colspan="18">${prepEmptyState()}</td></tr>`;return;}
   const todayStr=todayISO();
   b.innerHTML=data.map((r,_rowIx)=>{
-    const diff=(r.exp||0)-(r.rcvd||0);
+    const diff=_effExp(r)-(r.rcvd||0);
     /* Said in whatever unit the person is holding. On a 2-pack, "3 short" means
        six bottles missing off the pallet, and the tooltip says so. */
     const _pk=packOf(r);
@@ -5568,7 +5582,7 @@ function renderPrepRows(data){
       r.pri==='Yes'?'row-pri':'',
       r.archived?'row-archived':''
     ].filter(Boolean).join(' ');
-    const rcvdColor=r.rcvd>0&&r.rcvd>=r.exp?'var(--green)':r.rcvd>0?'var(--amber)':'';
+    const rcvdColor=r.rcvd>0&&r.rcvd>=_effExp(r)?'var(--green)':r.rcvd>0?'var(--amber)':'';
     // Build tooltip explaining why this row is coloured
     const rowTooltip=
       _amzDel?`&#9679; Amazon say delivered — ${esc(r.resolution.amzDelivered.by||'Jack')} checked the account ${_qryWhen(r.resolution.amzDelivered.at)}. Check the shelves. Found it: book it in and send it on the next shipment, the flag clears itself. Not on the shelves: press Not here and it goes to Jack.`:
@@ -5636,7 +5650,7 @@ function renderPrepRows(data){
         }
         return c.join(' ')||'<span class="pnone">&mdash;</span>';
       })()}</td>
-      <td><input class="ci ci-num" type="number" value="${r.exp}" onchange="uf('${r.uuid||r.id}','exp',+this.value);updateDiffCell(${r.id},${r.rcvd||0},+this.value);debounce('stats',renderStats);" tabindex="-1">${(r.bun==='Yes'&&(parseInt(r.bqty)||0)>1)?`<div class="expPack" title="Bundle of ${r.bqty} — ${r.exp||0} saleable unit${(r.exp||0)!==1?'s':''}, ${(r.exp||0)*(parseInt(r.bqty)||1)} individual items to handle"><b>${(r.exp||0)*(parseInt(r.bqty)||1)}</b> items<br>&times;${r.bqty} per bundle</div>`:''}</td>
+      <td>${_cxParts(r).cx?`<div class="expLive" title="${fmt(r.exp||0)} ordered${_cxLabel(r,' · ')} — the number below is the order as written; this is what is still expected">${fmt(_effExp(r))}<small>${_cxLabel(r,' · ').replace(/^ · /,'')}</small></div>`:''}<input class="ci ci-num${_cxParts(r).cx?' expRaw':''}" type="number" value="${r.exp}" onchange="uf('${r.uuid||r.id}','exp',+this.value);updateDiffCell(${r.id},${r.rcvd||0},+this.value);debounce('stats',renderStats);" tabindex="-1">${(r.bun==='Yes'&&(parseInt(r.bqty)||0)>1)?`<div class="expPack" title="Bundle of ${r.bqty} — ${r.exp||0} saleable unit${(r.exp||0)!==1?'s':''}, ${(r.exp||0)*(parseInt(r.bqty)||1)} individual items to handle"><b>${(r.exp||0)*(parseInt(r.bqty)||1)}</b> items<br>&times;${r.bqty} per bundle</div>`:''}</td>
       <td><select class="ci-sel" onchange="handleStatusChange('${r.uuid||r.id}',this);" tabindex="-1">
         ${['In-Transit','Delivered','In Warehouse','Part Sent','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
       </select>${r.status==='Part Sent'?(()=>{const _left=remainingToShip(r);const _bs='display:block;margin-top:3px;width:100%;box-sizing:border-box;padding:4px 4px;border:none;border-radius:4px;font-size:9px;font-weight:800;cursor:pointer;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;background:#2563eb;color:#fff;';return `<button onclick="${_left>0?'sendMore':'sendExtra'}('${r.uuid||r.id}')" title="Send ${_left>0?'the remaining '+_left+' unit'+(_left===1?'':'s'):'another unit (none calculated as outstanding, but you can still send 1+ more)'} to a shipment ID" style="${_bs}">↗ Send more${_left>0?` (${_left})`:''}</button>`;})():''}</td>
@@ -5680,7 +5694,7 @@ function renderPrepRows(data){
           title="Raise an issue against this row">+ issue</button>
         ${(()=>{const _q=_ukQuery(r);const _rs=r.resolution||{};
           if(_isAmzDel(r))return `<div class="qryTag amz" title="Amazon say this was delivered. Found it on the shelves? Book it in and send it on the next shipment — the flag clears itself, nothing to press. Not here? Press the button and it goes to Jack to raise with Amazon.">Amazon say delivered — check the shelves</div>
-            <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk" style="color:#f87171;border-color:rgba(248,113,113,.5);" onclick="amzNotHere('${r.uuid||r.id}')" title="Checked the shelves, back stock and anywhere else — it is not here. It goes straight to Jack to raise with Amazon.">Not here</button></div>`;
+            <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk qryNot" onclick="amzNotHere('${r.uuid||r.id}')" title="Checked the shelves, back stock and anywhere else — it is not here. It goes straight to Jack to raise with Amazon.">Not here</button></div>`;
           if(_q)return `<div class="qryTag" onclick="openQuery('${r.uuid||r.id}')" title="${esc(_q.ask||'')}${_q.note?' — “'+esc(_q.note)+'”':''} — asked by ${esc(_q.by||'')} ${_qryWhen(_q.at)} · with ${_rs.state==='asked'?'Jack':'the admin team'}. The answer comes back in the VA Note.">&#10148; Admin team</div>`;
           const _aq=_rs.query;
           if(_aq&&_aq.answer==='more-coming'&&r.expectedDelivery&&new Date(r.expectedDelivery)>=new Date(new Date().toDateString()))return `<div class="qryTag ok" title="${esc(_aq.answeredBy||'')} answered ${_qryWhen(_aq.answeredAt)}: more is still coming${_aq.reply?' — “'+esc(_aq.reply)+'”':''}. See the VA Note.">&#10003; Due ${new Date(r.expectedDelivery).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}</div>`;
@@ -5823,7 +5837,7 @@ function renderAmzBanner(){
     <div class="nbTop">
       <span class="nbDot" style="color:#22d3ee;">&#9679;</span>
       <b>${n} order${n===1?'':'s'} Amazon say ${n===1?'was':'were'} delivered but ${n===1?'is':'are'}n\u2019t fully booked in</b>
-      <span class="nbSub">check the shelves — book it in if it is here, or press Not here on the row</span>
+      <span class="nbSub">check the shelves &mdash; if it is here, book it in and send it. If it is not, press the red <b style="color:#f87171;">Not here</b> button in the Issues column of the row</span>
       <button class="nbGo" style="background:rgba(34,211,238,.18);border-color:rgba(34,211,238,.5);color:#22d3ee;" onclick="toggleAmzFilter()">${_amzFilterActive?'Show everything':'Show just those'}</button>
     </div></div>`;
 }
@@ -5998,7 +6012,7 @@ async function amzMissingDone(rid,money){
   /* Jack, 8 Sep: a processed refund is closed and done. The units are not
      coming, so they stop being owed — otherwise the row resurfaces forever. */
   if(owe>0)r.cancelledQty=(parseInt(r.cancelledQty)||0)+owe;
-  try{if(_owedUnits(r)===0&&remainingToShip(r)===0&&(parseInt(r.ship)||0)>0){r.status='Sent to Amazon';r.sent='Yes';}}catch(e){}
+  try{_statusFollowsStock(r);if(/^Late/.test(String(r.transitAction||'')))r.transitAction='';}catch(e){}
   r._dirty=true;
   try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
   logAudit('Amazon missing sorted',`${r.sku||r.asin||''} — ${money==='in'?'money received':money==='refused'?'written off, no refund':'refund raised, waiting on the money'} — ${_who()}`);
@@ -6006,6 +6020,24 @@ async function amzMissingDone(rid,money){
   renderJack();try{renderAdmin();renderPrep();}catch(e){}
 }
 function _owedUnits(r){return Math.max(0,(parseInt(r&&r.exp)||0)-(parseInt(r&&r.rcvd)||0)-(parseInt(r&&r.cancelledQty)||0));}
+/* Jack, 10 Sep: "if no more are coming as they have been refunded, why is it
+   still down as in transit?" The order quantity stays as the record (it is
+   what the Purchase Sheet says); what the row SHOWS is what is still expected
+   after every decision — 10 ordered with 2 refunded expects 8. */
+function _effExp(r){return Math.max(0,(parseInt(r&&r.exp)||0)-(parseInt(r&&r.cancelledQty)||0));}
+/* Status follows the stock the moment nothing is owed. Everything shipped —
+   Sent to Amazon. Units on the shelf still to send — In Warehouse. A row
+   nothing ever landed on is a phantom and files. Never touches a row that
+   still owes units, and never moves a row backwards. */
+function _statusFollowsStock(r){
+  if(!r||_owedUnits(r)>0)return '';
+  const got=parseInt(r.rcvd)||0,ship=parseInt(r.ship)||0;
+  const left=(typeof remainingToShip==='function')?remainingToShip(r):0;
+  if(got===0&&ship===0){if(!r.archived){r.archived=true;return 'archived — nothing ever landed on this row';}return '';}
+  if(ship>0&&left===0&&r.status!=='Sent to Amazon'){r.status='Sent to Amazon';r.sent='Yes';if(!r.sentDate)r.sentDate=((r.shipSegments||[]).slice(-1)[0]||{}).date||new Date().toISOString().slice(0,10);return 'everything shipped — Sent to Amazon';}
+  if(got>0&&left>0&&['In-Transit','Issue',''].includes(r.status||'')){r.status='In Warehouse';return `${fmt(left)} on the shelf to send — In Warehouse`;}
+  return '';
+}
 /* Jack, 9 Sep: "whose sheet is Samsung on?" Nobody's. Closing a row never
    touched its units or status, so a wrong-SKU close left 2 units "still out"
    on an In-Transit row that every list then ignored because it was approved.
@@ -6041,12 +6073,7 @@ function _settleClosedUnits(r,what){
   else if((what==='cancelled'||what==='duplicate')&&owed>0){r.cancelledQty=cx+owed;notes.push(`${fmt(owed)} cancelled`);owed=0;}
   if(owed===0){
     if(/^Late/.test(String(r.transitAction||'')))r.transitAction='';
-    const ship=parseInt(r.ship)||0;
-    if(got===0&&ship===0&&['wrong-sku','cancel-wrong-sku','cancelled','duplicate'].includes(what)){
-      if(!r.archived){r.archived=true;notes.push('nothing ever landed on this row — off the active sheet, kept under Show Archived');}
-    }else if(ship>0&&r.status!=='Sent to Amazon'&&(typeof remainingToShip==='function'?remainingToShip(r):0)===0){
-      r.status='Sent to Amazon';r.sent='Yes';notes.push('everything it holds has shipped — Sent to Amazon');
-    }
+    const _m=_statusFollowsStock(r);if(_m)notes.push(_m);
   }
   const changed=before.rcvd!==(parseInt(r.rcvd)||0)||before.cx!==(parseInt(r.cancelledQty)||0)||before.status!==r.status||before.archived!==!!r.archived||before.ta!==(r.transitAction||'');
   /* what the close did to the numbers, on the row itself — so a month from now
@@ -6785,7 +6812,7 @@ function acHold(r){
   if(r.reimb==='Yes')return 'reimbursement being chased';
   const hasShip=String(r.shipId||'').trim()||((r.allShipIds||[]).length>0);
   if(!hasShip)return 'waiting on shipment ID';
-  const exp=parseInt(r.exp)||0,rcv=parseInt(r.rcvd)||0,shp=parseInt(r.ship)||0;
+  const exp=_effExp(r),rcv=parseInt(r.rcvd)||0,shp=parseInt(r.ship)||0;
   if(!exp||!shp)return 'quantities not filled in';
   if(exp!==rcv||rcv!==shp)return `numbers do not match — ${exp} expected, ${rcv} received, ${shp} shipped`;
   const m=sentMoment(r);
@@ -7664,6 +7691,7 @@ function _adminItems(){
          The closure already records it (`resolution.wentAs`); the row just
          never said it out loud. */
       wentAs:(r.resolution&&r.resolution.wentAs)||'',wentAsQty:(r.resolution&&parseInt(r.resolution.wentAsQty))||0,
+      qtyFix:(r.qtyFix&&r.qtyFix.to!==undefined)?r.qtyFix:null,
       caseC:_caseOf(r),
       sentBack:(r.resolution&&r.resolution.state==='rejected')?r.resolution:null,
       /* Jack, 8 Sep: "a filter for Sarah when I send stuff back to her — newer
@@ -8138,6 +8166,13 @@ function _staleIssueRows(){
     });
   }catch(e){return [];}
 }
+/* Jack, 10 Sep: "why are these on the prep sheet then?" — Ninja and Starbucks
+   had shipped every unit they held, nothing was owed, but nobody had moved the
+   status on, so they stayed Part Sent on Becki's sheet for ever. Status follows
+   the stock: nothing owed + nothing left to ship + something shipped = sent. */
+function _shippedNotSentRows(){
+  try{return (rows||[]).filter(r=>r&&!r.archived&&r.status==='Part Sent'&&(parseInt(r.ship)||0)>0&&_owedUnits(r)<=0&&(typeof remainingToShip==='function'?remainingToShip(r):1)===0);}catch(e){return [];}
+}
 function _staleLateRows(){
   try{return (rows||[]).filter(r=>r&&!r.archived&&/^Late/.test(String(r.transitAction||''))&&_owedUnits(r)<=0);}catch(e){return [];}
 }
@@ -8601,13 +8636,13 @@ async function pnFixRun(){
 function psFixPaint(){
   const c=document.getElementById('psFixCount'),w=document.getElementById('psFixWhich'),b=document.getElementById('psFixGo');
   if(!c)return;
-  const l=_limboRows(),st=_staleLateRows(),si=_staleIssueRows();
+  const l=_limboRows(),st=_staleLateRows(),si=_staleIssueRows(),sn=_shippedNotSentRows();
   const traced=l.filter(r=>!_settleClosedUnits(_psClone(r),(r.resolution||{}).what).toBecki).length;
   const toBecki=l.length-traced;
   const v=l.reduce((a,r)=>a+(parseSKU(r.sku).cogs||0)*_owedUnits(r),0);
-  const n=l.length+st.length+si.length;
+  const n=l.length+st.length+si.length+sn.length;
   c.textContent=n?`${fmt(n)} row${n===1?'':'s'} to put right`:'Nothing to put right';
-  if(w)w.textContent=n?[traced?`${fmt(traced)} settled here`:'',toBecki?`${fmt(toBecki)} to Becki to check the shelves`:'',st.length?`${fmt(st.length)} stale “Late” label${st.length===1?'':'s'}`:'',si.length?`${fmt(si.length)} resolved issue flag${si.length===1?'':'s'} still showing red`:''].filter(Boolean).join(' · ')+(v?` — ${fmtGBP2(v)} at COG`:''):'every closed row balances';
+  if(w)w.textContent=n?[traced?`${fmt(traced)} settled here`:'',toBecki?`${fmt(toBecki)} to Becki to check the shelves`:'',st.length?`${fmt(st.length)} stale “Late” label${st.length===1?'':'s'}`:'',si.length?`${fmt(si.length)} resolved issue flag${si.length===1?'':'s'} still showing red`:'',sn.length?`${fmt(sn.length)} fully shipped but still marked Part Sent`:''].filter(Boolean).join(' · ')+(v?` — ${fmtGBP2(v)} at COG`:''):'every closed row balances';
   if(b){b.disabled=!n;b.style.opacity=n?'1':'.45';b.style.cursor=n?'pointer':'not-allowed';}
 }
 function _psClone(r){return JSON.parse(JSON.stringify({exp:r.exp,rcvd:r.rcvd,ship:r.ship,cancelledQty:r.cancelledQty,status:r.status,archived:r.archived,transitAction:r.transitAction,resolution:r.resolution,sku:r.sku}));}
@@ -8616,17 +8651,18 @@ function _psPreviewLine(r){
   return `<b>${esc(r.prod||r.sku||'—')}</b><br>${esc(_resText((r.resolution||{}).what))} · ${fmt(_owedUnits(r))} still out → ${st.toBecki?'<span style="color:#22d3ee;">to Becki to check the shelves</span>':esc(st.note||'no change')}`;
 }
 function psFixPreview(){
-  const l=_limboRows(),st=_staleLateRows(),si=_staleIssueRows();
-  if(!l.length&&!st.length&&!si.length){toast('Nothing to put right','ok');return;}
+  const l=_limboRows(),st=_staleLateRows(),si=_staleIssueRows(),sn=_shippedNotSentRows();
+  if(!l.length&&!st.length&&!si.length&&!sn.length){toast('Nothing to put right','ok');return;}
   const body=l.slice(0,25).map(_psPreviewLine).join('<br><br>')
     +(l.length>25?`<br><br>…and ${fmt(l.length-25)} more.`:'')
     +(st.length?`<br><br><b>Stale “Late” labels to clear</b><br>`+st.slice(0,10).map(r=>esc(r.prod||r.sku||'—')+' — nothing outstanding').join('<br>'):'')
-    +(si.length?`<br><br><b>Resolved issues still showing red on the Prep Sheet</b><br>`+si.slice(0,12).map(r=>esc(r.prod||r.sku||'—')+' — '+esc(r.issueType||'')+(r.issueQty?' · '+fmt(r.issueQty):'')+', claim closed, nothing owed').join('<br>'):'');
+    +(si.length?`<br><br><b>Resolved issues still showing red on the Prep Sheet</b><br>`+si.slice(0,12).map(r=>esc(r.prod||r.sku||'—')+' — '+esc(r.issueType||'')+(r.issueQty?' · '+fmt(r.issueQty):'')+', claim closed, nothing owed').join('<br>'):'')
+    +(sn.length?`<br><br><b>Fully shipped, still marked Part Sent → Sent to Amazon</b><br>`+sn.slice(0,12).map(r=>esc(r.prod||r.sku||'—')+' — '+fmt(r.ship)+' shipped, nothing owed, nothing left to ship').join('<br>'):'');
   showConfirm('What this would do',body+'<br><br>Nothing has changed yet.',null,{icon:'\uD83D\uDCCB',hideOk:true,cancel:'Close'});
 }
 async function psFixRun(){
-  const l=_limboRows(),stale=_staleLateRows(),si=_staleIssueRows();
-  const _tot=l.length+stale.length+si.length;
+  const l=_limboRows(),stale=_staleLateRows(),si=_staleIssueRows(),sn=_shippedNotSentRows();
+  const _tot=l.length+stale.length+si.length+sn.length;
   if(!_tot){toast('Nothing to put right','ok');return;}
   showConfirm('Put these rows right?',`<b>${fmt(_tot)} row${_tot===1?'':'s'}.</b><br>Units Sarah traced to another SKU are accounted for and those rows come off the Prep Sheet. Units nothing accounts for go to Becki to check the shelves. Stale “Late” labels and red issue flags left on rows whose claim is already closed are cleared. Nothing is deleted — every claim stays in the record.`,
     async()=>{let done=0,becki=0,labels=0,failed=0;
@@ -8644,7 +8680,10 @@ async function psFixRun(){
       for(const r of si){const was=(r.issueType||'')+(r.issueQty?' · '+r.issueQty:'');
         r.issueType='';r.issueQty='';r._dirty=true;
         try{await saveRow(r);flags++;try{logAudit('Resolved issue flag cleared',`${r.sku||r.asin||''} — ${was}, claim closed and nothing owed`);}catch(e){}}catch(e){failed++;}}
-      const bits=[done?`${done} settled`:'',becki?`${becki} to Becki`:'',labels?`${labels} label${labels===1?'':'s'} cleared`:'',flags?`${flags} issue flag${flags===1?'':'s'} cleared`:''].filter(Boolean).join(' · ');
+      let sentN=0;
+      for(const r of sn){r.status='Sent to Amazon';r.sent='Yes';if(!r.sentDate)r.sentDate=((r.shipSegments||[]).slice(-1)[0]||{}).date||new Date().toISOString().slice(0,10);r._dirty=true;
+        try{await saveRow(r);sentN++;try{logAudit('Status moved to Sent to Amazon',`${r.sku||r.asin||''} — everything it held had shipped, nothing owed`);}catch(e){}}catch(e){failed++;}}
+      const bits=[done?`${done} settled`:'',becki?`${becki} to Becki`:'',labels?`${labels} label${labels===1?'':'s'} cleared`:'',flags?`${flags} issue flag${flags===1?'':'s'} cleared`:'',sentN?`${sentN} moved to Sent to Amazon`:''].filter(Boolean).join(' · ');
       toast(failed?`${bits} — ${failed} did not save, try again`:`\u2713 ${bits}`,failed?'er':'ok');
       psFixPaint();try{renderPrep();renderAdmin();renderDashboard();}catch(e){}
     },{icon:'\u2192',ok:'Put them right'});
@@ -8744,9 +8783,9 @@ function openSorted(rid,preset){
         const left=refundLeft(r.date,r);
         if(left===null)return'';
         const cls=left<0?'gone':(left<=7?'warn':'ok');
-        return`<div class="srtClock ${cls}"><b>${left<0?Math.abs(left):left}</b>
-          ${left<0?`days past the ${REFUND_DAYS}-day refund window — a claim may no longer be possible`
-                 :`days left to claim a refund on this order`}</div>`;
+        return`<div class="srtClock ${cls}">${left<0?`<b>${Math.abs(left)}</b> days past the ${REFUND_DAYS}-day refund window — a claim may no longer be possible`
+          :left===0?`<b>Last day</b> to claim a refund on this order — the ${REFUND_DAYS}-day window shuts tonight`
+          :`<b>${left}</b> day${left===1?'':'s'} left to claim a refund on this order`}</div>`;
       })()}
       <label class="srtLab" style="margin-top:14px;">What happened?
         <button type="button" id="srtChange" onclick="srtChangePick()" style="display:none;float:right;
@@ -9794,7 +9833,7 @@ function openQtyFix(rid){
   let el=document.getElementById('qtyFixModal');
   if(!el){el=document.createElement('div');el.id='qtyFixModal';el.className='overlay';document.body.appendChild(el);
     el.addEventListener('click',e=>{if(e.target===el)closeQtyFix();});}
-  el.innerHTML=`<div class="modal srtMod" style="max-width:520px;">
+  el.innerHTML=`<div class="modal srtMod" style="max-width:520px;height:auto;max-height:88vh;">
     <div class="srtHd">
       <div style="min-width:0;">
         <div class="srtTtl">Correct the expected quantity</div>
@@ -9808,12 +9847,12 @@ function openQtyFix(rid){
       </div>
       <div class="srtQty" style="grid-template-columns:1fr 1fr;margin-top:14px;">
         <div><span>Sheet says</span><input type="number" value="${r.exp||0}" disabled style="opacity:.6;"></div>
-        <div><span>Actually ordered</span><input type="number" id="qfNew" value="${r.exp||0}" oninput="qfSync()" onchange="qfSync()"></div>
+        <div><span>Actually ordered</span><input type="number" id="qfNew" value="" placeholder="${r.exp||0}" min="0" oninput="qfSync()" onchange="qfSync()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveQtyFix();}"></div>
       </div>
       <div class="srtHint" id="qfHint"></div>
       ${r.sheetRow?`<div class="srtHint" style="margin-top:8px;color:var(--text3);">Purchase Sheet row <b style="color:var(--text2);">${esc(r.sheetRow)}</b> needs the same correction — it'll be added to your list.</div>`:''}
-      <label class="srtLab" style="margin-top:16px;">Why is it different? <span style="color:#f87171;">required</span></label>
-      <textarea id="qfWhy" class="srtNote" rows="2" oninput="qfSync()" placeholder="e.g. purchase sheet was typed wrong — only 9 were ever ordered"></textarea>
+      <label class="srtLab" style="margin-top:14px;">Why is it different? <span style="color:var(--text3);font-weight:600;">optional</span></label>
+      <textarea id="qfWhy" class="srtNote" rows="2" oninput="qfSync()" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();saveQtyFix();}" placeholder="e.g. purchase sheet was typed wrong — only 9 were ever ordered"></textarea>
     </div>
     <div class="srtFoot">
       <div class="srtFootMsg" id="qfMsg"></div>
@@ -9823,6 +9862,7 @@ function openQtyFix(rid){
   </div>`;
   el.style.display='flex';
   qfSync();
+  setTimeout(()=>{const n=document.getElementById('qfNew');if(n)n.focus();},40);
 }
 function closeQtyFix(){const el=document.getElementById('qtyFixModal');if(el)el.style.display='none';_qfRid=null;}
 function qfSync(){
@@ -9831,7 +9871,7 @@ function qfSync(){
   const got=parseInt(r.rcvd)||0;
   const h=document.getElementById('qfHint'),go=document.getElementById('qfGo'),msg=document.getElementById('qfMsg');
   const why=((document.getElementById('qfWhy')||{}).value||'').trim();
-  const ok=!isNaN(nv)&&nv>=0&&nv!==(r.exp||0)&&!!why;
+    const ok=!isNaN(nv)&&nv>=0&&nv!==(r.exp||0);
   if(h){
     if(isNaN(nv)||nv<0){h.textContent='Enter a number.';h.style.color='#f87171';}
     else if(nv===got){h.textContent='That matches what arrived — the row goes clear and can carry on to Amazon.';h.style.color='var(--green)';}
@@ -9839,19 +9879,17 @@ function qfSync(){
     else{h.textContent=(nv-got)+' unit'+(nv-got===1?'':'s')+' would still be outstanding.';h.style.color='#fbbf24';}
   }
   if(go){go.disabled=!ok;go.style.opacity=ok?'1':'.45';}
-  if(msg)msg.textContent=ok?'Logged, and Jack is told.'
-    :(!isNaN(nv)&&nv!==(r.exp||0)&&!why)?'Say why it is different — this is a permanent record.'
-    :'Change the number to save.';
+  if(msg)msg.textContent=ok?'Enter saves it.':(isNaN(nv)?'Type the real number.':'Change the number to save.');
 }
 async function saveQtyFix(){
   const r=_rowById(_qfRid);if(!r)return;
   const nv=parseInt((document.getElementById('qfNew')||{}).value);
   if(isNaN(nv)||nv<0||nv===(r.exp||0))return;
   const why=((document.getElementById('qfWhy')||{}).value||'').trim();
-  if(!why)return;
   const from=r.exp||0;
   r.qtyFix={from,to:nv,by:_who(),at:new Date().toISOString(),why,seen:false};
   r.exp=nv;r.aqty=nv;
+  try{_statusFollowsStock(r);}catch(e){}
   /* A claim raised only because the sheet was wrong is not a real claim. */
   const got=parseInt(r.rcvd)||0;
   let cleared=0;
@@ -10848,7 +10886,7 @@ function jackTodo(){
   const checks=rows.filter(r=>r.resolution&&r.resolution.state==='asked'&&!_parkedOnDate(r));
   /* Jack, 5 Sep: qty fixes are read-and-wave-through — they vanish on their
      own after a week so they cannot pile up */
-  const fixes=rows.filter(r=>!r.archived&&r.qtyFix&&!r.qtyFix.seen&&(Date.now()-new Date(r.qtyFix.at||0).getTime())<7*864e5);
+  const fixes=rows.filter(r=>!r.archived&&r.qtyFix&&!r.qtyFix.seen&&!/^jack/i.test(String(r.qtyFix.by||''))&&(Date.now()-new Date(r.qtyFix.at||0).getTime())<7*864e5);
   /* The other half of the round trip Jack demanded fixed: claims Sarah sends
      over and Lavarion shortages she hands across land HERE — before this they
      fell off her page and never appeared on his. Same issue, his side. */
@@ -11019,7 +11057,32 @@ function renderJack(){
       clog:((q.chase&&q.chase.log&&q.chase.log.length)?q.chase.log:(Q?[{at:Q.at,by:Q.by,what:'Asked — '+(Q.ask||'')+(Q.note?' — “'+Q.note+'”':'')}]:[])),expDate:r.expectedDelivery||'',
       value:(parseSKU(r.sku).cogs||0)*Math.max(0,(r.exp||r.ship||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0)),
       left:refundLeft(r.date,r),
+      owedU:Math.max(0,(r.exp||r.ship||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0)),
+      age:_ordAge(r),odate:r.date||'',
       acts:_jkCheckActs(r,_id)});});
+  /* Jack, 10 Sep, the Wella: one order number, two rows, 24 units shipped
+     against 20 ordered. Not a decision the app can make — a card that puts the
+     rows side by side so he can. Only fires when the rows between them have
+     received MORE than the biggest order quantity among them. */
+  (()=>{try{
+    const byO={};rows.forEach(r=>{const o=String(r.oid||'').trim();if(!o||o==='—')return;if(!((parseInt(r.rcvd)||0)>0||(parseInt(r.ship)||0)>0))return;(byO[o]=byO[o]||[]).push(r);});
+    Object.entries(byO).forEach(([o,list])=>{
+      if(list.length<2)return;
+      if(list.every(r=>r.archived))return;
+      const gotSum=list.reduce((t,r)=>t+(parseInt(r.rcvd)||0),0);
+      const skus=new Set(list.map(r=>String(r.sku||'').trim().toLowerCase()));
+      const expMax=skus.size>1?list.reduce((t,r)=>t+(parseInt(r.exp)||0),0):Math.max(...list.map(r=>parseInt(r.exp)||0));
+      if(gotSum<=expMax)return;
+      const live=list.find(r=>!r.archived)||list[0];
+      items.push({kind:'fix',id:live.uuid||live.id,prod:live.prod||live.sku||'',sup:live.sup,oid:o,acct:live.acct,sku:'',asin:live.asin||'',
+        by:'Sheet',at:live.updated_at||live.date||'',wait:0,noNag:true,
+        type:['ONE ORDER · TWO ROWS','#f97316','The same order number is on more than one row and, between them, more units have been booked than were ordered'],
+        why:esc(`${fmt(gotSum)} units received across ${list.length} rows against ${fmt(expMax)} ordered${skus.size>1?' (different SKUs — counted as separate purchases)':''}`),
+        note:list.map(r=>`${r.sku||'—'}: ${fmt(parseInt(r.rcvd)||0)} in · ${fmt(parseInt(r.ship)||0)} shipped${r.shipId?' on '+r.shipId:''}${r.archived?' · archived':''}`).join('  |  '),
+        value:0,left:null,
+        acts:list.map(r=>`<button class="csAct plain" onclick="openWork('${r.uuid||r.id}')" title="Open this row">${esc((r.sku||'row').slice(-14))}${r.archived?' (archived)':''}</button>`).join('')});
+    });
+  }catch(e){}})();
   closures.forEach(r=>{const q=r.resolution||{};
     items.push({kind:'dec',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
       asin:r.asin||'',by:q.by||'someone',at:q.at,wait:days(q.at),type:['DECISION','#c084fc','She investigated — your call'],
@@ -11158,72 +11221,58 @@ function renderJack(){
       <span class="num" style="font-size:12.5px;font-weight:800;color:${c};white-space:nowrap;">${v}</span></div>`;
   const _mpanel=(t,tc,rows2)=>`<div style="flex:1;min-width:215px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:9px 13px;display:flex;flex-direction:column;gap:5px;">
       <div style="font-size:9.5px;font-weight:800;letter-spacing:.08em;color:${tc};margin-bottom:2px;">${t}</div>${rows2.join('')}</div>`;
-  const _jkRow=(it,x)=>`<tr class="${it.wait>=2&&it.kind!=='fix'?'jkLate':''}">
-        <td class="tfuNumCell" style="text-align:center;padding-top:9px;">
-          <span class="tfuStripe" style="background:${it.type[1]};" title="${esc(it.type[2])}"></span>
-          <span style="font:800 12px var(--mono);color:var(--text3);">${x+1}</span>
-        </td>
-        <td>
-          <div class="tfuProd2" title="${esc(it.prod||'')}">${esc(it.prod)}</div>
-          ${it.sku?`<div class="s-sku" onclick="copyVal('${esc1(it.sku)}',this)" style="font-size:10.5px;margin-top:6px;white-space:normal;overflow-wrap:anywhere;display:block;text-align:left;" title="Click to copy">${esc(it.sku)}</div>`:''}
-          ${it.asin?`<div style="margin-top:7px;text-align:left;"><span class="s-asin" onclick="copyVal('${esc1(it.asin)}',this)" style="font-size:10.5px;opacity:.85;">${esc(it.asin)}</span></div>`:''}
-        </td>
-        <td style="text-align:center;">
-          <div class="tfuSup" style="font-size:11.5px;">${esc(it.sup||'—')}</div>
-          ${it.oid?`<div class="tfuOid" style="font-size:10px;" title="Click to copy" onclick="copyVal('${esc1(it.oid)}',this)">${esc(it.oid)}</div>`:''}
-          ${it.acct?`<div class="tfuAcct" style="margin-top:3px;display:inline-block;">${esc(it.acct)}</div>`:''}
-        </td>
-        <td style="text-align:center;">
-          <div style="font-size:11.5px;font-weight:800;color:var(--text);">${esc(it.by)}</div>
-          <div style="font-size:10px;color:${it.wait>=2?'#f87171':it.wait>=1?'#fbbf24':'var(--text2)'};font-weight:${it.wait>=1?'800':'600'};margin-top:2px;white-space:normal;line-height:1.3;">${it.wait===0?'today':it.wait+'d ago'}${it.wait>=2&&it.kind!=='fix'&&!it.noNag?'<br>they are waiting on you':''}</div>
-        </td>
-        <td style="text-align:center;">
-          ${it.value?`<div class="tfuVal" style="margin-top:0;">${fmtGBP2(it.value)}</div>`:'<span style="color:var(--text3);">—</span>'}
-          ${(it.left!==null&&it.left>=0&&it.left<=7)?`<div class="tfuClock" style="color:#ef4444;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.5);">${it.left}d to claim</div>`:(it.left!==null&&it.left>=0)?`<div class="tfuClock" style="color:#94a3b8;background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.3);">${it.left}d to claim</div>`:''}
-        </td>
-        <td style="text-align:center;">
-          <span style="font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:2px 8px;border-radius:9px;color:${it.type[1]};background:${it.type[1]}1a;border:1px solid ${it.type[1]}50;white-space:nowrap;" title="${esc(it.type[2])}">${it.type[0]}</span>
-          <div style="font-size:10.5px;font-weight:700;color:var(--text);margin-top:4px;white-space:normal;line-height:1.35;">${it.why}</div>
-        </td>
-        <td style="vertical-align:middle;">
-          ${it.note?`<div class="tfuRaiseNote" title="What was written when it was raised or sent">&ldquo;${esc(it.note)}&rdquo;</div>`:''}
-          ${it.fix?`<div class="tfuRaiseNote" style="color:#93c5fd;border-left-color:#60a5fa;">She suggests: ${esc(it.fix)}</div>`:''}
-          ${it.expDate?(()=>{const aw=Math.round((new Date(it.expDate)-new Date())/864e5);const ds=new Date(it.expDate).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
-            return `<div class="stExp" style="color:${aw<0?'#f87171':'#4ade80'};">&#128197; expected ${ds}${aw<0?` — slipped ${Math.abs(aw)}d ago`:aw===0?' — today':` — in ${aw}d`}</div>`;})():''}
-          ${(()=>{const _cl=(it.clog||[]).slice().reverse();if(!_cl.length)return '';const _open=_stOpen.has('jk:'+String(it.id));
-            const _line=L=>`<div class="stLog"><span class="stLogWhen">${esc(_logWhen(L.at))}</span>${L.by?` · <b>${esc(L.by)}</b>`:''} — ${esc(L.what||'')}</div>`;
-            return (_open?_cl.map(_line).join(''):_line(_cl[0]))+(_cl.length>1?`<button class="stMore" data-rid="jk:${esc(String(it.id))}" onclick="stToggle(this,event)">${_open?'&#9652; Less':'&#9662; More · '+(_cl.length-1)+' earlier'}</button>`:'');})()}
-          ${it.kind==='claim'?`<div class="stExp" style="color:var(--text2);">${it.raisedDays!=null?`gated/raised ${it.raisedDays}d ago`:''}${it.units?` · ${fmt(it.units)} unit${it.units===1?'':'s'}`:''}${it.perUnit?` · ${fmtGBP2(it.perUnit)}/unit`:''}${it.acct?` · ${esc(it.acct)}`:''}</div>`:''}
-          ${(it.claimLog&&it.claimLog.length)?it.claimLog.map(L=>`<div class="stLog"><span class="stLogWhen">${esc(String(L.t||'').slice(0,17))}</span> — ${esc(L.msg||'')}</div>`).join(''):''}
-          ${it.na?`<div class="stNext">&#10132; ${esc(it.na)}</div>`:''}
-          ${(()=>{/* Jack, 7 Sep: "I can't see her message" — the packing note and VA note live on the row, so they show here */
-            if(it.kind==='claim'||it.kind==='lav')return '';const r=_rowById(it.id);if(!r)return '';
-            return (r.notes?`<div class="tfuRaiseNote" style="border-left-color:#fbbf24;color:#fde68a;" title="Packing note${r.notesBy?' — '+esc(r.notesBy):''}">&#128230; ${esc(r.notes)}</div>`:'')
-              +(r.vaNote?`<div class="tfuRaiseNote" style="border-left-color:#60a5fa;color:#93c5fd;" title="VA note${r.vaNoteBy?' — '+esc(r.vaNoteBy):''}">VA: ${esc(String(r.vaNote).slice(0,180))}${String(r.vaNote).length>180?'…':''}</div>`:'');})()}
-          ${(!it.note&&!it.fix&&!(it.clog&&it.clog.length)&&!(it.claimLog&&it.claimLog.length)&&!it.expDate&&it.kind!=='claim')?`<div style="font-size:10.5px;color:var(--text3);font-weight:600;">Nothing written yet</div>`:''}
-          <button class="stMore" style="margin-top:5px;" onclick="jkStory('${it.kind}','${esc1(String(it.id))}')" title="Everything on this one — order, units, notes, every step, who and when">&#9656; Full story</button>
-        </td>
-        <td style="text-align:center;">
-          ${(()=>{const _w=(String(it.acts).match(/<div class="jkWhere">[\s\S]*?<\/div>/)||[''])[0];
-            const _b=(it.acts.match(/<button[\s\S]*?<\/button>/g)||[]);
-            /* Jack, 9 Sep: "we're not saving an action by hiding it behind
-               More — and the expanded drop-down looks shit." Every answer is on
-               the row now, on every card type, so the page behaves the same way
-               throughout. */
-            return _w+`<div class="csActs">${_b.join('')}</div>`;
-            /* eslint-disable-next-line no-unreachable */
-            if(_b.length<=2)return _w+`<div class="csActs jkMove">${it.acts.replace(_w,'')}</div>`;
-            /* Jack, 9 Sep: "it expanded, then glitched and collapsed again —
-               I don't want rows or buttons moving while somebody is working on
-               them." It was a bare class toggle with nothing remembering it, so
-               the next repaint — a realtime update, anyone else saving a row,
-               the 60-second tick — rebuilt the card closed. The open ones are
-               remembered by row id and re-applied, the same way the Full story
-               and More panels already are. */
-            const _mo=_jkOpen.has(String(it.id));
-            return _w+`<div class="csActs jkMove${_mo?' open':''}">${_b.slice(0,2).join('')}<span class="jkRest">${_b.slice(2).join('')}</span><button class="csAct plain jkMoreBtn" onclick="jkMoreTog(this,'${esc1(String(it.id))}')">${_mo?'less &#9652;':'more &#9662;'}</button></div>`;})()}
-        </td>
-      </tr>`;
+  /* Jack, 10 Sep: "looks a mess — you're gonna have to redesign it." Eight
+     table columns with a six-button stack in the last one: every row grew to
+     the height of the stack, and the middle was empty. Now one card per item,
+     three panels — what it is, what has happened, what you do — with the
+     answers in two columns so six of them take three lines, not six. */
+  const _jkRow=(it,x)=>{
+    const late=it.wait>=2&&it.kind!=='fix'&&!it.noNag;
+    const _w=(String(it.acts).match(/<div class="jkWhere">[\s\S]*?<\/div>/)||[''])[0];
+    const _b=(String(it.acts).match(/<button[\s\S]*?<\/button>/g)||[]);
+    const _cl=(it.clog||[]).slice().reverse();const _open=_stOpen.has('jk:'+String(it.id));
+    const _line=L=>`<div class="stLog"><span class="stLogWhen">${esc(_logWhen(L.at))}</span>${L.by?` · <b>${esc(L.by)}</b>`:''} — ${esc(L.what||'')}</div>`;
+    const _r=(it.kind==='claim'||it.kind==='lav')?null:_rowById(it.id);
+    const _story=[
+      it.note?`<div class="tfuRaiseNote" title="What was written when it was raised or sent">&ldquo;${esc(it.note)}&rdquo;</div>`:'',
+      it.fix?`<div class="tfuRaiseNote" style="color:#93c5fd;border-left-color:#60a5fa;">She suggests: ${esc(it.fix)}</div>`:'',
+      it.expDate?(()=>{const aw=Math.round((new Date(it.expDate)-new Date())/864e5);const ds=new Date(it.expDate).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+        return `<div class="stExp" style="color:${aw<0?'#f87171':'#4ade80'};">&#128197; expected ${ds}${aw<0?` — slipped ${Math.abs(aw)}d ago`:aw===0?' — today':` — in ${aw}d`}</div>`;})():'',
+      _cl.length?(_open?_cl.map(_line).join(''):_line(_cl[0]))+(_cl.length>1?`<button class="stMore" data-rid="jk:${esc(String(it.id))}" onclick="stToggle(this,event)">${_open?'&#9652; Less':'&#9662; More · '+(_cl.length-1)+' earlier'}</button>`:''):'',
+      it.kind==='claim'?`<div class="stExp" style="color:var(--text2);">${it.raisedDays!=null?`gated/raised ${it.raisedDays}d ago`:''}${it.units?` · ${fmt(it.units)} unit${it.units===1?'':'s'}`:''}${it.perUnit?` · ${fmtGBP2(it.perUnit)}/unit`:''}</div>`:'',
+      (it.claimLog&&it.claimLog.length)?it.claimLog.map(L=>`<div class="stLog"><span class="stLogWhen">${esc(String(L.t||'').slice(0,17))}</span> — ${esc(L.msg||'')}</div>`).join(''):'',
+      it.na?`<div class="stNext">&#10132; ${esc(it.na)}</div>`:'',
+      (_r&&_r.notes)?`<div class="tfuRaiseNote" style="border-left-color:#fbbf24;color:#fde68a;" title="Packing note${_r.notesBy?' — '+esc(_r.notesBy):''}">&#128230; ${esc(_r.notes)}</div>`:'',
+      (_r&&_r.vaNote)?`<div class="tfuRaiseNote" style="border-left-color:#60a5fa;color:#93c5fd;" title="VA note${_r.vaNoteBy?' — '+esc(_r.vaNoteBy):''}">VA: ${esc(String(_r.vaNote).slice(0,220))}${String(_r.vaNote).length>220?'…':''}</div>`:''
+    ].filter(Boolean).join('');
+    return `<tr class="jkCardRow${late?' jkLate':''}"><td colspan="8">
+      <div class="jkCard" style="border-left-color:${it.type[1]};">
+        <div class="jkC1">
+          <div class="jkTop">
+            <span class="jkNum">${x+1}</span>
+            <span class="jkType" style="color:${it.type[1]};background:${it.type[1]}1a;border-color:${it.type[1]}50;" title="${esc(it.type[2])}">${it.type[0]}</span>
+            <span class="jkBy"><b>${esc(it.by)}</b> · ${it.wait===0?'today':it.wait+'d ago'}</span>
+          </div>
+          <div class="jkProd" title="${esc(it.prod||'')}">${esc(it.prod)}</div>
+          ${(it.sku||it.asin)?`<div class="jkIds">${it.sku?`<span onclick="copyVal('${esc1(it.sku)}',this)" title="Click to copy">${esc(it.sku)}</span>`:''}${it.asin?`<span class="s-asin" style="font-size:10.5px;" onclick="copyVal('${esc1(it.asin)}',this)" title="Click to copy">${esc(it.asin)}</span>`:''}</div>`:''}
+          <div class="jkOrd">${esc(it.sup||'—')}${it.oid?` · <span class="tfuOid" title="Click to copy" onclick="copyVal('${esc1(it.oid)}',this)">${esc(it.oid)}</span>`:''}${it.acct?` <span class="tfuAcct">${esc(it.acct)}</span>`:''}</div>
+          ${it.age?`<div class="jkAge">Ordered ${it.odate?esc(it.odate)+' &middot; ':''}${it.age.days} day${it.age.days===1?'':'s'} ago${it.age.late>0?` &middot; <b style="color:#f87171;">${it.age.late} day${it.age.late===1?'':'s'} past the ${it.age.clock}-day late clock</b>`:it.age.late===0?' &middot; <b style="color:#fbbf24;">hits the late clock today</b>':` &middot; ${Math.abs(it.age.late)} day${Math.abs(it.age.late)===1?'':'s'} before it counts as late`}</div>`:''}
+          <div class="jkMoney">${it.value?`<span class="tfuVal">${it.owedU?`<span class="jkUnits">${fmt(it.owedU)} unit${it.owedU===1?'':'s'}</span> `:''}${fmtGBP2(it.value)}</span>`:'<span style="color:var(--text3);font-size:12px;">no money at stake</span>'}
+            ${(it.left!==null&&it.left>=0&&it.left<=7)?`<span class="tfuClock" style="color:#ef4444;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.5);" title="The Amazon claim window on this order — it closes ${it.left===0?'today':'in '+it.left+' day'+(it.left===1?'':'s')}">${_claimWords(it.left)}</span>`:(it.left!==null&&it.left>=0)?`<span class="tfuClock" style="color:#94a3b8;background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.35);" title="The Amazon claim window on this order — it closes in ${it.left} days">${_claimWords(it.left)}</span>`:(it.left!==null&&it.left<0)?`<span class="tfuClock" style="color:#f87171;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.4);">claim window shut</span>`:''}</div>
+          ${late?`<div class="jkNag">Waiting on you for ${it.wait} days</div>`:''}
+        </div>
+        <div class="jkC2">
+          <div class="jkWhy">${it.why}</div>
+          <div class="jkWhySub">${esc(it.type[2])}</div>
+          ${_story||`<div style="font-size:10.5px;color:var(--text3);font-weight:600;">Nothing written yet</div>`}
+          <button class="stMore" style="margin-top:8px;" onclick="jkStory('${it.kind}','${esc1(String(it.id))}')" title="Everything on this one — order, units, notes, every step, who and when">&#9656; Full story</button>
+        </div>
+        <div class="jkC3">
+          ${_w}
+          <div class="csActs">${_b.join('')}</div>
+        </div>
+      </div>
+    </td></tr>`;};
   /* Jack, 5 Sep: "a grey done line for the rest of the day" + the 48-hour undo
      Sarah has. Approvals he made in the last 48 working hours can be pulled
      back; answers he gave today are listed so he can see what he dealt with. */
@@ -11329,17 +11378,7 @@ function renderJack(){
          full; the sticky header still sticks, just to the outer one. */''}
     <div class="tfuScroll" style="margin:0;max-height:none;overflow:visible;">
     <table class="tfu">
-      <thead><tr>
-        <th style="width:2%;text-align:center;">#</th>
-        <th style="width:17%;">Product</th>
-        <th style="width:10%;text-align:center;">Supplier / order</th>
-        <th style="width:6%;text-align:center;">From</th>
-        <th style="width:7%;text-align:center;">Money</th>
-        <th style="width:11%;text-align:center;">What's wrong</th>
-        <th style="width:30%;" title="The row's story — what Sarah has done so far, the note she sent, and any promised date. The same log her page shows.">Latest</th>
-        <th style="width:17%;text-align:center;">Your move</th>
-      </tr></thead>
-      <tbody>
+      <tbody class="jkCards">
       ${needs.map(_jkRow).join('')}
       </tbody>
     </table>
@@ -11436,7 +11475,7 @@ function jackAnsSend(){
   if(!t||t.value.trim().length<3)return;
   const rid=_askRid,ans=t.value.trim();
   askShut();
-  jackAnswered(rid,ans);
+  jackAnswered(rid,ans,{fromNote:true});
 }
 
 // ── ASK JACK TO CHECK ─────────────────────────────────────────────────────────
@@ -11462,7 +11501,7 @@ const ASK_REASONS=[
 ];
 const ASK_FREE='Something else — I’ll explain below';
 function askShut(){const el=document.getElementById('askModal');if(el)el.style.display='none';_askRid=null;}
-function askJackAsk(rid){
+function askJackAsk(rid,pick){
   const r=_rowById(rid);if(!r){toast('Row not found','er');return;}
   _askRid=rid;
   let el=document.getElementById('askModal');
@@ -11492,6 +11531,7 @@ function askJackAsk(rid){
       <button class="srtGo" id="askGo" onclick="askSend()">Send to Jack</button>
     </div></div>`;
   el.style.display='flex';
+  if(pick==='free'){const fr=[...el.querySelectorAll('input[name="askWhy"]')].find(x=>x.value===ASK_FREE);if(fr)fr.checked=true;}
   askNoteCheck();
   setTimeout(()=>{const t=document.getElementById('askNote');if(t)t.focus();},60);
 }
@@ -11641,13 +11681,36 @@ function jackNoSplit(rid,btn){
    It asks about the units that have NOT turned up instead, every button says
    how many, and every common answer is one press: the sub-questions that used
    to live behind "Rest isn't coming" are buttons of their own. */
+/* Jack, 10 Sep: "give me how many days the issue has been going on for —
+   e.g. 2 days into the late period." Days since the order date, and how far
+   past the late clock it is. */
+/* Jack, 10 Sep: "0d to claim made me think it had gone to 0 to claim." The
+   number alone read as "nothing to claim". Words, the same words everywhere:
+   the clock is Amazon's claim window on the order and it never removes a row. */
+function _claimWords(left){
+  if(left===null||left===undefined||isNaN(left))return '';
+  if(left<0)return 'claim window shut';
+  if(left===0)return 'last day to claim';
+  if(left===1)return '1 day left to claim';
+  return left+' days left to claim';
+}
+function _ordAge(r){
+  try{
+    const today=new Date();let d=null;
+    if(r&&r.date){const[dd,mm]=String(r.date).split('/');if(dd&&mm){d=new Date(`${today.getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);if(!isNaN(d)&&d>today)d.setFullYear(d.getFullYear()-1);}}
+    if(!d||isNaN(d))return null;
+    const days=Math.floor((today-d)/864e5);
+    const after=(r.subSave==='Yes')?TM.ssLateDays:TM.lateDays;
+    return{days,late:days-after,clock:after};
+  }catch(e){return null;}
+}
 function _jkCheckActs(r,_id){
   const exp=parseInt(r.exp)||0,got=parseInt(r.rcvd)||0;
   const owe=_owedUnits(r)||Math.max(0,exp-got);
   const amz=(typeof _amazonRow==='function')&&_amazonRow(r);
   const who=amz?'Amazon':'the supplier';
   const B=[];
-  B.push(`<div class="jkWhere">${got>0?`${fmt(got)} of ${fmt(exp)} booked in &mdash; what happened to the other <b>${fmt(owe)}</b>?`:`Nothing booked in &mdash; what happened to all <b>${fmt(exp)}</b>?`}<br>None of these close the row; your answer goes back to Sarah.</div>`);
+  B.push(`<div class="jkWhere"><b class="jkQ">${got>0?`${fmt(got)} of ${fmt(exp)} booked in &mdash; what happened to the other ${fmt(owe)}?`:`Nothing booked in &mdash; what happened to all ${fmt(exp)}?`}</b><span class="jkQsub">None of these close the row &mdash; your answer goes back to Sarah.</span></div>`);
   B.push(`<button class="csAct good" onclick="jackAnswered('${_id}','Arrived — YES, the account shows it delivered.')" title="The account shows the full order delivered, so the missing ${fmt(owe)} are somewhere. Sarah checks the wrong SKU next, then Becki the shelves.">All ${fmt(exp)} were delivered</button>`);
   if(got>0){
     B.push(`<button class="csAct warn" onclick="jackRestGoneSend('${_id}','cancelled')" title="${who} cancelled or refunded them — the money is back by itself. Sarah gets one button: note the sheet and close it.">The other ${fmt(owe)} ${owe===1?'was':'were'} cancelled or refunded</button>`);
@@ -11726,6 +11789,8 @@ async function jackAnswered(rid,answer,extra){
        resolution so Sarah's page can offer the one press that follows from it;
        a plain answer clears any earlier one */
     restGone:(extra&&extra.restGone)||undefined,
+    /* typed by him rather than pressed — a request for her, not a finding */
+    jackNote:!!(extra&&extra.fromNote)||undefined,
     rejectedBy:_who(),rejectNote:answer,at:new Date().toISOString()});
   /* A YES/NO delivery answer is also a triage FACT — write it to the row so
      Sarah's card moves straight to the next step (wrong SKU?) rather than
@@ -12011,6 +12076,7 @@ function queryBalance(rid,how){
     async()=>{
       r.cancelledQty=(parseInt(r.cancelledQty)||0)+short;
       if(r.transitAction==='Late — Needs Chasing')r.transitAction='';
+      try{_statusFollowsStock(r);}catch(e){}
       _qryReplyNote(r,refunded?`the other ${short} ${short===1?'was':'were'} refunded — nothing more is coming.`:`the supplier cancelled the other ${short} — nothing more is coming.`);
       _qryClose(r,refunded?'refunded':'cancelled',refunded?'query-refunded':'query-cancelled',
         refunded?`Answered the warehouse — the ${short} short already refunded, recorded as cancelled`:`Answered the warehouse — supplier cancelled the other ${short}`);
@@ -13511,7 +13577,9 @@ function nowQueue(){
       cancelled:i.cancelled,outstanding:i.outstanding,value:i.value||0,
       stale,left};
     if(left!==null&&left>=0&&left<=REFUND_DAYS/2)push({...base,band:'refund',age:REFUND_DAYS-left,
-      line:left<=7
+      line:left===0
+        ? `Last day to claim — the window shuts tonight`
+        : left<=7
         ? `Only ${left} day${left===1?'':'s'} left to claim — this is how the last lot were lost`
         : `${left} days left to claim — worth doing now while there is still time`});
     else if(r.delivered==='Yes'&&!r.resolution)push({...base,band:'arrived',age:stale,
@@ -14009,7 +14077,7 @@ function renderAdmin(){
               <div class="tfuProd2" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</div>
               ${i.sku?`<div class="s-sku" onclick="copyVal('${(i.sku||'').replace(/'/g,"\\'")}',this)" style="font-size:10.5px;font-weight:700;letter-spacing:.03em;white-space:normal;overflow-wrap:anywhere;display:block;text-align:left;margin-top:6px;" title="Click to copy">${i.sku}</div>`:''}
               ${i.asin?`<div style="margin-top:7px;text-align:left;"><span class="s-asin" onclick="copyVal('${i.asin}',this)" style="font-size:10.5px;opacity:.85;">${i.asin}</span></div>`:''}
-              ${sentBack?`<div class="tfuBack" title="${esc(sentBack.rejectNote||'')}">&#8617; <b>${esc(sentBack.rejectedBy||'Jack')}</b>${sentBack.rejectNote?' — '+esc(sentBack.rejectNote):' sent it back'}</div>`:''}
+              ${sentBack?`<div class="tfuBack tfuBackChip${sentBack.jackNote?' req':''}" title="${esc(sentBack.rejectNote||'')}">&#8617; <b>${esc(sentBack.rejectedBy||'Jack')}</b> ${sentBack.jackNote?'needs a check':'answered'}${sentBack.at?' · '+esc(_logWhen(sentBack.at)):''} &mdash; see Triage</div>`:''}
               ${waiting?`<div class="tfuWait">${waiting.state==='asked'?'Asked Jack to check':'Sent to Jack — awaiting decision'}${waiting.at?` · ${noteAgo(waiting.at)}`:''}<span>${esc(waiting.state==='asked'?(waiting.ask||'Amazon order check'):_resText(waiting.what))}</span></div>`:''}
               ${i.draft?`<div class="tfuDraftChip" title="${esc((i.draft.by||'Someone')+' started closing this off')}">Part done — ${esc(i.draft.by||'someone')} saved it ${esc(noteAgo(i.draft.at))}<span>${esc(_resText(i.draft.what))}</span></div>`:''}
             </td>
@@ -14073,7 +14141,7 @@ function renderAdmin(){
                 const c=L<0?'#f87171':(L<=7?'#fbbf24':'#4ade80');
                 return`<div class="tfuClock" style="color:${c};background:${c}1a;border:1px solid ${c}55;"
                   title="${REFUND_DAYS}-day refund window from the order date">${
-                  L<0?`refund gone ${Math.abs(L)}d`:`${L}d to claim`}</div>`;})()}
+                  _claimWords(L)}</div>`;})()}
 
             </td>
             <td>
@@ -14158,6 +14226,20 @@ function renderAdmin(){
                   const arrivedYes=!notComing&&/arrived\s*[—-]\s*yes|shows it delivered|delivered/i.test(a);
                   const short=i.outstanding||Math.max(0,(i.units||0)-(i.got||0));
                   const _amzR=_amazonRow(_rowById(i.rid));
+                  /* Jack, 10 Sep: he typed "please double-check this… then
+                     send the evidence back to me" and her page called it an
+                     ANSWER with a green close button. A typed note is a job. */
+                  if(sentBack.jackNote){
+                    return `<div class="csNow">
+                      <div class="csNowCap" style="color:#fbbf24;">Jack needs you to check</div>
+                      <div class="csNowTxt jkReq" title="${esc(a)}">${esc(a)}</div>
+                      <div class="csActs">
+                        <button class="csAct good" onclick="askJackAsk('${i.rid}','free')" title="Write what you found and send it to Jack — it lands on his page with your evidence">Send what I found to Jack</button>
+                        ${_amzR?`<button class="csAct go" onclick="amzToBecki('${i.rid}')" title="Becki checks the shelves, back stock and anywhere else. It comes back with her answer.">Ask Becki to check the shelves</button>`:''}
+                        <button class="csAct plain" onclick="openSorted('${i.rid}')" title="The full Close-off popup — every outcome">Close it off another way&hellip;</button>
+                      </div>
+                    </div>`;
+                  }
                   if(sentBack.restGone){
                     const rg=sentBack.restGone;
                     return `<div class="csNow">
@@ -14201,7 +14283,7 @@ function renderAdmin(){
                         <button class="csAct good" onclick="openSorted('${i.rid}','refund-done')">Refund being processed &mdash; done</button>
                         <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')">Supplier cancelled the rest</button>`}
                       ${_amzR?'':`<button class="csAct plain" onclick="refundWait('${i.rid}')" title="They have promised a refund — park it two days and come back to check the emails">Refund promised &mdash; check emails in 2 days</button>`}
-                      ${_amzR?'':`<button class="csAct plain" onclick="openSorted('${i.rid}')" title="The full Close-off popup — every outcome, including a wrong quantity on the sheet">Close it off another way&hellip;</button>`}
+                      <button class="csAct plain" onclick="openSorted('${i.rid}')" title="The full Close-off popup — every outcome, including a wrong quantity on the sheet">Close it off another way&hellip;</button>
                     </div>
                   </div>`;
                 }
@@ -14291,12 +14373,12 @@ function renderAdmin(){
                        send to Jack" on rows he had already answered. His answer
                        is the latest line; the next move follows from it. */
                     const _a=String(sentBack.rejectNote||'');
-                    const _rg=!!sentBack.restGone;
-                    const _nc=!_rg&&/not arrived|nothing coming|cancel/i.test(_a);
+                    const _rg=!!sentBack.restGone,_jn=!!sentBack.jackNote;
+                    const _nc=!_rg&&!_jn&&/not arrived|nothing coming|cancel/i.test(_a);
                     const _ay=!_nc&&/arrived\s*[—-]\s*yes|shows it delivered|delivered/i.test(_a);
-                    state='JACK ANSWERED';scol='#f87171';
-                    last=(sentBack.rejectedBy||'Jack')+' — '+_a+(sentBack.at?' · '+lw(sentBack.at):'');
-                    next=_rg?'Note the sheet and close it — one press (left)':isAmz
+                    state=_jn?'JACK NEEDS A CHECK':'JACK ANSWERED';scol=_jn?'#fbbf24':'#f87171';
+                    last=(_jn?'Asked':'Answered')+(sentBack.at?' · '+lw(sentBack.at):'')+(_jn?' — what he needs is in Triage':' — his answer is in Triage');
+                    next=_jn?'Do the check, then send what you found to Jack (left)':_rg?'Note the sheet and close it — one press (left)':isAmz
                       ?(_nc?'Amazon refund it themselves — note the sheet and close it (left)':_ay?'Answer “wrong SKU?” on the left':'Record his answer and close it off (left)')
                       :(_nc?'Close it as cancelled or never arrived (left)':_ay?'Answer “wrong SKU?” on the left':'Pick the move that follows from his answer (left)');
                   }
@@ -14402,7 +14484,7 @@ function renderAdmin(){
                    the one that costs money in red. */
                 const _facts=[];
                 if(i.kind==='transit'||i.kind==='lavlate'){const _wq=i.wentAsQty||0,_cq=Math.max(0,(i.cancelled||0)-_wq);
-                  _facts.push(['Units',`${fmt(i.units)} ordered &middot; ${fmt(i.got)} in &middot; ${fmt(i.outstanding)} still out${_cq?' &middot; '+fmt(_cq)+' cancelled':''}${_wq?' &middot; '+fmt(_wq)+' went out as '+(i.wentAs?esc(i.wentAs):'another SKU'):''}`]);}
+                  _facts.push(['Units',`${fmt(i.units)} ordered${i.qtyFix?` <span style="color:#fbbf24;">(sheet said ${fmt(i.qtyFix.from)} &mdash; corrected by ${esc(i.qtyFix.by||'Jack')})</span>`:''} &middot; ${fmt(i.got)} in &middot; ${fmt(i.outstanding)} still out${_cq?' &middot; '+fmt(_cq)+' cancelled':''}${_wq?' &middot; '+fmt(_wq)+' went out as '+(i.wentAs?esc(i.wentAs):'another SKU'):''}`]);}
                 if(i.kind==='claim'||i.kind==='lav')_facts.push(['Units',`${fmt(i.units)} affected`]);
                 if(i.oid)_facts.push(['Order',esc(i.oid)+(i.acct?' <span style="color:var(--text3);">&middot; '+esc(i.acct)+'</span>':'')]);
                 if(i.sup)_facts.push(['Supplier',esc(i.sup)+(i.source?' <span style="color:var(--text3);">&middot; from the '+esc(i.source)+'</span>':'')]);
@@ -14427,6 +14509,7 @@ function renderAdmin(){
                   :`<button class="stMore" data-rid="${_ridAttr}" onclick="stToggle(this,event)">&#9662; More${_all.length>1?' · '+(_all.length-1)+' earlier':''}${_notes.length?' · notes':''}</button>`);
                 return `<div class="standBox" style="border-left-color:${scol};">
                   <div class="stState" style="color:${scol};">${state}</div>
+                  ${i.qtyFix?`<div class="stFixNote" title="${esc(i.qtyFix.why||'')}"><b>${esc(i.qtyFix.by||'Jack')} corrected the quantity${i.qtyFix.at?' · '+esc(lw(i.qtyFix.at)):''}:</b> the sheet said <b>${fmt(i.qtyFix.from)}</b>, only <b>${fmt(i.qtyFix.to)}</b> were ordered. ${(String(i.sku||'').match(/_(\d+)$/)||[])[1]===String(i.qtyFix.from)?`The SKU still ends in <b>_${fmt(i.qtyFix.from)}</b> and the Purchase Sheet still says ${fmt(i.qtyFix.from)} &mdash; both need changing to ${fmt(i.qtyFix.to)}.`:`The Purchase Sheet still says ${fmt(i.qtyFix.from)} &mdash; change it to ${fmt(i.qtyFix.to)}.`}${i.qtyFix.why?` <i>&ldquo;${esc(i.qtyFix.why)}&rdquo;</i>`:''}</div>`:''}
                   ${expLine}
                   ${hist||(last?`<div class="stLast">${(i.wentAs&&/<b>/.test(last))?last:esc(last)}</div>`:'')}
                   ${next?`<div class="stNext">&#10132; ${esc(next)}</div>`:''}
@@ -14458,6 +14541,12 @@ function renderAdmin(){
                   i.kind==='claim'?`openClaimCase('${i.claimId}')`:
                   i.kind==='lav'?`openLavIssue('${esc1(i.lavKey)}')`:
                   `openWork('${i.rid}')`}" title="Everything on this issue — it is locked while Jack has it">Details</button>`;
+                /* Jack, 10 Sep: on a row he has just answered, Triage already
+                   holds the one close that follows from his answer — a second
+                   Sorted and a Send to Jack beside it were noise. */
+                if(i.kind==='transit'&&sentBack)return `<button class="tfuMore" onclick="openWork('${i.rid}')" title="The full issue — source, notes, dates, history">Details</button>
+                  <button class="tfuMore" onclick="askJackAsk('${i.rid}')" title="Something else for Jack on this one">Ask Jack again</button>
+                  ${i.claimId?`<button class="tfuMore" style="border-color:rgba(251,191,36,.5);color:#fcd34d" onclick="openClaimCase('${i.claimId}')" title="The claim on this same order — chase it here">Claim &#163;${(i.claimVal||0).toFixed(2)}</button>`:''}`;
                 if(i.kind==='transit')return `<button class="tfuWork" onclick="openSorted('${i.rid}')" title="Close it off — the popup opens already filled in with everything recorded">Sorted</button>
                   <button class="tfuAsk" onclick="askJackAsk('${i.rid}')" title="${isAmz?'Amazon order — only Jack can see this account':'Hand it to Jack — the row goes grey until he answers'}">Send to Jack</button>
                   <button class="tfuMore" onclick="openWork('${i.rid}')" title="The full issue — source, notes, dates, history">Details</button>
@@ -18344,7 +18433,8 @@ function sortTable(field){
 // Update diff cell instantly without full re-render
 function updateDiffCell(id,rcvd,exp){
   const td=document.getElementById('diff-'+id);if(!td)return;
-  const diff=exp-rcvd;
+  const _r=rows.find(x=>String(x.id)===String(id)||x.uuid===String(id));
+  const diff=exp-(parseInt(_r&&_r.cancelledQty)||0)-rcvd;
   if(rcvd===0){td.innerHTML='<span class="nt-wait" title="Nothing booked in yet — this is not a discrepancy">none in</span>';return;}
   if(diff===0)td.innerHTML='<span class="nt nt-ok" style="font-family:Arial,sans-serif;">✓</span>';
   else if(diff>0)td.innerHTML=`<span class="nt nt-bad">-${diff}</span>`;
@@ -25650,7 +25740,7 @@ setInterval(()=>{updateClock();paintSyncAge();},60000);
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v48.2 · lav3 · 2026-09-10 · b542';
+const BUILD='v49.2 · lav3 · 2026-09-10 · b552';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -27800,7 +27890,7 @@ function _plannerTable(az,buys,gaps,fba,saf,setBox){
       <span class="plnState" style="color:${col};border-color:${col}55;background:${col}1a;">${st}</span>
       <span class="plnBtns">${(!onway&&!skip&&L.buyQty>0)?`<button class="btn sm pri" onclick="LV3.openLogOrder('${L.o.id}')">Log order</button><button class="btn sm ghost" title="Not buying this again — until its stock changes" onclick="LV3.buySkipSet('${L.o.id}','skip')">Not reordering</button>`:''}${skip?`<button class="btn sm ghost" onclick="LV3.buySkipSet('${L.o.id}','clear')">Bring back</button>`:''}</span></div>`;};
   const bHead=`<div class="plnRow plnHead plnB"><span class="plnName">Part</span><span class="plnNum">On hand</span><span class="plnNum">On order</span><span class="plnNum">Buy</span><span class="plnNum">Cost</span><span class="plnState plnHeadState">When</span><span class="plnBtns"></span></div>`;
-  return `<div style="max-width:1180px;margin:0 auto;">
+  return `<div style="max-width:none;margin:0;">
     <div class="plnStrip"><span><b style="color:#ef4444">${fmt(M.oosBlocked.length)}</b> empty at Amazon</span><span><b style="color:#4ade80">${fmt(M.send.length)}</b> to send · ${fmt(M.sendUnits)} units</span><span><b style="color:#fbbf24">${fmt(M.buys.length)}</b> part${M.buys.length===1?'':'s'} to order · ${gbp(M.buyCost)}</span>
       <span class="ovDim" style="margin-left:auto;font-size:11.5px;">cover = days until the Amazon shelf empties, counting inbound that lands in time · trigger at <b>${trig}d</b> (${fba} FBA + ${saf} safety)</span></div>
     <div class="panel"><div class="ph"><span class="t">Products</span><span class="sub">${fmt(live.length)} need watching · ${fmt(safe.length)} safe · click a row for the working</span></div>
@@ -31154,11 +31244,29 @@ function reviewOrders(){
 function reviewPanel(){
   const orders=reviewOrders();
   const dupes=staleDupes();
-  const dupStrip=dupes.length?`<div class="panel" id="dupStrip" style="border-color:var(--red)">
+  /* Becki, 10 Sep: "my only option is to remove them… it should flag anything
+     that could be a possible duplicate but then that is for us to say yes or
+     no to. Once answered it should not show up again." The strip only ever
+     offered Remove. Each line now gets both answers, and Keep is remembered
+     on the line (dupCheck.answered) so it never comes back. */
+  const dupStrip=dupes.length?`<div class="panel" id="dupStrip" style="border-color:var(--red);display:block;">
     <div class="ph" style="align-items:center">
       <span class="t" style="color:var(--red)">${fmt(dupes.length)} possible duplicate${dupes.length===1?'':'s'} — your call</span>
       <span class="sub">Same day, quantity, price and supplier as an order you have <b>already linked</b>, but the name is spelt slightly differently — so this app cannot be certain whether it is a copy or a second real purchase, and will not guess. <b>Exact</b> copies are now deleted on their own; only these need an eye. Removing them changes nothing on the Google Sheet.<br>${esc(dupes.slice(0,3).map(x=>x.p.name).join(', '))}${dupes.length>3?` and ${dupes.length-3} more`:''}</span>
-      <div class="r"><button class="btn sm dgr" onclick="LV3.dropDupes()">Remove ${dupes.length===1?'it':'all '+fmt(dupes.length)}</button></div>
+      <div class="r"><button class="btn sm go" title="None of these are copies — keep every one and stop asking" onclick="LV3.dupKeepAll()">Keep ${dupes.length===1?'it':'all '+fmt(dupes.length)}</button>
+        <button class="btn sm dgr" title="Every one of these is the same purchase written twice — remove the copies" onclick="LV3.dropDupes()">Remove ${dupes.length===1?'it':'all '+fmt(dupes.length)}</button></div>
+    </div>
+    <div style="padding:2px 12px 12px;display:flex;flex-direction:column;gap:6px;">
+      ${dupes.map(x=>`<div class="dupLine">
+        <div style="min-width:0;">
+          <div class="dupName">${esc(x.p.name)}</div>
+          <div class="dupMeta">${fmt(x.p.qty)} @ ${gbp(x.p.price)} &middot; ${esc(x.p.sup||'—')} &middot; ${dshort(x.p.date)}${x.p.oid?` &middot; order <b>${esc(x.p.oid)}</b>`:' &middot; <i>no order number</i>'}</div>
+          <div class="dupMeta">looks like: <b>${esc(x.twin.name)}</b>${x.twin.oid?` &middot; order <b>${esc(x.twin.oid)}</b>`:' &middot; <i>no order number</i>'}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none;">
+          <button class="btn sm go" title="A second real purchase — keep it and never ask again" onclick="LV3.mergeKeepBoth('${x.p.id}')">Not a duplicate</button>
+          <button class="btn sm dgr" title="The same purchase written on the sheet twice — remove this copy. The sync will not bring it back." onclick="LV3.dropOneDupe('${x.p.id}')">Remove this copy</button>
+        </div></div>`).join('')}
     </div></div>`:'';
   if(!orders.length)return dupStrip;   /* the strip already says 0 · all linked */
   const lines=orders.reduce((t,o)=>t+o.lines.length,0);
@@ -32521,7 +32629,15 @@ function dupTwin(p){
   if(p&&p.dupCheck&&p.dupCheck.answered==='separate')return null;
   const st=allocState(p).k;
   if(st!=='none'&&st!=='broken')return null;
+  /* Becki, 10 Sep: "they do all have different order IDs so not sure why it
+     hasn't read that anyway." Right — one purchase has one order number. If
+     both lines carry one and they differ, they are two purchases and there is
+     nothing to ask about. Only lines with no order number, or the same one,
+     can be copies of each other. */
+  const _oid=x=>String((x&&x.oid)||'').trim().toLowerCase();
+  const _po=_oid(p);
   return D.purchases.find(q=>q.id!==p.id
+    && !(_po&&_oid(q)&&_oid(q)!==_po)
     && (q.alloc||[]).length && (q.alloc||[]).every(a=>targetOf(a.to))
     && q.date===p.date
     && (parseInt(q.qty)||0)===(parseInt(p.qty)||0)
@@ -32541,7 +32657,10 @@ function changedTwin(p){
   const norm=x=>(x||'').toLowerCase().replace(/\s+/g,' ').trim();
   const st=allocState(p).k;
   if(st!=='none'&&st!=='broken')return null;
+  const _oid=x=>String((x&&x.oid)||'').trim().toLowerCase();
+  const _po=_oid(p);
   return D.purchases.find(q=>q.id!==p.id
+    && !(_po&&_oid(q)&&_oid(q)!==_po)
     && (q.alloc||[]).length && (q.alloc||[]).every(a=>targetOf(a.to))
     && q.date===p.date
     && norm(q.sup)===norm(p.sup)
@@ -32714,6 +32833,25 @@ function staleDupes(){
   const norm=x=>(x||'').toLowerCase().replace(/\s+/g,' ').trim();
   const linked=D.purchases.filter(p=>(p.alloc||[]).length&&(p.alloc||[]).every(a=>targetOf(a.to)));
   return D.purchases.map(p=>({p,twin:dupTwin(p)})).filter(x=>x.twin);
+}
+/* answer one line either way, from the strip */
+function dropOneDupe(pid){
+  const p=D.purchases.find(x=>x.id===pid);if(!p)return;
+  const tw=dupTwin(p);
+  confirmBox('Remove this copy?',
+    `<div style="margin-bottom:8px"><b>${esc(p.name)}</b> — ${fmt(p.qty)} @ ${gbp(p.price)} · ${esc(p.sup||'—')}</div>
+     ${tw?`<div class="pmeta">already on order as <b>${esc(tw.name)}</b></div>`:''}
+     <div class="note bad" style="margin:10px 0 0">Nothing changes on the Google Sheet. The sync will not bring this copy back.</div>`,
+    ()=>{snap();dropReview(p.id,true);save();render();toastUndo('Copy removed','ok');});
+}
+function dupKeepAll(){
+  const list=staleDupes();
+  if(!list.length){toast('Nothing waiting','ok');return;}
+  snap();
+  list.forEach(x=>{x.p.dupCheck={...(x.p.dupCheck||{}),answered:'separate',by:(window.currentUserName||'someone'),on:dayISO()};});
+  logIt('edit',`Kept ${list.length} flagged line${list.length===1?'':'s'} as separate purchases`);
+  save();render();
+  toastUndo(`Kept ${fmt(list.length)} as separate purchases — you will not be asked again`,'ok');
 }
 function dropDupes(){
   const list=staleDupes();
@@ -35867,7 +36005,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
   openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,setHWho,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,orderState,ordQty,rcvdQty,outQty,
   sendBy,sendState,primeDays,setPrimeDays,workDaysBefore,workDaysBetween,
-  undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
+  undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,localDT,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
@@ -36600,6 +36738,49 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .jkMoreHint{color:var(--text3);font-size:10.5px;margin-left:6px;}
 .jkMore[open]>summary .jkMoreHint{display:none;}
 .tfu tr.jkLate td:first-child .tfuStripe{box-shadow:0 0 0 2px rgba(248,113,113,.55);}
+/* Jack's Admin — one card per item (10 Sep) */
+.tfu tbody.jkCards tr.jkCardRow td{padding:0 0 10px!important;border:none!important;background:transparent!important;overflow:visible;text-align:left;}
+.jkCard,.jkCard .jkC1,.jkCard .jkC2{text-align:left;}
+/* the table forces nowrap on cells — a card wraps */
+.jkCard,.jkCard .jkProd,.jkCard .jkOrd,.jkCard .jkWhy,.jkCard .jkWhySub,.jkCard .jkIds,.jkCard .tfuRaiseNote,.jkCard .stLog,.jkCard .stExp,.jkCard .stNext,.jkCard .jkQ,.jkCard .jkQsub{white-space:normal!important;}
+.jkCard .jkType,.jkCard .jkBy,.jkCard .tfuClock{white-space:nowrap!important;}
+.jkC2 .stLog,.jkC2 .stExp,.jkC2 .stNext,.jkC2 .tfuRaiseNote{text-align:left;}
+.jkC2 .stMore{display:inline-block;}
+.jkCard{display:grid;grid-template-columns:minmax(250px,300px) minmax(0,1fr) minmax(400px,480px);
+  background:var(--bg2);border:1px solid var(--border);border-left:4px solid var(--border2);border-radius:12px;overflow:hidden;
+  box-shadow:0 1px 6px rgba(0,0,0,.25);}
+.jkCardRow.jkLate .jkCard{box-shadow:0 0 0 1px rgba(248,113,113,.35),0 1px 6px rgba(0,0,0,.25);}
+.jkC1,.jkC2,.jkC3{padding:14px 16px;min-width:0;}
+.jkC1{border-right:1px solid var(--border);}
+.jkC3{border-left:1px solid var(--border);background:rgba(255,255,255,.015);}
+.jkTop{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.jkNum{font:800 11px var(--mono);color:var(--text3);}
+.jkType{font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:2px 8px;border-radius:9px;border:1px solid;white-space:nowrap;cursor:help;}
+.jkBy{margin-left:auto;font-size:10.5px;color:var(--text3);font-weight:600;white-space:nowrap;}
+.jkBy b{color:var(--text2);}
+.jkProd{font-size:13px;font-weight:800;color:var(--text);line-height:1.35;overflow-wrap:anywhere;}
+.jkIds{margin-top:6px;display:flex;flex-wrap:wrap;gap:3px 12px;font:600 10.5px var(--mono);color:var(--text3);}
+.jkIds span{cursor:pointer;overflow-wrap:anywhere;}
+.jkIds span:hover{color:var(--text);}
+.jkOrd{margin-top:8px;font-size:11px;font-weight:700;color:var(--text2);line-height:1.5;overflow-wrap:anywhere;}
+.jkOrd .tfuOid{display:inline;font-size:10.5px;cursor:pointer;}
+.jkOrd .tfuAcct{display:inline-block;margin-left:2px;vertical-align:middle;}
+.jkMoney{margin-top:10px;display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;}
+.jkMoney .tfuVal{margin:0;font-size:15px;}
+.jkMoney .tfuClock{margin:0;}
+.jkNag{margin-top:8px;font-size:10.5px;font-weight:800;color:#f87171;}
+.jkWhy{font-size:12px;font-weight:800;color:var(--text);line-height:1.4;}
+.jkWhySub{font-size:10.5px;color:var(--text3);font-weight:600;margin:2px 0 9px;line-height:1.4;}
+.jkC2 .tfuRaiseNote{margin-top:6px;}
+.jkC3 .jkWhere{text-align:left;margin:0 0 10px;}
+.jkQ{display:block;font-size:12.5px;font-weight:800;color:var(--text);line-height:1.35;}
+.jkQsub{display:block;font-size:10px;color:var(--text3);margin-top:3px;}
+.jkC3 .csActs{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.jkC3 .csAct{width:100%;box-sizing:border-box;margin:0;padding:8px 10px;font-size:11px;line-height:1.3;white-space:normal;text-align:center;min-height:38px;display:flex;align-items:center;justify-content:center;}
+.jkC3 .csActs>.csAct:last-child:nth-child(odd){grid-column:1/-1;}
+.jkC3 .jkAnsBox,.jkC3 .amzDateBox{grid-column:1/-1;}
+@media(max-width:1360px){.jkCard{grid-template-columns:minmax(230px,270px) minmax(0,1fr);}
+  .jkC3{grid-column:1/-1;border-left:none;border-top:1px solid var(--border);}}
 .jkMove .jkRest{display:none;}
 .srtNeed{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.45);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;line-height:1.45;text-align:left;}
 .srtNeed b{color:#fca5a5;}
@@ -36633,6 +36814,9 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .stLog,.stLast,.stNext,.stExp,.stFact,.stNote,.stSec,.stV,.riAsk,.qryTag{white-space:normal!important;}
 .stMore{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:6px;background:transparent;border:1px solid var(--border2);color:var(--text3);font-size:10px;font-weight:800;letter-spacing:.03em;cursor:pointer;}
 .stMore:hover{color:var(--text);border-color:var(--text3);}
+.stFixNote{margin:6px 0 4px;padding:6px 9px;border-left:3px solid #fbbf24;background:rgba(251,191,36,.07);font-size:10.5px;line-height:1.45;color:#fde68a;white-space:normal;}
+.stFixNote b{color:#fbbf24;font-weight:800;}
+.stFixNote i{color:var(--text3);}
 .stSec{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);
   margin:10px 0 4px;padding-top:7px;border-top:1px solid var(--border);}
 .stGrid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;align-items:baseline;}
@@ -36644,6 +36828,11 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .qryTag{display:block;width:max-content;margin:4px auto 0;font-size:9.5px;font-weight:800;letter-spacing:.04em;padding:2px 7px;border-radius:8px;color:#b6c2d4;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.4);cursor:help;}
 .qryTag.ok{color:#4ade80;background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.4);}
 .qryAsk{display:block;margin:4px auto 0;padding:2px 8px;background:transparent;border:1px dashed var(--border2);color:var(--text3);border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;}
+/* Becki's one answer on an Amazon-says-delivered row — a real button, not a dashed hint */
+.qryAsk.qryNot{border:1px solid rgba(248,113,113,.6);background:rgba(248,113,113,.12);color:#fca5a5;font-size:11px;font-weight:800;padding:5px 14px;margin-top:6px;}
+.qryAsk.qryNot:hover{background:rgba(248,113,113,.22);color:#fff;}
+.jkAge{margin-top:7px;font-size:10.5px;color:var(--text3);font-weight:600;line-height:1.4;}
+.jkUnits{font:800 12px var(--text);color:var(--text2);margin-right:2px;}
 .qryAsk:hover{color:#7dd3fc;border-color:rgba(56,189,248,.5);}
 .riAsk{margin-top:8px;padding:8px 10px;border-radius:6px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.3);font-size:11px;font-weight:600;color:var(--text2);line-height:1.45;}
 .riAsk.open{background:rgba(148,163,184,.1);border-color:rgba(148,163,184,.35);}
