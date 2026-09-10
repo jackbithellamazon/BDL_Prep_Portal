@@ -1,0 +1,1831 @@
+/* BDL PrepHub — css/lavarion.css — Lavarion v3 chrome, restocks, review, components table, product page.
+   Cut from base.css 2026-09-10 (b561). Linked in order; cascade unchanged. */
+/* ══════════ LAVARION v3 — scoped tokens & chrome ══════════ */
+#page-lavarion,.lav3{
+  --border3:#4a4944;--accent-hi:#ffb020;--accent-ink:#1a1a18;
+  /* Lavarion runs brighter than the rest of the app on purpose — grey on
+     near-black is unreadable, so secondary text sits well above mid-grey */
+  --text:#ffffff;--text2:#f7f4ee;--text3:#e6e1d6;--text4:#e6e1d6;
+  --pri:var(--accent);--pri-ink:#1a1a18;
+  --red-br:rgba(255,85,85,.34);
+  --grn:#55ff55;--grn-bg:rgba(85,255,85,.11);--grn-br:rgba(85,255,85,.30);
+  --blu:#5599ff;--blu-bg:rgba(85,153,255,.13);--blu-br:rgba(85,153,255,.34);
+  --amb:#ffaa33;--amb-bg:rgba(255,170,51,.13);--amb-br:rgba(255,170,51,.34);
+  --vio:#cc99ff;--vio-bg:rgba(204,153,255,.13);--vio-br:rgba(204,153,255,.34);
+  --num:'Geist','Inter','SF Pro Text',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  /* identifiers keep the tabular, slightly-tracked look without a mono face */
+  --mono:var(--num);
+  font-size:13px;line-height:1.45;letter-spacing:-.005em;font-feature-settings:'zero' 0,'ss01' 0;
+}
+#page-lavarion .lav3bar,.lav3 .lav3bar{display:flex;align-items:center;gap:16px;padding:0 18px;
+  border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:30;}
+#page-lavarion .lav3acts,.lav3 .lav3acts{margin-left:auto;display:flex;align-items:center;gap:8px;}
+#page-lavarion .tabs,.lav3 .tabs{position:static;background:transparent;padding:0;height:46px;border-bottom:none;}
+#page-lavarion .tabs button,.lav3 .tabs button{padding:0 15px;height:46px;}
+#page-lavarion .gs input,.lav3 .gs input{width:250px;}
+#page-lavarion .gs input:focus,.lav3 .gs input:focus{width:320px;}
+@media(max-width:900px){
+  #page-lavarion .lav3bar,.lav3 .lav3bar{flex-wrap:wrap;padding-bottom:10px;}
+  #page-lavarion .lav3acts,.lav3 .lav3acts{margin-left:0;width:100%;}
+  #page-lavarion .gs input,.lav3 .gs input{width:100%;}
+}
+/* No max-width. It was capped at 1620px, so on a 1920 screen the page stopped
+   short with a band of empty space down the right and the last column of every
+   table was squeezed — "Sold last month" came out as "SOLD LAST MONT". The page
+   fills whatever it is given now. */
+#page-lavarion .wrap,.lav3 .wrap{padding:16px 20px 60px;max-width:none;}
+/* and a table that is still wider than its panel scrolls inside it rather than
+   having its right-hand column clipped off */
+#page-lavarion .panel>table,.lav3 .panel>table{min-width:100%;}
+/* Sideways scrolling for a table wider than the window, so the last column is
+   reachable instead of clipped off the right-hand edge.
+   There is no way to have this AND a page-anchored sticky header: a box with a
+   scrolling overflow on one axis becomes a scroll container on BOTH (even
+   overflow-y:clip computes to hidden when it sits next to overflow-x:auto), so
+   position:sticky inside resolves against this box and not the page. The header
+   is therefore re-anchored to the box — it reads as an ordinary header while
+   the box is only as tall as its content. Losing a little stickiness beats
+   losing a column. */
+#page-lavarion .tblScroll,.lav3 .tblScroll{overflow-x:auto;overscroll-behavior-x:contain;}
+#page-lavarion .tblScroll table.stickHead thead th,
+.lav3 .tblScroll table.stickHead thead th{top:0;}
+#page-lavarion .tblScroll::-webkit-scrollbar,.lav3 .tblScroll::-webkit-scrollbar{height:10px;}
+#page-lavarion .tblScroll::-webkit-scrollbar-thumb,.lav3 .tblScroll::-webkit-scrollbar-thumb{
+  background:var(--border2);border-radius:5px;}
+#page-lavarion .tblScroll::-webkit-scrollbar-thumb:hover,.lav3 .tblScroll::-webkit-scrollbar-thumb:hover{
+  background:var(--text3);}
+/* Product names and the grey captions under them wrap instead of being cut off
+   mid-word — they were only told to wrap inside .rsTbl, so every other table
+   still clipped them. */
+#page-lavarion td.l .pname,.lav3 td.l .pname{white-space:normal;line-height:1.3;
+  overflow-wrap:anywhere;}
+/* break-word, NOT anywhere. `anywhere` breaks eagerly to make the column as
+   narrow as possible, which chopped the order number 10251572580 into
+   "102 / 51572580" — an order reference is the one string that must never be
+   split when it doesn't have to be. */
+#page-lavarion td .pmeta,.lav3 td .pmeta{overflow-wrap:break-word;}
+#lav3Toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg4);
+  border:1px solid var(--border2);border-radius:9px;padding:11px 17px;font-size:12.5px;z-index:2000;opacity:0;
+  transition:.22s;box-shadow:0 12px 34px rgba(0,0,0,.55);display:flex;align-items:center;gap:14px;color:var(--text);}
+#lav3Toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+#lav3Toast .tundo{background:var(--accent);border:none;color:#1a1a18;font-weight:600;font-size:11.5px;padding:4px 11px;border-radius:6px;cursor:pointer;}
+.overlay.lav3{display:none;}
+.overlay.lav3.on,.overlay.lav3.open{display:flex;align-items:center;justify-content:center;}
+#page-lavarion .mono,.lav3 .mono{font-family:var(--num);font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+#page-lavarion .top,.lav3 .top{display:flex;align-items:center;gap:12px;padding:0 20px;height:52px;border-bottom:1px solid var(--border);
+  background:var(--bg2);position:sticky;top:0;z-index:40;}
+#page-lavarion .top h1,.lav3 .top h1{font-size:14px;font-weight:600;letter-spacing:-.02em;}
+#page-lavarion .top .badge,.lav3 .top .badge{font-size:10px;font-weight:600;letter-spacing:.02em;color:var(--text3);border:1px solid var(--border2);
+  padding:2px 7px;border-radius:5px;}
+#page-lavarion .top .tag,.lav3 .top .tag{font-size:12px;color:var(--text3);}
+#page-lavarion .top .sp,.lav3 .top .sp{margin-left:auto;display:flex;align-items:center;gap:10px;}
+#page-lavarion .top .who,.lav3 .top .who{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:7px;}
+#page-lavarion .gs,.lav3 .gs{position:relative;}
+#page-lavarion .gs input,.lav3 .gs input{background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:6px 11px;font-size:12.5px;
+  width:210px;color:var(--text);transition:width .15s,border-color .1s;}
+#page-lavarion .gs input::placeholder,.lav3 .gs input::placeholder{color:var(--text3);}
+#page-lavarion .gs input:focus,.lav3 .gs input:focus{outline:none;border-color:var(--accent);width:290px;}
+#page-lavarion #gsOut,.lav3 #gsOut{position:absolute;top:38px;right:0;width:400px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:10px;box-shadow:0 18px 44px rgba(0,0,0,.6);overflow:hidden;display:none;z-index:60;max-height:420px;overflow-y:auto;}
+#page-lavarion #gsOut.on,.lav3 #gsOut.on{display:block;}
+#page-lavarion .gsrow,.lav3 .gsrow{display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid var(--border);cursor:pointer;}
+#page-lavarion .gsrow:last-child,.lav3 .gsrow:last-child{border-bottom:none;}
+#page-lavarion .gsrow:hover,.lav3 .gsrow:hover{background:var(--bg3);}
+#page-lavarion .gsrow .n,.lav3 .gsrow .n{flex:1;font-size:12.5px;}
+#page-lavarion .gsrow .n .s,.lav3 .gsrow .n .s{display:block;font-size:11px;color:var(--text3);margin-top:2px;}
+#page-lavarion .gshead,.lav3 .gshead{padding:7px 13px;background:var(--bg3);font-size:11px;color:var(--text3);border-bottom:1px solid var(--border);}
+#page-lavarion .top .who:before,.lav3 .top .who:before{content:'';width:24px;height:24px;border-radius:50%;background:var(--bg4);border:1px solid var(--border2);}
+#page-lavarion .tabs,.lav3 .tabs{display:flex;gap:1px;padding:0 20px;height:44px;align-items:stretch;background:var(--bg2);
+  border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:39;}
+#page-lavarion .tabs button,.lav3 .tabs button{background:none;border:none;border-bottom:1.5px solid transparent;color:var(--text2);
+  font-weight:500;font-size:13px;padding:0 14px;margin-bottom:-1px;transition:color .12s;letter-spacing:-.01em;}
+#page-lavarion .tabs button:hover,.lav3 .tabs button:hover{color:var(--text2);}
+#page-lavarion .tabs button.on,.lav3 .tabs button.on{color:var(--accent);border-bottom-color:var(--accent);
+  border-bottom-width:2px;font-weight:700;}
+#page-lavarion .tabs button.on .cnt,.lav3 .tabs button.on .cnt{color:var(--accent);}
+#page-lavarion .tabs .cnt,.lav3 .tabs .cnt{font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:7px;font-variant-numeric:tabular-nums;}
+/* a second copy of this rule further down the sheet was re-applying the cap and
+   undoing the fix above — both are fluid now */
+#page-lavarion .wrap,.lav3 .wrap{padding:18px 20px 64px;max-width:none;}
+#page-lavarion .kpis,.lav3 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:10px;margin-bottom:16px;}
+#page-lavarion .kpi,.lav3 .kpi{background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--border2);
+  border-radius:11px;padding:13px 15px;transition:background .12s;}
+#page-lavarion .kpi.c-blue,.lav3 .kpi.c-blue{border-top-color:var(--blu);}
+#page-lavarion .kpi.c-grn,.lav3 .kpi.c-grn{border-top-color:var(--grn);}
+#page-lavarion .kpi.c-red,.lav3 .kpi.c-red{border-top-color:var(--red);}
+#page-lavarion .kpi.c-amb,.lav3 .kpi.c-amb{border-top-color:var(--amb);}
+#page-lavarion .kpi.c-vio,.lav3 .kpi.c-vio{border-top-color:var(--vio);}
+#page-lavarion .kpi.c-acc,.lav3 .kpi.c-acc{border-top-color:var(--accent);}
+#page-lavarion .kpi.clk,.lav3 .kpi.clk{cursor:pointer;}
+#page-lavarion .kpi.clk:hover,.lav3 .kpi.clk:hover{background:var(--bg3);transform:translateY(-1px);}
+#page-lavarion .kpi .k,.lav3 .kpi .k{font-size:10.5px;font-weight:700;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;}
+#page-lavarion .kpi .v,.lav3 .kpi .v{font-family:var(--num);font-size:28px;font-weight:600;line-height:1.15;letter-spacing:-.035em;margin-top:7px;
+  font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1,'zero' 0;}
+#page-lavarion .kpi .s,.lav3 .kpi .s{font-size:11.5px;color:var(--text3);margin-top:5px;line-height:1.4;}
+/* b555: b548 left `#page-lavarion .panel,.lav3 ` dangling in front of this selector and
+   every Lavarion panel became a flex row for two days. The panel rule is restored
+   below; this one is the duplicate-strip line only. */
+#page-lavarion .dupLine,.lav3 .dupLine{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.02);}
+.dupName{font-size:12px;font-weight:800;color:var(--text);overflow-wrap:anywhere;}
+.dupMeta{font-size:10.5px;color:var(--text3);margin-top:2px;overflow-wrap:anywhere;}
+.dupMeta b{color:var(--text2);}
+.dupMeta i{color:var(--text3);opacity:.8;}
+#page-lavarion .panel,.lav3 .panel{background:var(--bg2);border:1px solid var(--border);border-radius:11px;margin-bottom:14px;}
+
+
+
+#page-lavarion .rcPick,.lav3 .rcPick{display:flex;gap:6px;align-items:center;min-width:0;}
+#page-lavarion .rcPick .rc-find,.lav3 .rcPick .rc-find{flex:1;min-width:0;}
+#page-lavarion .rrow.unmatched .rc-find,.lav3 .rrow.unmatched .rc-find{border-color:var(--amb);}
+#page-lavarion .rc-make,.lav3 .rc-make{flex:0 0 auto;border-color:var(--amb);color:var(--amb);}
+#page-lavarion input.sold30,.lav3 input.sold30{width:100%;max-width:78px;margin:0 auto;display:block;text-align:center;padding:5px 6px;font-weight:700;}
+#page-lavarion input.sold30::placeholder,.lav3 input.sold30::placeholder{font-weight:400;color:var(--text3);}
+
+/* on-order table: method + expected window */
+#page-lavarion .etaSel,.lav3 .etaSel{width:100%;padding:5px 7px;font-size:11.5px;}
+#page-lavarion .etaDate,.lav3 .etaDate{flex:1;min-width:0;padding:4px 5px;font-size:11px;}
+#page-lavarion .mchip,.lav3 .mchip{display:inline-block;padding:2px 8px;border-radius:20px;font:700 10px var(--num);
+  letter-spacing:.4px;text-transform:uppercase;border:1px solid;}
+#page-lavarion .mchip.m-sea,.lav3 .mchip.m-sea{color:#38bdf8;border-color:rgba(56,189,248,.42);background:rgba(56,189,248,.12);}
+#page-lavarion .mchip.m-air,.lav3 .mchip.m-air{color:#c084fc;border-color:rgba(192,132,252,.42);background:rgba(192,132,252,.12);}
+#page-lavarion .mchip.m-rail,.lav3 .mchip.m-rail{color:#fbbf24;border-color:rgba(251,191,36,.42);background:rgba(251,191,36,.12);}
+#page-lavarion .mchip.m-road,.lav3 .mchip.m-road{color:#4ade80;border-color:rgba(74,222,128,.42);background:rgba(74,222,128,.12);}
+#page-lavarion .mchip.m-courier,.lav3 .mchip.m-courier{color:#60a5fa;border-color:rgba(96,165,250,.42);background:rgba(96,165,250,.12);}
+#page-lavarion .mchip.m-collect,.lav3 .mchip.m-collect{color:var(--text2);border-color:var(--border);background:rgba(255,255,255,.05);}
+
+/* The action buttons must never be the thing that falls off the edge — they are
+   pinned to the right so Ship/Open/Edit/Archive stay reachable however narrow
+   the window gets, and the buttons themselves are tighter so it rarely comes to
+   that. Sticky is against the page, not a wrapper, so frozen headings survive. */
+#page-lavarion td.acts,#page-lavarion th.acts,.lav3 td.acts,.lav3 th.acts{
+  position:sticky;right:0;z-index:6;background:var(--bg2);
+  box-shadow:-10px 0 12px -8px rgba(0,0,0,.85);}
+#page-lavarion tr:hover td.acts,.lav3 tr:hover td.acts{background:var(--bg3);}
+#page-lavarion thead th.acts,.lav3 thead th.acts{z-index:13;background:var(--bg3);}
+#page-lavarion td.acts .btn.sm,.lav3 td.acts .btn.sm{padding:4px 7px;font-size:10.5px;}
+#page-lavarion .sub-row td,.lav3 .sub-row td{position:static;}
+/* The actions column is pinned to the right edge and its width was set when a
+   row had two buttons. Adding + Batch and + Product pushed the rest under the
+   pin, so half of them could not be seen or clicked. It sizes to its contents
+   now and the row makes space for it. */
+#page-lavarion td.acts>div,.lav3 td.acts>div{flex-wrap:nowrap;white-space:nowrap;}
+#page-lavarion td.acts,#page-lavarion th.acts,.lav3 td.acts,.lav3 th.acts{
+  width:1%;white-space:nowrap;padding-left:12px;padding-right:12px;}
+#page-lavarion td.acts .btn,.lav3 td.acts .btn{flex:0 0 auto;white-space:nowrap;}
+
+@media(max-width:1100px){
+  #page-lavarion td.acts .btn.sm,.lav3 td.acts .btn.sm{padding:4px 6px;font-size:10px;}
+}
+
+#page-lavarion .schemabar.bad,.lav3 .schemabar.bad{display:flex;gap:12px;align-items:center;
+  background:rgba(248,113,113,.13);border:1px solid rgba(248,113,113,.45);border-left:5px solid var(--red);
+  border-radius:10px;padding:12px 15px;margin:0 0 14px;}
+#page-lavarion .schemabar .sbIcon,.lav3 .schemabar .sbIcon{flex:0 0 24px;height:24px;border-radius:50%;
+  background:var(--red);color:#1a0808;display:flex;align-items:center;justify-content:center;font:800 14px var(--num);}
+#page-lavarion .schemabar .sbTxt,.lav3 .schemabar .sbTxt{flex:1;min-width:0;font-size:12.5px;line-height:1.55;color:var(--text);}
+#page-lavarion .schemabar .sbTxt b,.lav3 .schemabar .sbTxt b{display:block;color:var(--red);font-size:13.5px;margin-bottom:2px;}
+#page-lavarion .schemabar .btn,.lav3 .schemabar .btn{flex:0 0 auto;}
+#page-lavarion .dbrow,.lav3 .dbrow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);font-size:12.5px;}
+#page-lavarion .dbrow:last-child,.lav3 .dbrow:last-child{border-bottom:0;}
+#page-lavarion .dbrow .nm,.lav3 .dbrow .nm{flex:1;font-weight:600;color:var(--text);}
+
+#page-lavarion .tsub,.lav3 .tsub{font-size:10.5px;font-weight:700;text-align:center;margin-top:3px;white-space:nowrap;}
+#page-lavarion .tsub.gap,.lav3 .tsub.gap{color:var(--amb);}
+#page-lavarion .tsub.ok,.lav3 .tsub.ok{color:var(--grn);}
+#page-lavarion .tsub.prov,.lav3 .tsub.prov{color:var(--text3);font-weight:600;font-style:italic;}
+
+#page-lavarion .btn.sm.dots,.lav3 .btn.sm.dots{padding:4px 9px;font-size:14px;line-height:1;font-weight:800;}
+.rowmenu{display:none;position:fixed;z-index:9999;min-width:190px;background:var(--bg3);border:1px solid var(--border2);
+  border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.6);padding:5px;}
+.rowmenu .rmhead{padding:7px 10px 8px;font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.3px;
+  border-bottom:1px solid var(--border);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px;}
+.rowmenu .rmi{display:block;width:100%;text-align:left;background:none;border:0;color:var(--text);
+  font:600 12.5px var(--num);padding:8px 10px;border-radius:6px;cursor:pointer;}
+.rowmenu .rmi:hover{background:rgba(255,255,255,.07);}
+.rowmenu .rmi.dgr{color:var(--red);}
+.rowmenu .rmi.dgr:hover{background:rgba(248,113,113,.12);}
+
+#page-lavarion tr.picked>td,.lav3 tr.picked>td{background:rgba(96,165,250,.09);}
+#page-lavarion tr.picked>td.acts,.lav3 tr.picked>td.acts{background:rgba(96,165,250,.09);}
+
+/* duplicate-ASIN warning */
+/* Where the sales figures came from and which month they are. Not a banner —
+   a caption. It is on screen every time the column is, because a number that
+   does not say its month is the one that gets acted on a month late. */
+#page-lavarion .salesBar,.lav3 .salesBar{display:flex;gap:11px;align-items:center;margin-bottom:11px;
+  background:var(--panel2,rgba(255,255,255,.03));border:1px solid var(--border);border-left:4px solid var(--accent);
+  border-radius:9px;padding:9px 13px;font-size:12.5px;line-height:1.5;}
+#page-lavarion .salesBar.warn,.lav3 .salesBar.warn{background:rgba(251,191,36,.09);
+  border-color:rgba(251,191,36,.4);border-left-color:var(--amb);}
+#page-lavarion .salesBar .sbDot,.lav3 .salesBar .sbDot{flex:0 0 8px;height:8px;border-radius:50%;background:var(--accent);}
+#page-lavarion .salesBar.warn .sbDot,.lav3 .salesBar.warn .sbDot{background:var(--amb);}
+#page-lavarion .salesBar .sbTxt,.lav3 .salesBar .sbTxt{flex:1;min-width:0;color:var(--text);}
+#page-lavarion .salesBar .sbTxt b,.lav3 .salesBar .sbTxt b{color:var(--text);font-weight:800;}
+#page-lavarion .salesBar.warn .sbTxt b,.lav3 .salesBar.warn .sbTxt b{color:var(--amb);}
+#page-lavarion .salesBar .sbTxt span,.lav3 .salesBar .sbTxt span{color:var(--text2);}
+#page-lavarion .sldFix,.lav3 .sldFix{background:none;border:0;padding:0;cursor:pointer;font:700 10px var(--sans);
+  color:var(--amb);text-decoration:underline;text-underline-offset:2px;}
+/* Amazon titles run to 200 characters. Left alone they turn a reference list
+   into a wall — one line each, full name on hover. */
+#page-lavarion .hbChips,.lav3 .hbChips{margin-top:8px;max-height:186px;overflow-y:auto;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:5px;padding-right:4px;}
+#page-lavarion .hbChip,.lav3 .hbChip{display:flex;gap:8px;align-items:center;justify-content:space-between;
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 8px;
+  font-size:11px;color:var(--text2);}
+#page-lavarion .hbChip i,.lav3 .hbChip i{flex:1;min-width:0;font-style:normal;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .hbChip b,.lav3 .hbChip b{flex:0 0 auto;font:800 11px var(--num);color:var(--text);}
+/* The ASIN is what actually gets linked, so it reads first and it reads loud */
+#page-lavarion .hbAs,.lav3 .hbAs{font:800 11px var(--num);color:var(--accent);letter-spacing:.4px;
+  margin-right:7px;display:inline-block;}
+#page-lavarion .hbChip .hbAs,.lav3 .hbChip .hbAs{margin-right:0;flex:0 0 auto;}
+#page-lavarion .stHave,.lav3 .stHave{font:700 13px var(--num);color:var(--text);}
+#page-lavarion .stSep,.lav3 .stSep{color:var(--text3);margin:0 3px;}
+/* What has arrived. Two type sizes, one weight for the content, and colour used
+   exactly once — on the single number that can be bad news. */
+#page-lavarion .arvTbl td,.lav3 .arvTbl td{padding:9px 12px;vertical-align:middle;}
+#page-lavarion .arvTbl th,.lav3 .arvTbl th{padding:8px 12px;}
+#page-lavarion .arvDay,.lav3 .arvDay{font:700 12.5px var(--num);color:var(--text);}
+#page-lavarion .arvAgo,.lav3 .arvAgo{font-size:11px;color:var(--text3);margin-left:7px;}
+#page-lavarion .arvSup,.lav3 .arvSup{display:block;font-size:12.5px;font-weight:700;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .arvRef,.lav3 .arvRef{display:block;font-size:11px;color:var(--text3);margin-top:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* the goods are the point of the row — sentence case, no shouting, and they
+   flow, so the widest column stops being a void */
+#page-lavarion .arvGoods,.lav3 .arvGoods{display:flex;flex-wrap:wrap;gap:5px;}
+#page-lavarion .arvItem,.lav3 .arvItem{display:inline-flex;align-items:baseline;gap:6px;
+  background:rgba(255,255,255,.045);border-radius:5px;padding:2px 8px;
+  font-size:12px;color:var(--text2);max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .arvItem b,.lav3 .arvItem b{font:700 11.5px var(--num);color:var(--text);flex:0 0 auto;}
+#page-lavarion .arvMore,.lav3 .arvMore{font-size:11px;color:var(--text3);align-self:center;}
+#page-lavarion .arvNum,.lav3 .arvNum{text-align:right;font:700 14px var(--num);color:var(--text);}
+#page-lavarion .arvNum.quiet,.lav3 .arvNum.quiet{font-weight:600;color:var(--text2);}
+#page-lavarion .arvTook,.lav3 .arvTook{text-align:right;font:700 14px var(--num);color:var(--text2);}
+#page-lavarion .arvTook i,.lav3 .arvTook i{display:block;font-style:normal;font-size:10px;
+  font-weight:600;color:var(--text3);font-family:var(--sans);}
+#page-lavarion .arvTook.slow,.lav3 .arvTook.slow{color:var(--amb);}
+/* Counting a delivery in. One question, asked big, with the consequence
+   directly under it — everything else on the screen is reference. */
+#page-lavarion .rcvFacts,.lav3 .rcvFacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:1px;
+  background:var(--border);border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+#page-lavarion .rcvFacts>div,.lav3 .rcvFacts>div{background:var(--bg3);padding:10px 12px;text-align:center;}
+#page-lavarion .rcvFacts i,.lav3 .rcvFacts i{display:block;font-style:normal;font:800 8.5px var(--sans);
+  letter-spacing:.07em;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .rcvFacts b,.lav3 .rcvFacts b{display:block;font:800 15px var(--num);color:var(--text);
+  margin-top:3px;white-space:nowrap;}
+/* Expected is a date RANGE — twice the width of every other fact, and it was
+   losing its second half to the nowrap above. */
+#page-lavarion .rcvFacts>div:last-child b,.lav3 .rcvFacts>div:last-child b{font-size:12.5px;letter-spacing:-.2px;}
+#page-lavarion .rcvAsk,.lav3 .rcvAsk{margin-top:15px;}
+#page-lavarion .rcvAsk label,.lav3 .rcvAsk label{display:block;font:800 13px var(--sans);color:var(--text);margin-bottom:9px;}
+#page-lavarion .rcvStep,.lav3 .rcvStep{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#page-lavarion .rcvStep input,.lav3 .rcvStep input{width:132px;font:800 26px var(--num)!important;
+  text-align:center;padding:9px 6px;}
+#page-lavarion .rcvPm,.lav3 .rcvPm{width:42px;height:46px;border:1px solid var(--border2);background:var(--bg3);
+  color:var(--text);border-radius:8px;font:700 20px var(--num);cursor:pointer;}
+#page-lavarion .rcvPm:hover,.lav3 .rcvPm:hover{border-color:var(--accent);color:var(--accent);}
+#page-lavarion .rcvAll,.lav3 .rcvAll{border:1px solid var(--border2);background:var(--bg3);color:var(--text2);
+  border-radius:7px;padding:7px 12px;font:700 12px var(--sans);cursor:pointer;}
+#page-lavarion .rcvAll:hover,.lav3 .rcvAll:hover{border-color:var(--accent);color:var(--accent);}
+#page-lavarion .rcvTip,.lav3 .rcvTip{font-size:11.5px;color:var(--text3);margin-top:8px;}
+#page-lavarion .rcvNote,.lav3 .rcvNote{margin-top:15px;}
+#page-lavarion .rcvNote label,.lav3 .rcvNote label{display:block;font:700 12.5px var(--sans);color:var(--text);margin-bottom:6px;}
+#page-lavarion .rcvNote label span,.lav3 .rcvNote label span{font-weight:600;color:var(--text3);}
+#page-lavarion .rcvNote textarea,.lav3 .rcvNote textarea{width:100%;background:var(--bg);border:1px solid var(--border2);
+  border-radius:8px;color:var(--text);padding:9px 11px;font:inherit;font-size:12.5px;line-height:1.5;resize:vertical;box-sizing:border-box;}
+#page-lavarion .rcvNote textarea:focus,.lav3 .rcvNote textarea:focus{border-color:var(--accent);outline:none;}
+/* the two live jobs as numbers, at the top, before any explanation */
+#page-lavarion .dvTop,.lav3 .dvTop{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px;}
+#page-lavarion .dvTile,.lav3 .dvTile{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 14px;}
+#page-lavarion .dvTile i,.lav3 .dvTile i{display:block;font-style:normal;font:800 9px var(--sans);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .dvTile b,.lav3 .dvTile b{display:block;font:800 24px var(--num);color:var(--text);line-height:1.1;margin-top:4px;}
+#page-lavarion .dvTile span,.lav3 .dvTile span{display:block;font-size:11px;color:var(--text2);margin-top:2px;}
+#page-lavarion .dvTile.act,.lav3 .dvTile.act{border-color:rgba(74,222,128,.45);}
+#page-lavarion .dvTile.act b,.lav3 .dvTile.act b{color:var(--grn);}
+#page-lavarion .dvTile.bad,.lav3 .dvTile.bad{border-color:rgba(248,113,113,.45);}
+#page-lavarion .dvTile.bad b,.lav3 .dvTile.bad b{color:var(--red);}
+/* "Whole order arrived" is the shortcut, not the headline — the per-line
+   button is the one people actually reach for, so they stop competing */
+#page-lavarion .dvOrdHead .btn.go,.lav3 .dvOrdHead .btn.go{background:var(--bg4);border:1px solid var(--border2);
+  color:var(--text2);font-weight:700;}
+#page-lavarion .dvOrdHead .btn.go:hover,.lav3 .dvOrdHead .btn.go:hover{border-color:var(--grn);color:var(--grn);}
+/* Sortable headings. The heading IS the button — no extra icon column, no
+   change in row height, and the arrow only appears on the one in use. */
+/* Not flex — the arrow has to stay welded to the end of the label. As a flex
+   item it broke onto its own line the moment a heading wrapped ("COG / UNIT"),
+   leaving an orphan arrow under the column. */
+#page-lavarion th .thSort,.lav3 th .thSort{background:none;border:0;padding:0;margin:0;cursor:pointer;
+  font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;text-align:inherit;
+  display:block;width:100%;}
+#page-lavarion th.l .thSort,.lav3 th.l .thSort{text-align:left;}
+#page-lavarion th .thSort:hover,.lav3 th .thSort:hover{color:var(--text);}
+#page-lavarion th .thSort.on,.lav3 th .thSort.on{color:var(--accent);}
+#page-lavarion th .thArr,.lav3 th .thArr{font-size:8.5px;opacity:.35;letter-spacing:0;margin-left:4px;
+  display:inline;white-space:nowrap;}
+#page-lavarion th .thSort:hover .thArr,.lav3 th .thSort:hover .thArr{opacity:.8;}
+#page-lavarion th .thSort.on .thArr,.lav3 th .thSort.on .thArr{opacity:1;}
+#page-lavarion th .thSort .thSub,.lav3 th .thSort .thSub{display:block;}
+/* An ASIN is the one thing that joins this app to the hub and to Seller Central,
+   so it is never just text — it is always one click from the clipboard. */
+#page-lavarion .asinC,.lav3 .asinC{background:none;border:0;padding:0 3px 0 0;margin:0;cursor:pointer;
+  font:inherit;color:inherit;letter-spacing:inherit;position:relative;border-radius:3px;}
+#page-lavarion .asinC:hover,.lav3 .asinC:hover{color:var(--accent);background:rgba(245,158,11,.12);
+  box-shadow:0 0 0 3px rgba(245,158,11,.12);}
+#page-lavarion .asinC:after,.lav3 .asinC:after{content:'⧉';font-size:9px;opacity:0;margin-left:4px;}
+#page-lavarion .asinC:hover:after,.lav3 .asinC:hover:after{opacity:.9;}
+/* what the next price run does to the cost, part by part */
+#page-lavarion .nxList,.lav3 .nxList{margin-top:9px;display:flex;flex-direction:column;gap:4px;}
+#page-lavarion .nxRow,.lav3 .nxRow{display:flex;align-items:center;gap:8px;font-size:11.5px;
+  background:rgba(255,255,255,.04);border-radius:6px;padding:5px 9px;}
+#page-lavarion .nxNm,.lav3 .nxNm{flex:1;min-width:0;font-weight:700;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .nxQ,.lav3 .nxQ{color:var(--text3);flex:0 0 auto;}
+#page-lavarion .nxP,.lav3 .nxP{font:800 12px var(--num);color:var(--text2);flex:0 0 auto;}
+#page-lavarion .nxP.up,.lav3 .nxP.up{color:var(--red);}
+#page-lavarion .nxP.down,.lav3 .nxP.down{color:var(--grn);}
+#page-lavarion .nxArr,.lav3 .nxArr{color:var(--text3);flex:0 0 auto;}
+/* the slack in the Components table now shows every product a part is in,
+   and each one opens it — it was "+2 more" in a column of empty space */
+#page-lavarion .useWrap,.lav3 .useWrap{display:flex;flex-wrap:wrap;gap:4px;}
+#page-lavarion .useChip,.lav3 .useChip{background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.30);border-radius:5px;
+  padding:2px 7px;font:600 11px var(--sans);color:var(--text2);cursor:pointer;max-width:100%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .useChip:hover,.lav3 .useChip:hover{border-color:var(--accent);color:var(--accent);}
+/* evidence for "not selling yet", taken from what this app already knows */
+#page-lavarion .hbWhy,.lav3 .hbWhy{margin-top:5px;display:inline-block;font:700 10.5px var(--sans);
+  padding:2px 8px;border-radius:20px;}
+#page-lavarion .hbWhy.k-new,.lav3 .hbWhy.k-new{background:rgba(148,163,184,.16);color:#cbd5e1;}
+#page-lavarion .hbWhy.k-ordered,.lav3 .hbWhy.k-ordered{background:rgba(96,165,250,.16);color:#93c5fd;}
+#page-lavarion .hbWhy.k-sent,.lav3 .hbWhy.k-sent{background:rgba(251,191,36,.16);color:var(--amb);}
+/* Restocks, compacted: one strip instead of three stacked blocks */
+#page-lavarion .rsTop,.lav3 .rsTop{display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:11px 15px;margin-bottom:10px;}
+#page-lavarion .rsTop .rsWho,.lav3 .rsTop .rsWho{min-width:170px;}
+#page-lavarion .rsTop .rsWhoN,.lav3 .rsTop .rsWhoN{font:800 15px var(--sans);color:var(--text);line-height:1.2;}
+#page-lavarion .rsTop .rsWhoM,.lav3 .rsTop .rsWhoM{font-size:11px;color:var(--text3);margin-top:2px;}
+#page-lavarion .rsTop .rsFacts,.lav3 .rsTop .rsFacts{display:flex;gap:18px;margin:0;flex-wrap:wrap;}
+#page-lavarion .rsTop .rsFact .v,.lav3 .rsTop .rsFact .v{font-size:16px;}
+#page-lavarion .rsTop .rsFact .k,.lav3 .rsTop .rsFact .k{font-size:9px;}
+#page-lavarion .rsTop .rsFact .s,.lav3 .rsTop .rsFact .s{font-size:9.5px;}
+#page-lavarion .rsBuild,.lav3 .rsBuild{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;}
+#page-lavarion .rsBuild .rsLbl,.lav3 .rsBuild .rsLbl{font:800 9px var(--sans);letter-spacing:.07em;
+  text-transform:uppercase;color:var(--text3);}
+#page-lavarion .rsSum,.lav3 .rsSum{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+/* Card = icon tile + one text column. Was: three inline pieces on a baseline
+   with the sub-label forced to flex:0 0 100%, so a long value like £196.02
+   shoved its own label onto the next line and no two cards lined up. Equal
+   widths (flex-basis 0) so four cards are four columns, always. */
+#page-lavarion .rsS,.lav3 .rsS{flex:1 1 0;min-width:172px;display:flex;align-items:center;gap:11px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;}
+#page-lavarion .rsIco,.lav3 .rsIco{width:36px;height:36px;border-radius:10px;flex:0 0 auto;
+  display:grid;place-items:center;background:rgba(255,255,255,.055);color:var(--text2);}
+#page-lavarion .rsIco svg,.lav3 .rsIco svg{width:17px;height:17px;stroke:currentColor;fill:none;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+#page-lavarion .rsTx,.lav3 .rsTx{display:grid;gap:1px;min-width:0;}
+#page-lavarion .rsS b,.lav3 .rsS b{font:800 21px var(--num);color:var(--text);line-height:1.04;
+  font-variant-numeric:tabular-nums;}
+#page-lavarion .rsS em,.lav3 .rsS em{font-style:normal;font:700 11.5px var(--sans);color:var(--text2);}
+#page-lavarion .rsS i,.lav3 .rsS i{font-style:normal;font:600 10px var(--sans);color:var(--muted2);}
+#page-lavarion .rsS.bad .rsIco,.lav3 .rsS.bad .rsIco{background:rgba(248,113,113,.13);color:var(--red);}
+#page-lavarion .rsS.warn .rsIco,.lav3 .rsS.warn .rsIco{background:rgba(251,191,36,.13);color:var(--amb);}
+#page-lavarion .rsS.ok .rsIco,.lav3 .rsS.ok .rsIco{background:rgba(74,222,128,.13);color:var(--grn);}
+#page-lavarion .rsS.info .rsIco,.lav3 .rsS.info .rsIco{background:rgba(96,165,250,.13);color:var(--blu);}
+#page-lavarion .rsS.shared .rsIco,.lav3 .rsS.shared .rsIco{background:rgba(245,158,11,.14);color:var(--accent);}
+/* the primary action belongs beside the numbers it acts on, not in a panel header */
+/* It was a solid amber slab the full height of the card row — the loudest
+   thing on a page of quiet outlined cards, for an action that is no longer
+   even the main one. Same card family now: same height, same radius, amber
+   ink on a tint rather than a flood. */
+
+/* a missing figure is not a headline: small and quiet, never a 17px em-dash */
+#page-lavarion .rsMx .v.none,.lav3 .rsMx .v.none{font-size:13px;color:var(--muted2);}
+#page-lavarion .rsStepU,.lav3 .rsStepU{display:block;text-align:center;font:600 9.5px var(--sans);
+  color:var(--muted2);margin-top:4px;}
+#page-lavarion .rsSel option,.lav3 .rsSel option{color:var(--text);background:var(--bg2);}
+/* two-line column headings, and a colour rail that says short or covered */
+#page-lavarion .rsTbl th span,.lav3 .rsTbl th span{display:block;font:600 9.5px var(--sans);
+  color:var(--muted2);letter-spacing:0;text-transform:none;margin-top:2px;}
+#page-lavarion .rsTbl tbody tr td:first-child,.lav3 .rsTbl tbody tr td:first-child{
+  box-shadow:inset 3px 0 0 var(--grn);}
+#page-lavarion .rsTbl tbody tr.short td:first-child,.lav3 .rsTbl tbody tr.short td:first-child{
+  box-shadow:inset 3px 0 0 var(--amb);}
+#page-lavarion .rsS.bad,.lav3 .rsS.bad{border-color:rgba(248,113,113,.4);}
+#page-lavarion .rsS.bad b,.lav3 .rsS.bad b{color:var(--red);}
+#page-lavarion .rsS.warn,.lav3 .rsS.warn{border-color:rgba(251,191,36,.4);}
+#page-lavarion .rsS.warn b,.lav3 .rsS.warn b{color:var(--amb);}
+#page-lavarion .rsS.ok,.lav3 .rsS.ok{border-color:rgba(74,222,128,.35);}
+#page-lavarion .rsS.ok b,.lav3 .rsS.ok b{color:var(--grn);}
+#page-lavarion .rsS.shared,.lav3 .rsS.shared{border-color:rgba(245,158,11,.45);}
+#page-lavarion .rsS.shared b,.lav3 .rsS.shared b{color:var(--accent);}
+/* several bundles at once — one compact row each */
+#page-lavarion .rsPicks,.lav3 .rsPicks{background:var(--bg2);border:1px solid var(--border);
+  border-radius:11px;padding:11px 14px;margin-bottom:10px;}
+#page-lavarion .rsPicksH,.lav3 .rsPicksH{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding-bottom:9px;border-bottom:1px solid var(--border);}
+#page-lavarion .rsPicksH .t,.lav3 .rsPicksH .t{font:800 13.5px var(--sans);color:var(--text);}
+#page-lavarion .rsPicksH .sub,.lav3 .rsPicksH .sub{font-size:11.5px;color:var(--text3);}
+#page-lavarion .rsPicksAdd,.lav3 .rsPicksAdd{display:flex;gap:7px;align-items:center;margin-left:auto;}
+#page-lavarion .rsPicksAdd .rsSearch,.lav3 .rsPicksAdd .rsSearch{width:250px;position:relative;}
+/* ── RESTOCK ROW, MODERNISED ───────────────────────────────────────────────
+   Jack, 19 Aug: "this just looks off for some reason". It was: the -/22/+
+   control is three loose elements. .rsStep (below, written months ago) is the
+   wrapper that joins them — it was never put in the template, and .rsPm is
+   deliberately border:none because the wrapper was meant to supply the border.
+   Also one dimmer ink: --text3 is #e6e1d6 in here, so every caption shouted as
+   loudly as the number it described. --muted2 is used ONLY on labels, units
+   and placeholders, never on a figure. */
+#page-lavarion,.lav3,#page-shipments{--muted2:#9a948a;}
+#page-lavarion .rsHd,.lav3 .rsHd{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;width:100%;}
+#page-lavarion .rsHdN,.lav3 .rsHdN{min-width:180px;flex:1 1 200px;}
+#page-lavarion .rsHdN .nm2,.lav3 .rsHdN .nm2{font:800 14.5px var(--sans);color:var(--text);letter-spacing:-.01em;}
+#page-lavarion .rsHdN .mt2,.lav3 .rsHdN .mt2{display:block;font:600 11px var(--sans);color:var(--muted2);margin-top:3px;}
+#page-lavarion .rsHdN .ordn,.lav3 .rsHdN .ordn{display:inline-flex;align-items:center;gap:6px;
+  font:800 11px var(--sans);margin-top:6px;}
+#page-lavarion .rsHdN .ordn .dt,.lav3 .rsHdN .ordn .dt{width:6px;height:6px;border-radius:50%;
+  background:currentColor;flex:0 0 auto;}
+#page-lavarion .rsMx,.lav3 .rsMx{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;}
+#page-lavarion .rsMx>span,.lav3 .rsMx>span{display:grid;gap:1px;min-width:52px;}
+#page-lavarion .rsMx .k,.lav3 .rsMx .k{font:800 8.5px var(--sans);letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted2);white-space:nowrap;}
+#page-lavarion .rsMx .v,.lav3 .rsMx .v{font:800 17px var(--num);color:var(--text);line-height:1.05;}
+#page-lavarion .rsMx .u,.lav3 .rsMx .u{font:600 9.5px var(--sans);color:var(--muted2);}
+#page-lavarion .rsCtl,.lav3 .rsCtl{display:flex;gap:12px;align-items:flex-start;margin-left:auto;}
+#page-lavarion .rsCtl .k,.lav3 .rsCtl .k{display:block;font:800 8.5px var(--sans);letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted2);margin-bottom:5px;white-space:nowrap;}
+#page-lavarion .rsSel,.lav3 .rsSel{background:var(--bg3);border:1px solid var(--border2);border-radius:9px;
+  color:var(--text);font:700 12px var(--sans);padding:9px 9px;cursor:pointer;width:132px;}
+#page-lavarion .rsSel:disabled,.lav3 .rsSel:disabled{color:var(--muted2);cursor:not-allowed;}
+#page-lavarion .rsPick2,.lav3 .rsPick2{display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:9px 0;border-bottom:1px solid var(--border);}
+#page-lavarion .rsPick2:last-child,.lav3 .rsPick2:last-child{border-bottom:0;padding-bottom:0;}
+/* opacity dimmed the row's BUTTONS too, so a live control looked disabled on
+   the one row that actually needs work. Colour, plus a grey edge. */
+#page-lavarion .rsPick2.noList,.lav3 .rsPick2.noList{box-shadow:inset 3px 0 0 var(--border2);padding-left:9px;}
+#page-lavarion .rsPick2.noList .nm2,.lav3 .rsPick2.noList .nm2{color:var(--muted2);}
+#page-lavarion .rsP2N,.lav3 .rsP2N{min-width:170px;flex:1 1 170px;display:flex;gap:9px;align-items:flex-start;}
+/* a log folds away until it is needed */
+#page-lavarion .rsChev,.lav3 .rsChev{background:none;border:0;padding:0;cursor:pointer;color:var(--text3);
+  font-size:11px;line-height:1.5;flex:0 0 auto;}
+#page-lavarion .rsChev:hover,.lav3 .rsChev:hover{color:var(--accent);}
+#page-lavarion .rsPick2.open,.lav3 .rsPick2.open{background:rgba(255,255,255,.02);border-radius:8px;
+  padding-left:8px;padding-right:8px;}
+#page-lavarion .rsLog,.lav3 .rsLog{flex:0 0 100%;margin-top:9px;border-top:1px solid var(--border);padding-top:9px;}
+#page-lavarion .rsTbl.mini,.lav3 .rsTbl.mini{font-size:12px;}
+#page-lavarion .rsTbl.mini th,.lav3 .rsTbl.mini th{font-size:9px;padding-top:5px;padding-bottom:5px;}
+#page-lavarion .rsTbl.mini td,.lav3 .rsTbl.mini td{padding-top:5px;padding-bottom:5px;}
+#page-lavarion .rsTbl.mini .pname,.lav3 .rsTbl.mini .pname{font-size:12px;}
+#page-lavarion .ph>.rsChev,.lav3 .ph>.rsChev{margin-right:2px;}
+#page-lavarion .rsP2N .nm,.lav3 .rsP2N .nm{display:block;font:800 13px var(--sans);color:var(--text);}
+#page-lavarion .rsP2N .mt,.lav3 .rsP2N .mt{display:block;font-size:10.5px;color:var(--text3);margin-top:1px;}
+#page-lavarion .rsP2F,.lav3 .rsP2F{display:flex;gap:15px;flex-wrap:wrap;}
+#page-lavarion .rsP2F span,.lav3 .rsP2F span{display:grid;gap:0;}
+#page-lavarion .rsP2F i,.lav3 .rsP2F i{font-style:normal;font:800 8.5px var(--sans);letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text3);}
+#page-lavarion .rsP2F b,.lav3 .rsP2F b{font:800 14px var(--num);color:var(--text);line-height:1.15;}
+#page-lavarion .rsP2B,.lav3 .rsP2B{display:flex;gap:6px;align-items:center;margin-left:auto;}
+/* which bundles want a part, and how many each */
+#page-lavarion .rsFrom,.lav3 .rsFrom{display:flex;flex-wrap:wrap;gap:4px;}
+#page-lavarion .rsFromC,.lav3 .rsFromC{display:inline-flex;align-items:baseline;gap:5px;background:var(--bg4);
+  border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-size:10.5px;color:var(--text2);
+  max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .rsFromC b,.lav3 .rsFromC b{font:800 11px var(--num);color:var(--accent);flex:0 0 auto;}
+/* the count's own date and time — it is not always "now" */
+#page-lavarion .amzWhen,.lav3 .amzWhen{display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:11px;}
+#page-lavarion .amzWhen .k,.lav3 .amzWhen .k{font:800 10px var(--sans);letter-spacing:.07em;
+  text-transform:uppercase;color:var(--text2);}
+#page-lavarion .amzWhen input,.lav3 .amzWhen input{width:auto;flex:0 0 auto;font:700 12.5px var(--num);}
+#page-lavarion .amzWhen .pmeta,.lav3 .amzWhen .pmeta{flex:1;min-width:210px;}
+/* end sales css */
+#page-lavarion .dupbar,.lav3 .dupbar{display:flex;gap:13px;align-items:flex-start;margin-bottom:13px;
+  background:rgba(248,113,113,.11);border:1px solid rgba(248,113,113,.45);border-left:5px solid var(--red);
+  border-radius:10px;padding:13px 15px;}
+#page-lavarion .dupIcon,.lav3 .dupIcon{flex:0 0 24px;height:24px;border-radius:50%;background:var(--red);color:#1a0808;
+  display:flex;align-items:center;justify-content:center;font:800 14px var(--num);}
+#page-lavarion .dupTxt,.lav3 .dupTxt{flex:1;min-width:0;font-size:12.5px;line-height:1.55;color:var(--text);}
+#page-lavarion .dupTxt b,.lav3 .dupTxt b{display:block;color:var(--red);font-size:13.5px;margin-bottom:2px;}
+#page-lavarion .dupList,.lav3 .dupList{margin-top:9px;display:flex;flex-direction:column;gap:6px;}
+#page-lavarion .dupRow,.lav3 .dupRow{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+#page-lavarion .dupAsin,.lav3 .dupAsin{font:800 11.5px var(--num);color:var(--amb);letter-spacing:.4px;min-width:96px;}
+#page-lavarion .dupChip,.lav3 .dupChip{background:var(--bg3);border:1px solid var(--border2);border-radius:7px;
+  padding:5px 9px;font:600 12px var(--num);color:var(--text);cursor:pointer;text-align:left;}
+#page-lavarion .dupChip:hover,.lav3 .dupChip:hover{border-color:var(--accent);}
+#page-lavarion .dupChip span,.lav3 .dupChip span{display:block;font-size:10.5px;font-weight:600;color:var(--text3);margin-top:2px;}
+#page-lavarion .dupbar>.btn,.lav3 .dupbar>.btn{flex:0 0 auto;}
+
+#page-lavarion .dlvHow,.lav3 .dlvHow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+#page-lavarion .dlvHow>div,.lav3 .dlvHow>div{flex:1 1 150px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:8px 10px;font-size:11.5px;color:var(--text2);line-height:1.4;}
+#page-lavarion .dlvHow b,.lav3 .dlvHow b{display:inline-flex;width:17px;height:17px;border-radius:50%;background:var(--accent);
+  color:#0b0d10;align-items:center;justify-content:center;font:800 10px var(--num);margin-right:6px;}
+#page-lavarion .dlvHow i,.lav3 .dlvHow i{font-style:normal;color:var(--text);font-weight:700;}
+
+/* review table — the unit column was clipping its own total */
+#page-lavarion table.rvw td,.lav3 table.rvw td{vertical-align:middle;}
+#page-lavarion .rvwMatch,.lav3 .rvwMatch{display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
+#page-lavarion .rvwMatch .brTag,.lav3 .rvwMatch .brTag{margin:0;}
+#page-lavarion .rvwMatch .pmeta,.lav3 .rvwMatch .pmeta{margin:0;}
+#page-lavarion .rvwNone,.lav3 .rvwNone{font-size:12px;color:var(--amb);font-weight:600;}
+#page-lavarion table.rvw .acts,.lav3 table.rvw .acts{white-space:nowrap;}
+
+#page-lavarion .dlvEmpty,.lav3 .dlvEmpty{text-align:center;padding:14px 10px 6px;}
+#page-lavarion .deIcon,.lav3 .deIcon{font-size:30px;opacity:.5;margin-bottom:10px;}
+#page-lavarion .deT,.lav3 .deT{font:800 15px var(--num);color:var(--text);margin-bottom:7px;}
+#page-lavarion .deB,.lav3 .deB{font-size:12.5px;color:var(--text2);line-height:1.6;max-width:430px;margin:0 auto 16px;}
+#page-lavarion .deSteps,.lav3 .deSteps{display:flex;flex-direction:column;gap:6px;max-width:470px;margin:0 auto 18px;text-align:left;}
+#page-lavarion .deSteps>div,.lav3 .deSteps>div{background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+  padding:9px 12px;font-size:12px;color:var(--text2);line-height:1.45;}
+#page-lavarion .deSteps b:first-child,.lav3 .deSteps b:first-child{display:inline-flex;width:17px;height:17px;border-radius:50%;
+  background:var(--accent);color:#0b0d10;align-items:center;justify-content:center;font:800 10px var(--num);margin-right:7px;}
+#page-lavarion .deBtns,.lav3 .deBtns{display:flex;gap:8px;justify-content:center;}
+
+/* ── To review: orders, not loose rows ── */
+#page-lavarion .rvWrap,.lav3 .rvWrap{padding:12px 14px;display:flex;flex-direction:column;gap:11px;}
+#page-lavarion .rvOrder,.lav3 .rvOrder{border:1px solid var(--border);border-radius:11px;background:var(--bg2);overflow:hidden;}
+#page-lavarion .rvOrder.ok,.lav3 .rvOrder.ok{border-color:rgba(74,222,128,.34);}
+#page-lavarion .rvHead,.lav3 .rvHead{display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+  padding:11px 14px;background:var(--bg3);border-bottom:1px solid var(--border);}
+#page-lavarion .rvWho,.lav3 .rvWho{flex:1;min-width:180px;}
+#page-lavarion .rvSup,.lav3 .rvSup{display:block;font:800 13.5px var(--num);color:var(--text);}
+#page-lavarion .rvMeta,.lav3 .rvMeta{display:block;font-size:11.5px;color:var(--text3);margin-top:2px;}
+#page-lavarion .rvNums,.lav3 .rvNums{display:flex;gap:18px;}
+#page-lavarion .rvNums>div,.lav3 .rvNums>div{text-align:right;}
+#page-lavarion .rvNums b,.lav3 .rvNums b{display:block;font:800 14px var(--num);color:var(--text);}
+#page-lavarion .rvNums span,.lav3 .rvNums span{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);}
+#page-lavarion .rvAct,.lav3 .rvAct{display:flex;gap:6px;align-items:center;}
+#page-lavarion .rvWarn,.lav3 .rvWarn{font-size:11.5px;font-weight:700;color:var(--amb);}
+#page-lavarion .rvLines,.lav3 .rvLines{display:flex;flex-direction:column;}
+#page-lavarion .rvLine,.lav3 .rvLine{display:grid;
+  grid-template-columns:minmax(0,1.5fr) 62px 74px 92px minmax(0,1.4fr) 168px;
+  gap:12px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);}
+#page-lavarion .rvHdr,.lav3 .rvHdr{padding:7px 14px;background:rgba(255,255,255,.02);}
+#page-lavarion .rvHdr>div,.lav3 .rvHdr>div{font:700 9.5px var(--num);letter-spacing:.7px;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .rvHdr .r,.lav3 .rvHdr .r{text-align:right;}
+#page-lavarion .rvNum,.lav3 .rvNum{font:700 12.5px var(--num);color:var(--text);text-align:right;font-variant-numeric:tabular-nums;}
+#page-lavarion .rvLine:last-child,.lav3 .rvLine:last-child{border-bottom:0;}
+#page-lavarion .rvLine.nomatch,.lav3 .rvLine.nomatch{background:rgba(251,191,36,.05);}
+#page-lavarion .rvName,.lav3 .rvName{font:600 12.5px var(--num);color:var(--text);min-width:0;}
+#page-lavarion .rvFlag,.lav3 .rvFlag{display:block;font:600 10px var(--num);color:var(--amb);margin-top:1px;}
+#page-lavarion .rvTo,.lav3 .rvTo{min-width:0;}
+#page-lavarion .rvWhy,.lav3 .rvWhy{display:block;font-size:10.5px;color:var(--text3);margin-top:3px;}
+#page-lavarion .rvNone,.lav3 .rvNone{font-size:12px;font-weight:700;color:var(--amb);}
+#page-lavarion .rvBtns,.lav3 .rvBtns{display:flex;gap:5px;justify-content:flex-end;white-space:nowrap;}
+#page-lavarion .rvFoot,.lav3 .rvFoot{padding:11px 14px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text3);line-height:1.55;}
+@media(max-width:1100px){
+  #page-lavarion .rvLine,.lav3 .rvLine{grid-template-columns:minmax(0,1.4fr) 56px 70px minmax(0,1.2fr) 160px;}
+  #page-lavarion .rvLine>div:nth-child(4),.lav3 .rvLine>div:nth-child(4){display:none;}
+}
+@media(max-width:760px){
+  #page-lavarion .rvLine,.lav3 .rvLine{grid-template-columns:1fr;gap:5px;}
+  #page-lavarion .rvHdr,.lav3 .rvHdr{display:none;}
+  #page-lavarion .rvNum,.lav3 .rvNum{text-align:left;}
+  #page-lavarion .rvBtns,.lav3 .rvBtns{justify-content:flex-start;}
+}
+
+#page-lavarion .ordNote,.lav3 .ordNote{padding:8px 14px;border-bottom:1px solid var(--border);font-size:11.5px;color:var(--text3);}
+#page-lavarion .dlvOrd,.lav3 .dlvOrd{display:flex;gap:10px;align-items:center;padding:9px 13px;background:var(--bg3);
+  border-bottom:1px solid var(--border);font-size:12px;}
+#page-lavarion .dlvOrd b,.lav3 .dlvOrd b{font:800 12.5px var(--num);color:var(--text);}
+#page-lavarion .dlvOrd span,.lav3 .dlvOrd span{flex:1;color:var(--text3);font-size:11.5px;}
+
+#page-lavarion .loQuick,.lav3 .loQuick{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px;}
+#page-lavarion .loQuick button,.lav3 .loQuick button{background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  padding:4px 9px;font:700 11px var(--num);color:var(--text2);cursor:pointer;}
+#page-lavarion .loQuick button:hover,.lav3 .loQuick button:hover{border-color:var(--accent);color:var(--accent);}
+#page-lavarion .mdRow,.lav3 .mdRow{display:flex;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+#page-lavarion .mdRow:last-child,.lav3 .mdRow:last-child{border-bottom:0;}
+#page-lavarion .mdRow .nm,.lav3 .mdRow .nm{flex:1;font-size:12.5px;color:var(--text);}
+/* Only the day boxes are 64px. This rule used to hit EVERY input in the row,
+   which squashed the method name to 64px too — "Sea freight from China" showed
+   as "Sea freig" while the column it sat in stayed half empty. */
+#page-lavarion .mdRow .mdDays input,.lav3 .mdRow .mdDays input{width:64px;text-align:center;padding:5px 6px;}
+
+#page-lavarion select.srt,.lav3 select.srt{width:auto;min-width:150px;padding:6px 9px;font-size:12px;flex:0 0 auto;}
+
+#page-lavarion .brTag.maybe,.lav3 .brTag.maybe{border-style:dashed;border-color:var(--amb);color:var(--amb);background:rgba(251,191,36,.08);}
+
+/* the morning work list */
+#page-lavarion .wl,.lav3 .wl{border:1px solid var(--border2);border-radius:12px;background:var(--bg2);margin-bottom:14px;overflow:hidden;}
+#page-lavarion .wlHead,.lav3 .wlHead{display:flex;gap:10px;align-items:baseline;padding:12px 15px;background:var(--bg3);border-bottom:1px solid var(--border);}
+#page-lavarion .wlHead b,.lav3 .wlHead b{font:800 14px var(--num);color:var(--text);}
+#page-lavarion .wlHead span,.lav3 .wlHead span{font-size:12px;color:var(--text3);}
+#page-lavarion .wlRow,.lav3 .wlRow{display:flex;gap:12px;align-items:center;padding:11px 15px;border-bottom:1px solid var(--border);}
+/* Action centre item rows — Jack, 3 Sep: "loads of dead space, no colours,
+   very boring". Name and urgency travel together on the left; the row lights
+   up on hover so a long list stops reading as one grey slab. */
+#page-lavarion .wlItem,.lav3 .wlItem{display:flex;align-items:center;gap:9px;padding:7px 8px;border-top:1px solid var(--border);border-radius:6px;transition:background .12s;}
+#page-lavarion .wlItem:hover,.lav3 .wlItem:hover{background:rgba(255,255,255,.035);}
+#page-lavarion .wlItem.grp,.lav3 .wlItem.grp{background:rgba(96,165,250,.06);border-left:3px solid #60a5fa;padding-left:9px;}
+#page-lavarion .wlItem .wlName,.lav3 .wlItem .wlName{font-size:12px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;}
+#page-lavarion .wlItem .wlWait,.lav3 .wlItem .wlWait{color:var(--text3);font-weight:600;}
+#page-lavarion .wlItem .wlChip,.lav3 .wlItem .wlChip{font:800 10px var(--sans);letter-spacing:.02em;padding:2px 8px;border-radius:999px;border:1px solid;white-space:nowrap;flex:none;}
+#page-lavarion .wlItem .wlMoney,.lav3 .wlItem .wlMoney{font:800 11.5px var(--num);font-variant-numeric:tabular-nums;color:#e2c68a;white-space:nowrap;flex:none;}
+#page-lavarion .wlItem .wlGap,.lav3 .wlItem .wlGap{flex:1 1 auto;min-width:8px;}
+#page-lavarion .wlRow:last-child,.lav3 .wlRow:last-child{border-bottom:0;}
+#page-lavarion .wlDot,.lav3 .wlDot{flex:0 0 8px;height:8px;border-radius:50%;background:var(--text3);}
+#page-lavarion .wlRow.s1 .wlDot,.lav3 .wlRow.s1 .wlDot{background:var(--red);box-shadow:0 0 0 3px rgba(248,113,113,.18);}
+#page-lavarion .wlRow.s2 .wlDot,.lav3 .wlRow.s2 .wlDot{background:var(--amb);}
+#page-lavarion .wlRow.s3 .wlDot,.lav3 .wlRow.s3 .wlDot{background:var(--blu);}
+#page-lavarion .wlTxt,.lav3 .wlTxt{flex:1;min-width:0;}
+#page-lavarion .wlTxt b,.lav3 .wlTxt b{display:block;font:700 13px var(--num);color:var(--text);}
+#page-lavarion .wlTxt span,.lav3 .wlTxt span{display:block;font-size:11.5px;color:var(--text3);margin-top:2px;}
+#page-lavarion .wlRow .btn,.lav3 .wlRow .btn{flex:0 0 auto;}
+#page-lavarion .wl.done,.lav3 .wl.done{display:flex;gap:12px;align-items:center;padding:13px 15px;
+  border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.06);margin-bottom:14px;}
+#page-lavarion .wlTick,.lav3 .wlTick{flex:0 0 24px;height:24px;border-radius:50%;background:var(--grn);color:#07120b;
+  display:flex;align-items:center;justify-content:center;font:800 13px var(--num);}
+#page-lavarion .wl.done b,.lav3 .wl.done b{display:block;font:800 13.5px var(--num);color:var(--grn);}
+#page-lavarion .wl.done span,.lav3 .wl.done span{font-size:12px;color:var(--text2);}
+
+/* Overview — Becki's list (5 Sep). Colour on the rail and the chip, never a wash. */
+#page-lavarion .ovRow,.lav3 .ovRow{display:flex;align-items:center;gap:12px;padding:9px 14px 9px 12px;border-top:1px solid var(--border);border-left:3px solid var(--border2);}
+#page-lavarion .ovRow:hover,.lav3 .ovRow:hover,#page-lavarion .ovLine:hover,.lav3 .ovLine:hover{background:rgba(255,255,255,.03);}
+#page-lavarion .ovMain,.lav3 .ovMain{flex:1 1 auto;min-width:0;}
+#page-lavarion .ovName,.lav3 .ovName{font:700 13px var(--num);color:var(--text);line-height:1.3;}
+#page-lavarion .ovSub,.lav3 .ovSub{font-size:11.5px;color:var(--text3);margin-top:2px;line-height:1.35;}
+#page-lavarion .ovDim,.lav3 .ovDim{color:var(--text3);font-weight:600;}
+#page-lavarion .ovDim b,.lav3 .ovDim b{color:var(--text2);}
+#page-lavarion .ovRight,.lav3 .ovRight{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+#page-lavarion .ovBtns,.lav3 .ovBtns{display:flex;gap:6px;flex:0 0 auto;}
+#page-lavarion .ovChip,.lav3 .ovChip{font:800 10.5px var(--sans);letter-spacing:.02em;padding:3px 9px;border-radius:999px;border:1px solid;white-space:nowrap;}
+#page-lavarion .ovBig,.lav3 .ovBig{font:800 18px var(--num);color:var(--text);font-variant-numeric:tabular-nums;}
+#page-lavarion .ovBig small,.lav3 .ovBig small{font:700 10px var(--sans);color:var(--text3);margin-left:3px;}
+#page-lavarion .ovMoney,.lav3 .ovMoney{font:800 12px var(--num);color:#e2c68a;white-space:nowrap;font-variant-numeric:tabular-nums;}
+#page-lavarion .ovMoney.sm,.lav3 .ovMoney.sm{font-size:11.5px;color:#cbb37a;}
+#page-lavarion .ovSup,.lav3 .ovSup{border-top:1px solid var(--border);border-left:3px solid var(--border2);padding:6px 0;}
+#page-lavarion .ovSupHead,.lav3 .ovSupHead{display:flex;align-items:center;gap:10px;padding:5px 14px 4px 12px;font-size:13px;color:var(--text);}
+#page-lavarion .ovSupHead b,.lav3 .ovSupHead b{font:800 13px var(--num);}
+#page-lavarion .ovLine,.lav3 .ovLine{display:flex;align-items:center;gap:10px;padding:5px 14px 5px 26px;font-size:12px;color:var(--text);}
+#page-lavarion .ovLineName,.lav3 .ovLineName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;flex:0 1 auto;}
+#page-lavarion .ovQty,.lav3 .ovQty{font:800 12px var(--num);white-space:nowrap;font-variant-numeric:tabular-nums;}
+#page-lavarion .ovQty small,.lav3 .ovQty small{font:600 10px var(--sans);color:var(--text3);margin-left:4px;}
+#page-lavarion .ovGap,.lav3 .ovGap{flex:1 1 auto;min-width:8px;}
+#page-lavarion .ovFoot,.lav3 .ovFoot{display:flex;flex-direction:column;gap:3px;padding:8px 14px 10px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);}
+#page-lavarion .ovFoot a,.lav3 .ovFoot a{color:var(--blu);text-decoration:none;}
+#page-lavarion .ovEmpty,.lav3 .ovEmpty{display:flex;align-items:center;gap:10px;padding:12px 14px;font-size:12px;color:var(--text2);font-weight:600;}
+#page-lavarion .ovTick,.lav3 .ovTick{flex:0 0 20px;height:20px;border-radius:50%;background:var(--grn);color:#07120b;display:flex;align-items:center;justify-content:center;font:800 12px var(--num);}
+#page-lavarion .btn.ghost,.lav3 .btn.ghost{background:transparent;border-color:var(--border2);color:var(--text3);}
+#page-lavarion .btn.ghost:hover,.lav3 .btn.ghost:hover{color:var(--text);border-color:var(--text3);}
+#page-lavarion .ovJack>summary,.lav3 .ovJack>summary{display:flex;align-items:center;gap:12px;padding:11px 15px;cursor:pointer;list-style:none;font-size:12px;}
+#page-lavarion .ovJackT,.lav3 .ovJackT{font:800 12.5px var(--num);color:var(--text);}
+#page-lavarion .ovJackN,.lav3 .ovJackN{font:800 12px var(--num);}
+/* Planner tables */
+#page-lavarion .plnStrip,.lav3 .plnStrip{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:10px;}
+#page-lavarion .plnStrip b,.lav3 .plnStrip b{font-family:var(--num);font-size:15px;}
+#page-lavarion .plnTbl,.lav3 .plnTbl{padding:0 0 6px;}
+#page-lavarion .plnRow,.lav3 .plnRow{display:grid;grid-template-columns:minmax(200px,1.6fr) 80px 90px 100px 80px 70px minmax(150px,1fr) 190px;gap:10px;align-items:center;padding:8px 14px 8px 11px;border-top:1px solid var(--border);border-left:3px solid transparent;cursor:pointer;}
+#page-lavarion .plnRow.plnB,.lav3 .plnRow.plnB{grid-template-columns:minmax(220px,1.8fr) 100px 80px 110px 90px 170px 240px;cursor:default;}
+#page-lavarion .plnRow:not(.plnHead):hover,.lav3 .plnRow:not(.plnHead):hover{background:rgba(255,255,255,.03);}
+#page-lavarion .plnHead,.lav3 .plnHead{border-top:0;cursor:default;padding-top:4px;padding-bottom:4px;}
+#page-lavarion .plnHead .plnName,.lav3 .plnHead .plnName,#page-lavarion .plnHead .plnNum,.lav3 .plnHead .plnNum,#page-lavarion .plnHead .plnPart,.lav3 .plnHead .plnPart,#page-lavarion .plnHeadState,.lav3 .plnHeadState{font:800 10px var(--num);letter-spacing:.07em;text-transform:uppercase;color:var(--text3);border:0;background:none;}
+#page-lavarion .plnName,.lav3 .plnName{font:700 12.5px var(--num);color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-lavarion .plnName small,.lav3 .plnName small,#page-lavarion .plnNum small,.lav3 .plnNum small,#page-lavarion .plnPart small,.lav3 .plnPart small{display:block;font:600 10.5px var(--sans);color:var(--text3);margin-top:1px;white-space:normal;}
+#page-lavarion .plnNum,.lav3 .plnNum{font:700 12.5px var(--num);text-align:right;font-variant-numeric:tabular-nums;color:var(--text);}
+#page-lavarion .plnPart,.lav3 .plnPart{font-size:11.5px;color:var(--text2);min-width:0;overflow:hidden;}
+#page-lavarion .plnState,.lav3 .plnState{font:800 10px var(--sans);letter-spacing:.03em;padding:3px 8px;border-radius:6px;border:1px solid;white-space:nowrap;text-align:center;justify-self:end;}
+#page-lavarion .plnBtns,.lav3 .plnBtns{display:flex;gap:6px;justify-content:flex-end;}
+#page-lavarion .plnHead .plnState,.lav3 .plnHead .plnState{border:0!important;background:none!important;color:var(--text3)!important;font:800 10px var(--num)!important;letter-spacing:.07em;text-transform:uppercase;}
+#page-lavarion .plnMore>summary,.lav3 .plnMore>summary{cursor:pointer;list-style:none;padding:8px 14px;font:800 11px var(--num);letter-spacing:.06em;color:var(--text3);border-top:1px solid var(--border);}
+/* Action centre (5 Sep) */
+#page-lavarion .acSec>summary,.lav3 .acSec>summary{display:flex;align-items:center;gap:10px;padding:10px 14px 6px;cursor:pointer;list-style:none;border-top:1px solid var(--border);}
+#page-lavarion .acSecLab,.lav3 .acSecLab{font:800 10.5px var(--num);letter-spacing:.1em;}
+#page-lavarion .acSecN,.lav3 .acSecN{font:800 11px var(--num);padding:1px 8px;border-radius:999px;border:1px solid;}
+#page-lavarion .acRow,.lav3 .acRow{display:flex;align-items:center;gap:12px;padding:9px 14px 9px 12px;border-top:1px solid var(--border);border-left:3px solid var(--border2);}
+#page-lavarion .acRow:hover,.lav3 .acRow:hover{background:rgba(255,255,255,.03);}
+#page-lavarion .acMain,.lav3 .acMain{flex:1 1 auto;min-width:0;}
+#page-lavarion .acDo,.lav3 .acDo{font-size:13px;color:var(--text);line-height:1.35;}
+#page-lavarion .acDo b,.lav3 .acDo b{font-weight:800;}
+#page-lavarion .acWhy,.lav3 .acWhy{font-size:11.5px;color:var(--text3);margin-top:2px;line-height:1.35;}
+#page-lavarion .acBtns,.lav3 .acBtns{display:flex;gap:6px;flex:0 0 auto;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+#page-lavarion .btn.ok,.lav3 .btn.ok{background:rgba(74,222,128,.14);border-color:rgba(74,222,128,.5);color:#4ade80;}
+#page-lavarion .acParts>summary,.lav3 .acParts>summary{cursor:pointer;list-style:none;font-size:11px;font-weight:800;color:var(--blu);margin-top:4px;}
+#page-lavarion .acPart,.lav3 .acPart{display:flex;align-items:center;gap:10px;padding:4px 0 4px 10px;font-size:12px;border-left:2px solid var(--border);margin-top:3px;}
+#page-lavarion .acPartName,.lav3 .acPartName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;font-weight:600;}
+#page-lavarion .acPart b,.lav3 .acPart b{font-family:var(--num);white-space:nowrap;}
+#page-lavarion .acPart small,.lav3 .acPart small{color:var(--text3);font-weight:600;}
+#page-lavarion .acPick,.lav3 .acPick{margin-left:4px;padding:3px 6px;font-size:11px;}
+#page-lavarion input.sold30.unset,.lav3 input.sold30.unset{border-style:dashed;border-color:var(--border2);}
+#page-lavarion input.sold30::placeholder,.lav3 input.sold30::placeholder{font-size:10.5px;font-weight:600;color:var(--text3);}
+#page-lavarion .sldSub,.lav3 .sldSub{font-size:10px;text-align:center;color:var(--text3);margin-top:3px;line-height:1.3;}
+#page-lavarion .sldSub .est,.lav3 .sldSub .est{color:var(--text3);font-style:italic;}
+
+/* the purchase journey, left to right */
+#page-lavarion .ppFlow,.lav3 .ppFlow{display:flex;align-items:stretch;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+#page-lavarion .ppStep,.lav3 .ppStep{flex:1 1 170px;min-width:150px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:11px;padding:12px 14px;cursor:pointer;transition:border-color .12s;}
+#page-lavarion .ppStep:hover,.lav3 .ppStep:hover{border-color:var(--accent);}
+#page-lavarion .ppStep.alert,.lav3 .ppStep.alert{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.05);}
+#page-lavarion .ppStep .k,.lav3 .ppStep .k{font:700 10px var(--num);letter-spacing:.7px;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .ppStep .v,.lav3 .ppStep .v{font:800 24px var(--num);color:var(--text);line-height:1.15;margin:3px 0 2px;}
+#page-lavarion .ppStep .s,.lav3 .ppStep .s{font-size:11px;color:var(--text3);line-height:1.4;}
+#page-lavarion .ppArrow,.lav3 .ppArrow{display:flex;align-items:center;color:var(--text3);font-size:15px;flex:0 0 auto;}
+@media(max-width:820px){#page-lavarion .ppArrow,.lav3 .ppArrow{display:none;}}
+
+#page-lavarion .unlk,.lav3 .unlk{font-size:10.5px;color:var(--text3);margin-top:3px;line-height:1.35;}
+#page-lavarion .unlk.bad,.lav3 .unlk.bad{color:var(--grn);font-weight:700;}
+#page-lavarion .unlk.dim,.lav3 .unlk.dim{opacity:.6;font-style:italic;}
+
+#page-lavarion .rcvCell,.lav3 .rcvCell{display:flex;gap:5px;align-items:center;justify-content:flex-end;}
+#page-lavarion .num.quiet,.lav3 .num.quiet{color:var(--text2);font-weight:600;}
+/* 56px could not hold "300" — the digits were clipped mid-number, which on the
+   one field that decides how much stock exists is not a cosmetic problem. */
+#page-lavarion .rcvQty,.lav3 .rcvQty{width:100%;max-width:84px;text-align:center;padding:6px 6px;font:700 14px var(--num);
+  -moz-appearance:textfield;}
+#page-lavarion .rcvQty::-webkit-outer-spin-button,.lav3 .rcvQty::-webkit-outer-spin-button,
+#page-lavarion .rcvQty::-webkit-inner-spin-button,.lav3 .rcvQty::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0;}
+/* the heading has to stay put — this table is long and by row 20 you cannot
+   tell which column you are looking at */
+#page-lavarion table.stickHead thead th,.lav3 table.stickHead thead th{
+  position:sticky;top:var(--lavPh,47px);z-index:16;background:var(--bg4);
+  box-shadow:inset 0 -2px 0 var(--border2),0 7px 11px -7px rgba(0,0,0,.9);}
+
+#page-lavarion input.mono.unset,.lav3 input.mono.unset{border-style:dashed;border-color:var(--amb);}
+
+/* the part's own history */
+#page-lavarion .tl,.lav3 .tl{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+#page-lavarion .tlRow,.lav3 .tlRow{display:flex;gap:11px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);}
+#page-lavarion .tlRow:last-child,.lav3 .tlRow:last-child{border-bottom:0;}
+#page-lavarion .tlDot,.lav3 .tlDot{flex:0 0 20px;height:20px;border-radius:50%;color:#0b0d10;
+  display:flex;align-items:center;justify-content:center;font:800 11px var(--num);}
+#page-lavarion .tlTxt,.lav3 .tlTxt{flex:1;min-width:0;}
+#page-lavarion .tlTxt b,.lav3 .tlTxt b{display:block;font:600 12.5px var(--num);color:var(--text);}
+#page-lavarion .tlTxt span,.lav3 .tlTxt span{display:block;font-size:11px;color:var(--text3);margin-top:1px;}
+#page-lavarion .tlWhen,.lav3 .tlWhen{flex:0 0 auto;text-align:right;font:700 11.5px var(--num);color:var(--text2);}
+#page-lavarion .tlWhen i,.lav3 .tlWhen i{display:block;font-style:normal;font-size:10px;font-weight:600;color:var(--text3);margin-top:1px;}
+
+#page-lavarion .frGrid,.lav3 .frGrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+@media(max-width:820px){#page-lavarion .frGrid,.lav3 .frGrid{grid-template-columns:1fr;}}
+#page-lavarion .frCol,.lav3 .frCol{border:1px solid var(--border);border-radius:10px;padding:11px 13px;background:var(--bg2);}
+#page-lavarion .frCol.keep,.lav3 .frCol.keep{border-color:rgba(74,222,128,.32);}
+#page-lavarion .frCol.gone,.lav3 .frCol.gone{border-color:rgba(248,113,113,.28);}
+#page-lavarion .frH,.lav3 .frH{font:800 11px var(--num);letter-spacing:.6px;text-transform:uppercase;margin-bottom:7px;}
+#page-lavarion .frCol.keep .frH,.lav3 .frCol.keep .frH{color:var(--grn);}
+#page-lavarion .frCol.gone .frH,.lav3 .frCol.gone .frH{color:var(--red);}
+#page-lavarion .frCol ul,.lav3 .frCol ul{margin:0 0 0 16px;padding:0;font-size:12px;color:var(--text);line-height:1.65;}
+#page-lavarion .frNote,.lav3 .frNote{margin-top:8px;font-size:11px;color:var(--text3);line-height:1.5;}
+
+/* history, read like a diary */
+#page-lavarion .hDay,.lav3 .hDay{border-bottom:1px solid var(--border);}
+#page-lavarion .hDay:last-child,.lav3 .hDay:last-child{border-bottom:0;}
+#page-lavarion .hDayHead,.lav3 .hDayHead{display:flex;gap:10px;align-items:baseline;padding:9px 14px;
+  background:var(--bg3);font:800 12px var(--num);color:var(--text);position:sticky;top:var(--lavTh,103px);z-index:10;}
+#page-lavarion .hDayHead span,.lav3 .hDayHead span{font:600 11px var(--num);color:var(--text3);}
+#page-lavarion .hRow,.lav3 .hRow{display:flex;gap:11px;align-items:center;padding:8px 14px;border-top:1px solid var(--border);}
+#page-lavarion .hDot,.lav3 .hDot{flex:0 0 18px;height:18px;border-radius:50%;color:#0b0d10;
+  display:flex;align-items:center;justify-content:center;font:800 10px var(--num);}
+#page-lavarion .hTxt,.lav3 .hTxt{flex:1;min-width:0;font-size:12.5px;color:var(--text);line-height:1.45;}
+#page-lavarion .hWho,.lav3 .hWho{flex:0 0 auto;text-align:right;font:600 11px var(--num);color:var(--text2);}
+#page-lavarion .hWho i,.lav3 .hWho i{display:block;font-style:normal;font-size:10px;color:var(--text3);margin-top:1px;}
+
+#page-lavarion .chip.branded,.lav3 .chip.branded{background:rgba(192,132,252,.14);color:#c084fc;border:1px solid rgba(192,132,252,.32);}
+#page-lavarion .chip.private-label,.lav3 .chip.private-label{background:rgba(56,189,248,.13);color:#38bdf8;border:1px solid rgba(56,189,248,.3);}
+#page-lavarion .chip.complementary,.lav3 .chip.complementary{background:rgba(148,163,184,.12);color:var(--text2);border:1px solid var(--border2);}
+
+/* deliveries: arrived-and-counting on top, still-on-the-way grouped by when */
+/* a wide, tall sheet — 19 deliveries in a narrow box is a scroll, not a view */
+#page-lavarion .mod.xl,.lav3 .mod.xl,.mod.xl{max-width:1280px;width:94vw;height:88vh;display:flex;flex-direction:column;}
+/* A wide dialog does not have to be a TALL one. When there is little to review,
+   88vh of empty box under three lines of text is the dead space. */
+#page-lavarion .mod.xl.fit,.lav3 .mod.xl.fit,.mod.xl.fit{height:auto;max-height:88vh;}
+.mod.xl .mb{flex:1;min-height:0;overflow:auto;}
+/* one loud button per ORDER, quiet ones per line — a wall of green reads as noise */
+#page-lavarion .hereBtn,.lav3 .hereBtn{border:1px solid var(--grn);background:transparent;color:var(--grn);font-weight:700;}
+#page-lavarion .hereBtn:hover,.lav3 .hereBtn:hover{background:var(--grn);color:#0b1210;}
+#page-lavarion .dvSecHead,.lav3 .dvSecHead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 9px;}
+#page-lavarion .dvSecHead b,.lav3 .dvSecHead b{font-size:13px;color:var(--text);}
+#page-lavarion .dvSecHead span,.lav3 .dvSecHead span{font-size:11.5px;color:var(--text3);}
+#page-lavarion .dvHint,.lav3 .dvHint{flex-basis:100%;font-size:11.5px;color:var(--text3);}
+#page-lavarion .dvCount,.lav3 .dvCount{border:1px solid var(--grn);border-radius:9px;overflow:auto;max-height:40vh;
+  background:rgba(52,211,153,.04);}
+#page-lavarion .dvGrp,.lav3 .dvGrp{margin-bottom:12px;border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+#page-lavarion .dvGrpHead,.lav3 .dvGrpHead{display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--bg3);}
+#page-lavarion .dvGrpHead b,.lav3 .dvGrpHead b{font-size:12.5px;}
+#page-lavarion .dvGrpSub,.lav3 .dvGrpSub{margin-left:auto;font-size:11.5px;color:var(--text3);}
+#page-lavarion .dvDot,.lav3 .dvDot{width:8px;height:8px;border-radius:50%;background:var(--text3);flex:0 0 auto;}
+#page-lavarion .dv-late .dvDot,.lav3 .dv-late .dvDot{background:var(--red);}
+#page-lavarion .dv-late .dvGrpHead,.lav3 .dv-late .dvGrpHead{background:rgba(248,113,113,.12);}
+#page-lavarion .dv-today .dvDot,.lav3 .dv-today .dvDot{background:var(--amb);}
+#page-lavarion .dv-week .dvDot,.lav3 .dv-week .dvDot{background:var(--blu);}
+#page-lavarion .dv-next .dvDot,.lav3 .dv-next .dvDot{background:var(--grn);}
+#page-lavarion .dvOrd,.lav3 .dvOrd{border-top:1px solid var(--border);}
+#page-lavarion .dvOrdHead,.lav3 .dvOrdHead{display:flex;align-items:center;gap:9px;padding:7px 12px;background:var(--bg2);}
+#page-lavarion .dvOrdHead b,.lav3 .dvOrdHead b{font-size:12px;}
+#page-lavarion .dvOrdHead span,.lav3 .dvOrdHead span{font-size:11px;color:var(--text3);}
+#page-lavarion .dvOrdHead .btn,.lav3 .dvOrdHead .btn{margin-left:auto;}
+#page-lavarion .dvRow,.lav3 .dvRow{display:grid;grid-template-columns:minmax(0,1fr) 190px 90px 110px;gap:11px;
+  align-items:center;padding:9px 12px;border-top:1px solid var(--border);}
+#page-lavarion .dvRow:hover,.lav3 .dvRow:hover{background:var(--bg3);}
+#page-lavarion .dvNm,.lav3 .dvNm{min-width:0;}
+#page-lavarion .dvEta,.lav3 .dvEta{font-size:12px;font-weight:700;text-align:right;}
+#page-lavarion .dvQty,.lav3 .dvQty{text-align:right;}
+/* target column as a button */
+#page-lavarion .tgtBtn,.lav3 .tgtBtn{display:flex;flex-direction:column;gap:2px;align-items:center;width:100%;
+  padding:5px 6px;border-radius:7px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer;transition:.12s;}
+#page-lavarion .tgtBtn:hover,.lav3 .tgtBtn:hover{border-color:var(--accent);background:var(--bg3);}
+#page-lavarion .tgtN,.lav3 .tgtN{font:800 15px var(--num);color:var(--text);}
+#page-lavarion .tgtS,.lav3 .tgtS{font-size:10.5px;font-weight:700;color:var(--text3);}
+/* how short it is, not merely that it is short */
+#page-lavarion .tgtBtn.bad,.lav3 .tgtBtn.bad{border-color:rgba(248,113,113,.45);}
+#page-lavarion .tgtBtn.bad .tgtN,.lav3 .tgtBtn.bad .tgtN,
+#page-lavarion .tgtBtn.bad .tgtS,.lav3 .tgtBtn.bad .tgtS{color:var(--red);}
+#page-lavarion .tgtBtn.gap,.lav3 .tgtBtn.gap{border-color:rgba(251,191,36,.4);}
+#page-lavarion .tgtBtn.gap .tgtN,.lav3 .tgtBtn.gap .tgtN{color:var(--amb);}
+#page-lavarion .tgtBtn.gap .tgtS,.lav3 .tgtBtn.gap .tgtS{color:var(--amb);}
+#page-lavarion .tgtBtn.near,.lav3 .tgtBtn.near{border-color:rgba(125,211,252,.4);}
+#page-lavarion .tgtBtn.near .tgtN,.lav3 .tgtBtn.near .tgtN,
+#page-lavarion .tgtBtn.near .tgtS,.lav3 .tgtBtn.near .tgtS{color:#7dd3fc;}
+#page-lavarion .tgtBtn.ok,.lav3 .tgtBtn.ok{border-color:rgba(74,222,128,.35);}
+#page-lavarion .tgtBtn.ok .tgtN,.lav3 .tgtBtn.ok .tgtN{color:var(--grn);}
+#page-lavarion .tgtBar,.lav3 .tgtBar{display:block;width:100%;height:3px;border-radius:2px;
+  background:rgba(255,255,255,.09);overflow:hidden;margin-top:2px;}
+#page-lavarion .tgtBar i,.lav3 .tgtBar i{display:block;height:100%;border-radius:2px;background:currentColor;}
+#page-lavarion .tgtBtn.bad .tgtBar i,.lav3 .tgtBtn.bad .tgtBar i{background:var(--red);}
+#page-lavarion .tgtBtn.gap .tgtBar i,.lav3 .tgtBtn.gap .tgtBar i{background:var(--amb);}
+#page-lavarion .tgtBtn.near .tgtBar i,.lav3 .tgtBtn.near .tgtBar i{background:#7dd3fc;}
+#page-lavarion .tgtBtn.ok .tgtBar i,.lav3 .tgtBtn.ok .tgtBar i{background:var(--grn);}
+#page-lavarion .tgtBtn.prov .tgtN,.lav3 .tgtBtn.prov .tgtN{color:var(--text3);}
+#page-lavarion .tgtBtn.prov .tgtS,.lav3 .tgtBtn.prov .tgtS{font-style:italic;font-weight:600;}
+/* order plan popup */
+#page-lavarion .opBox,.lav3 .opBox{border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+#page-lavarion .opRow,.lav3 .opRow{display:grid;grid-template-columns:minmax(0,1fr) 110px minmax(0,1fr);gap:10px;
+  align-items:baseline;padding:10px 14px;border-bottom:1px solid var(--border);}
+#page-lavarion .opRow:last-child,.lav3 .opRow:last-child{border-bottom:0;}
+#page-lavarion .opK,.lav3 .opK{font-size:12.5px;color:var(--text2);}
+#page-lavarion .opV,.lav3 .opV{font:800 17px var(--num);text-align:right;color:var(--text);}
+#page-lavarion .opS,.lav3 .opS{font-size:11px;color:var(--text3);}
+#page-lavarion .opAct,.lav3 .opAct{margin-top:12px;}
+#page-lavarion .opDo,.lav3 .opDo{display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:10px;
+  border:1px solid var(--amb);background:rgba(251,191,36,.08);}
+#page-lavarion .opDo b,.lav3 .opDo b{font-size:14px;color:var(--text);}
+#page-lavarion .opDo span,.lav3 .opDo span{font-size:11.5px;color:var(--text3);}
+#page-lavarion .opDo .btn,.lav3 .opDo .btn{margin-left:auto;}
+#page-lavarion .opDo.ok,.lav3 .opDo.ok{border-color:var(--grn);background:rgba(52,211,153,.08);}
+#page-lavarion .opDo.none,.lav3 .opDo.none{border-color:var(--border2);background:var(--bg3);}
+#page-lavarion .opTbl,.lav3 .opTbl{width:100%;}
+#page-lavarion .opTbl tr.short td,.lav3 .opTbl tr.short td{background:rgba(251,191,36,.06);}
+/* paste-in screens */
+#page-lavarion .pasteWrap,.lav3 .pasteWrap{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;}
+@media(max-width:900px){#page-lavarion .pasteWrap,.lav3 .pasteWrap{grid-template-columns:1fr;}}
+#page-lavarion .pasteSide,.lav3 .pasteSide{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:13px 15px;}
+#page-lavarion .pasteSteps,.lav3 .pasteSteps{margin:7px 0 10px;padding-left:18px;font-size:12.5px;line-height:1.7;color:var(--text2);}
+#page-lavarion .pasteBox,.lav3 .pasteBox{width:100%;min-height:180px;font-family:var(--num);font-size:12.5px;
+  line-height:1.6;padding:11px 12px;resize:vertical;}
+#page-lavarion .pasteOut,.lav3 .pasteOut{margin-top:11px;display:grid;gap:9px;}
+#page-lavarion .pasteGrp,.lav3 .pasteGrp{border:1px solid var(--border);border-radius:9px;padding:10px 12px;}
+#page-lavarion .pasteGrp b,.lav3 .pasteGrp b{font-size:12.5px;}
+#page-lavarion .pasteGrp.ok,.lav3 .pasteGrp.ok{border-color:rgba(52,211,153,.35);}
+#page-lavarion .pasteGrp.ok b,.lav3 .pasteGrp.ok b{color:var(--grn);}
+#page-lavarion .pasteGrp.bad,.lav3 .pasteGrp.bad{border-color:rgba(248,113,113,.4);}
+#page-lavarion .pasteGrp.bad b,.lav3 .pasteGrp.bad b{color:var(--red);}
+#page-lavarion .pasteGrp.warn,.lav3 .pasteGrp.warn{border-color:rgba(251,191,36,.35);}
+#page-lavarion .pasteGrp.warn b,.lav3 .pasteGrp.warn b{color:var(--amb);}
+#page-lavarion .pasteList,.lav3 .pasteList{margin-top:7px;max-height:210px;overflow:auto;}
+#page-lavarion .pasteRow,.lav3 .pasteRow{display:grid;grid-template-columns:minmax(0,1fr) 70px 110px;gap:10px;
+  padding:4px 0;font-size:12px;border-top:1px solid var(--border);}
+#page-lavarion .pasteRow .pn,.lav3 .pasteRow .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-lavarion .pasteRow .pq,.lav3 .pasteRow .pq{text-align:right;font-family:var(--num);font-weight:800;}
+#page-lavarion .pasteRow .pd,.lav3 .pasteRow .pd{text-align:right;color:var(--text3);}
+/* COG breakdown, as columns */
+#page-lavarion .cogHead,.lav3 .cogHead{display:grid;grid-template-columns:minmax(0,1fr) 62px 120px 82px;gap:10px;
+  padding:0 0 5px;font:700 9.5px var(--num);letter-spacing:.6px;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .cogHead span:not(:first-child),.lav3 .cogHead span:not(:first-child){text-align:right;}
+#page-lavarion .cogrow4,.lav3 .cogrow4{display:grid;grid-template-columns:minmax(0,1fr) 62px 120px 82px;gap:10px;
+  padding:6px 0;border-top:1px solid var(--border);font-size:12.5px;align-items:baseline;}
+#page-lavarion .cogrow4.pk,.lav3 .cogrow4.pk{opacity:.62;}
+#page-lavarion .cogrow4 .cgN,.lav3 .cogrow4 .cgN{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-lavarion .cogrow4 .cgQ,.lav3 .cogrow4 .cgQ,
+#page-lavarion .cogrow4 .cgU,.lav3 .cogrow4 .cgU,
+#page-lavarion .cogrow4 .cgL,.lav3 .cogrow4 .cgL{text-align:right;}
+/* the private-label explanation — says what is true, and what to do next */
+/* Purchases reads top to bottom the way the job runs: read the sheet, say what
+   the new lines are, then decide what to buy. "What to buy" is the last step,
+   not the first thing in your face. */
+#page-lavarion .ppStack,.lav3 .ppStack{display:flex;flex-direction:column;gap:14px;}
+#page-lavarion .ppStack>*,.lav3 .ppStack>*{margin-bottom:0;}
+#page-lavarion 
+#page-lavarion 
+#page-lavarion 
+#page-lavarion 
+/* restocks */
+/* Restocks — start on a question, not on a random product */
+/* incoming, at a glance */
+#page-lavarion .incN,.lav3 .incN{font:800 16px var(--num);color:var(--blu);}
+#page-lavarion .incS,.lav3 .incS{font-size:10.5px;color:var(--text2);opacity:.9;margin-top:2px;
+  line-height:1.3;display:flex;gap:4px;justify-content:center;white-space:nowrap;}
+/* the name was chopped at 18 characters — "Dove LM 75ml Tanni". Cut on the
+   pixel boundary with an ellipsis so it never ends mid-word. */
+#page-lavarion .incNm,.lav3 .incNm{min-width:0;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .thSub,.lav3 .thSub{font-size:9px;font-weight:600;letter-spacing:0;text-transform:none;
+  color:var(--text3);margin-top:3px;font-style:italic;}
+#page-lavarion .incU,.lav3 .incU{font-size:10.5px;color:var(--grn);margin-top:2px;}
+/* stock-at-Amazon, one ASIN at a time */
+#page-lavarion .segs,.lav3 .segs{display:flex;gap:0;border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
+#page-lavarion .seg,.lav3 .seg{padding:6px 13px;background:var(--bg3);border:none;color:var(--text2);
+  font:700 11.5px var(--num);cursor:pointer;}
+#page-lavarion .seg.on,.lav3 .seg.on{background:var(--accent);color:var(--accent-ink);}
+#page-lavarion .amzHelp,.lav3 .amzHelp{font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:12px;
+  padding:10px 13px;border-left:3px solid var(--blu);background:var(--bg3);border-radius:0 8px 8px 0;}
+/* Jack, 3 Sep: "maybe freeze heading". Thirty-nine rows of two identical
+   number boxes, and by row ten you cannot remember which column is Available
+   and which is Inbound. The header now stays put while the list scrolls. */
+/* Jack, 3 Sep: "centralise this info — also dead space". The modal is far
+   wider than the content needs, so a 1fr product column swallowed ~400px of
+   nothing while the numbers were squeezed against the right edge. Cap the
+   width and centre the lot; the number columns get room and sit together. */
+#page-lavarion .amzGrid,.lav3 .amzGrid{border:1px solid var(--border);border-radius:10px;overflow:visible;
+  max-width:1000px;margin-left:auto;margin-right:auto;}
+#page-lavarion .amzWhen,.lav3 .amzWhen,#page-lavarion .amzHelp,.lav3 .amzHelp{max-width:1000px;margin-left:auto;margin-right:auto;}
+/* the two numbers are the job — make them big enough to hit and read */
+#page-lavarion .amzQ,.lav3 .amzQ,#page-lavarion .amzI,.lav3 .amzI{text-align:center;font:800 14px var(--num);
+  font-variant-numeric:tabular-nums;padding:7px 6px;}
+#page-lavarion .amzGrid .amzHead,.lav3 .amzGrid .amzHead{position:sticky;top:0;z-index:6;
+  box-shadow:0 1px 0 var(--border2),0 6px 12px rgba(0,0,0,.35),0 -18px 0 #131311;
+  border-radius:10px 10px 0 0;}
+/* the wrapper used overflow:hidden to round its corners, but that also stops
+   a sticky child from sticking — so the corners are done on the ends instead */
+#page-lavarion .amzGrid .amzRow:last-child,.lav3 .amzGrid .amzRow:last-child{border-radius:0 0 10px 10px;}
+/* the line you are actually typing on, so the eye never loses its place */
+#page-lavarion .amzRow:focus-within,.lav3 .amzRow:focus-within{background:rgba(245,158,11,.09);
+  box-shadow:inset 3px 0 0 var(--accent);}
+#page-lavarion .amzRow:focus-within .amzNm,.lav3 .amzRow:focus-within .amzNm{color:var(--text);font-weight:700;}
+#page-lavarion .amzHead,.lav3 .amzHead,#page-lavarion .amzRow,.lav3 .amzRow{
+  display:grid;grid-template-columns:minmax(0,1fr) 124px 120px 116px 78px;gap:12px;align-items:center;padding:8px 14px;}
+#page-lavarion .amzHead,.lav3 .amzHead{background:var(--bg3);font:800 9.5px var(--num);letter-spacing:.07em;
+  text-transform:uppercase;color:var(--text3);}
+#page-lavarion .amzRow,.lav3 .amzRow{border-top:1px solid var(--border);}
+/* two numbers off the same SAS panel: available, then inbound */
+#page-lavarion .amzGrid.two .amzHead,.lav3 .amzGrid.two .amzHead,
+#page-lavarion .amzGrid.two .amzRow,.lav3 .amzGrid.two .amzRow{
+  grid-template-columns:minmax(0,1fr) 124px 120px 116px 116px 78px;}
+#page-lavarion .amzI,.lav3 .amzI{border-color:rgba(96,165,250,.35)!important;}
+#page-lavarion .amzI:focus,.lav3 .amzI:focus{border-color:var(--blu)!important;}
+#page-lavarion .amzSent,.lav3 .amzSent{display:inline-block;margin-left:7px;font:700 9.5px var(--sans);
+  padding:1px 7px;border-radius:20px;background:rgba(96,165,250,.16);color:#93c5fd;}
+#page-lavarion .amzInb,.lav3 .amzInb{font:700 10px var(--num);color:var(--blu);text-align:center;margin-top:1px;}
+#page-lavarion .amzRow:hover,.lav3 .amzRow:hover{background:var(--bg3);}
+#page-lavarion .amzRow.done,.lav3 .amzRow.done{background:rgba(85,255,85,.06);}
+#page-lavarion .amzNm,.lav3 .amzNm{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-lavarion .amzAsin,.lav3 .amzAsin{font-size:11.5px;color:var(--text2);}
+#page-lavarion .amzWas,.lav3 .amzWas{font-size:12.5px;color:var(--text2);font-family:var(--num);}
+#page-lavarion .amzAge,.lav3 .amzAge{font-size:10px;color:var(--text3);margin-left:5px;}
+#page-lavarion .amzQ,.lav3 .amzQ{width:100%;text-align:center;font:800 15px var(--num);padding:7px 6px;}
+#page-lavarion .amzQ:focus,.lav3 .amzQ:focus{border-color:var(--accent);outline:none;}
+#page-lavarion .amzSas,.lav3 .amzSas{text-align:center;text-decoration:none;}
+#page-lavarion .rsStart,.lav3 .rsStart{max-width:640px;margin:40px auto 0;text-align:center;}
+#page-lavarion .rsStartT,.lav3 .rsStartT{font-size:22px;font-weight:800;color:var(--text);margin-bottom:8px;}
+#page-lavarion .rsStartB,.lav3 .rsStartB{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:18px;}
+#page-lavarion .rsSearch,.lav3 .rsSearch{position:relative;text-align:left;}
+#page-lavarion .rsIn,.lav3 .rsIn{width:100%;font-size:15px;padding:12px 14px;}
+#page-lavarion .rsPop,.lav3 .rsPop{display:none;margin-top:8px;max-height:44vh;overflow-y:auto;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:5px;}
+#page-lavarion .rsPop.on,.lav3 .rsPop.on{display:block;}
+#page-lavarion .rsOpt,.lav3 .rsOpt{display:flex;width:100%;align-items:center;gap:10px;padding:9px 11px;border:none;
+  background:none;color:var(--text);cursor:pointer;border-radius:7px;text-align:left;font-size:13.5px;}
+#page-lavarion .rsOpt:hover,.lav3 .rsOpt:hover{background:var(--bg3);}
+#page-lavarion .rsOptN,.lav3 .rsOptN{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-lavarion .rsOptM,.lav3 .rsOptM{font-size:11px;color:var(--text3);flex:0 0 auto;}
+#page-lavarion .rsOpt.noList .rsOptM,.lav3 .rsOpt.noList .rsOptM{color:var(--amb);}
+#page-lavarion .rsNone,.lav3 .rsNone{padding:12px;font-size:12.5px;color:var(--text3);}
+#page-lavarion .rsHead,.lav3 .rsHead{display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px 18px;margin-bottom:12px;}
+#page-lavarion .rsWhoN,.lav3 .rsWhoN{font-size:17px;font-weight:800;color:var(--text);}
+#page-lavarion .rsWhoM,.lav3 .rsWhoM{font-size:11.5px;color:var(--text3);font-family:var(--num);margin-top:2px;}
+#page-lavarion .rsFacts,.lav3 .rsFacts{display:flex;gap:24px;margin-left:auto;flex-wrap:wrap;}
+#page-lavarion .rsFact,.lav3 .rsFact{display:grid;gap:1px;}
+#page-lavarion .rsFact .k,.lav3 .rsFact .k{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .rsFact .v,.lav3 .rsFact .v{font:800 19px var(--num);color:var(--text);line-height:1.1;}
+#page-lavarion .rsFact .s,.lav3 .rsFact .s{font-size:10.5px;color:var(--text3);}
+/* Restocks — the controls are the page, so they get to look like it */
+#page-lavarion .mixOv.ask,.lav3 .mixOv.ask{align-items:flex-start;gap:14px;border-color:var(--amb);background:rgba(255,170,51,.07);}
+/* the health banner — deliberately loud, deliberately hard to ignore */
+#page-lavarion .fxList,.lav3 .fxList{display:grid;gap:8px;}
+#page-lavarion .fxRow,.lav3 .fxRow{display:grid;grid-template-columns:minmax(0,1fr) 360px 74px;gap:14px;align-items:start;
+  padding:11px 13px;border:1px solid var(--border);border-radius:10px;background:var(--bg2);}
+#page-lavarion .fxRow.done,.lav3 .fxRow.done{border-color:var(--grn);background:rgba(85,255,85,.05);}
+#page-lavarion .fxWhat,.lav3 .fxWhat{min-width:0;}
+#page-lavarion .fxPick,.lav3 .fxPick{position:relative;}
+#page-lavarion .fxIn,.lav3 .fxIn{width:100%;}
+#page-lavarion .fxPop,.lav3 .fxPop{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:90;
+  max-height:280px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border2);border-radius:9px;
+  box-shadow:0 18px 44px rgba(0,0,0,.6);padding:4px;}
+#page-lavarion .fxPop.on,.lav3 .fxPop.on{display:block;}
+#page-lavarion .fxState,.lav3 .fxState{font:700 11px var(--num);color:var(--text3);text-align:right;padding-top:9px;}
+#page-lavarion .fxState.ok,.lav3 .fxState.ok{color:var(--grn);}
+/* ten seconds of unmistakable, then back to normal */
+#page-lavarion .flashHi,.lav3 .flashHi{
+  animation:flashHi 1.1s ease-in-out 0s 9;
+  border-radius:11px;}
+@keyframes flashHi{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,170,51,0);}
+  50%{box-shadow:0 0 0 4px rgba(255,170,51,.85),0 0 26px rgba(255,170,51,.35);}
+}
+#page-lavarion .rvLine.broken,.lav3 .rvLine.broken{background:rgba(248,113,113,.10);}
+#page-lavarion .hlth,.lav3 .hlth{margin:0 20px 0;border:1px solid var(--amb);border-left:4px solid var(--amb);
+  border-radius:10px;background:rgba(255,170,51,.06);overflow:hidden;}
+#page-lavarion .hlth.bad,.lav3 .hlth.bad{border-color:var(--red);background:rgba(248,113,113,.07);}
+#page-lavarion .hlth .hlthTop b,.lav3 .hlth .hlthTop b{color:var(--amb);}
+#page-lavarion .hlth.bad .hlthTop b,.lav3 .hlth.bad .hlthTop b{color:var(--red);}
+#page-lavarion .hlth .hlthDot,.lav3 .hlth .hlthDot{background:var(--amb);}
+#page-lavarion .hlth.bad .hlthDot,.lav3 .hlth.bad .hlthDot{background:var(--red);}
+#page-lavarion .hlthRow.warn .hlthN,.lav3 .hlthRow.warn .hlthN{color:var(--amb);}
+#page-lavarion .hlthTop,.lav3 .hlthTop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:10px 14px;border-bottom:1px solid rgba(248,113,113,.25);}
+#page-lavarion .hlthTop b,.lav3 .hlthTop b{font-size:13px;color:var(--red);}
+#page-lavarion .hlthSub,.lav3 .hlthSub{font-size:11.5px;color:var(--text2);}
+#page-lavarion .hlthDot,.lav3 .hlthDot{width:20px;height:20px;border-radius:50%;background:var(--red);color:#1a1113;
+  display:flex;align-items:center;justify-content:center;font:900 13px var(--num);flex:0 0 auto;}
+#page-lavarion .hlthRow,.lav3 .hlthRow{display:flex;align-items:center;gap:12px;padding:10px 14px;
+  border-top:1px solid rgba(248,113,113,.14);}
+#page-lavarion .hlthRow:first-of-type,.lav3 .hlthRow:first-of-type{border-top:0;}
+#page-lavarion .hlthN,.lav3 .hlthN{font:900 20px var(--num);color:var(--red);min-width:34px;text-align:center;}
+#page-lavarion .hlthTxt,.lav3 .hlthTxt{flex:1;min-width:0;display:grid;gap:2px;}
+#page-lavarion .hlthTxt b,.lav3 .hlthTxt b{font-size:12.5px;color:var(--text);}
+#page-lavarion .hlthTxt span,.lav3 .hlthTxt span{font-size:11.5px;color:var(--text2);}
+#page-lavarion .hlthBtns,.lav3 .hlthBtns{display:flex;gap:6px;flex:0 0 auto;}
+#page-lavarion .rsBar,.lav3 .rsBar{display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;
+  background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:15px 18px;margin-bottom:14px;}
+#page-lavarion .rsPick,.lav3 .rsPick{display:grid;gap:6px;}
+#page-lavarion .rsLbl,.lav3 .rsLbl{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .rsSel,.lav3 .rsSel{min-width:340px;font-size:14px;font-weight:600;padding:9px 11px;}
+#page-lavarion .rsStep,.lav3 .rsStep{display:flex;align-items:stretch;border:1px solid var(--border2);border-radius:9px;overflow:hidden;}
+#page-lavarion .rsPm,.lav3 .rsPm{width:38px;background:var(--bg3);border:none;color:var(--text2);font-size:18px;font-weight:800;cursor:pointer;}
+#page-lavarion .rsPm:hover,.lav3 .rsPm:hover{background:var(--bg4);color:var(--accent);}
+#page-lavarion .rsQty,.lav3 .rsQty{width:104px;text-align:center;font:900 19px var(--num);background:var(--bg);
+  border:none;border-left:1px solid var(--border2);border-right:1px solid var(--border2);color:var(--text);padding:8px 4px;}
+#page-lavarion .rsQty:focus,.lav3 .rsQty:focus{outline:none;}
+#page-lavarion .rsQuick,.lav3 .rsQuick{display:flex;gap:6px;}
+#page-lavarion .rsChip,.lav3 .rsChip{padding:8px 13px;border-radius:8px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font:700 12.5px var(--num);cursor:pointer;}
+#page-lavarion .rsChip:hover,.lav3 .rsChip:hover{border-color:var(--accent);color:var(--accent);}
+#page-lavarion .rsChip.on,.lav3 .rsChip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+#page-lavarion .rsCards,.lav3 .rsCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:14px;}
+#page-lavarion .rsCard,.lav3 .rsCard{background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--border2);
+  border-radius:11px;padding:14px 16px;display:grid;gap:4px;}
+#page-lavarion .rsCard .k,.lav3 .rsCard .k{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .rsCard .v,.lav3 .rsCard .v{font:900 30px var(--num);color:var(--text);line-height:1;}
+#page-lavarion .rsCard .s,.lav3 .rsCard .s{font-size:11.5px;color:var(--text2);opacity:.9;}
+#page-lavarion .rsCard.bad,.lav3 .rsCard.bad{border-top-color:var(--amb);}
+#page-lavarion .rsCard.bad .v,.lav3 .rsCard.bad .v{color:var(--amb);}
+#page-lavarion .rsCard.ok,.lav3 .rsCard.ok{border-top-color:var(--grn);}
+#page-lavarion .rsCard.ok .v,.lav3 .rsCard.ok .v{color:var(--grn);}
+#page-lavarion .rsCard.warn,.lav3 .rsCard.warn{border-top-color:var(--amb);}
+#page-lavarion .rsTbl tr.short td,.lav3 .rsTbl tr.short td{background:rgba(255,170,51,.07);}
+/* the component column was clipping names mid-word — "Pedigree Tasty Minis
+   Beef & Che". A part you cannot read is a part you cannot check. */
+#page-lavarion .rsTbl td.l,.lav3 .rsTbl td.l{white-space:normal;min-width:220px;padding-left:16px;}
+#page-lavarion .rsTbl td.l .pname,.lav3 .rsTbl td.l .pname{white-space:normal;line-height:1.35;display:block;}
+#page-lavarion .rsTbl th,.lav3 .rsTbl th{padding-left:12px;padding-right:12px;}
+#page-lavarion .rsTbl th.l,.lav3 .rsTbl th.l{padding-left:16px;}
+#page-lavarion .rsTbl td,.lav3 .rsTbl td{padding-top:12px;padding-bottom:12px;}
+/* Five columns and three rows do not need 100px of row height. The numbers are
+   what matter, so they stay large; the padding around them does not. */
+#page-lavarion .rsTbl.tight td,.lav3 .rsTbl.tight td{padding-top:7px;padding-bottom:7px;}
+#page-lavarion .rsTbl.tight td.l,.lav3 .rsTbl.tight td.l{min-width:0;}
+#page-lavarion .rsTbl.tight .pmeta,.lav3 .rsTbl.tight .pmeta{margin-top:1px;line-height:1.35;}
+#page-lavarion .rsTbl.tight .rsBig,.lav3 .rsTbl.tight .rsBig{font-size:19px;}
+#page-lavarion .rsTbl.tight td.mono,.lav3 .rsTbl.tight td.mono{font-size:14px;}
+/* the facts strip was crammed into the top-right corner */
+#page-lavarion .rsFacts,.lav3 .rsFacts{display:grid;grid-template-columns:repeat(4,minmax(120px,auto));
+  gap:10px 26px;margin-left:auto;}
+@media(max-width:1100px){#page-lavarion .rsFacts,.lav3 .rsFacts{grid-template-columns:repeat(2,1fr);margin-left:0;width:100%;}}
+#page-lavarion .rsHead,.lav3 .rsHead{gap:24px;}
+#page-lavarion .rsBar,.lav3 .rsBar{gap:28px;}
+#page-lavarion .rsTbl tbody tr:hover td,.lav3 .rsTbl tbody tr:hover td{background:var(--bg3);}
+#page-lavarion .rsCases,.lav3 .rsCases{text-align:center;}
+#page-lavarion .rsBig,.lav3 .rsBig{font:900 22px var(--num);color:var(--amb);line-height:1;}
+#page-lavarion .rsEmpty,.lav3 .rsEmpty{padding:48px 24px;text-align:center;display:grid;gap:9px;justify-items:center;}
+#page-lavarion .rsEmT,.lav3 .rsEmT{font-size:16px;font-weight:800;color:var(--text);}
+#page-lavarion .rsEmB,.lav3 .rsEmB{font-size:13px;color:var(--text2);max-width:520px;line-height:1.6;}
+#page-lavarion .rsEmBtns,.lav3 .rsEmBtns{display:flex;gap:8px;margin-top:6px;}
+/* the page never said in words which period was on screen — only which chip
+   was lit, and on a custom range no chip is lit at all */
+.shipBarP{font:600 11px var(--sans);color:var(--muted2);margin-bottom:7px;letter-spacing:.01em;}
+.shipBarP b{color:var(--text2);font-weight:800;}
+/* ── SHIPMENTS SUMMARY BAR ─────────────────────────────────────────────────
+   Seven metrics, each carrying its own day/week/month answer and a 14-day
+   trend. Grid rather than flex so all seven are the SAME width whatever the
+   figure length — £15,130.18 no longer squeezes its neighbours. */
+/* Seven cells welded together by hairlines read as a spreadsheet, and the
+   TODAY/WEEK/MTH caption was repeated seven times — twenty-one tiny labels
+   fighting seven numbers. Separate cards with air between them, the period
+   strip carried by a single filled pill on the one you are looking at, and the
+   captions dropped to the quiet ink so the figures lead. Same card family as
+   the Restocks tiles, so the app stops having two KPI styles. */
+.shipBar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;
+  margin-bottom:10px;}
+.shipKpi{background:var(--bg2);border:1px solid var(--border);border-radius:11px;
+  padding:12px 12px 10px;display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;min-width:0;transition:border-color .12s;}
+.shipKpi:hover{border-color:var(--border2);}
+.shipKpiV{font:900 21px var(--num);font-variant-numeric:tabular-nums;line-height:1.02;
+  white-space:nowrap;letter-spacing:-.01em;}
+.shipKpiL{font:700 11px var(--sans);letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted2);margin-top:4px;text-align:center;line-height:1.25;}
+.shipKpiG{display:flex;gap:3px;margin-top:10px;width:100%;justify-content:center;
+  border-top:1px solid var(--border);padding-top:8px;}
+.shipKpiC{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;
+  flex:1 1 0;padding:3px 2px;border-radius:6px;}
+.shipKpiC i{font:700 10.5px var(--sans);font-style:normal;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--muted2);}
+.shipKpiC b{font:800 12px var(--num);font-variant-numeric:tabular-nums;color:var(--text2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+/* the period actually on screen — a quiet pill, not a third colour */
+.shipKpiC.on{background:rgba(255,255,255,.055);}
+.shipKpiC.on i{color:var(--text2);}
+.shipKpiC.on b{font-weight:900;color:var(--text);}
+@media(max-width:1500px){.shipBar{grid-template-columns:repeat(4,minmax(0,1fr));}}
+@media(max-width:900px){.shipBar{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:1180px){
+  .shipBar{grid-template-columns:repeat(4,minmax(0,1fr));}
+}
+/* ── COMPONENTS TABLE ──────────────────────────────────────────────────────
+   Jack, 19 Aug: "more info more detail — no dead space — make it super simple
+   don't over complicate it with loads of colours — centralise the info".
+   So: every column carries a figure AND its qualifier on a second line (the
+   detail), the columns are sized to their content (no slack for the browser to
+   inflate), and colour appears in exactly two places — the state rail down the
+   left of the row, and the Short figure. Everything else is ink. */
+#page-lavarion .thS,.lav3 .thS{display:block;font:600 10.5px var(--sans);letter-spacing:0;
+  text-transform:none;color:var(--muted2);margin-top:2px;}
+#page-lavarion td.cRail,.lav3 td.cRail{padding-left:11px!important;}
+#page-lavarion .dimNum,.lav3 .dimNum{color:var(--muted2);}
+#page-lavarion td .num,.lav3 td .num{font:800 15px var(--num);font-variant-numeric:tabular-nums;
+  color:var(--text);line-height:1.1;}
+#page-lavarion td .pmeta,.lav3 td .pmeta{white-space:normal!important;}
+#page-lavarion .useWrap,.lav3 .useWrap{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+/* ══════════════════════════════════════════════════════════════════════════
+   RESTOCKS — ONE TYPE SCALE, ONE CARD SYSTEM, ONE TABLE RHYTHM
+   Jack, 19 Aug: "some text is too big and some text i can't read and some
+   kpi's look shit". Contrast was never the fault — --muted2 #9a948a measures
+   6.18:1 on --bg2, 5.84:1 on --bg3, 5.23:1 on --bg4 and 5.49:1 on the amber
+   short-row tint. SIZE was: eighteen font sizes on one screen, six of them
+   under 11px carrying every word that explains a number. This surface now
+   uses five steps and nothing else:
+     11px  LABEL     800 uppercase .08em --muted2  |  600 sentence --muted2
+     13px  BODY      500-600, --text2 supporting / --text content
+     15px  SUB-HEAD  700-800 --text — section titles, comparison figures
+     20px  NAME      800 -.015em --text — the product
+     22px  FIGURE    800 tabular-nums, state colour — every headline number
+   --muted2 is for labels, units and placeholders ONLY, never a figure.
+   No text is dimmed with opacity anywhere below.
+   NB 1: this block is APPENDED, never spliced, so it wins on source order at
+   equal specificity. Do not move it above line 2022.
+   NB 2: the `font:` shorthand resets font-variant-numeric, so tabular-nums is
+   re-stated after every shorthand. Do not strip those lines.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── A. picked-product header ─────────────────────────────────────────── */
+#page-lavarion .rsHdN .nm2,.lav3 .rsHdN .nm2{font:800 20px var(--sans);letter-spacing:-.015em;line-height:1.2;color:var(--text);}
+#page-lavarion .rsHdN .mt2,.lav3 .rsHdN .mt2{font:600 11px var(--sans);color:var(--muted2);margin-top:4px;}
+#page-lavarion .rsHdN .ordn,.lav3 .rsHdN .ordn{font:700 13px var(--sans);margin-top:7px;}
+#page-lavarion .rsMx>span,.lav3 .rsMx>span{gap:1px;min-width:0;}
+#page-lavarion .rsMx,.lav3 .rsMx{gap:26px;}
+/* 800 + .08em made the captions read as headings — four of them stacked over
+   four figures, and the labels won. A label names a number; it must never
+   compete with it. Weight down, tracking in, size held at the 11px floor. */
+#page-lavarion .rsMx .k,.lav3 .rsMx .k{font:700 11px var(--sans);letter-spacing:.045em;text-transform:uppercase;color:var(--muted2);}
+#page-lavarion .rsMx .v,.lav3 .rsMx .v{font:800 22px var(--num);line-height:1.08;color:var(--text);font-variant-numeric:tabular-nums;}
+/* a missing figure drops exactly one step, to BODY — it is not a headline */
+#page-lavarion .rsMx .v.none,.lav3 .rsMx .v.none{font:800 13px var(--num);color:var(--muted2);}
+#page-lavarion .rsMx .u,.lav3 .rsMx .u{font:600 11px var(--sans);color:var(--muted2);}
+/* the "+24" qualifier: label step, raised off the baseline so it stops
+   fighting the 22px figure it hangs from */
+#page-lavarion .rsMx .v span,.lav3 .rsMx .v span{font:800 11px var(--num);font-variant-numeric:tabular-nums;vertical-align:.36em;}
+#page-lavarion .rsCtl .k,.lav3 .rsCtl .k{font:700 11px var(--sans);letter-spacing:.045em;text-transform:uppercase;color:var(--muted2);margin-bottom:6px;}
+#page-lavarion .rsQty,.lav3 .rsQty{font:800 22px var(--num);font-variant-numeric:tabular-nums;}
+/* furniture must not outrank words: the minus sign was 18px, larger than
+   every heading on the page */
+#page-lavarion .rsPm,.lav3 .rsPm{font-size:15px;font-weight:700;}
+#page-lavarion .rsStepU,.lav3 .rsStepU{display:block;text-align:center;font:600 11px var(--sans);color:var(--muted2);margin-top:3px;}
+/* scoped to .rsCtl — `btn sm dots` is also used at 22399/23304/24523/24559 */
+#page-lavarion .rsCtl .btn.sm.dots,.lav3 .rsCtl .btn.sm.dots{font-size:13px;}
+/* the dead .rsBar rule at 1972 was stretching this to 340px at 14px, larger
+   than every heading on the tab. .rsBar/.rsPick/.rsLbl/.rsChip/.rsCard/.rsTop
+   appear in no template any more; .rsSel has exactly one consumer. */
+#page-lavarion .rsSel,.lav3 .rsSel{min-width:0;width:132px;font:600 13px var(--sans);padding:8px 10px;}
+
+/* ── B. the four KPI cards + the one primary action ───────────────────── */
+/* flex-wrap:wrap + min-width:172px meant the £ card stole width from the
+   other three and, under ~900px, dropped onto its own row at full width */
+#page-lavarion .rsSum,.lav3 .rsSum{display:flex;flex-wrap:nowrap;gap:10px;align-items:stretch;margin-bottom:12px;}
+#page-lavarion .rsS,.lav3 .rsS{flex:1 1 0;min-width:0;gap:12px;background:var(--bg3);
+  border:1px solid var(--border);border-radius:12px;padding:13px 14px;}
+#page-lavarion .rsTx,.lav3 .rsTx{gap:3px;}
+#page-lavarion .rsS b,.lav3 .rsS b{font:800 22px/1.05 var(--num);color:var(--text);
+  font-variant-numeric:tabular-nums;letter-spacing:-.015em;white-space:nowrap;}
+#page-lavarion .rsS.cash b,.lav3 .rsS.cash b{font-size:19px;letter-spacing:-.025em;}
+#page-lavarion .rsS em,.lav3 .rsS em{font-style:normal;font:600 13px/1.25 var(--sans);color:var(--text2);}
+#page-lavarion .rsS i,.lav3 .rsS i{font-style:normal;font:600 11px/1.35 var(--sans);color:var(--muted2);}
+/* tinted tile = the card's own number colour, dialled down. Was Tailwind hues
+   (red-400, amber-400, green-400, blue-400) that this palette does not
+   contain, so every tile was a slightly different colour from its number. */
+#page-lavarion .rsIco,.lav3 .rsIco{background:rgba(255,255,255,.07);color:var(--text3);}
+#page-lavarion .rsS.bad .rsIco,.lav3 .rsS.bad .rsIco{background:var(--red-bg);color:var(--red);}
+#page-lavarion .rsS.warn .rsIco,.lav3 .rsS.warn .rsIco{background:var(--amb-bg);color:var(--amb);}
+#page-lavarion .rsS.ok .rsIco,.lav3 .rsS.ok .rsIco{background:var(--grn-bg);color:var(--grn);}
+#page-lavarion .rsS.cash .rsIco,.lav3 .rsS.cash .rsIco{background:var(--grn-bg);color:var(--grn);}
+#page-lavarion .rsS.info .rsIco,.lav3 .rsS.info .rsIco{background:var(--blu-bg);color:var(--blu);}
+#page-lavarion .rsS.shared .rsIco,.lav3 .rsS.shared .rsIco{background:var(--amb-bg);color:var(--accent);}
+/* every state now has BOTH a border and a number colour — `info` and the new
+   `cash` had neither, so two of four cards rendered unstyled */
+#page-lavarion .rsS.bad,.lav3 .rsS.bad{border-color:var(--red-br);}
+#page-lavarion .rsS.bad b,.lav3 .rsS.bad b{color:var(--red);}
+#page-lavarion .rsS.warn,.lav3 .rsS.warn{border-color:var(--amb-br);}
+#page-lavarion .rsS.warn b,.lav3 .rsS.warn b{color:var(--amb);}
+#page-lavarion .rsS.ok,.lav3 .rsS.ok{border-color:var(--grn-br);}
+#page-lavarion .rsS.ok b,.lav3 .rsS.ok b{color:var(--grn);}
+#page-lavarion .rsS.cash,.lav3 .rsS.cash{border-color:var(--grn-br);}
+#page-lavarion .rsS.cash b,.lav3 .rsS.cash b{color:var(--grn);}
+#page-lavarion .rsS.info,.lav3 .rsS.info{border-color:var(--blu-br);}
+#page-lavarion .rsS.info b,.lav3 .rsS.info b{color:var(--blu);}
+#page-lavarion .rsS.shared,.lav3 .rsS.shared{border-color:var(--amb-br);}
+#page-lavarion .rsS.shared b,.lav3 .rsS.shared b{color:var(--accent);}
+/* a deliberate 2x2 instead of a wrap accident */
+@media(max-width:1180px){
+  #page-lavarion .rsSum,.lav3 .rsSum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+
+/* ── C. section headings — the page gets a skeleton ───────────────────── */
+#page-lavarion .rsPicksH .t,.lav3 .rsPicksH .t{font:800 15px var(--sans);color:var(--text);}
+#page-lavarion .rsPicksH .sub,.lav3 .rsPicksH .sub{font:600 13px var(--sans);color:var(--text3);}
+/* .rsPanel hook, not :has(.rsTbl) — .ph .t is shared by every Lavarion panel
+   on every tab, and :has() would flip the size when rsToggleTbl folds it */
+#page-lavarion .rsPanel>.ph .t,.lav3 .rsPanel>.ph .t{font-size:15px;font-weight:800;}
+#page-lavarion .rsPanel>.ph .sub,.lav3 .rsPanel>.ph .sub{font:600 13px var(--sans);color:var(--text3);}
+#page-lavarion .rsEmT,.lav3 .rsEmT{font-size:20px;font-weight:800;}
+
+/* ── D. "What to order" ───────────────────────────────────────────────── */
+/* the global thead{position:sticky;top:0;z-index:10} at line 381 belongs to
+   .panel.stick tables. This panel does not scroll internally, so its header
+   was detaching and sliding under .lav3bar (sticky, z-index 30). */
+#page-lavarion .rsTbl thead,.lav3 .rsTbl thead{position:static;}
+/* the fold-out mini table is not inside a .panel, so .panel>table (1068) never
+   reached it and global table{min-width:1280px} (380) widened the whole page.
+   .rsTbl (1,1,0) loses to .panel>table (1,1,1), so the big table keeps 100%. */
+#page-lavarion .rsTbl,.lav3 .rsTbl{min-width:0;}
+/* rows, not a spreadsheet grid — the status rail is the only vertical line
+   that should mean anything, and a hairline 1px away cancelled it */
+#page-lavarion .rsTbl th,.lav3 .rsTbl th,
+#page-lavarion .rsTbl td,.lav3 .rsTbl td{border-right:none;}
+#page-lavarion .rsTbl tbody tr td:first-child,.lav3 .rsTbl tbody tr td:first-child{box-shadow:inset 3px 0 0 rgba(85,255,85,.45);}
+#page-lavarion .rsTbl tbody tr.short td:first-child,.lav3 .rsTbl tbody tr.short td:first-child{box-shadow:inset 3px 0 0 var(--amb);}
+/* hover DEEPENS the short wash instead of wiping it: tr:hover td at 2016
+   (1-2-3) was beating tr.short td at 1995 (1-2-2), so a row that needed
+   ordering looked covered at the exact moment you pointed at it */
+#page-lavarion .rsTbl tbody tr.short td,.lav3 .rsTbl tbody tr.short td{background:rgba(255,170,51,.06);}
+#page-lavarion .rsTbl tbody tr:not(.short):hover td,.lav3 .rsTbl tbody tr:not(.short):hover td{background:var(--bg3);}
+#page-lavarion .rsTbl tbody tr.short:hover td,.lav3 .rsTbl tbody tr.short:hover td{background:rgba(255,170,51,.11);}
+/* two-line headings: main labels share one top line, subs hang below and are
+   readable rather than merely present. Was 9.5px. */
+#page-lavarion .rsTbl thead th,.lav3 .rsTbl thead th{font-size:11px;font-weight:800;letter-spacing:.08em;
+  vertical-align:top;white-space:normal;line-height:1.25;padding-top:11px;padding-bottom:11px;}
+#page-lavarion .rsTbl th span,.lav3 .rsTbl th span{display:block;font:600 11px var(--sans);color:var(--muted2);
+  letter-spacing:0;text-transform:none;line-height:1.3;margin-top:4px;}
+/* reading rhythm, not density. :not(.mini) so the fold-out log keeps its 7px */
+#page-lavarion .rsTbl.tight:not(.mini) td,.lav3 .rsTbl.tight:not(.mini) td{padding-top:12px;padding-bottom:12px;}
+/* the component cell: a fixed 30px anchor so every row starts on the same x */
+#page-lavarion .rsPart,.lav3 .rsPart{display:flex;align-items:center;gap:11px;min-width:0;white-space:normal!important;}
+#page-lavarion .rsPartT,.lav3 .rsPartT{min-width:0;}
+#page-lavarion .rsThm,.lav3 .rsThm{flex:0 0 auto;width:30px;height:30px;border-radius:8px;display:grid;
+  place-items:center;background:var(--blu-bg);color:var(--blu);border:1px solid var(--blu-br);}
+/* violet, not amber, for packaging — amber already means "short" on this row */
+#page-lavarion .rsThm.pk,.lav3 .rsThm.pk{background:var(--vio-bg);color:var(--vio);border-color:var(--vio-br);}
+#page-lavarion .rsThm svg,.lav3 .rsThm svg{width:15px;height:15px;fill:none;stroke:currentColor;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+#page-lavarion .rsTbl td.l .pname,.lav3 .rsTbl td.l .pname{font:600 13px var(--sans);color:var(--text);}
+/* the spec line under a part name was 12px --text2 #f7f4ee — a caption at 97%
+   of the size and 91% of the luminance of the name is a second headline */
+#page-lavarion .rsTbl td.l .pmeta,.lav3 .rsTbl td.l .pmeta{font:600 11px var(--sans);color:var(--muted2);
+  margin-top:3px;white-space:normal!important;}
+/* exactly one loud number per row — the one you act on */
+#page-lavarion .rsTbl.tight td.mono,.lav3 .rsTbl.tight td.mono{font:600 15px var(--num);font-variant-numeric:tabular-nums;}
+/* `b` on a <td> was never styled anywhere in the file — only .num.b (2245) */
+#page-lavarion .rsTbl td.mono.b,.lav3 .rsTbl td.mono.b{font-weight:800;color:var(--text);}
+#page-lavarion .rsTbl.tight .rsBig,.lav3 .rsTbl.tight .rsBig{font:800 22px var(--num);font-variant-numeric:tabular-nums;
+  color:var(--amb);display:inline-flex;align-items:baseline;gap:6px;line-height:1.05;}
+#page-lavarion .rsBig em,.lav3 .rsBig em{font:700 13px var(--sans);font-style:normal;color:var(--amb);letter-spacing:0;}
+#page-lavarion .rsTbl .rsCases .pmeta,.lav3 .rsTbl .rsCases .pmeta{font:600 11px var(--sans);color:var(--muted2);
+  margin-top:4px;white-space:normal!important;}
+/* covered = green INK on a tint. .chip.ok is a solid #55ff55 slab, which made
+   the rows needing NO action the brightest objects in the table. */
+#page-lavarion .rsCov,.lav3 .rsCov{display:inline-block;padding:3px 11px;border-radius:20px;
+  font:700 11px var(--sans);letter-spacing:0;white-space:nowrap;
+  color:var(--grn);background:var(--grn-bg);border:1px solid var(--grn-br);}
+/* a placeholder is a placeholder — explicit colour, never opacity */
+#page-lavarion .rsDash,.lav3 .rsDash{color:var(--muted2);font-size:14px;line-height:1;}
+/* the row button stays secondary: "Log all N orders" is the one primary */
+#page-lavarion .rsTbl .btn.sm,.lav3 .rsTbl .btn.sm{font-size:13px;padding:5px 11px;}
+/* the footnote is the lowest-priority text on the surface. It is PROSE, so it
+   stays on --text3 and must not fall to --muted2; the glyph is an icon, so it
+   may. It was 12px bold near-white — louder than the numbers above it. */
+#page-lavarion .rsFoot,.lav3 .rsFoot{display:flex;align-items:flex-start;gap:9px;padding:12px 16px;
+  border-top:1px solid var(--border);font:500 13px var(--sans);color:var(--text3);line-height:1.5;}
+#page-lavarion .rsFoot b,.lav3 .rsFoot b{color:var(--text2);font-weight:700;}
+#page-lavarion .rsFootI,.lav3 .rsFootI{flex:0 0 auto;}
+#page-lavarion .rsFootI svg,.lav3 .rsFootI svg{width:14px;height:14px;fill:none;stroke:currentColor;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;color:var(--muted2);display:block;margin-top:2px;}
+/* the fold-out log is denser by PADDING (2005), never by a second type scale.
+   These four must stay LAST in this block: they tie with the .tight rules
+   above on specificity and win only on source order. */
+#page-lavarion .rsTbl.mini,.lav3 .rsTbl.mini{font-size:13px;}
+#page-lavarion .rsTbl.mini thead th,.lav3 .rsTbl.mini thead th{font-size:11px;}
+#page-lavarion .rsTbl.mini .pname,.lav3 .rsTbl.mini .pname{font-size:13px;}
+#page-lavarion .rsTbl.mini td.mono,.lav3 .rsTbl.mini td.mono{font-size:13px;}
+#page-lavarion .plNote,.lav3 .plNote{border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.06);
+  border-radius:9px;padding:12px 14px;display:grid;gap:6px;}
+#page-lavarion .plNote b,.lav3 .plNote b{font-size:12.5px;color:var(--amb);}
+#page-lavarion .plNote span,.lav3 .plNote span{font-size:12px;color:var(--text2);line-height:1.55;}
+#page-lavarion .plBtns,.lav3 .plBtns{display:flex;gap:7px;margin-top:4px;}
+#page-lavarion .uiList,.lav3 .uiList{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+#page-lavarion .ovBars,.lav3 .ovBars{display:grid;gap:7px;}
+#page-lavarion .ovBar,.lav3 .ovBar{display:grid;grid-template-columns:minmax(0,240px) 1fr 40px;gap:11px;align-items:center;font-size:12.5px;}
+#page-lavarion .ovTrack,.lav3 .ovTrack{height:8px;border-radius:5px;background:var(--bg4);overflow:hidden;}
+#page-lavarion .ovFill,.lav3 .ovFill{display:block;height:100%;background:var(--amb);}
+#page-lavarion .ovN,.lav3 .ovN{text-align:right;font:800 13px var(--num);color:var(--amb);}
+#page-lavarion .ovL,.lav3 .ovL{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);}
+#page-lavarion .supGrid,.lav3 .supGrid{display:grid;gap:7px;}
+#page-lavarion .supRow,.lav3 .supRow{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:11px;align-items:center;
+  padding:6px;border-radius:6px;border-bottom:1px solid var(--border);}
+#page-lavarion .supRow:last-child,.lav3 .supRow:last-child{border-bottom:0;}
+#page-lavarion .supRow:hover,.lav3 .supRow:hover{background:var(--bg3);}
+#page-lavarion .supNm,.lav3 .supNm{font-size:12.5px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .supRow .in,.lav3 .supRow .in{width:100%;}
+#page-lavarion .mdHead,.lav3 .mdHead{display:grid;grid-template-columns:1fr 250px 30px;gap:9px;padding:0 0 6px;
+  font:700 9.5px var(--num);letter-spacing:.6px;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .mdRow,.lav3 .mdRow{display:grid;grid-template-columns:1fr 250px 30px;gap:9px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);}
+#page-lavarion .mdRow:last-of-type,.lav3 .mdRow:last-of-type{border-bottom:0;}
+#page-lavarion .mdDays,.lav3 .mdDays{display:flex;gap:6px;align-items:center;}
+#page-lavarion .mdDays .in,.lav3 .mdDays .in{width:64px;text-align:center;}
+/* the name field fills its column instead of leaving it half empty */
+#page-lavarion .mdRow>.in,.lav3 .mdRow>.in{width:100%;text-align:left;}
+#page-lavarion .mdRow:hover,.lav3 .mdRow:hover{background:var(--bg3);}
+#page-lavarion .mdRow,.lav3 .mdRow{border-radius:6px;padding-left:6px;padding-right:6px;}
+
+#page-lavarion .etaDM,.lav3 .etaDM{width:58px;text-align:center;padding:5px 4px;font-size:11.5px;font-family:var(--num);}
+/* mixed-COG block */
+#page-lavarion .mixWrap,.lav3 .mixWrap{margin-bottom:13px;}
+#page-lavarion .mixHead,.lav3 .mixHead{display:flex;gap:12px;align-items:flex-start;background:rgba(248,113,113,.1);
+  border:1px solid rgba(248,113,113,.4);border-left:4px solid var(--red);border-radius:10px;padding:13px 15px;margin-bottom:11px;}
+#page-lavarion .mixIcon,.lav3 .mixIcon{flex:0 0 26px;height:26px;border-radius:50%;background:var(--red);color:#1a0808;
+  display:flex;align-items:center;justify-content:center;font:800 15px var(--num);}
+#page-lavarion .mixT,.lav3 .mixT{font:800 14.5px var(--num);color:var(--red);margin-bottom:3px;}
+#page-lavarion .mixS,.lav3 .mixS{font-size:12.5px;color:var(--text);line-height:1.55;}
+#page-lavarion .mixFix,.lav3 .mixFix{border:1px solid var(--border);border-radius:10px;background:var(--bg2);padding:13px 15px;margin-bottom:11px;}
+#page-lavarion .mixFixT,.lav3 .mixFixT{font:800 11px var(--num);letter-spacing:.7px;text-transform:uppercase;color:var(--text2);margin-bottom:11px;}
+#page-lavarion .mixFixR,.lav3 .mixFixR{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+#page-lavarion .mixOpt,.lav3 .mixOpt{flex:1 1 220px;min-width:0;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px 13px;}
+#page-lavarion .mixOpt .k,.lav3 .mixOpt .k{font:700 10px var(--num);letter-spacing:.6px;text-transform:uppercase;color:var(--text2);margin-bottom:5px;}
+#page-lavarion .mixOpt .v,.lav3 .mixOpt .v{font:800 26px var(--num);color:var(--grn);line-height:1;}
+#page-lavarion .mixOpt .v span,.lav3 .mixOpt .v span{font-size:12px;font-weight:600;color:var(--text2);margin-left:5px;}
+#page-lavarion .mixOpt .s,.lav3 .mixOpt .s{font-size:11.5px;color:var(--text);margin-top:7px;}
+#page-lavarion .mixOpt .btn,.lav3 .mixOpt .btn{margin-top:10px;width:100%;}
+#page-lavarion .mixOpt+.mixArrow+.mixOpt .v,.lav3 .mixOpt+.mixArrow+.mixOpt .v{color:var(--amb);}
+#page-lavarion .mixArrow,.lav3 .mixArrow{flex:0 0 auto;font:700 11px var(--num);color:var(--text2);text-transform:uppercase;letter-spacing:.6px;}
+#page-lavarion .mixWhy,.lav3 .mixWhy{border:1px solid var(--border);border-radius:10px;background:var(--bg2);padding:12px 0 12px;margin-bottom:11px;}
+#page-lavarion .mixWhy .lab,.lav3 .mixWhy .lab{padding:0 12px;}
+#page-lavarion .mixOv,.lav3 .mixOv{display:flex;gap:14px;align-items:center;justify-content:space-between;
+  border:1px dashed var(--border);border-radius:9px;padding:11px 14px;font-size:12.5px;color:var(--text);}
+#page-lavarion .mixOv.on,.lav3 .mixOv.on{border:1px solid var(--amb);border-style:solid;background:rgba(251,191,36,.09);}
+#page-lavarion .mixOv .btn,.lav3 .mixOv .btn{flex:0 0 auto;}
+@media(max-width:720px){#page-lavarion .mixArrow,.lav3 .mixArrow{display:none;}}
+#page-lavarion .mixHead.ovr,.lav3 .mixHead.ovr{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.42);border-left-color:var(--amb);}
+#page-lavarion .mixHead.ovr .mixIcon,.lav3 .mixHead.ovr .mixIcon{background:var(--amb);color:#1a1405;}
+#page-lavarion .mixHead.ovr .mixT,.lav3 .mixHead.ovr .mixT{color:var(--amb);}
+/* bulk-setup modals */
+#page-lavarion .bkTabs,.lav3 .bkTabs{display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:4px;margin-bottom:14px;}
+#page-lavarion .bkTab,.lav3 .bkTab{flex:1;padding:9px 12px;border:0;background:transparent;color:var(--text2);font:600 12.5px var(--num);border-radius:6px;cursor:pointer;}
+#page-lavarion .bkTab:hover,.lav3 .bkTab:hover{color:var(--text);background:rgba(255,255,255,.05);}
+#page-lavarion .bkTab.on,.lav3 .bkTab.on{background:var(--accent);color:#0b0d10;}
+#page-lavarion .bkGrid,.lav3 .bkGrid{width:100%;border-collapse:separate;border-spacing:0 6px;}
+#page-lavarion .bkGrid th,.lav3 .bkGrid th{font:700 10px var(--num);letter-spacing:.6px;text-transform:uppercase;color:var(--text2);text-align:right;padding:0 8px 4px;}
+#page-lavarion .bkGrid th.l,.lav3 .bkGrid th.l{text-align:left;}
+#page-lavarion .bkGrid td,.lav3 .bkGrid td{padding:0 3px;vertical-align:middle;}
+#page-lavarion .bkGrid .in,.lav3 .bkGrid .in{width:100%;margin:0;}
+#page-lavarion .bkGrid .in.num,.lav3 .bkGrid .in.num{text-align:right;}
+#page-lavarion .bkX,.lav3 .bkX{width:28px;height:30px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);border-radius:6px;cursor:pointer;font-size:11px;line-height:1;}
+#page-lavarion .bkX:hover,.lav3 .bkX:hover{border-color:var(--red);color:var(--red);background:rgba(248,113,113,.09);}
+#page-lavarion .bkAdd,.lav3 .bkAdd{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;}
+#page-lavarion .bkSum,.lav3 .bkSum{background:rgba(96,165,250,.09);border:1px solid rgba(96,165,250,.26);border-radius:8px;padding:9px 12px;font:600 12.5px var(--num);color:var(--text);margin-bottom:10px;}
+#page-lavarion .bkSum b,.lav3 .bkSum b{color:var(--accent);font-size:15px;}
+#page-lavarion .bkNil,.lav3 .bkNil{border:1px dashed var(--border);border-radius:8px;padding:16px;text-align:center;color:var(--text2);font-size:12.5px;}
+#page-lavarion .brCard,.lav3 .brCard{border:1px solid var(--border);border-radius:10px;background:var(--bg2);padding:12px;margin-bottom:10px;}
+#page-lavarion .brHead,.lav3 .brHead{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+#page-lavarion .brHead .in,.lav3 .brHead .in{flex:1;font-weight:600;}
+#page-lavarion .brParts,.lav3 .brParts{display:flex;flex-direction:column;gap:6px;padding-left:14px;border-left:2px solid var(--accent);}
+#page-lavarion .brPart,.lav3 .brPart{display:flex;gap:7px;align-items:center;}
+#page-lavarion .brPart .in,.lav3 .brPart .in{flex:1;margin:0;}
+#page-lavarion .brPart .in.num,.lav3 .brPart .in.num{flex:0 0 74px;text-align:right;}
+#page-lavarion .brX,.lav3 .brX{color:var(--text2);font-size:13px;font-weight:700;}
+#page-lavarion .brParts .btn,.lav3 .brParts .btn{align-self:flex-start;margin-top:2px;}
+#page-lavarion .brTag,.lav3 .brTag{display:inline-block;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:5px;padding:2px 7px;margin:2px 0 2px 4px;font-size:11.5px;color:var(--text);}
+#page-lavarion .brTag.miss,.lav3 .brTag.miss{border-color:var(--amb);color:var(--amb);background:rgba(251,191,36,.1);}
+#page-lavarion .panel.stick>.ph,.lav3 .panel.stick>.ph{background:var(--bg3);}
+#page-lavarion .ph,.lav3 .ph{display:flex;align-items:center;gap:11px;padding:13px 15px 11px;
+  border-bottom:1px solid var(--border);background:transparent;}
+#page-lavarion .ph .t,.lav3 .ph .t{font-size:12.5px;font-weight:700;letter-spacing:.01em;}
+#page-lavarion .ph .sub,.lav3 .ph .sub{font-size:12px;color:var(--text3);font-weight:400;}
+#page-lavarion .ph .r,.lav3 .ph .r{margin-left:auto;display:flex;gap:7px;align-items:center;}
+#page-lavarion table,.lav3 table{width:100%;border-collapse:collapse;}
+#page-lavarion thead th,.lav3 thead th{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--accent);text-align:center;padding:10px;background:var(--bg3);white-space:nowrap;}
+/* The heading was #1a1917 sitting over rows at #131311 — barely a shade apart,
+   separated by one hairline. A row half-clipped underneath it does not read as
+   "behind the header", it reads as the header being see-through. It is opaque;
+   it just never LOOKED solid. So: a distinctly lighter surface, a hard rule
+   under it, and a real shadow so it sits above the page rather than in it. */
+#page-lavarion .panel.stick thead th,.lav3 .panel.stick thead th{position:sticky;top:var(--lavTh,103px);z-index:24;
+  background:var(--bg4);
+  box-shadow:inset 0 -2px 0 var(--border2), 0 7px 11px -7px rgba(0,0,0,.9);}
+#page-lavarion .panel.stick thead th.acts,.lav3 .panel.stick thead th.acts{z-index:24;background:var(--bg4);}
+/* The filter strip freezes under the tab bar; the header row sits under that.
+   The fallbacks are the real measurements for a single-line tab bar (47px) and
+   an unwrapped filter strip (47+56) — JS overrides them within a frame, but a
+   wrong fallback is what a stalled measurement fell back TO, so they match. */
+#page-lavarion .panel.stick>.ph,.lav3 .panel.stick>.ph{position:sticky;top:var(--lavPh,47px);z-index:20;}
+#page-lavarion .mod thead th,.lav3 .mod thead th{position:static;}
+#page-lavarion .cols2 thead th,.lav3 .cols2 thead th{position:static;}
+#page-lavarion thead th.l,.lav3 thead th.l{text-align:left;}
+#page-lavarion tbody td,.lav3 tbody td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:center;vertical-align:middle;font-size:13px;color:var(--text);}
+#page-lavarion tbody tr:last-child td,.lav3 tbody tr:last-child td{border-bottom:none;}
+#page-lavarion tbody td.l,.lav3 tbody td.l{text-align:left;}
+#page-lavarion tbody tr,.lav3 tbody tr{transition:none;}
+#page-lavarion tbody tr:hover,.lav3 tbody tr:hover{background:var(--bg3);}
+#page-lavarion tbody tr.sub-row:hover,.lav3 tbody tr.sub-row:hover{background:transparent;}
+#page-lavarion .schemabar,.lav3 .schemabar{display:flex;align-items:center;gap:11px;margin:14px 18px 0;
+  padding:10px 14px;background:var(--amb-bg);border:1px solid var(--amb-br);border-radius:9px;
+  font-size:12.5px;color:var(--text2);}
+#page-lavarion .schemabar .dot,.lav3 .schemabar .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+#page-lavarion .schemabar .btn,.lav3 .schemabar .btn{margin-left:auto;}
+/* detail popup */
+#page-lavarion .dstats,.lav3 .dstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;margin-bottom:16px;}
+#page-lavarion .dstat,.lav3 .dstat{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:11px 13px;min-width:0;}
+#page-lavarion .dstat .k,.lav3 .dstat .k{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);}
+#page-lavarion .dstat .v,.lav3 .dstat .v{font-family:var(--num);font-size:22px;font-weight:600;margin-top:5px;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;}
+#page-lavarion .dstat .s,.lav3 .dstat .s{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.35;}
+#page-lavarion .dsec,.lav3 .dsec{display:flex;align-items:center;gap:10px;margin:18px 0 8px;}
+#page-lavarion .dsec .lab,.lav3 .dsec .lab{font-size:12px;font-weight:700;color:var(--text);}
+#page-lavarion .dsec .btn,.lav3 .dsec .btn{margin-left:auto;}
+#page-lavarion .dtab,.lav3 .dtab{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12.5px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+#page-lavarion .dtab th,.lav3 .dtab th{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text2);padding:9px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;}
+#page-lavarion .dtab th.l,.lav3 .dtab th.l{text-align:left;}
+#page-lavarion .dtab td,.lav3 .dtab td{padding:10px;text-align:right;border-bottom:1px solid var(--border);
+  color:var(--text);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .dtab td.l,.lav3 .dtab td.l{text-align:left;white-space:normal;}
+#page-lavarion .dtab tr:last-child td,.lav3 .dtab tr:last-child td{border-bottom:none;}
+#page-lavarion .dtab tr.lim td,.lav3 .dtab tr.lim td{background:var(--amb-bg);}
+#page-lavarion .dtab tr.spent td,.lav3 .dtab tr.spent td{opacity:.45;}
+#page-lavarion .dtab tr:hover td,.lav3 .dtab tr:hover td{background:var(--bg4);}
+/* nothing inside a modal may push it sideways */
+#page-lavarion .mod,.lav3 .mod{overflow:hidden;}
+#page-lavarion .mb,.lav3 .mb{overflow-x:hidden;}
+#page-lavarion .mb table,.lav3 .mb table{table-layout:fixed;width:100%;}
+
+/* how-it-works tab */
+
+#page-lavarion .gwrap,.lav3 .gwrap{max-width:none;}
+#page-lavarion .ghero,.lav3 .ghero{display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--accent);
+  border-radius:11px;padding:18px 20px;margin-bottom:14px;}
+#page-lavarion .gh1,.lav3 .gh1{font-size:19px;font-weight:700;letter-spacing:-.02em;color:var(--text);}
+#page-lavarion .gh2,.lav3 .gh2{font-size:13px;color:var(--text2);margin-top:4px;}
+#page-lavarion .ghero-k,.lav3 .ghero-k{margin-left:auto;display:flex;gap:26px;}
+#page-lavarion .ghero-k div,.lav3 .ghero-k div{text-align:right;}
+#page-lavarion .ghero-k b,.lav3 .ghero-k b{display:block;font-family:var(--num);font-size:24px;font-weight:600;
+  letter-spacing:-.03em;color:var(--accent);font-variant-numeric:tabular-nums;}
+#page-lavarion .ghero-k span,.lav3 .ghero-k span{font-size:11px;color:var(--text2);}
+#page-lavarion .gcols,.lav3 .gcols{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:start;}
+@media(max-width:1100px){#page-lavarion .gcols,.lav3 .gcols{grid-template-columns:1fr;}}
+#page-lavarion .gtwo,.lav3 .gtwo{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:760px){#page-lavarion .gtwo,.lav3 .gtwo{grid-template-columns:1fr;}}
+#page-lavarion .gpri,.lav3 .gpri{border-color:var(--accent-hi);border-top:2px solid var(--accent);}
+#page-lavarion .gex,.lav3 .gex{background:var(--bg3);border:1px solid var(--border);border-radius:9px;
+  padding:12px 14px;margin:4px 0 12px;}
+#page-lavarion .gexrow,.lav3 .gexrow{display:flex;justify-content:space-between;gap:16px;padding:5px 0;
+  font-size:13px;color:var(--text2);}
+#page-lavarion .gexrow b,.lav3 .gexrow b{color:var(--text);font-variant-numeric:tabular-nums;}
+#page-lavarion .gexrow.tot,.lav3 .gexrow.tot{border-top:1px solid var(--border);margin-top:5px;padding-top:9px;
+  font-weight:650;color:var(--text);}
+#page-lavarion .gexrow.tot b,.lav3 .gexrow.tot b{color:var(--accent);font-size:15px;}
+
+#page-lavarion .gbody,.lav3 .gbody{padding:16px 18px 18px;font-size:13.5px;line-height:1.65;color:var(--text2);}
+#page-lavarion .gbody p,.lav3 .gbody p{margin-bottom:11px;}
+#page-lavarion .gbody p:last-child,.lav3 .gbody p:last-child{margin-bottom:0;}
+#page-lavarion .gbody b,.lav3 .gbody b{color:var(--text);font-weight:650;}
+#page-lavarion .gcols,.lav3 .gcols{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:820px){#page-lavarion .gcols,.lav3 .gcols{grid-template-columns:1fr;}}
+#page-lavarion .gcard,.lav3 .gcard{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+#page-lavarion .gcard p,.lav3 .gcard p{margin:10px 0 0;font-size:13px;}
+#page-lavarion .gstep,.lav3 .gstep{display:flex;gap:14px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--border);}
+#page-lavarion .gstep:last-child,.lav3 .gstep:last-child{border-bottom:none;padding-bottom:0;}
+#page-lavarion .gnum,.lav3 .gnum{width:26px;height:26px;flex-shrink:0;border-radius:8px;background:var(--accent);color:#1a1a18;
+  font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;font-family:var(--num);}
+#page-lavarion .gt,.lav3 .gt{font-size:13.5px;font-weight:650;color:var(--text);margin-bottom:3px;}
+#page-lavarion .gb,.lav3 .gb{font-size:13px;color:var(--text2);line-height:1.6;}
+#page-lavarion .gq,.lav3 .gq{padding:11px 0;border-bottom:1px solid var(--border);}
+#page-lavarion .gq:last-child,.lav3 .gq:last-child{border-bottom:none;padding-bottom:0;}
+#page-lavarion .colgrid,.lav3 .colgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;}
+#page-lavarion .colgrid label,.lav3 .colgrid label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2);cursor:pointer;}
+#page-lavarion.dense tbody td,.lav3.dense tbody td{padding:6px 8px;}
+#page-lavarion.dense .pmeta,.lav3.dense .pmeta{margin-top:2px;}
+#page-lavarion .selbar,.lav3 .selbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:10px 14px;
+  background:var(--bg3);border-bottom:1px solid var(--border);font-size:12.5px;color:var(--text2);}
+#page-lavarion .empty,.lav3 .empty{padding:24px 20px;text-align:center;color:var(--text2);font-size:13px;}
+#page-lavarion .pname,.lav3 .pname{font-weight:550;font-size:13px;line-height:1.3;letter-spacing:-.01em;color:var(--text);}
+#page-lavarion .pmeta,.lav3 .pmeta{font-size:12px;font-weight:500;color:var(--text2);margin-top:3px;
+  font-family:var(--sans);letter-spacing:-.005em;}
+/* only identifiers stay monospaced */
+#page-lavarion .pmeta.mono,.lav3 .pmeta.mono{font-family:var(--num);letter-spacing:.03em;font-variant-numeric:tabular-nums;}
+/* The little grey captions under each number sat on one unbreakable line in a
+   90px column, so they ran straight under the neighbouring cell and the sticky
+   actions column on the right: "parts missing" lost its last letters and
+   "guess — not real sales" spilled across two columns. They wrap inside their
+   own cell now, and the number columns have a floor so wrapping stays sensible
+   rather than one word per line. */
+#page-lavarion td .tsub,.lav3 td .tsub,
+#page-lavarion td .pmeta,.lav3 td .pmeta{white-space:normal;line-height:1.25;}
+#page-lavarion .panel.stick td:not(.l):not(.acts),.lav3 .panel.stick td:not(.l):not(.acts){min-width:96px;}
+#page-lavarion .lab,.lav3 .lab{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:0;}
+#page-lavarion .num,.lav3 .num{font-family:var(--num);font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1,'zero' 0;
+  font-size:15px;font-weight:600;letter-spacing:-.02em;}
+#page-lavarion .num.g,.lav3 .num.g{color:var(--grn);}
+#page-lavarion .num.r,.lav3 .num.r{color:var(--red);}
+#page-lavarion .num.a,.lav3 .num.a{color:var(--amb);}
+#page-lavarion .num.b,.lav3 .num.b{color:var(--blu);}
+/* Dimmed used to mean "hard to read". It now means slightly quieter, full stop —
+   grey-on-near-black at 75% was illegible on a bright screen. */
+#page-lavarion .dim,.lav3 .dim{color:var(--text2);opacity:1;}
+#page-lavarion .sldSub .est,.lav3 .sldSub .est{color:var(--text2);opacity:.85;font-style:normal;}
+#page-lavarion .tsub.prov,.lav3 .tsub.prov{color:var(--text2);opacity:.85;font-style:normal;font-weight:600;}
+#page-lavarion .pmeta,.lav3 .pmeta{color:var(--text2);}
+/* column headings wrap instead of being sliced — "Sold last mont" was a clip */
+#page-lavarion .panel.stick thead th,.lav3 .panel.stick thead th{white-space:normal;line-height:1.25;}
+#page-lavarion .chip,.lav3 .chip{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap;
+  border:1px solid var(--border3);color:var(--text2);background:var(--bg4);letter-spacing:0;}
+#page-lavarion .chip.zzz,.lav3 .chip.zzz,#page-lavarion .chip.pl,.lav3 .chip.pl,#page-lavarion .chip.single,.lav3 .chip.single,#page-lavarion .chip.component,.lav3 .chip.component,#page-lavarion .chip.packaging,.lav3 .chip.packaging,#page-lavarion .chip.vat,.lav3 .chip.vat{background:var(--bg3);color:var(--text2);border-color:var(--border2);}
+#page-lavarion .chip.bundle,.lav3 .chip.bundle{background:var(--blu);color:#04101f;border-color:var(--blu);font-weight:700;}
+#page-lavarion .chip.pl,.lav3 .chip.pl{background:var(--vio);color:#1b0a2b;border-color:var(--vio);font-weight:700;}
+#page-lavarion .chip.single,.lav3 .chip.single{background:#8d8378;color:#141310;border-color:#8d8378;font-weight:700;}
+#page-lavarion .chip.component,.lav3 .chip.component{background:var(--bg5);color:var(--text2);border-color:var(--border3);}
+#page-lavarion .chip.packaging,.lav3 .chip.packaging{background:var(--amb);color:#241300;border-color:var(--amb);font-weight:700;}
+#page-lavarion .chip.vat,.lav3 .chip.vat{background:var(--bg4);color:var(--text3);border-color:var(--border2);}
+#page-lavarion .chip.ok,.lav3 .chip.ok{background:var(--grn);color:#03210a;border-color:var(--grn);font-weight:700;}
+#page-lavarion .chip.bad,.lav3 .chip.bad{background:var(--red);color:#2b0505;border-color:var(--red);font-weight:700;}
+#page-lavarion .chip.warn,.lav3 .chip.warn{background:var(--amb);color:#241300;border-color:var(--amb);font-weight:700;}
+#page-lavarion .chip.info,.lav3 .chip.info{background:var(--blu);color:#04101f;border-color:var(--blu);font-weight:700;}
+#page-lavarion .btn,.lav3 .btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:7px;padding:6px 12px;
+  font-size:12px;font-weight:500;transition:background .1s,color .1s,border-color .1s;white-space:nowrap;letter-spacing:-.01em;}
+#page-lavarion .btn:hover,.lav3 .btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border3);}
+#page-lavarion .btn:active,.lav3 .btn:active{background:var(--bg5);}
+#page-lavarion .btn.pri,.lav3 .btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;}
+#page-lavarion .btn.pri:hover,.lav3 .btn.pri:hover{background:var(--accent-hi);border-color:var(--accent-hi);}
+#page-lavarion .btn.go,.lav3 .btn.go{background:var(--grn);border-color:var(--grn);color:#03210a;font-weight:700;}
+#page-lavarion .btn.go:hover,.lav3 .btn.go:hover{background:#7dff7d;border-color:#7dff7d;color:#03210a;}
+#page-lavarion .btn.dgr,.lav3 .btn.dgr{background:transparent;border-color:var(--red-br);color:var(--red);}
+#page-lavarion .btn.dgr:hover,.lav3 .btn.dgr:hover{background:var(--red-bg);color:var(--red);}
+#page-lavarion .btn.sm,.lav3 .btn.sm{padding:4px 9px;font-size:11.5px;}
+#page-lavarion .btn:disabled,.lav3 .btn:disabled{opacity:.35;cursor:not-allowed;}
+#page-lavarion .seg,.lav3 .seg{display:inline-flex;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2px;gap:2px;}
+#page-lavarion .seg button,.lav3 .seg button{background:none;border:none;color:var(--text2);font-size:12px;font-weight:500;padding:5px 11px;border-radius:6px;transition:.1s;}
+#page-lavarion .seg button:hover,.lav3 .seg button:hover{color:var(--text2);}
+#page-lavarion .seg button.on,.lav3 .seg button.on{background:var(--bg5);color:var(--text);}
+#page-lavarion .seg .cnt,.lav3 .seg .cnt,#page-lavarion .tabs .cnt,.lav3 .tabs .cnt{font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:6px;}
+#page-lavarion .srch,.lav3 .srch{background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:7px 11px;font-size:12.5px;width:250px;color:var(--text);}
+#page-lavarion .srch::placeholder,.lav3 .srch::placeholder{color:var(--text3);}
+#page-lavarion .srch:focus,.lav3 .srch:focus{outline:none;border-color:var(--accent);background:var(--bg4);}
+#page-lavarion .in,.lav3 .in{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;font-size:13px;color:var(--text);}
+#page-lavarion .in::placeholder,.lav3 .in::placeholder{color:var(--text3);}
+#page-lavarion .in:focus,.lav3 .in:focus{outline:none;border-color:var(--accent);background:var(--bg3);}
+#page-lavarion .in.mono,.lav3 .in.mono{font-family:var(--mono);letter-spacing:0;}
+#page-lavarion select.in,.lav3 select.in{cursor:pointer;}
+#page-lavarion textarea.in,.lav3 textarea.in{font-size:12.5px;}
+#page-lavarion .bar,.lav3 .bar{height:6px;border-radius:2px;background:var(--bg5);overflow:hidden;}
+#page-lavarion .bar>i,.lav3 .bar>i{display:block;height:100%;border-radius:2px;}
+#page-lavarion .chev,.lav3 .chev{display:inline-block;width:14px;color:var(--text3);font-size:9px;transition:transform .12s;}
+#page-lavarion tr.open .chev,.lav3 tr.open .chev{transform:rotate(90deg);}
+#page-lavarion .rbox,.lav3 .rbox{padding:14px 20px 16px 42px;background:var(--bg);border-bottom:1px solid var(--border);}
+#page-lavarion .rgrid,.lav3 .rgrid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start;}
+@media(max-width:1100px){#page-lavarion .rgrid,.lav3 .rgrid{grid-template-columns:1fr;}}
+#page-lavarion .rgrid .cogbox,.lav3 .rgrid .cogbox{margin-top:0;}
+#page-lavarion .rline,.lav3 .rline{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:7px;font-size:13px;}
+#page-lavarion .rline:hover,.lav3 .rline:hover{background:var(--bg3);cursor:pointer;}
+#page-lavarion .rline .q,.lav3 .rline .q{font-family:var(--num);font-weight:600;color:var(--text3);width:32px;font-variant-numeric:tabular-nums;}
+#page-lavarion .rline .nm,.lav3 .rline .nm{flex:1;font-weight:450;display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:var(--text);}
+#page-lavarion .rline .st,.lav3 .rline .st{font-family:var(--num);font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;}
+#page-lavarion .rsh,.lav3 .rsh{font-size:11px;font-weight:500;color:var(--text3);display:flex;align-items:center;gap:10px;margin:6px 0 3px;}
+#page-lavarion .rsh:after,.lav3 .rsh:after{content:'';flex:1;height:1px;background:var(--border);}
+#page-lavarion .blocked,.lav3 .blocked{font-size:11.5px;font-weight:600;color:var(--red);margin-top:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .limtag,.lav3 .limtag{display:block;margin:5px auto 0;font-size:11px;font-weight:600;color:var(--amb);
+  background:var(--amb-bg);border:1px solid var(--amb-br);border-radius:9px;padding:3px 8px;
+  white-space:normal;overflow-wrap:anywhere;line-height:1.3;max-width:100%;}
+#page-lavarion .limtag.out,.lav3 .limtag.out{color:var(--red);background:var(--red-bg);border-color:var(--red-br);}
+#page-lavarion .cogbox,.lav3 .cogbox{margin-top:12px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;font-size:12.5px;min-width:0;overflow:hidden;}
+.rgrid>*{min-width:0;}
+.plNote b{white-space:normal;text-align:left;}
+#page-lavarion .cogrow,.lav3 .cogrow{display:flex;justify-content:space-between;gap:16px;padding:5px 0;color:var(--text2);}
+#page-lavarion .cogrow b,.lav3 .cogrow b{color:var(--text);font-family:var(--num);font-weight:600;letter-spacing:-.01em;
+  font-variant-numeric:tabular-nums;font-feature-settings:'zero' 0;}
+#page-lavarion .cogtot,.lav3 .cogtot{border-top:1px solid var(--border);margin-top:7px;padding-top:9px;display:flex;justify-content:space-between;
+  font-weight:550;color:var(--text);}
+#page-lavarion .ov,.lav3 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(3px);z-index:100;
+  align-items:center;justify-content:center;padding:24px;}
+#page-lavarion .ov.on,.lav3 .ov.on{display:flex;}
+#page-lavarion .mod,.lav3 .mod{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;width:100%;max-width:620px;max-height:88vh;
+  display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.65);}
+#page-lavarion .mod.wide,.lav3 .mod.wide{max-width:980px;}
+#page-lavarion .mod.slim,.lav3 .mod.slim{max-width:460px;}
+#page-lavarion .mh,.lav3 .mh{display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid var(--border);}
+#page-lavarion .mh h3,.lav3 .mh h3{font-size:14px;font-weight:550;letter-spacing:-.01em;}
+#page-lavarion .mh .x,.lav3 .mh .x{margin-left:auto;background:none;border:1px solid var(--border2);color:var(--text3);width:26px;height:26px;
+  border-radius:7px;font-size:12px;line-height:1;}
+#page-lavarion .mh .x:hover,.lav3 .mh .x:hover{color:var(--text);border-color:var(--border3);}
+#page-lavarion .mb,.lav3 .mb{padding:17px 18px;overflow-y:auto;}
+#page-lavarion .mf,.lav3 .mf{display:flex;gap:9px;align-items:center;padding:13px 18px;border-top:1px solid var(--border);background:var(--bg2);}
+#page-lavarion .mf .sp,.lav3 .mf .sp{margin-left:auto;display:flex;gap:9px;align-items:center;}
+#page-lavarion .frow,.lav3 .frow{margin-bottom:13px;}
+#page-lavarion .frow .lab,.lav3 .frow .lab{display:block;margin-bottom:5px;}
+#page-lavarion .g2,.lav3 .g2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+#page-lavarion .g3,.lav3 .g3{display:grid;grid-template-columns:1fr 74px 30px;gap:8px;align-items:center;margin-bottom:7px;}
+#page-lavarion .ed2,.lav3 .ed2{display:grid;grid-template-columns:1fr 1.15fr;gap:20px;align-items:start;}
+@media(max-width:860px){#page-lavarion .ed2,.lav3 .ed2{grid-template-columns:1fr;}}
+#page-lavarion .edrow,.lav3 .edrow{margin-bottom:11px;}
+#page-lavarion .edrow .lab,.lav3 .edrow .lab{display:block;margin-bottom:4px;}
+#page-lavarion .rrow,.lav3 .rrow{display:grid;grid-template-columns:minmax(0,1fr) 58px minmax(0,176px) 28px;gap:8px;align-items:center;margin-bottom:6px;}
+#page-lavarion .rrow.newc .in,.lav3 .rrow.newc .in{border-color:var(--accent);}
+#page-lavarion .rrow .rcinfo,.lav3 .rrow .rcinfo{font-size:11.5px;color:var(--text3);display:flex;gap:5px;align-items:center;justify-content:flex-end;
+  white-space:nowrap;overflow:hidden;font-family:var(--num);font-variant-numeric:tabular-nums;}
+#page-lavarion .rrow .btn.sm,.lav3 .rrow .btn.sm{padding:5px 0;text-align:center;}
+#page-lavarion .prevbox,.lav3 .prevbox{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-top:14px;}
+#page-lavarion .prevgrid,.lav3 .prevgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+#page-lavarion .prevgrid .k,.lav3 .prevgrid .k{font-size:11px;color:var(--text3);}
+#page-lavarion .prevgrid .v,.lav3 .prevgrid .v{font-family:var(--num);font-size:20px;font-weight:600;margin-top:3px;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1,'zero' 0;}
+#page-lavarion .stat,.lav3 .stat{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:11px 13px;}
+#page-lavarion .stat .k,.lav3 .stat .k{font-size:11px;color:var(--text3);}
+#page-lavarion .stat .v,.lav3 .stat .v{font-family:var(--num);font-size:22px;font-weight:600;margin-top:5px;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1,'zero' 0;}
+#page-lavarion .note,.lav3 .note{background:var(--bg3);border:1px solid var(--border);border-left:2px solid var(--border3);border-radius:8px;
+  padding:11px 14px;font-size:12.5px;color:var(--text2);line-height:1.6;}
+#page-lavarion .note b,.lav3 .note b{color:var(--text);font-weight:550;}
+#page-lavarion .note.bad,.lav3 .note.bad{border-left-color:var(--red);}
+#page-lavarion .note.good,.lav3 .note.good{border-left-color:var(--grn);}
+#page-lavarion .note.info,.lav3 .note.info{border-left-color:var(--blu);}
+#page-lavarion .ltab,.lav3 .ltab{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:9px;}
+#page-lavarion .ltab th,.lav3 .ltab th{font-size:11px;font-weight:500;color:var(--text3);padding:7px 8px;border-bottom:1px solid var(--border);text-align:right;}
+#page-lavarion .ltab th:first-child,.lav3 .ltab th:first-child{text-align:left;}
+#page-lavarion .ltab td,.lav3 .ltab td{padding:9px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--num);
+  font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1,'zero' 0;letter-spacing:-.01em;color:var(--text);}
+#page-lavarion .ltab td:first-child,.lav3 .ltab td:first-child{text-align:left;font-family:var(--sans);color:var(--text);letter-spacing:-.005em;}
+#page-lavarion .ltab tr:last-child td,.lav3 .ltab tr:last-child td{border-bottom:none;}
+#page-lavarion .ltab tr.used td,.lav3 .ltab tr.used td{background:var(--amb-bg);}
+#page-lavarion .ltab tr.spent td,.lav3 .ltab tr.spent td{opacity:.4;}
+#page-lavarion .att,.lav3 .att{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid var(--border);}
+#page-lavarion .att:last-child,.lav3 .att:last-child{border-bottom:none;}
+#page-lavarion .att .dot,.lav3 .att .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+#page-lavarion .att .tx,.lav3 .att .tx{flex:1;font-size:13px;line-height:1.45;}
+#page-lavarion .att .tx b,.lav3 .att .tx b{font-weight:550;}
+#page-lavarion .att .tx .s,.lav3 .att .tx .s{display:block;font-size:11.5px;color:var(--text2);margin-top:3px;}
+#page-lavarion .subhead,.lav3 .subhead{padding:8px 15px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:11px;
+  color:var(--text3);font-weight:500;}
+/* Two columns that FLOW instead of two fixed buckets. As a grid, the left
+   column collected five stacked panels and the right one held a single short
+   table, so the bottom two thirds of the right-hand side was empty. Multi-column
+   lets the panels fall into whichever side has room, and break-inside stops a
+   panel being sliced in half across the gap. */
+/* Three tracks on a wide screen, two on a laptop, one on a narrow window. A
+   fixed two-column grid left a band of nothing down the right on a 1920 screen. */
+#page-lavarion .cols2,.lav3 .cols2{display:block;column-count:2;column-gap:14px;max-width:none;margin:0;}
+.cols2 .panel{break-inside:avoid;-webkit-column-break-inside:avoid;}
+#lav3View table tbody tr:nth-child(even){background:rgba(255,255,255,.016);}
+#lav3View table tbody tr:hover{background:rgba(255,255,255,.045);}
+.supRow:nth-child(even){background:rgba(255,255,255,.016);}
+.supRow:hover{background:rgba(255,255,255,.045);}
+@media(min-width:1560px){#page-lavarion .cols2,.lav3 .cols2{column-count:3;}}
+/* and no single panel is allowed to run the length of the page — a list that
+   long is a page of its own, not the front door */
+#page-lavarion .cols2 .panel>.att,.lav3 .cols2 .panel>.att,
+#page-lavarion .cols2 .panel>div:not(.ph),.lav3 .cols2 .panel>div:not(.ph){max-height:none;}
+#page-lavarion .cols2 .panel,.lav3 .cols2 .panel{max-height:520px;overflow:auto;}
+#page-lavarion .cols2>*,.lav3 .cols2>*{break-inside:avoid;-webkit-column-break-inside:avoid;
+  display:block;margin:0 0 14px;width:100%;}
+#page-lavarion .cols2.one,.lav3 .cols2.one{column-count:1;}
+#page-lavarion .cols2.one,.lav3 .cols2.one{grid-template-columns:1fr;}
+#page-lavarion .cols2>*,.lav3 .cols2>*{min-width:0;}
+.panel{max-width:100%;}
+.panel>table{table-layout:fixed;width:100%;}
+.panel td{overflow:hidden;}
+#page-lavarion .panel,.lav3 .panel{max-width:100%;}
+#page-lavarion .panel>table,.lav3 .panel>table{table-layout:fixed;width:100%;}
+#page-lavarion .panel td,.lav3 .panel td{overflow:hidden;}
+/* auto, not hidden — hidden silently sliced the last column off a wide table */
+#page-lavarion .cols2 .panel,.lav3 .cols2 .panel{min-width:0;overflow:auto;}
+#page-lavarion .panel>table,.lav3 .panel>table{border-radius:0 0 11px 11px;}
+#page-lavarion .cols2 table,.lav3 .cols2 table{table-layout:fixed;width:100%;}
+#page-lavarion .cols2 td,.lav3 .cols2 td{overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .att .tx,.lav3 .att .tx{min-width:0;overflow-wrap:anywhere;}
+
+.cols2.one{grid-template-columns:1fr;}
+@media(max-width:1080px){#page-lavarion .cols2,.lav3 .cols2{column-count:1;}}
+#page-lavarion .setup,.lav3 .setup{display:flex;gap:13px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);}
+#page-lavarion .setup:last-child,.lav3 .setup:last-child{border-bottom:none;}
+#page-lavarion .setup .n,.lav3 .setup .n{width:24px;height:24px;border-radius:7px;background:var(--bg4);border:1px solid var(--border2);color:var(--text3);
+  font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--num);}
+#page-lavarion .setup.done .n,.lav3 .setup.done .n{background:var(--grn-bg);border-color:var(--grn-br);color:var(--grn);}
+#page-lavarion .setup .tx,.lav3 .setup .tx{flex:1;font-size:13px;}
+#page-lavarion .setup .tx .s,.lav3 .setup .tx .s{display:block;font-size:11.5px;color:var(--text3);margin-top:3px;}
+#page-lavarion table.mx,.lav3 table.mx{border-collapse:separate;border-spacing:0;}
+#page-lavarion table.mx th,.lav3 table.mx th{position:sticky;top:0;z-index:5;background:var(--bg4);border-bottom:2px solid var(--border2);
+  padding:10px 7px;min-width:86px;vertical-align:bottom;}
+#page-lavarion table.mx th.stick,.lav3 table.mx th.stick,#page-lavarion table.mx td.stick,.lav3 table.mx td.stick{position:sticky;left:0;z-index:2;background:var(--bg2);
+  border-right:1px solid var(--border2);min-width:220px;text-align:left;}
+#page-lavarion table.mx th.stick,.lav3 table.mx th.stick{z-index:4;background:var(--bg3);}
+#page-lavarion table.mx td,.lav3 table.mx td{border-bottom:1px solid var(--border);padding:5px;}
+#page-lavarion .mxh,.lav3 .mxh{font-size:11px;font-weight:600;color:var(--text2);line-height:1.25;max-width:86px;white-space:normal;
+  text-transform:none;letter-spacing:-.01em;overflow-wrap:anywhere;}
+#page-lavarion .mxc,.lav3 .mxc{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);
+  font-family:var(--num);font-size:13.5px;font-weight:600;text-align:center;padding:7px 2px;
+  font-variant-numeric:tabular-nums;font-feature-settings:'zero' 0;}
+#page-lavarion .mxc:focus,.lav3 .mxc:focus{outline:none;border-color:var(--accent);background:var(--bg3);}
+#page-lavarion .alrow,.lav3 .alrow{display:grid;grid-template-columns:minmax(0,1fr) 84px 30px;gap:9px 9px;align-items:center;margin-bottom:11px;}
+/* type-to-search picker for "where did these units go" */
+#page-lavarion .alpick,.lav3 .alpick{position:relative;min-width:0;}
+#page-lavarion .alpick .in,.lav3 .alpick .in{width:100%;}
+#page-lavarion .alrow.unmatched .al-find,.lav3 .alrow.unmatched .al-find{border-color:var(--red);}
+/* min-width so a long part name is still readable when the column is narrow */
+#page-lavarion .alpop,.lav3 .alpop{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;min-width:300px;z-index:80;
+  max-height:290px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border2);border-radius:9px;
+  box-shadow:0 18px 44px rgba(0,0,0,.6);padding:4px;}
+#page-lavarion .alpop.on,.lav3 .alpop.on{display:block;}
+#page-lavarion .alopt,.lav3 .alopt{display:flex;width:100%;align-items:center;gap:9px;padding:7px 9px;border:none;
+  background:none;color:var(--text);cursor:pointer;border-radius:6px;text-align:left;font-size:12.5px;}
+#page-lavarion .alopt:hover,.lav3 .alopt:hover,
+#page-lavarion .alopt.first,.lav3 .alopt.first{background:var(--bg3);}
+#page-lavarion .alopt .alnm,.lav3 .alopt .alnm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-lavarion .altag,.lav3 .altag{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 6px;border-radius:5px;flex:0 0 auto;}
+#page-lavarion .altag.t-component,.lav3 .altag.t-component{background:rgba(96,165,250,.14);color:#60a5fa;}
+#page-lavarion .altag.t-packaging,.lav3 .altag.t-packaging{background:rgba(148,163,184,.14);color:var(--text2);}
+#page-lavarion .altag.t-product,.lav3 .altag.t-product{background:rgba(52,211,153,.14);color:#34d399;}
+#page-lavarion .alnone,.lav3 .alnone{padding:9px;font-size:12px;color:var(--text3);}
+#page-lavarion .alwhere,.lav3 .alwhere{grid-column:1 / -1;font-size:11.5px;color:var(--text3);line-height:1.5;margin-top:-3px;}
+#page-lavarion .alwhere b,.lav3 .alwhere b{font-weight:600;}
+#page-lavarion .albar,.lav3 .albar{height:6px;border-radius:3px;background:var(--bg5);overflow:hidden;display:flex;margin:9px 0 6px;}
+#page-lavarion .albar>i,.lav3 .albar>i{display:block;height:100%;}
+#page-lavarion .sug,.lav3 .sug{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--blu);background:var(--blu-bg);
+  border:1px solid var(--blu-br);border-radius:20px;padding:3px 10px;cursor:pointer;}
+#page-lavarion .sug:hover,.lav3 .sug:hover{background:rgba(91,157,255,.2);}
+#lav3Toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg4);
+  border:1px solid var(--border3);border-radius:9px;padding:11px 17px;font-size:12.5px;font-weight:450;z-index:200;
+  opacity:0;transition:.22s;box-shadow:0 12px 34px rgba(0,0,0,.55);}
+#lav3Toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+#lav3Toast{display:flex;align-items:center;gap:14px;}
+#lav3Toast .tundo{background:var(--accent);border:none;color:var(--accent-ink);font-weight:600;font-size:11.5px;
+  padding:4px 11px;border-radius:6px;}
+#lav3Toast .tundo:hover{background:var(--accent-hi);}
+#lav3Toast.er{border-color:var(--red-br);color:#ffd9d9;}
+#lav3Toast.ok{border-color:var(--grn-br);color:#d6ffe6;}
+
+
+/* Sarah's notebook */
+.notesPanel{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+.notesHead{display:flex;align-items:baseline;gap:10px;padding:11px 15px;background:var(--bg3);border-bottom:1px solid var(--border);}
+.notesHead .nTitle{font-size:14px;font-weight:800;color:var(--text);}
+.notesHead .nSub{flex:1;font-size:11px;color:var(--text3);}
+.notesHead .nRefresh{padding:5px 11px;background:var(--bg2);border:1px solid var(--border2);color:var(--text2);
+  border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;}
+.notesHead .nRefresh:hover{border-color:var(--accent);color:var(--accent);}
+.noteNew{display:flex;gap:8px;align-items:flex-start;padding:12px 15px;border-bottom:1px solid var(--border);}
+.noteNew textarea{flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:8px;color:var(--text);
+  padding:9px 11px;font:inherit;font-size:13px;line-height:1.5;resize:vertical;min-height:44px;}
+.noteNew textarea:focus{outline:none;border-color:var(--accent);}
+.noteAdd{flex:0 0 auto;padding:10px 16px;background:var(--accent);border:0;color:#0b0d10;border-radius:8px;
+  font-size:12.5px;font-weight:800;cursor:pointer;}
+.noteHead{padding:8px 15px;font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
+  color:var(--text3);background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);}
+.noteHead span{color:var(--accent);margin-left:5px;}
+.noteHead.muted span{color:var(--text3);}
+.noteRow{display:flex;gap:11px;align-items:flex-start;padding:8px 13px;border-bottom:1px solid var(--border);}
+@media(min-width:1400px){.noteList{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;}}
+.lvFold>summary{cursor:pointer;list-style:none;}
+.lvFold>summary::-webkit-details-marker{display:none;}
+.lvFold .fArr{font-size:9px;color:var(--text3);margin-right:2px;transition:transform .15s;display:inline-block;}
+.lvFold[open] .fArr{transform:rotate(90deg);}
+.lvFold>summary:hover .t{color:var(--text);}
+.noteRow:last-child{border-bottom:0;}
+.noteRow.done .noteTxt{text-decoration:line-through;color:var(--text3);}
+.noteTick{flex:0 0 20px;height:20px;margin-top:1px;border-radius:5px;border:1.5px solid var(--border2);
+  background:var(--bg);color:#0b0d10;font-size:12px;font-weight:800;cursor:pointer;line-height:1;}
+.noteRow.done .noteTick{background:var(--green,#4ade80);border-color:var(--green,#4ade80);}
+.noteBody{flex:1;min-width:0;}
+.noteTxt{font-size:13px;color:var(--text);line-height:1.5;word-break:break-word;}
+.noteMeta{font-size:10.5px;color:var(--text3);margin-top:3px;}
+.noteDel{flex:0 0 auto;background:none;border:0;color:var(--text3);font-size:12px;cursor:pointer;padding:2px 4px;}
+.noteDel:hover{color:#f87171;}
+.noteEmpty{padding:16px 15px;font-size:12.5px;color:var(--text3);}

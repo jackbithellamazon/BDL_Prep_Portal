@@ -1,0 +1,305 @@
+/* BDL PrepHub — css/closeoff.css — check-in strip, approvals, action centre, the Close-off popup.
+   Cut from base.css 2026-09-10 (b561). Linked in order; cascade unchanged. */
+/* ── Check-in strip, approvals, action centre, closure modal ────────────────
+   All of it lives on the two screens Sarah and Jack actually work from, so the
+   type matches the rest of the app (nothing under 11px, no grey on black) and
+   every state says what it means rather than relying on colour alone. */
+.ciBar{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:11px;
+  border:1px solid var(--border2);background:var(--bg2);margin-bottom:14px;}
+.ciBar.late{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.08);}
+.ciBar.ok{border-color:rgba(74,222,128,.35);background:rgba(74,222,128,.06);}
+.ciDot{width:10px;height:10px;border-radius:50%;flex:none;}
+.ciBar.late .ciDot{background:#ef4444;box-shadow:0 0 0 4px rgba(239,68,68,.18);}
+.ciBar.ok   .ciDot{background:#4ade80;box-shadow:0 0 0 4px rgba(74,222,128,.15);}
+.ciTxt{min-width:0;}
+.ciTtl{font-size:13px;font-weight:800;color:var(--text);}
+.ciBar.late .ciTtl{color:#f87171;}
+.ciSub{font-size:11.5px;font-weight:600;color:var(--text2);margin-top:2px;}
+.ciFlags{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px;}
+.ciFlag{font-size:11px;font-weight:800;padding:3px 9px;border-radius:6px;
+  background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.45);color:#fcd34d;}
+.ciFlag.hot{background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.5);color:#fca5a5;}
+.ciBtn{margin-left:auto;flex:none;padding:9px 20px;border-radius:8px;cursor:pointer;
+  font-size:12.5px;font-weight:800;background:var(--accent);color:#1a1400;border:1px solid var(--accent);}
+.ciBtn:hover{filter:brightness(1.08);}
+.ciBtn.done{background:var(--bg3);color:var(--text2);border-color:var(--border2);}
+
+.vaSec{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+/* every panel on this page shares one shell so they stop looking like three
+   different apps stacked on top of each other */
+#adminWrap>div[style*="border-radius:8px"]{border-radius:10px!important;}
+.vaSec.jack{border-left:4px solid #60a5fa;}
+.vaSec.todo{border-left:4px solid var(--accent);}
+.vaHd{display:flex;align-items:center;gap:10px;padding:11px 15px;background:rgba(255,255,255,.02);
+  border-bottom:1px solid var(--border);}
+.vaHd h4{margin:0;font-size:13px;font-weight:800;color:var(--text);}
+.vaHd .vaN{font-size:11px;font-weight:800;padding:2px 9px;border-radius:9px;
+  background:rgba(255,255,255,.08);color:var(--text);}
+.vaHd .vaWhy{font-size:11.5px;font-weight:600;color:var(--text2);}
+.vaRow{display:flex;align-items:flex-start;gap:12px;padding:11px 15px;border-top:1px solid var(--border);}
+.vaRow .vaMain{min-width:0;flex:1;}
+.vaTask{font-size:12.5px;font-weight:700;color:var(--text);}
+.vaWho{font-size:11.5px;color:var(--text2);font-weight:600;margin-top:3px;}
+.vaWho b{color:var(--text);font-weight:700;}
+.vaWhat{font-size:11.5px;color:var(--text2);margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vaBtns{display:flex;gap:7px;flex:none;}
+.vaBtn{padding:6px 13px;border-radius:7px;cursor:pointer;font-size:11.5px;font-weight:800;white-space:nowrap;
+  background:var(--bg3);border:1px solid var(--border2);color:var(--text);}
+.vaBtn:hover{background:var(--bg4);}
+.vaBtn.go{background:rgba(74,222,128,.14);border-color:rgba(74,222,128,.45);color:#86efac;}
+.vaBtn.no{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#fca5a5;}
+.vaRow.done .vaTask{text-decoration:line-through;color:var(--text3);}
+.vaChip{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:5px;
+  background:rgba(96,165,250,.14);border:1px solid rgba(96,165,250,.4);color:#93c5fd;margin-left:7px;}
+.vaChip.claim{background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.45);color:#fca5a5;}
+.vaEmpty{padding:18px 15px;font-size:12px;font-weight:600;color:var(--text2);}
+
+/* the "sorted" / "correct the quantity" modal */
+.srtMod{width:100%;max-width:880px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:16px;overflow:hidden;display:flex;flex-direction:column;
+  /* fixed, so picking a card never resizes the dialog under the cursor —
+     the body scrolls inside instead of the shell jumping */
+  height:min(88vh,700px);
+  box-shadow:0 32px 90px rgba(0,0,0,.6);}
+.srtHd{display:flex;align-items:flex-start;gap:12px;padding:17px 20px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);}
+.srtTtl{font-size:15px;font-weight:800;color:var(--text);}
+.srtSub{font-size:12.5px;color:#c3bdb1;font-weight:600;margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px;}
+.srtX{margin-left:auto;flex:none;width:30px;height:30px;border-radius:8px;cursor:pointer;
+  background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-size:14px;}
+.srtX:hover{background:var(--bg4);color:var(--text);}
+/* These five values used to run together as one dot-separated line. They are
+   five different things — a supplier, an order number, an account, an ASIN and
+   a SKU — and two of them are long codes that look alike at a glance. Labelled,
+   nobody has to work out which is which. */
+.srtFacts{padding:9px 20px 10px;border-bottom:1px solid var(--border);background:var(--bg);
+  display:flex;flex-wrap:wrap;gap:6px 24px;}
+.srtFact{display:flex;flex-direction:column;gap:1px;min-width:0;}
+.srtFacts .srtFactL{font-size:9px;font-weight:800;color:#8a857b;
+  text-transform:uppercase;letter-spacing:.08em;line-height:1.4;}
+.srtFacts .srtFactV{font-size:12.5px;font-weight:700;color:#f0ece4;line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px;}
+.srtCopy{cursor:pointer;border-bottom:1px dashed #6f6a60;}
+.srtCopy:hover{color:var(--accent)!important;border-bottom-color:var(--accent);}
+.srtBody{padding:16px 20px 20px;overflow-y:auto;flex:1;}
+.srtBody::-webkit-scrollbar{width:9px;}
+.srtBody::-webkit-scrollbar-thumb{background:var(--border2);border-radius:5px;}
+.srtLab{display:block;font-size:11px;font-weight:800;color:#c9c3b7;
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;}
+.srtSel{width:100%;height:40px;padding:0 12px;border-radius:9px;font-size:13px;font-weight:600;
+  background:var(--bg);border:1px solid var(--border2);color:var(--text);cursor:pointer;
+  transition:border-color .12s;}
+.srtSel:hover{border-color:#57534a;}
+.srtSel:focus{border-color:var(--accent);outline:none;}
+.srtWarn{margin-top:11px;padding:9px 12px;border-radius:8px;font-size:11.5px;font-weight:700;
+  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.4);color:#fca5a5;}
+.srtQty{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+.srtQty>div{background:var(--bg);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;
+  transition:border-color .12s;}
+.srtQty>div:focus-within{border-color:var(--accent);}
+.srtQty span{display:block;font-size:10px;font-weight:800;color:#b9b3a7;
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.srtQty input{width:100%;background:transparent;border:none;outline:none;
+  font:800 20px var(--num);font-variant-numeric:tabular-nums;color:var(--text);}
+.srtQty .srtSettleNote{margin-top:7px;padding:7px 10px;border-radius:7px;font-size:11px;line-height:1.45;
+  color:#86efac;background:rgba(34,197,94,.09);border:1px solid rgba(34,197,94,.32);}
+.srtSettleNote b{color:#bbf7d0;font-weight:800;}
+.srtOut{background:var(--bg3);}
+.srtQty .srtOut b{font:800 20px var(--num);font-variant-numeric:tabular-nums;color:var(--green);}
+.srtHint{font-size:11.5px;font-weight:600;margin-top:8px;color:#b3ada1;}
+.srtFollow{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.srtChk{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;
+  background:var(--bg2);border:1px solid var(--border2);font-size:12.5px;font-weight:600;color:#e2ddd3;
+  transition:background .12s,border-color .12s,color .12s;}
+.srtChk:hover{background:var(--bg3);color:var(--text);}
+.srtChk:has(input:checked){background:rgba(251,191,36,.14);border-color:var(--accent);color:#fff;font-weight:700;}
+.srtChk:hover{background:var(--bg3);}
+.srtChk input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex:none;}
+.srtNote{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:8px;
+  color:var(--text);padding:10px 12px;font-family:var(--sans);font-size:13px;font-weight:500;
+  line-height:1.55;resize:vertical;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
+.srtNote:focus{border-color:var(--accent);outline:none;}
+.srtFoot{display:flex;align-items:center;gap:9px;padding:14px 20px;border-top:1px solid var(--border);
+  background:rgba(255,255,255,.03);flex:none;}
+.srtFootMsg{flex:1;min-width:0;font-size:12px;font-weight:600;color:#b3ada1;}
+.srtGhost{padding:9px 17px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:700;
+  background:var(--bg3);border:1px solid var(--border2);color:var(--text2);}
+.srtGo{padding:10px 22px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:800;
+  background:var(--accent);border:1px solid var(--accent);color:#1a1400;
+  box-shadow:0 2px 10px rgba(251,191,36,.2);}
+.srtGo:hover{filter:brightness(1.08);}
+
+/* the due-date control that replaced the "Chased" button */
+.tfuDue{display:flex;flex-direction:column;gap:6px;min-width:0;}
+.tfuDueNone{font-size:11.5px;font-weight:700;color:#8f8a80;font-style:italic;}
+.tfuDueDate{font:800 17px var(--num);font-variant-numeric:tabular-nums;line-height:1;}
+.tfuDueWhen{font-size:11px;font-weight:700;margin-top:-2px;}
+.tfuDueRow{display:flex;gap:4px;align-items:center;}
+/* the native input is only the picker — the readable state is above it */
+.tfuDueRow input[type=date]{width:0;height:0;opacity:0;padding:0;border:0;position:absolute;}
+.tfuDueRow button{flex:1;padding:5px 0;border-radius:6px;cursor:pointer;font-size:11px;font-weight:800;
+  background:var(--bg3);border:1px solid var(--border2);color:#c3bdb1;}
+.tfuDueRow button:hover{background:var(--bg4);color:var(--text);border-color:var(--accent);}
+.tfuDueRow button.clr{flex:0 0 26px;color:#fca5a5;}
+.tfuQuick{display:flex;gap:4px;}
+.tfuQuick button{flex:1;padding:5px 0;border-radius:6px;cursor:pointer;font-size:11px;font-weight:800;
+  background:var(--bg3);border:1px solid var(--border2);color:#c3bdb1;}
+.tfuQuick button:hover{background:var(--bg4);color:var(--text);border-color:var(--accent);}
+.tfuSaid{font-size:11px;font-weight:700;color:#fbbf24;}
+.tfuClock{display:block;margin-top:5px;font-size:10.5px;font-weight:800;
+  padding:2px 6px;border-radius:5px;line-height:1.3;text-align:center;
+  white-space:normal;overflow-wrap:anywhere;box-sizing:border-box;}
+.tfuSheet{display:inline-block;font-size:10.5px;font-weight:700;color:var(--text2);
+  background:none;border:none;border-left:2px solid var(--accent);border-radius:0;
+  padding:0 0 0 6px;letter-spacing:.01em;}
+/* the title wraps to two lines here rather than truncating to one — in a
+   working queue she has to recognise the product, not just fit the column */
+.tfuProd2{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.35;text-align:left;
+  overflow-wrap:anywhere;max-height:3.5em;overflow:hidden;}
+.tfuCap{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.07em;margin-bottom:2px;}
+.tfuSrc{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:5px;
+  background:rgba(148,163,184,.14);border:1px solid rgba(148,163,184,.3);color:#cbd5e1;white-space:nowrap;}
+.tfuBig{font:800 20px var(--num);font-variant-numeric:tabular-nums;color:var(--text);line-height:1;}
+.tfuUnits{font-size:11px;font-weight:600;color:var(--text2);margin-top:4px;line-height:1.5;}
+.tfuUnits b{color:#fbbf24;font-weight:800;}
+.tfuTri{width:100%;font-size:11px;font-weight:700;padding:4px 6px;border-radius:5px;cursor:pointer;
+  background:var(--bg3);color:var(--text2);border:1px solid var(--border2);}
+.tfuTri:focus{border-color:var(--accent);outline:none;}
+.tfuTri.warn{background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.45);color:#fca5a5;}
+.tfuTri.good{background:rgba(74,222,128,.14);border-color:rgba(74,222,128,.45);color:#86efac;}
+.tfu .tfuWhy{white-space:normal;display:inline-block;line-height:1.3;}
+.tfu .tfuBtn{width:100%;box-sizing:border-box;}
+.tfuBack{margin-top:6px;font-size:10.5px;font-weight:600;color:#fca5a5;line-height:1.35;
+  background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.35);border-radius:6px;padding:4px 8px;
+  white-space:normal!important;overflow-wrap:anywhere;
+  /* the full answer is in Triage and Where It Stands — here it is a two-line flag, whole thing on hover */
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.tfuBack b{font-weight:800;color:#fecaca;}
+.tfuBack.tfuBackChip.req{color:#fde68a;background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.4);}
+.tfuBack.tfuBackChip.req b{color:#fbbf24;}
+.csNowTxt.jkReq{font-weight:600;color:var(--text2);text-align:left;line-height:1.45;padding:7px 9px;border-left:3px solid #fbbf24;background:rgba(251,191,36,.06);border-radius:0 6px 6px 0;margin:4px 0 8px;}
+.tfuBack.tfuBackChip{display:inline-block;-webkit-line-clamp:unset;padding:3px 9px;font-size:10.5px;border-radius:999px;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+/* with-Jack rows, one line each (5 Sep) */
+.tfu tr.tfuCompact td{opacity:1!important;padding-top:7px!important;padding-bottom:7px!important;vertical-align:middle;}
+/* Jack, 9 Sep: "these still visually fucked." Every grey row was a flex line
+   that sized itself from its own content, so a short product name and a long
+   one put the chip, the note and the money in different places on each row —
+   nothing lined up down the page, and the table centred them on top of that.
+   Fixed columns, left aligned, so the grey rows read as a list. */
+.tfu tr.tfuCompact td{text-align:left;}
+.tfuCmp{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(0,1.5fr) auto minmax(0,2.6fr) auto;
+  align-items:center;gap:12px;min-width:0;text-align:left;}
+.tfuCmpName{min-width:0;font-size:12px;font-weight:700;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tfuCmpMeta{min-width:0;font:600 10.5px var(--mono);color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tfuCmpChip{flex:none;font-size:10px;font-weight:800;letter-spacing:.05em;padding:2px 8px;border-radius:999px;color:#b6c2d4;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.4);white-space:nowrap;}
+.tfuCmpAsk{flex:1 1 auto;min-width:0;font-size:11px;font-weight:600;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tfuCmpVal{flex:none;font:800 12px var(--num);color:#b6c2d4;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+@media(max-width:1200px){.tfuCmp{grid-template-columns:minmax(0,2.4fr) auto minmax(0,2.6fr) auto;}
+  .tfuCmpMeta{display:none;}}
+.tfu tr.tfuCompact .tfuActs{white-space:nowrap;}
+.tfu tr.tfuCompact .tfuActs button{display:inline-block;width:auto;margin:0 2px;padding:4px 9px;font-size:10.5px;}
+/* Still on her page so the work does not disappear from the picture — but
+   visibly not hers while Jack has it. */
+.tfu tr.tfuWaiting td{opacity:.42;}
+.tfu tr.tfuWaiting td:first-child,.tfu tr.tfuWaiting td:nth-child(2),
+.tfu tr.tfuWaiting td.tfuActs{opacity:1;}
+.tfu tr.tfuWaiting td:nth-child(2) .tfuProd2,
+.tfu tr.tfuWaiting td:nth-child(2) .s-asin,
+.tfu tr.tfuWaiting td:nth-child(2) .s-sku{opacity:.5;}
+.tfuWait{margin-top:6px;font-size:11px;font-weight:800;color:#93c5fd;
+  background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.4);
+  border-radius:6px;padding:5px 9px;line-height:1.4;}
+.tfuWait span{display:block;font-weight:600;color:#bfd8fb;margin-top:2px;}
+.tfuLocked{font-size:10px;font-weight:800;color:#93c5fd;text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:5px;text-align:center;}
+.tfu td.tfuActs .tfuBtn[disabled]{opacity:.35;cursor:not-allowed;pointer-events:none;}
+/* Transit Follow-Up. Order references and dates were 9px in the dimmest grey
+   on the palette — at that size the antialiasing eats the strokes and it reads
+   as blurred rather than small. This is the VA's working queue; the reference
+   she has to quote to the supplier has to be legible. */
+.tfu{width:100%;border-collapse:collapse;table-layout:fixed;}
+.tfu td{word-break:break-word;}
+.aqStats{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+.aqStat{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1;}
+.aqStat b{font:900 22px var(--num);font-variant-numeric:tabular-nums;}
+.aqStat span{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+.iqSec{margin-bottom:16px;}
+.iqSecHd{display:flex;align-items:center;gap:10px;padding:9px 14px;margin-bottom:2px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:8px;}
+.iqSecHd h4{margin:0;font-size:13px;font-weight:800;color:var(--text);}
+.iqSecN{font-size:11px;font-weight:800;padding:2px 9px;border-radius:9px;
+  background:rgba(255,255,255,.08);color:var(--text);}
+.iqSecWhy{font-size:11.5px;font-weight:600;color:var(--text2);}
+.iqSecMoney{margin-left:auto;font:800 13px var(--mono);color:#fbbf24;}
+.iqAct{flex:0 0 210px;font-size:12.5px;font-weight:800;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* the product takes the slack instead, so the action sits next to the thing
+   it is telling you to act on rather than a screen away from it */
+.iqProd{flex:1;min-width:0;font-size:12px;font-weight:600;color:var(--text2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.iqDot{width:9px;height:9px;border-radius:50%;flex:none;}
+.iqHide{display:none;}
+.iqGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px;margin-bottom:16px;}
+.iqBox{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;
+  transition:background .12s,border-color .12s;}
+.iqBox:hover{background:var(--bg3);border-color:var(--border2);}
+.iqN{font:900 27px var(--num);font-variant-numeric:tabular-nums;line-height:1;}
+.iqWho{font-size:12.5px;font-weight:800;color:var(--text);margin-top:5px;}
+.iqWhat{font-size:11.5px;font-weight:600;color:var(--text2);margin-top:2px;line-height:1.35;}
+.iqMoney{font-size:11px;font-weight:700;color:var(--text3);margin-top:6px;}
+.tfuSortable{cursor:pointer;user-select:none;}
+.tfuSortable:hover{color:var(--text)!important;}
+.tfuSortable.on{color:var(--accent)!important;}
+.tfuArrow{margin-left:4px;font-size:8px;}
+.tfu th{font-size:9.5px;color:var(--text2);text-align:left;padding:8px 10px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.06em;background:var(--bg3);white-space:nowrap;}
+.tfu td{padding:10px;vertical-align:top;}
+.tfu tr{border-top:1px solid var(--border);}
+.tfu .tfuProd{font-size:12.5px;font-weight:700;color:var(--text);max-width:250px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tfu .tfuSup{font-size:12px;color:var(--text);font-weight:700;}
+/* the order reference — the thing she reads out to the supplier */
+.tfu .tfuOid{font-size:11.5px;color:var(--text2);font-family:var(--mono);margin-top:3px;
+  letter-spacing:.2px;user-select:all;cursor:text;}
+.tfu .tfuOid.none{color:var(--text3);font-family:inherit;font-style:italic;letter-spacing:0;}
+/* Jack, 3 Sep: the SKU and the order number are the two things she reads out
+   loud and types elsewhere, and they were the smallest text on the row. */
+#page-admin .tfu .tfuOid{font-size:12px;letter-spacing:.03em;color:var(--text);}
+#page-admin .tfu .s-sku{font-family:var(--mono)!important;font-size:11.5px!important;
+  letter-spacing:.02em!important;line-height:1.45;}
+.tfu .tfuWhen{font-size:11px;color:var(--text2);margin-top:2px;}
+.tfu .tfuWhen b{color:var(--text);font-weight:700;}
+.tfu .tfuAcct{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;
+  background:rgba(148,163,184,.16);color:var(--text);border:1px solid var(--border2);white-space:nowrap;}
+.tfu .tfuWhy{display:inline-block;font-size:11.5px;font-weight:700;border-radius:5px;
+  padding:4px 10px;white-space:nowrap;}
+.tfu .tfuPart{font-size:11px;font-weight:800;color:#fbbf24;background:rgba(251,191,36,.14);
+  border:1px solid rgba(251,191,36,.4);border-radius:5px;padding:3px 9px;white-space:nowrap;}
+.tfu .tfuPartSub{font-size:11px;color:var(--text2);}
+.tfu .tfuBtn{padding:5px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.tfuHint{font-size:11px;font-weight:600;color:var(--text2);}
+.mh-close{width:26px;height:26px;border-radius:5px;border:1px solid var(--border2);background:none;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.mh-close:hover{border-color:var(--red);color:var(--red);}
+.mb{padding:18px;}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.fi{display:flex;flex-direction:column;gap:4px;}
+.fi.full{grid-column:1/-1;}
+.fl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;}
+input.fi-in,select.fi-in,textarea.fi-in{background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:6px 9px;color:var(--text);font-family:var(--sans);font-size:12px;outline:none;width:100%;transition:border-color .15s;}
+input.fi-in:focus,select.fi-in:focus,textarea.fi-in:focus{border-color:var(--accent);}
+input.fi-in::placeholder,textarea.fi-in::placeholder{color:var(--text3);}
+textarea.fi-in{resize:vertical;min-height:56px;}
+select.fi-in option{background:var(--bg2);}
+.mf{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--border);}
+.mf.cx{justify-content:center;}
+.btn-save{background:var(--accent);color:#1a1a18;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;}
+.btn-cancel{background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;}
+.btn-danger{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;}
+.conf-body{padding:24px 18px;text-align:center;}
+.conf-ico{font-size:32px;margin-bottom:10px;}
+.conf-title{font-size:15px;font-weight:600;margin-bottom:6px;color:var(--text);}
+.conf-text{font-size:12px;color:var(--text2);line-height:1.6;}

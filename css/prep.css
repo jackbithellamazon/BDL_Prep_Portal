@@ -1,0 +1,146 @@
+/* BDL PrepHub — css/prep.css — the Prep Sheet table: pages, bundle column, sent row, inputs, cells, status, tags, row actions.
+   Cut from base.css 2026-09-10 (b561). Linked in order; cascade unchanged. */
+/* ── PAGES ── */
+.page{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.page.active{display:flex;}
+
+/* ── BUNDLE COLUMN TOGGLE ── */
+.col-bundle{transition:none;}
+.bundle-hidden .col-bundle{display:none!important;}
+.tbl-wrap{flex:1;overflow:auto;}
+table{width:100%;border-collapse:collapse;min-width:1280px;}
+/* Jack, 25 Aug: zeros were drawing with a line through them. Two causes are
+   possible — a font whose default zero is slashed, handled by the stack order
+   on --mono above, or a font offering it as an OpenType feature. This turns
+   that feature off everywhere a figure is shown. */
+body,input,select,textarea,button,td,th,.num,.mono,[class*="num"],[style*="--num"],[style*="--mono"]{
+  font-variant-numeric:lining-nums tabular-nums;
+  font-feature-settings:'zero' 0,'ss01' 0,'ss02' 0;}
+thead{position:sticky;top:0;z-index:10;}
+thead tr{background:linear-gradient(90deg,#0d0d0c,#1a1917);border-bottom:2px solid var(--accent);}
+/* The background and bottom border lived on `thead tr`. On a border-collapse
+   table, a row inside a position:sticky thead paints neither reliably — the
+   header cells stayed see-through, so scrolled rows showed straight through
+   the column titles and the whole strip read as a squashed, garbled heading.
+   Sticking the CELLS rather than the section is the pattern that composites
+   correctly: each th carries its own background and pins itself. */
+/* Sticky on the CELLS only. Leaving the section sticky as well nests one
+   sticky box inside another, and the cell then offsets against a parent that
+   has already moved — which clipped the top off every column title. Lavarion's
+   own tables still use the global thead rule, so this is scoped. */
+.tbl-wrap thead{position:static;}
+.tbl-wrap thead th{position:sticky;top:0;z-index:11;
+  background:#131211;border-bottom:2px solid var(--accent);}
+html.light-mode .tbl-wrap thead th{background:#252b3a!important;}
+th{padding:12px 8px;text-align:center;font-size:12px;font-weight:900;color:var(--accent);white-space:nowrap;border-right:1px solid var(--border);letter-spacing:.1em;text-transform:uppercase;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;}
+th:last-child{border-right:none;}
+th.th-left{text-align:left;padding-left:12px;}
+
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+tbody tr:nth-child(odd){background:var(--bg2);}
+tbody tr:nth-child(even){background:var(--bg3);}
+tbody tr:hover{background:var(--bg4);}
+
+/* ── SENT ROW — DEEP FOREST GREEN ── */
+html:not(.light-mode) tbody tr.row-sent{background:linear-gradient(90deg,#0a4a1a,#0d3818)!important;border-bottom:2px solid var(--green)!important;box-shadow:inset 0 0 20px rgba(85,255,85,.1);}
+html:not(.light-mode) tbody tr.row-sent:hover{background:linear-gradient(90deg,#0f6028,#124520)!important;border-bottom-color:var(--accent)!important;}
+html:not(.light-mode) tbody tr.row-sent td{border-color:var(--sent-border)!important;color:var(--sent-text)!important;}
+html:not(.light-mode) tbody tr.row-sent .s-title{color:#d1fae5!important;}
+html:not(.light-mode) tbody tr.row-sent .s-asin{color:#a7f3d0!important;}
+html:not(.light-mode) tbody tr.row-sent .s-sku{color:#6ee7b7!important;}
+html:not(.light-mode) tbody tr.row-sent .s-date{color:#d1fae5!important;}
+html:not(.light-mode) tbody tr.row-sent .s-sup{color:#6ee7b7!important;}
+html:not(.light-mode) tbody tr.row-sent .s-oid{color:#4ade80!important;}
+html:not(.light-mode) tbody tr.row-sent .ci{color:var(--sent-text)!important;}
+html:not(.light-mode) tbody tr.row-sent .ci-sel{background:rgba(20,83,45,.8)!important;color:var(--sent-text)!important;border-color:var(--sent-border)!important;}
+html:not(.light-mode) tbody tr.row-sent .nt-ok{background:rgba(34,197,94,.3)!important;color:#86efac!important;}
+html:not(.light-mode) tbody tr.row-sent .nt-bad{background:rgba(239,68,68,.25)!important;}
+html:not(.light-mode) tbody tr.row-sent .sas-btn{background:#166534!important;color:#86efac!important;}
+html:not(.light-mode) tbody tr.row-sent .st{opacity:.85;}
+
+/* PRIORITY */
+tbody tr.row-pri{border-left:2px solid var(--red);}
+
+/* FOCUS */
+tbody tr.row-focus{outline:2px solid var(--accent);outline-offset:-2px;z-index:1;position:relative;}
+td.cell-focused{background:rgba(245,158,11,.12)!important;outline:1.5px solid var(--accent);outline-offset:-1px;}
+
+td{padding:6px 8px;font-size:13px;color:var(--text);white-space:nowrap;vertical-align:middle;border-right:1px solid var(--border);text-align:center;}
+td:last-child{border-right:none;}
+td.td-left{text-align:left;padding-left:14px;}
+
+/* ── INLINE INPUTS ── */
+.ci{background:none;border:none;outline:none;color:var(--text);font-family:var(--sans);font-size:13px;width:100%;cursor:default;padding:0;text-align:center;font-weight:700;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;}
+.ci:focus{cursor:text;background:var(--bg);border:1px solid var(--accent);border-radius:3px;padding:2px 5px;}
+.ci-num{font-family:var(--mono);width:50px;font-weight:800;letter-spacing:.3px;}
+/* Hide number input spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+input[type=number]{-moz-appearance:textfield;appearance:textfield;}
+.ci-note{width:140px;text-align:left;font-size:12px;font-weight:600;}
+select.ci-sel{background:var(--bg2);border:1px solid var(--border2);border-radius:3px;color:var(--text);font-family:var(--sans);font-size:12px;outline:none;cursor:pointer;padding:4px 5px;width:100%;text-align:center;transition:all .2s;font-weight:700;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;}
+select.ci-sel:focus{border-color:var(--accent);box-shadow:0 0 6px rgba(245,158,11,.2);}
+select.ci-sel:hover{background:var(--bg3);border-color:var(--text3);}
+select.ci-sel option{background:var(--bg3);color:var(--text);font-weight:600;}
+
+/* ── PRODUCT/ASIN/SKU CELL ── */
+.stack{display:flex;flex-direction:column;gap:3px;text-align:left;}
+.s-title{font-size:13px;font-weight:700;color:var(--text);cursor:pointer;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:5px;letter-spacing:0;text-rendering:auto;-webkit-font-smoothing:subpixel-antialiased;font-weight:700;}
+.s-title:hover{color:var(--accent);}
+.s-asin{font-size:12px;font-weight:700;color:var(--blue);font-family:var(--sans);cursor:pointer;display:flex;align-items:center;gap:5px;letter-spacing:0;text-rendering:auto;-webkit-font-smoothing:subpixel-antialiased;}
+.s-asin:hover{color:var(--accent);}
+.s-sku{font-size:12px;font-weight:700;color:var(--text);font-family:var(--mono);font-variant-numeric:tabular-nums;cursor:pointer;display:flex;align-items:center;gap:5px;letter-spacing:.04em;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;}
+.s-sku:hover{color:var(--accent);}
+.copy-ico{width:12px;height:12px;opacity:0;transition:opacity .15s;flex-shrink:0;}
+.s-title:hover .copy-ico,.s-asin:hover .copy-ico,.s-sku:hover .copy-ico{opacity:1;}
+
+/* DATE CELL */
+.stack-date{display:flex;flex-direction:column;gap:2px;text-align:left;}
+.s-date{font-size:13px;font-weight:900;color:var(--text);text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;letter-spacing:-.2px;}
+.s-sup{font-size:11px;color:var(--text2);font-weight:700;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;}
+.s-oid{font-size:11px;color:var(--blue);font-family:var(--mono);cursor:pointer;transition:color .15s;font-weight:800;letter-spacing:.4px;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;}
+.s-oid:hover{color:var(--accent);}
+
+/* ── SAS BUTTON — text only, small ── */
+.sas-btn{display:inline-flex;align-items:center;padding:3px 5px;border-radius:4px;font-size:9px;font-weight:700;background:#1e3a8a;color:#93c5fd;text-decoration:none;font-family:var(--mono);transition:background .15s;white-space:nowrap;letter-spacing:.03em;}
+.sas-btn:hover{background:#1e40af;}
+
+/* ── STATUS ── */
+.st{display:inline-flex;align-items:center;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:700;font-family:var(--mono);white-space:nowrap;letter-spacing:.3px;}
+.st-transit{}
+html:not(.light-mode) tbody tr.st-warehouse{background:var(--purple-bg)!important;border-bottom:2px solid var(--purple)!important;}
+html:not(.light-mode) tbody tr.st-warehouse td{color:var(--purple)!important;}
+html:not(.light-mode) tbody tr.st-delivered{background:rgba(34,197,94,.07)!important;border-bottom:1px solid rgba(134,239,172,.3)!important;}
+html:not(.light-mode) tbody tr.st-delivered td{color:#a7f3d0!important;}
+html:not(.light-mode) tbody tr.st-sent{background:rgba(34,197,94,.25)!important;border-bottom:2px solid var(--green)!important;}
+html:not(.light-mode) tbody tr.st-sent td{color:#4ade80!important;}
+html:not(.light-mode) tbody tr.st-issue{background:rgba(255,0,0,.2)!important;border-bottom:3px solid #ff0000!important;border-left:3px solid #ff0000!important;}
+html:not(.light-mode) tbody tr.st-issue td{color:#ffaaaa!important;border-color:rgba(255,50,50,.5)!important;}
+html:not(.light-mode) tbody tr.st-partsent{background:rgba(255,112,67,.1)!important;border-left:3px solid #ff7043!important;}
+html:not(.light-mode) tbody tr.st-partsent td{color:#ffb39a!important;border-color:rgba(255,112,67,.25)!important;}
+html:not(.light-mode) tbody tr.st-partsent:hover{background:rgba(255,112,67,.18)!important;}
+tbody tr.st-returned{background:rgba(107,114,128,.15)!important;border-bottom:2px solid #d1d5db!important;}
+tbody tr.st-returned td{color:#d1d5db!important;}
+tbody tr.st-notarrived{background:rgba(245,158,11,.15)!important;border-bottom:2px solid #fcd34d!important;}
+tbody tr.st-notarrived td{color:#fcd34d!important;}
+
+/* 20+ DAYS OLD — only applies when no status colour is set */
+/* row-old removed — use row-stuck for 20+ day in-transit only */
+
+/* 20+ DAYS STUCK — not arrived, not in warehouse, not delivered — ACTION NEEDED */
+html:not(.light-mode) tbody tr.row-stuck{background:rgba(239,68,68,.1)!important;border-left:2px solid rgba(239,68,68,.5)!important;}
+html:not(.light-mode) tbody tr.row-stuck td{color:#fca5a5!important;border-color:rgba(239,68,68,.2)!important;}
+tbody tr.row-stuck:hover{background:rgba(239,68,68,.18)!important;}
+
+/* ── NUMBER TAGS ── */
+.nt{display:inline-flex;align-items:center;justify-content:center;min-width:32px;padding:4px 7px;border-radius:4px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.2px;}
+.nt-ok{background:var(--green-bg);color:var(--green);}
+.nt-bad{background:var(--red-bg);color:var(--red);}
+.nt-zero{color:var(--text3);font-family:var(--mono);font-size:12px;font-weight:600;}
+
+/* ── ROW ACTIONS ── */
+.row-acts{display:flex;gap:3px;justify-content:center;opacity:0;transition:opacity .15s;}
+tbody tr:hover .row-acts{opacity:1;}
+.ra{width:22px;height:22px;border-radius:3px;border:1px solid var(--border2);background:none;color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;transition:all .15s;}
+.ra.g:hover{border-color:var(--green);color:var(--green);}
+.ra.r:hover{border-color:var(--red);color:var(--red);}

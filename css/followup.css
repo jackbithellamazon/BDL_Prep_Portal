@@ -1,0 +1,577 @@
+/* ── The closure picker ─────────────────────────────────────────────────────
+   A dropdown hid what each outcome means and who ends up owning it. Cards say
+   both up front, and nothing else on the form appears until one is chosen —
+   the old popup showed every control at once before you'd made a single
+   decision, which is what made it a wall. */
+.srtPick{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+/* Nothing here animates its HEIGHT any more, and that is the whole fix.
+   This grid lives inside .srtBody, which scrolls. Animating max-height from
+   460px down to one row meant the scroll container's content shrank by ~400px
+   over a quarter of a second while the form below it was simultaneously being
+   added to the layout. The browser's scroll anchoring then corrected scrollTop
+   on every one of those frames, and scroll-behavior:smooth animated each
+   correction — which is why the refund banner ended up half-hidden under the
+   header. Measuring the collapsed height more accurately never had a chance of
+   fixing that; the animation itself was the bug.
+   Picking now swaps the grid to a single chosen row in ONE layout pass. */
+.srtPick.picked{grid-template-columns:1fr;}
+.srtPick.picked .srtCard:not(.on){display:none;}
+.srtCard{display:flex;flex-direction:column;gap:1px;text-align:left;cursor:pointer;
+  padding:8px 10px;border-radius:8px;font-family:inherit;
+  background:var(--bg);border:1px solid var(--border2);
+  /* One transition, not two. The second declaration was overriding the first,
+     so opacity and transform were never animated at all — the "fade" the
+     collapse relies on was a hard cut. */
+  transition:opacity .16s ease,transform .16s ease,border-color .12s,background .12s;}
+.srtCard:hover{background:var(--bg3);border-color:var(--text3);}
+.srtCard.on{border-color:var(--accent);background:rgba(251,191,36,.1);box-shadow:0 0 0 1px var(--accent);}
+.srtCardT{font-size:12px;font-weight:800;color:var(--text);line-height:1.25;}
+.srtCardD{font-size:11.5px;font-weight:600;color:#b3ada1;line-height:1.35;}
+.srtCardK{font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-top:2px;}
+/* The chosen card goes to the TOP of the grid the instant it is chosen. This
+   is the whole glitch: the grid collapses from 460px to one row, but the card
+   you picked was sitting in the middle of it, so for a quarter of a second the
+   visible strip showed the cards ABOVE your choice — and then your choice
+   snapped into place. It read as a flicker because that is what it was. */
+.srtCard.on{grid-column:1/-1;order:-1;flex-direction:row;align-items:baseline;gap:10px;padding:9px 12px;}
+.srtCard.on .srtCardD,.srtCard.on .srtCardK{display:none;}
+/* Only opacity and transform fade in — neither touches layout, so this runs on
+   the compositor and cannot move anything else on the page. */
+#srtRest{opacity:0;transform:translateY(4px);
+  transition:opacity .18s ease,transform .18s ease;}
+#srtRest.in{opacity:1;transform:none;}
+.srtMod{transition:none;}
+/* Two lines that were actively causing the jump.
+   overflow-anchor:none — stop the browser silently rewriting scrollTop when the
+   content above the viewport changes height. It is trying to help; inside a
+   dialog that swaps its whole contents it just yanks the view.
+   scroll-behavior stays auto — a scroll correction should be instant and
+   invisible, not a visible animated slide. */
+.srtBody{overflow-anchor:none;scroll-behavior:auto;}
+.srtBody *{overflow-anchor:none;}
+.srtFollow{grid-template-columns:repeat(2,1fr)!important;margin-top:9px;}
+.srtSteps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px;}
+.srtSteps li{font-size:12.5px;font-weight:600;color:#ded8cd;line-height:1.5;padding-left:3px;}
+.srtSteps li::marker{color:var(--accent);font-weight:800;}
+.srtSteps li.srtNone{list-style:none;margin-left:-20px;color:#b3ada1;font-style:italic;}
+/* ── JACK'S ADMIN ──────────────────────────────────────────────────────────── */
+.jkHero{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;
+  padding:18px 20px;margin-bottom:16px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(96,165,250,.13),rgba(96,165,250,.03));
+  border:1px solid rgba(96,165,250,.32);}
+.jkHero h2{margin:0;font-size:19px;font-weight:800;color:var(--text);}
+.jkHero p{margin:5px 0 0;font-size:12.5px;font-weight:600;color:#b3ada1;}
+.jkKpis{display:flex;gap:9px;}
+/* Jack, 3 Sep: "improve KPI colours — looks shit". The number was drawn in
+   --text3 and the label in a muddy olive, so a card with nothing wrong looked
+   the same as one with money at risk. Number in full white, label in proper
+   grey, and a coloured edge so the state reads before the number does. */
+/* Jack, 4 Sep: "this looks like shit and not relevant at all to the colour
+   scheme we have". My fault — I gave these tinted backgrounds, which turned
+   into olive and maroon blocks. The house KPI card is the Prep Sheet's `.stat`:
+   a NEUTRAL dark card, one coloured line across the top, and the colour carried
+   by the number itself. Same language here now. */
+.jkKpi{min-width:84px;padding:11px 14px 12px;border-radius:10px;text-align:center;
+  background:linear-gradient(135deg,var(--bg3),var(--bg2));
+  border:1px solid var(--border);border-top:3px solid var(--border2);
+  transition:border-top-color .15s;}
+.jkKpi b{display:block;font:800 26px var(--num);font-variant-numeric:tabular-nums;
+  color:var(--text);letter-spacing:-.5px;line-height:1.05;}
+.jkKpi span{display:block;font-size:9px;font-weight:800;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.08em;margin-top:5px;}
+.jkKpi.hot{border-top-color:#60a5fa;}   .jkKpi.hot b{color:#60a5fa;}
+.jkKpi.warn{border-top-color:var(--accent);} .jkKpi.warn b{color:var(--accent);}
+/* money promised but not landed — his side of a closed case */
+.jkKpi.bad{border-top-color:#f87171;}   .jkKpi.bad b{color:#f87171;}
+.jkKpi.ok{border-top-color:#4ade80;}    .jkKpi.ok b{color:#4ade80;}
+.jkKpi.owed{border-top-color:#34d399;}  .jkKpi.owed b{color:#34d399;font-size:22px;}
+.jkHd{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 12px;margin:20px 0 10px;}
+.jkHd h3{margin:0;font-size:13.5px;font-weight:800;color:var(--text);
+  display:flex;align-items:center;gap:8px;}
+.jkHd h3 b{font:800 10px var(--sans);padding:2px 8px;border-radius:9px;
+  background:rgba(96,165,250,.18);color:#93c5fd;}
+.jkHd span{font-size:11.5px;font-weight:600;color:#8a857b;}
+.jkGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:11px;}
+.jkCard{padding:13px 15px;border-radius:12px;background:var(--bg2);
+  border:1px solid var(--border2);border-left:3px solid var(--border2);}
+.jkCard.k-ask{border-left-color:#60a5fa;}
+.jkCard.k-dec{border-left-color:#c084fc;}
+.jkCard.k-qty{border-left-color:var(--accent);}
+.jkCard.k-owed{border-left-color:#34d399;}
+.jkWho{font-size:10px;font-weight:800;color:#8a857b;text-transform:uppercase;letter-spacing:.07em;}
+.jkAsk{font-size:13.5px;font-weight:800;color:var(--text);margin-top:3px;line-height:1.3;}
+.jkAsk em{font-style:normal;font-size:9.5px;font-weight:800;color:#fca5a5;
+  background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.4);
+  padding:2px 7px;border-radius:8px;margin-left:6px;text-transform:uppercase;letter-spacing:.06em;}
+.jkProd{font-size:12px;font-weight:600;color:#c3bdb1;margin-top:9px;line-height:1.4;}
+.jkMeta{display:flex;flex-wrap:wrap;gap:2px 0;margin-top:6px;
+  font-size:11px;font-weight:600;color:#8a857b;}
+.jkMeta span{color:#b3ada1;}
+.jkMeta i{font-style:normal;color:#57534a;margin:0 7px;}
+.jkNote{margin-top:10px;padding:8px 11px;border-radius:9px;background:var(--bg);
+  border:1px solid var(--border2);font-size:12px;font-weight:600;color:#ded8cd;line-height:1.45;}
+.jkNote b{display:block;font-size:9.5px;font-weight:800;color:#8a857b;
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.jkNote.jkFix{background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.35);color:#f0dcae;}
+.jkNote.jkFix b{color:var(--accent);}
+.jkSteps{margin-top:9px;font-size:11.5px;font-weight:600;color:#9fd8ae;}
+.jkSteps b{display:block;font-size:9.5px;font-weight:800;color:#86efac;
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.jkSteps ul{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:3px;}
+.jkSteps li{line-height:1.4;}
+.jkSteps.open{color:#f0dcae;}
+.jkSteps.open b{color:var(--accent);}
+.jkActs{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;}
+.jkGo{padding:8px 15px;border-radius:8px;cursor:pointer;font:800 12px var(--sans);
+  background:var(--accent);border:1px solid var(--accent);color:#1a1400;}
+.jkGo:hover{filter:brightness(1.08);}
+.jkGhost{padding:8px 13px;border-radius:8px;cursor:pointer;font:700 12px var(--sans);
+  background:var(--bg3);border:1px solid var(--border2);color:var(--text2);}
+.jkGhost:hover{background:var(--bg4);color:var(--text);}
+.jkEmpty{padding:44px 20px;text-align:center;border-radius:14px;
+  background:var(--bg2);border:1px dashed var(--border2);}
+.jkEmpty b{display:block;font-size:15px;font-weight:800;color:#86efac;}
+.jkEmpty span{display:block;font-size:12.5px;font-weight:600;color:#8a857b;margin-top:5px;}
+.jkOld{margin-top:22px;padding:11px 14px;border-radius:10px;
+  background:var(--bg2);border:1px solid var(--border);
+  font-size:11.5px;font-weight:600;color:#8a857b;line-height:1.55;}
+.jkOld button{padding:0;background:none;border:none;cursor:pointer;
+  font:800 11.5px var(--sans);color:var(--accent);text-decoration:underline;text-underline-offset:2px;}
+.askOpts{display:flex;flex-direction:column;gap:6px;}
+.askOpts .srtChk{padding:9px 11px!important;font-size:12px!important;}
+/* triage, now that it knows which supplier it is looking at */
+.tfuAsk{width:100%;margin-top:8px;padding:7px 8px;border-radius:7px;cursor:pointer;
+  font:800 10.5px var(--sans);line-height:1.25;
+  background:rgba(96,165,250,.14);border:1px solid rgba(96,165,250,.45);color:#bfdbfe;}
+.tfuAsk:hover:not(:disabled){background:rgba(96,165,250,.24);}
+.tfuAsk:disabled{opacity:.4;cursor:not-allowed;}
+.tfuSelf{margin-top:8px;font-size:10px;font-weight:600;color:#8a857b;line-height:1.35;}
+/* a close-off somebody started and has not finished */
+.tfuDraftChip{margin-top:6px;padding:5px 9px;border-radius:7px;
+  background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.42);
+  font-size:10.5px;font-weight:800;color:var(--accent);line-height:1.35;}
+.tfuDraftChip span{display:block;font-weight:600;color:#d9c48d;margin-top:1px;}
+/* the steps, now ticked off as they are actually done */
+.srtSteps li.srtStep{list-style:none;margin-left:-20px;padding-left:0;}
+.srtStepChk{display:flex;gap:10px;align-items:flex-start;cursor:pointer;
+  padding:8px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--border2);
+  transition:background .12s,border-color .12s,opacity .12s;}
+.srtStepChk:hover{background:var(--bg3);border-color:var(--text3);}
+.srtStepChk input{width:16px;height:16px;flex:none;margin-top:1px;accent-color:var(--accent);cursor:pointer;}
+.srtStepChk span{font-size:12.5px;font-weight:600;color:#ded8cd;line-height:1.45;}
+.srtStep.done .srtStepChk{background:rgba(74,222,128,.09);border-color:rgba(74,222,128,.4);}
+.srtStep.done .srtStepChk span{color:#9fd8ae;}
+/* the part-finished banner */
+.srtDraft{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin-bottom:14px;
+  padding:10px 13px;border-radius:10px;
+  background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.4);}
+.srtDraft b{font-size:12.5px;font-weight:800;color:#bfdbfe;}
+.srtDraft span{font-size:11.5px;font-weight:600;color:#93c5fd;flex:1;min-width:180px;}
+.srtDraft button{padding:5px 11px;border-radius:7px;cursor:pointer;font:700 11px var(--sans);
+  background:rgba(255,255,255,.06);border:1px solid rgba(147,197,253,.45);color:#bfdbfe;}
+.srtDraft button:hover{background:rgba(255,255,255,.12);}
+/* the "use the other outcome" / "close anyway" offers in the footer message */
+.srtSwap{margin-left:10px;padding:0;background:none;border:none;cursor:pointer;
+  font:800 12px var(--sans);color:var(--accent);text-decoration:underline;text-underline-offset:2px;}
+.srtSwap:hover{filter:brightness(1.15);}
+/* what is being left undone, spelled out before it is allowed */
+.srtCfmOpen{margin-top:15px;padding:11px 13px;border-radius:10px;
+  background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.42);}
+.srtCfmOpen b{display:block;font-size:10px;font-weight:800;color:var(--accent);
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;}
+.srtCfmOpen ul{margin:0 0 8px;padding-left:17px;display:flex;flex-direction:column;gap:5px;}
+.srtCfmOpen li{font-size:12px;font-weight:600;color:#f0dcae;line-height:1.45;}
+.srtCfmOpen li::marker{color:var(--accent);}
+.srtCfmOpen span{font-size:11.5px;font-weight:600;color:#d9c48d;}
+/* Panels below the fold on the Lavarion pages skip layout and paint entirely
+   until scrolled to. This is the one place content-visibility legally applies —
+   it does NOT work on table rows (table parts cannot take size containment),
+   so the prep table gets nothing from it and is left alone. The main products
+   panel (.stick) is excluded: it is the one that is nearly always on screen,
+   and its sticky header machinery is not worth gambling for a panel that would
+   never be skipped anyway. */
+#page-lavarion .panel:not(.stick),.lav3 .panel:not(.stick){
+  content-visibility:auto;contain-intrinsic-size:auto 420px;}
+/* the "are you sure" step that now sits in front of every closure */
+.srtCfm{width:100%;max-width:540px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:16px;padding:20px 22px 18px;box-shadow:0 32px 90px rgba(0,0,0,.65);}
+.srtCfmTtl{font-size:16px;font-weight:800;color:var(--text);line-height:1.3;}
+.srtCfmSub{font-size:12.5px;font-weight:600;color:#b3ada1;margin-top:5px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.srtCfmLab{font-size:10px;font-weight:800;color:#c9c3b7;text-transform:uppercase;
+  letter-spacing:.08em;margin:17px 0 9px;}
+.srtCfmList{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:7px;}
+.srtCfmList li{font-size:12.5px;font-weight:600;color:#ded8cd;line-height:1.45;}
+.srtCfmList li::marker{color:var(--accent);}
+/* Jack's rule, said out loud on the screen where it matters most: no history is
+   ever fully deleted. If the popup lists what goes, it must list what stays. */
+.srtCfmKeep{margin-top:15px;padding:11px 13px;border-radius:10px;
+  background:rgba(74,222,128,.09);border:1px solid rgba(74,222,128,.35);}
+.srtCfmKeep b{display:block;font-size:10px;font-weight:800;color:#86efac;
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;}
+.srtCfmKeep ul{margin:0;padding-left:17px;display:flex;flex-direction:column;gap:5px;}
+.srtCfmKeep li{font-size:12px;font-weight:600;color:#bfe9cc;line-height:1.45;}
+.srtCfmKeep li::marker{color:#86efac;}
+.srtCfmFoot{display:flex;justify-content:flex-end;gap:9px;margin-top:19px;}
+/* the searchable SKU picker that replaced the 400-entry datalist */
+.srtCombo{position:relative;}
+.srtComboList{position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:40;
+  max-height:250px;overflow-y:auto;padding:5px;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:10px;
+  box-shadow:0 18px 46px rgba(0,0,0,.6);}
+.srtComboList::-webkit-scrollbar{width:9px;}
+.srtComboList::-webkit-scrollbar-thumb{background:var(--border2);border-radius:5px;}
+.srtComboHd{font-size:9.5px;font-weight:800;color:#8a857b;text-transform:uppercase;
+  letter-spacing:.07em;padding:6px 9px 8px;}
+.srtComboOpt{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;cursor:pointer;
+  padding:7px 9px;border-radius:7px;background:none;border:none;font-family:inherit;}
+.srtComboOpt:hover,.srtComboOpt.sel{background:rgba(251,191,36,.14);}
+.srtComboSku{font:700 12px var(--num);color:var(--text);}
+.srtComboProd{font-size:11px;font-weight:600;color:#b3ada1;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.srtComboProd b{color:var(--accent);font-weight:800;}
+.srtComboNone{font-size:11.5px;font-weight:600;color:#b3ada1;padding:7px 9px 9px;}
+.srtMore{margin-top:12px;}
+.srtMore>summary{cursor:pointer;font-size:11.5px;font-weight:700;color:#b3ada1;
+  padding:6px 0;list-style:none;}
+.srtMore>summary::-webkit-details-marker{display:none;}
+.srtMore>summary::before{content:'+ ';color:var(--accent);font-weight:800;}
+.srtMore[open]>summary::before{content:'– ';}
+.srtMore>summary:hover{color:var(--text);}
+.srtChk{padding:7px 9px!important;font-size:11.5px!important;}
+.srtNote{font-size:12px!important;}
+.srtCard.k-ops   .srtCardK{color:#86efac;}
+.srtCard.k-biz   .srtCardK{color:#93c5fd;}
+.srtCard.k-gated .srtCardK{color:#c084fc;}
+.srtCard.k-date  .srtCardK{color:#fbbf24;}
+.srtCard.k-gated.on{border-color:#c084fc;background:rgba(192,132,252,.12);box-shadow:0 0 0 1px #c084fc;}
+.srtCard.k-biz.on{border-color:#60a5fa;background:rgba(96,165,250,.12);box-shadow:0 0 0 1px #60a5fa;}
+#srtRest{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);
+  display:grid;grid-template-columns:1fr 1fr;gap:0 22px;align-items:start;}
+/* each column packs its own blocks — no shared row heights, so nothing on one
+   side can stretch a gap into the other */
+#srtColL,#srtColR{display:flex;flex-direction:column;gap:15px;min-width:0;}
+#srtColL>*,#srtColR>*{margin-top:0!important;}
+#srtColL .srtLab,#srtColR .srtLab{margin-top:0!important;}
+/* left column: the facts. right column: what you write. Half the height. */
+/* the units label, its boxes and its hint are one item — as three separate
+   grid children, dense packing was free to scatter them down the column */
+#srtColL{grid-column:1;} #srtColR{grid-column:2;}
+
+.srtQty{grid-template-columns:1fr 1fr!important;}
+.srtFollow{grid-template-columns:1fr 1fr!important;}
+@media (max-width:900px){
+  #srtRest{grid-template-columns:1fr;gap:15px;}
+  #srtColL,#srtColR{grid-column:1!important;}
+  .srtPick{grid-template-columns:1fr!important;}
+}
+.rtRow{padding:9px 0;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+.rtRow:last-child{border-bottom:none;}
+.rtGrid{display:grid;grid-template-columns:1fr 190px 30px;gap:6px;align-items:center;}
+.rtDel{height:30px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:800;
+  background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;}
+.rtDel:hover{background:rgba(239,68,68,.22);}
+/* the refund clock — the number that decides whether money is recoverable */
+.srtClock{display:flex;align-items:center;gap:9px;margin-top:12px;padding:9px 12px;border-radius:9px;
+  font-size:12px;font-weight:700;}
+.srtClock b{font-family:var(--mono);font-size:15px;font-weight:900;}
+.srtClock.ok{background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.4);color:#86efac;}
+.srtClock.warn{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.45);color:#fcd34d;}
+.srtClock.gone{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.45);color:#fca5a5;}
+
+/* ── Transit Follow-Up layout overrides ──────────────────────────────────────
+   These have to come after every earlier rule for .tfu*, so they live at the
+   end of the head rather than next to the block they belong to. */
+/* border-collapse:collapse DOES NOT PAINT a background on a sticky cell — the
+   rows scroll straight through the header. This is the actual reason it looked
+   broken while the position measured correctly. separate + border-spacing:0
+   keeps the same grid but lets the header paint over what passes under it. */
+.tfu{table-layout:fixed;border-collapse:separate!important;border-spacing:0 7px;}
+.tfu tr{border-top:none!important;}
+/* Eighteen rows with only a hairline between them read as one wall. Real gaps
+   turn each order into a card you work and finish. */
+.tfu tbody td{border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  background:var(--bg2);}
+.tfu tbody td:first-child{border-left:3px solid var(--border);
+  border-top-left-radius:9px;border-bottom-left-radius:9px;}
+.tfu tbody td:last-child{border-right:1px solid var(--border);
+  border-top-right-radius:9px;border-bottom-right-radius:9px;}
+.tfu tbody tr:hover td{background:var(--bg3);}
+/* one alignment per column: the supplier block is centred top to bottom */
+.tfu tbody td:nth-child(3){text-align:center;}
+.tfu tbody td:nth-child(3) .tfuOid{text-align:center;}
+.tfu thead th{border-bottom:2px solid var(--accent);}
+/* 18 rows deep the column meanings scroll away — freeze the header row to the
+   top of the page's scrollport. border-collapse drops cell borders on sticky
+   cells, so the rule is drawn with a box-shadow instead. */
+.kbBtn{position:absolute;right:14px;margin-top:-26px;width:22px;height:22px;border-radius:50%;cursor:pointer;
+  background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-size:12px;font-weight:800;line-height:1;}
+.kbBtn:hover{background:var(--bg4);color:var(--text);}
+.kb-hint .kbX{margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;}
+.kb-hint .kbX:hover{color:var(--text);}
+.riMaths{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:11px;}
+.riMaths>div{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;}
+.riMaths span{display:block;font-size:9.5px;font-weight:800;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.07em;}
+.riMaths b{display:block;font:800 18px var(--num);font-variant-numeric:tabular-nums;color:var(--text);margin-top:2px;}
+.riWarn{margin-top:10px;padding:9px 12px;border-radius:8px;font-size:11.5px;font-weight:700;
+  background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.4);color:#fcd34d;}
+.pchip{display:inline-block;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:5px;white-space:nowrap;
+  background:rgba(192,132,252,.16);border:1px solid rgba(192,132,252,.5);color:#d8b4fe;}
+.pchip.dg{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.5);color:#fca5a5;}
+.pnone{color:var(--text3);font-style:italic;font-size:11.5px;}
+/* the damaged question — a link until it is needed, never an empty field */
+#page-lavarion .rcvDmg,.lav3 .rcvDmg{margin-top:10px;}
+#page-lavarion .rcvDmg>button,.lav3 .rcvDmg>button{background:none;border:none;padding:0;cursor:pointer;
+  font:700 12px var(--sans);color:var(--text2);border-bottom:1px dashed var(--border2);}
+#page-lavarion .rcvDmg>button:hover,.lav3 .rcvDmg>button:hover{color:var(--accent);border-bottom-color:var(--accent);}
+#page-lavarion .rcvDmg label,.lav3 .rcvDmg label{display:block;font:800 11px var(--sans);
+  color:#c9c3b7;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+/* received / into stock / damaged, said plainly before anything is committed */
+#page-lavarion .rcvSplit,.lav3 .rcvSplit{display:flex;gap:14px;flex-wrap:wrap;margin-top:11px;
+  padding:9px 12px;border-radius:9px;background:var(--bg3);border:1px solid var(--border2);}
+#page-lavarion .rcvSplit span,.lav3 .rcvSplit span{font:600 12px var(--sans);color:var(--text2);}
+#page-lavarion .rcvSplit b,.lav3 .rcvSplit b{font:800 15px var(--num);color:var(--text);margin-right:4px;}
+#page-lavarion .rcvSplit .ok b,.lav3 .rcvSplit .ok b{color:var(--green);}
+#page-lavarion .rcvSplit .bad b,.lav3 .rcvSplit .bad b{color:#f87171;}
+/* ── ONE ORDER, MANY DELIVERIES ─────────────────────────────────────────── */
+/* What has already been counted in against this order. Without it a second box
+   was counted against a number nobody could see. */
+#page-lavarion .rcvHist,.lav3 .rcvHist{margin-top:10px;border:1px solid var(--border);border-radius:9px;
+  padding:9px 12px;background:var(--bg3);}
+#page-lavarion .rcvHist>b,.lav3 .rcvHist>b{display:block;font:800 9.5px var(--sans);letter-spacing:.07em;
+  text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+#page-lavarion .rcvHistRow,.lav3 .rcvHistRow{display:flex;align-items:baseline;gap:10px;padding:2px 0;}
+#page-lavarion .rcvHistRow .num,.lav3 .rcvHistRow .num{font:800 14px var(--num);color:var(--green);
+  min-width:38px;text-align:right;}
+#page-lavarion .rcvHistRow>span:last-child,.lav3 .rcvHistRow>span:last-child{font:600 11.5px var(--sans);color:var(--text2);}
+/* the running total, in words, before anything is committed */
+#page-lavarion .rcvTally,.lav3 .rcvTally{display:flex;justify-content:space-between;align-items:baseline;
+  margin-top:11px;padding:8px 12px;border-radius:9px;background:var(--bg3);border:1px solid var(--border2);}
+#page-lavarion .rcvTally span,.lav3 .rcvTally span{font:700 12px var(--sans);color:var(--text2);}
+#page-lavarion .rcvTally b,.lav3 .rcvTally b{font:800 15px var(--num);}
+/* THAT'S IT. Only on screen when there is something left to declare, so it
+   means the same thing every time it appears. */
+#page-lavarion .rcvThat,.lav3 .rcvThat{margin-top:12px;}
+#page-lavarion .rcvThatBtn,.lav3 .rcvThatBtn{display:flex;align-items:center;gap:12px;width:100%;
+  padding:11px 14px;border-radius:10px;cursor:pointer;text-align:left;
+  background:var(--bg3);border:1.5px dashed var(--border2);transition:border-color .15s,background .15s;}
+#page-lavarion .rcvThatBtn:hover,.lav3 .rcvThatBtn:hover{border-color:var(--amb);}
+#page-lavarion .rcvThatBtn.on,.lav3 .rcvThatBtn.on{background:rgba(248,113,113,.12);
+  border:1.5px solid #f87171;}
+#page-lavarion .rcvThatTick,.lav3 .rcvThatTick{width:22px;height:22px;border-radius:6px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;
+  border:1.5px solid var(--border2);color:transparent;background:var(--bg2);}
+#page-lavarion .rcvThatBtn.on .rcvThatTick,.lav3 .rcvThatBtn.on .rcvThatTick{background:#f87171;
+  border-color:#f87171;color:#160b0b;}
+#page-lavarion .rcvThatTxt b,.lav3 .rcvThatTxt b{display:block;font:800 13px var(--sans);
+  letter-spacing:.05em;color:var(--text);}
+#page-lavarion .rcvThatBtn.on .rcvThatTxt b,.lav3 .rcvThatBtn.on .rcvThatTxt b{color:#fca5a5;}
+#page-lavarion .rcvThatTxt i,.lav3 .rcvThatTxt i{display:block;font-style:normal;font:600 11.5px var(--sans);
+  color:var(--text2);margin-top:2px;}
+/* the four states, on the order row */
+#page-lavarion .ordSt,.lav3 .ordSt{display:inline-block;font:800 9.5px var(--sans);letter-spacing:.05em;
+  text-transform:uppercase;padding:2px 7px;border-radius:5px;margin-left:4px;white-space:nowrap;
+  border:1px solid;}
+#page-lavarion .ordSt.part,.lav3 .ordSt.part{color:#fbbf24;border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.14);}
+#page-lavarion .ordSt.short,.lav3 .ordSt.short{color:#fca5a5;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.14);}
+#page-lavarion .ordSt.repl,.lav3 .ordSt.repl{color:var(--text2);border-color:var(--border2);background:var(--bg3);}
+#page-lavarion .ordSt.done,.lav3 .ordSt.done{color:#4ade80;border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.14);}
+#page-lavarion .ordSplit,.lav3 .ordSplit{margin-top:3px;font:700 10.5px var(--sans);line-height:1.4;}
+/* case maths under the ordered figure — counting a delivery is counting boxes */
+#page-lavarion .ordCases,.lav3 .ordCases{margin-top:2px;text-align:center;font:700 10px var(--sans);color:#93c5fd;white-space:nowrap;letter-spacing:.01em;}
+/* the Deliveries table carried a lot of dead height per row */
+#page-lavarion table.dlvTbl td,.lav3 table.dlvTbl td{padding-top:7px;padding-bottom:7px;}
+#page-lavarion .ordSplit .ok,.lav3 .ordSplit .ok{color:var(--green);display:block;}
+#page-lavarion .ordSplit .out,.lav3 .ordSplit .out{color:#fbbf24;display:block;}
+/* Actioned, replacement agreed — nothing to do today, so it reads that way.
+   Lavarion runs deliberately bright (--text3 is #e6e1d6), so "grey" has to be
+   said explicitly. The product name stays fully readable — this is a row you
+   still want to be able to FIND, just not one that shouts. */
+#page-lavarion tr.ordRow.st-repl>td,.lav3 tr.ordRow.st-repl>td{background:rgba(255,255,255,.022);}
+#page-lavarion tr.ordRow.st-repl>td:first-child,.lav3 tr.ordRow.st-repl>td:first-child{
+  box-shadow:inset 3px 0 0 #7d7970;}
+#page-lavarion tr.ordRow.st-repl .ordSplit .ok,.lav3 tr.ordRow.st-repl .ordSplit .ok,
+#page-lavarion tr.ordRow.st-repl .ordSplit .out,.lav3 tr.ordRow.st-repl .ordSplit .out{color:#a8a49b;}
+#page-lavarion tr.ordRow.st-repl .num,.lav3 tr.ordRow.st-repl .num{color:#c9c5bc;}
+#page-lavarion tr.ordRow.st-repl .pmeta,.lav3 tr.ordRow.st-repl .pmeta{color:#9d998f;}
+/* the status select must fit "Sent to Amazon" — it was being cut to "Sent to Amaz" */
+#prepTable select.ci-sel{min-width:0;text-overflow:ellipsis;}
+/* "Sent to Amazon" is the longest option and needs ~90px of text room. 150px
+   was generous by half — this is the text plus the select's own padding and
+   arrow, with ellipsis still there as the backstop. */
+#prepTable th:nth-child(9),#prepTable td:nth-child(9){min-width:124px;}
+#prepTable td:nth-child(9) select.ci-sel{font-size:11.5px;padding-left:5px;padding-right:2px;}
+/* was 8px in the dimmest grey on the palette — this is the number your staff
+   actually handle, so it reads like one */
+/* white-space:normal, NOT nowrap. A table cell does not clip its overflow, so
+   on a big bundle (324 x 5 = 1620) this caption was wider than the Expected
+   Qty column and spilled sideways straight over the bundle chip next to it.
+   It wraps inside its own column now. Also used by the received-qty caption,
+   which had the same exposure. */
+.expPack{margin-top:4px;font-size:10.5px;font-weight:700;color:#d8b4fe;line-height:1.25;
+  white-space:normal;overflow-wrap:anywhere;text-align:center;}
+.expPack b{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:13px;font-weight:800;}
+/* the impossible-state flag: shipped more than was received */
+/* the received number is the point of this column; the mismatch is a footnote */
+.qtyFlag{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:3px;
+  font-size:9.5px;font-weight:800;color:#fca5a5;line-height:1.2;white-space:nowrap;cursor:help;letter-spacing:.01em;}
+.qtyFlagDot{font-size:10px;opacity:.9;}
+.impossible{font-size:9.5px;font-weight:800;color:#fca5a5;background:rgba(239,68,68,.14);
+  border:1px solid rgba(239,68,68,.5);border-radius:5px;padding:2px 5px;margin-bottom:3px;
+  line-height:1.2;white-space:normal;cursor:help;}
+/* the little date pad that drops out of "Amazon says it'll arrive…" */
+.amzDateBox{margin-top:6px;padding:9px 10px;border-radius:8px;background:var(--bg2);
+  border:1px solid rgba(96,165,250,.45);display:flex;flex-direction:column;gap:6px;text-align:left;}
+.amzDateT{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#93c5fd;}
+.amzDateIn{background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);
+  font:inherit;font-size:12px;padding:6px 8px;}
+.amzDateActs{display:flex;gap:6px;}
+.amzDateIn,.amzDateNote{width:100%;box-sizing:border-box;text-align:center;}
+.amzDateNote{background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);font:inherit;font-size:12px;padding:6px 8px;}
+.jkAnsBox{display:flex;flex-direction:column;gap:6px;white-space:normal;text-align:center;}
+.jkAnsT{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fbbf24;}
+.jkAnsDate{width:100%;box-sizing:border-box;padding:7px 9px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font:inherit;font-size:12px;text-align:center;}
+.jkAnsBox .csAct{width:100%;margin:0;box-sizing:border-box;}
+.jkAnsNote{width:100%;box-sizing:border-box;padding:7px 9px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font:inherit;font-size:12px;line-height:1.4;resize:vertical;min-height:44px;}
+.jkAnsNote:focus{outline:none;border-color:#60a5fa;}
+.amzDateActs .csAct{flex:1;margin:0;}
+.amzDateHint{font-size:10px;color:var(--text3);font-weight:600;line-height:1.35;}
+/* Jack, 17 Aug: on a DG + bundle row ("DG" AND "5 in 1" chips side by side)
+   this cell was nowrap, so the pair rendered wider than its column and ran
+   underneath the Expected Qty numbers — his "1620 over 324" screenshot. The
+   chips now stack instead of spilling, so the cell can never paint outside
+   its own column again. */
+td.dgbun{text-align:center;white-space:normal;max-width:78px;}
+td.dgbun .pchip{display:inline-block;margin:1px 2px;white-space:nowrap;}
+/* Notes read as text and only become an input on click — no scrollbar pills,
+   no drag handles, no sentences cut off mid-word. */
+/* vertically centred in the cell, the way a spreadsheet behaves — top-aligned
+   text in a tall row leaves it floating away from everything it relates to */
+#prepTable td:has(>.noteCell){vertical-align:middle;}
+.noteCell{font-size:11.5px;line-height:1.45;color:var(--text);cursor:text;
+  border-radius:5px;padding:4px 6px;min-height:22px;white-space:normal;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.noteCell:hover{background:rgba(255,255,255,.05);}
+.noteCell:focus{outline:1px solid var(--accent);outline-offset:-1px;}
+.noteCell.va{color:#fcd9a0;}
+.noteCell.empty{color:var(--text3);}
+/* an empty note is an invitation, not a button — something else in the sheet
+   was painting this solid amber */
+/* Two lines for the product, since dropping five columns freed the width.
+   Clamped, so one absurd Amazon title cannot stretch every row. */
+/* the same shape as .s-asin and .s-sku: icon, gap, then the words — so all
+   three lines start on one edge */
+#prepTable td.td-left .s-title{display:flex!important;align-items:flex-start;gap:5px;
+  white-space:normal;line-height:1.32;max-width:290px;overflow:hidden;}
+#prepTable td.td-left .s-title>svg{flex:0 0 auto;margin-top:2px;}
+#prepTable td.td-left .s-titleTxt{flex:1;min-width:0;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+/* The product title may be shortened — the SKU and ASIN never are. The SKU
+   encodes the cost and the order date, so a clipped one still looks complete
+   and is read as if it were whole. Wrap it before you ever cut it. */
+#prepTable td.td-left .s-sku,#prepTable td.td-left .s-asin{
+  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
+  overflow-wrap:anywhere;word-break:break-all;max-width:none!important;line-height:1.35;}
+/* 15" MacBook is 1440 logical. Product is column 6 — the SKU has to fit on one
+   line there. DG·Bundle is column 7 and holds two small chips, so it is pinned
+   narrow: it had picked up the 300px meant for Product and become the widest
+   column in the sheet. */
+#prepTable th:nth-child(6),#prepTable td:nth-child(6){min-width:286px;}
+#prepTable th:nth-child(7),#prepTable td:nth-child(7){width:78px;max-width:78px;
+  padding-left:4px;padding-right:4px;}
+/* min-width on the stack made it narrower than its cell, so the whole block
+   sat centred while the date column beside it stayed left. Fill the cell. */
+/* Every line in this cell starts at the same left edge. .stack was centring
+   its children and the title's -webkit-box shifted it again, so the product,
+   the ASIN and the SKU each sat on a different margin. */
+#prepTable td.td-left{text-align:left!important;}
+#prepTable td.td-left .stack{min-width:0;width:100%;display:flex;flex-direction:column;
+  align-items:stretch!important;text-align:left!important;gap:2px;}
+#prepTable td.td-left .stack>*{width:100%;text-align:left!important;justify-content:flex-start;
+  margin-left:0!important;padding-left:0!important;}
+/* notes behave like a spreadsheet cell: left, and vertically centred */
+.noteCell{text-align:left!important;}
+/* the copy icon swaps to a tick when clicked, and the two glyphs are different
+   widths — so the whole line jumped left as you copied it. Pin the box. */
+#prepTable .s-title>svg,#prepTable .s-asin>svg,#prepTable .s-sku>svg{
+  width:12px!important;height:12px!important;min-width:12px!important;flex:0 0 12px!important;}
+.noteCell .noteAdd{display:block!important;text-align:left!important;}
+/* the archive tick is one small control; Edit can hold two buttons on a row
+   that has an open issue, so it must not be pinned to one button's width */
+#prepTable th:last-child,#prepTable td:last-child{width:34px;max-width:34px;}
+/* Edit, Undo and Actions stack rather than running the column wide — a row
+   with all three was three buttons' worth of width on every row that had one. */
+#prepTable th:nth-last-child(2),#prepTable td:nth-last-child(2){width:72px;max-width:72px;
+  padding-left:4px;padding-right:4px;}
+#prepTable td:nth-last-child(2){white-space:normal;}
+#prepTable td:nth-last-child(2) .row-acts{display:flex!important;flex-direction:column!important;
+  align-items:stretch!important;gap:3px!important;}
+#prepTable td:nth-last-child(2) .row-acts>*{display:block!important;width:100%!important;
+  box-sizing:border-box;margin:0!important;text-align:center;white-space:nowrap;
+  font-size:10px!important;padding:3px 4px!important;}
+/* the product title is 800 weight on a dark background — without explicit
+   antialiasing the strokes bloom and it reads as blurred */
+#prepTable .s-title,#prepTable .s-asin,#prepTable .s-sku,.noteCell{
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;}
+#prepTable .s-title{font-weight:700;letter-spacing:.005em;}
+/* the flag sits above the button so the column stays centred either way */
+.sasCell{text-align:center;line-height:1;}
+.acHold{font-size:10px;color:var(--text3);margin-top:3px;line-height:1.35;font-style:italic;}
+#page-lavarion .etaSel.needPick,.lav3 .etaSel.needPick{border-color:var(--amb);color:var(--amb);}
+.sasFlag{display:block;color:#f87171;font-size:10px;font-weight:900;
+  line-height:1;margin-bottom:2px;cursor:default;}
+.s-more{color:var(--text3);}
+.noteCell .noteAdd{display:inline!important;font-size:10.5px!important;font-weight:600!important;
+  color:var(--text3)!important;background:none!important;border:none!important;
+  padding:0!important;border-radius:0!important;box-shadow:none!important;
+  text-transform:none!important;letter-spacing:0!important;}
+.noteCell:hover .noteAdd{color:var(--accent)!important;}
+.noteEdit{width:100%;background:var(--bg);border:1px solid var(--accent);border-radius:5px;
+  color:var(--text);padding:5px 7px;font-family:var(--sans);font-size:12px;line-height:1.45;
+  resize:none;outline:none;overflow:auto;-webkit-font-smoothing:antialiased;}
+/* Jack's pick: size to content, capped, so seven fewer columns genuinely means
+   a shorter table — without leaving a silly gap on a wide monitor. */
+#prepTable{width:auto!important;min-width:100%;max-width:1900px;}
+/* SAS holds one small button and nothing else — stop the cell padding from
+   setting the column width */
+#prepTable th:nth-child(4),#prepTable td:nth-child(4){width:34px;max-width:34px;
+  padding-left:2px;padding-right:2px;text-align:center;}
+.nt-wait{font-size:10.5px;font-weight:700;color:#94a3b8;font-style:italic;}
+.expLive{font:800 14px var(--num);color:var(--text);line-height:1.1;text-align:center;}
+.expLive small{display:block;font:600 9.5px var(--font,inherit);color:#fbbf24;margin-top:2px;white-space:normal;line-height:1.3;}
+.ci-num.expRaw{opacity:.5;font-size:10.5px;height:20px;margin-top:3px;}
+.ci-num.expRaw:focus{opacity:1;}
+/* The four narrow columns on the left carried the same 8px side padding as the
+   wide ones, which is most of their width. */
+#prepTable th:nth-child(1),#prepTable td:nth-child(1),
+#prepTable th:nth-child(2),#prepTable td:nth-child(2),
+#prepTable th:nth-child(3),#prepTable td:nth-child(3),
+#prepTable th:nth-child(4),#prepTable td:nth-child(4){padding-left:2px;padding-right:2px;}
+#prepTable th:nth-child(11),#prepTable td:nth-child(11){padding-left:3px;padding-right:3px;}
+#prepTable td:nth-child(3) button{padding:0 4px;}
+.tfuPanel{overflow:clip;}   /* clip, NOT hidden — hidden breaks position:sticky */
+/* ONE sticky element, pinned to 0. Two of them at different offsets left a
+   41px band where rows scrolled through the gap between them. */
+/* -1px so the header's own top border tucks under the scrollport edge instead
+   of leaving a hairline band where the row above shows through */
+.tfu thead th{position:sticky;top:-1px;z-index:5;background:#1a1917;}
+.tfu thead th:first-child{border-top-left-radius:9px;}
+.tfu thead th:last-child{border-top-right-radius:9px;}
+/* and the panel keeps a solid backdrop behind that band while it scrolls */
+#adminWrap{padding-top:0!important;}
+.tfuPanel{position:relative;}
+html.light-mode .tfu thead th{background:#d8dde3;}
+.tfu td{word-break:break-word;vertical-align:top;}
+.tfu .tfuWhy{white-space:normal!important;display:inline-block;line-height:1.3;
+  font-size:10.5px;padding:3px 7px;}
+.tfu .tfuProd2{white-space:normal!important;max-height:none;display:block;overflow:visible;}
+.tfu .tfuBtn+.tfuBtn{margin-top:4px;}
+.tfu td.tfuActs{padding:10px 12px;}
+.tfu td.tfuActs .tfuBtn{display:block;width:100%;box-sizing:border-box;white-space:nowrap;
+  text-align:center;margin:0 0 5px;}
+.tfu td.tfuActs .tfuBtn:last-child{margin-bottom:0;}
+.tfu .tfuOid{white-space:normal;overflow-wrap:anywhere;}
+.tfu .tfuDue input[type=date]{box-sizing:border-box;font-size:11.5px;padding:5px 6px;}
+.tfu select{max-width:100%;}

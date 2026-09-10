@@ -1,0 +1,116 @@
+/* BDL PrepHub — css/modals.css — modal chrome.
+   Cut from base.css 2026-09-10 (b561). Linked in order; cascade unchanged. */
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(3px);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;}
+.overlay.open{display:flex;}
+/* The confirm dialog can be triggered from inside another modal — keep it on
+   top so it never ends up hidden behind that modal (which looked like a stuck
+   black screen until you pressed Cancel). It also slightly dims any overlay
+   beneath it rather than doubling the backdrop. */
+#confirmModal{z-index:150;background:rgba(0,0,0,.55);}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;animation:mIn .18s ease;}
+@keyframes mIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);}
+.mh-title{font-size:14px;font-weight:600;color:var(--text);}
+/* Bulk return SKUs. The instructions were four sentences of 11px grey on black
+   — the one thing that has to be readable in this dialog was the least
+   readable thing in it. And nothing was shown until after the save, so a line
+   that had already been added just vanished without a word. */
+.brHelp{font-size:12.5px;line-height:1.6;color:var(--text2);background:var(--bg3);
+  border-left:3px solid var(--accent);border-radius:0 7px 7px 0;padding:10px 13px;margin-bottom:11px;}
+.brHelp b{color:var(--text);font-weight:700;}
+.brHelpSub{margin-top:5px;color:var(--text2);font-size:12px;}
+.brEg{font-family:var(--mono);background:rgba(255,255,255,.07);border-radius:4px;padding:1px 6px;
+  color:var(--text);white-space:nowrap;}
+.brDash{color:var(--accent);font-weight:700;}
+.brSum{margin-top:11px;font-size:13px;color:var(--text2);font-weight:600;}
+.brSum b{color:#4ade80;font-family:var(--num);font-variant-numeric:tabular-nums;font-size:15px;font-weight:800;}
+.brList{margin-top:7px;max-height:190px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;
+  border:1px solid var(--border);border-radius:7px;padding:6px;}
+.brRow{display:grid;grid-template-columns:minmax(0,1fr) 66px minmax(0,1fr) 92px;gap:9px;align-items:center;
+  padding:5px 7px;border-radius:5px;background:rgba(255,255,255,.03);font-size:12px;}
+/* opacity on a text node washes it out and softens every glyph. Say "already
+   there" with colour instead, so it stays readable. */
+.brRow.have,.brRow.dupe{background:rgba(255,255,255,.015);}
+.brRow.have .brSku,.brRow.dupe .brSku{color:var(--text2);}
+.brRow.have .brCog,.brRow.dupe .brCog{color:var(--text3);}
+.brSku{font-family:var(--mono);font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  -webkit-font-smoothing:antialiased;letter-spacing:0;}
+.brCog{font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:800;color:var(--accent);text-align:right;}
+.brNm{color:var(--text);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.brNm i{color:var(--text3);}
+.brState{justify-self:end;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+  border:1px solid;border-radius:20px;padding:1px 8px;white-space:nowrap;}
+.brNote{margin-top:7px;font-size:12px;color:var(--text2);line-height:1.55;}
+/* Lavarion short + damaged, on Sarah's page. Same shape as everything else
+   here: who, what, how much, and one button that takes you to it. */
+.lavSup{background:var(--bg2);border:1px solid var(--border);border-left:3px solid #fbbf24;
+  border-radius:9px;margin-bottom:14px;overflow:hidden;}
+.lavSup.loading{border-left-color:var(--border2);}
+.lavSupHead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:11px 15px;
+  border-bottom:1px solid var(--border);}
+.lavSupHead b{font-size:13.5px;font-weight:800;color:var(--text);}
+.lavSupHead span{font-size:11.5px;color:var(--text2);font-weight:600;}
+.lavChip{margin-left:auto;font-size:10px!important;font-weight:800!important;text-transform:uppercase;
+  letter-spacing:.06em;padding:3px 9px;border-radius:20px;color:#fbbf24!important;
+  background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.45);}
+.lavChip.ok{color:#4ade80!important;background:rgba(74,222,128,.14);border-color:rgba(74,222,128,.45);}
+.lavSupNote{padding:8px 15px;font-size:11.5px;line-height:1.55;color:var(--text2);
+  border-bottom:1px solid var(--border);}
+.lavSupNote b{color:var(--text);font-weight:700;}
+.lavRow{display:grid;grid-template-columns:190px minmax(0,1fr) 120px 74px;gap:14px;align-items:start;
+  padding:11px 15px;border-bottom:1px solid var(--border);}
+.lavRow:last-child{border-bottom:none;}
+/* Actioned. Still findable, no longer shouting — and never dimmed with
+   opacity, which softens every glyph on the row. */
+.lavRow.quiet{background:rgba(255,255,255,.02);box-shadow:inset 3px 0 0 #565248;}
+.lavRow.quiet .lavWho span,.lavRow.quiet .lavLine i{color:#8b8780;}
+.lavRow.quiet .lavMoney{color:#c9c5bc;}
+.lavRow.quiet .lavMoney span{color:#8b8780;}
+.lavWho b{display:block;font-size:12.5px;font-weight:800;color:var(--text);}
+.lavWho span{display:block;font-size:11px;color:var(--text3);margin-top:2px;font-weight:600;}
+.lavTags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:5px;}
+.lavTag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+  padding:2px 8px;border-radius:5px;border:1px solid;white-space:nowrap;}
+.lavTag.short{color:#fca5a5;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.14);}
+.lavTag.dmg{color:#fbbf24;border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.14);}
+.lavTag.repl{color:var(--text2);border-color:var(--border2);background:var(--bg3);}
+.lavLine{display:flex;gap:9px;align-items:baseline;font-size:11.5px;line-height:1.6;}
+.lavLine span{color:var(--text);font-weight:600;}
+.lavLine i{color:var(--text3);font-style:normal;font-size:11px;white-space:nowrap;}
+.lavMoney{font-family:var(--num);font-size:14px;font-weight:800;color:var(--text);text-align:right;
+  font-variant-numeric:tabular-nums;}
+.lavMoney span{display:block;font-family:var(--sans);font-size:10.5px;font-weight:600;
+  color:var(--text3);margin-top:3px;font-variant-numeric:normal;}
+.lavGo{padding:5px 11px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;
+  background:var(--bg3);border:1px solid var(--border2);color:var(--text2);height:fit-content;}
+.lavGo:hover{border-color:var(--accent);color:var(--accent);}
+.lavQuietHead{padding:8px 15px;font-size:10px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--text3);background:rgba(255,255,255,.02);
+  border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+/* ── #28 blurry dialog text ─────────────────────────────────────────────── */
+/* Two real causes, not one. The overlay carries backdrop-filter, which puts the
+   whole dialog on its own composited layer and drops it off subpixel
+   antialiasing; and the open animation rasterised the panel at 0.98 and scaled
+   it up. Body also sets text-rendering:geometricPrecision, which turns hinting
+   off. Inside a dialog all three land on the same small grey text. */
+.overlay .modal,.overlay .lv2-modal,.mod{
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;}
+/* Searching an ASIN: what THAT thing did, above the whole-shipment totals */
+.hitStrip{background:var(--bg2);border:1px solid var(--border);border-left:4px solid var(--accent);
+  border-radius:8px;margin-bottom:10px;overflow:hidden;}
+.hitHead{display:flex;align-items:center;gap:14px;padding:11px 15px;border-bottom:1px solid var(--border);}
+.hitHead b{display:block;font-size:13.5px;color:var(--text);font-weight:800;}
+.hitHead span{display:block;font-size:11.5px;color:var(--text2);margin-top:2px;}
+.hitHead>div:first-child{flex:1;min-width:0;}
+.hitTot{flex:0 0 auto;text-align:right;}
+.hitTot b{font:800 24px var(--num);font-variant-numeric:tabular-nums;color:var(--accent);line-height:1;}
+.hitTot i{display:block;font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--text3);margin-top:3px;}
+.hitRows{display:flex;flex-direction:column;}
+.hitRow{display:grid;grid-template-columns:92px minmax(0,1fr) 74px;gap:12px;align-items:center;
+  padding:6px 15px;font-size:12px;border-top:1px solid rgba(255,255,255,.04);}
+.hitRow .hd{color:var(--text2);font-weight:700;}
+.hitRow .hs{font-family:var(--mono);font-size:11.5px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hitRow .hu{text-align:right;font:800 13px var(--mono);color:var(--text);}
