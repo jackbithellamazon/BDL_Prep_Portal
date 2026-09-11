@@ -22,6 +22,7 @@ function _adminItems(){
     /* v50.5: the one owner rule (js/rules.js) decides "finished" for every page —
        a finished row is nobody's job here, whatever the older tests below say. */
     try{if(typeof _rowOwner==='function'&&_rowOwner(r).finished)return;}catch(e){}
+    const _partShip=(typeof _partShipStale==='function')&&_partShipStale(r);   /* some went, the rest never followed — Sarah asks the warehouse */
     // Mirror the Prep Sheet colour logic so this stays in lock-step with it.
     let rowAgeDate=null;
     /* The sheet only carries dd/mm. Stamping it with the CURRENT year put every
@@ -57,13 +58,13 @@ function _adminItems(){
        arrived was invisible to her: three of his were 70+ days old. Part Sent is
        judged on what is still owed, like any other row — the outstanding test a
        few lines down drops it the moment nothing is left. */
-    if(['Delivered','In Warehouse','Returned'].includes(r.status))return;
+    if(['Delivered','In Warehouse','Returned'].includes(r.status)&&!_partShip)return;
     /* Jack, 4 Sep: two OneBlade rows — 3 ordered, 2 in, both sent on — went
        "Sent to Amazon" because everything received had shipped, and the unit
        Amazon France still owed fell off her page (the warehouse had typed
        "awaiting last one — check if on way" into a packing note for want of
        anywhere else). Sent, like Part Sent, is judged on what is still owed. */
-    if((r.status==='Part Sent'||r.status==='Sent to Amazon')&&((r.exp||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0))<=0)return;
+    if((r.status==='Part Sent'||r.status==='Sent to Amazon')&&((r.exp||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0))<=0&&!_partShip)return;
     /* Sorted AND approved by Jack. Sarah proposes a closure, Jack approves it —
        nothing leaves the queue on the VA's say-so alone. Approved rows keep
        everything they had; they just stop being someone's job. This is what
@@ -111,7 +112,7 @@ function _adminItems(){
        cancelled — never satisfied it and sat in the chase queue forever if the
        status was not flipped by hand. Anything with nothing left outstanding
        leaves, however it got there. */
-    if((_units-_got-_cx)<=0&&(_got>0||_cx>0))return;
+    if((_units-_got-_cx)<=0&&(_got>0||_cx>0)&&!_partShip)return;
     // Snoozed by the VA ("Done" = chased, come back later) — hide until it lapses.
     if(r.chaseSnoozeUntil&&today<new Date(r.chaseSnoozeUntil))return;
     // Past its expected delivery date and still not received → chase it.
@@ -143,9 +144,9 @@ function _adminItems(){
     const _partSince=r.rcvdAt||(r.sentDate?String(r.sentDate).slice(0,10)+'T12:00:00Z':'');
     const _partMs=_partSince?_workMsSince(_partSince):0;
     const _partDays=TM.partDays;   /* Jack, 6 Sep: S&S arrives together — same clock as everything else */
-    const _part=_got>0&&(_units-_got-_cx)>0&&!!_partSince&&_partMs>=_partDays*24*3600e3&&!_q;
+    const _part=(typeof _partOverdue==='function')?_partOverdue(r):(_got>0&&(_units-_got-_cx)>0&&!!_partSince&&_partMs>=_partDays*24*3600e3&&!_q);   /* one clock — js/rules.js */
     const _partRed=_part&&_partMs>=(_partDays+1)*24*3600e3;
-    if(!isStuck&&!inChase&&!expOverdue&&!_liveCase&&!_handedBack&&!_q&&!_part)return;
+    if(!isStuck&&!inChase&&!expOverdue&&!_liveCase&&!_handedBack&&!_q&&!_part&&!_partShip)return;
     let sev,col;
     if(ta==='Urgent — Chase Now'){sev=4;col='#ef4444';}
     else if(ta==='Late — Needs Chasing'||isStuck){sev=3;col='#ef4444';}
@@ -154,6 +155,7 @@ function _adminItems(){
     else{sev=1;col='#fbbf24';}
     if(_q){const _qw=_queryWait(_q);if(_qw>=TM.queryRedDays){sev=4;col='#ef4444';}else if(sev<=2){sev=2;col='#38bdf8';}}
     if(_part&&sev<=2){sev=_partRed?3:2;col=_partRed?'#ef4444':'#fb923c';}
+    if(_partShip&&sev<=2){sev=3;col='#fb923c';}
     /* a chase gone quiet past its 2-working-day due is the most actionable
        thing here — it rises to the top instead of fading (Jack, 30 Aug) */
     if(_c0&&!_parked){const _od=_caseDue(_c0);if(_od!==null&&_od>0){sev=4;col='#ef4444';}}
@@ -163,6 +165,7 @@ function _adminItems(){
        about the whole queue, so it is said once in the heading instead. */
     const reason=_q?`${_q.by||'Warehouse'} asked — ${_q.got?_q.short+' of '+_q.exp+' still to come?':'has it been dispatched?'}${_queryWait(_q)>=TM.queryRedDays?' · '+_queryWait(_q)+'d unanswered':''}`
       :_part?`${_got} of ${_units} in${r.rcvdAt?' '+_dmy(r.rcvdAt):(r.sentDate?' by '+_dmy(r.sentDate):'')} — the other ${_units-_got-_cx} never followed`
+      :_partShip?`${parseInt(r.ship)||0} went out${r.sentDate?' by '+_dmy(r.sentDate):''} — the other ${(typeof remainingToShip==='function')?remainingToShip(r):_got-(parseInt(r.ship)||0)} never followed: still on the shelf, or sent under another SKU?`
       :(isStuck?`${days} days in transit`:(expOverdue?`Past expected (${expStr}) — confirm arrival`:(ta||'Needs follow-up')));
     const cogs=parseSKU(r.sku).cogs||0;
     const units=_units,got=_got,cancelled=_cx;
@@ -173,7 +176,7 @@ function _adminItems(){
     const partArrived=got>0&&got<units;
     const missing=partArrived?outstanding:0;
     out.push({rid:r.uuid||r.id,sku:r.sku,asin:r.asin,prod:r.prod,sup:r.sup,oid:r.oid,date:r.date,
-      parkedRow:_parkGrace===true,query:_q||null,partOverdue:_part,partSince:_part?_dmy(r.rcvdAt):'',
+      parkedRow:_parkGrace===true,query:_q||null,partOverdue:_part,partSince:_part?_dmy(r.rcvdAt):'',partShip:!!_partShip,
       acct:r.acct||'',units,got,cancelled,outstanding,partArrived,missing,
       sheetRow:r.sheetRow||'',expDate:r.expectedDelivery||'',
       /* where the row came from — the Purchase Sheet (Sarah types it) or straight

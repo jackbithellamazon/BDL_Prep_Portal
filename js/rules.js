@@ -54,6 +54,34 @@ async function applyRow(r,patch,ctx){
    Jack) and brought back by another (Recovery closes the claim). Four pages had
    four definitions. This is the definition; the checks' audit flags any page
    that disagrees with it. Returns {owner:'jack'|'sarah'|'becki'|'none', finished, why}. */
+/* The 48-hour part-arrival clock (Jack, 6 Sep: "9 of 10 arrive — if the other
+   one hasn't within 48 hours it gets flagged"), in one place. Working hours;
+   S&S the same. When the count time is unknown the last shipment date stands in. */
+function _partOverdue(r){
+  if(!r||r.archived)return false;
+  const got=parseInt(r.rcvd)||0,owed=_owedUnits(r);
+  if(got<=0||owed<=0)return false;
+  if(typeof _ukQuery==='function'&&_ukQuery(r))return false;   /* a live question to the warehouse outranks it */
+  const since=r.rcvdAt||(r.sentDate?String(r.sentDate).slice(0,10)+'T12:00:00Z':'');
+  if(!since)return false;
+  const ms=(typeof _workMsSince==='function')?_workMsSince(since):(Date.now()-new Date(since).getTime());
+  return ms>=(TM.partDays||2)*24*3600e3;
+}
+/* Jack, 11 Sep, Cadbury: 70 in, 23 shipped on 27 Aug, 47 'on the shelf' two
+   weeks later (the note says they went out under the old SKU). Parts of one
+   order ship within 2–3 days of each other; a remainder that never follows is
+   a question for the warehouse: still here, or sent under another SKU? */
+function _partShipStale(r){
+  if(!r||r.archived)return false;
+  const exp=parseInt(r.exp)||0,ship=parseInt(r.ship)||0;
+  if(exp<=0||ship<=0||_owedUnits(r)>0)return false;
+  const left=(typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,(parseInt(r.rcvd)||0)-ship);
+  if(left<=0)return false;
+  const last=(r.shipSegments||[]).map(s=>s.date).filter(Boolean).sort().pop()||r.sentDate||'';
+  if(!last)return false;
+  const ms=(typeof _workMsSince==='function')?_workMsSince(String(last).slice(0,10)+'T12:00:00Z'):(Date.now()-new Date(last).getTime());
+  return ms>=(TM.partDays||2)*24*3600e3;
+}
 function _rowOwner(r){
   if(!r)return{owner:'none',finished:true,why:'no row'};
   const res=r.resolution||null,st=(res&&res.state)||'';
@@ -73,10 +101,14 @@ function _rowOwner(r){
   if(_cl.length)return{owner:'sarah',finished:false,why:'claim in hand: '+(_cl[0].issT||'claim')};
   if(typeof _offPrepSheet==='function'&&_offPrepSheet(r))return{owner:'jack',finished:false,why:'gated — Jack took it off their lists'};
   /* the stock answers a question about missing stock — nothing left to ask */
-  if(exp>0&&owed<=0)return{owner:'none',finished:true,why:'nothing owed — the stock answered it'+(st==='asked'||st==='rejected'?' (question still open on the row)':'')};
+  if(exp>0&&owed<=0&&!_partShipStale(r))return{owner:'none',finished:true,why:'nothing owed — the stock answered it'+(st==='asked'||st==='rejected'?' (question still open on the row)':'')};
   if(typeof _isAmzDel==='function'&&_isAmzDel(r))return{owner:'becki',finished:false,why:'Amazon say delivered — Becki checks the shelves'};
+  /* snoozed by Sarah — nobody's until the snooze runs out */
+  if(r.chaseSnoozeUntil&&new Date()<new Date(r.chaseSnoozeUntil))return{owner:'none',finished:false,why:'snoozed until '+String(r.chaseSnoozeUntil).slice(0,10)};
   if(st==='rejected')return{owner:'sarah',finished:false,why:'Jack answered — Sarah closes'};
   if(st==='working')return{owner:'sarah',finished:false,why:'Sarah is chasing it'};
+  if(_partOverdue(r))return{owner:'sarah',finished:false,why:'part arrived — the rest never followed within '+(TM.partDays||2)+' working days'};
+  if(_partShipStale(r))return{owner:'sarah',finished:false,why:'part shipped — the rest never followed: still on the shelf, or sent under another SKU?'};
   if(typeof _prepRowLate==='function'&&_prepRowLate(r))return{owner:'sarah',finished:false,why:'late — Sarah chases'};
   return{owner:'none',finished:false,why:'in transit — nothing to do yet'};
 }

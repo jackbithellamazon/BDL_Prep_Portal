@@ -176,6 +176,9 @@ function _prioScore(i){
   return 5e8+(999999-v);                                     // 5. window gone — biggest money first
 }
 function tfuSort(k){
+  /* Jack, 11 Sep: "add NEWEST FIRST" — the same age sort, the other way up */
+  if(k==='newest'){_tfuSort='days';_tfuDir=-1;renderAdmin();return;}
+  if(k==='days'){_tfuSort='days';_tfuDir=1;renderAdmin();return;}
   if(_tfuSort===k)_tfuDir=-_tfuDir; else{_tfuSort=k;_tfuDir=1;}
   renderAdmin();
 }

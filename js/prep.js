@@ -218,6 +218,9 @@ function renderPrepRows(data){
         ${(()=>{const _q=_ukQuery(r);const _rs=r.resolution||{};
           if(_isAmzDel(r))return `<div class="qryTag amz" title="Amazon say this was delivered. Found it on the shelves? Book it in and send it on the next shipment — the flag clears itself, nothing to press. Not here? Press the button and it goes to Jack to raise with Amazon.">Amazon say delivered — check the shelves</div>
             <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk qryNot" onclick="amzNotHere('${r.uuid||r.id}')" title="Checked the shelves, back stock and anywhere else — it is not here. It goes straight to Jack to raise with Amazon.">Not here</button></div>`;
+          if(typeof _partShipStale==='function'&&_partShipStale(r)){const _lf=(typeof remainingToShip==='function')?remainingToShip(r):0;
+            return `<div class="qryTag" title="${fmt(parseInt(r.ship)||0)} went out${r.sentDate?' by '+_dmy(r.sentDate):''}; ${fmt(_lf)} never followed. Still on the shelf? Send them. Went out under another SKU? Press the button.">${fmt(_lf)} never went &mdash; still here, or another SKU?</div>
+            <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk" onclick="wentOutUnder('${r.uuid||r.id}')" title="They went out on another SKU's shipment — record it; Sarah confirms it in Seller Central">Went out under another SKU&hellip;</button></div>`;}
           if(_q)return `<div class="qryTag" onclick="openQuery('${r.uuid||r.id}')" title="${esc(_q.ask||'')}${_q.note?' — “'+esc(_q.note)+'”':''} — asked by ${esc(_q.by||'')} ${_qryWhen(_q.at)} · with ${_rs.state==='asked'?'Jack':'the admin team'}. The answer comes back in the VA Note.">&#10148; Admin team</div>`;
           const _aq=_rs.query;
           if(_aq&&_aq.answer==='more-coming'&&r.expectedDelivery&&new Date(r.expectedDelivery)>=new Date(new Date().toDateString()))return `<div class="qryTag ok" title="${esc(_aq.answeredBy||'')} answered ${_qryWhen(_aq.answeredAt)}: more is still coming${_aq.reply?' — “'+esc(_aq.reply)+'”':''}. See the VA Note.">&#10003; Due ${new Date(r.expectedDelivery).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}</div>`;
@@ -642,6 +645,37 @@ async function _sendToBeckiShelves(r,why){
   if(ch)ch.log=(ch.log||[]).concat([{at:now,by:_who(),what:'Sent to Becki — '+(why||'unaccounted for')}]);
   r._dirty=true;
   return true;
+}
+/* Jack, 11 Sep: "if Becki realises she sent it under the wrong SKU, she can put
+   that in and send it back to Sarah — she doesn't need to validate Seller
+   Central herself." The units are recorded as shipped on the other SKU's
+   shipment, the row closes by the stock rule, and Sarah gets one job: confirm
+   it in Seller Central. */
+function wentOutUnder(rid){
+  const r=_rowById(rid);if(!r)return;
+  const left=(typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,(parseInt(r.rcvd)||0)-(parseInt(r.ship)||0));
+  if(left<=0){toast('Everything on this row has already shipped','er');return;}
+  askText(`${fmt(left)} went out under another SKU?`,
+    `Which SKU ${left===1?'did it':'did they'} go out under? The ${fmt(left)} ${left===1?'unit is':'units are'} recorded as shipped on that SKU's shipment, this row closes, and Sarah gets the job of confirming it in Seller Central.`,
+    'e.g. the old SKU','Record it',sku=>{
+      sku=String(sku||'').trim();if(!sku)return;
+      let shipId='',best='';
+      rows.filter(x=>x!==r&&x.sku===sku).forEach(o=>(o.shipSegments||[]).forEach(s=>{if(s.shipId&&String(s.date||'')>=best){best=String(s.date||'');shipId=s.shipId;}}));
+      if(!shipId){askText('Which shipment?','No shipment is recorded against that SKU — type the shipment ID it went out on.','FBA…','Record it',id=>_wentOutGo(r,sku,String(id||'').trim(),left));return;}
+      _wentOutGo(r,sku,shipId,left);
+    });
+}
+async function _wentOutGo(r,sku,shipId,units){
+  if(!r||!shipId||!(units>0))return;
+  const dd=_ddUK();
+  try{addSegment(r,shipId,units,r.shipType||'Standard');}catch(e){toast('Could not record the shipment: '+(e&&e.message||e),'er');return;}
+  r.notes=((r.notes||'').trim()?(r.notes.trim()+'\n'):'')+`${_who()} ${dd}: ${fmt(units)} went out under ${sku} on ${shipId}`;
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
+  try{await addVaActions(r,['Confirm in Seller Central'],`${_who()} says ${fmt(units)} × ${r.prod||r.sku||''} went out under ${sku} on ${shipId} — confirm it in Seller Central, then it is accounted for`);}catch(e){}
+  try{logAudit('Went out under another SKU',`${r.sku||''} — ${fmt(units)} unit${units===1?'':'s'} on ${shipId} as ${sku} — ${_who()}`);}catch(e){}
+  toast(`${fmt(units)} recorded as shipped on ${shipId} as ${sku} — Sarah gets the Seller Central check`,'ok');
+  try{renderPrep();renderAdmin();renderJack();}catch(e){}
 }
 /* which approved-and-closed rows are still owed units — the limbo list */
 function _limboRows(){

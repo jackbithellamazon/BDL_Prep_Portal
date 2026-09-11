@@ -769,6 +769,25 @@ function lavLateBack(key){
   toast('Back with Sarah — no new date','ok');
   renderJack();try{renderAdmin();}catch(e){}
 }
+/* Jack, 11 Sep: after a promised date slips and nothing is here, an Amazon
+   order goes to Jack (only he can see the account); a supplier order carries
+   on down the never-arrived road. One press, no popup. */
+async function slipStillNothing(rid){
+  const r=_rowById(rid);if(!r)return;
+  const c=_caseOf(r);
+  if(!(typeof _amazonRow==='function'&&_amazonRow(r))){caseGo(rid,'check-refund','due-date');return;}
+  const when=r.expectedDelivery?_dmy(r.expectedDelivery):'the promised date';
+  const why='Check whether this order actually arrived';
+  const note=`Promised ${when} — nothing booked in`;
+  if(c){c.log=(c.log||[]).concat([{at:new Date().toISOString(),by:_who(),what:'Date slipped, still nothing — sent to Jack to check the account'}]);c.step='to-jack';c.due='';}
+  r.resolution=Object.assign({},r.resolution||{},{state:'asked',kind:'check',what:'jack-check',ask:why,note,chase:c||undefined,by:_who(),at:new Date().toISOString()});
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
+  logAudit('Asked Jack to check',`${r.sku||r.asin||''} — ${why} (${note})`);
+  try{fireWebhook(`${_who()} needs you to check "${r.prod||r.sku||''}" — ${why}. ${note}`,{event:'ask_jack',sku:r.sku||''});}catch(e){}
+  toast('Sent to Jack — grey at the bottom of your list until he answers','ok');
+  renderAdmin();try{renderJack();paintJackBadge();}catch(e){}
+}
 /* A Lavarion shortage handed to Jack — same two-sides rule as everything else:
    grey and locked on her page, a card on his, back with his answer. */
 function lavToJack(key){
@@ -1668,6 +1687,7 @@ function _allAdminRows(){
 function _typeOf(i){
   if(i.kind==='job')return['JOB','#94a3b8','A job Jack sent over'];
   if(i.kind==='transit'&&i.query)return['QUERY','#38bdf8','The warehouse asked whether more is on the way — answer it here, or send it to Jack'];
+  if(i.kind==='transit'&&i.partShip)return['PART SHIPPED','#fb923c','Some went out and the rest never followed — still on the shelf, or sent under another SKU?'];
   if(i.kind==='transit'&&i.partOverdue)return['PART ARRIVED','#fb923c','Some of it arrived and the rest has not followed in time — more coming, or is it missing?'];
   if(i.kind==='transit')return['LATE','#f87171','Still in transit past when it should have landed — needs chasing'];
   if(i.kind==='lavlate')return['JOB FROM JACK','#f87171','A late Lavarion order — Jack has looked at it and needs this from you'];
@@ -2094,7 +2114,7 @@ function renderAdmin(){
             _tfuSort==='priority'
               ? 'priority order — work top to bottom'
               : _tfuSort==='days'
-              ? 'oldest first'
+              ? (_tfuDir<0?'newest first':'oldest first')
               : _tfuSort==='refund'
               ? 'closest to losing the refund first'
               : 'sorted by '+({product:'product',supplier:'supplier',units:'units',due:'due date',kind:'type'}[_tfuSort]||_tfuSort)
@@ -2112,9 +2132,9 @@ function renderAdmin(){
             oninput="_admQ=this.value;renderAdmin();setTimeout(()=>{const b=document.getElementById('admSrch');if(b){b.focus();b.setSelectionRange(b.value.length,b.value.length);}},0);" autocomplete="off">
         </div>
         <select class="admSort" onchange="tfuSort(this.value)" title="Sort the list — priority is the order Sarah should work in">
-          ${[['priority','Sort: priority — work top to bottom'],['days','Sort: oldest first'],['refund','Sort: claim window'],['kind','Sort: type'],
+          ${[['priority','Sort: priority — work top to bottom'],['days','Sort: oldest first'],['newest','Sort: newest first'],['refund','Sort: claim window'],['kind','Sort: type'],
              ['product','Sort: product'],['supplier','Sort: supplier'],['units','Sort: units'],['due','Sort: due date']]
-            .map(([k,l])=>`<option value="${k}" ${_tfuSort===k?'selected':''}>${l}</option>`).join('')}
+            .map(([k,l])=>`<option value="${k}" ${(k==='newest'?(_tfuSort==='days'&&_tfuDir<0):(_tfuSort===k&&!(k==='days'&&_tfuDir<0)))?'selected':''}>${l}</option>`).join('')}
         </select>
         <div class="admChips">
           ${[['all','All'],['FROMJACK','Jack answered'],['QUERY','Queries'],['LATE','Late'],['MISSING','Missing'],['DAMAGED','Damaged'],['MISSING + DMG','Missing + dmg'],['WRONG ITEM','Wrong item'],['NOT ARRIVED','Not arrived'],['GATED','Gated'],['JOB','Jobs'],['WITHJACK','With Jack'],['WITHBECKI','With Becki'],['AMZCHASE','Jack chasing Amazon']]
@@ -2442,6 +2462,15 @@ function renderAdmin(){
                     </div>
                   </div>`;
                 }
+                if(i.partShip)return `<div class="csNow">
+                  <div class="csNowCap" style="color:#fb923c;">Some went &mdash; the rest never followed</div>
+                  <div class="csNowTxt">Still on the shelf, or sent under another SKU?</div>
+                  <div class="csActs">
+                    <button class="csAct go" onclick="wentOutUnder('${i.rid}')" title="They went out on another SKU's shipment — record it here; you then confirm it in Seller Central">Went out under another SKU&hellip;</button>
+                    <button class="csAct plain" onclick="openSorted('${i.rid}')" title="The full Close-off popup — every outcome">Close it off another way&hellip;</button>
+                  </div>
+                  <div class="tfuGuide">Becki sees the same question on the Prep Sheet row &mdash; if the units are still here she sends them and this clears itself.</div>
+                </div>`;
                 if(i.query||i.partOverdue){
                   const Q=i.query||{got:i.got,exp:i.units,ask:`${i.got} of ${i.units} arrived ${i.partSince} — the rest has not followed`,note:''};
                   return `<div class="csNow">
@@ -2475,6 +2504,24 @@ function renderAdmin(){
                        outcome buttons until it has one — "replacement coming"
                        with no date is exactly how one gets forgotten. */
                     const dflt=new Date(Date.now()+((st.date&&st.date.days)||7)*864e5).toISOString().split('T')[0];
+                    /* Jack, 11 Sep, SanDisk/Canon/Philips: "the promised date was the
+                       10th — the first question should be HAS IT ARRIVED?" */
+                    if(i.caseC.step==='due-date'&&set&&!(typeof _parkedOnDate==='function'&&_parkedOnDate(_rowById(i.rid)))){
+                      const _amz=(typeof _amazonRow==='function')&&_amazonRow(_rowById(i.rid));
+                      return `<div class="csNow">
+                    <div class="csNowCap" style="color:#f87171;">The promised date has passed — ${esc(_dmy(i.expDate))}</div>
+                    <div class="csNowTxt">Has it arrived?</div>
+                    <div class="csActs">
+                      <button class="csAct good" onclick="caseGo('${i.rid}','_close','due-date')" title="It turned up — close it off (the popup opens filled in)">Yes &mdash; it&rsquo;s here</button>
+                      <button class="csAct warn" onclick="slipStillNothing('${i.rid}')" title="${_amz?'Nothing booked in — Jack checks the account: delivered? refunded? wrong SKU?':'Nothing booked in — chase the supplier'}">No &mdash; still nothing</button>
+                    </div>
+                    <div class="tfuGuide">${_amz?'Still nothing → Jack checks the Amazon account (delivered, refunded, or gone out under another SKU) and it comes back with his answer.':'Still nothing → chase the supplier for a date or a refund.'}</div>
+                    <div class="csDate" style="margin-top:6px;">
+                      <span class="csDateL">${_amz?'Amazon':'They'} gave a new date?</span>
+                      <input type="date" id="cd_${i.rid}" value="" min="2024-01-01" max="2030-12-31">
+                      <button class="csAct plain" style="width:100%;" onclick="caseDate('${i.rid}',(document.getElementById('cd_${i.rid}')||{}).value)" title="Parks it again until that date">Park it on this date</button>
+                    </div></div>`;
+                    }
                     return `<div class="csNow">
                     <div class="csNowCap">Next step</div>
                     <div class="csNowTxt" title="${esc(st.why||'')}">${esc(st.now)}</div>

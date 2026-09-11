@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v50.8 · lav3 · 2026-09-10 · b568';
+const BUILD='v51.1 · lav3 · 2026-09-11 · b571';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist

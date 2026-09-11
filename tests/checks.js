@@ -258,6 +258,38 @@ window.PrepChecks=(function(){
     ok(onSarahActive(slip),'on Sarah’s active list');eq(slip.resolution.state,'working','healed to a live chase');
   };
 
+  /* 21 · the 48-hour part-arrival clock puts the row on Sarah's list; a snooze takes it off everyone's */
+  S['part arrived — the rest never followed']=async()=>{
+    const ago=n=>new Date(Date.now()-n*864e5).toISOString();
+    const fresh=mkRow({exp:10,rcvd:8,ship:8,status:'Part Sent',date:'01/09',rcvdAt:ago(0.2)});
+    eq(_rowOwner(fresh).owner,'none','just landed → nobody yet');ok(!onSarahActive(fresh),'not on Sarah’s yet');
+    const old=mkRow({exp:10,rcvd:8,ship:8,status:'Part Sent',date:'01/09',rcvdAt:ago(5)});
+    eq(_rowOwner(old).owner,'sarah','2 working days on → Sarah');ok(onSarahActive(old),'on Sarah’s list');
+    old.chaseSnoozeUntil=new Date(Date.now()+3*864e5).toISOString();
+    eq(_rowOwner(old).owner,'none','snoozed → nobody’s');ok(!onSarahActive(old),'off her list while snoozed');
+  };
+
+  /* 22 · a slipped promised date asks "Has it arrived?" first; "still nothing" on an Amazon row goes to Jack */
+  S['slipped date — Has it arrived? then Jack']=async()=>{
+    const d=n=>{const x=new Date();x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
+    const r=mkRow({exp:2,expectedDelivery:d(-1),resolution:{state:'working',kind:'check',what:'jack-check',ask:'Check whether this order actually arrived',by:'Sarah',at:iso(),chase:{path:'never-arrived',step:'due-date',due:d(-1),log:[]}}});
+    who('Sarah');goPage('admin');renderAdmin();await wait(200);
+    const btn=[...document.querySelectorAll('#page-admin button')].find(b=>(b.getAttribute('onclick')||'').includes("slipStillNothing('"+r.uuid+"')"));
+    ok(btn,'"No — still nothing" is offered');ok(/Has it arrived\?/.test(btn.closest('.csNow').textContent),'the first question is Has it arrived?');
+    await slipStillNothing(rid(r));
+    eq(r.resolution.state,'asked','sent to Jack');ok(onJack(r),'on Jack’s page');ok(!onSarahActive(r),'off Sarah’s active list');
+  };
+  /* 23 · part shipped, the rest never followed → Sarah; "went out under another SKU" records it and closes the row */
+  S['part shipped — the rest never followed → another SKU']=async()=>{
+    const r=mkRow({exp:70,rcvd:70,ship:23,status:'Part Sent',date:'25/08',sentDate:'2026-08-27',shipSegments:[{shipId:'FBA-CHK-OLD',units:23,date:'2026-08-27',type:'Standard'}],allShipIds:['FBA-CHK-OLD']});
+    eq(_rowOwner(r).owner,'sarah','the remainder never followed → Sarah');ok(onSarahActive(r),'on Sarah’s list');
+    ok(_partShipStale(r),'the row tag shows for Becki');
+    who('Becki');await _wentOutGo(r,'Tesco_CHK_OLD','FBA-CHK-OLD',47);
+    eq(parseInt(r.ship),70,'all 70 recorded as shipped');eq(r.status,'Sent to Amazon','status follows');ok(/went out under Tesco_CHK_OLD/.test(r.notes),'packing note says so');
+    ok(VA_ACTIONS.some(a=>String(a.rid)===r.uuid&&/Seller Central/.test(a.task)),'Sarah gets the Seller Central job');
+    ok(_rowOwner(r).finished,'finished');ok(!onSarahActive(r),'off her list');
+  };
+
   async function run(only){
     R.length=0;const t0=Date.now();
     for(const name of Object.keys(S)){
