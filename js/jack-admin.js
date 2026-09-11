@@ -675,8 +675,10 @@ async function askSend(){
      card" came from. It is Sarah's finding, so it is a VA note. */
   if(note){
     const d=new Date(),dd=_ddUK(d);
-    r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${dd} → Jack: ${note}`;
-    r.vaNoteBy=_who();r.vaNoteAt=new Date().toISOString();
+    /* Jack, 10 Sep 22:13: "I'm pretty sure she didn't write that" — the note she
+       types for HIM was being copied into the VA Note column as if she had
+       written it there. It lives on the resolution: his card and her row show
+       it. The column is hers to write in. (8 Sep echo removed.) */
   }
   r._dirty=true;
   askShut();

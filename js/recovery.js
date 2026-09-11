@@ -915,6 +915,7 @@ function jackTodo(){
      date on the Prep Sheet." A promised date that has not passed parks the
      row — however the date got there. It returns by itself if it slips. */
   const checks=rows.filter(r=>r.resolution&&r.resolution.state==='asked'&&!_parkedOnDate(r)
+    &&!(r.resolution.chase&&r.resolution.chase.step==='due-date'&&r.expectedDelivery)   /* a slipped date is Sarah's chase, not his question */
     &&!(typeof _rowOwner==='function'&&_rowOwner(r).finished));   /* v50.5: the one owner rule */
   /* Jack, 5 Sep: qty fixes are read-and-wave-through — they vanish on their
      own after a week so they cannot pile up */

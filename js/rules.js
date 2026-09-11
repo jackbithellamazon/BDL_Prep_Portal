@@ -63,6 +63,8 @@ function _rowOwner(r){
   if(st==='approved')return{owner:'none',finished:true,why:'closed: '+(res.what||'')};
   /* parked on a promised delivery date — off every list until the date slips (Jack, 7 Sep) */
   if(typeof _parkedOnDate==='function'&&_parkedOnDate(r))return{owner:'none',finished:false,why:'parked on a promised date — comes back by itself if it slips'};
+  /* a promised date that has slipped is a chase — Sarah's, whoever put the date on */
+  if(st==='asked'&&res.chase&&res.chase.step==='due-date'&&r.expectedDelivery)return{owner:'sarah',finished:false,why:'the promised date slipped — Sarah chases'};
   /* a live question to Jack outranks the claim paperwork on the same row */
   if(st==='asked')return{owner:'jack',finished:false,why:'with Jack: '+(res.ask||'check')};
   /* an open claim on the row (damage, short, gated…) is somebody's job even when the stock itself is fine */

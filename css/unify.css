@@ -965,3 +965,29 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 #page-settings [style*="font-size:9px"]{font-size:10.5px!important;}
 #page-settings [style*="font-size:10px"]{font-size:11px!important;}
 #page-settings [style*="font-size:10.5px"]{font-size:11px!important;}
+
+/* Jack, 10 Sep 22:11: "loads of dead space — redo table, columns". Three
+   side-by-side columns meant the story column was 60% air on a wide screen
+   and a two-button card was as tall as its product name. One column, three
+   bands: who/what on one line, the story, then the buttons wrapping to fit. */
+.jkCard{grid-template-columns:minmax(0,1fr)!important;}
+.jkC1{display:flex;flex-wrap:wrap;align-items:center;gap:3px 14px;padding:8px 14px 7px;border-right:none;border-bottom:1px solid var(--border);}
+.jkC1 .jkTop{margin:0;gap:8px;flex:0 0 auto;}
+.jkC1 .jkTop .jkBy{margin-left:0;}
+.jkC1 .jkProd{flex:1 1 300px;min-width:220px;-webkit-line-clamp:1;font-size:13px;line-height:1.3;}
+.jkC1 .jkIds,.jkC1 .jkOrd,.jkC1 .jkAge,.jkC1 .jkNag{margin:0;flex:0 1 auto;}
+.jkC1 .jkAge{font-size:10.5px;color:var(--text3);}
+.jkC1 .jkNag{font-size:10.5px;}
+.jkC1 .jkMoney{margin:0 0 0 auto;flex:0 0 auto;gap:6px 8px;}
+.jkC1 .jkMoney .tfuVal{font-size:14px;}
+.jkC2{padding:8px 14px 9px;}
+.jkC2 .jkWhySub{margin:2px 0 5px;}
+.jkC3{border-left:none;border-top:1px solid var(--border);padding:8px 14px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;}
+.jkC3 .jkWhere{flex:1 1 100%;margin:0 0 2px;}
+.jkC3 .jkQsub{display:inline;margin-left:8px;}
+.jkC3 .csActs{display:flex!important;flex-direction:row!important;flex-wrap:wrap;gap:6px 8px;width:100%;grid-template-columns:none;}
+.jkC3 .csAct{width:auto;flex:0 1 auto;min-width:140px;max-width:360px;padding:7px 14px;min-height:32px;}
+.jkC3 .csActs>.csAct:last-child:nth-child(odd){grid-column:auto;}
+.jkC3 .jkAnsBox,.jkC3 .amzDateBox{flex:1 1 100%;}
+.jkC3 .jkAnsDate{flex:0 0 auto;}
+@media(max-width:1180px){.jkC3{border-top:1px solid var(--border);}}

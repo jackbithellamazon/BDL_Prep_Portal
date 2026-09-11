@@ -474,6 +474,7 @@ function setSettingsTab(k,btn){
 }
 function goPage(n,btn){
   try{paintJackBadge();}catch(e){}
+  try{hideRowTip();}catch(e){}   /* a hover tip from the last page never follows you */
   document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('on'));
   /* Issues no longer has a sidebar button of its own, so it is now reachable
      from a link with no button to highlight. */

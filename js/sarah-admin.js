@@ -37,7 +37,10 @@ function _adminItems(){
     }
     const days=rowAgeDate&&!isNaN(rowAgeDate)?Math.floor((today-rowAgeDate)/864e5):0;
     const expDate=r.expectedDelivery?new Date(r.expectedDelivery):null;
-    const expPassed=!expDate||today>expDate;
+    /* one definition of "the promised date has passed" (checks' audit caught two):
+       a promise of the 10th holds all day on the 10th and slips on the 11th —
+       the same rule _parkedOnDate uses for Jack's page and the owner rule */
+    const expPassed=!expDate||!(typeof _parkedOnDate==='function'&&_parkedOnDate(r));
     const isSubSave=r.subSave==='Yes';
     /* Jack, 4 Sep: letting Part Sent through the status gate was not enough —
        "stuck" itself demanded In-Transit, so a Part Sent row with nothing
@@ -65,6 +68,15 @@ function _adminItems(){
        nothing leaves the queue on the VA's say-so alone. Approved rows keep
        everything they had; they just stop being someone's job. This is what
        stops rows sitting at 94 days with nobody able to do anything about them. */
+    /* Jack, 10 Sep 22:13 (three Amazon Germany rows parked on the 10th): "they
+       go on Sarah's sheet then, don't they?" Yes — a promised date that slips
+       is a chase, and chasing is hers, whoever put the date on. */
+    if(r.resolution&&r.resolution.state==='asked'&&r.resolution.chase&&r.resolution.chase.step==='due-date'&&expDate&&expPassed){
+      const _ch=r.resolution.chase;_ch.step='due-date';_ch.due=r.expectedDelivery||_ch.due||'';
+      _ch.log=(_ch.log||[]).concat([{at:new Date().toISOString(),by:'PrepHub',what:'The promised date passed with nothing booked in — back with Sarah to chase'}]);
+      r.resolution=Object.assign({},r.resolution,{state:'working',slippedAt:new Date().toISOString(),chase:_ch});
+      r._dirty=true;debounce('slip_'+(r.uuid||r.id),()=>saveRow(r),2000);
+    }
     if(r.resolution&&r.resolution.state==='approved'&&r.resolution.what==='in-transit'&&expDate&&expPassed){
       /* Parked on a promised date by "Amazon says it'll arrive…" — and once
          that date passed nothing ever looked again, so the row was gone for
@@ -675,7 +687,7 @@ function _prepRowLate(r){
   const after=r.subSave==='Yes'?TM.ssLateDays:TM.lateDays;
   if(days<=after)return false;
   const exp=r.expectedDelivery?new Date(r.expectedDelivery):null;
-  if(exp&&!isNaN(exp)&&today<exp)return false;
+  if(exp&&!isNaN(exp)&&typeof _parkedOnDate==='function'&&_parkedOnDate(r))return false;   /* promised day still running — one rule everywhere */
   return true;
 }
 const TM_DEF={lateDays:20,ssLateDays:35,partDays:2,refundDays:30,caseWorkDays:5,queryRedDays:2,undoHours:48,recListedAmber:46,recListedRed:90,recUnlistedAmber:14,recUnlistedRed:30};

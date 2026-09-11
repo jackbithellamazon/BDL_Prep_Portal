@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v50.6 · lav3 · 2026-09-10 · b566';
+const BUILD='v50.8 · lav3 · 2026-09-10 · b568';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -2520,7 +2520,7 @@ function vOverview(){
   const unlinked=D.purchases.filter(p=>['none','broken'].includes(allocState(p).k)).length;
 
   const RAIL={'var(--grn)':'c-grn','var(--red)':'c-red','var(--blu)':'c-blue','var(--amb)':'c-amb','var(--vio)':'c-vio','var(--accent)':'c-acc'};
-  const kpi=(k,v,s,col,click)=>`<div class="kpi ${RAIL[col]||'c-acc'} ${click?'clk':''}" ${click?`onclick="${click}"`:''}>
+  const kpi=(k,v,s,col,click,on)=>`<div class="kpi ${RAIL[col]||'c-acc'} ${click?'clk':''}${on?' on':''}" ${click?`onclick="${click}"`:''}>
     <div class="k">${k}</div><div class="v" style="color:${col||'var(--text)'}">${v}</div><div class="s">${s}</div></div>`;
 
   /* OUT OF STOCK — the only list that actually stops work */
@@ -2616,6 +2616,9 @@ function vOverview(){
   const pri=a=>a.k.startsWith('send_')?0:a.k.startsWith('part_')?1:a.k.startsWith('arr_')?2:a.k.startsWith('buy_')?3:4;
   todo.sort((a,b)=>order[a.band]-order[b.band]||pri(a)-pri(b)||(b.money||0)-(a.money||0));
   const nB=b=>todo.filter(a=>a.band===b).length;
+  /* Jack, 10 Sep: "make the KPIs interactive — clickable like filters". One
+     press shows only that band; pressing it again shows everything. */
+  const _only=_acOnly;
   const row=a=>`<div class="acRow" style="border-left-color:${a.col};">
       <div class="acMain"><div class="acDo">${a.do}</div>${a.why?`<div class="acWhy">${a.why}</div>`:''}
         ${a.parts?`<details class="acParts"><summary>${fmt(a.parts.length)} part${a.parts.length===1?'':'s'} — log or set aside one at a time ▾</summary>${a.parts.map(L=>`<div class="acPart"><span class="acPartName">${esc(L.o.name)}</span><b>${fmt(L.buyQty)}${(L.cases&&L.caseQty>1)?` <small>${fmt(L.cases)} × ${fmt(L.caseQty)}</small>`:''}</b><span class="ovMoney sm">${gbp(L.cost||0)}</span>${L.buyByDays<0?`<span class="ovChip" style="color:#ef4444;border-color:#ef444455;background:#ef44441a;">${fmt(-L.buyByDays)}d overdue</span>`:''}<span class="ovGap"></span><button class="btn sm" onclick="LV3.openLogOrder('${L.o.id}')">Log order</button><button class="btn sm ghost" onclick="LV3.buySkipSet('${L.o.id}','skip')" title="Not buying this again — until its stock changes">Not reordering</button></div>`).join('')}</details>`:''}
@@ -2627,7 +2630,7 @@ function vOverview(){
         <button class="btn sm ghost" title="Pick the day it should come back" onclick="LV3.acSnooze('${a.k}','pick',this)">&hellip;</button>
         <button class="btn sm ok" title="Done — it leaves the list and stays gone. Nothing checks the Purchase Sheet." onclick="LV3.wlTick('${a.k}')">DONE</button>
       </div></div>`;
-  const sections=BANDS.map(([b,lab,col,sub])=>{const g=todo.filter(a=>a.band===b);if(!g.length)return '';
+  const sections=BANDS.map(([b,lab,col,sub])=>{if(_only&&b!==_only)return '';const g=todo.filter(a=>a.band===b);if(!g.length)return '';
     return `<details class="acSec" id="ac-${b}" ${b!=='wait'?'open':''}><summary><span class="acSecLab" style="color:${col}">${lab}</span><span class="acSecN" style="color:${col};border-color:${col}55;background:${col}1a;">${fmt(g.length)}</span><span class="ovDim">${sub}</span></summary>${g.map(row).join('')}</details>`;}).join('');
   const buyFoot=(M.onWay.length||M.skipped.length)?`<div class="ovFoot">
       ${M.onWay.length?`<span>Already on order — nothing to do: ${esc(M.onWay.slice(0,5).map(L=>L.o.name).join(', '))}${M.onWay.length>5?' +'+(M.onWay.length-5):''}</span>`:''}
@@ -2645,10 +2648,10 @@ function vOverview(){
     </details>`;
   $('lav3View').innerHTML=`
   <div class="kpis">
-    ${kpi('Late',fmt(nB('late')),nB('late')?'should already have happened':'nothing late',nB('late')?'var(--red)':'var(--grn)',"ppGo('ac-late')")}
-    ${kpi('Today',fmt(nB('today')),nB('today')?'do these first':'nothing due today',nB('today')?'var(--amb)':'var(--grn)',"ppGo('ac-today')")}
-    ${kpi('Next 3 days',fmt(nB('soon')),nB('soon')?'becoming urgent':'clear','var(--accent)',"ppGo('ac-soon')")}
-    ${kpi('This week',fmt(nB('week')),nB('week')?'plan them in':'clear','var(--blu)',"ppGo('ac-week')")}
+    ${kpi('Late',fmt(nB('late')),_only==='late'?'showing only these — press again for all':(nB('late')?'should already have happened':'nothing late'),nB('late')?'var(--red)':'var(--grn)',"LV3.acOnly('late')",_only==='late')}
+    ${kpi('Today',fmt(nB('today')),_only==='today'?'showing only these — press again for all':(nB('today')?'do these first':'nothing due today'),nB('today')?'var(--amb)':'var(--grn)',"LV3.acOnly('today')",_only==='today')}
+    ${kpi('Next 3 days',fmt(nB('soon')),_only==='soon'?'showing only these — press again for all':(nB('soon')?'becoming urgent':'clear'),'var(--accent)',"LV3.acOnly('soon')",_only==='soon')}
+    ${kpi('This week',fmt(nB('week')),_only==='week'?'showing only these — press again for all':(nB('week')?'plan them in':'clear'),'var(--blu)',"LV3.acOnly('week')",_only==='week')}
   </div>
   <div class="panel acPanel">
     <div class="ph"><span class="t">Action centre</span><span class="sub">${fmt(todo.length)} thing${todo.length===1?'':'s'} · work top to bottom · DONE means done · Snooze brings it back later</span>
@@ -6170,6 +6173,8 @@ function lavLateList(){
     });
   }catch(e){return [];}
 }
+let _acOnly='';
+function acOnly(b){_acOnly=(_acOnly===b)?'':b;render();}
 function ppGo(id){
   const e=document.getElementById(id);
   if(e){e.scrollIntoView({behavior:'smooth',block:'start'});
@@ -10280,7 +10285,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
   openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,setHWho,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,orderState,ordQty,rcvdQty,outQty,
   sendBy,sendState,primeDays,setPrimeDays,workDaysBefore,workDaysBetween,
-  undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
+  undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,localDT,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,

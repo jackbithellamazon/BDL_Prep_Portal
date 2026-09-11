@@ -795,6 +795,12 @@ function hideRowTip(){
   const div=document.getElementById('_rowTip');
   if(div)div.style.display='none';
 }
+/* Jack, 10 Sep: a Prep Sheet product tooltip was still floating over the
+   Lavarion Purchases page — the row under the mouse was re-rendered or the
+   page changed, so no mouseleave ever fired. Anything that moves the page
+   hides it. */
+['scroll','wheel','click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,hideRowTip,true));
+document.addEventListener('mouseout',e=>{if(!e.relatedTarget)hideRowTip();});
 document.addEventListener('DOMContentLoaded',()=>{
   const inp=document.getElementById('shipIdModalInput');
   if(inp){

@@ -248,6 +248,16 @@ window.PrepChecks=(function(){
     }finally{LV3.supplierIssues=o1;LV3.setSupplierIssueField=o2;LV3.logSupplierIssue=o3;}
   };
 
+  /* 20 · a promised date parks the row for everyone; when it slips it is Sarah's chase, not Jack's question */
+  S['promised date — parked, then slips to Sarah']=async()=>{
+    const d=n=>{const x=new Date();x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
+    const park=mkRow({exp:3,expectedDelivery:d(3),resolution:asked({chase:{path:'never-arrived',step:'due-date',due:d(3),log:[]}})});
+    eq(_rowOwner(park).owner,'none','future date → nobody’s list');ok(!onJack(park),'not on Jack’s');ok(!onSarahActive(park),'not on Sarah’s');
+    const slip=mkRow({exp:3,expectedDelivery:d(-1),resolution:asked({chase:{path:'never-arrived',step:'due-date',due:d(-1),log:[]}})});
+    eq(_rowOwner(slip).owner,'sarah','slipped date → Sarah');ok(!onJack(slip),'not on Jack’s page');
+    ok(onSarahActive(slip),'on Sarah’s active list');eq(slip.resolution.state,'working','healed to a live chase');
+  };
+
   async function run(only){
     R.length=0;const t0=Date.now();
     for(const name of Object.keys(S)){
