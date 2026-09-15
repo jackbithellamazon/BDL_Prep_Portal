@@ -499,6 +499,7 @@ async function countInSave(){
   if(!r||!(n>0)){toast('Enter how many were counted in','er');return;}
   _ciCtx=null;
   cm('countInModal');
+  if(n!==(parseInt(r.rcvd)||0))r.rcvdAt=new Date().toISOString();   /* the part-arrival clock starts here too */
   r.rcvd=n;r.delivered='Yes';r.status=val;r._dirty=true;
   logAudit('Counted in',`${r.sku||r.asin||''} — ${n} of ${r.exp||0} · status ${val}`);
   try{await saveRow(r);}catch(e){toast('Didn\'t save — check the connection','er');}

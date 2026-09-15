@@ -914,6 +914,8 @@ function jackTodo(){
   /* Jack, 7 Sep: "it should clear off both mine and Sarah's sheet, with the
      date on the Prep Sheet." A promised date that has not passed parks the
      row — however the date got there. It returns by itself if it slips. */
+  rows.forEach(r=>{try{if(typeof _stockAnsweredCheck==='function'&&_stockAnsweredCheck(r))debounce('stockans_'+(r.uuid||r.id),()=>saveRow(r),1500);}catch(e){}
+    try{if(typeof _recoveryFiled==='function'&&_recoveryFiled(r))debounce('recfiled_'+(r.uuid||r.id),()=>saveRow(r),1500);}catch(e){}});
   const checks=rows.filter(r=>r.resolution&&r.resolution.state==='asked'&&!_parkedOnDate(r)
     &&!(r.resolution.chase&&r.resolution.chase.step==='due-date'&&r.expectedDelivery)   /* a slipped date is Sarah's chase, not his question */
     &&!(typeof _rowOwner==='function'&&_rowOwner(r).finished));   /* v50.5: the one owner rule */

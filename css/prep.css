@@ -144,3 +144,6 @@ tbody tr:hover .row-acts{opacity:1;}
 .ra{width:22px;height:22px;border-radius:3px;border:1px solid var(--border2);background:none;color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;transition:all .15s;}
 .ra.g:hover{border-color:var(--green);color:var(--green);}
 .ra.r:hover{border-color:var(--red);color:var(--red);}
+
+/* the Issues column says whose the row is (Jack, 15 Sep) */
+.ownTag{display:inline-block;margin-top:4px;padding:2px 8px;border:1px solid;border-radius:9px;font-size:10px;font-weight:800;letter-spacing:.03em;white-space:nowrap;background:rgba(255,255,255,.03);}

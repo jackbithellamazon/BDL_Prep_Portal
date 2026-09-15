@@ -690,7 +690,7 @@ function lavLateToJack(key,note){
 }
 /* Sarah's "Done" on a job Jack sent: one line back on what she found */
 function lavLateDoneBox(key,btn){
-  const host=btn&&btn.closest('td');if(!host)return;
+  const host=btn&&(btn.closest('.jkC3')||btn.closest('td'));if(!host)return;
   const k=String(key).replace(/\\/g,'\\\\').replace(/'/g,"\\'");  /* esc1 lives inside the renderers, not here */
   host.innerHTML=`<div class="jkAnsBox" data-jk-edit="1" style="align-items:stretch;">
     <div class="jkAnsT">What did you find?</div>
@@ -717,7 +717,7 @@ function lavLateNewDate(key,v){
    something on it — chase, check the invoice, ring them — he writes the job
    here and it lands on her Admin with his note; Done brings it back to him. */
 function lavLateSarahBox(key,btn){
-  const td=btn&&btn.closest('td');if(!td)return;
+  const td=btn&&(btn.closest('.jkC3')||btn.closest('td'));if(!td)return;
   const k=String(key).replace(/\\/g,'\\\\').replace(/'/g,"\\'");  /* esc1 lives inside the renderers, not here */
   td.innerHTML=`<div class="jkAnsBox" data-jk-edit="1">
     <div class="jkAnsT">What do you need Sarah to do?</div>
@@ -740,7 +740,7 @@ function lavLateToSarah(key,note){
   renderJack();try{renderAdmin();}catch(e){}
 }
 function lavIssueSarahBox(key,btn){
-  const td=btn&&btn.closest('td');if(!td)return;
+  const td=btn&&(btn.closest('.jkC3')||btn.closest('td'));if(!td)return;
   const k=String(key).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   td.innerHTML=`<div class="jkAnsBox" data-jk-edit="1">
     <div class="jkAnsT">What do you need Sarah to do?</div>

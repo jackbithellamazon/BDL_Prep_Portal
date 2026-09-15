@@ -21,6 +21,9 @@ function _adminItems(){
     if(r.archived)return;
     /* v50.5: the one owner rule (js/rules.js) decides "finished" for every page —
        a finished row is nobody's job here, whatever the older tests below say. */
+    /* a question about missing stock that the stock has answered — filed, off both pages */
+    try{if(typeof _stockAnsweredCheck==='function'&&_stockAnsweredCheck(r))debounce('stockans_'+(r.uuid||r.id),()=>saveRow(r),1500);}catch(e){}
+    try{if(typeof _recoveryFiled==='function'&&_recoveryFiled(r)){debounce('recfiled_'+(r.uuid||r.id),()=>saveRow(r),1500);return;}}catch(e){}
     try{if(typeof _rowOwner==='function'&&_rowOwner(r).finished)return;}catch(e){}
     const _partShip=(typeof _partShipStale==='function')&&_partShipStale(r);   /* some went, the rest never followed — Sarah asks the warehouse */
     // Mirror the Prep Sheet colour logic so this stays in lock-step with it.
@@ -757,7 +760,7 @@ let FOLLOW_UPS=[
   'No further action required',
   'Other'
 ];
-const _RES_EXTRA={'qty-fixed':'Sheet quantity corrected — nothing was missing',
+const _RES_EXTRA={'stock-answered':'All booked in — the stock answered it','qty-fixed':'Sheet quantity corrected — nothing was missing',
   'jack-check':'With Jack','amz-missing':'Amazon say delivered — not on the shelves','amz-claim':'Amazon claim'};
 const _resText=v=>(RESOLUTIONS.find(x=>x.v===v)||{}).t||_RES_EXTRA[v]||v||'—';
 const _resClaim=v=>!!(RESOLUTIONS.find(x=>x.v===v)||{}).claim;

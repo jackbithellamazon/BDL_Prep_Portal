@@ -290,6 +290,34 @@ window.PrepChecks=(function(){
     ok(_rowOwner(r).finished,'finished');ok(!onSarahActive(r),'off her list');
   };
 
+  /* 24 · a card that asks for a date draws its date box (b572: the splitter kept only the buttons) */
+  S['late-order card has its date box']=async()=>{
+    who('Jack');goPage('jack');let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);renderJack();await wait(400);
+    const cards=[...document.querySelectorAll('.jkCard')].filter(k=>/LATE ORDER/.test((k.querySelector('.jkType')||{}).textContent));
+    if(!cards.length)return;   /* nothing late today — nothing to prove */
+    cards.forEach(k=>{ok(k.querySelector('input.jkAnsDate'),'the date box is on the card');ok([...k.querySelectorAll('button')].some(b=>/New date/.test(b.textContent)),'New date — done is there');});
+  };
+
+  /* 25 · a question about missing stock closes itself once all the stock is in */
+  S['stock answers an open question']=async()=>{
+    const r=mkRow({exp:10,rcvd:10,ship:0,status:'In Warehouse',resolution:asked()});
+    ok(!onJack(r),'not on Jack’s page');ok(!onSarahActive(r),'not on Sarah’s');
+    eq(r.resolution.state,'approved','filed');eq(r.resolution.what,'stock-answered','for the right reason');ok(_rowOwner(r).finished,'finished');
+    const p=mkRow({exp:10,rcvd:4,ship:0,status:'In-Transit',resolution:asked()});
+    ok(onJack(p),'still owed → still Jack’s question');
+  };
+
+  /* 26 · a gated row whose units went to Recovery Stock files itself; the Prep Sheet names whose a row is */
+  S['recovery files the old gated row · row state tag']=async()=>{
+    const r=mkRow({exp:1,rcvd:1,ship:0,status:'Issue',notes:'Gated'});
+    mkClaim({prepRowId:r.uuid,sku:r.sku,prod:r.prod,issT:'Gated',cst:'Resolved',oid:r.oid,log:[{t:'07/09 19:16',msg:'Sent to Recovery Stock — 1 × CHECK (Jack)'}]});
+    ok(_recoveryClaim(r),'the claim is recognised');ok(_rowStateTag(r)&&/Recovery/.test(_rowStateTag(r).t),'tag says Recovery');
+    _adminItems();ok(r.archived,'filed');ok(/Recovery Stock/.test(r.notes),'note says where it went');
+    const s=mkRow({exp:5,rcvd:0,date:'01/08',resolution:asked({state:'rejected',rejectNote:'x',rejectedBy:'Jack'})});
+    eq((_rowStateTag(s)||{}).t,'Jack answered — Sarah closes','tag says whose it is');
+    const j=mkRow({exp:5,rcvd:0,resolution:asked()});eq((_rowStateTag(j)||{}).t,'With Jack','with Jack');
+  };
+
   async function run(only){
     R.length=0;const t0=Date.now();
     for(const name of Object.keys(S)){

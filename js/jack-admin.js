@@ -98,6 +98,10 @@ function renderJack(){
   if(document.hidden||!_pageActive('page-jack')){_dirtyR.jack=true;return;}
   _dirtyR.jack=false;
   const _st=w.scrollTop||0;   /* a repaint must not throw him back to the top */
+  /* Jack, 15 Sep: 'not smooth' — whichever ancestor is actually scrolling (the
+     shell's main pane, not the wrap) must be put back where it was */
+  const _sc=[];{let _a=w.parentElement;while(_a){if(_a.scrollTop>0)_sc.push([_a,_a.scrollTop]);_a=_a.parentElement;}
+    const _de=document.scrollingElement||document.documentElement;if(_de&&_de.scrollTop>0)_sc.push([_de,_de.scrollTop]);}
   /* Jack, 17 Aug: "jack's admin needs a whole redesign — make it more table
      like, like Sarah's… way too much wasted space, but like the idea of having
      KPIs there." So: a slim KPI strip of real numbers, then ONE table in the
@@ -325,6 +329,10 @@ function renderJack(){
     const late=it.wait>=2&&it.kind!=='fix'&&!it.noNag;
     const _w=(String(it.acts).match(/<div class="jkWhere">[\s\S]*?<\/div>/)||[''])[0];
     const _b=(String(it.acts).match(/<button[\s\S]*?<\/button>/g)||[]);
+    /* Jack, 15 Sep: "New date — done not working" — the card kept only the
+       <button>s out of the action HTML, so the date box the button reads from
+       was never drawn. Inputs ride along, in front of their buttons. */
+    const _i=(String(it.acts).match(/<input[^>]*>/g)||[]);
     const _cl=(it.clog||[]).slice().reverse();const _open=_stOpen.has('jk:'+String(it.id));
     const _line=L=>`<div class="stLog"><span class="stLogWhen">${esc(_logWhen(L.at))}</span>${L.by?` · <b>${esc(L.by)}</b>`:''} — ${esc(L.what||'')}</div>`;
     const _r=(it.kind==='claim'||it.kind==='lav')?null:_rowById(it.id);
@@ -333,7 +341,7 @@ function renderJack(){
       it.fix?`<div class="tfuRaiseNote" style="color:#93c5fd;border-left-color:#60a5fa;">She suggests: ${esc(it.fix)}</div>`:'',
       it.expDate?(()=>{const aw=Math.round((new Date(it.expDate)-new Date())/864e5);const ds=new Date(it.expDate).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
         return `<div class="stExp" style="color:${aw<0?'#f87171':'#4ade80'};">&#128197; expected ${ds}${aw<0?` — slipped ${Math.abs(aw)}d ago`:aw===0?' — today':` — in ${aw}d`}</div>`;})():'',
-      _cl.length?(_open?_cl.map(_line).join(''):_line(_cl[0]))+(_cl.length>1?`<button class="stMore" data-rid="jk:${esc(String(it.id))}" onclick="stToggle(this,event)">${_open?'&#9652; Less':'&#9662; More · '+(_cl.length-1)+' earlier'}</button>`:''):'',
+      _cl.length?(_line(_cl[0])+(_cl.length>1?`<div class="stRest"${_open?'':' hidden'}>${_cl.slice(1).map(_line).join('')}</div><button class="stMore" data-rid="jk:${esc(String(it.id))}" data-n="${_cl.length-1}" onclick="jkMoreInPlace(this,event)">${_open?'&#9652; Less':'&#9662; More · '+(_cl.length-1)+' earlier'}</button>`:'')):'',
       it.kind==='claim'?`<div class="stExp" style="color:var(--text2);">${it.raisedDays!=null?`gated/raised ${it.raisedDays}d ago`:''}${it.units?` · ${fmt(it.units)} unit${it.units===1?'':'s'}`:''}${it.perUnit?` · ${fmtGBP2(it.perUnit)}/unit`:''}</div>`:'',
       (it.claimLog&&it.claimLog.length)?it.claimLog.map(L=>`<div class="stLog"><span class="stLogWhen">${esc(String(L.t||'').slice(0,17))}</span> — ${esc(L.msg||'')}</div>`).join(''):'',
       it.na?`<div class="stNext">&#10132; ${esc(it.na)}</div>`:'',
@@ -350,18 +358,20 @@ function renderJack(){
     return `<tr class="jkCardRow${late?' jkLate':''}"><td colspan="8">
       <div class="jkCard" style="border-left-color:${it.type[1]};">
         <div class="jkC1">
-          <div class="jkTop">
+          <div class="jkHead">
             <span class="jkNum">${x+1}</span>
             <span class="jkType" style="color:${it.type[1]};background:${it.type[1]}1a;border-color:${it.type[1]}50;" title="${esc(it.type[2])}">${it.type[0]}</span>
-            <span class="jkBy"><b>${esc(it.by)}</b> · ${it.wait===0?'today':it.wait+'d ago'}</span>
-          </div>
           <div class="jkProd" title="${esc(it.prod||'')}">${esc(it.prod)}</div>
+          <div class="jkMoney">${it.value?`<span class="tfuVal">${it.owedU?`<span class="jkUnits">${fmt(it.owedU)} unit${it.owedU===1?'':'s'}</span> `:''}${fmtGBP2(it.value)}</span>`:'<span style="color:var(--text3);font-size:12px;">no money at stake</span>'}
+            ${(it.left!==null&&it.left>=0&&it.left<=7)?`<span class="tfuClock" style="color:#ef4444;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.5);" title="The Amazon claim window on this order — it closes ${it.left===0?'today':'in '+it.left+' day'+(it.left===1?'':'s')}">${_claimWords(it.left)}</span>`:(it.left!==null&&it.left>=0)?`<span class="tfuClock" style="color:#94a3b8;background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.35);" title="The Amazon claim window on this order — it closes in ${it.left} days">${_claimWords(it.left)}</span>`:(it.left!==null&&it.left<0)?`<span class="tfuClock" style="color:#f87171;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.4);">claim window shut</span>`:''}</div>
+          </div>
+          <div class="jkMeta">
+            <span class="jkBy"><b>${esc(it.by)}</b> · ${it.wait===0?'today':it.wait+'d ago'}</span>
           ${(it.sku||it.asin)?`<div class="jkIds">${it.sku?`<span onclick="copyVal('${esc1(it.sku)}',this)" title="Click to copy">${esc(it.sku)}</span>`:''}${it.asin?`<span class="s-asin" style="font-size:10.5px;" onclick="copyVal('${esc1(it.asin)}',this)" title="Click to copy">${esc(it.asin)}</span>`:''}</div>`:''}
           <div class="jkOrd">${esc(it.sup||'—')}${it.oid?` · <span class="tfuOid" title="Click to copy" onclick="copyVal('${esc1(it.oid)}',this)">${esc(it.oid)}</span>`:''}${it.acct?` <span class="tfuAcct">${esc(it.acct)}</span>`:''}</div>
           ${it.age?`<div class="jkAge">Ordered ${it.odate?esc(it.odate)+' &middot; ':''}${it.age.days} day${it.age.days===1?'':'s'} ago${it.age.late>0?` &middot; <b style="color:#f87171;">${it.age.late} day${it.age.late===1?'':'s'} past the ${it.age.clock}-day late clock</b>`:it.age.late===0?' &middot; <b style="color:#fbbf24;">hits the late clock today</b>':` &middot; ${Math.abs(it.age.late)} day${Math.abs(it.age.late)===1?'':'s'} before it counts as late`}</div>`:''}
-          <div class="jkMoney">${it.value?`<span class="tfuVal">${it.owedU?`<span class="jkUnits">${fmt(it.owedU)} unit${it.owedU===1?'':'s'}</span> `:''}${fmtGBP2(it.value)}</span>`:'<span style="color:var(--text3);font-size:12px;">no money at stake</span>'}
-            ${(it.left!==null&&it.left>=0&&it.left<=7)?`<span class="tfuClock" style="color:#ef4444;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.5);" title="The Amazon claim window on this order — it closes ${it.left===0?'today':'in '+it.left+' day'+(it.left===1?'':'s')}">${_claimWords(it.left)}</span>`:(it.left!==null&&it.left>=0)?`<span class="tfuClock" style="color:#94a3b8;background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.35);" title="The Amazon claim window on this order — it closes in ${it.left} days">${_claimWords(it.left)}</span>`:(it.left!==null&&it.left<0)?`<span class="tfuClock" style="color:#f87171;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.4);">claim window shut</span>`:''}</div>
           ${late?`<div class="jkNag">Waiting on you for ${it.wait} days</div>`:''}
+          </div>
         </div>
         <div class="jkC2">
           <div class="jkWhy">${it.why}</div>
@@ -371,7 +381,7 @@ function renderJack(){
         </div>
         <div class="jkC3">
           ${_w}
-          <div class="csActs">${_b.join('')}</div>
+          <div class="csActs">${_i.join('')}${_b.join('')}</div>
         </div>
       </div>
     </td></tr>`;};
@@ -494,6 +504,7 @@ function renderJack(){
     `;/* Issues page killed — Jack, 30 Aug: "issues are split into Sarah Admin + Jack Admin. Remove it." */
   paintJackBadge();
   if(_st)w.scrollTop=_st;
+  _sc.forEach(([el,t])=>{try{el.scrollTop=t;}catch(e){}});
 }
 /* Jack, 7 Sep: "buggy — typed date and then it went off this page." A live
    event from another laptop (or his own echo) rebuilt the page under his
@@ -503,6 +514,15 @@ function renderJack(){
    repaint at once through renderJack(). */
 /* which cards have their extra answers showing — survives every repaint */
 const _jkOpen=new Set();
+/* Jack, 15 Sep: "isn't smooth" — More/Less used to repaint the whole page. */
+function jkMoreInPlace(btn,ev){
+  if(ev){ev.stopPropagation();ev.preventDefault();}
+  const k=String(btn.dataset.rid||'');const rest=btn.previousElementSibling;
+  if(!rest||!rest.classList.contains('stRest'))return;
+  const open=rest.hidden;rest.hidden=!open;
+  if(open)_stOpen.add(k);else _stOpen.delete(k);
+  btn.innerHTML=open?'&#9652; Less':'&#9662; More · '+(btn.dataset.n||'')+' earlier';
+}
 function jkMoreTog(btn,id){
   const p=btn&&btn.parentElement;if(!p)return;
   const open=p.classList.toggle('open');
@@ -760,7 +780,7 @@ async function unparkDate(rid){
   renderAdmin();try{renderPrep();}catch(e){}
 }
 function jackNoSplit(rid,btn){
-  const td=btn&&btn.closest('td');if(!td)return;
+  const td=btn&&(btn.closest('.jkC3')||btn.closest('td'));if(!td)return;
   /* Jack, 7 Sep: the three buttons sat on one line off the right edge of the
      cell — only the date box showed. Stack it, centre it, Enter saves. */
   td.innerHTML=`<div class="jkAnsBox" data-jk-edit="1">
@@ -885,7 +905,7 @@ function openQtyFixAnswered(rid){
     banner:`${by} checked the account: only ${fmt(to)} ${to===1?'was':'were'} ordered, the sheet says ${fmt(exp)}. Nothing is missing and nothing was cancelled — this corrects the row to ${fmt(to)} and puts the Purchase Sheet on Sarah's list.`});
 }
 function jackRestGone(rid,btn){
-  const td=btn&&btn.closest('td');if(!td)return;
+  const td=btn&&(btn.closest('.jkC3')||btn.closest('td'));if(!td)return;
   const r=_rowById(rid);if(!r)return;
   const got=parseInt(r.rcvd)||0,exp=r.exp||0,owed=Math.max(0,exp-got-(parseInt(r.cancelledQty)||0));
   td.innerHTML=`<div class="jkAnsBox" data-jk-edit="1">

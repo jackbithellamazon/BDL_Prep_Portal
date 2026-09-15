@@ -122,7 +122,9 @@ function renderPrepRows(data){
       r.status==='In Warehouse'?'📦 In Warehouse — ready to prep':
       r.status==='Delivered'?'✅ Delivered':
       r.pri==='Yes'?'⭐ Priority row':'';
+    const _recov=(typeof _recoveryClaim==='function')&&!!_recoveryClaim(r);
     const rowBorder=
+      _recov?'border-left:4px solid #c084fc!important;':
       _amzDel?'border-left:4px solid #22d3ee!important;':
       isStuck?'border-left:4px solid #ef4444!important;':
       _qOpen?'border-left:4px solid #94a3b8!important;':
@@ -215,6 +217,8 @@ function renderPrepRows(data){
         <button onclick="openIssueModal('${r.uuid||r.id}')" id="ib-${r.id}"
           style="padding:4px 10px;background:transparent;border:1px dashed var(--border2);color:var(--text3);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;min-width:32px;"
           title="Raise an issue against this row">+ issue</button>
+        ${(()=>{const _tg=(typeof _rowStateTag==='function')?_rowStateTag(r):null;   /* Jack, 15 Sep: "where are all of these?" — the row says whose it is */
+          return _tg?`<div class="ownTag" style="color:${_tg.col};border-color:${_tg.col}55;" title="${esc(_tg.tip||'')}">${esc(_tg.t)}</div>`:'';})()}
         ${(()=>{const _q=_ukQuery(r);const _rs=r.resolution||{};
           if(_isAmzDel(r))return `<div class="qryTag amz" title="Amazon say this was delivered. Found it on the shelves? Book it in and send it on the next shipment — the flag clears itself, nothing to press. Not here? Press the button and it goes to Jack to raise with Amazon.">Amazon say delivered — check the shelves</div>
             <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk qryNot" onclick="amzNotHere('${r.uuid||r.id}')" title="Checked the shelves, back stock and anywhere else — it is not here. It goes straight to Jack to raise with Amazon.">Not here</button></div>`;

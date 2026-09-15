@@ -13,6 +13,11 @@ function rowRules(r,ctx){
   const exp=parseInt(r.exp)||0;
   /* R1 · booking in clears the Amazon-says-delivered flag (was only on the Received cell) */
   try{if(typeof _amzFoundBySave==='function'&&_amzFoundBySave(r))notes.push('Amazon-says-delivered cleared — all booked in');}catch(e){}
+  /* R5 · the part-arrival clock needs to know WHEN the first units were counted.
+     Only the Received cell stamped it; the count-in box and the status dropdown
+     did not, so a part-arrived row could sit with no clock at all (L'Oréal PS_12,
+     15 Sep). A row with units in and no stamp gets one now — better late than never. */
+  if((parseInt(r.rcvd)||0)>0&&!r.rcvdAt){r.rcvdAt=new Date().toISOString();}
   /* R4 · received can never be below what has gone out on a shipment —
      units on a shipment IS saying they were here (matches the Received cell) */
   try{
@@ -81,6 +86,55 @@ function _partShipStale(r){
   if(!last)return false;
   const ms=(typeof _workMsSince==='function')?_workMsSince(String(last).slice(0,10)+'T12:00:00Z'):(Date.now()-new Date(last).getTime());
   return ms>=(TM.partDays||2)*24*3600e3;
+}
+/* Jack, 15 Sep, Gtech: "10 of 10 booked in — what happened to the other 0?"
+   A question about missing stock that the stock has since answered. Same rule
+   as the Becki flag: booking in clears it, nothing to press. Files the question
+   with a line on the row; never touches a proposed closure or an open claim. */
+function _stockAnsweredCheck(r){
+  const res=r&&r.resolution;if(!r||r.archived||!res)return false;
+  if(!['asked','rejected'].includes(res.state)||res.what!=='jack-check')return false;
+  const exp=parseInt(r.exp)||0;if(exp<=0||_owedUnits(r)>0)return false;
+  if(typeof _partShipStale==='function'&&_partShipStale(r))return false;
+  const now=new Date().toISOString();
+  const ch=res.chase||{path:'never-arrived',step:'',due:'',log:[]};
+  ch.log=(ch.log||[]).concat([{at:now,by:'PrepHub',what:`All ${fmt(exp)} booked in — the stock answered the question, nothing left to ask`}]);
+  ch.step='';
+  r.resolution=Object.assign({},res,{state:'approved',kind:'ops',what:'stock-answered',approvedBy:'PrepHub',approvedAt:now,chase:ch});
+  r._dirty=true;
+  try{logAudit('Question closed by the stock',`${r.sku||r.asin||''} — all ${fmt(exp)} booked in; the check sent ${res.by?'by '+res.by:''} is filed`);}catch(e){}
+  return true;
+}
+/* Jack, 15 Sep, Corsair: the gated claim went to Recovery Stock on 7 Sep and the
+   row stayed on the Prep Sheet (the Recovery fix on 10 Sep only covered new
+   ones). Derived from the claim's own log — nothing new stored. */
+function _recoveryClaim(r){
+  if(!r)return null;
+  return (typeof claims!=='undefined'?claims:[]).find(c=>c&&!c.archived&&String(c.prepRowId)===String(r.uuid||r.id)&&/gated/i.test(c.issT||'')&&c.cst==='Resolved'&&(c.log||[]).some(l=>/^Sent to Recovery Stock/.test(String(l.msg||''))))||null;
+}
+function _recoveryFiled(r){
+  if(!r||r.archived)return false;
+  const c=_recoveryClaim(r);if(!c)return false;
+  const left=(typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,(parseInt(r.rcvd)||0)-(parseInt(r.ship)||0));
+  if(left<=0)return false;
+  const when=((c.log||[]).find(l=>/^Sent to Recovery Stock/.test(String(l.msg||'')))||{}).t||'';
+  r.notes=((r.notes||'').trim()?(r.notes.trim()+'\n'):'')+`${_ddUK()}: ${fmt(left)} → Recovery Stock (gated${when?', '+when:''}) — filed`;
+  r.archived=true;r._dirty=true;
+  try{logAudit('Filed — units are in Recovery Stock',`${r.sku||r.asin||''} — ${fmt(left)} unit${left===1?'':'s'} · gated claim closed ${when}`);}catch(e){}
+  return true;
+}
+/* one short label for the Prep Sheet's Issues column — what the row is waiting on */
+function _rowStateTag(r){
+  const c=_recoveryClaim(r);if(c)return{t:'Gated → Recovery Stock',col:'#c084fc',tip:'The gated units went to Recovery Stock — this row is filed'};
+  const o=_rowOwner(r);
+  if(o.finished)return null;
+  if(o.owner==='jack')return{t:'With Jack',col:'#60a5fa',tip:o.why};
+  if(o.owner==='becki')return null;   /* the Becki flag already says it */
+  if(o.owner==='sarah'){const late=(typeof _prepRowLate==='function')&&_prepRowLate(r);
+    return{t:(/Jack answered/.test(o.why)?'Jack answered — Sarah closes':/part shipped/.test(o.why)?'Part shipped — Sarah':/part arrived/.test(o.why)?'Part arrived — Sarah':/slipped/.test(o.why)?'Date slipped — Sarah':/claim/.test(o.why)?'Claim — Sarah':late?'Late — Sarah chasing':'With Sarah'),col:late?'#f87171':'#fbbf24',tip:o.why};}
+  if(/parked/.test(o.why))return{t:'Parked — date '+(r.expectedDelivery?_dmy(r.expectedDelivery):''),col:'#94a3b8',tip:o.why};
+  if(/snoozed/.test(o.why))return{t:'Snoozed',col:'#94a3b8',tip:o.why};
+  return null;
 }
 function _rowOwner(r){
   if(!r)return{owner:'none',finished:true,why:'no row'};
