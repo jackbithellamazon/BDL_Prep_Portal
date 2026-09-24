@@ -24,6 +24,13 @@ function rowRules(r,ctx){
     const out=(typeof _sentOut==='function')?_sentOut(r):(parseInt(r.ship)||0);
     if(out>0&&(parseInt(r.rcvd)||0)<out){notes.push(`received raised ${parseInt(r.rcvd)||0} → ${out} to match what shipped`);r.rcvd=out;}
   }catch(e){}
+  /* R6 · the row's story is closed → a stale issue flag goes with it (Jack,
+     21 Sep: the GoPro still showed "Missing · 1" after the refund landed).
+     Outside the nothing-owed gate — a closed row keeps no flag either way. */
+  if(r.issueType&&r.issueType!=='—'&&r.resolution&&r.resolution.state==='approved'&&!_openClaims(r).length){
+    notes.push(`issue flag "${r.issueType}" cleared — the row is closed (${r.resolution.what||''})`);
+    r.issueType='';r.issueQty=0;
+  }
   if(exp>0&&!r.archived&&_owedUnits(r)===0){
     /* R2 · nothing owed → status follows the stock (Jack, 10 Sep, decision B).
        Never backwards, never touches Issue/Returned, never archives — archiving
@@ -131,10 +138,65 @@ function _rowStateTag(r){
   if(o.owner==='jack')return{t:'With Jack',col:'#60a5fa',tip:o.why};
   if(o.owner==='becki')return null;   /* the Becki flag already says it */
   if(o.owner==='sarah'){const late=(typeof _prepRowLate==='function')&&_prepRowLate(r);
-    return{t:(/Jack answered/.test(o.why)?'Jack answered — Sarah closes':/part shipped/.test(o.why)?'Part shipped — Sarah':/part arrived/.test(o.why)?'Part arrived — Sarah':/slipped/.test(o.why)?'Date slipped — Sarah':/claim/.test(o.why)?'Claim — Sarah':late?'Late — Sarah chasing':'With Sarah'),col:late?'#f87171':'#fbbf24',tip:o.why};}
+    return{t:(/^flagged/.test(o.why)?'Flagged — Sarah'
+      :/Jack answered/.test(o.why)?'Jack answered — Sarah closes':/part shipped/.test(o.why)?'Part shipped — Sarah':/part arrived/.test(o.why)?'Part arrived — Sarah':/slipped/.test(o.why)?'Date slipped — Sarah':/claim/.test(o.why)?'Claim — Sarah':late?'Late — Sarah chasing':'With Sarah'),col:late?'#f87171':'#fbbf24',tip:o.why};}
   if(/parked/.test(o.why))return{t:'Parked — date '+(r.expectedDelivery?_dmy(r.expectedDelivery):''),col:'#94a3b8',tip:o.why};
   if(/snoozed/.test(o.why))return{t:'Snoozed',col:'#94a3b8',tip:o.why};
   return null;
+}
+/* Jack, 21 Sep, Logitech: a red "Not Arrived · 2" flag sat on a live row with
+   its claim already resolved — so nobody had it and nothing happened. A flag IS
+   a report: while the row is live it is Sarah's; when the row's story closes the
+   flag goes (R6 below), the way a stale Late label does. */
+function _openClaims(r){
+  if(!r)return [];
+  return (typeof claims!=='undefined'?claims:[]).filter(c=>c&&!c.archived&&c.cst!=='Resolved'&&c.cst!=='Closed'&&String(c.prepRowId)===String(r.uuid||r.id));
+}
+function _liveFlag(r){
+  if(!r||r.archived)return '';
+  const t=String(r.issueType||'').trim();
+  if(!t||t==='—'||t==='None')return '';
+  if(_openClaims(r).length)return '';            /* the claim is the job, not the flag */
+  const res=r.resolution;
+  if(res&&res.state==='approved')return '';      /* the row's story is closed — R6 clears it */
+  return t;
+}
+/* Jack, 21 Sep, Logitech: HE raised the Not-Arrived claim and closed it "Refund
+   received" the same minute — the money was back and the row still sat at 0 of 2
+   In-Transit with a red flag on it. Closing the CLAIM never settled the ROW.
+   Units that were claimed as never-arrived and paid for are not coming: they come
+   off the row the same way a cancelled unit does, and the row files itself. */
+function _refundedClaims(r){
+  if(!r)return [];
+  return (typeof claims!=='undefined'?claims:[]).filter(c=>c&&!c.settledOnRow&&String(c.prepRowId)===String(r.uuid||r.id)
+    &&c.cst==='Resolved'&&/not arrived|missing/i.test(String(c.issT||''))
+    &&(c.outcome==='refunded'||(c.log||[]).some(l=>/^Refund received/i.test(String(l.msg||'')))));
+}
+function _claimSettledRow(r){
+  if(!r||r.archived)return false;
+  const owed=_owedUnits(r);if(owed<=0)return false;
+  const cs=_refundedClaims(r);if(!cs.length)return false;
+  let took=0;
+  cs.forEach(c=>{
+    const want=Math.min(Math.max(0,owed-took),parseInt(c.dif)||parseInt(c.exp)||owed);
+    if(want>0){r.cancelledQty=(parseInt(r.cancelledQty)||0)+want;took+=want;}
+    c.settledOnRow=new Date().toISOString();
+    try{saveClaim(c);}catch(e){}
+  });
+  if(!took)return false;
+  const now=new Date().toISOString();
+  const ch=(r.resolution&&r.resolution.chase)||{path:'never-arrived',step:'',due:'',log:[]};
+  ch.log=(ch.log||[]).concat([{at:now,by:'PrepHub',what:`${fmt(took)} unit${took===1?'':'s'} refunded on the claim — not coming, taken off the row`}]);
+  ch.step='';
+  r.resolution=Object.assign({},r.resolution||{},{state:'approved',kind:'ops',what:'refund-done',
+    approvedBy:'PrepHub',approvedAt:now,refundRaised:{by:(cs[0].raisedBy||'Jack'),at:cs[0].raisedAt||now},
+    refundUnits:took,moneyIn:{by:'claim',at:cs[0].resolvedAt||now},chase:ch});
+  r.issueType='';r.issueQty=0;
+  try{_statusFollowsStock(r);if(/^(Late|Urgent)/.test(String(r.transitAction||'')))r.transitAction='';}catch(e){}
+  r.notes=((r.notes||'').trim()?(r.notes.trim()+'\n'):'')+`${_ddUK()}: ${fmt(took)} refunded on the claim — off the row`;
+  r._dirty=true;
+  try{logAudit('Row settled by its claim',`${r.sku||r.asin||''} — ${fmt(took)} unit${took===1?'':'s'} refunded (claim closed ${cs[0].resolvedAt||''})`);}catch(e){}
+  return true;
 }
 function _rowOwner(r){
   if(!r)return{owner:'none',finished:true,why:'no row'};
@@ -142,7 +204,9 @@ function _rowOwner(r){
   const exp=parseInt(r.exp)||0,owed=_owedUnits(r);
   if(r.archived)return{owner:'none',finished:true,why:'filed'};
   if(st==='proposed')return{owner:'jack',finished:false,why:'closure proposed — Jack approves'};
-  if(st==='approved')return{owner:'none',finished:true,why:'closed: '+(res.what||'')};
+  /* Jack, 21 Sep, Cadbury: closed "arrived and correct" with 47 units still
+     sitting as to-send. Closing the ARRIVAL does not account for the units. */
+  if(st==='approved'&&!_partShipStale(r))return{owner:'none',finished:true,why:'closed: '+(res.what||'')};
   /* parked on a promised delivery date — off every list until the date slips (Jack, 7 Sep) */
   if(typeof _parkedOnDate==='function'&&_parkedOnDate(r))return{owner:'none',finished:false,why:'parked on a promised date — comes back by itself if it slips'};
   /* a promised date that has slipped is a chase — Sarah's, whoever put the date on */
@@ -163,6 +227,8 @@ function _rowOwner(r){
   if(st==='working')return{owner:'sarah',finished:false,why:'Sarah is chasing it'};
   if(_partOverdue(r))return{owner:'sarah',finished:false,why:'part arrived — the rest never followed within '+(TM.partDays||2)+' working days'};
   if(_partShipStale(r))return{owner:'sarah',finished:false,why:'part shipped — the rest never followed: still on the shelf, or sent under another SKU?'};
+  if(_refundedClaims(r).length&&_owedUnits(r)>0)return{owner:'none',finished:true,why:'refunded on the claim — the units are not coming'};
+  {const _fl=_liveFlag(r);if(_fl)return{owner:'sarah',finished:false,why:`flagged "${_fl}${(parseInt(r.issueQty)||0)?' · '+fmt(parseInt(r.issueQty)):''}" — nothing open on it`};}
   if(typeof _prepRowLate==='function'&&_prepRowLate(r))return{owner:'sarah',finished:false,why:'late — Sarah chases'};
   return{owner:'none',finished:false,why:'in transit — nothing to do yet'};
 }

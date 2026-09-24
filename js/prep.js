@@ -611,11 +611,25 @@ function _settleClosedUnits(r,what){
     if(r.resolution)r.resolution.wentAsQty=(parseInt(r.resolution.wentAsQty)||0)+owed;
     notes.push(`${fmt(owed)} accounted for on the other SKU${r.resolution&&r.resolution.wentAs?' ('+r.resolution.wentAs+')':''}`);owed=0;}
   else if((what==='cancelled'||what==='duplicate')&&owed>0){r.cancelledQty=cx+owed;notes.push(`${fmt(owed)} cancelled`);owed=0;}
+  /* Jack, 21 Sep: "can we just raise an issue and Sarah closes it off that
+     way?" Yes — but the close only ever settled units that never ARRIVED. On
+     the Cadbury all 70 arrived and 47 never SHIPPED: they went out under
+     another SKU, so they are not on this row's shelf to send either. Recorded
+     inside the resolution (no new column) and subtracted by sendableQty. */
+  let away=0;
+  if(what==='wrong-sku'||what==='cancel-wrong-sku'){
+    const left=(typeof remainingToShip==='function')?remainingToShip(r):0;
+    if(left>0&&r.resolution){
+      away=left;
+      r.resolution.elsewhereShipped=(parseInt(r.resolution.elsewhereShipped)||0)+left;
+      notes.push(`${fmt(left)} went out under ${(r.resolution.wentAs||'the other SKU')} — off this row's shelf`);
+    }
+  }
   if(owed===0){
     if(/^Late/.test(String(r.transitAction||'')))r.transitAction='';
     const _m=_statusFollowsStock(r);if(_m)notes.push(_m);
   }
-  const changed=before.rcvd!==(parseInt(r.rcvd)||0)||before.cx!==(parseInt(r.cancelledQty)||0)||before.status!==r.status||before.archived!==!!r.archived||before.ta!==(r.transitAction||'');
+  const changed=away>0||before.rcvd!==(parseInt(r.rcvd)||0)||before.cx!==(parseInt(r.cancelledQty)||0)||before.status!==r.status||before.archived!==!!r.archived||before.ta!==(r.transitAction||'');
   /* what the close did to the numbers, on the row itself — so a month from now
      the row still says why 10 units stopped being owed, without the audit log */
   if(changed&&r.resolution&&notes.length)r.resolution.settled={what,note:notes.join(' · '),by:(typeof _who==='function'?_who():''),at:new Date().toISOString()};
@@ -660,13 +674,28 @@ function wentOutUnder(rid){
   const left=(typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,(parseInt(r.rcvd)||0)-(parseInt(r.ship)||0));
   if(left<=0){toast('Everything on this row has already shipped','er');return;}
   askText(`${fmt(left)} went out under another SKU?`,
-    `Which SKU ${left===1?'did it':'did they'} go out under? The ${fmt(left)} ${left===1?'unit is':'units are'} recorded as shipped on that SKU's shipment, this row closes, and Sarah gets the job of confirming it in Seller Central.`,
-    'e.g. the old SKU','Record it',sku=>{
+    `Which SKU ${left===1?'did it':'did they'} go out under? Next it asks which shipment ${left===1?'it':'they'} rode on — then the ${fmt(left)} ${left===1?'unit is':'units are'} accounted for, this row closes, and Sarah gets the job of confirming it in Seller Central.`,
+    'e.g. the old SKU','Next',sku=>{
       sku=String(sku||'').trim();if(!sku)return;
-      let shipId='',best='';
-      rows.filter(x=>x!==r&&x.sku===sku).forEach(o=>(o.shipSegments||[]).forEach(s=>{if(s.shipId&&String(s.date||'')>=best){best=String(s.date||'');shipId=s.shipId;}}));
-      if(!shipId){askText('Which shipment?','No shipment is recorded against that SKU — type the shipment ID it went out on.','FBA…','Record it',id=>_wentOutGo(r,sku,String(id||'').trim(),left));return;}
-      _wentOutGo(r,sku,shipId,left);
+      /* Jack, 21 Sep, Cadbury: the old SKU's only shipment went out on 14 Aug —
+         two weeks BEFORE these units arrived. Guessing it would have put 47
+         units on a shipment that had already gone. Suggest it only when the
+         dates allow it, and always let the shipment be typed. */
+      const landed=String(r.rcvdAt||'').slice(0,10)||String(r.date||'').split('/').reverse().join('-');
+      const cands=[];
+      rows.filter(x=>x!==r&&x.sku===sku).forEach(o=>(o.shipSegments||[]).forEach(s=>{if(s.shipId)cands.push({id:s.shipId,date:String(s.date||'')});}));
+      cands.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+      const ok=cands.filter(c=>!landed||!c.date||c.date>=landed);
+      const guess=ok.length?ok[0]:null;
+      const listed=cands.slice(0,4).map(c=>`${c.id}${c.date?' ('+_dmy(c.date)+')':''}`).join(', ');
+      askText('Which shipment did they go out on?',
+        (cands.length?`Shipments recorded under ${sku}: ${listed}.`:`No shipment is recorded under ${sku}.`)
+        +(guess?'' : cands.length?` None of them went out after these units landed${landed?' ('+_dmy(landed)+')':''} — type the shipment ID they actually rode on.`:' Type the shipment ID they went out on.'),
+        'FBA…','Record it',id=>{
+          id=String(id||'').trim();
+          if(!id){toast('Type the shipment ID','er');return;}
+          _wentOutGo(r,sku,id,left);
+        },guess?guess.id:'',guess?'Checked: that shipment went out after these units landed. Change it if they rode a different one.':'Type the shipment ID — it is recorded against this row so the numbers add up.');
     });
 }
 async function _wentOutGo(r,sku,shipId,units){

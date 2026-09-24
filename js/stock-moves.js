@@ -81,11 +81,14 @@ function sendableQty(r){
   const got=parseInt(r.rcvd)||0;
   const exp=parseInt(r.exp)||0;
   const issues=Math.max(0,parseInt(r.issueQty)||0);
+  /* units that arrived here but physically went out under another SKU — closed
+     off as wrong-SKU, so they are not on this row's shelf to send (Jack, 21 Sep) */
+  const away=Math.max(0,parseInt(r.resolution&&r.resolution.elsewhereShipped)||0);
   if(got>0){
     const heldBack=/damag|incorrect|wrong/i.test(String(r.issueType||''))?issues:0;
-    return Math.max(0,got-heldBack);
+    return Math.max(0,got-heldBack-away);
   }
-  return Math.max(0,exp-issues);
+  return Math.max(0,exp-issues-away);
 }
 
 // ── SHIPMENT SEGMENTS ─────────────────────────────────────────────────────────

@@ -520,7 +520,7 @@ function claimEnd(how){
   if(!c.log)c.log=[];
   if(how==='refunded'){
     c.log.push({t:getNowUK(),msg:'Refund received — closed by '+_who()});
-    c.cst='Resolved';c.resolvedAt=todayISO();
+    c.cst='Resolved';c.resolvedAt=todayISO();c.outcome='refunded';   /* the row reads this and settles itself */
     toast('Closed — money back','ok');
   }else if(how==='replacement'){
     c.log.push({t:getNowUK(),msg:'Replacement agreed — waiting for it to arrive ('+_who()+')'});
@@ -598,7 +598,7 @@ function ubUndo(){clearTimeout(_ubT);const cb=_ubCb;_ubCb=null;
    Escape key state — Jack has called every stock popup in this app ugly, and
    prompt() was the ugliest of the lot. */
 let _atCb=null;
-function askText(title,sub,placeholder,btn,cb){
+function askText(title,sub,placeholder,btn,cb,prefill,hint){
   _atCb=cb;
   let el=document.getElementById('askTextModal');
   if(!el){el=document.createElement('div');el.id='askTextModal';el.className='overlay';
@@ -607,8 +607,8 @@ function askText(title,sub,placeholder,btn,cb){
   el.innerHTML=`<div class="modal srtCfm" style="max-width:480px;">
     <div class="srtCfmTtl">${esc(title)}</div>
     ${sub?`<div class="srtCfmSub" style="margin-bottom:10px;">${esc(sub)}</div>`:''}
-    <textarea id="atBox" class="srtNote" rows="3" placeholder="${esc(placeholder||'')}"></textarea>
-    <div class="atHint">A line is enough — what happened and what you did. No essays.</div>
+    <textarea id="atBox" class="srtNote" rows="3" placeholder="${esc(placeholder||'')}">${esc(prefill||'')}</textarea>
+    <div class="atHint">${esc(hint||'A line is enough — what happened and what you did. No essays.')}</div>
     <div class="srtCfmFoot">
       <button class="srtGhost" onclick="atShut()">Cancel</button>
       <button class="srtGo" onclick="atGo()">${esc(btn||'Send')}</button>
@@ -1696,7 +1696,7 @@ function _typeOf(i){
     if(i.lavDmg)return['DAMAGED','#fb7185','Stock arrived damaged — the supplier has to put it right'];
     return['MISSING','#fbbf24','Fewer units arrived than were bought'];
   }
-  const t=(i.claimC&&i.claimC.issT)||'';
+  const t=(i.claimC&&i.claimC.issT)||i.flagType||'';
   if(/damag/i.test(t))return['DAMAGED','#fb7185','Stock arrived damaged — the supplier has to put it right'];
   if(/incorrect|wrong/i.test(t))return['WRONG ITEM','#fb923c','The wrong product arrived'];
   if(/gated/i.test(t))return['GATED','#c084fc','Cannot be sold on the account — needs a decision'];

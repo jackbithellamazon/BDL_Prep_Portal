@@ -261,9 +261,11 @@ window.PrepChecks=(function(){
   /* 21 · the 48-hour part-arrival clock puts the row on Sarah's list; a snooze takes it off everyone's */
   S['part arrived — the rest never followed']=async()=>{
     const ago=n=>new Date(Date.now()-n*864e5).toISOString();
-    const fresh=mkRow({exp:10,rcvd:8,ship:8,status:'Part Sent',date:'01/09',rcvdAt:ago(0.2)});
+    /* dates relative to today — a fixed date ages past the 20-day late clock and the check starts lying */
+    const dm=n=>{const x=new Date(Date.now()-n*864e5);return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0');};
+    const fresh=mkRow({exp:10,rcvd:8,ship:8,status:'Part Sent',date:dm(3),rcvdAt:ago(0.2)});
     eq(_rowOwner(fresh).owner,'none','just landed → nobody yet');ok(!onSarahActive(fresh),'not on Sarah’s yet');
-    const old=mkRow({exp:10,rcvd:8,ship:8,status:'Part Sent',date:'01/09',rcvdAt:ago(5)});
+    const old=mkRow({exp:10,rcvd:8,ship:8,status:'Part Sent',date:dm(8),rcvdAt:ago(5)});
     eq(_rowOwner(old).owner,'sarah','2 working days on → Sarah');ok(onSarahActive(old),'on Sarah’s list');
     old.chaseSnoozeUntil=new Date(Date.now()+3*864e5).toISOString();
     eq(_rowOwner(old).owner,'none','snoozed → nobody’s');ok(!onSarahActive(old),'off her list while snoozed');
@@ -318,6 +320,162 @@ window.PrepChecks=(function(){
     const j=mkRow({exp:5,rcvd:0,resolution:asked()});eq((_rowStateTag(j)||{}).t,'With Jack','with Jack');
   };
 
+  /* 27 · a live issue flag with nothing open on it is Sarah's; a closed row loses its flag */
+  S['a flag on the row is somebody\u2019s job']=async()=>{
+    who('Becki');
+    const r=mkRow({exp:2,rcvd:0,status:'In-Transit',date:'06/09',issueType:'Not Arrived',issueQty:2});
+    eq(_rowOwner(r).owner,'sarah','flagged, nothing open → Sarah');ok(/^flagged/.test(_rowOwner(r).why),'the reason names the flag');
+    ok(onSarahActive(r),'on Sarah’s active list');eq((_rowStateTag(r)||{}).t,'Flagged — Sarah','the Prep Sheet row says so');
+    /* an open claim is the job instead — not the flag */
+    const c2=mkRow({exp:2,rcvd:0,status:'In-Transit',issueType:'Damaged',issueQty:1});
+    mkClaim({prepRowId:c2.uuid,sku:c2.sku,issT:'Damaged',cst:'Raised',owner:'VA'});
+    eq(_liveFlag(c2),'','an open claim outranks the flag');
+    /* the row closes → the flag goes on the next save */
+    const d=mkRow({exp:2,rcvd:1,ship:1,status:'Sent to Amazon',issueType:'Missing',issueQty:1,
+      resolution:{state:'approved',kind:'ops',what:'refund-done',approvedBy:'Jack',approvedAt:iso()}});
+    await saveRow(d);
+    eq(d.issueType,'','stale flag cleared when the row is closed');ok(_rowOwner(d).finished,'and it is finished');
+  };
+  /* 28 · closing the arrival does not account for units that never shipped */
+  S['closed arrived-ok still owes the units it never shipped']=async()=>{
+    const r=mkRow({exp:70,rcvd:70,ship:23,status:'Part Sent',date:'25/08',sentDate:'2026-08-27',
+      shipSegments:[{shipId:'FBA-CHK-A',units:23,date:'2026-08-27',type:'Standard'}],allShipIds:['FBA-CHK-A'],
+      resolution:{state:'approved',kind:'ops',what:'arrived-ok',approvedBy:'Sarah',approvedAt:iso()}});
+    ok(!_rowOwner(r).finished,'not finished — 47 never went anywhere');
+    eq(_rowOwner(r).owner,'sarah','it is Sarah’s to settle');ok(onSarahActive(r),'on her list');
+    ok(_partShipStale(r),'and the Prep Sheet asks the warehouse');
+  };
+
+  /* 29 · a Not-Arrived claim closed "Refund received" settles the row and files it */
+  S['a refunded claim settles its row']=async()=>{
+    const r=mkRow({exp:2,rcvd:0,ship:0,status:'In-Transit',date:'06/09',issueType:'Not Arrived',issueQty:2});
+    const cl=mkClaim({prepRowId:r.uuid,sku:r.sku,issT:'Not Arrived',dif:2,exp:2,claimValue:58.98,cst:'Resolved',
+      raisedBy:'Jack',raisedAt:'2026-09-20',resolvedAt:'2026-09-20',log:[{t:'20/09 17:17',msg:'Refund received — closed by Jack'}]});
+    ok(_claimSettledRow(r),'the row settles off its own claim');
+    eq(parseInt(r.cancelledQty),2,'2 units taken off — not coming');eq(_owedUnits(r),0,'nothing owed');
+    eq(r.issueType,'','the red flag is gone');eq(r.resolution.what,'refund-done','closed as refund-done');
+    ok(r.archived,'nothing ever landed → filed');ok(cl.settledOnRow,'the claim is stamped so it runs once');
+    ok(!onSarahActive(r)&&!onJack(r),'off both lists');
+    /* a DAMAGED claim must not take units off — the stock is here */
+    const d=mkRow({exp:5,rcvd:5,ship:0,status:'In Warehouse'});
+    mkClaim({prepRowId:d.uuid,sku:d.sku,issT:'Damaged',dif:2,cst:'Resolved',log:[{t:'x',msg:'Refund received — closed by Jack'}]});
+    ok(!_claimSettledRow(d),'damaged stock stays on the row');
+  };
+
+  /* 30 · raise an issue, Sarah closes it wrong-SKU — and the units that arrived but never shipped are accounted for too */
+  S['wrong-SKU close settles units that never shipped']=async()=>{
+    const r=mkRow({exp:70,rcvd:70,ship:23,status:'Part Sent',date:'25/08',sentDate:'2026-08-27',
+      shipSegments:[{shipId:'FBA-CHK-A',units:23,date:'2026-08-27',type:'Standard'}],allShipIds:['FBA-CHK-A']});
+    eq(remainingToShip(r),47,'47 look like they are still on the shelf');
+    r.resolution={state:'approved',kind:'ops',what:'wrong-sku',wentAs:'Tesco_CHK_OLD',by:'Sarah',at:iso()};
+    const out=_settleClosedUnits(r,'wrong-sku');
+    ok(out.changed,'the close changed the numbers');ok(/went out under Tesco_CHK_OLD/.test(out.note),'the note names the SKU');
+    eq(remainingToShip(r),0,'nothing left on this row to send');eq(r.status,'Sent to Amazon','status follows');
+    eq(parseInt(r.cancelledQty)||0,0,'nothing pretended to be cancelled');eq(parseInt(r.rcvd),70,'all 70 still recorded as arrived');
+    ok(!_partShipStale(r),'and it stops asking the warehouse');ok(_rowOwner(r).finished,'finished');
+    /* the Wella shape must not change: 4 arrived of 20, 16 traced to another SKU — the 4 are still sendable */
+    const w=mkRow({exp:20,rcvd:4,ship:0,cancelledQty:16,status:'In Warehouse',
+      resolution:{state:'approved',kind:'ops',what:'wrong-sku',wentAs:'OTHER',wentAsQty:16,by:'Sarah',at:iso()}});
+    eq(sendableQty(w),4,'units that never arrived do not eat the shelf');
+  };
+
+  /* 31 · Restocks flags a part used in more than one product — and only then */
+  S['Restocks: shared part badge']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    ok(LV3.usedIn,'helper present');
+    /* find one shared and one single-use part from the real build lists */
+    const counts={};D_products().forEach(p=>(p.recipe||[]).forEach(r=>{counts[String(r.c)]=(counts[String(r.c)]||new Set()).add(p.id);}));
+    const ids=Object.keys(counts);
+    const shared=ids.find(k=>LV3.usedIn(k).length>1),single=ids.find(k=>LV3.usedIn(k).length===1);
+    if(shared){ok(LV3.usedInBadge({id:shared,name:'x'}),'badge on a shared part');ok(/Used in \d+ Products/.test(LV3.usedInBadge({id:shared,name:'x'})),'says how many');}
+    if(single)eq(LV3.usedInBadge({id:single,name:'x'}),'','no badge on a single-use part');
+    ok(shared||single,'there were build lists to check against');
+  };
+
+  /* 32 · adding the other product to the plan makes the order cover the shared part, and the badge says so */
+  S['Restocks: Add to plan covers a shared part']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const prods=D_products().filter(p=>!p.archived&&(p.recipe||[]).length);
+    let cid=null,a=null,b=null;
+    for(const p of prods){for(const r of p.recipe){const us=LV3.usedIn(r.c);if(us.length===2){cid=r.c;a=us[0];b=us[1];break;}}if(cid)break;}
+    if(!cid)return;   /* no two-product part in today's data — nothing to prove */
+    const was=(LV3.__rsPicks?LV3.__rsPicks():null);
+    try{
+      LV3.rsSet(a.id);await wait(200);
+      ok(/Used in 2 Products/.test(LV3.usedInBadge({id:cid})),'amber while only one of the two is planned');
+      LV3.usedInAdd(b.id);await wait(200);
+      ok(/All 2 in this plan/.test(LV3.usedInBadge({id:cid})),'covered once both are planned');
+    }finally{LV3.rsDrop(a.id);LV3.rsDrop(b.id);LV3.usedInShut();}
+  };
+
+  /* 33 · stock to hold, per product: default follows Settings; setting one moves only that product */
+  S['per-product stock to hold']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const ps=D_products().filter(p=>!p.archived&&p.type==='bundle');if(ps.length<2)return;
+    const [a,b]=ps;const def=LV3.coverDaysOf(b);
+    try{
+      LV3.coverSet(a.id,30);eq(LV3.coverDaysOf(a),30,'the product holds 30 days');eq(LV3.coverDaysOf(b),def,'another product is untouched');
+      LV3.coverSet(a.id,0);eq(LV3.coverDaysOf(a),def,'back to the default');
+    }finally{LV3.coverSet(a.id,0);}
+  };
+
+  /* 34 · a product set to hold fewer days buys fewer parts — its share only */
+  S['stock to hold reaches part buying']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const L0=LV3.__planComponents();
+    /* a part fed by exactly one product with sales */
+    const pick=L0.find(L=>!L.isProd&&L.drivers&&L.drivers.length===1&&L.want>0);if(!pick)return;
+    const p=D_products().find(x=>!x.archived&&(x.recipe||[]).some(r=>String(r.c)===String(pick.o.id)));if(!p)return;
+    try{
+      LV3.coverSet(p.id,30);
+      const L1=LV3.__planComponents().find(L=>L.o&&String(L.o.id)===String(pick.o.id));
+      ok(L1&&L1.want<pick.want,'30 days of stock → a smaller part target ('+pick.want+' → '+(L1&&L1.want)+')');
+    }finally{LV3.coverSet(p.id,0);}
+    const L2=LV3.__planComponents().find(L=>L.o&&String(L.o.id)===String(pick.o.id));
+    eq(L2.want,pick.want,'back to the default puts it back exactly');
+  };
+
+  /* 35 · the Buy cell says what to buy if the other products sharing the part are covered too */
+  S['Restocks: cover-the-others line']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const ps=D_products().filter(p=>!p.archived&&p.type==='bundle');
+    let a=null,b=null,cid=null;
+    for(const p of ps){for(const r of (p.recipe||[])){const us=LV3.usedIn(r.c);if(us.length===2){cid=r.c;a=p;b=us.find(x=>x.id!==p.id);break;}}if(cid)break;}
+    if(!cid)return;
+    const row=()=>[...document.querySelectorAll('#lav3View .rsTbl tbody tr')].find(tr=>tr.querySelector('.usedIn')&&tr.querySelector('.usedIn').getAttribute('onclick').includes(String(cid)));
+    try{
+      LV3.go('restocks');await wait(300);LV3.rsSet(a.id);await wait(400);
+      const r1=row();ok(r1,'the shared part is on the list');
+      const also=r1&&r1.querySelector('.rsAlso');ok(also,'the cover-the-others line is there');
+      LV3.usedInAdd(b.id);await wait(400);
+      const r2=row();ok(r2&&!r2.querySelector('.rsAlso'),'gone once the other product is in the plan');
+    }finally{LV3.rsDrop(a.id);LV3.rsDrop(b.id);LV3.usedInShut();}
+  };
+
+  /* 36 · one click on the line buys that part for the other products too — that part only */
+  S['Restocks: click the line to cover the others']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const ps=D_products().filter(p=>!p.archived&&p.type==='bundle');
+    let a=null,cid=null;
+    for(const p of ps){for(const r of (p.recipe||[])){const us=LV3.usedIn(r.c);if(us.length===2){cid=r.c;a=p;break;}}if(cid)break;}
+    if(!cid)return;
+    const row=()=>[...document.querySelectorAll('#lav3View .rsTbl tbody tr')].find(tr=>tr.querySelector('.usedIn')&&tr.querySelector('.usedIn').getAttribute('onclick').includes(String(cid)));
+    const nRows=()=>document.querySelectorAll('#lav3View .rsTbl tbody tr').length;
+    try{
+      LV3.go('restocks');await wait(300);LV3.rsSet(a.id);await wait(400);
+      const r1=row(),line=r1&&r1.querySelector('button.rsAlso');if(!line)return;   /* the part is already covered today */
+      const want=(line.textContent.match(/(\d[\d,]*)\s+(cases?|units)/)||[])[1];const rows1=nRows();
+      LV3.rsAlso(cid);await wait(400);
+      const r2=row();const big=r2&&r2.querySelector('.rsBig');
+      eq(big&&big.textContent.trim(),want,'the Buy figure becomes the covered number');
+      ok(r2.querySelector('button.rsAlso.ok'),'the line says it is included, with undo');
+      eq(nRows(),rows1,'no other parts were added to the order');
+      ok(document.querySelector('#lav3View .rsMx')&&/COG \/ unit/.test(document.querySelector('#lav3View .rsMx').textContent),'COG per unit is on the header');
+      LV3.rsAlso(cid);await wait(300);ok(row().querySelector('button.rsAlso:not(.ok)'),'undo puts it back');
+    }finally{LV3.rsDrop(a.id);}
+  };
+
+  function D_products(){try{return (LV3.allProducts&&LV3.allProducts())||[];}catch(e){return [];}}
   async function run(only){
     R.length=0;const t0=Date.now();
     for(const name of Object.keys(S)){

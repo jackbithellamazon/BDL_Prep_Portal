@@ -3,4 +3,4 @@ BDL PrepHub — how to update the live app
 2. Drag the WHOLE contents of this folder in (index.html, css/, js/, tests/).
 3. Commit. GitHub Pages serves it within a minute. Same URL, same logins.
 Rollback: upload the previous dated folder the same way.
-Build: v51.5 · lav3 · 2026-09-10 · b575
+Build: v52.4 · lav3 · 2026-09-10 · b584

@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v51.5 · lav3 · 2026-09-15 · b575';
+const BUILD='v52.4 · lav3 · 2026-09-24 · b584';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -1004,7 +1004,7 @@ function openOrderPlan(pid){
   $('lav3Mod2').className='mod';
   $('lav3Mod2').innerHTML=`
     <div class="mh"><h3>${esc(p.name)}</h3>
-      <span class="pmeta" style="margin:0">${D.settings.targetDays||60}-day plan</span>
+      <span class="pmeta" style="margin:0">${coverDaysOf(p)}-day plan</span>
       <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
     <div class="mb">
       ${sold30(p)==null?`<div class="note bad" style="margin:0 0 11px"><b>No sales figure for this one.</b>
@@ -1012,7 +1012,7 @@ function openOrderPlan(pid){
         sent rather than what actually sold — treat it as a rough shape.
         <button class="btn sm warn" style="margin-top:7px" onclick="LV3.cm('lav3Ov2');LV3.openHubReview()">Sort the sales link</button></div>`:''}
       <div class="opBox">
-        ${row('Target for '+(D.settings.targetDays||60)+' days',fmt(t),sold30(p)!=null?`${fmt(sold30(p))} sold in ${ymName(hubMonth().ym)}`:'estimated')}
+        ${row('Target for '+coverDaysOf(p)+' days',fmt(t),sold30(p)!=null?`${fmt(sold30(p))} sold in ${ymName(hubMonth().ym)}`:'estimated')}
         ${row('Sellable at Amazon',at==null?'never counted':fmt(at),atAmzAge(p)!=null?`counted ${whenTxt((D.settings.atAmzAt||{})[p.asin])||atAmzAge(p)+'d ago'}`:'',at==null?'var(--text3)':(amzDry(p)?'var(--amb)':atAmzAge(p)>=14?'var(--amb)':''))}
         ${inb?row('Inbound to Amazon',fmt(inb),'sent, not checked in yet — counts toward the target','var(--blu)'):''}
         ${row('Backstock here',fmt(have),p.type==='bundle'?'buildable from parts':'on the shelf')}
@@ -1519,8 +1519,39 @@ function demand30(p){const s=sold30(p);return s!=null?s:(p.ship30||0);}   // sal
    gets acted on like a real one. Until last month's sales are in, there is no
    target — the column says so and waits. */
 function target60(p){const d=sold30(p);if(d==null||!d)return null;
-  const days=D.settings.targetDays||60;
+  const days=coverDaysOf(p);
   return Math.round(d/30*days);}
+/* Jack, 24 Sep: "might only want one month of stock in, due to dates being
+   shorter". How many days of stock to hold, set per product. Blank = the
+   Settings figure. Stored in lavarion_prefs.coverDays (merged key by key like
+   the other maps) — no new column, no admin unless you choose to set one. */
+function coverOverride(p){const v=parseInt(((D.settings.coverDays)||{})[p&&p.id]);return v>0?v:0;}
+function coverDaysOf(p){return coverOverride(p)||(D.settings.targetDays||60);}
+function coverSet(pid,v){
+  const p=prod(pid);if(!p)return;
+  const was=coverDaysOf(p);
+  D.settings.coverDays=Object.assign({},D.settings.coverDays||{});
+  D.settings.coverDays[pid]=parseInt(v)>0?parseInt(v):0;   /* 0 = back to the default (a delete would not survive the merge) */
+  savePrefs();
+  const now=coverDaysOf(p);
+  if(now!==was)logIt('edit',`${p.name}: stock to hold changed from ${was} to ${now} days${coverOverride(p)?'':' (default)'}`);
+  toast(`${p.name} — hold ${now} days of stock${coverOverride(p)?'':' (the default)'}. Planner and Restocks updated.`,'ok');
+  render();
+}
+/* a component serves several products that may hold different amounts —
+   one number when they agree, otherwise say so */
+function compCoverLabel(c){
+  const ds=[...new Set(usedIn(c.id).filter(p=>p.type==='bundle').map(coverDaysOf))];
+  return ds.length===1?ds[0]+' days':'each product\u2019s cover';
+}
+function coverPicker(p){
+  const o=coverOverride(p),def=D.settings.targetDays||60;
+  return `<select class="covSel" title="How many days of stock to hold for this product — e.g. 30 for short-dated food. Blank follows Settings (${def} days)."
+    onclick="event.stopPropagation()" onchange="LV3.coverSet('${esc(String(p.id))}',this.value)">
+    <option value="0"${o?'':' selected'}>Default (${def} days)</option>
+    ${[14,30,45,60,90].map(d=>`<option value="${d}"${o===d?' selected':''}>${d} days</option>`).join('')}
+  </select>`;
+}
 /* ══════════════ REPLENISHMENT — WHEN, AND HOW MUCH ══════════════════════
    From the UK team's brief, 19 Aug. The whole point is that these are TWO
    questions and the old page answered them with one number.
@@ -1635,7 +1666,7 @@ function reorderIn(p){
    NOT the gap to a target. Rounded up: you cannot build 145.2 of something. */
 function replenQty(p,days){
   const ads=adsOf(p);if(ads==null)return null;
-  return Math.ceil(ads*(days||D.settings.replenDays||60));
+  return Math.ceil(ads*(days||coverDaysOf(p)));
 }
 /* One place decides the colour so the cell and the sort agree. Never dims with
    opacity — a settled row gets an explicit colour. */
@@ -1887,7 +1918,7 @@ function plAmazonRow(p){
   const landDays=Math.round((new Date(landIso+'T00:00:00')-new Date(dayISO()+'T00:00:00'))/864e5);
   const inbByLand=(inb>0&&inbEta!=null&&inbEta<=landIso)?inb:0;
   const projAtLand=Math.max(0,sell-ads*landDays)+inbByLand;
-  const want=ads*(D.settings.targetDays||60);
+  const want=ads*coverDaysOf(p);
   out.rec=out.trigger?Math.max(0,Math.ceil(want-projAtLand)):0;
   out.landIso=landIso;out.projAtLand=Math.round(projAtLand);out.want=Math.round(want);
   if(!out.trigger){
@@ -1968,16 +1999,21 @@ function plGapInfo(r){
 function planComponents(){
   const live=D.products.filter(x=>!x.archived);
   const cd={},drv={},selfLines=[];
+  /* Jack, 24 Sep: a short-dated product holds less stock — and on a food
+     bundle it is the PARTS that carry the date. A product set to hold 30 days
+     buys 30 days of its share of each part; the rest keep the buy cycle. */
+  const cyc={},anyCover=D.products.some(p=>coverOverride(p));
   live.forEach(p=>{
     const d=planDemandOf(p);if(!d||!d.m)return;
     const ads=d.m/30;
-    if(p.type!=='bundle'){selfLines.push({o:p,isProd:true,daily:ads,drivers:[p.name]});return;}
+    if(p.type!=='bundle'){selfLines.push({o:p,isProd:true,daily:ads,drivers:[p.name],cycDays:coverOverride(p)||null});return;}
     (p.recipe||[]).forEach(rc=>{const c=comp(rc.c);if(!c||c.untracked)return;
       cd[c.id]=(cd[c.id]||0)+ads*rc.q;
+      cyc[c.id]=(cyc[c.id]||0)+ads*rc.q*(coverOverride(p)||cycleDaysN());
       (drv[c.id]=drv[c.id]||[]).push(p.name+(rc.q>1?' ×'+rc.q:''));});
   });
   const lines=selfLines.concat(Object.keys(cd)
-    .map(id=>({o:comp(id),isProd:false,daily:cd[id],drivers:drv[id]}))
+    .map(id=>({o:comp(id),isProd:false,daily:cd[id],drivers:drv[id],cycUnits:anyCover?cyc[id]:null}))
     .filter(x=>x.o&&!x.o.archived));
   const today=dayISO();
   lines.forEach(L=>{
@@ -2004,7 +2040,8 @@ function planComponents(){
     /* buy enough that AFTER it lands we hold cycle + safety of cover, from
        the projected position — never a flat top-up to a target (spec §18) */
     const projAtArrival=Math.max(0,L.hand-dly*L.lead)+inTime;
-    const want=dly*(cycleDaysN()+safetyDays());
+    /* with nobody on a shorter cover this is exactly dly × (cycle + safety), as before */
+    const want=(L.cycUnits!=null?L.cycUnits:dly*(L.cycDays||cycleDaysN()))+dly*safetyDays();
     L.want=Math.ceil(want);L.projAtArrival=Math.round(projAtArrival);
     const need=Math.max(0,want-projAtArrival);
     L.needRaw=Math.ceil(need);
@@ -2109,7 +2146,7 @@ function plDebugPre(r){
     ['Projected stock-out',r.stockout?dshort(r.stockout):'—'],
     ['Sent today → sellable',r.landIso?dshort(r.landIso):'—'],
     ['Projected position then',r.projAtLand!=null?fmt(r.projAtLand):'—'],
-    ['Aim when it lands',r.want!=null?fmt(r.want)+' units — '+(D.settings.targetDays||60)+' days\u2019 worth':'—'],
+    ['Aim when it lands',r.want!=null?fmt(r.want)+' units — '+coverDaysOf(r.p)+' days\u2019 worth':'—'],
     ['Recommended send',r.rec?fmt(r.rec):'0'],
     ['Allocated from parts',r.alloc!=null?fmt(r.alloc):'—']];
   return '<div style="display:grid;grid-template-columns:auto 1fr;gap:3px 14px;padding:10px 12px;background:var(--bg3);border-radius:7px;margin:7px 0 3px;font-size:11.5px;">'
@@ -2140,7 +2177,7 @@ function _plannerTable(az,buys,gaps,fba,saf,setBox){
   const pRow=r=>{const sc=stateOf(r);const st=sc[0],col=sc[1];
     const g=(r.alloc<r.rec&&(r.state==='act'||r.state==='critical'))?plGapInfo(r):null;
     return `<div class="plnRow" onclick="LV3.openPlanRow('${r.p.id}')" style="border-left-color:${col};">
-      <span class="plnName">${esc(r.p.name)}${r.demand&&r.demand.m?`<small>${fmt(r.demand.m)}/month</small>`:''}</span>
+      <span class="plnName">${esc(r.p.name)}${coverOverride(r.p)?`<b class="covChip" title="Holds ${coverDaysOf(r.p)} days of stock, not the usual ${D.settings.targetDays||60}">${coverDaysOf(r.p)}d</b>`:''}${r.demand&&r.demand.m?`<small>${fmt(r.demand.m)}/month</small>`:''}</span>
       <span class="plnNum" style="color:${(r.sell||0)<=0?'#ef4444':'var(--text)'}">${r.sell==null?'—':fmt(r.sell)}</span>
       <span class="plnNum" style="color:var(--blu)">${r.inb?fmt(r.inb)+`<small>${r.inbEta?'~'+dshort(r.inbEta):''}</small>`:'—'}</span>
       <span class="plnNum" style="color:${covCol(r.protDays)};font-weight:800;">${r.protDays==null?'—':fmt(Math.round(r.protDays))+'d'}<small>${r.stockout?'empty ~'+dshort(r.stockout):''}</small></span>
@@ -3136,7 +3173,7 @@ function prodRow(p){
          without having to click into each one." The recommended send, and
          how much of it the bench can build, under the chip. */
       const _rec=R.rec||0,_al=R.alloc||0;
-      const _need=_rec>0?`<span class="pmeta" style="margin:0;white-space:nowrap;color:${_al>=_rec?'var(--grn)':_al>0?'var(--amb)':'var(--text3)'}" title="Recommended send: ${fmt(_rec)} units${R.want!=null?' · aim for '+fmt(R.want)+' at Amazon when it lands ('+(D.settings.targetDays||60)+' days\u2019 worth)':''}${_al<_rec?' · only '+fmt(_al)+' buildable now':''}">send <b>${fmt(_rec)}</b>${_al<_rec?` · ${fmt(_al)} now`:''}</span>`:'';
+      const _need=_rec>0?`<span class="pmeta" style="margin:0;white-space:nowrap;color:${_al>=_rec?'var(--grn)':_al>0?'var(--amb)':'var(--text3)'}" title="Recommended send: ${fmt(_rec)} units${R.want!=null?' · aim for '+fmt(R.want)+' at Amazon when it lands ('+coverDaysOf(p)+' days\u2019 worth)':''}${_al<_rec?' · only '+fmt(_al)+' buildable now':''}">send <b>${fmt(_rec)}</b>${_al<_rec?` · ${fmt(_al)} now`:''}</span>`:'';
       return `<div style="display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer"
         onclick="LV3.openPlanRow('${p.id}')"
         title="${Math.round(R.protDays)} days of protection against a ${trig}-day trigger. Click for the full working.">
@@ -3328,7 +3365,7 @@ function openProduct(id){
   if(isB){
     made=p.recipe.length?`<table class="dtab"><thead><tr>
         <th class="l">Component</th><th>Per unit</th><th>On hand</th><th>On order</th>
-        <th>Makes</th><th>${D.settings.targetDays||60}d need</th><th>Oldest price</th></tr></thead><tbody>
+        <th>Makes</th><th>${coverDaysOf(p)}d need</th><th>Oldest price</th></tr></thead><tbody>
       ${p.recipe.map(r=>{const c=comp(r.c);if(!c)return'';
         const h=onHand(c),can=c.untracked?'∞':fmt(Math.floor(h/r.q));
         const cn60=compNeed60(c),cs60=compShort60(c);const isLim=a.limiter===c.id;
@@ -3377,8 +3414,8 @@ function openProduct(id){
         inbound.length?`${inbound.length} delivery${inbound.length===1?'':'s'} due`:'nothing on order')}
       ${stat('Sold last month',sold30(p)!=null?fmt(sold30(p)):'—',sold30(p)?'var(--grn)':null,
         sold30(p)!=null?`${ymName(hubMonth().ym)} · we sent ${fmt(p.ship30)} in`:'no figure in the BDL hub for this ASIN')}
-      ${stat(`${D.settings.targetDays||60}d target`,target60(p)?fmt(target60(p)):'—',null,(()=>{const t=target60(p);if(!t)return'needs a sold figure';
-        const gap=t-(avail(p).n||0);return gap>0?`${fmt(gap)} short of it`:'covered';})())}
+      ${stat(`${coverDaysOf(p)}d target`,target60(p)?fmt(target60(p)):'—',null,(()=>{const t=target60(p);if(!t)return'needs a sold figure';
+        const gap=t-(avail(p).n||0);return gap>0?`${fmt(gap)} short of it`:'covered';})()+`<div style="margin-top:6px"><span style="font-size:10px;font-weight:700;color:var(--text3);display:block;margin-bottom:2px">STOCK TO HOLD</span>${coverPicker(p)}</div>`)}
       ${stat('COG / unit',cg.short?'—':(cg.per>0?gbp(cg.per):'—'),cg.short?'var(--amb)':'var(--accent)',
         cg.short?'needs every part in stock':(cg.batches>1?`${cg.batches} price batches`:''))}
       ${(()=>{const nx=nextCog(p);
@@ -3627,7 +3664,7 @@ function recipePreview(){
         <div><div class="k">${t==='bundle'?'Buildable now':'Stock'}</div>
           <div class="v" style="color:${buildable?'var(--grn)':'var(--red)'}">${t==='bundle'?(real.length?fmt(buildable):'—'):fmt(onHand(EDIT))}</div></div>
         <div><div class="k">COG / unit</div><div class="v" style="color:var(--accent)">${real.length?gbp(cog):'—'}</div></div>
-        <div><div class="k">${D.settings.targetDays||60}d target</div><div class="v">${target60(EDIT)?fmt(target60(EDIT)):'—'}</div></div>
+        <div><div class="k">${coverDaysOf(EDIT)}d target</div><div class="v">${target60(EDIT)?fmt(target60(EDIT)):'—'}</div></div>
       </div>
       ${limName&&buildable!==null?`<div class="pmeta" style="margin-top:8px;white-space:normal">${buildable?'Limited by':'Out of stock:'} <b style="color:${buildable?'var(--amb)':'var(--red)'}">${esc(limName)}</b></div>`:''}
       ${hasDupe?`<div class="note bad" style="margin-top:8px;padding:7px 9px">The same component is listed twice — combine them into one line with a higher quantity.</div>`:''}
@@ -4273,7 +4310,7 @@ function openComp(id){
       <div class="stat"><div class="k">On order</div><div class="v" ${onOrder(c)?'style="color:var(--blu)"':''}>${fmt(onOrder(c))}</div></div>
       <div class="stat"><div class="k">Latest batch</div><div class="v" style="color:var(--accent)">${(()=>{const l=arrLayers(c).filter(x=>x.rem>0).slice(-1)[0];return l?gbp(l.cost):'—';})()}</div>
         <div class="pmeta" style="margin:3px 0 0">every batch keeps its own price</div></div>
-      <div class="stat"><div class="k">Needed for ${D.settings.targetDays||60} days</div>
+      <div class="stat"><div class="k">Needed for ${compCoverLabel(c)}</div>
         <div class="v" style="color:${compShort60(c)>0?'var(--amb)':'var(--grn)'}">${compNeed60(c)?fmt(compNeed60(c)):'—'}</div>
         <div class="pmeta" style="margin:3px 0 0">${compNeed60(c)?(compShort60(c)>0?`${fmt(compShort60(c))} short, counting what's on order`:'covered'):'no product needs it yet'}</div></div>
     </div>
@@ -4392,7 +4429,7 @@ function savePrefs(){
       let remote={};
       try{const r=await sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle();
         if(r&&r.data&&r.data.value)remote=JSON.parse(r.data.value)||{};}catch(e){}
-      const MAPS=['supplierModes','supplierModesBy','sold30','sold30At','untracked','aliases','modeDays','hubMap','hubSkip','atAmz','atAmzIn','atAmzAt','buySkip','acSnooze','wlAck'];
+      const MAPS=['coverDays','supplierModes','supplierModesBy','sold30','sold30At','untracked','aliases','modeDays','hubMap','hubSkip','atAmz','atAmzIn','atAmzAt','buySkip','acSnooze','wlAck'];
       const merged={...remote,...D.settings};
       MAPS.forEach(k=>{
         const a=remote[k],b=D.settings[k];
@@ -5724,7 +5761,7 @@ let RS_PICKS=(()=>{
     const at=parseInt(localStorage.getItem('lv3_rs_at')||'0');
     /* no stamp = saved before the expiry existed = stale by definition */
     if(!at||Date.now()-at>60*60*1000){
-      localStorage.removeItem(RS_KEY);localStorage.removeItem('lv3_rs_dates');localStorage.removeItem('lv3_rs_at');
+      localStorage.removeItem(RS_KEY);localStorage.removeItem('lv3_rs_dates');localStorage.removeItem('lv3_rs_at');localStorage.removeItem('lv3_rs_also');
       return{};
     }
     const o=JSON.parse(raw);
@@ -5738,6 +5775,16 @@ let RS_PICKS=(()=>{
    bundle. From that, each part gets a latest safe order date, worked BACK
    through prep, the FBA pipeline where it applies, production and freight. */
 let RS_DATES=(function(){try{return JSON.parse(localStorage.getItem('lv3_rs_dates')||'{}');}catch(e){return{};}})();
+/* parts Becki chose to buy for the OTHER products that use them too (Jack, 24 Sep) —
+   lives and dies with the plan, never stored anywhere else */
+let RS_ALSO=(function(){try{return Object.keys(RS_PICKS).length?JSON.parse(localStorage.getItem('lv3_rs_also')||'{}'):{};}catch(e){return{};}})();
+function rsAlsoSave(){try{if(Object.keys(RS_ALSO).length)localStorage.setItem('lv3_rs_also',JSON.stringify(RS_ALSO));else localStorage.removeItem('lv3_rs_also');}catch(e){}}
+function rsAlso(cid){
+  cid=String(cid);const c=comp(cid);
+  if(RS_ALSO[cid]){delete RS_ALSO[cid];rsAlsoSave();render();toast(`${c?c.name:'Part'} — back to this plan only`,'ok');return;}
+  RS_ALSO[cid]=1;rsAlsoSave();render();
+  toast(`${c?c.name:'Part'} — now buying enough for the other products too. The cases, the spend and Copy for the sheet all include it.`,'ok');
+}
 function rsDatesSave(){try{localStorage.setItem('lv3_rs_dates',JSON.stringify(RS_DATES));}catch(e){}}
 function rsDate(id,v){
   if(v)RS_DATES[id]=Object.assign({mode:'prime'},RS_DATES[id]||{},{date:v});
@@ -5757,7 +5804,7 @@ function rsSave(){
    NOW: the latest month's daily rate x the replenishment period. And no more
    inventing 50 when there is no sales figure — a made-up number in a costed
    plan is the thing the team keeps getting bitten by. */
-function rsDefaultQty(p){return replenQty(p,D.settings.replenDays||60)||0;}
+function rsDefaultQty(p){return replenQty(p,coverDaysOf(p))||0;}
 function rsSet(id){
   const p=prod(id);if(!p)return;
   if(!RS_PICKS[id])RS_PICKS[id]=rsDefaultQty(p);
@@ -5767,6 +5814,117 @@ function rsSet(id){
 function rsQty(id,v){RS_PICKS[id]=Math.max(0,parseInt(v)||0);rsSave();render();}
 function rsDrop(id){delete RS_PICKS[id];delete RS_DATES[id];rsSave();rsDatesSave();render();}
 function rsPicked(){return Object.keys(RS_PICKS).map(id=>prod(id)).filter(Boolean);}
+/* Jack, 23 Sep: stock already on order makes a part look covered here — but a
+   part used in several products is needed by the others too. A reminder at the
+   point of ordering, nothing more: no reservation, no recalculation, no new
+   field. Read straight off the build lists. */
+/* the existing usedIn() (the Components page's) plus how many go into each */
+function usedInWith(cid){
+  return usedIn(cid).map(p=>({p,per:(p.recipe||[]).filter(r=>String(r.c)===String(cid)).reduce((t,r)=>t+(+r.q||0),0)}));
+}
+function usedInBadge(c){
+  const users=c?usedIn(c.id):[];const n=users.length;if(n<2)return '';
+  /* Jack, 24 Sep: "are we 100% sure this is fixed?" A reminder alone relies on
+     somebody acting on it. Restocks already adds up a shared part across every
+     product in the plan — so once all of them are IN the plan, the Buy figure
+     is right and the warning has done its job. */
+  const picked=new Set(rsPicked().map(p=>String(p.id)));
+  const out=users.filter(p=>!picked.has(String(p.id))).length;
+  if(!out)return `<button type="button" class="usedIn ok" onclick="LV3.usedInPop('${esc(String(c.id))}',this,event)" title="Every product that uses this part is in this plan — the Buy figure already covers all of them">&#10003; All ${fmt(n)} in this plan</button>`;
+  return `<button type="button" class="usedIn" onclick="LV3.usedInPop('${esc(String(c.id))}',this,event)" title="This part goes into ${fmt(n)} products and ${fmt(out)} ${out===1?'is':'are'} not in this plan — click to see which">&#9888; Used in ${fmt(n)} Products</button>`;
+}
+/* one click puts the other product into the plan — the existing maths then
+   adds its need for the shared part to this order. Nothing new is stored. */
+function usedInAdd(pid){
+  const p=prod(pid);if(!p)return;
+  usedInShut();rsSet(pid);
+  toast(`${p.name} added to the plan — shared parts now cover both. Set its target if the default is wrong.`,'ok');
+}
+function usedInAddAll(cid){
+  const picked=new Set(rsPicked().map(p=>String(p.id)));
+  const add=usedIn(cid).filter(p=>!picked.has(String(p.id)));if(!add.length)return;
+  usedInShut();
+  add.forEach(p=>{if(!RS_PICKS[p.id])RS_PICKS[p.id]=rsDefaultQty(p);});
+  rsSave();RS_Q='';render();
+  toast(`${fmt(add.length)} product${add.length===1?'':'s'} added to the plan — the Buy figures now cover all of them`,'ok');
+}
+/* Jack, 24 Sep ("just the Restocks page — sort Becki's issue"): the answer on
+   the row itself, no click. What to buy if the OTHER products that use this
+   part are covered too, each at its own default target (its stock to hold).
+   A what-if line only — the Buy figure and every calculation are untouched. */
+function alsoCalc(x){
+  if(!x||!x.c)return null;
+  const a=(typeof avgCostOf==='function'?avgCostOf(x.c):0)||0;
+  const inc=(x.from||[]).filter(f=>f.also);
+  if(RS_ALSO[x.c.id]&&inc.length)return{inc:true,from:inc,a,who:inc.length===1?inc[0].p.name:`the other ${inc.length}`,
+    extra:inc.reduce((t,f)=>t+f.need,0)};
+  const picked=new Set(rsPicked().map(p=>String(p.id)));
+  const others=usedInWith(x.c.id).filter(u=>!picked.has(String(u.p.id)))
+    .map(u=>Object.assign(u,{t:rsDefaultQty(u.p)||0})).map(u=>Object.assign(u,{need:u.per*u.t}));
+  if(!others.length)return null;
+  const live=others.filter(u=>u.need>0);
+  if(!live.length)return{none:true,others};
+  const extra=live.reduce((t,u)=>t+u.need,0);
+  const cq=x.caseQty>1?x.caseQty:0;
+  const sf=Math.max(0,x.need+extra-(x.stock||0)-(x.coming||0));
+  const cases=cq?Math.ceil(sf/cq):sf,units=cq?cases*cq:cases;
+  const nowUnits=x.ok?0:(x.buying||0);
+  return{live,extra,cq,cases,units,a,cost:a*units,delta:a*Math.max(0,units-nowUnits),
+    covered:cases<=(x.ok?0:(x.cases||0)),who:live.length===1?live[0].p.name:`the other ${live.length}`,
+    tip:live.map(u=>`${u.p.name}: ${fmt(u.need)} (×${fmt(u.per)} × ${fmt(u.t)} units, ${coverDaysOf(u.p)} days)`).join(' · ')};
+}
+/* Jack, 24 Sep: the answer on the row — and one click makes it THE answer, so the
+   number Becki decides on is the number that gets copied. No new admin. */
+function sharedAlso(x){
+  const k=alsoCalc(x);if(!k)return '';
+  const cid=esc(String(x.c.id));
+  if(k.inc)return `<button type="button" class="rsAlso ok" onclick="LV3.rsAlso('${cid}')" title="Included: ${esc(k.from.map(f=>f.p.name+' '+fmt(f.need)).join(' · '))}. Click to go back to this plan only.">&#10003; includes ${esc(k.who)} <span>(+${fmt(k.extra)})</span> · undo</button>`;
+  if(k.none)return `<div class="rsAlso dim" title="${esc(k.others.map(u=>u.p.name).join(', '))}">the other ${k.others.length===1?'product has':'products have'} no recent sales</div>`;
+  if(k.covered)return `<div class="rsAlso ok" title="${esc(k.tip)}">&#10003; also covers ${esc(k.who)}</div>`;
+  return `<button type="button" class="rsAlso" onclick="LV3.rsAlso('${cid}')" title="${esc(k.tip)} — click to buy this for them too (this part only — nothing else is added)">&rarr; <b>${fmt(k.cases)} ${k.cq?'case'+(k.cases===1?'':'s'):'units'}</b>${k.a?` · ${gbp(k.cost)}`:''} to cover ${esc(k.who)} too <span>(+${fmt(k.extra)})</span></button>`;
+}
+/* estimated COG of one bundle at what each part cost — packaging left out, the
+   same rule as the Products page */
+function estCogOf(p){
+  let t=0,miss=0;
+  (p.recipe||[]).forEach(r=>{const c=comp(r.c);if(!c||c.untracked||c.kind==='packaging')return;
+    const a=avgCostOf(c)||0;if(!a)miss++;t+=(r.q||1)*a;});
+  return{v:t,miss};
+}
+function usedInShut(){const el=document.getElementById('usedInPop');if(el)el.remove();document.removeEventListener('mousedown',_usedInOut,true);document.removeEventListener('keydown',_usedInKey,true);}
+function _usedInOut(e){const el=document.getElementById('usedInPop');if(el&&!el.contains(e.target)&&!(e.target.closest&&e.target.closest('.usedIn')))usedInShut();}
+function _usedInKey(e){if(e.key==='Escape')usedInShut();}
+function usedInPop(cid,btn,ev){
+  if(ev){ev.stopPropagation();ev.preventDefault();}
+  const open=document.getElementById('usedInPop');
+  if(open&&open.dataset.cid===String(cid)){usedInShut();return;}
+  usedInShut();
+  const c=comp(cid)||D.components.find(x=>String(x.id)===String(cid));
+  const inBuild=new Set(rsPicked().map(p=>String(p.id)));
+  const list=usedInWith(cid).map(u=>Object.assign(u,{r:reorderIn(u.p),mine:inBuild.has(String(u.p.id))}));
+  /* the one(s) being planned first, then whichever needs restocking soonest */
+  const soon=u=>u.r&&u.r.days!=null?u.r.days:9e9;
+  list.sort((a,b)=>(b.mine-a.mine)||(soon(a)-soon(b))||a.p.name.localeCompare(b.p.name));
+  const el=document.createElement('div');el.id='usedInPop';el.className='usedInPop';el.dataset.cid=String(cid);
+  el.innerHTML=`<div class="uiH">Used in ${fmt(list.length)} Products</div>
+    ${c?`<div class="uiC">${esc(c.name)}</div>`:''}
+    ${list.map(u=>{const st=reorderState(u.r);
+      return `<div class="uiRow"><span class="uiN">${esc(u.p.name)}${u.mine?' <i>this build</i>':''}</span>
+        <span class="uiQ">&times;${fmt(u.per)} per Product</span>
+        ${u.mine?'':`<button type="button" class="uiAdd" onclick="LV3.usedInAdd('${esc(String(u.p.id))}')" title="Put ${esc(u.p.name)} into this plan — its need for this part is added to the order">+ Add to plan</button>`}
+        <span class="uiS" style="color:${st.col}" title="When this product needs restocking — the same figure as the Planner">${u.r&&u.r.days!=null?(u.r.days<=0?'restock due now':'restock in '+st.txt)
+          :(u.r&&u.r.cover!=null)?`<span style="color:${u.r.cover<=14?'var(--amb)':'var(--text2)'}">~${fmt(Math.round(u.r.cover))} days of stock left</span>`:esc(st.txt)}</span></div>`;}).join('')}
+    ${(()=>{const left=list.filter(u=>!u.mine).length;
+      return left?`<div class="uiNote">This part is shared across several products. Check whether any of the others need restocking soon before placing the order — <b>Add to plan</b> puts them in this order in one click.</div>
+        ${left>1?`<button type="button" class="uiAddAll" onclick="LV3.usedInAddAll('${esc(String(cid))}')">+ Add all ${fmt(left)} to this plan</button>`:''}`
+        :`<div class="uiNote" style="color:var(--grn)">Every product that uses this part is in this plan — the Buy figure covers all of them.</div>`;})()}`;
+  document.body.appendChild(el);
+  const b=btn.getBoundingClientRect(),w=el.offsetWidth,h=el.offsetHeight;
+  let x=Math.min(b.left,window.innerWidth-w-12),y=b.bottom+6;
+  if(y+h>window.innerHeight-8)y=Math.max(8,b.top-h-6);
+  el.style.left=Math.max(8,x)+'px';el.style.top=y+'px';
+  setTimeout(()=>{document.addEventListener('mousedown',_usedInOut,true);document.addEventListener('keydown',_usedInKey,true);},0);
+}
 /* Incoming, judged. "On order" used to count toward a plan whatever its
    state — including the order that is 40 days late and the one nobody has
    dated. A plan built on those is a plan built on hope. Only units with a
@@ -5796,6 +5954,14 @@ function restockPlanMulti(){
       e.need+=per*target;
       e.from.push({p,per,qty:target,need:per*target});
     });
+  });
+  /* a part Becki chose to cover for the others: add their need to THIS part only —
+     none of their other parts come into the order */
+  const _picked=new Set(rsPicked().map(p=>String(p.id)));
+  Object.keys(RS_ALSO).forEach(cid=>{const e=byComp[cid];if(!e)return;
+    usedInWith(cid).filter(u=>!_picked.has(String(u.p.id))).forEach(u=>{
+      const t=rsDefaultQty(u.p)||0;if(!t)return;
+      e.need+=u.per*t;e.from.push({p:u.p,per:u.per,qty:t,need:u.per*t,also:true});});
   });
   const today=dayISO();
   return Object.values(byComp).map(e=>{
@@ -5862,7 +6028,7 @@ function rsCopyList(){
     ()=>toast('Could not reach the clipboard','er'));}
   catch(e){toast('Could not reach the clipboard','er');}
 }
-function rsClear(){RS_PICKS={};RS_Q='';rsSave();render();}
+function rsClear(){RS_PICKS={};RS_ALSO={};rsAlsoSave();RS_Q='';rsSave();render();}
 /* The list was being filled and left hidden. On the opening screen the markup
    hardcodes .on so it worked; once something was picked the class was only set
    at render time, and typing never re-renders — so "Add another bundle" looked
@@ -5929,6 +6095,7 @@ function vRestocks(){
   const plan=restockPlanMulti();
   const short=plan.filter(x=>!x.ok);
   const spend=short.reduce((t,x)=>t+x.buying*(avgCostOf(x.c)||0),0);
+  const alsoSpend=plan.reduce((t,x)=>{const k=alsoCalc(x);return t+((k&&!k.inc&&!k.none&&!k.covered)?k.delta:0);},0);
   /* "366 cases" for three parts that do not come in cases was simply wrong.
      Cases and loose units are different things and are counted separately. */
   const nCases=short.filter(x=>x.caseQty>1).reduce((t,x)=>t+x.cases,0);
@@ -5990,6 +6157,7 @@ function vRestocks(){
               <span><i class="k">2-month actual</i><b class="v${s2.n==null?' none':''}">${s2.n==null?'—':fmt(s2.n)}</b><i class="u">${s2.n==null?'no figure':'Jun+Jul, for reference'}</i></span>
               <span><i class="k">At Amazon</i><b class="v${at==null?' none':''}">${at==null?'—':fmt(at)}${amzIn(x)?`<span style="color:var(--blu);font-size:11px"> +${fmt(amzIn(x))}</span>`:''}</b><i class="u">${at==null?'never counted':'units'}</i></span>
               <span><i class="k">Backstock</i><b class="v">${fmt(have)}</b><i class="u">unit${have===1?'':'s'}</i></span>
+              ${(()=>{const g=estCogOf(x);return `<span title="What one ${esc(x.name)} costs to make, at what each part cost (average of what is on the shelf, or the last price paid). Packaging not included — the same rule as the Products page."><i class="k">COG / unit</i><b class="v${g.v?'':' none'}">${g.v?gbp(g.v):'—'}</b><i class="u">${g.miss?`${g.miss} part${g.miss===1?'':'s'} unpriced`:'at what you paid'}</i></span>`;})()}
             </div>
             <div class="rsCtl">
               <div><span class="k">Target stock</span>
@@ -6074,7 +6242,7 @@ function vRestocks(){
                short.length?('component'+(short.length===1?'':'s')+' to order'):'nothing to order',
                short.length?('of '+fmt(plan.length)+' in this build'):('all '+fmt(plan.length)+' parts covered'))}
         ${buy}
-        ${card('cash',I.coin,gbp(spend),'estimated spend','at what you last paid')}
+        ${card('cash',I.coin,gbp(spend),'estimated spend','at what you last paid'+(alsoSpend>0?` · +${gbp(alsoSpend)} to cover the other products on shared parts`:''))}
         ${multi
           ? card(shared.length?'shared':'info',I.cube,fmt(shared.length),'shared parts','counted once, not once each')
           : card('info',I.cube,fmt(avail(picks[0]).n||0),'can build now','from backstock, of '+fmt(totalUnits)+' asked for')}
@@ -6111,14 +6279,14 @@ function vRestocks(){
               `<span class="rsFromC" title="${esc(f.p.name)} — ${fmt(f.per)} each &times; ${fmt(f.qty)} = ${fmt(f.need)}">
                 ${esc(f.p.name)}<b>${fmt(f.need)}</b></span>`).join('')}</div></td>`:''}
           <td class="mono b">${fmt(x.need)}</td>
-          <td class="mono"><span style="color:${x.stock?'var(--text)':'var(--red)'}">${fmt(x.stock)}</span>
+          <td class="mono"><span style="color:${x.stock?'var(--text)':'var(--red)'}">${fmt(x.stock)}</span>${usedInBadge(x.c)}
             ${x.coming?`<div class="pmeta" style="color:var(--blu)">+${fmt(x.coming)} due by ${dshort(x.cEta)}</div>`:''}
             ${x.cLate?`<div class="pmeta" style="color:var(--red)">+${fmt(x.cLate)} late — not counted</div>`:''}
             ${x.cBlind?`<div class="pmeta" style="color:var(--amb)">+${fmt(x.cBlind)} no ETA — not counted</div>`:''}</td>
           <td class="rsCases">${x.ok
-            ? `<span class="chip ok">Covered</span><div class="pmeta">${x.coming&&x.stock<x.need?'once the '+dshort(x.cEta)+' order lands':'sufficient stock'}${x.goal&&x.coming&&x.stock<x.need?' — in time for the date':''}</div>`
+            ? `<span class="chip ok">Covered</span><div class="pmeta">${x.coming&&x.stock<x.need?'once the '+dshort(x.cEta)+' order lands':'sufficient stock'}${x.goal&&x.coming&&x.stock<x.need?' — in time for the date':''}${(function(){const a=avgCostOf(x.c)||0;return a?` · <span class="dim">${gbp(a)} each</span>`:'';})()}</div>`
             : `<span class="rsBig">${fmt(x.cases)}</span>
-               <div class="pmeta">${x.caseQty>1?`case${x.cases===1?'':'s'} · ${fmt(x.buying)} units${spare>0?` · ${fmt(spare)} spare`:''}`:'units'}${(function(){const a=avgCostOf?avgCostOf(x.c):0;return (a&&x.buying)?` · <span style="color:var(--accent)">${gbp(a*x.buying)}</span>`:'';})()}</div>`}</td>
+               <div class="pmeta">${x.caseQty>1?`case${x.cases===1?'':'s'} · ${fmt(x.buying)} units${spare>0?` · ${fmt(spare)} spare`:''}`:'units'}${(function(){const a=avgCostOf?avgCostOf(x.c):0;return (a&&x.buying)?` · <span style="color:var(--accent)">${gbp(a*x.buying)}</span> <span class="dim">(${gbp(a)} each)</span>`:'';})()}</div>`}${sharedAlso(x)}</td>
           ${plan.some(y=>y.goal)?`<td>${!x.goal||x.ok?'<span class="dim">—</span>'
             :x.routeMissing?'<span style="font-size:11.5px;color:var(--amb);font-weight:700">SET ROUTE</span><div class="pmeta">no lead time known</div>'
             :x.orderLate?`<span style="font-size:12px;color:var(--red);font-weight:800">ALREADY LATE</span><div class="pmeta">was ${dshort(x.orderBy)} — needs a faster route or a later date</div>`
@@ -8032,10 +8200,13 @@ function usualSupplier(c){
   return l?l.sup:'';
 }
 function buyLine(c){
-  const days=D.settings.targetDays||60;
-  const need=compNeed60(c);                    // units for the whole target window
+  const need=compNeed60(c);                    // units for each product's own window, added up
   if(!need)return null;                        // nothing uses it
-  const perDay=need/days;
+  /* daily use = each product's target over its own days — with one shared
+     setting this is exactly need/days, as before */
+  let perDay=0;
+  D.products.forEach(p=>{if(p.archived||p.type!=='bundle')return;const r=p.recipe.find(x=>x.c===c.id);if(!r)return;
+    const t=target60(p)||0;if(t)perDay+=r.q*t/coverDaysOf(p);});
   if(perDay<=0)return null;
   const have=onHand(c),coming=onOrder(c);
   const coverDays=(have+coming)/perDay;
@@ -8043,7 +8214,7 @@ function buyLine(c){
   const mode=guessMode(sup);
   const lead=modeDays(mode);
   /* order enough to cover the target window plus the wait for the next one */
-  let qty=Math.max(0,Math.round(perDay*(days+lead.hi))-(have+coming));
+  let qty=Math.max(0,Math.round(need+perDay*lead.hi)-(have+coming));
   if(c.caseQty>0&&qty>0)qty=Math.ceil(qty/c.caseQty)*c.caseQty;
   const slack=Math.round(coverDays-lead.hi);   // days before you must order
   if(qty<=0&&slack>14)return null;             // comfortable — nothing to say
@@ -9565,7 +9736,7 @@ function vGuide(){
             </div>
             ${P('Leave <b>Sold 30d</b> empty and it falls back to how many units we sent in the last 30 days. That is better than nothing, but it is not the same thing — a single big shipment makes it look like demand jumped. The box underneath says which one you are looking at: <b>sold</b>, or <b>sent 316</b>.',
                 'The same figure drives components. <b>Short for ${D.settings.targetDays||60} days</b> on the Components tab adds up ${D.settings.targetDays||60} days of every product that uses a part, takes off what is on hand <i>and</i> on order, and lists whatever still comes up short. A part used in five bundles is counted across all five.',
-                'How many days to aim for is in <b>Settings</b> — 30, 45, ${D.settings.targetDays||60} or 90. Change it and every target on the page moves with it.')}
+                'How many days to aim for is in <b>Settings</b> — 30, 45, ${D.settings.targetDays||60} or 90. Change it and every target on the page moves with it. A short-dated product can hold less: open it and set <b>Stock to hold</b> (e.g. 30 days) — that one follows its own figure.')}
           </div></div>
 
         <div class="panel"><div class="ph"><span class="t">Setting things up in bulk</span><span class="sub">adding a lot at once, without typing it twice</span></div>
@@ -10285,7 +10456,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
   openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,setHWho,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,orderState,ordQty,rcvdQty,outQty,
   sendBy,sendState,primeDays,setPrimeDays,workDaysBefore,workDaysBetween,
-  undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
+  undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__planComponents:()=>planComponents(),allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,localDT,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,

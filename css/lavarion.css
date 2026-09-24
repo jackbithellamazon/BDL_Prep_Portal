@@ -1832,3 +1832,45 @@
 .noteDel{flex:0 0 auto;background:none;border:0;color:var(--text3);font-size:12px;cursor:pointer;padding:2px 4px;}
 .noteDel:hover{color:#f87171;}
 .noteEmpty{padding:16px 15px;font-size:12.5px;color:var(--text3);}
+
+/* Restocks: a part used in more than one product (Jack, 23 Sep) — amber, small, beside In stock */
+.usedIn{display:inline-flex;align-items:center;gap:3px;margin-left:8px;padding:1px 7px;border:1px solid rgba(251,191,36,.45);border-radius:9px;
+  background:rgba(251,191,36,.1);color:#fbbf24;font:700 10.5px/1.5 var(--sans,system-ui);cursor:pointer;vertical-align:middle;white-space:nowrap;}
+.usedIn:hover{background:rgba(251,191,36,.18);border-color:#fbbf24;}
+.usedInPop{position:fixed;z-index:9000;width:min(420px,calc(100vw - 24px));background:var(--bg2,#1a1a18);border:1px solid rgba(251,191,36,.45);
+  border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.55);padding:11px 13px 10px;text-align:left;font-family:var(--sans,system-ui);}
+.usedInPop .uiH{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#fbbf24;}
+.usedInPop .uiC{font-size:12px;font-weight:700;color:var(--text);margin:2px 0 7px;}
+.usedInPop .uiRow{display:grid;grid-template-columns:1fr auto;gap:0 10px;padding:6px 0;border-top:1px solid var(--border,#2a2a27);}
+.usedInPop .uiN{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.35;}
+.usedInPop .uiN i{font-style:normal;font-size:10px;font-weight:800;color:var(--accent);margin-left:4px;}
+.usedInPop .uiQ{font-size:11.5px;font-weight:700;color:var(--text2);white-space:nowrap;text-align:right;}
+.usedInPop .uiS{grid-column:1/-1;font-size:11px;font-weight:600;margin-top:1px;}
+.usedInPop .uiNote{margin-top:8px;padding-top:8px;border-top:1px solid var(--border,#2a2a27);font-size:11px;line-height:1.45;color:var(--text3);}
+
+.usedIn.ok{border-color:rgba(74,222,128,.45);background:rgba(74,222,128,.1);color:#4ade80;}
+.usedIn.ok:hover{background:rgba(74,222,128,.18);border-color:#4ade80;}
+.usedInPop .uiRow{grid-template-columns:1fr auto auto;align-items:center;}
+.usedInPop .uiQ{grid-column:2;}
+.usedInPop .uiAdd{grid-column:3;grid-row:1;margin-left:4px;padding:2px 8px;border:1px solid var(--accent);border-radius:6px;background:transparent;
+  color:var(--accent);font:700 10.5px/1.5 var(--sans,system-ui);cursor:pointer;white-space:nowrap;}
+.usedInPop .uiAdd:hover{background:rgba(255,176,32,.12);}
+.usedInPop .uiAddAll{display:block;width:100%;margin-top:8px;padding:6px 10px;border:1px solid var(--accent);border-radius:7px;background:rgba(255,176,32,.1);
+  color:var(--accent);font:800 11.5px/1.4 var(--sans,system-ui);cursor:pointer;}
+.usedInPop .uiAddAll:hover{background:rgba(255,176,32,.18);}
+
+/* per-product stock to hold (Jack, 24 Sep) */
+.covSel{font:600 11.5px var(--sans,system-ui);padding:4px 8px;border-radius:6px;border:1px solid var(--border2,#3a3a36);background:var(--bg3,#222);color:var(--text);max-width:100%;}
+.covChip{display:inline-block;margin-left:6px;padding:0 6px;border-radius:7px;font:800 10px/1.6 var(--sans,system-ui);color:#22d3ee;border:1px solid rgba(34,211,238,.45);background:rgba(34,211,238,.08);vertical-align:middle;}
+
+.rsAlso{margin-top:5px;font-size:11.5px;font-weight:600;color:var(--amb);line-height:1.35;}
+.rsAlso b{color:#fbbf24;}
+.rsAlso span{color:var(--text3);font-weight:500;}
+.rsAlso.ok{color:var(--grn);}
+.rsAlso.dim{color:var(--text3);font-weight:500;}
+
+button.rsAlso{display:block;margin:5px 0 0 auto;padding:3px 8px;max-width:100%;white-space:normal;box-sizing:border-box;border:1px dashed rgba(251,191,36,.55);border-radius:6px;background:rgba(251,191,36,.06);
+  cursor:pointer;font:600 11.5px/1.4 var(--sans,system-ui);text-align:right;}
+button.rsAlso:hover{background:rgba(251,191,36,.14);border-style:solid;}
+button.rsAlso.ok{border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.07);color:var(--grn);}
+button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}

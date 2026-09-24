@@ -24,8 +24,10 @@ function _adminItems(){
     /* a question about missing stock that the stock has answered — filed, off both pages */
     try{if(typeof _stockAnsweredCheck==='function'&&_stockAnsweredCheck(r))debounce('stockans_'+(r.uuid||r.id),()=>saveRow(r),1500);}catch(e){}
     try{if(typeof _recoveryFiled==='function'&&_recoveryFiled(r)){debounce('recfiled_'+(r.uuid||r.id),()=>saveRow(r),1500);return;}}catch(e){}
+    try{if(typeof _claimSettledRow==='function'&&_claimSettledRow(r))debounce('clsettle_'+(r.uuid||r.id),()=>saveRow(r),1500);}catch(e){}
     try{if(typeof _rowOwner==='function'&&_rowOwner(r).finished)return;}catch(e){}
     const _partShip=(typeof _partShipStale==='function')&&_partShipStale(r);   /* some went, the rest never followed — Sarah asks the warehouse */
+    const _flag=(typeof _liveFlag==='function')?_liveFlag(r):'';   /* a flag raised on the row with nothing open on it */
     // Mirror the Prep Sheet colour logic so this stays in lock-step with it.
     let rowAgeDate=null;
     /* The sheet only carries dd/mm. Stamping it with the CURRENT year put every
@@ -91,7 +93,10 @@ function _adminItems(){
       r.resolution=Object.assign({},r.resolution,{state:'working',slippedAt:new Date().toISOString(),chase:_ch});
       r._dirty=true;debounce('slip_'+(r.uuid||r.id),()=>saveRow(r),2000);
     }
-    if(r.resolution&&r.resolution.state==='approved'){
+    /* Jack, 21 Sep, Cadbury: closed "arrived and correct" — but 47 units never
+       shipped anywhere. A closed ARRIVAL does not file the row while the units
+       are unaccounted for. */
+    if(r.resolution&&r.resolution.state==='approved'&&!_partShip){
       const at=new Date(r.resolution.approvedAt||r.resolution.at||0).getTime();
       if(!r.resolution.filed&&_workMsSince(at)<TM.undoHours*3600e3){
         out.push({rid:r.uuid||r.id,sku:r.sku,asin:r.asin,prod:r.prod,sup:r.sup,oid:r.oid,
@@ -149,7 +154,7 @@ function _adminItems(){
     const _partDays=TM.partDays;   /* Jack, 6 Sep: S&S arrives together — same clock as everything else */
     const _part=(typeof _partOverdue==='function')?_partOverdue(r):(_got>0&&(_units-_got-_cx)>0&&!!_partSince&&_partMs>=_partDays*24*3600e3&&!_q);   /* one clock — js/rules.js */
     const _partRed=_part&&_partMs>=(_partDays+1)*24*3600e3;
-    if(!isStuck&&!inChase&&!expOverdue&&!_liveCase&&!_handedBack&&!_q&&!_part&&!_partShip)return;
+    if(!isStuck&&!inChase&&!expOverdue&&!_liveCase&&!_handedBack&&!_q&&!_part&&!_partShip&&!_flag)return;
     let sev,col;
     if(ta==='Urgent — Chase Now'){sev=4;col='#ef4444';}
     else if(ta==='Late — Needs Chasing'||isStuck){sev=3;col='#ef4444';}
@@ -159,6 +164,7 @@ function _adminItems(){
     if(_q){const _qw=_queryWait(_q);if(_qw>=TM.queryRedDays){sev=4;col='#ef4444';}else if(sev<=2){sev=2;col='#38bdf8';}}
     if(_part&&sev<=2){sev=_partRed?3:2;col=_partRed?'#ef4444':'#fb923c';}
     if(_partShip&&sev<=2){sev=3;col='#fb923c';}
+    if(_flag&&sev<=2){sev=3;col='#f87171';}
     /* a chase gone quiet past its 2-working-day due is the most actionable
        thing here — it rises to the top instead of fading (Jack, 30 Aug) */
     if(_c0&&!_parked){const _od=_caseDue(_c0);if(_od!==null&&_od>0){sev=4;col='#ef4444';}}
@@ -169,6 +175,7 @@ function _adminItems(){
     const reason=_q?`${_q.by||'Warehouse'} asked — ${_q.got?_q.short+' of '+_q.exp+' still to come?':'has it been dispatched?'}${_queryWait(_q)>=TM.queryRedDays?' · '+_queryWait(_q)+'d unanswered':''}`
       :_part?`${_got} of ${_units} in${r.rcvdAt?' '+_dmy(r.rcvdAt):(r.sentDate?' by '+_dmy(r.sentDate):'')} — the other ${_units-_got-_cx} never followed`
       :_partShip?`${parseInt(r.ship)||0} went out${r.sentDate?' by '+_dmy(r.sentDate):''} — the other ${(typeof remainingToShip==='function')?remainingToShip(r):_got-(parseInt(r.ship)||0)} never followed: still on the shelf, or sent under another SKU?`
+      :_flag?`Flagged "${_flag}${(parseInt(r.issueQty)||0)?' · '+(parseInt(r.issueQty)||0):''}" on the row — nothing open on it`
       :(isStuck?`${days} days in transit`:(expOverdue?`Past expected (${expStr}) — confirm arrival`:(ta||'Needs follow-up')));
     const cogs=parseSKU(r.sku).cogs||0;
     const units=_units,got=_got,cancelled=_cx;
@@ -179,7 +186,7 @@ function _adminItems(){
     const partArrived=got>0&&got<units;
     const missing=partArrived?outstanding:0;
     out.push({rid:r.uuid||r.id,sku:r.sku,asin:r.asin,prod:r.prod,sup:r.sup,oid:r.oid,date:r.date,
-      parkedRow:_parkGrace===true,query:_q||null,partOverdue:_part,partSince:_part?_dmy(r.rcvdAt):'',partShip:!!_partShip,
+      parkedRow:_parkGrace===true,query:_q||null,partOverdue:_part,partSince:_part?_dmy(r.rcvdAt):'',partShip:!!_partShip,flagType:_flag||'',
       acct:r.acct||'',units,got,cancelled,outstanding,partArrived,missing,
       sheetRow:r.sheetRow||'',expDate:r.expectedDelivery||'',
       /* where the row came from — the Purchase Sheet (Sarah types it) or straight
