@@ -77,7 +77,7 @@ async function dbLoad(){
   /* once, shortly after the first load: does the table have every column this build writes? */
   if(!window._colChecked){window._colChecked=1;setTimeout(()=>{try{checkColumnsAtBoot();}catch(e){}},4000);}
   setSyncStatus('syncing');
-  const LEGACY=(function(){try{return localStorage.getItem('ph_boot_mode')==='legacy';}catch(e){return false;}})();
+  const LEGACY=(function(){try{return lsGet('ph_boot_mode')==='legacy';}catch(e){return false;}})();
   try{
     /* Phase A. Actives only (null-inclusive: the column is boolean DEFAULT
        false with no NOT NULL, so a null must count as active). maxId comes

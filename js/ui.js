@@ -49,16 +49,16 @@ function toggleTheme(){
   if(isLight){
     html.classList.remove('light-mode');
     if(btn)btn.textContent='🌙';
-    localStorage.setItem('prepHubTheme','dark');
+    lsSet('prepHubTheme','dark');
   }else{
     html.classList.add('light-mode');
     if(btn)btn.textContent='☀️';
-    localStorage.setItem('prepHubTheme','light');
+    lsSet('prepHubTheme','light');
   }
 }
 
 // Load saved theme — default is dark
-if(localStorage.getItem('prepHubTheme')==='light'){
+if(lsGet('prepHubTheme')==='light'){
   document.documentElement.classList.add('light-mode');
   const btn=document.getElementById('themeBtn');
   if(btn)btn.textContent='☀️';

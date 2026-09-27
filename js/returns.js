@@ -696,11 +696,11 @@ let prepFees={...PREP_FEE_DEFAULTS};
    her dashboard quietly disagreed with his. Rates are shared numbers; they live
    in Supabase now, with localStorage kept as an instant-start cache. */
 function loadPrepFees(){
-  try{const s=localStorage.getItem('prepFees');if(s)prepFees={...PREP_FEE_DEFAULTS,...JSON.parse(s)};}catch(e){}
+  try{const s=lsGet('prepFees');if(s)prepFees={...PREP_FEE_DEFAULTS,...JSON.parse(s)};}catch(e){}
   try{sb.from('app_settings').select('value').eq('key','prep_fees').maybeSingle().then(r=>{
     if(r&&r.data&&r.data.value){
       try{prepFees={...PREP_FEE_DEFAULTS,...JSON.parse(r.data.value)};
-        localStorage.setItem('prepFees',JSON.stringify(prepFees));
+        lsSet('prepFees',JSON.stringify(prepFees));
         if(typeof renderDashboard==='function')renderDashboard();
       }catch(e){}
     }else{
@@ -710,10 +710,12 @@ function loadPrepFees(){
     }
   });}catch(e){}
 }
+/* database FIRST — the browser copy used to go first with no guard, so a full
+   browser pot stopped the new rates ever reaching the database (v52.7) */
 function savePrepFees(){
-  localStorage.setItem('prepFees',JSON.stringify(prepFees));
   try{sb.from('app_settings').upsert({key:'prep_fees',value:JSON.stringify(prepFees)},{onConflict:'key'})
     .then(r=>{if(r&&r.error)console.warn('prep fees save',r.error);});}catch(e){}
+  lsSet('prepFees',JSON.stringify(prepFees));
 }
 // Prep is billed as a VOLUME flat-rate, not progressive brackets: the total
 // number of units in the period decides ONE per-unit rate, and EVERY unit is
@@ -1205,7 +1207,7 @@ function statFilter(status){
   if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
 }
 /* Useful on day one, noise every day after. Off by default, one click away. */
-try{if(localStorage.getItem('prepKbHint')==='1')setTimeout(()=>toggleKbHint(),0);}catch(e){}
+try{if(lsGet('prepKbHint')==='1')setTimeout(()=>toggleKbHint(),0);}catch(e){}
 /* Swaps the "+ VA note" link for a real box, so an empty row stays one line
    tall until someone actually has something to say. */
 function addVaNote(id,btn){
@@ -1263,7 +1265,7 @@ function toggleKbHint(){
   const on=h.style.display==='none';
   h.style.display=on?'':'none';
   if(b)b.style.display=on?'none':'';
-  try{localStorage.setItem('prepKbHint',on?'1':'0');}catch(e){}
+  lsSet('prepKbHint',on?'1':'0');
 }
 function jumpToShipments(range){
   const btn=document.querySelector('.sb-item[onclick*="shipments"]');

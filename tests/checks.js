@@ -475,6 +475,105 @@ window.PrepChecks=(function(){
     }finally{LV3.rsDrop(a.id);}
   };
 
+  /* 37 · the purchase sheet: a different quantity is a new purchase; only a line that REPLACED one on the sheet is a correction */
+  S['purchase sync: separate vs corrected vs identical']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D();const prodW=D.products.find(p=>!p.archived&&(p.recipe||[]).length);if(!prodW)return;
+    const cid=prodW.recipe[0].c;
+    const day=new Date().toISOString().slice(0,10),TAB='Lavarion Q3',SUP='CHECK SUP',NM='CHECK Nairn Bites';
+    const row=(qty,extra)=>Object.assign({tab:TAB,date:day,name:NM,qty,price:0.9,sup:SUP,oid:'',acct:'',invoice:'',notes:'',spend:+(qty*0.9).toFixed(2),mismatch:0},extra||{});
+    const clean=()=>{const A=LV3.__D().purchases;for(let i=A.length-1;i>=0;i--)if(A[i].sup===SUP)A.splice(i,1);
+      D.components.concat(D.products).forEach(o=>{if(o.layers)o.layers=o.layers.filter(l=>!String(l.src||'').startsWith('P:chk-'));});};
+    const seed=()=>{clean();LV3.__D().purchases.push({id:'chk-q1',uuid:null,tab:TAB,date:day,name:NM,qty:32,price:0.9,sup:SUP,oid:'',loc:'Warehouse',arr:0,
+      alloc:[{to:cid,qty:32}],acct:'',invoice:'',notes:'',spend:28.8,mismatch:0});};
+    const mine=()=>LV3.__D().purchases.filter(p=>p.sup===SUP);
+    const q=()=>LV3.__D().purchases.find(p=>p.id==='chk-q1');
+    const run=async rows=>{window.__lavSheetRowsHook=t=>t===TAB?rows:null;try{await LV3.syncPurchases();}finally{delete window.__lavSheetRowsHook;}};
+    try{
+      seed();await run([row(32),row(20)]);
+      eq(q().qty,32,'A: the line already on order is untouched');
+      const n20=mine().find(p=>p.id!=='chk-q1'&&p.qty===20);ok(n20,'A: the 20 comes in as its own purchase');
+      ok(!(n20.alloc||[]).length,'A: waiting to be linked like any new line');
+      seed();await run([row(20)]);
+      eq(q().qty,20,'B: the existing purchase takes the sheet\u2019s new figure');
+      eq(q().alloc[0].qty,20,'B: its stock follows');
+      eq(mine().length,1,'B: nothing doubled');
+      seed();await run([row(20),row(1)]);
+      eq(q().qty,32,'C: not clear which one replaced it — the old line is left alone');
+      eq(mine().filter(p=>p.id!=='chk-q1').length,2,'C: both new lines come in');
+      seed();await run([row(32),row(32)]);
+      const d2=mine().filter(p=>p.id!=='chk-q1');eq(d2.length,1,'D: the second identical line comes in');
+      ok(d2[0].dupCheck&&d2[0].dupCheck.answered==='separate','D: already answered — never asked');
+      /* E · the invoice/order number changed on the sheet (Becki, 23 Sep) → corrected in place, not doubled */
+      seed();await run([row(32,{oid:'INV-NEW-1'})]);
+      eq(mine().length,1,'E: an order-number change does not double the purchase');eq(q().oid,'INV-NEW-1','E: the new order number is taken');eq(q().qty,32,'E: same units');
+      /* F · a typo fixed in the name and the quantity changed → corrected in place */
+      seed();await run([row(30,{name:'CHECK Nairn Bites.'})]);
+      eq(mine().length,1,'F: a renamed line does not double');eq(q().qty,30,'F: new quantity');
+    }finally{clean();}
+  };
+
+  /* 38 · browser storage full (27 Sep 2026: another app on the address filled the shared ~5 MB pot and
+     Sourcing's saves failed with nothing on screen). Fakes a full pot and proves PrepHub carries on:
+     our own throw-away copy goes first, the login is still kept, the fee rates still reach the database,
+     a Restocks pick still holds, the red bar shows — and the slim hub copy reads exactly like the full one. */
+  S['browser storage full: login, fee rates and Restocks carry on, bar shows']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const LS=window.localStorage,real=(typeof Storage!=='undefined'&&LS instanceof Storage);
+    const tgt=real?Storage.prototype:LS,orig=tgt.setItem;
+    const full=()=>{throw new DOMException('The quota has been exceeded.','QuotaExceededError');};
+    const barOff=()=>{const b=document.getElementById('lsFullBar');if(b)b.remove();_lsFull=false;};
+    const memBefore=Object.keys(LS_MEM),hubWas=LS.getItem('lv3_hub_sales'),barWas=!!document.getElementById('lsFullBar');
+    const ownFrom=Object.prototype.hasOwnProperty.call(sb,'from'),oldFrom=sb.from;
+    const D=LV3.__D(),pk=D.products.find(p=>!p.archived&&!(LV3.rsPicked?LV3.rsPicked():[]).some(x=>x.id===p.id));
+    try{
+      /* A · our own copy of the hub report is the first thing to go */
+      barOff();orig.call(LS,'lv3_hub_sales','{"months":[]}');
+      tgt.setItem=function(k,v){if(LS.getItem('lv3_hub_sales')!=null)full();return orig.call(this,k,v);};
+      ok(lsSet('ph_chk_a','1')===true,'A: the save lands once our own copy is cleared');
+      ok(LS.getItem('lv3_hub_sales')==null,'A: the throw-away hub copy went first');
+      ok(!document.getElementById('lsFullBar'),'A: no bar — nothing was lost');
+      /* B · truly full: held in memory for this tab, and the bar says so */
+      tgt.setItem=full;
+      ok(lsSet('ph_chk_b','held')===false,'B: the browser refused');
+      eq(lsGet('ph_chk_b'),'held','B: the value is held in memory');
+      ok(document.getElementById('lsFullBar'),'B: the red bar shows');
+      /* C · the login — the one thing a full pot really broke */
+      ok(sb.auth.storage===PH_AUTH_STORE,'C: the live login is kept through the guard');
+      const sess={access_token:'chk',refresh_token:'chk',token_type:'bearer',expires_in:3600,
+        expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'chk',aud:'authenticated'}};
+      const mk=o=>supabase.createClient(SUPA_URL,SUPA_KEY,{auth:Object.assign({persistSession:true,autoRefreshToken:false,detectSessionInUrl:false},o)});
+      let threw=false;try{await mk({storageKey:'ph-chk-auth-old'}).auth._saveSession(sess);}catch(e){threw=true;}
+      ok(threw,'C: control — the old setup could NOT keep a login with the pot full');
+      const cl=mk({storageKey:'ph-chk-auth',storage:PH_AUTH_STORE});
+      await cl.auth._saveSession(sess);
+      const got=(await cl.auth.getSession()).data.session;
+      ok(got&&got.access_token==='chk','C: with the guard the login is kept');
+      /* D · prep fee rates still reach the database (recorded here, nothing sent) */
+      const sent=[];sb.from=t=>({upsert:row=>{sent.push({t,row});return Promise.resolve({error:null});}});
+      savePrepFees();
+      ok(sent.some(x=>x.t==='app_settings'&&x.row&&x.row.key==='prep_fees'),'D: the fee rates still go to the database');
+      /* E · a Restocks pick holds for this tab */
+      if(pk){LV3.rsSet(pk.id);
+        ok(String(lsGet('lav3_restock_picks')||'').includes(String(pk.id)),'E: the Restocks pick is held');}
+      /* F · the slim hub copy reads exactly like the full report */
+      const R=[{asin:'B0CHK00001',name:'Old name',units:5,profit:9,camps:[1,2]},{asin:' b0chk00002 ',name:'Two',units:0},{asin:'',name:'no asin',units:3},{asin:'B0CHK00003',units:null}];
+      const raw={months:[{id:'2026-07',label:'Jul',rows:R},{ym:'2026-08',label:'Aug',rows:[{asin:'B0CHK00001',name:'New name',units:7,fees:1},{asin:'B0CHK00004',name:'',units:2}]}],_at:'x'};
+      const t=LV3.__hubTest(raw);ok(t.same,'F: the slim copy gives the same units, months and names');
+      let live=null;try{live=await LV3.__hubGet();}catch(e){}
+      if(live){const tl=LV3.__hubTest(live);ok(tl.same,'F: the live hub report reads the same from the slim copy');
+        ok(tl.slim<tl.full/4,'F: the slim copy is far smaller ('+tl.full+' → '+tl.slim+')');}
+    }finally{
+      tgt.setItem=orig;
+      if(ownFrom)sb.from=oldFrom;else delete sb.from;
+      if(pk&&LV3.rsDrop)LV3.rsDrop(pk.id);
+      Object.keys(LS_MEM).filter(k=>!memBefore.includes(k)).forEach(k=>delete LS_MEM[k]);
+      ['ph_chk_a','ph_chk_b','ph-chk-auth','ph-chk-auth-old'].forEach(lsDel);
+      if(hubWas!=null)orig.call(LS,'lv3_hub_sales',hubWas);else LS.removeItem('lv3_hub_sales');
+      if(!barWas)barOff();
+    }
+  };
+
   function D_products(){try{return (LV3.allProducts&&LV3.allProducts())||[];}catch(e){return [];}}
   async function run(only){
     R.length=0;const t0=Date.now();

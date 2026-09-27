@@ -27,5 +27,6 @@ Rollback: upload the previous dated folder the same way.
 - Every change to a row goes through `saveRow`, which runs the rules in `js/rules.js` and writes an audit line.
 - "Is this row finished, and whose is it?" has one answer: `_rowOwner` in `js/rules.js`. Every list reads it.
 - Test in TEST MODE (nothing saves there), never on live.
+- Browser storage goes through `lsGet` / `lsSet` / `lsDel` in `js/core.js`, never `localStorage` directly. Every app on jackbithellamazon.github.io shares one ~5 MB pot. If another app fills it, `lsSet` drops our own spare copy, then keeps the value in memory and shows a red bar. The login uses the same guard (`PH_AUTH_STORE`), so a full pot can't sign anyone out. Real work lives in the database, never only in the browser. Check 38 fakes a full pot.
 
 Build number: in `js/lavarion.js` (`BUILD`) and on Settings.

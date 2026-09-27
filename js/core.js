@@ -1,5 +1,54 @@
 /* BDL PrepHub — js/core.js — shared data + helpers: users, SKU parser, VAT, dates, nav, search, stats.
    Cut from the single app.js on 2026-09-10 (b560). Classic script: shared global scope, load order matters. */
+// ── BROWSER STORAGE GUARD (v52.7) ────────────────────────────────────────────
+/* Every app on jackbithellamazon.github.io shares ONE browser storage pot
+   (~5 MB for all of them). On 27 Sep 2026 another app filled it and Sourcing's
+   saves failed with nothing on screen. PrepHub's real work goes straight to the
+   database, but the LOGIN lives in that pot: full pot = can't sign in, and the
+   hourly login renewal can't be kept, so you're signed out within the hour.
+   So: every write goes through lsSet. It never swallows a full pot —
+   1) it drops our own throw-away copy (LS_DROP) and tries again,
+   2) then it clears the stale old value of that key and tries again,
+   3) then it keeps the value in memory for this tab (so the page and the login
+      carry on) and shows the red bar. Everything below this file uses these. */
+const LS_MEM={};                       // values the browser refused, held for this tab
+const LS_DROP=['lv3_hub_sales'];       // our own copies of data that lives elsewhere — first to go
+let _lsFull=false;
+const _lsQuota=e=>!!e&&(e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'||e.code===22||e.code===1014);
+function lsGet(k){
+  if(Object.prototype.hasOwnProperty.call(LS_MEM,k))return LS_MEM[k];
+  try{return localStorage.getItem(k);}catch(e){return null;}
+}
+function lsSet(k,v){
+  v=String(v);
+  const put=()=>{localStorage.setItem(k,v);delete LS_MEM[k];return true;};
+  try{return put();}catch(e){
+    if(_lsQuota(e)){
+      LS_DROP.forEach(d=>{if(d!==k)try{localStorage.removeItem(d);}catch(_){}});
+      try{return put();}catch(_){}
+      try{localStorage.removeItem(k);}catch(_){}   // a stale old value must not come back on refresh
+      try{return put();}catch(_){}
+    }
+    LS_MEM[k]=v;lsFullBar(e);return false;
+  }
+}
+function lsDel(k){delete LS_MEM[k];try{localStorage.removeItem(k);}catch(e){}}
+/* the login's storage — same key ('bdl-prephub-auth') and format as before, so
+   nobody is signed out by this change */
+const PH_AUTH_STORE={getItem:k=>lsGet(k),setItem:(k,v)=>{lsSet(k,v);},removeItem:k=>lsDel(k)};
+function lsFullBar(e){
+  _lsFull=true;
+  try{console.warn('[PrepHub] browser storage refused a save — holding it in memory',e);}catch(_){}
+  const paint=()=>{
+    if(document.getElementById('lsFullBar'))return;
+    const b=document.createElement('div');b.id='lsFullBar';b.setAttribute('role','alert');
+    b.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:100000;background:#b91c1c;color:#fff;'
+      +'font:600 12.5px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:8px 16px;text-align:center;box-shadow:0 -2px 10px rgba(0,0,0,.35)';
+    b.innerHTML='⚠ <b>This laptop\'s browser storage is full.</b> PrepHub is still saving everything to the database, but this laptop won\'t remember your settings after a refresh. Tell Jack.';
+    document.body.appendChild(b);
+  };
+  if(document.body)paint();else document.addEventListener('DOMContentLoaded',paint,{once:true});
+}
 // ── DATA ─────────────────────────────────────────────────────────────────────
 const USERS=[
   {id:'jack',name:'Jack Bithell',init:'JB',role:'Owner',col:'#f59e0b'},

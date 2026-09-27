@@ -307,11 +307,11 @@ function renderJack(){
   let _chk='never';try{const ck=ADMIN_CHECK&&ADMIN_CHECK.at;if(ck){const dd=Math.floor((Date.now()-new Date(ck).getTime())/864e5);_chk=dd<=0?'today':dd+'d ago';}}catch(e){}
   if(window._jkFreshVisit){
     try{
-      const last=parseInt(localStorage.getItem('jk_lastSeen')||'0');
+      const last=parseInt(lsGet('jk_lastSeen')||'0');
       window._jkSince=last?{
         res:claims.filter(c=>c.cst==='Resolved'&&c.resolvedAt&&new Date(c.resolvedAt).getTime()>=last-864e5).length,
         newIn:items.filter(x=>x.at&&new Date(x.at).getTime()>last).length}:null;
-      localStorage.setItem('jk_lastSeen',String(Date.now()));
+      lsSet('jk_lastSeen',String(Date.now()));
     }catch(e){window._jkSince=null;}
     window._jkFreshVisit=false;
   }

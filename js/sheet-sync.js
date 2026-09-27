@@ -253,7 +253,7 @@ let _ssBC=null;
 // ── CONFIG PERSISTENCE (Supabase for shared config, localStorage for UI prefs)
 async function loadSheetSyncConfig(){
   // Load UI prefs from localStorage first (instant, no network).
-  try{const s=localStorage.getItem(SS_KEY);if(s){const p=JSON.parse(s);_ssConfig.interval=p.interval||120;_ssConfig.enabled=p.enabled||false;}}catch(e){}
+  try{const s=lsGet(SS_KEY);if(s){const p=JSON.parse(s);_ssConfig.interval=p.interval||120;_ssConfig.enabled=p.enabled||false;}}catch(e){}
   // Load shared config (sheet URL, tab, trigger col) from Supabase app_settings.
   try{
     const{data}=await sb.from('app_settings').select('value').eq('key','sheet_sync').maybeSingle();
@@ -267,7 +267,7 @@ async function loadSheetSyncConfig(){
 }
 async function saveSheetSyncConfig(){
   // Save UI prefs locally.
-  try{localStorage.setItem(SS_KEY,JSON.stringify({interval:_ssConfig.interval,enabled:_ssConfig.enabled}));}catch(e){}
+  lsSet(SS_KEY,JSON.stringify({interval:_ssConfig.interval,enabled:_ssConfig.enabled}));
   // Save shared config to Supabase so all browsers + Edge Function see the change.
   try{
     await sb.from('app_settings').upsert({key:'sheet_sync',value:JSON.stringify({url:_ssConfig.url,tab:_ssConfig.tab,col:_ssConfig.col})},{onConflict:'key'});
@@ -1922,7 +1922,8 @@ const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{
   auth:{
     persistSession:true,        // keep each laptop logged in across refreshes
     autoRefreshToken:true,      // silently refresh the session before it expires
-    storageKey:'bdl-prephub-auth'
+    storageKey:'bdl-prephub-auth',
+    storage:PH_AUTH_STORE       // v52.7: a full browser pot can't sign anyone out (core.js)
   }
 });
 

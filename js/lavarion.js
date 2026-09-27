@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v52.4 · lav3 · 2026-09-24 · b584';
+const BUILD='v52.7 · lav3 · 2026-09-27 · b587';
 console.log('[Lavarion] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -1183,6 +1183,25 @@ function hubIngest(raw,cached){
   order.sort();
   HUB={state:order.length?'ok':'none',months,order,at:raw._at||null,err:'',cached:!!cached};
 }
+/* The copy kept for when the hub can't be reached holds only what this page
+   reads: ASIN and units per month, and one name per ASIN (the newest). The
+   whole report — profit, ads, fees, VAT, every column — was 0.33 MB of the
+   ~5 MB browser pot every app on this address shares; this is ~0.03 MB.
+   Same shape, so hubIngest reads old and new copies alike (v52.7). */
+function hubSlim(raw){
+  const named=new Set();
+  const ms=(raw.months||[]).map(m=>({ym:m.ym||m.id,label:m.label,rows:(m.rows||[])}));
+  const slim=ms.map(m=>({ym:m.ym,label:m.label,rows:m.rows.map(()=>({}))}));
+  ms.map((m,i)=>i).sort((a,b)=>String(ms[b].ym).localeCompare(String(ms[a].ym))).forEach(i=>{
+    ms[i].rows.forEach((row,j)=>{
+      const a=String(row.asin||'').trim().toUpperCase();if(!a)return;
+      const o=slim[i].rows[j];o.asin=a;
+      if(row.units===0||row.units)o.units=row.units;
+      if(row.name&&!named.has(a)){o.name=row.name;named.add(a);}
+    });
+  });
+  return{months:slim,_at:raw._at,slim:1};
+}
 async function hubLoad(force){
   if(HUB.state==='loading')return HUB;
   if(HUB.state==='ok'&&!HUB.cached&&!force)return HUB;
@@ -1191,13 +1210,13 @@ async function hubLoad(force){
     const raw=await hubGet();
     raw._at=new Date().toISOString();
     hubIngest(raw,false);
-    try{localStorage.setItem(HUB_CACHE,JSON.stringify(raw));}catch(e){}
+    lsSet(HUB_CACHE,JSON.stringify(hubSlim(raw)));
   }catch(e){
     /* Being offline is not the same as selling nothing. Fall back to the last
        copy we saw and say plainly that it is a copy — showing nothing would
        empty every target on the page and read as a collapse in sales. */
     let used=false;
-    try{const c=localStorage.getItem(HUB_CACHE);
+    try{const c=lsGet(HUB_CACHE);
       if(c){hubIngest(JSON.parse(c),true);used=true;}}catch(e2){}
     if(!used)HUB={state:'err',months:{},order:[],at:null,err:String(e.message||e),cached:false};
     else HUB.err=String(e.message||e);
@@ -2529,8 +2548,8 @@ function acSnooze(k,days,btn){
   render();
 }
 function acUnsnooze(k){if(D.settings.acSnooze)delete D.settings.acSnooze[k];savePrefs();render();}
-let _wlWho=(function(){try{return localStorage.getItem('lv3_wlwho')||'all';}catch(e){return 'all';}})();
-function wlWho(k){_wlWho=k;try{localStorage.setItem('lv3_wlwho',k);}catch(e){}render();}
+let _wlWho=(function(){try{return lsGet('lv3_wlwho')||'all';}catch(e){return 'all';}})();
+function wlWho(k){_wlWho=k;lsSet('lv3_wlwho',k);render();}
 function wlTick(k){
   D.settings.wlAck=D.settings.wlAck||{};
   D.settings.wlAck[k]={d:dayISO(),by:(window.currentUserName||'someone')};
@@ -2736,13 +2755,13 @@ function dupeBanner(){
 /* Sorting. Alphabetical is fine for finding something you already know the name
    of; it is useless for deciding what to do next. Default stays A–Z so nothing
    moves under anyone unexpectedly. */
-let pSort=(typeof localStorage!=='undefined'&&localStorage.getItem('lav3_pSort'))||'name';
-let cSort=(typeof localStorage!=='undefined'&&localStorage.getItem('lav3_cSort'))||'urgent';
-let pDir=+((typeof localStorage!=='undefined'&&localStorage.getItem('lav3_pDir'))||1)||1;
-let cDir=+((typeof localStorage!=='undefined'&&localStorage.getItem('lav3_cDir'))||1)||1;
+let pSort=lsGet('lav3_pSort')||'name';
+let cSort=lsGet('lav3_cSort')||'urgent';
+let pDir=+(lsGet('lav3_pDir')||1)||1;
+let cDir=+(lsGet('lav3_cDir')||1)||1;
 function setSort(which,v){
-  if(which==='p'){pSort=v;pDir=1;try{localStorage.setItem('lav3_pSort',v);localStorage.setItem('lav3_pDir','1');}catch(e){}}
-  else{cSort=v;cDir=1;try{localStorage.setItem('lav3_cSort',v);localStorage.setItem('lav3_cDir','1');}catch(e){}}
+  if(which==='p'){pSort=v;pDir=1;lsSet('lav3_pSort',v);lsSet('lav3_pDir','1');}
+  else{cSort=v;cDir=1;lsSet('lav3_cSort',v);lsSet('lav3_cDir','1');}
   render();
 }
 /* Click the heading to sort by it; click it again to turn it round. The
@@ -2751,9 +2770,9 @@ function setSort(which,v){
    there. */
 function sortCol(which,k){
   if(which==='p'){pDir=(pSort===k)?-pDir:1;pSort=k;
-    try{localStorage.setItem('lav3_pSort',k);localStorage.setItem('lav3_pDir',String(pDir));}catch(e){}}
+    lsSet('lav3_pSort',k);lsSet('lav3_pDir',String(pDir));}
   else{cDir=(cSort===k)?-cDir:1;cSort=k;
-    try{localStorage.setItem('lav3_cSort',k);localStorage.setItem('lav3_cDir',String(cDir));}catch(e){}}
+    lsSet('lav3_cSort',k);lsSet('lav3_cDir',String(cDir));}
   render();
 }
 /* the heading itself: a button, with an arrow only on the one in use */
@@ -5265,11 +5284,20 @@ async function syncPurchases(){
     const fd=new Date(TODAY);fd.setFullYear(fd.getFullYear()+1);
     const future=fd.toISOString().slice(0,10);
     const all=[],failed=[],absent=[];let skipped=0,ahead=0;
+    const readTabs=new Set();
+    /* tests hand the sync their own sheet rows through this hook — live never sets it */
+    const _rowsHook=(typeof window!=='undefined'&&typeof window.__lavSheetRowsHook==='function')?window.__lavSheetRowsHook:null;
     for(const tab of LAV_TABS){
-      let csv=null;
-      try{csv=await lavFetchCsv(id,tab);}catch(e){failed.push(`${tab} — ${e.message}`);continue;}
-      if(!csv){absent.push(tab);continue;}            // tab not created yet — normal
-      parseSheetRows(lavCsvRows(csv),tab).forEach(r=>{
+      let rowsIn=null;
+      if(_rowsHook){rowsIn=_rowsHook(tab);if(!rowsIn){absent.push(tab);continue;}}
+      else{
+        let csv=null;
+        try{csv=await lavFetchCsv(id,tab);}catch(e){failed.push(`${tab} — ${e.message}`);continue;}
+        if(!csv){absent.push(tab);continue;}            // tab not created yet — normal
+        rowsIn=parseSheetRows(lavCsvRows(csv),tab);
+      }
+      readTabs.add(tab);
+      rowsIn.forEach(r=>{
         if(r.date>future){ahead++;return;}             // dated years out — a sheet typo, not a buy
         if(r.date<from){skipped++;return;}
         all.push(r);});
@@ -5291,7 +5319,8 @@ async function syncPurchases(){
     }
     const have=new Set(D.purchases.map(purchKey));
     const claimed=new Set();
-    let added=0,updated=0,renamed=0,dupAsk=0;
+    const fresh=[];                       // lines this sync added as brand new
+    let added=0,updated=0,renamed=0,dupAsk=0,corrected=0;
     all.forEach(r=>{
       const k=purchKey(r);
       if(have.has(k)){
@@ -5353,7 +5382,49 @@ async function syncPurchases(){
       D.purchases.push({id:newId('P'),uuid:null,tab:r.tab,date:r.date,name:r.name,
         qty:r.qty,price:r.price,sup:r.sup,oid:r.oid,loc:'Warehouse',arr:0,alloc:[],
         acct:r.acct,invoice:r.invoice,notes:r.notes,spend:r.spend,mismatch:r.mismatch});
+      fresh.push(D.purchases[D.purchases.length-1]);
     });
+    /* ── A CORRECTION, OR A SECOND PURCHASE? ─────────────────────────────────
+       Becki, 26 Sep: "the duplicate check should ONLY come up for an identical
+       purchase — the same item from the same supplier in different quantities
+       on the same date is NOT a duplicate." The sheet has no row id, so a line
+       is known by its date, order, name and quantity — change the quantity and
+       it looks new. The app used to GUESS "probably a correction" and ask. It no
+       longer guesses: this sync knows which lines are still on the sheet. If
+       the line already on order is still there, the new one is a new purchase —
+       it comes in like any other. Only when that line has GONE from the sheet,
+       and exactly one new line took its place, was it edited: the existing
+       purchase takes the sheet's new figures and its stock follows. Anything
+       less clear than that is left as a new line — never a question. */
+    {
+      const norm=x=>(x||'').toLowerCase().replace(/\s+/g,' ').trim();
+      const _oid=x=>String((x&&x.oid)||'').trim().toLowerCase();
+      const freshIds=new Set(fresh.map(p=>p.id));
+      const pairs=fresh.map(p=>{
+        const c=D.purchases.filter(q=>!freshIds.has(q.id)&&!claimed.has(q.id)
+          &&readTabs.has(q.tab)&&q.tab===p.tab&&q.date===p.date
+          &&norm(q.sup)===norm(p.sup)&&nameClose(q.name,p.name)
+          /* no order-number test here: the old line is GONE from the sheet, so a
+             new order/invoice number is an edit, not a second purchase (Becki
+             hand-deleted three of those on 23 Sep) */
+          &&(q.alloc||[]).length&&(q.alloc||[]).every(a=>targetOf(a.to)));
+        return{p,q:c.length===1?c[0]:null};});
+      pairs.forEach(({p,q})=>{
+        if(!q)return;
+        if(pairs.filter(x=>x.q===q).length!==1)return;          // two new lines for one old one — not clear, leave both
+        const oldQty=parseInt(q.qty)||0,newQty=parseInt(p.qty)||0;
+        const oldName=q.name,oldOid=q.oid;
+        q.qty=newQty;q.price=p.price;q.spend=p.spend;q.mismatch=p.mismatch;
+        q.acct=p.acct;q.invoice=p.invoice;q.notes=p.notes;q.oid=p.oid;q.name=p.name;
+        const al=q.alloc||[];
+        if(al.length===1&&(parseInt(al[0].qty)||0)===oldQty){al[0].qty=newQty;setAlloc(q,al);}
+        claimed.add(q.id);
+        D.purchases=D.purchases.filter(x=>x.id!==p.id);
+        added--;corrected++;
+        const what=[oldQty!==newQty?`${fmt(oldQty)} → ${fmt(newQty)} units`:'',String(oldOid||'')!==String(p.oid||'')?`order ${oldOid||'—'} → ${p.oid||'—'}`:'',oldName!==p.name?`name “${oldName}” → “${p.name}”`:''].filter(Boolean).join(', ')||'figures updated';
+        logIt('edit',`Corrected on the sheet — ${q.name} ${dshort(q.date)} · ${q.sup||''}: ${what} (the old line is no longer on the sheet, so the purchase was updated, not doubled)`);
+      });
+    }
     /* Exact copies — same date, order, name AND quantity as a line that is
        already linked — cannot be a second real purchase: the sheet holds that
        line once. They are removed here, quietly, and said so below. A near
@@ -5362,7 +5433,7 @@ async function syncPurchases(){
     PURCH=D.purchases;
     save();
     const un=D.purchases.filter(x=>allocState(x).k==='none'&&!dupTwin(x)).length;
-    say(`<b style="color:var(--grn)">${fmt(added)} new</b>${updated?` · ${fmt(updated)} price${updated===1?'':'s'} refreshed`:''}${renamed?` · <b style="color:var(--blu)">${fmt(renamed)} renamed on the sheet</b>`:''} · ${fmt(all.length)} row${all.length===1?'':'s'} read
+    say(`<b style="color:var(--grn)">${fmt(added)} new</b>${corrected?` · <b style="color:var(--blu)">${fmt(corrected)} corrected on the sheet</b> (updated in place)`:''}${updated?` · ${fmt(updated)} price${updated===1?'':'s'} refreshed`:''}${renamed?` · <b style="color:var(--blu)">${fmt(renamed)} renamed on the sheet</b>`:''} · ${fmt(all.length)} row${all.length===1?'':'s'} read
       ${un?` · <b style="color:var(--amb)">${fmt(un)} waiting to be linked</b>`:''}
       ${healed?` · <b style="color:var(--red)">${fmt(healed)} leftover cop${healed===1?'y':'ies'} removed</b> <span class="pmeta" style="margin:0">(the same line was already on order — nothing on the sheet changed)</span>`:''}
       ${skipped?`<br><span class="pmeta" style="margin:0">${fmt(skipped)} row${skipped===1?'':'s'} before ${dshort(from)} left out — that stock is covered by the physical count.</span>`:''}
@@ -5638,8 +5709,12 @@ function reviewPanel(){
               const sug=o.sugs[ix];const t=sug?(comp(sug.id)||prod(sug.id)):null;
               const total=p.spend||(p.qty*p.price);
               const isBroken=allocState(p).k==='broken';
-              const twin=dupTwin(p);
-              const chgTwin=twin?null:changedTwin(p);
+              /* Jack/Becki, 26 Sep: never a duplicate question. Exact copies the app
+                 made are removed on their own; any other line on the sheet is a purchase. */
+              const twin=null;
+              /* Becki, 26 Sep: a different quantity is a different purchase — never
+                 asked about here. Real corrections are handled by the sync (above). */
+              const chgTwin=null;
               return `<div class="rvLine ${isBroken?'broken':t?'':'nomatch'}">
                 <div class="rvName">${esc(p.name)}
                   ${isBroken?'<span class="chip bad" title="This was linked once, but the part it pointed at has changed. Pick it again.">link broken</span>':''}</div>
@@ -5756,12 +5831,12 @@ let RS_PICKS=(()=>{
     /* a build plan left for over an hour is stale on purpose — Jack: "if I go
        off the webapp it should auto clear after 1 hour". Fresh visits start
        clean; a refresh mid-planning keeps everything. */
-    const raw=localStorage.getItem(RS_KEY);
+    const raw=lsGet(RS_KEY);
     if(!raw)return{};
-    const at=parseInt(localStorage.getItem('lv3_rs_at')||'0');
+    const at=parseInt(lsGet('lv3_rs_at')||'0');
     /* no stamp = saved before the expiry existed = stale by definition */
     if(!at||Date.now()-at>60*60*1000){
-      localStorage.removeItem(RS_KEY);localStorage.removeItem('lv3_rs_dates');localStorage.removeItem('lv3_rs_at');localStorage.removeItem('lv3_rs_also');
+      lsDel(RS_KEY);lsDel('lv3_rs_dates');lsDel('lv3_rs_at');lsDel('lv3_rs_also');
       return{};
     }
     const o=JSON.parse(raw);
@@ -5774,18 +5849,18 @@ let RS_PICKS=(()=>{
    what it means — ready to send, or actually sellable at Amazon — per picked
    bundle. From that, each part gets a latest safe order date, worked BACK
    through prep, the FBA pipeline where it applies, production and freight. */
-let RS_DATES=(function(){try{return JSON.parse(localStorage.getItem('lv3_rs_dates')||'{}');}catch(e){return{};}})();
+let RS_DATES=(function(){try{return JSON.parse(lsGet('lv3_rs_dates')||'{}');}catch(e){return{};}})();
 /* parts Becki chose to buy for the OTHER products that use them too (Jack, 24 Sep) —
    lives and dies with the plan, never stored anywhere else */
-let RS_ALSO=(function(){try{return Object.keys(RS_PICKS).length?JSON.parse(localStorage.getItem('lv3_rs_also')||'{}'):{};}catch(e){return{};}})();
-function rsAlsoSave(){try{if(Object.keys(RS_ALSO).length)localStorage.setItem('lv3_rs_also',JSON.stringify(RS_ALSO));else localStorage.removeItem('lv3_rs_also');}catch(e){}}
+let RS_ALSO=(function(){try{return Object.keys(RS_PICKS).length?JSON.parse(lsGet('lv3_rs_also')||'{}'):{};}catch(e){return{};}})();
+function rsAlsoSave(){if(Object.keys(RS_ALSO).length)lsSet('lv3_rs_also',JSON.stringify(RS_ALSO));else lsDel('lv3_rs_also');}
 function rsAlso(cid){
   cid=String(cid);const c=comp(cid);
   if(RS_ALSO[cid]){delete RS_ALSO[cid];rsAlsoSave();render();toast(`${c?c.name:'Part'} — back to this plan only`,'ok');return;}
   RS_ALSO[cid]=1;rsAlsoSave();render();
   toast(`${c?c.name:'Part'} — now buying enough for the other products too. The cases, the spend and Copy for the sheet all include it.`,'ok');
 }
-function rsDatesSave(){try{localStorage.setItem('lv3_rs_dates',JSON.stringify(RS_DATES));}catch(e){}}
+function rsDatesSave(){lsSet('lv3_rs_dates',JSON.stringify(RS_DATES));}
 function rsDate(id,v){
   if(v)RS_DATES[id]=Object.assign({mode:'prime'},RS_DATES[id]||{},{date:v});
   else delete RS_DATES[id];
@@ -5793,10 +5868,8 @@ function rsDate(id,v){
 }
 function rsGoalMode(id,v){RS_DATES[id]=Object.assign({},RS_DATES[id]||{},{mode:v});rsDatesSave();render();}
 function rsSave(){
-  try{
-    if(Object.keys(RS_PICKS).length){localStorage.setItem(RS_KEY,JSON.stringify(RS_PICKS));localStorage.setItem('lv3_rs_at',String(Date.now()));}
-    else{localStorage.removeItem(RS_KEY);localStorage.removeItem('lv3_rs_at');}
-  }catch(e){}
+  if(Object.keys(RS_PICKS).length){lsSet(RS_KEY,JSON.stringify(RS_PICKS));lsSet('lv3_rs_at',String(Date.now()));}
+  else{lsDel(RS_KEY);lsDel('lv3_rs_at');}
 }
 /* WAS: sold60 — the two most recent months ADDED UP, i.e. what actually sold,
    which is why Restocks said 167 while the Products page said 146. That is
@@ -7103,6 +7176,9 @@ function dupTwin(p){
    deciding, and the answer can be overruled. */
 function changedTwin(p){
   const norm=x=>(x||'').toLowerCase().replace(/\s+/g,' ').trim();
+  /* Becki, 26 Sep: "Keep both" saved the answer and this ignored it, so the
+     line never left To review. dupTwin had this guard; this one did not. */
+  if(p&&p.dupCheck&&p.dupCheck.answered==='separate')return null;
   const st=allocState(p).k;
   if(st!=='none'&&st!=='broken')return null;
   const _oid=x=>String((x&&x.oid)||'').trim().toLowerCase();
@@ -10456,7 +10532,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
   openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,setHWho,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,orderState,ordQty,rcvdQty,outQty,
   sendBy,sendState,primeDays,setPrimeDays,workDaysBefore,workDaysBetween,
-  undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__planComponents:()=>planComponents(),allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
+  undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,localDT,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
