@@ -695,16 +695,31 @@ let prepFees={...PREP_FEE_DEFAULTS};
    changed a rate, Becki's machine kept the old one and every money figure on
    her dashboard quietly disagreed with his. Rates are shared numbers; they live
    in Supabase now, with localStorage kept as an instant-start cache. */
-function loadPrepFees(){
+/* v52.9 — THE LOOP. renderDashboard calls this, and this used to call
+   renderDashboard back every time the answer came in, so with the Dashboard
+   open every laptop asked the database ~13 times a second, all day (since
+   b468, late Aug). Supabase warned "running out of Disk IO Budget" on 9 Oct.
+   Now: ask the database at most once every 10 minutes, and redraw only when
+   the rates actually changed. A rate Jack changes on another laptop still
+   arrives within ~15 minutes (the routine re-pull redraws the Dashboard). */
+let _pfAskedAt=0;
+const PF_EVERY=10*60*1000;
+function loadPrepFees(force){
   try{const s=lsGet('prepFees');if(s)prepFees={...PREP_FEE_DEFAULTS,...JSON.parse(s)};}catch(e){}
+  if(!force&&_pfAskedAt&&Date.now()-_pfAskedAt<PF_EVERY)return;
+  _pfAskedAt=Date.now();
   try{sb.from('app_settings').select('value').eq('key','prep_fees').maybeSingle().then(r=>{
     if(r&&r.data&&r.data.value){
-      try{prepFees={...PREP_FEE_DEFAULTS,...JSON.parse(r.data.value)};
-        lsSet('prepFees',JSON.stringify(prepFees));
-        if(typeof renderDashboard==='function')renderDashboard();
+      try{const next={...PREP_FEE_DEFAULTS,...JSON.parse(r.data.value)};
+        const changed=JSON.stringify(next)!==JSON.stringify(prepFees);
+        prepFees=next;
+        if(changed){lsSet('prepFees',JSON.stringify(prepFees));
+          if(typeof renderDashboard==='function')renderDashboard();}
       }catch(e){}
-    }else{
-      /* first machine to load after this fix seeds the shared copy */
+    }else if(r&&!r.error){
+      /* first machine to load after the move to the database seeds the shared
+         copy. Only when the read WORKED and found no row: a failed read must
+         never overwrite the shared rates with this laptop's copy. */
       sb.from('app_settings').upsert({key:'prep_fees',value:JSON.stringify(prepFees)},{onConflict:'key'})
         .then(()=>{});
     }
@@ -864,11 +879,11 @@ function openEditShipment(shipId){
   document.getElementById('editShipSummary').innerHTML=
     `<b style="color:var(--text);">${shipId}</b> currently holds: `+
     [c.oaRows.length?`${c.oaRows.length} SKU line${c.oaRows.length!==1?'s':''} (${c.oaUnits} unit${c.oaUnits!==1?'s':''})`:'',
-     c.lav.length?`${c.lav.length} Lavarion line${c.lav.length!==1?'s':''} (${c.lavUnits} unit${c.lavUnits!==1?'s':''})`:'',
+     c.lav.length?`${c.lav.length} PLUB line${c.lav.length!==1?'s':''} (${c.lavUnits} unit${c.lavUnits!==1?'s':''})`:'',
      c.ret.length?`${c.ret.length} Return${c.ret.length!==1?'s':''} (${c.retUnits} unit${c.retUnits!==1?'s':''})`:''
     ].filter(Boolean).join(' · ')||'nothing.';
   document.getElementById('editShipDeleteDesc').innerHTML=
-    `Sent SKUs go back to the prep sheet as <b>In Warehouse</b> (their Sent status &amp; Shipment ID are cleared — nothing is deleted, so you can re-send them). Any Lavarion lines and Returns on this shipment are detached. Use this only if the whole shipment was created by mistake.`;
+    `Sent SKUs go back to the prep sheet as <b>In Warehouse</b> (their Sent status &amp; Shipment ID are cleared — nothing is deleted, so you can re-send them). Any PLUB lines and Returns on this shipment are detached. Use this only if the whole shipment was created by mistake.`;
   om('editShipModal');
 }
 
@@ -946,7 +961,7 @@ async function deleteShipment(){
   // top of it (two overlays = doubled-up dimmer / black screen).
   cm('editShipModal');
   showConfirm('Remove this shipment?',
-    `Removes "${shipId}". Sent SKUs go back to the prep sheet as In Warehouse so you can re-send them (nothing is deleted). ${c.lav.length+c.ret.length>0?`${c.lav.length} Lavarion line(s) and ${c.ret.length} return(s) on it are detached.`:''}`,
+    `Removes "${shipId}". Sent SKUs go back to the prep sheet as In Warehouse so you can re-send them (nothing is deleted). ${c.lav.length+c.ret.length>0?`${c.lav.length} PLUB line(s) and ${c.ret.length} return(s) on it are detached.`:''}`,
     async()=>{
       setSyncStatus('syncing');
       // OA rows: remove this shipment's segment; if it was the row's only
@@ -978,7 +993,7 @@ async function deleteShipment(){
       }
       lavShipments=lavShipments.filter(ls=>ls.shipId!==shipId);
       if(putBack){try{if(window.LV3&&LV3.render)LV3.render();}catch(e){}
-        logAudit('Lavarion stock returned',`${putBack} units back on the shelf from ${shipId}`);}
+        logAudit('PLUB stock returned',`${putBack} units back on the shelf from ${shipId}`);}
       // Detach Returns (the return SKU itself stays on the Returns page).
       for(const rs of c.ret){if(rs.uuid)await sb.from('returns_shipments').delete().eq('id',rs.uuid);}
       returnShipments=returnShipments.filter(rs=>rs.shipId!==shipId);
@@ -1002,7 +1017,7 @@ function jkStory(kind,id){
   if(kind==='lavlate'){
     const g=((window.LV3&&LV3.lavLateList)?LV3.lavLateList():[]).find(x=>x.key===id);if(!g){toast('Order not found','er');return;}
     title=g.name||'Late order';let tj=null;try{tj=g.toJack?JSON.parse(g.toJack):null;}catch(e){}
-    line('Order',esc(g.oid||'—')+(g.sup?' · '+esc(g.sup):'')+(g.acct?' · '+esc(g.acct):''));
+    line('Order',(g.oid?oidHtml(g.oid,g.sup,g.acct):'—')+(g.sup?' · '+esc(g.sup):'')+(g.acct?' · '+esc(g.acct):''));
     line('Units',fmt(g.owed)+' still owed'+(g.cost?' · '+fmtGBP2(g.cost)+' at stake':''));
     line('Ordered',g.ordered?esc(_dmy(g.ordered))+' · '+g.days+' days ago':'—');
     line('Was due',g.eta?esc(_dmy(g.eta)):'no window set');
@@ -1012,7 +1027,7 @@ function jkStory(kind,id){
   }else if(kind==='claim'){
     const c=claims.find(x=>String(x.id)===String(id));if(!c){toast('Claim not found','er');return;}
     title=c.prod||c.sku||'Claim';
-    line('Order',esc(c.oid||'—')+(c.sup?' · '+esc(c.sup):'')+(c.acct?' · '+esc(c.acct):''));
+    line('Order',(c.oid?oidHtml(c.oid,c.sup,c.acct):'—')+(c.sup?' · '+esc(c.sup):'')+(c.acct?' · '+esc(c.acct):''));
     line('SKU / ASIN',esc(c.sku||'')+(c.asin?' · '+esc(c.asin):''));
     line('Issue',esc(c.issT||'')+((c.dif||c.exp)?' · '+fmt(c.dif||c.exp)+' units':'')+(c.claimValue?' · '+fmtGBP2(c.claimValue):''));
     line('Raised',when(c.raisedAt)+(c.raisedBy?' by '+esc(c.raisedBy):''));
@@ -1024,7 +1039,7 @@ function jkStory(kind,id){
   }else{
     const r=_rowById(id);if(!r){toast('Row not found','er');return;}
     title=r.prod||r.sku||'Row';const q=r.resolution||{};
-    line('Order',esc(r.oid||'—')+(r.sup?' · '+esc(r.sup):'')+(r.acct?' · '+esc(r.acct):'')+(r.date?' · ordered '+esc(r.date):''));
+    line('Order',(r.oid?oidHtml(r.oid,r.sup,r.acct):'—')+(r.sup?' · '+esc(r.sup):'')+(r.acct?' · '+esc(r.acct):'')+(r.date?' · ordered '+esc(r.date):''));
     line('SKU / ASIN',esc(r.sku||'')+(r.asin?' · '+esc(r.asin):''));
     line('Units',`${fmt(r.exp||0)} expected · ${fmt(parseInt(r.rcvd)||0)} received · ${fmt(parseInt(r.ship)||0)} shipped${_cxLabel(r)} · ${esc(r.status||'')}`);
     if(q.wentAs)line('Went out under',`<b>${esc(q.wentAs)}</b> — ${esc(q.by||'Sarah')} confirmed in Seller Central${q.at?', '+when(q.at):''}${q.wentAsQty?' · '+fmt(q.wentAsQty)+' unit'+(q.wentAsQty===1?'':'s'):''}`);
@@ -1056,11 +1071,11 @@ function lavLineConsumeNow(){
   showConfirm('Take the parts off for this line?',
     `<b>${n} × ${esc(ls.prod||ls.asin)}</b> on ${esc(ls.shipId||'')}.<br><br>Every part in its build list comes off the bench now, oldest batch first, exactly as the send should have done. Only do this once per line — check the Components tab still shows the stock first.`,
     async()=>{
-      if(!(window.LV3&&LV3.shipConsume)){toast('Lavarion page not available','er');return;}
+      if(!(window.LV3&&LV3.shipConsume)){toast('PLUB page not available','er');return;}
       if(!(LV3.isReady&&LV3.isReady())){try{await LV3.boot();}catch(e){}}
-      if(!(LV3.isReady&&LV3.isReady())){toast('Lavarion stock is not loaded — reload the page and try again','er');return;}
+      if(!(LV3.isReady&&LV3.isReady())){toast('PLUB stock is not loaded — reload the page and try again','er');return;}
       const r=LV3.shipConsume(ls.asin,n);
-      if(!r){toast(`${ls.prod||ls.asin} is not a product the Lavarion page knows`,'er');return;}
+      if(!r){toast(`${ls.prod||ls.asin} is not a product the PLUB page knows`,'er');return;}
       if(r.over>0){try{LV3.noteOverSent(ls.asin,r.over,ls.shipId);}catch(e){}
         toast(`Only ${fmt(r.consumed)} were on the bench — ${fmt(r.over)} recorded as owed`,'er');}
       /* do not say done until the database has it — a toast on a debounced
@@ -1068,7 +1083,7 @@ function lavLineConsumeNow(){
       let _saved=true;try{if(LV3.flush)await LV3.flush();}catch(e){_saved=false;}
       if(!_saved)toast('Taken off on screen but the save FAILED — check the sync badge, then Settings → Check the database','er');
       else if(!(r.over>0))toast(`✓ Parts for ${fmt(n)} × ${ls.prod||ls.asin} taken off the bench and saved`,'ok');
-      try{logAudit('Lavarion parts taken off by hand',`${ls.asin} x${n} on ${ls.shipId} — the send had not taken them off (${window.currentUserName||'someone'})`);}catch(e){}
+      try{logAudit('PLUB parts taken off by hand',`${ls.asin} x${n} on ${ls.shipId} — the send had not taken them off (${window.currentUserName||'someone'})`);}catch(e){}
       cm('editLavLineModal');
       try{LV3.render();}catch(e){}
       try{renderShipments();}catch(e){}
@@ -1106,7 +1121,7 @@ function saveEditLavLine(){
       }
       if(window.LV3&&LV3.render)LV3.render();
     }catch(e){console.warn('[lav3] edit line stock',e);}
-    logAudit('Lavarion line units changed',
+    logAudit('PLUB line units changed',
       `${ls.asin} on ${ls.shipId}: ${was} → ${ls.units} (${delta>0?'+':''}${delta} on stock)`);
   }
   // Save to Supabase
@@ -1114,7 +1129,7 @@ function saveEditLavLine(){
   sb.from('lavarion_shipments').update({units:ls.units,cost:ls.cost}).eq('id',ls.uuid).then(()=>setSyncStatus('synced'));
   cm('editLavLineModal');
   renderShipments();
-  toast('Lavarion line updated ✓');
+  toast('PLUB line updated ✓');
 }
 // Remove a Lavarion ASIN line from a shipment entirely (e.g. added to the wrong
 // shipment ID by accident). Deletes the shipment entry only — the ASIN stays in
@@ -1123,7 +1138,7 @@ function delLavShipLine(uuid){
   const ls=lavShipments.find(s=>s.uuid===uuid||(s.uuid||String(lavShipments.indexOf(s)))===String(uuid));
   if(!ls){toast('Could not find that line','er');return;}
   showConfirm('Remove from shipment?',
-    `This removes ${ls.prod||ls.asin} (${ls.units||0} unit${(ls.units||0)!==1?'s':''}) from shipment ${ls.shipId}. The ASIN stays in your Lavarion catalogue and other shipments are unaffected.`,
+    `This removes ${ls.prod||ls.asin} (${ls.units||0} unit${(ls.units||0)!==1?'s':''}) from shipment ${ls.shipId}. The ASIN stays in your PLUB catalogue and other shipments are unaffected.`,
     ()=>{
       setSyncStatus('syncing');
       if(ls.uuid){
@@ -1136,7 +1151,7 @@ function delLavShipLine(uuid){
          consumed by a shipment that no longer exists */
       let back=null;
       try{if(window.LV3&&LV3.shipRestore)back=LV3.shipRestore(ls.asin,ls.units||0);}catch(e){}
-      logAudit('Lavarion removed from shipment',
+      logAudit('PLUB removed from shipment',
         `${ls.asin} x ${ls.units} from ${ls.shipId}`+(back?` — ${back.restored} put back on the shelf`:''));
       if(back&&back.short>0)toast(`${back.restored} put back; ${back.short} could not be — those batches were already full.`,'er');
       try{if(window.LV3&&LV3.render)LV3.render();}catch(e){}
@@ -1375,7 +1390,12 @@ function addNsLavRow(){
   pkFoot('ns-lav');
 }
 
+let _nsBusy=false;
 async function saveNewShipment(){
+  if(_nsBusy)return;_nsBusy=true;                       /* a double click used to save it — and take the stock — twice */
+  try{return await _saveNewShipmentGo();}finally{_nsBusy=false;}
+}
+async function _saveNewShipmentGo(){
   const shipId=document.getElementById('ns-id').value.trim().toUpperCase();
   if(!shipId){toast('FBA Shipment ID is required','er');return;}
   const type=document.getElementById('ns-type').value;
@@ -1398,7 +1418,7 @@ async function saveNewShipment(){
   });
 
   if(stop.length){toast(stop[0],'er');return;}
-  if(!lavRows.length){toast('Add at least one Lavarion ASIN with units','er');return;}
+  if(!lavRows.length){toast('Add at least one PLUB ASIN with units','er');return;}
 
   // Write type to cache NOW so renderShipments picks it up immediately and
   // the type filter (DG / Oversize) works on first render — without this the
@@ -1419,7 +1439,7 @@ async function saveNewShipment(){
     const _ok=await saveLavShipment(ls);
     if(_ok===false){const _i=lavShipments.indexOf(ls);if(_i>=0)lavShipments.splice(_i,1);continue;}
     if(meta){
-      logAudit('Lavarion added to shipment',
+      logAudit('PLUB added to shipment',
         `${ls.asin} x ${ls.units} -> ${shipId} — COG £${ls.cost} blended across two purchase prices by ${window.currentUserName||'someone'} (${meta.why}${meta.note?': '+meta.note:''})`);
       try{if(window.LV3&&LV3.noteOverride)LV3.noteOverride({k:meta.why||'other',
         shipId,prod:ls.prod,units:ls.units,cost:ls.cost,note:meta.note});}catch(e){}
@@ -1427,6 +1447,6 @@ async function saveNewShipment(){
   }
 
   cm('newShipModal');renderShipments();
-  toast(`✓ Shipment ${shipId} created with ${lavRows.length} Lavarion ASIN${lavRows.length!==1?'s':''}`);
+  toast(`✓ Shipment ${shipId} created with ${lavRows.length} PLUB ASIN${lavRows.length!==1?'s':''}`);
   logAudit('New Shipment created',shipId);
 }

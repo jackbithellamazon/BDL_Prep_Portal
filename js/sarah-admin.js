@@ -908,7 +908,6 @@ async function fireWebhook(text,extra){
   WEBHOOK_CFG.lastAt=new Date().toISOString();
   WEBHOOK_CFG.lastOk=out.ok;
   WEBHOOK_CFG.lastMsg=out.ok?(out.opaque?'Sent (no reply from the other end)':'Sent'):(out.why||'Failed');
-  saveWebhookCfg();
   return out;
 }
 /* Fires when ANY of you opens the app and the check-in has lapsed — a page in a
@@ -916,8 +915,21 @@ async function fireWebhook(text,extra){
    opens PrepHub most working days, so it gets out. If it ever needs to be
    guaranteed, the same call belongs in a scheduled Supabase function. */
 const DIGEST_HOUR=14;               // 2pm UK
+/* 13 Oct 2026: the watchers run on every render of Sarah's page. A failed send
+   (or two renders close together) meant a POST and a settings write per
+   render, and each laptop only knew what IT had sent. Now: one at a time, the
+   shared setting is re-read first, and a failure waits an hour. */
+let _whBusy=false;
+async function _whFresh(){
+  try{const r=await sb.from('app_settings').select('key,value').in('key',['webhook_cfg','admin_checkin']);
+    (r.data||[]).forEach(x=>{let v=null;try{v=JSON.parse(x.value||'null');}catch(e){}
+      if(x.key==='webhook_cfg'&&v){WEBHOOK_CFG.digestOn=v.digestOn||WEBHOOK_CFG.digestOn;WEBHOOK_CFG.on=v.on;WEBHOOK_CFG.url=v.url;}
+      if(x.key==='admin_checkin'&&v&&(!ADMIN_CHECK.at||(v.at&&v.at>ADMIN_CHECK.at)||v.alertedFor))ADMIN_CHECK=Object.assign({},ADMIN_CHECK,v);});
+  }catch(e){}
+}
 async function jackDigestWatch(){
   if(!WEBHOOK_CFG.on||!WEBHOOK_CFG.url)return;
+  if(_whBusy||(WEBHOOK_CFG._failAt&&Date.now()-WEBHOOK_CFG._failAt<3600e3))return;
   const now=new Date();
   if(now.getHours()<DIGEST_HOUR)return;                 // not yet
   /* Local date, built from parts — NOT toISOString(), which is UTC and would
@@ -925,6 +937,11 @@ async function jackDigestWatch(){
      (LV3 has its own localDay but it is private to that module.) */
   const today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   if(WEBHOOK_CFG.digestOn===today)return;               // already sent today
+  _whBusy=true;
+  try{await _whFresh();}finally{_whBusy=false;}
+  if(WEBHOOK_CFG.digestOn===today||!WEBHOOK_CFG.on)return;   // another laptop sent it
+  _whBusy=true;
+  try{
   const{closures,checks,fixes}=jackTodo();
   const gated=claims.filter(c=>!c.archived&&c.cst!=='Resolved'&&((c.owner)||('VA'))==='Jack');
   const n=closures.length+checks.length+gated.length;
@@ -946,13 +963,22 @@ async function jackDigestWatch(){
     `@Jack — ${n} thing${n===1?'':'s'} need you on PrepHub: ${bits.join(', ')}.`+
     (oldest>=3?` Oldest has been waiting ${oldest} days.`:''),
     {event:'jack_daily_digest',count:n,checks:checks.length,closures:closures.length,gated:gated.length});
-  if(res.ok){WEBHOOK_CFG.digestOn=today;saveWebhookCfg();}
+  if(res.ok){WEBHOOK_CFG.digestOn=today;saveWebhookCfg();}else WEBHOOK_CFG._failAt=Date.now();
+  }finally{_whBusy=false;}
 }
 async function checkInWatch(){
-  const st=checkInState();
+  if(_whBusy||(WEBHOOK_CFG._failAt&&Date.now()-WEBHOOK_CFG._failAt<3600e3))return;
+  let st=checkInState();
   if(!st.late)return;
-  const stamp=st.due?st.due.toISOString():'never';
+  let stamp=st.due?st.due.toISOString():'never';
   if(ADMIN_CHECK.alertedFor===stamp)return;            // already sent for this lapse
+  /* a laptop open for days holds an old check-in time — read the real one
+     before telling Discord she has not checked (and before writing it back) */
+  _whBusy=true;try{await _whFresh();}finally{_whBusy=false;}
+  st=checkInState();if(!st.late)return;
+  stamp=st.due?st.due.toISOString():'never';
+  if(ADMIN_CHECK.alertedFor===stamp)return;
+  _whBusy=true;try{
   const res=await fireWebhook("Please check Sarah's Admin page on the Prep Portal.",{
     event:'admin_checkin_overdue',
     lastChecked:ADMIN_CHECK.at||'never checked',
@@ -961,7 +987,8 @@ async function checkInWatch(){
     untouchedPast20:_adminItems().filter(i=>i.days>=20).length,
     refundWindowClosingSoon:_adminItems().filter(i=>{const L=refundLeft(i.date,i);return L!==null&&L>=0&&L<=7;}).length
   });
-  if(res.ok){ADMIN_CHECK.alertedFor=stamp;await saveAdminCheck();}
+  if(res.ok){ADMIN_CHECK.alertedFor=stamp;await saveAdminCheck();}else WEBHOOK_CFG._failAt=Date.now();
+  }finally{_whBusy=false;}
 }
 async function adminCheckIn(){
   ADMIN_CHECK={at:new Date().toISOString(),by:_who(),alertedFor:''};

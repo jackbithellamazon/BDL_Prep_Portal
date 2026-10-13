@@ -223,7 +223,7 @@ function openQuery(rid){
     <div class="mh"><div class="mh-title">Ask the admin team</div><button class="mh-close" onclick="closeQuery()">✕</button></div>
     <div class="mb" style="padding:16px;">
       <div style="font-size:13px;font-weight:800;color:var(--text);line-height:1.35;">${esc(r.prod||r.sku||'')}</div>
-      <div style="font-size:11.5px;font-weight:600;color:var(--text2);margin-top:3px;">${esc(r.sup||'')}${r.acct?' · '+esc(r.acct):''}${r.oid?' · '+esc(r.oid):''}</div>
+      <div style="font-size:11.5px;font-weight:600;color:var(--text2);margin-top:3px;">${esc(r.sup||'')}${r.acct?' · '+esc(r.acct):''}${r.oid?' · '+oidHtml(r.oid,r.sup,r.acct):''}</div>
       <div class="riMaths">
         <div><span>Ordered</span><b>${exp}</b></div>
         <div><span>Booked in</span><b style="color:${got?'var(--green)':'var(--text3)'};">${got}</b></div>
@@ -440,7 +440,7 @@ function paintClaimCase(){
       <div style="min-width:0;">
         <div class="csTtl">${esc(c.sup||'Claim')}</div>
         <div class="csSub">${esc(c.prod||c.sku||'')}</div>
-        <div class="csSub2">${esc(c.oid||'no order id')}${raised?' · raised '+esc(noteAgo(raised)):''}</div>
+        <div class="csSub2">${c.oid?oidHtml(c.oid,c.sup,c.acct):'no order id'}${raised?' · raised '+esc(noteAgo(raised)):''}</div>
       </div>
       <div style="text-align:right;white-space:nowrap;">
         <div class="csMoney">${fmtGBP2(c.claimValue||0)}</div>
@@ -551,7 +551,7 @@ function claimQuick(id,act){
        sorted — close it and move on." No reconciliation admin; he watches the
        bank himself. */
     (c.log=c.log||[]).push({t:getNowUK(),msg:'Refund confirmed by the supplier — closed by '+_who()});
-    c.cst='Resolved';c.resolvedAt=todayISO();
+    c.cst='Resolved';c.resolvedAt=todayISO();c.outcome='refunded';   /* the row reads this and settles itself (13 Oct 2026) */
     saveClaim(c);logAudit('Refund confirmed',c.sku||c.sup||'');
     toast('Closed — refund confirmed, nothing more to do','ok');
     renderAdmin();try{renderJack();}catch(e){}
@@ -683,8 +683,8 @@ function lavLateToJack(key,note){
     LV3.setEta(k.kind,k.oid,k.lid,'lateToJack',JSON.stringify({by:_who(),at:new Date().toISOString(),note:String(note||'').trim()}));
     LV3.setEta(k.kind,k.oid,k.lid,'lateToSarah','');
   }catch(e){toast('Could not send it — open the order instead','er');return;}
-  logAudit('Late Lavarion order back to Jack',key+(note?' — '+note:''));
-  try{fireWebhook(`${_who()} finished a job on a late Lavarion order${note?' — '+note:''}`,{event:'lav_late_to_jack'});}catch(e){}
+  logAudit('Late PLUB order back to Jack',key+(note?' — '+note:''));
+  try{fireWebhook(`${_who()} finished a job on a late PLUB order${note?' — '+note:''}`,{event:'lav_late_to_jack'});}catch(e){}
   toast('Back with Jack — off your list','ok');
   renderAdmin();try{renderJack();}catch(e){}
 }
@@ -709,7 +709,7 @@ function lavLateNewDate(key,v){
     LV3.setEta(k.kind,k.oid,k.lid,'lateToJack','');
     LV3.setEta(k.kind,k.oid,k.lid,'lateToSarah','');
   }catch(e){toast('Could not set the date','er');return;}
-  logAudit('Late Lavarion order — new date',key+' → '+v+' · '+_who());
+  logAudit('Late PLUB order — new date',key+' → '+v+' · '+_who());
   toast('New date '+new Date(v).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' — it stops being late, off both lists until then','ok');
   try{renderJack();}catch(e){}try{renderAdmin();}catch(e){}
 }
@@ -734,8 +734,8 @@ function lavLateToSarah(key,note){
     LV3.setEta(k.kind,k.oid,k.lid,'lateToSarah',JSON.stringify({by:_who(),at:new Date().toISOString(),note}));
     LV3.setEta(k.kind,k.oid,k.lid,'lateToJack','');
   }catch(e){toast('Could not send it','er');return;}
-  logAudit('Late Lavarion order — job to Sarah',key+' — '+note);
-  try{fireWebhook(`${_who()} sent Sarah a job on a late Lavarion order — ${note}`,{event:'lav_late_to_sarah'});}catch(e){}
+  logAudit('Late PLUB order — job to Sarah',key+' — '+note);
+  try{fireWebhook(`${_who()} sent Sarah a job on a late PLUB order — ${note}`,{event:'lav_late_to_sarah'});}catch(e){}
   toast('Sent to Sarah — on her Admin with your note','ok');
   renderJack();try{renderAdmin();}catch(e){}
 }
@@ -757,15 +757,15 @@ function lavIssueToSarah(key,note){
     LV3.setSupplierIssueField(key,'toJack','');
     LV3.logSupplierIssue(key,{by:_who(),at:new Date().toISOString(),msg:'Job to Sarah — '+note});
   }catch(e){toast('Could not send it','er');return;}
-  logAudit('Lavarion shortage — job to Sarah',key+' — '+note);
-  try{fireWebhook(`${_who()} sent Sarah a job on a Lavarion shortage — ${note}`,{event:'lav_issue_to_sarah'});}catch(e){}
+  logAudit('PLUB shortage — job to Sarah',key+' — '+note);
+  try{fireWebhook(`${_who()} sent Sarah a job on a PLUB shortage — ${note}`,{event:'lav_issue_to_sarah'});}catch(e){}
   toast('Sent to Sarah — on her Admin with your note','ok');
   renderJack();try{renderAdmin();}catch(e){}
 }
 function lavLateBack(key){
   const k=_lavLateParts(key);
   try{LV3.setEta(k.kind,k.oid,k.lid,'lateToJack','');}catch(e){toast('Could not hand it back','er');return;}
-  logAudit('Late Lavarion order handed back',key);
+  logAudit('Late PLUB order handed back',key);
   toast('Back with Sarah — no new date','ok');
   renderJack();try{renderAdmin();}catch(e){}
 }
@@ -791,10 +791,15 @@ async function slipStillNothing(rid){
 /* A Lavarion shortage handed to Jack — same two-sides rule as everything else:
    grey and locked on her page, a card on his, back with his answer. */
 function lavToJack(key){
+  askText('Send to Jack','What do you need Jack to do? This line goes at the top of his card.',_ASK_EG,'Send to Jack',
+    ask=>{if(!ask){toast('Say what you need from Jack — one line is enough','er');setTimeout(()=>lavToJack(key),50);return;}
+      _lavToJackGo(key,ask);});
+}
+function _lavToJackGo(key,ask){
   try{
-    LV3.setSupplierIssueField(key,'toJack',JSON.stringify({by:_who(),at:new Date().toISOString()}));
+    LV3.setSupplierIssueField(key,'toJack',JSON.stringify({by:_who(),at:new Date().toISOString(),ask:ask||''}));
     LV3.setSupplierIssueField(key,'toSarah','');   /* back with him — off her page */
-    LV3.logSupplierIssue(key,{by:_who(),at:new Date().toISOString(),msg:'Sent to Jack'});
+    LV3.logSupplierIssue(key,{by:_who(),at:new Date().toISOString(),msg:'Sent to Jack'+(ask?' — '+ask:'')});
   }catch(e){toast('Could not send it — try from the popup','er');return;}
   logAudit('Supplier issue to Jack',key);
   try{fireWebhook(`${_who()} sent a supplier shortage to Jack`,{event:'lav_to_jack'});}catch(e){}
@@ -829,16 +834,27 @@ function _claimBackGo(id,note){
   toast('Back with Sarah','ok');
   renderJack();try{renderAdmin();paintJackBadge();}catch(e){}
 }
+/* Jack, 13 Oct: "where is what she wants me to do with this — needs to say it
+   in the tile." Sending used to be one press with no words, so his card could
+   only say "Sent to Jack". Now she says what she needs in one line, and that
+   line is the first thing on his card. */
+const _ASK_EG='e.g. Approve a write-off — supplier refused · Raise it on the Amazon account · Chase again, or take the loss?';
 function claimToJack(id){
+  const cid=id||_claimCaseId;
+  askText('Send to Jack','What do you need Jack to do? This line goes at the top of his card.',_ASK_EG,'Send to Jack',
+    ask=>{if(!ask){toast('Say what you need from Jack — one line is enough','er');setTimeout(()=>claimToJack(cid),50);return;}
+      _claimToJackGo(cid,ask);});
+}
+function _claimToJackGo(id,ask){
   const c=claims.find(x=>String(x.id)===String(id||_claimCaseId));if(!c)return;
   c.owner='Jack';
   /* Jack, 16 Aug: "the issue still needs to show on Sarah's side… light grey,
      waiting on me. It should NOT just disappear." This stamp is what keeps it
      on her page — and it also separates a claim she SENT from one that simply
      defaults to Jack (gated), which was never hers to watch. */
-  c.sentToJack={by:_who(),at:new Date().toISOString()};
+  c.sentToJack={by:_who(),at:new Date().toISOString(),ask:ask||''};
   if(!c.log)c.log=[];
-  c.log.push({t:getNowUK(),msg:'Sent to Jack by '+_who()});
+  c.log.push({t:getNowUK(),msg:'Sent to Jack by '+_who()+(ask?' — '+ask:'')});
   saveClaim(c);try{updateCB();}catch(e){}
   logAudit('Claim sent to Jack',c.sku||c.sup||'');
   try{fireWebhook(`${_who()} sent the "${c.prod||c.sku||''}" claim to Jack`,{event:'claim_to_jack'});}catch(e){}
@@ -1058,7 +1074,7 @@ function actionCentre(){
   const row=a=>`<div class="vaRow ${a.done?'done':''}">
     <div class="vaMain">
       <div class="vaTask">${esc(a.task)}${a.sheetRow?`<span class="vaChip">sheet row ${esc(a.sheetRow)}</span>`:''}</div>
-      <div class="vaWho">${esc(a.prod||a.sku||'')}${a.oid?' · '+esc(a.oid):''}</div>
+      <div class="vaWho">${esc(a.prod||a.sku||'')}${a.oid?' · '+oidHtml(a.oid,a.sup,a.acct):''}</div>
       ${a.detail?`<div class="vaWhat" title="${esc(a.detail)}">${esc(a.detail)}</div>`:''}
       <div class="vaWho">from ${esc(a.by||'')} ${noteAgo(a.at)}${a.done&&a.doneBy?` · done by ${esc(a.doneBy)} ${noteAgo(a.doneAt)}`:''}</div>
     </div>
@@ -1213,7 +1229,7 @@ function paintLavIssue(){
       </div>`:''}
     </div>
     <div style="display:flex;justify-content:space-between;gap:10px;padding:12px 18px;border-top:1px solid var(--border);">
-      <button onclick="openLavPurchases()" style="padding:7px 14px;background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:7px;font-size:11.5px;font-weight:700;cursor:pointer;">Open in Lavarion</button>
+      <button onclick="openLavPurchases()" style="padding:7px 14px;background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:7px;font-size:11.5px;font-weight:700;cursor:pointer;">Open in PLUB</button>
       <button onclick="lavIssueSave()" style="padding:7px 18px;background:var(--accent);border:1px solid var(--accent);color:#1a1400;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;">Save</button>
     </div>
   </div>`;
@@ -1374,7 +1390,7 @@ function workSaveNote(){
 function lavSupplierBlock(){
   const list=_lavIssues();
   if(list===null)return `<div class="lavSup loading">
-    <div class="lavSupHead"><b>Lavarion — short and damaged</b><span>reading the stock records…</span></div></div>`;
+    <div class="lavSupHead"><b>PLUB — short and damaged</b><span>reading the stock records…</span></div></div>`;
   if(!list.length)return '';
   const live=list.filter(g=>!g.quiet), quiet=list.filter(g=>g.quiet);
   const short=list.reduce((t,g)=>t+g.short,0);
@@ -1403,7 +1419,7 @@ function lavSupplierBlock(){
   };
   return `<div class="lavSup">
     <div class="lavSupHead">
-      <b>Lavarion — short and damaged</b>
+      <b>PLUB — short and damaged</b>
       <span>${list.length} supplier conversation${list.length===1?'':'s'}${short?` · ${short} short`:''}${dmg?` · ${dmg} damaged`:''}${val?` · ${money(val)}`:''}</span>
       ${live.length?`<span class="lavChip">${live.length} need${live.length===1?'s':''} you</span>`:'<span class="lavChip ok">all actioned</span>'}
     </div>
@@ -1427,7 +1443,7 @@ const NOW_BANDS={
   answered:{n:2,label:'ANSWERED',    col:'#f59e0b',why:'Jack has answered your question'},
   arrived: {n:3,label:'ARRIVED — CLOSE IT OFF',col:'#22c55e',why:'it turned up and needs closing off'},
   chase:   {n:4,label:'CHASE',       col:'var(--accent)',why:'still outstanding with the supplier'},
-  supplier:{n:5,label:'SUPPLIER',    col:'#38bdf8',why:'a Lavarion delivery problem'},
+  supplier:{n:5,label:'SUPPLIER',    col:'#38bdf8',why:'a PLUB delivery problem'},
   job:     {n:6,label:'JOBS',        col:'#94a3b8',why:'a job from Jack'},
   sorted:  {n:9,label:'SORTED',      col:'#4ade80',why:'done — in the 24-hour undo window'},
 };
@@ -1540,7 +1556,7 @@ function _allAdminRows(){
         value:g.val,days:g.age||0,sev:3,col:'#38bdf8',
         lavShort:g.short,lavDmg:g.dmg,
         reason:[g.short?g.short+' short':'',g.dmg?g.dmg+' damaged':''].filter(Boolean).join(' · '),
-        src:'Lavarion check-in',
+        src:'PLUB check-in',
         sentBack:{rejectedBy:_ts.by||'Jack',rejectNote:_ts.note||'',at:_ts.at||''},backAt:_ts.at||'',jobNote:_ts.note||'',
         photos:/^https?:\/\//.test((g.evid||'').trim())?(g.evid||'').trim():'',
         waiting:_tj?{state:'asked',at:_tj.at||''}:null,
@@ -1564,7 +1580,7 @@ function _allAdminRows(){
         date:'',units:g.owed,got:0,cancelled:0,outstanding:g.owed,
         value:g.cost||0,days:g.days,sev:3,col:'#c084fc',
         reason:g.eta?('due '+g.eta+' — nothing booked in'):'past its window — nothing booked in',
-        src:'Lavarion order',notes:'',srcNote:'',left:null,
+        src:'PLUB order',notes:'',srcNote:'',left:null,
         /* Jack, 8 Sep: "Alibaba stuff — she sends it to me and most of the time
            I'll send it back with an updated date." Same two-sides rule. */
         waiting:null,
@@ -1690,7 +1706,7 @@ function _typeOf(i){
   if(i.kind==='transit'&&i.partShip)return['PART SHIPPED','#fb923c','Some went out and the rest never followed — still on the shelf, or sent under another SKU?'];
   if(i.kind==='transit'&&i.partOverdue)return['PART ARRIVED','#fb923c','Some of it arrived and the rest has not followed in time — more coming, or is it missing?'];
   if(i.kind==='transit')return['LATE','#f87171','Still in transit past when it should have landed — needs chasing'];
-  if(i.kind==='lavlate')return['JOB FROM JACK','#f87171','A late Lavarion order — Jack has looked at it and needs this from you'];
+  if(i.kind==='lavlate')return['JOB FROM JACK','#f87171','A late PLUB order — Jack has looked at it and needs this from you'];
   if(i.kind==='lav'){
     if(i.lavDmg&&i.lavShort)return['MISSING + DMG','#fb7185','Units short AND damaged at check-in'];
     if(i.lavDmg)return['DAMAGED','#fb7185','Stock arrived damaged — the supplier has to put it right'];
@@ -1870,7 +1886,7 @@ function nowCard(it,big){
       actions=btn('Chased today','chased','#60a5fa')+btn('Sorted','close','#4ade80')+btn('View in Prep','open','#94a3b8');
     }
   }
-  else if(it.band==='supplier')actions=btn('Open in Lavarion','lav','#38bdf8');
+  else if(it.band==='supplier')actions=btn('Open in PLUB','lav','#38bdf8');
   else if(it.band==='job')actions=btn('Done','job','#4ade80');
   const spine=it.waiting?'#60a5fa':B.col;
   return `<div style="border-left:3px solid ${spine};background:${it.waiting?'rgba(96,165,250,.05)':(it.band==='sorted'?'rgba(148,163,184,.05)':(big?'var(--bg3)':'var(--bg2)'))};border:1px solid ${it.waiting?'rgba(96,165,250,.3)':'var(--border)'};border-left-width:${big?'4px':'3px'};border-radius:8px;padding:${big?'16px 18px':'11px 14px'};margin-bottom:8px;${done?'opacity:.35;pointer-events:none;':''}${it.band==='sorted'?'opacity:.6;':''}">
@@ -2014,7 +2030,7 @@ function renderAdmin(){
   try{const n=(typeof LV3!=='undefined'&&LV3.lavLateCount)?LV3.lavLateCount():0;
     if(n)_lavLateBanner=`<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:10px;border-radius:9px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.4);">
       <div style="width:8px;height:8px;border-radius:50%;background:#c084fc;flex:none;"></div>
-      <div style="min-width:0;"><div style="font-size:12.5px;font-weight:800;color:#c084fc;">${n} Lavarion deliver${n===1?'y is':'ies are'} overdue</div>
+      <div style="min-width:0;"><div style="font-size:12.5px;font-weight:800;color:#c084fc;">${n} PLUB deliver${n===1?'y is':'ies are'} overdue</div>
         <div style="font-size:11.5px;color:var(--text2);">Past the expected window and not marked short — worth chasing the supplier</div></div>
       <button onclick="goPage('lavarion',null);setTimeout(function(){try{LV3.go('purchases')}catch(e){}},250);" style="margin-left:auto;flex:none;padding:7px 15px;border-radius:7px;cursor:pointer;font-size:11.5px;font-weight:800;background:#c084fc;border:1px solid #c084fc;color:#12100a;">Open orders</button>
     </div>`;}catch(e){}
@@ -2202,7 +2218,7 @@ function renderAdmin(){
               <td class="tfuNumCell" style="text-align:center;"><span class="tfuStripe" style="background:#22d3ee;" title="With Becki — Amazon say delivered, she is checking the shelves"></span><span style="font:800 12px var(--mono);color:var(--text3);">${n+1}</span>
               <td colspan="6"><div class="tfuCmp">
                 <span class="tfuCmpName" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</span>
-                <span class="tfuCmpMeta">${esc(i.sup||'')}${i.oid?' · '+esc(i.oid):''}${i.acct?' · '+esc(i.acct):''}</span>
+                <span class="tfuCmpMeta">${esc(i.sup||'')}${i.oid?' · '+oidHtml(i.oid,i.sup,i.acct):''}${i.acct?' · '+esc(i.acct):''}</span>
                 <span class="tfuCmpChip" style="background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.5);color:#22d3ee;" title="With Becki — checking the shelves">With Becki &middot; checking the shelves${_bAge!=null?' &middot; '+_bAge+'d':''}</span>
                 <span class="tfuCmpAsk" title="Sent ${esc(i.withBecki.sentBy||'')}${i.withBecki.at?' '+esc(_logWhen(i.withBecki.at)):''}">Amazon say delivered &mdash; Becki is checking the shelves. Found: it books in and clears. Not there: it goes to Jack for the refund.</span>
                 ${i.value?`<span class="tfuCmpVal">${fmtGBP2(i.value)}</span>`:''}
@@ -2230,7 +2246,7 @@ function renderAdmin(){
               <td class="tfuNumCell" style="text-align:center;"><span class="tfuStripe" style="background:#94a3b8;" title="${esc(edgeTitle)}"></span><span style="font:800 12px var(--mono);color:var(--text3);cursor:help;" title="${esc(edgeTitle)}">${n+1}</span></td>
               <td colspan="6"><div class="tfuCmp">
                 <span class="tfuCmpName" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</span>
-                <span class="tfuCmpMeta">${esc(i.sup||'')}${i.oid?' · '+esc(i.oid):''}${i.acct?' · '+esc(i.acct):''}</span>
+                <span class="tfuCmpMeta">${esc(i.sup||'')}${i.oid?' · '+oidHtml(i.oid,i.sup,i.acct):''}${i.acct?' · '+esc(i.acct):''}</span>
                 <span class="tfuCmpChip"${_jackOwned?' style="background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.5);color:#22d3ee;"':''} title="${esc(_stage)}">${esc(_stage)}${_wAge!=null?' &middot; '+_wAge+'d':''}</span>
                 <span class="tfuCmpAsk" title="${esc(_wWhat)}">${_q?'Warehouse asked: '+esc(_q.got?_q.got+' of '+_q.exp+' in — is more coming?':'has it been dispatched?')+' · ':''}${esc(_wWhat)}</span>
                 ${i.value?`<span class="tfuCmpVal">${fmtGBP2(i.value)}</span>`:''}
@@ -2255,7 +2271,7 @@ function renderAdmin(){
             </td>
             <td>
               <div class="tfuSup">${esc(i.sup||'—')}</div>
-              <div class="tfuOid${i.oid?'':' none'}" ${i.oid?'title="Select to copy — this is the reference to quote"':''}>${esc(i.oid||'no order id')}</div>
+              <div class="tfuOid${i.oid?'':' none'}">${i.oid?oidHtml(i.oid,i.sup,i.acct):'no order id'}</div>
               <div style="display:flex;gap:6px;align-items:center;justify-content:center;margin-top:5px;flex-wrap:wrap;">
                 ${i.acct?`<span class="tfuAcct">${esc(i.acct)}</span>`:''}
                 ${i.sheetRow?`<span class="tfuSheet" title="Line ${esc(i.sheetRow)} on the Purchase Sheet">sheet line ${esc(i.sheetRow)}</span>`:''}
@@ -2688,7 +2704,7 @@ function renderAdmin(){
                 if(i.kind==='transit'||i.kind==='lavlate'){const _wq=i.wentAsQty||0,_cq=Math.max(0,(i.cancelled||0)-_wq);
                   _facts.push(['Units',`${fmt(i.units)} ordered${i.qtyFix?` <span style="color:#fbbf24;">(sheet said ${fmt(i.qtyFix.from)} &mdash; corrected by ${esc(i.qtyFix.by||'Jack')})</span>`:''} &middot; ${fmt(i.got)} in &middot; ${fmt(i.outstanding)} still out${_cq?' &middot; '+fmt(_cq)+' cancelled':''}${_wq?' &middot; '+fmt(_wq)+' went out as '+(i.wentAs?esc(i.wentAs):'another SKU'):''}`]);}
                 if(i.kind==='claim'||i.kind==='lav')_facts.push(['Units',`${fmt(i.units)} affected`]);
-                if(i.oid)_facts.push(['Order',esc(i.oid)+(i.acct?' <span style="color:var(--text3);">&middot; '+esc(i.acct)+'</span>':'')]);
+                if(i.oid)_facts.push(['Order',oidHtml(i.oid,i.sup,i.acct)+(i.acct?' <span style="color:var(--text3);">&middot; '+esc(i.acct)+'</span>':'')]);
                 if(i.sup)_facts.push(['Supplier',esc(i.sup)+(i.source?' <span style="color:var(--text3);">&middot; from the '+esc(i.source)+'</span>':'')]);
                 if(i.date)_facts.push(['Ordered',esc(/^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/.test(String(i.date))?String(i.date):_ds(i.date))+(i.days?' <span style="color:var(--text3);">&middot; '+i.days+'d ago</span>':'')]);
                 if(i.expDate)_facts.push(['Expected',esc(_ds(i.expDate))]);

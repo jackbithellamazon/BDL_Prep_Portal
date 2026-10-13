@@ -440,7 +440,7 @@ function renderDashboard(){
         fmtGBP2(weekTotal.value),'COG value sent',
         pill('SKUs',fmt(weekSkus),COL.sku)+pill('ASINs',fmt(weekAsins),COL.asin)+pill('Boxes',fmt(weekBoxes),COL.box)+pill('COG/unit',weekTotal.units?fmtGBP2(weekTotal.value/weekTotal.units):'—',GOLD)+(lwTotal.units>0?pill('vs Last Week',`${weekTotal.units>=lwTotal.units?'\u2191':'\u2193'} ${Math.abs(weekTotal.units-lwTotal.units)} units`,weekTotal.units>=lwTotal.units?'#4ade80':'#f87171'):pill('vs Last Week','—','#cbd5e1')),
         '','',null,
-        `${fmt(weekShipments)} shipment${weekShipments===1?'':'s'}${weekLavAsins?` · ${fmt(weekLav.units)} Lavarion`:''}${weekPC.totalUnits>0?` · prep ${fmtGBP2(weekPC.withVat)}`:''}`)
+        `${fmt(weekShipments)} shipment${weekShipments===1?'':'s'}${weekLavAsins?` · ${fmt(weekLav.units)} PLUB`:''}${weekPC.totalUnits>0?` · prep ${fmtGBP2(weekPC.withVat)}`:''}`)
       }
 
       ${kTile('This Month',`#06b6d4`,
@@ -448,7 +448,7 @@ function renderDashboard(){
         fmtGBP2(mtdCOG),'COG value sent',
         pill('SKUs',fmt(mtdSkus),COL.sku)+pill('ASINs',fmt(mtdAsins),COL.asin)+pill('Boxes',fmt(mtdBoxesCount),COL.box)+pill('COG/unit',mtdUnits?fmtGBP2(mtdCOG/mtdUnits):'—',GOLD)+((()=>{try{/* Jack, 9 Sep: "pro rate it." Month-to-date was being measured against last month's FULL total, so the 9th of the month always looked like a collapse. Same days, same question — and the full month is on the tooltip. */const n=new Date(),pS=new Date(n.getFullYear(),n.getMonth()-1,1),pLast=new Date(n.getFullYear(),n.getMonth(),0).getDate(),dN=Math.min(n.getDate(),pLast),pE=new Date(n.getFullYear(),n.getMonth()-1,dN,23,59,59,999),pr=sentRollup(pS,pE),nm=pS.toLocaleDateString('en-GB',{month:'short'});if(pr&&pr.units){const d=mtdUnits-pr.units,full=sentRollup(pS,new Date(n.getFullYear(),n.getMonth(),0,23,59,59,999));return pill(`<span title="${fmt(mtdUnits)} units by day ${dN} this month against ${fmt(pr.units)} by day ${dN} of ${nm}. ${nm} finished on ${fmt(full.units)} units.">vs ${nm} 1&ndash;${dN}</span>`,`${d>=0?'\u2191':'\u2193'} ${fmt(Math.abs(d))} units`,d>=0?'#4ade80':'#f87171');}}catch(e){}return pill('vs Last Month','—','#cbd5e1');})()),
         '','','openMonthHistory()',
-        `${fmt(mtdShipCount)} shipment${mtdShipCount===1?'':'s'}${prepCost.lavUnits>0?` · ${fmt(prepCost.lavUnits)} Lavarion`:''} · ${fmt(mtdPrepDays)} prep day${mtdPrepDays===1?'':'s'}${prepCost.totalUnits>0?` · prep ${fmtGBP2(prepCost.withVat)}`:''}`)
+        `${fmt(mtdShipCount)} shipment${mtdShipCount===1?'':'s'}${prepCost.lavUnits>0?` · ${fmt(prepCost.lavUnits)} PLUB`:''} · ${fmt(mtdPrepDays)} prep day${mtdPrepDays===1?'':'s'}${prepCost.totalUnits>0?` · prep ${fmtGBP2(prepCost.withVat)}`:''}`)
       }
     </div>
 
@@ -631,7 +631,7 @@ function renderDashboard(){
             <span style="font-size:12.5px;color:#dbe3ee;">month for units sent</span>
           </div>
           <div style="font-size:12.5px;color:#dbe3ee;margin:5px 0 11px;line-height:1.5;">${fmt(mtdUnits)} sent so far · projecting <b style="color:${vUnits.col};">${fmt(projUnits)}</b> by month-end — ${vUnits.sub}.</div>
-          ${[['Units sent',mtdUnits,projUnits,avgUnits,vUnits,COL.week],['Lavarion',mtdLavUnits,projLav,avgLav,vLav,COL.asin],['OA / stock',mtdStockUnits,projStock,avgStock,vStock,COL.sku]].map(([l,mtdv,proj,avg,v,col])=>`
+          ${[['Units sent',mtdUnits,projUnits,avgUnits,vUnits,COL.week],['PLUB',mtdLavUnits,projLav,avgLav,vLav,COL.asin],['OA / stock',mtdStockUnits,projStock,avgStock,vStock,COL.sku]].map(([l,mtdv,proj,avg,v,col])=>`
             <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);">
               <span style="flex:1;font-size:12.5px;color:${col};font-weight:700;">${l}</span>
               <span style="font-size:12.5px;font-family:var(--mono);color:#f1f5f9;" title="sent so far → projected month-end · recent monthly avg">${fmt(mtdv)} → ${fmt(proj)}${avg?` <span style="color:#aeb9c9;">/ ${fmt(Math.round(avg))} avg</span>`:''}</span>
@@ -821,21 +821,21 @@ function renderDashboard(){
         <!-- Sent Mix stacked bar (week / month) -->
         ${(()=>{
           const mix=_mixPeriod==='month'?mixMonth:mixWeek;
-          const segs=[['Standard (stock)',mix.std,COL.sku],['DG (stock)',mix.dg,'#f87171'],['Oversize (stock)',mix.os,COL.box],['Lavarion',mix.lav,COL.asin]];
+          const segs=[['Standard (stock)',mix.std,COL.sku],['DG (stock)',mix.dg,'#f87171'],['Oversize (stock)',mix.os,COL.box],['PLUB',mix.lav,COL.asin]];
           const tot=mix.total||0;
           const tabBtn=(k,lbl)=>`<button onclick="setMixPeriod('${k}')" style="padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid ${_mixPeriod===k?'var(--accent)':'var(--border2)'};background:${_mixPeriod===k?'rgba(251,191,36,.15)':'var(--bg3)'};color:${_mixPeriod===k?'#fbbf24':'var(--text2)'};">${lbl}</button>`;
           const bar=tot>0?segs.filter(s=>s[1]>0).map(([l,u,col])=>{
             const pc=u/tot*100;
             return `<div title="${l}: ${fmt(u)} (${pc.toFixed(1)}%)" style="width:${pc}%;background:${col};display:flex;align-items:center;justify-content:center;">${pc>=10?`<span style="font-size:11px;font-weight:800;color:#000;">${Math.round(pc)}%</span>`:''}</div>`;
           }).join(''):`<div style="width:100%;display:flex;align-items:center;justify-content:center;color:#b6c2d4;font-size:11px;">No units sent ${_mixPeriod==='month'?'this month':'this week'}</div>`;
-          const overlap=(mix.lavDG+mix.lavOS)>0?`<div style="font-size:10px;color:#b6c2d4;margin-top:8px;line-height:1.45;">Of ${fmt(mix.lav)} Lavarion units, ${mix.lavDG?fmt(mix.lavDG)+' are DG-typed':''}${mix.lavDG&&mix.lavOS?' and ':''}${mix.lavOS?fmt(mix.lavOS)+' oversize-typed':''} — kept under Lavarion, not double-counted in DG/Oversize.</div>`:'';
+          const overlap=(mix.lavDG+mix.lavOS)>0?`<div style="font-size:10px;color:#b6c2d4;margin-top:8px;line-height:1.45;">Of ${fmt(mix.lav)} PLUB units, ${mix.lavDG?fmt(mix.lavDG)+' are DG-typed':''}${mix.lavDG&&mix.lavOS?' and ':''}${mix.lavOS?fmt(mix.lavOS)+' oversize-typed':''} — kept under PLUB, not double-counted in DG/Oversize.</div>`:'';
           return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
               <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Sent Mix · ${tot>0?fmt(tot)+' units':'—'}</div>
               <div style="display:flex;gap:5px;">${tabBtn('week','Week')}${tabBtn('month','Month')}</div>
             </div>
             <div style="display:flex;height:28px;width:100%;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.05);">${bar}</div>
-            <div style="font-size:11px;color:#aeb9c9;margin:10px 0 6px;line-height:1.55;">Standard / DG / Oversize are your <b style="color:#aeb9c9;">OA stock</b> shipments. Lavarion is shown separately — it also ships as standard, so it’s <b style="color:#aeb9c9;">not</b> counted in the Standard figure.</div>
+            <div style="font-size:11px;color:#aeb9c9;margin:10px 0 6px;line-height:1.55;">Standard / DG / Oversize are your <b style="color:#aeb9c9;">OA stock</b> shipments. PLUB is shown separately — it also ships as standard, so it’s <b style="color:#aeb9c9;">not</b> counted in the Standard figure.</div>
             <div style="display:flex;flex-direction:column;gap:0;margin-top:5px;">
               ${segs.map(([l,u,col])=>{
                 const pc=tot?(u/tot*100):0;
@@ -867,9 +867,9 @@ function renderDashboard(){
           ${(()=>{const stockU=Math.max(0,weekTotal.units-weekLav.units-(weekRet.units||0));const den=(stockU+weekLav.units)||1;const sPc=stockU/den*100,lPc=weekLav.units/den*100;
             return `<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.06);margin-bottom:10px;">
               ${sPc>0?`<div title="Stock (OA) ${fmt(stockU)}" style="width:${sPc}%;background:${COL.sku};"></div>`:''}
-              ${lPc>0?`<div title="Lavarion ${fmt(weekLav.units)}" style="width:${lPc}%;background:${COL.asin};"></div>`:''}
+              ${lPc>0?`<div title="PLUB ${fmt(weekLav.units)}" style="width:${lPc}%;background:${COL.asin};"></div>`:''}
             </div>`
-            +[['Stock (OA)',stockU,weekStock.value,COL.sku],['Lavarion',weekLav.units,weekLav.value,COL.asin],['Total',weekTotal.units,weekTotal.value,'#e6ecf5']].map(([l,u,v,col])=>`
+            +[['Stock (OA)',stockU,weekStock.value,COL.sku],['PLUB',weekLav.units,weekLav.value,COL.asin],['Total',weekTotal.units,weekTotal.value,'#e6ecf5']].map(([l,u,v,col])=>`
             <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
               <span style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:${col};font-weight:${l==='Total'?'800':'700'};">${l==='Total'?'':`<span style="width:8px;height:8px;border-radius:2px;background:${col};"></span>`}${l}</span>
               <span style="font-size:12px;font-family:var(--mono);font-weight:800;color:${col};">${fmt(u)} <span style="font-size:10.5px;color:${GOLD};">${fmtGBP2(v)}</span></span>
@@ -907,7 +907,7 @@ function lavProblemStrip(){
       padding:13px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:11px;">
       <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;">
-        Lavarion — paid for, not here</div>
+        PLUB — paid for, not here</div>
       <div style="font-size:11px;color:#8b98ab;">${list.length} supplier conversation${list.length===1?'':'s'}${oldest?` · oldest ${oldest} day${oldest===1?'':'s'}`:''}</div>
       <button onclick="document.querySelector('.sb-item[onclick*=&quot;admin&quot;]').click()"
         style="margin-left:auto;padding:5px 12px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;

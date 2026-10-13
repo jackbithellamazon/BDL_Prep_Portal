@@ -49,7 +49,7 @@ function renderInsights(){
     }
   });
   lavShipments.filter(s=>inRange(s.date)).forEach(s=>lines.push({kind:'lav',units:s.units||0,value:(s.cost||0)*(s.units||0),
-    sup:'Lavarion',acct:'Lavarion',type:_shipTypeCache[s.shipId]||'Standard',shipId:s.shipId,date:s.date,sku:s.sku,asin:s.asin,prod:s.prod}));
+    sup:'PLUB',acct:'PLUB',type:_shipTypeCache[s.shipId]||'Standard',shipId:s.shipId,date:s.date,sku:s.sku,asin:s.asin,prod:s.prod}));
   returnShipments.filter(s=>inRange(s.date)).forEach(s=>lines.push({kind:'return',units:s.units||0,value:(s.cost||0)*(s.units||0),
     sup:'Return',acct:'Returns',type:_shipTypeCache[s.shipId]||'Standard',shipId:s.shipId,date:s.date,sku:s.sku,asin:s.asin,prod:s.prod}));
 
@@ -91,7 +91,7 @@ function renderInsights(){
   rows.filter(r=>r.issueQty>0).forEach(r=>{const m=ensureSup(r.sup||'Unknown');m.issues+=r.issueQty||0;m.issueVal+=parseSKU(r.sku).cogs*(r.issueQty||0);if(r.oid)m.orders.add(r.oid);});
   rows.filter(r=>r.sentDate&&r.date).forEach(r=>{const[dd,mm]=(r.date||'').split('/');if(!dd||!mm)return;const ordered=new Date(`${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);const sent=new Date(r.sentDate);const days=Math.round((sent-ordered)/864e5);if(days>=0&&days<200)ensureSup(r.sup||'Unknown').days.push(days);});
   claims.forEach(c=>{const m=ensureSup(c.sup||'Unknown');m.claims++;m.claimVal+=c.claimValue||0;});
-  const supEntries=Object.entries(supMap).filter(([s])=>s!=='Lavarion'&&s!=='Return').sort((a,b)=>b[1].value-a[1].value);
+  const supEntries=Object.entries(supMap).filter(([s])=>s!=='PLUB'&&s!=='Return').sort((a,b)=>b[1].value-a[1].value);
 
   // ── ACCOUNT ANALYSIS (new) ─────────────────────────────────────────────────
   const acctMap={};
@@ -276,7 +276,7 @@ function renderInsights(){
     <div class="ig-row ig-2">
       <div class="ic" style="align-items:stretch;text-align:left;">
         <div class="ic-title" style="text-align:left;">Volume Composition (units)</div>
-        ${[['Stock',stockUnits,'#5599ff'],['Lavarion',lavUnits,'#cc99ff']].map(([l,u,c])=>bar(l,u,totalUnits||1,c,`${fmt(u)} · ${Math.round(u/(totalUnits||1)*100)}%`,70)).join('')}
+        ${[['Stock',stockUnits,'#5599ff'],['PLUB',lavUnits,'#cc99ff']].map(([l,u,c])=>bar(l,u,totalUnits||1,c,`${fmt(u)} · ${Math.round(u/(totalUnits||1)*100)}%`,70)).join('')}
       </div>
       <div class="ic" style="align-items:stretch;text-align:left;">
         <div class="ic-title" style="text-align:left;">Stock Type Breakdown (units)</div>
@@ -331,16 +331,16 @@ function renderInsights(){
     </div>`:`<div style="color:var(--text3);font-size:11px;padding:8px 0;">No claims or actions raised yet</div>`}
 
     <!-- LAVARION DEEP DIVE -->
-    ${sectionHead('Lavarion Deep-Dive')}
+    ${sectionHead('PLUB Deep-Dive')}
     <div class="ig-row ig-4">
-      ${kpi('Lavarion Units ('+rlabel+')',fmt(lavUnits),fmtGBP2(lavValue),'#cc99ff','#cc99ff')}
-      ${kpi('Lavarion Shipments',fmt(lavShipIds.size),'FBA IDs','#cc99ff')}
+      ${kpi('PLUB Units ('+rlabel+')',fmt(lavUnits),fmtGBP2(lavValue),'#cc99ff','#cc99ff')}
+      ${kpi('PLUB Shipments',fmt(lavShipIds.size),'FBA IDs','#cc99ff')}
       ${kpi('Active ASINs',fmt(lavAsins.length),'products on file','#cc99ff')}
-      ${kpi('All-Time Lavarion',fmt(lavShipments.reduce((a,s)=>a+(s.units||0),0)),fmtGBP2(lavShipments.reduce((a,s)=>a+((s.cost||0)*(s.units||0)),0)),'#55ff55','#55ff55')}
+      ${kpi('All-Time PLUB',fmt(lavShipments.reduce((a,s)=>a+(s.units||0),0)),fmtGBP2(lavShipments.reduce((a,s)=>a+((s.cost||0)*(s.units||0)),0)),'#55ff55','#55ff55')}
     </div>
     <div class="ig-row ig-2">
       <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Lavarion Shipments (last 10)</div>
-        ${lavShipments.length?`<table style="width:100%;min-width:unset;border:none;"><thead style="position:static;"><tr><th style="font-size:11px;padding:3px 6px;background:none;border:none;color:var(--text3);text-align:left;">Date</th><th class="th-left" style="font-size:11px;padding:3px 6px;background:none;border:none;color:var(--text3);">Product</th><th style="font-size:11px;padding:3px 6px;background:none;border:none;color:var(--text3);">Units</th><th style="font-size:11px;padding:3px 6px;background:none;border:none;color:var(--text3);">Total</th></tr></thead><tbody>${[...lavShipments].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,10).map(s=>`<tr><td style="font-size:10px;font-family:var(--mono);color:var(--text3);padding:3px 6px;border-color:var(--border);">${s.date||'—'}</td><td class="td-left" style="font-size:10px;padding:3px 6px;border-color:var(--border);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.prod}">${s.prod}</td><td style="font-family:var(--mono);font-weight:700;color:#55ff55;padding:3px 6px;border-color:var(--border);">${s.units}</td><td style="font-family:var(--mono);font-weight:700;color:#ffaa33;padding:3px 6px;border-color:var(--border);">${fmtGBP2((s.cost||0)*(s.units||0))}</td></tr>`).join('')}</tbody></table>`:`<div style="color:var(--text3);font-size:11px;padding:8px 0;text-align:center;">No Lavarion shipments yet</div>`}
+        ${lavShipments.length?`<table style="width:100%;min-width:unset;border:none;"><thead style="position:static;"><tr><th style="font-size:11px;padding:3px 6px;background:none;border:none;color:var(--text3);text-align:left;">Date</th><th class="th-left" style="font-size:11px;padding:3px 6px;background:none;border:none;color:var(--text3);">Product</th><th style="font-size:11px;padding:3px 6px;background:none;border:none;color:var(--text3);">Units</th><th style="font-size:11px;padding:3px 6px;background:none;border:none;color:var(--text3);">Total</th></tr></thead><tbody>${[...lavShipments].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,10).map(s=>`<tr><td style="font-size:10px;font-family:var(--mono);color:var(--text3);padding:3px 6px;border-color:var(--border);">${s.date||'—'}</td><td class="td-left" style="font-size:10px;padding:3px 6px;border-color:var(--border);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.prod}">${s.prod}</td><td style="font-family:var(--mono);font-weight:700;color:#55ff55;padding:3px 6px;border-color:var(--border);">${s.units}</td><td style="font-family:var(--mono);font-weight:700;color:#ffaa33;padding:3px 6px;border-color:var(--border);">${fmtGBP2((s.cost||0)*(s.units||0))}</td></tr>`).join('')}</tbody></table>`:`<div style="color:var(--text3);font-size:11px;padding:8px 0;text-align:center;">No PLUB shipments yet</div>`}
       </div>
       <div class="ic" style="align-items:stretch;text-align:left;"><div class="ic-title" style="text-align:left;">Top Lavarion ASINs (all-time units)</div>
         ${(()=>{const g={};lavShipments.forEach(s=>{const k=s.asin||s.sku||s.prod||'?';if(!g[k])g[k]={u:0,v:0,prod:s.prod||k};g[k].u+=s.units||0;g[k].v+=(s.cost||0)*(s.units||0);});const e=Object.values(g).sort((a,b)=>b.u-a.u).slice(0,8);const mx=Math.max(...e.map(x=>x.u),1);return e.length?e.map(x=>bar((x.prod||'').slice(0,16),x.u,mx,'#cc99ff',`${fmt(x.u)} · ${fmtGBP(x.v)}`,100)).join(''):`<div style="color:var(--text3);font-size:11px;padding:8px;text-align:center;">No data</div>`;})()}
@@ -656,7 +656,7 @@ function renderInsMonthly(body){
     const vat=(M.withVat||0)-(M.subtotal||0);
     const line=(lab,sub,val,col)=>`<div class="pcmLine"><div><b>${lab}</b>${sub?`<span>${sub}</span>`:''}</div><div class="pcmVal" style="${col?'color:'+col:''}">${val}</div></div>`;
     const bill=`<div class="pcmCol"><div class="pcmColH">The bill — how it is worked out</div>
-      ${line('Volume-rate units',`${fmt(M.tieredUnits||0)} × ${rateStr(M.unitRate)} · ${esc(M.unitRateBand||'')} band · standard ${fmt(M.stdUnits||0)}, DG ${fmt(M.dgUnits||0)}, Lavarion ${fmt(M.lavUnits||0)}`,money(M.baseCost))}
+      ${line('Volume-rate units',`${fmt(M.tieredUnits||0)} × ${rateStr(M.unitRate)} · ${esc(M.unitRateBand||'')} band · standard ${fmt(M.stdUnits||0)}, DG ${fmt(M.dgUnits||0)}, PLUB ${fmt(M.lavUnits||0)}`,money(M.baseCost))}
       ${M.osUnits?line('Oversize',`${fmt(M.osUnits)} × £${(prepFees.osCostPerUnit||0).toFixed(2)}`,money(M.osCost)):''}
       ${M.bundleUnits?line('Bundled units',`${fmt(M.bundleUnits)} × £${(prepFees.bundleCostPerUnit||0).toFixed(2)}`,money(M.bundleCost)):''}
       ${line('Boxes',`${fmt(M.totalBoxes||0)} × £${(prepFees.boxCost||0).toFixed(2)}${M.dgBoxes?` · ${fmt(M.dgBoxes)} of them DG`:''}`,money(M.boxCostTotal))}
@@ -685,7 +685,7 @@ function renderInsMonthly(body){
     const ships=_pcmShipments(m.md,m.key);
     const typeCol={Standard:'#60a5fa',DG:'#f87171',Oversize:'#fb923c'};
     const shipTbl=ships.length?`<div class="pcmShips">
-      <div class="pcmShipH"><span>Shipment</span><span>Date</span><span>Type</span><span class="r">Units</span><span class="r">Lavarion</span><span class="r">Boxes</span><span class="r">SKUs</span></div>
+      <div class="pcmShipH"><span>Shipment</span><span>Date</span><span>Type</span><span class="r">Units</span><span class="r">PLUB</span><span class="r">Boxes</span><span class="r">SKUs</span></div>
       ${ships.map(x=>`<div class="pcmShip" onclick="event.stopPropagation();try{openShipment('${esc(x.id)}')}catch(e){}" title="Open this shipment">
         <span class="pcmSid">${esc(x.id)}</span><span>${x.date?_pcmDmy(x.date):'—'}</span>
         <span><i class="pcmType" style="color:${typeCol[x.type]||'#94a3b8'};border-color:${(typeCol[x.type]||'#94a3b8')}55">${esc(x.type||'Standard')}</i></span>
@@ -752,7 +752,7 @@ function prepBreakdownRows(m){
     <div style="font-family:var(--mono);font-size:12px;font-weight:700;color:${col||'var(--text)'};">${val}</div>
   </div>`;
   return `
-    ${row('Volume base rate',fmtGBP2(m.baseCost||0),`${fmt(m.tieredUnits||0)} units (Standard + DG + Lavarion) × ${rateStr} (volume band ${m.unitRateBand||'—'})`,'#fbbf24')}
+    ${row('Volume base rate',fmtGBP2(m.baseCost||0),`${fmt(m.tieredUnits||0)} units (Standard + DG + PLUB) × ${rateStr} (volume band ${m.unitRateBand||'—'})`,'#fbbf24')}
     ${(m.osCost>0)?row('Oversize surcharge',fmtGBP2(m.osCost),`${fmt(m.osUnits||0)} oversize units`,'#fb923c'):''}
     ${(m.bundleCost>0)?row('Bundle handling',fmtGBP2(m.bundleCost),`${fmt(m.bundleUnits||0)} bundled units`,'#34d399'):''}
     ${(m.boxCostTotal>0)?row('Boxes',fmtGBP2(m.boxCostTotal),`${fmt(m.stdBoxes||0)} standard + ${fmt(m.dgBoxes||0)} DG`,'#60a5fa'):''}
@@ -924,7 +924,7 @@ function openUnitsExplorer(){
     <div style="display:flex;gap:8px;margin:16px 0 14px;">
       <div style="flex:1;background:var(--bg3);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--num);font-variant-numeric:tabular-nums;color:#55ff55;">${fmt(cur.units)}</div><div style="font-size:11px;color:var(--text3);margin-top:3px;">This month · ${_deltaBadge(cur.units,prev.units,false)} vs last</div></div>
       <div style="flex:1;background:var(--bg3);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--num);font-variant-numeric:tabular-nums;color:#5599ff;">${fmt(cur.stock)}</div><div style="font-size:11px;color:var(--text3);margin-top:3px;">Stock · ${Math.round(cur.stock/tot*100)}%</div></div>
-      <div style="flex:1;background:var(--bg3);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--num);font-variant-numeric:tabular-nums;color:#cc99ff;">${fmt(cur.lav)}</div><div style="font-size:11px;color:var(--text3);margin-top:3px;">Lavarion · ${Math.round(cur.lav/tot*100)}%</div></div>
+      <div style="flex:1;background:var(--bg3);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:900;font-family:var(--num);font-variant-numeric:tabular-nums;color:#cc99ff;">${fmt(cur.lav)}</div><div style="font-size:11px;color:var(--text3);margin-top:3px;">PLUB · ${Math.round(cur.lav/tot*100)}%</div></div>
     </div>
     <div style="font-size:11px;color:var(--text3);">"This month" = latest calendar month so far.</div>`);
 }

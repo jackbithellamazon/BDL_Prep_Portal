@@ -167,7 +167,9 @@ async function loadAuditPage(reset){
     let q=sb.from('audit_log').select('*').order('created_at',{ascending:false});
     const f=_auditFilters;
     if(f.user!=='all')q=q.eq('user_id',f.user);
-    if(f.type!=='all')q=q.ilike('action','%'+f.type+'%');
+    /* PLUB was called Lavarion until 13 Oct 2026 — older audit lines still say that */
+    if(f.type==='PLUB')q=q.or('action.ilike.%PLUB%,action.ilike.%Lavarion%');
+    else if(f.type!=='all')q=q.ilike('action','%'+f.type+'%');
     if(f.range!=='all'){
       const days=f.range==='today'?1:(f.range==='7d'?7:30);
       q=q.gte('created_at',new Date(Date.now()-days*864e5).toISOString());

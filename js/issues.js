@@ -37,7 +37,7 @@ function openIssueModal(rowId){
   const _exp=r.exp||0,_got=parseInt(r.rcvd)||0,_short=Math.max(0,_exp-_got);
   document.getElementById('issueModalInfo').innerHTML=
     `<div style="font-size:13px;font-weight:800;color:var(--text);line-height:1.35;">${esc(r.prod||r.sku||'')}</div>
-     <div style="font-size:11.5px;font-weight:600;color:var(--text2);margin-top:3px;">${esc(r.sup||'')}${r.acct?' · '+esc(r.acct):''}${r.oid?' · '+esc(r.oid):''}</div>
+     <div style="font-size:11.5px;font-weight:600;color:var(--text2);margin-top:3px;">${esc(r.sup||'')}${r.acct?' · '+esc(r.acct):''}${r.oid?' · '+oidHtml(r.oid,r.sup,r.acct):''}</div>
      <div class="riMaths">
        <div><span>Ordered</span><b>${_exp}</b></div>
        <div><span>Booked in</span><b style="color:${_got?'var(--green)':'var(--text3)'};">${_got}</b></div>
@@ -247,13 +247,14 @@ async function _createIssueClaim(r,type,qty,opts){
     owner,nextAction:d.na,nextDue:d.nd,raisedBy:_who(),
     sentToJack:opts.sentToJack||null,
     log:[{t:getNowUK(),msg:(opts.logMsg||'Issue raised — awaiting review')+' · assigned to '+owner}]};
+  claims.push(newCl);                        /* before the insert — its realtime echo then matches it, never a second copy */
   const res=await sb.from('actions').insert(claimToDb(newCl)).select().single();
   if(res.error){
+    const i=claims.indexOf(newCl);if(i>=0)claims.splice(i,1);
     console.error('Issue insert error:',res.error.message,res.error.details,res.error.hint);
     throw new Error(res.error.message);
   }
   if(res.data){newCl.uuid=res.data.id;newCl.id=res.data.id;}
-  claims.push(newCl);
   return newCl;
 }
 
@@ -523,14 +524,14 @@ function downloadBackup(kind){
   try{toast('\u2713 Backup saved to your Downloads');}catch(e){}
 }
 async function clearEverything(){
-  wipeAsk('WIPE EVERYTHING','Empty the prep sheet, the actions and the Lavarion catalogue',
-    'Every prep row, every action, every box count and every Lavarion ASIN — for everyone, immediately. Meant for starting fresh after a trial, not for tidying up.',
+  wipeAsk('WIPE EVERYTHING','Empty the prep sheet, the actions and the PLUB catalogue',
+    'Every prep row, every action, every box count and every PLUB ASIN — for everyone, immediately. Meant for starting fresh after a trial, not for tidying up.',
     async()=>{
     /* The audit log and the shipment records are NOT touched. A wipe that
        deletes the record of the wipe leaves nobody able to say what was here,
        and a shipment that physically went to Amazon happened whatever this
        button does. */
-    logAudit('ALL DATA WIPED','prep rows, actions, box counts and Lavarion ASINs — audit log and shipment records kept');
+    logAudit('ALL DATA WIPED','prep rows, actions, box counts and PLUB ASINs — audit log and shipment records kept');
     setSyncStatus('syncing');
     await Promise.all([
       sb.from('prep_rows').delete().neq('id','00000000-0000-0000-0000-000000000000'),

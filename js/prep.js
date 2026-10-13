@@ -64,7 +64,7 @@ function renderPrepRows(data){
     // Auto-flag late rows if not already actioned — set directly, debounced save
     /* A row with a resolution has been dealt with — re-flagging it "Late"
        on the next repaint is how closed work kept reappearing as open. */
-    if(isStuck&&!r.transitAction&&!r.resolution){
+    if(isStuck&&!r.transitAction&&!r.resolution&&(typeof _owedUnits!=='function'||_owedUnits(r)>0)){
       r.transitAction='Late — Needs Chasing';
       r._dirty=true;
       debounce('autoflag_'+r.id,()=>saveRow(r),2000);
@@ -1303,6 +1303,9 @@ async function moveToActions(id){
       }
       // Only archive the row after the issue is confirmed saved to Actions.
       // Soft-archive (not delete) so any shipment history on the row is kept.
+      /* 13 Oct 2026: stamped as a deliberate close, or the next Sync put it
+         straight back on the Prep Sheet (_syncKeepClosed) */
+      r.resolution=Object.assign({},r.resolution||{},{state:'approved',kind:'ops',what:'moved-to-actions',approvedBy:_who(),approvedAt:new Date().toISOString()});
       await archiveRow(r);
       renderPrep();
       renderClaims();
@@ -1470,6 +1473,9 @@ function acDue(){
 }
 async function acSweep(manual){
   if(!manual&&!acDue())return;
+  /* a laptop open for days holds an old copy — Jack switching it off, or
+     another laptop having swept already, must count (13 Oct 2026) */
+  if(!manual){try{await acLoad();}catch(e){}if(!acDue())return;}
   const today=ukToday();
   /* claim the day BEFORE doing the work, so two tabs cannot both sweep */
   if(!manual){

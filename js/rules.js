@@ -124,10 +124,19 @@ function _recoveryFiled(r){
   const c=_recoveryClaim(r);if(!c)return false;
   const left=(typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,(parseInt(r.rcvd)||0)-(parseInt(r.ship)||0));
   if(left<=0)return false;
+  /* 13 Oct 2026: sending PART of a row to Recovery still closed the claim, and
+     this then filed the whole row — the units still on the shelf vanished off
+     the Prep Sheet. Only file when Recovery took what was left. */
+  const _sentRec=(c.log||[]).filter(l=>/^Sent to Recovery Stock/.test(String(l.msg||''))).reduce((t,l)=>{const m=/^Sent to Recovery Stock\D*?(\d+)/.exec(String(l.msg||''));return t+(m?parseInt(m[1]):0);},0);
+  if(_sentRec&&_sentRec<left)return false;
   const when=((c.log||[]).find(l=>/^Sent to Recovery Stock/.test(String(l.msg||'')))||{}).t||'';
-  r.notes=((r.notes||'').trim()?(r.notes.trim()+'\n'):'')+`${_ddUK()}: ${fmt(left)} → Recovery Stock (gated${when?', '+when:''}) — filed`;
+  /* the note and the audit line are written ONCE — refiling a row that came
+     back (the Oct 2026 ping-pong) must not grow its notes forever */
+  const line=`→ Recovery Stock (gated${when?', '+when:''}) — filed`;
+  const first=!String(r.notes||'').includes(line);
+  if(first)r.notes=((r.notes||'').trim()?(r.notes.trim()+'\n'):'')+`${_ddUK()}: ${fmt(left)} ${line}`;
   r.archived=true;r._dirty=true;
-  try{logAudit('Filed — units are in Recovery Stock',`${r.sku||r.asin||''} — ${fmt(left)} unit${left===1?'':'s'} · gated claim closed ${when}`);}catch(e){}
+  if(first)try{logAudit('Filed — units are in Recovery Stock',`${r.sku||r.asin||''} — ${fmt(left)} unit${left===1?'':'s'} · gated claim closed ${when}`);}catch(e){}
   return true;
 }
 /* one short label for the Prep Sheet's Issues column — what the row is waiting on */
@@ -170,8 +179,9 @@ function _refundedClaims(r){
   if(!r)return [];
   return (typeof claims!=='undefined'?claims:[]).filter(c=>c&&!c.settledOnRow&&String(c.prepRowId)===String(r.uuid||r.id)
     &&c.cst==='Resolved'&&/not arrived|missing/i.test(String(c.issT||''))
-    &&(c.outcome==='refunded'||(c.log||[]).some(l=>/^Refund received/i.test(String(l.msg||'')))));
+    &&(c.outcome==='refunded'||(c.log||[]).some(l=>/^Refund (received|confirmed)/i.test(String(l.msg||'')))));
 }
+let _settleAfterSave=[];
 function _claimSettledRow(r){
   if(!r||r.archived)return false;
   const owed=_owedUnits(r);if(owed<=0)return false;
@@ -180,10 +190,11 @@ function _claimSettledRow(r){
   cs.forEach(c=>{
     const want=Math.min(Math.max(0,owed-took),parseInt(c.dif)||parseInt(c.exp)||owed);
     if(want>0){r.cancelledQty=(parseInt(r.cancelledQty)||0)+want;took+=want;}
-    c.settledOnRow=new Date().toISOString();
-    try{saveClaim(c);}catch(e){}
+    /* 13 Oct 2026: the claim is marked settled only once the ROW is saved — a
+       reload in between used to leave a "settled" claim and a row still owing */
+    _settleAfterSave.push(c);
   });
-  if(!took)return false;
+  if(!took){_settleAfterSave.splice(0);return false;}
   const now=new Date().toISOString();
   const ch=(r.resolution&&r.resolution.chase)||{path:'never-arrived',step:'',due:'',log:[]};
   ch.log=(ch.log||[]).concat([{at:now,by:'PrepHub',what:`${fmt(took)} unit${took===1?'':'s'} refunded on the claim — not coming, taken off the row`}]);
@@ -196,6 +207,8 @@ function _claimSettledRow(r){
   r.notes=((r.notes||'').trim()?(r.notes.trim()+'\n'):'')+`${_ddUK()}: ${fmt(took)} refunded on the claim — off the row`;
   r._dirty=true;
   try{logAudit('Row settled by its claim',`${r.sku||r.asin||''} — ${fmt(took)} unit${took===1?'':'s'} refunded (claim closed ${cs[0].resolvedAt||''})`);}catch(e){}
+  const _cs=_settleAfterSave.splice(0);
+  try{saveRow(r).then(ok=>{if(ok)_cs.forEach(c=>{c.settledOnRow=new Date().toISOString();try{saveClaim(c);}catch(e){}});});}catch(e){}
   return true;
 }
 function _rowOwner(r){
@@ -206,6 +219,16 @@ function _rowOwner(r){
   if(st==='proposed')return{owner:'jack',finished:false,why:'closure proposed — Jack approves'};
   /* Jack, 21 Sep, Cadbury: closed "arrived and correct" with 47 units still
      sitting as to-send. Closing the ARRIVAL does not account for the units. */
+  /* Oct 2026, Logitech X56 (due 1 Oct, found 13 Oct on nobody's list): Jack's
+     "Amazon says it'll arrive…" answer records the row approved / in-transit
+     with a promised date. The line below made "approved" mean finished before
+     the date was ever looked at, so the slip heal in _adminItems became
+     unreachable and a missed date simply vanished. A promise is parked until
+     its date, then it is Sarah's chase — the button always said it would be. */
+  if(st==='approved'&&res.what==='in-transit'&&r.expectedDelivery&&owed>0){
+    if(typeof _parkedOnDate==='function'&&_parkedOnDate(r))return{owner:'none',finished:false,why:'parked on a promised date — comes back by itself if it slips'};
+    return{owner:'sarah',finished:false,why:'the promised date slipped — Sarah chases'};
+  }
   if(st==='approved'&&!_partShipStale(r))return{owner:'none',finished:true,why:'closed: '+(res.what||'')};
   /* parked on a promised delivery date — off every list until the date slips (Jack, 7 Sep) */
   if(typeof _parkedOnDate==='function'&&_parkedOnDate(r))return{owner:'none',finished:false,why:'parked on a promised date — comes back by itself if it slips'};

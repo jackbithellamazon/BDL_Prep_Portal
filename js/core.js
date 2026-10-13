@@ -39,15 +39,84 @@ const PH_AUTH_STORE={getItem:k=>lsGet(k),setItem:(k,v)=>{lsSet(k,v);},removeItem
 function lsFullBar(e){
   _lsFull=true;
   try{console.warn('[PrepHub] browser storage refused a save — holding it in memory',e);}catch(_){}
+  phBar('lsFullBar','⚠ <b>This laptop\'s browser storage is full.</b> PrepHub is still saving everything to the database, but this laptop won\'t remember your settings after a refresh. Tell Jack.');
+}
+/* the red bars stack at the bottom of every page, one per problem */
+function phBar(id,html,bg){
   const paint=()=>{
-    if(document.getElementById('lsFullBar'))return;
-    const b=document.createElement('div');b.id='lsFullBar';b.setAttribute('role','alert');
-    b.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:100000;background:#b91c1c;color:#fff;'
-      +'font:600 12.5px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:8px 16px;text-align:center;box-shadow:0 -2px 10px rgba(0,0,0,.35)';
-    b.innerHTML='⚠ <b>This laptop\'s browser storage is full.</b> PrepHub is still saving everything to the database, but this laptop won\'t remember your settings after a refresh. Tell Jack.';
-    document.body.appendChild(b);
+    if(document.getElementById(id))return;
+    let box=document.getElementById('phBars');
+    if(!box){box=document.createElement('div');box.id='phBars';
+      box.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:100000;display:flex;flex-direction:column;box-shadow:0 -2px 10px rgba(0,0,0,.35)';
+      document.body.appendChild(box);}
+    const b=document.createElement('div');b.id=id;b.setAttribute('role','alert');
+    b.style.cssText='background:'+(bg||'#b91c1c')+';color:#fff;font:600 12.5px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:8px 16px;text-align:center;border-top:1px solid rgba(255,255,255,.18)';
+    b.innerHTML=html;box.appendChild(b);
   };
   if(document.body)paint();else document.addEventListener('DOMContentLoaded',paint,{once:true});
+}
+
+// ── NEW VERSION BAR (v53.1) ───────────────────────────────────────────────────
+/* Oct 2026: fixes went live and laptops kept running the old code for days,
+   because nobody refreshes a tab that is open all day — the prep-fee loop kept
+   running on them after it was fixed. Every 15 minutes (only while the tab is
+   on screen) the page reads the tiny README-DEPLOY.txt from the site — GitHub,
+   not the database — and if a newer build is live, a blue bar says refresh. */
+const PH_BUILD=(()=>{try{const s=document.querySelector('script[src*="js/core.js"]');const m=s&&/[?&]v=(b\d+)/.exec(s.src);return m?m[1]:'';}catch(e){return '';}})();
+let _verAt=0;
+async function phCheckVersion(force){
+  if(!PH_BUILD||document.hidden||document.getElementById('newVerBar'))return null;
+  if(!force&&Date.now()-_verAt<5*60*1000)return null;   // coming back to the tab often is not a reason to ask often
+  _verAt=Date.now();
+  try{const r=await fetch('README-DEPLOY.txt?ts='+Date.now(),{cache:'no-store'});if(!r.ok)return null;
+    const m=/\b(b\d{3,})\b/.exec(await r.text());if(!m)return null;
+    if(m[1]!==PH_BUILD&&parseInt(m[1].slice(1))>parseInt(PH_BUILD.slice(1))){
+      phBar('newVerBar',`A new version of PrepHub is live (${m[1]} — this tab is running ${PH_BUILD}). <button onclick="location.reload()" style="margin-left:8px;background:#fff;color:#1d4ed8;border:0;border-radius:5px;padding:3px 10px;font:700 12px inherit;cursor:pointer">Refresh now</button>`,'#1d4ed8');
+      return m[1];}
+  }catch(e){}
+  return null;
+}
+setTimeout(phCheckVersion,60*1000);setInterval(phCheckVersion,15*60*1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)phCheckVersion();});
+
+// ── DATABASE WATCHDOG (v52.9) ────────────────────────────────────────────────
+/* Oct 2026: a redraw loop asked the database ~13 times a second from every
+   laptop for six weeks, and nobody could see it until Supabase emailed about
+   Disk IO. Every database request now passes through phFetch (the Supabase
+   client is built with it in sheet-sync.js) and is counted per minute. A quiet
+   minute is a handful; a big Sync is ~100. A minute past 400, or three minutes
+   in a row past 150, puts up the red bar naming what is being asked for. It
+   only ever tells — it never blocks or slows a request. */
+const DBW={min:0,n:0,by:{},run:0,tripped:false,paused:false,hist:[]};
+function _dbwKey(url){
+  try{const u=new URL(url,location.href);
+    let k=u.pathname.replace(/^\/(rest|functions|auth|storage)\/v1\//,'');
+    const key=u.searchParams.get('key');if(key)k+=' '+key.replace(/^eq\./,'');
+    return k;}catch(e){return '?';}
+}
+function _dbwTick(url){
+  if(DBW.paused)return;
+  const m=Math.floor(Date.now()/60000);
+  if(m!==DBW.min){
+    if(DBW.min){
+      DBW.run=(m===DBW.min+1&&DBW.n>=150)?DBW.run+1:0;
+      DBW.hist.unshift({at:new Date(DBW.min*60000).toISOString().slice(11,16),n:DBW.n});DBW.hist.length=Math.min(DBW.hist.length,15);
+    }
+    DBW.min=m;DBW.n=0;DBW.by={};
+  }
+  DBW.n++;const k=_dbwKey(url);DBW.by[k]=(DBW.by[k]||0)+1;
+  if(!DBW.tripped&&(DBW.n>=400||(DBW.run>=2&&DBW.n>=150)))dbwTrip();
+}
+function dbwTrip(){
+  DBW.tripped=true;
+  const top=Object.entries(DBW.by).sort((a,b)=>b[1]-a[1])[0]||['?',0];
+  const e=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  try{console.warn('[PrepHub] database watchdog tripped',JSON.parse(JSON.stringify(DBW)));}catch(_){}
+  phBar('dbwBar',`⚠ <b>PrepHub is asking the database far more than normal</b> — ${DBW.n} times this minute, mostly “${e(top[0])}” (${top[1]}×). That is a bug, not you: refresh the page to stop it for now, and send Jack a screenshot of this bar.`);
+}
+function phFetch(input,init){
+  try{_dbwTick(typeof input==='string'?input:((input&&input.url)||String(input)));}catch(e){}
+  return window.fetch(input,init);
 }
 // ── DATA ─────────────────────────────────────────────────────────────────────
 const USERS=[
@@ -127,7 +196,12 @@ function _sheetQty(row){
   for(const c of cols){
     const raw=String(row[c]==null?'':row[c]).trim();
     if(!raw||/^n\/?a$/i.test(raw))continue;
-    const n=parseInt(raw.replace(/[^0-9-]/g,''),10);
+    /* 13 Oct 2026: every digit used to be glued together — "48 (2 cases)" read
+       as 482, "12.5" as 125. Now "2x24" is 48, otherwise the first number. */
+    const mx=/^\s*(\d+)\s*[x×*]\s*(\d+)\s*$/i.exec(raw);
+    if(mx)return parseInt(mx[1],10)*parseInt(mx[2],10);
+    const m1=/-?\d+(?:\.\d+)?/.exec(raw.replace(/(\d),(?=\d{3}\b)/g,'$1'));
+    const n=m1?Math.round(parseFloat(m1[0])):NaN;
     if(Number.isFinite(n)&&n>=0)return n;
   }
   return 0;
@@ -530,7 +604,7 @@ function goPage(n,btn){
   if(btn&&btn.classList)btn.classList.add('on');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+n).classList.add('active');
-  const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'Lavarion ASINs',returns:'Returns',admin:"Sarah's Admin",jack:"Jack's Admin",claims:'Issues (old view)',insights:'Insights',audit:'Audit Log',lookup:'History Lookup',recovery:'Recovery Stock',settings:'Settings'};
+  const t={dashboard:'Dashboard',prep:'Prep Sheet',shipments:'Shipments',lavarion:'PLUB ASINs',returns:'Returns',admin:"Sarah's Admin",jack:"Jack's Admin",claims:'Issues (old view)',insights:'Insights',audit:'Audit Log',lookup:'History Lookup',recovery:'Recovery Stock',settings:'Settings'};
   document.getElementById('pageTitle').textContent=t[n]||n;
   /* a page skipped while it was off-screen owes itself one repaint */
   if(n==='prep'&&_dirtyR.prep)renderPrep();
@@ -638,8 +712,8 @@ function _runGlobalSearchCore(qRaw){
   });
   (returnSkus||[]).forEach(r=>{if(match(r))hits.push({page:'returns',term:r.sku||r.asin,where:'Returns',detail:`${r.units||1} unit${(r.units||1)!==1?'s':''} · ${r.prod||r.sku}`,kind:'return'});});
   (returnShipments||[]).forEach(rs=>{if(match(rs))hits.push({page:'shipments',term:rs.sku,where:`Shipment ${rs.shipId}`,detail:`Return · ${rs.units||0} unit${(rs.units||0)!==1?'s':''}`,kind:'ship'});});
-  (lavAsins||[]).forEach(l=>{if(match(l))hits.push({page:'lavarion',term:l.sku||l.asin,where:'Lavarion',detail:`${l.prod||l.sku||l.asin}`,kind:'lav'});});
-  (lavShipments||[]).forEach(ls=>{if(match(ls))hits.push({page:'shipments',term:ls.sku||ls.asin,where:`Shipment ${ls.shipId}`,detail:`Lavarion · ${ls.units||0} unit${(ls.units||0)!==1?'s':''}`,kind:'ship'});});
+  (lavAsins||[]).forEach(l=>{if(match(l))hits.push({page:'lavarion',term:l.sku||l.asin,where:'PLUB',detail:`${l.prod||l.sku||l.asin}`,kind:'lav'});});
+  (lavShipments||[]).forEach(ls=>{if(match(ls))hits.push({page:'shipments',term:ls.sku||ls.asin,where:`Shipment ${ls.shipId}`,detail:`PLUB · ${ls.units||0} unit${(ls.units||0)!==1?'s':''}`,kind:'ship'});});
   (claims||[]).forEach(c=>{if(match(c))hits.push({page:'claims',term:c.sku||c.asin,where:'Actions',detail:`${c.status||''} · ${c.prod||c.sku}`,kind:'claim'});});
   if(!hits.length){
     box.style.display='block';
@@ -695,6 +769,15 @@ function copyShipId(id,el){
   }).catch(()=>{});
 }
 function cpIco(){return`<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" class="copy-ico"><rect x="1" y="3" width="7" height="7" rx="1"/><path d="M3 3V2a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1H8"/></svg>`;}
+// ── ORDER NUMBERS ────────────────────────────────────────────────────────────
+/* Jack, 30 Sep: order numbers are click-to-copy everywhere, the way they
+   already were on his Admin and the Prep Sheet (no links out). */
+function oidHtml(oid){
+  const o=String(oid||'').trim();if(!o||o==='—')return '';
+  const e=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const q=e(o.replace(/\\/g,'\\\\').replace(/'/g,"\\'"));
+  return `<span class="oidCopy" title="Click to copy" onclick="event.stopPropagation();copyVal('${q}',this)">${e(o)}</span>`;
+}
 function copyMigrationSql(btn){
   const sql=(document.getElementById('migrationSql')||{}).textContent||'';
   navigator.clipboard.writeText(sql.trim()).then(()=>{

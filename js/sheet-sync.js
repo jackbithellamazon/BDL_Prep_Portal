@@ -253,7 +253,7 @@ let _ssBC=null;
 // ── CONFIG PERSISTENCE (Supabase for shared config, localStorage for UI prefs)
 async function loadSheetSyncConfig(){
   // Load UI prefs from localStorage first (instant, no network).
-  try{const s=lsGet(SS_KEY);if(s){const p=JSON.parse(s);_ssConfig.interval=p.interval||120;_ssConfig.enabled=p.enabled||false;}}catch(e){}
+  try{const s=lsGet(SS_KEY);if(s){const p=JSON.parse(s);_ssConfig.interval=p.interval||120;_ssConfig.enabled=false;}}catch(e){}   /* auto sync retired — see bootSheetSyncStart */
   // Load shared config (sheet URL, tab, trigger col) from Supabase app_settings.
   try{
     const{data}=await sb.from('app_settings').select('value').eq('key','sheet_sync').maybeSingle();
@@ -579,7 +579,7 @@ function renderSyncIssues(){
   const rowsHtml=SYNC_ISSUES.slice(0,60).map(i=>`
     <div style="${cell}">
       <div style="font:700 12px var(--mono);color:var(--text);overflow-wrap:anywhere;line-height:1.45;">${esc(i.sku||'(blank SKU)')}</div>
-      ${i.oid?`<div style="font-size:10.5px;color:var(--text3);margin-top:3px;overflow-wrap:anywhere;">${esc(i.oid)}</div>`:''}
+      ${i.oid?`<div style="font-size:10.5px;color:var(--text3);margin-top:3px;overflow-wrap:anywhere;">${oidHtml(i.oid,i.sup,i.acct)}</div>`:''}
     </div>
     <div style="${cell}"><span style="font-size:11.5px;font-weight:800;color:var(--accent);line-height:1.45;">${esc(i.why)}</span></div>
     <div style="${cell}font-size:11.5px;color:var(--text2);line-height:1.55;">${esc(i.detail||'')}</div>
@@ -618,10 +618,32 @@ function _issueKey(i){return (i.sku||'')+'|'+(i.oid||'')+'|'+(i.source||'');}
    through must stop being reported, or the list becomes noise nobody reads. */
 async function recordSyncIssues(source,list){
   await loadSyncIssues();   // never write over a list we have not read
-  SYNC_ISSUES=SYNC_ISSUES.filter(i=>i.source!==source);
-  list.forEach(i=>SYNC_ISSUES.push({...i,source,at:new Date().toISOString()}));
-  saveSyncIssues();
+  /* 13 Oct 2026: every entry got a fresh time on every pass, so the list was
+     "different" and rewritten on every sync. An issue keeps the time it was
+     first seen; nothing is written if nothing changed. */
+  const sig=i=>JSON.stringify(Object.assign({},i,{at:undefined,source:undefined}));
+  const old=SYNC_ISSUES.filter(i=>i.source===source),oldAt={};
+  old.forEach(i=>{oldAt[sig(i)]=i.at;});
+  const next=list.map(i=>({...i,source,at:oldAt[sig({...i,source})]||new Date().toISOString()}));
+  const same=old.length===next.length&&old.map(sig).sort().join('\n')===next.map(sig).sort().join('\n');
+  SYNC_ISSUES=SYNC_ISSUES.filter(i=>i.source!==source).concat(next);
+  if(!same)saveSyncIssues();
   try{renderSyncIssues();}catch(e){}
+}
+/* Rows the sheet must never put back, even though their line is still on it.
+   - Any resolution that has not been rejected is a deliberate state (a closure
+     waiting on Jack, an approved one…) and the sheet does not get to overrule it.
+   - Oct 2026: a row filed because its gated units went to Recovery Stock
+     (_recoveryClaim, rules.js) carries no resolution of its own — the closure
+     lives on the claim — so the first test never saw it. Every Sync put it back
+     and every page load filed it again: 72 times on Amuk_4.56_12086_0_PS_09
+     since 7 Sep, each a whole-row write, a note line and an audit line.
+     Recovery Stock is a deliberate end too. */
+function _syncKeepClosed(existing){
+  if(!existing)return false;
+  if(existing.resolution&&existing.resolution.state&&existing.resolution.state!=='rejected')return true;
+  if(existing.archived&&typeof _recoveryClaim==='function'&&_recoveryClaim(existing))return true;
+  return false;
 }
 async function runSheetSync(manual){
   /* Two-phase boot: a sync mid-gap would see the archive as absent and re-add
@@ -837,6 +859,8 @@ async function runSheetSync(manual){
     if(!/^\d{1,2}$/.test(d1)||!/^\d{1,2}$/.test(m1)||!/^\d{4}$/.test(y1))return '';
     return y1+'-'+m1.padStart(2,'0')+'-'+d1.padStart(2,'0');
   };
+  /* every line on this tab, by identity — used by the SKU fallback below */
+  const _lineIds=new Set(parsed.map(rw=>mkSyncId((rw['SKU']||'').trim(),(rw['Order Id']||rw['Order ID']||'').trim())));
   parsed.forEach(row=>{
     const sku=(row['SKU']||'').trim();
     if(!sku){
@@ -880,7 +904,16 @@ async function runSheetSync(manual){
     }
     const trigger=getTrigger(row);
     const fields=sheetFields(row);
-    let existing=allRowsBySyncId.get(syncId)||allRowsBySku.get(sku.toLowerCase());
+    /* 13 Oct 2026: the SKU alone used to be enough. A RE-ORDER of the same SKU
+       on a new order matched the OLD row — silently skipped if that row was
+       sent, or the old row brought back with the new order's numbers if it was
+       filed. A SKU match now only counts for a row whose own sheet line is no
+       longer there (so it really was edited) and that nothing else claimed. */
+    let existing=allRowsBySyncId.get(syncId);
+    if(!existing){
+      const _bs=allRowsBySku.get(sku.toLowerCase());
+      if(_bs&&!_claimedRows.has(_bs)&&!(_bs.sheetSyncId&&_lineIds.has(_bs.sheetSyncId))&&!_lineIds.has(mkSyncId(String(_bs.sku||''),String(_bs.oid||'').trim())))existing=_bs;
+    }
     if(!existing&&oid){
       /* SKU renamed on the sheet? Same order, same ASIN, one candidate only. */
       const asinS=String(fields.asin||'').trim().toUpperCase();
@@ -926,7 +959,7 @@ async function runSheetSync(manual){
          approvals queue. Any resolution that has not been rejected is a
          deliberate state and the sheet does not get to overrule it. A rejected
          one is back in play, so it syncs normally again. */
-      else if(existing.resolution&&existing.resolution.state&&existing.resolution.state!=='rejected'){}
+      else if(_syncKeepClosed(existing)){}
       else if(existing.archived)toReactivate.push({existing,fields,syncId});
       else toUpdate.push({existing,fields,syncId});
     }else if(trigger==='no'||trigger==='n/a'||trigger===''){
@@ -998,14 +1031,30 @@ async function runSheetSync(manual){
       for(let o=0;o<list.length;o+=100){
         const chunk=list.slice(o,o+100);
         chunk.forEach(r=>{if(r&&r.issueType==='Gated'&&!(r.notes||'').toLowerCase().includes('gated'))r.notes=r.notes?('Gated — '+r.notes):'Gated';});
-        const datas=chunk.map(r=>{const d=rowToDb(r);_missingCols.forEach(c=>delete d[c]);if(kind==='update')d.id=r.uuid;return d;});
-        const res=await(kind==='insert'
-          ? sb.from('prep_rows').insert(datas).select('id')
-          : sb.from('prep_rows').upsert(datas,{onConflict:'id'}).select('id'));
-        if(res.error)throw res.error;
-        if(!Array.isArray(res.data)||res.data.length!==chunk.length)
-          throw new Error('batch answered for '+((res.data||[]).length)+' of '+chunk.length+' rows');
-        if(kind==='insert')res.data.forEach((d,i)=>{if(d&&d.id)chunk[i].uuid=d.id;});
+        if(kind==='insert'){
+          const datas=chunk.map(r=>{const d=rowToDb(r);_missingCols.forEach(c=>delete d[c]);return d;});
+          const res=await sb.from('prep_rows').insert(datas).select('id');
+          if(res.error)throw res.error;
+          if(!Array.isArray(res.data)||res.data.length!==chunk.length)
+            throw new Error('batch answered for '+((res.data||[]).length)+' of '+chunk.length+' rows');
+          res.data.forEach((d,i)=>{if(d&&d.id){chunk[i].uuid=d.id;_setBase(chunk[i]);}});
+        }else{
+          /* 13 Oct 2026: only the columns that changed, never the whole row —
+             grouped by which columns, because one bulk upsert needs one shape */
+          const groups={};
+          chunk.forEach(r=>{
+            const diff=r._base?_rowDiff(r):_colsOf(r);_missingCols.forEach(c=>delete diff[c]);
+            const ks=Object.keys(diff).sort();if(!ks.length)return;          // nothing changed — nothing to write
+            (groups[ks.join(',')]=groups[ks.join(',')]||[]).push({r,diff});
+          });
+          for(const g of Object.values(groups)){
+            const res=await sb.from('prep_rows').upsert(g.map(x=>Object.assign({id:x.r.uuid},x.diff)),{onConflict:'id'}).select('id');
+            if(res.error)throw res.error;
+            if(!Array.isArray(res.data)||res.data.length!==g.length)
+              throw new Error('batch answered for '+((res.data||[]).length)+' of '+g.length+' rows');
+            g.forEach(x=>_setBase(x.r,Object.assign({},x.r._base||{},x.diff)));
+          }
+        }
         /* same echo shield saveRow uses — the realtime reflection of this write
            must not overwrite the fresh local values */
         chunk.forEach(r=>{r._dirty=true;setTimeout(()=>{r._dirty=false;},1500);});
@@ -1118,6 +1167,14 @@ const sheetOnly=['sku','date','oid','sup','acct','prod','asin','dg','vat','sas',
         existing.qtyFix.sheetDone=true;
       }
       const was=existing[k];
+      /* vaNoteSheet has no database column, so after every reload it is
+         undefined and every row with a VA Note on the sheet looked changed —
+         a whole-row write per row on every sync (13 Oct 2026). Kept in memory,
+         never a reason to write. */
+      if(k==='vaNoteSheet'){existing[k]=fields[k];return;}
+      /* a blank (or unreadable) date or VAT on the sheet used to wipe the
+         row's own value (13 Oct 2026) */
+      if((k==='date'||k==='vat')&&!fields[k]&&was)return;
       if(was===undefined&&(fields[k]===''||fields[k]==null)){existing[k]=fields[k];return;}
       if(was!==fields[k]){existing[k]=fields[k];changed=true;}
     });
@@ -1228,8 +1285,9 @@ const sheetOnly=['sku','date','oid','sup','acct','prod','asin','dg','vat','sas',
      is genuinely in the app. Anything missing is reported with a reason rather
      than disappearing quietly. */
   _eligible.forEach(e=>{
+    /* by the exact line — a SKU match made a missing re-order look "landed" */
     const landed=rows.some(r=>(r.sheetSyncId&&r.sheetSyncId===e.syncId)
-      ||String(r.sku||'').toLowerCase()===String(e.sku||'').toLowerCase());
+      ||(String(r.sku||'').toLowerCase()===String(e.sku||'').toLowerCase()&&String(r.oid||'').trim()===String(e.oid||'').trim()));
     if(!landed)_flag(e.sku,e.oid,'Did not make it into PrepHub',
       'The sheet says Yes and nothing rejected it, but no row exists here. Press Sync Now to retry — if it keeps failing, tell Jack.');
   });
@@ -1766,8 +1824,17 @@ const _syncHistory=[];
 let _syncHealthTimer=null;
 
 // FIX 3: Persist history to Supabase so it survives refresh
-async function saveSyncHistory(){
-  try{await sb.from('app_settings').upsert({key:'sync_history',value:JSON.stringify(_syncHistory.slice(0,200))},{onConflict:'key'});}catch(e){}
+/* 13 Oct 2026: every log line upserted the whole 200-entry blob (~20 KB) —
+   2–7 times per sync. Now: written once, a few seconds after the last line,
+   and only if it actually changed. */
+let _shT=null,_shLast='';
+function saveSyncHistory(){
+  clearTimeout(_shT);
+  return new Promise(res=>{_shT=setTimeout(async()=>{
+    const v=JSON.stringify(_syncHistory.slice(0,200));
+    if(v===_shLast){res();return;}
+    try{const r=await sb.from('app_settings').upsert({key:'sync_history',value:v},{onConflict:'key'});if(!r||!r.error)_shLast=v;}catch(e){}
+    res();},3000);});
 }
 async function loadSyncHistory(){
   try{
@@ -1776,6 +1843,7 @@ async function loadSyncHistory(){
       const h=JSON.parse(data.value);
       _syncHistory.length=0;
       h.forEach(x=>_syncHistory.push(x));
+      _shLast=JSON.stringify(_syncHistory.slice(0,200));
     }
   }catch(e){}
 }
@@ -1791,6 +1859,9 @@ function addSyncHistory(msg,ok=true,skipIfNoChange=false){
   while(_syncHistory.length&&new Date(_syncHistory[_syncHistory.length-1].iso||0).getTime()<cutoff){
     _syncHistory.pop();
   }
+  /* a standing warning (the same words) already logged in the last 6 hours is
+     not news — it is not added again */
+  if(_syncHistory.slice(0,15).some(x=>x.msg===msg&&x.ok===ok&&Date.now()-new Date(x.iso||0).getTime()<6*3600e3))return;
   _syncHistory.unshift({t,iso,msg,ok});
   saveSyncHistory();
   updateSyncHealthUI();
@@ -1909,12 +1980,12 @@ function bootSheetSyncPrep(){
 }
 /* The enabled-tail — actually STARTS syncing. Runs at finalize (or legacy boot):
    a sync that fired mid-gap would see archived rows as absent and re-add them. */
+/* 13 Oct 2026: auto sync was retired on 30 Aug ("UK staff presses Sync") but
+   only its timer was switched off. Any laptop whose old "enabled" setting was
+   still on ran a full sheet sync after EVERY reload — every 15-minute check,
+   every wake — up to ~120 a day, each one writing. Manual only, really. */
 function bootSheetSyncStart(){
-  if(_ssConfig.enabled){
-    restartSheetSyncTimer();
-    try{decideFirstIn();}catch(e){}
-    setTimeout(()=>runSheetSync(false),2000);
-  }
+  try{if(_ssConfig.enabled)decideFirstIn();}catch(e){}
 }
 const SUPA_URL='https://vsekpaibspetreadkxyi.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzZWtwYWlic3BldHJlYWRreHlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDE0NzcsImV4cCI6MjA5NDI3NzQ3N30.DVDI1nsBTyDbRPJDw_fcc7oohmH94erM07626xC4MtY';
@@ -1924,7 +1995,8 @@ const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{
     autoRefreshToken:true,      // silently refresh the session before it expires
     storageKey:'bdl-prephub-auth',
     storage:PH_AUTH_STORE       // v52.7: a full browser pot can't sign anyone out (core.js)
-  }
+  },
+  global:{fetch:phFetch}        // v52.9: every request is counted by the database watchdog (core.js)
 });
 
 // ── SYNC STATUS ───────────────────────────────────────────────────────────────

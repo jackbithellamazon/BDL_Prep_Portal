@@ -116,7 +116,7 @@ function renderJack(){
     /* a late order is his the day it goes late — nobody "sent" it */
     const _since=tj.at||(g.eta?g.eta+'T12:00:00Z':'');
     items.push({kind:'lavlate',id:g.key,prod:g.name,sup:g.sup,oid:g.oid,acct:g.acct||'',sku:'',asin:'',
-      by:tj.by||'Late order',at:_since,wait:days(_since),type:['LATE ORDER','#c084fc','A Lavarion order past its window with nothing booked in — yours first. A date clears it; a job goes to Sarah with your note.'],
+      by:tj.by||'Late order',at:_since,wait:days(_since),type:['LATE ORDER','#c084fc','A PLUB order past its window with nothing booked in — yours first. A date clears it; a job goes to Sarah with your note.'],
       why:esc(`${fmt(g.owed)} still owed · ordered ${g.ordered?_dmy(g.ordered):'—'} · ${g.eta?'was due '+_dmy(g.eta):'no window'} · ${g.days}d`),
       note:'',value:g.cost||0,left:null,
       acts:`<input type="date" id="${_id}" class="jkAnsDate" min="2024-01-01" max="2030-12-31" title="The date the supplier gave" onkeydown="if(event.key==='Enter'){event.preventDefault();lavLateNewDate('${esc1(g.key)}',this.value);}">
@@ -188,6 +188,9 @@ function renderJack(){
         <button class="csAct warn" onclick="rejectResolution('${r.uuid||r.id}')">Send back</button>
         <button class="csAct plain" onclick="backToSarah('${r.uuid||r.id}')" title="No decision needed from me">Not my call</button>`});});
   (claimsQ||[]).forEach(c=>{const gated=(c.issT||'')==='Gated';const sj=c.sentToJack||{};
+    const _lastSup=(c.log||[]).slice().reverse().find(l=>/supplier|replied|chased|case/i.test(String(l.msg||'')));
+    const _cAsk=sj.at?(sj.ask?`<b>${esc(sj.by||'Sarah')} is asking:</b> ${esc(sj.ask)}`
+      :`<b>${esc(sj.by||'Sarah')} sent it without saying what she needs</b>${_lastSup?` — her last step: ${esc(String(_lastSup.msg).replace(/\s*—\s*\w+$/,''))} (${esc(_lastSup.t||'')})`:''}. The newer Send to Jack asks her.`):'';
     items.push({kind:'claim',id:c.id,prod:c.prod||c.sku||'',sup:c.sup,oid:c.oid,acct:c.acct,sku:c.sku,asin:c.asin||'',
       claimLog:(c.log||[]).slice(-3).reverse(),units:c.dif||c.exp||0,
       perUnit:(c.claimValue&&(c.dif||c.exp))?(c.claimValue/(c.dif||c.exp)):0,
@@ -196,20 +199,34 @@ function renderJack(){
       /* a gated claim he took off Sarah himself is his, not something she is waiting on */
       by:sj.at?(sj.by||c.raisedBy||'someone'):(gated?'Yours — gated':(c.raisedBy||'someone')),at:sj.at||c.raisedAt,wait:days(sj.at||c.raisedAt),noNag:!sj.at,
       type:gated?['GATED','#c084fc','Cannot be sold — eBay it or ungate it']:['CLAIM','#fbbf24','A claim she sent over'],
+      whyHtml:_cAsk,
       why:esc((c.issT||'Issue')+' · '+(c.dif||0)+' unit'+((c.dif||0)===1?'':'s')),note:c.notes||'',
       value:c.claimValue||0,left:null,
       acts:(gated?`<button class="csAct go" onclick="recFromClaimModal('${c.id}')" title="Fill in what it is, then it lands in Recovery Stock under Needs Sorting">eBay it &rarr; Recovery</button>
           <button class="csAct go" onclick="setGatedDecision('${c.id}','Ungate')">Ungate</button>
           <button class="csAct plain" onclick="takeGatedMine('${c.id}')" title="Nobody but you can act on a gated item — this takes it off Sarah's Admin and off the Prep Sheet and leaves it here. Undo puts it back.">Off their lists</button>`:'')+
-        `<button class="csAct good" onclick="claimBackFromJack('${c.id}')">Answer &amp; hand back</button>`});});
+        `<button class="csAct good" onclick="claimBackFromJack('${c.id}')">Answer &amp; hand back</button>`
+        +(gated?'':`<button class="csAct plain" style="border-color:rgba(248,113,113,.55);color:#fca5a5;" onclick="jackClaimWriteOff('${c.id}')" title="Nothing will be recovered — the claim closes as a loss for you and Sarah. It stays on the Claims page as a Write-off and in the Audit Log.">Write it off${c.claimValue?' &mdash; '+fmtGBP2(c.claimValue):''}</button>`)});});
   (lavQ||[]).forEach(g=>{let tj={};try{tj=JSON.parse(g.toJack||'{}');}catch(e){}
+    /* Jack, 13 Oct: "where is what she wants me to do with this — needs to say
+       it in the tile". Her ask (v53.1 asks for one), what the Purchase Sheet
+       says now (Becki's Arrived + Notes), and Becki's check-in note. */
+    let sheet=[];try{sheet=(LV3.sheetSays&&LV3.sheetSays(g.ref))||[];}catch(e){}
+    const _sh=sheet.filter(x=>x.notes||/issue|refund|cancel|oos/i.test(x.arrived||''));
+    const _ask=tj.ask||'';
+    const _askLine=g.toJack?(_ask?`<b>${esc(tj.by||'Sarah')} is asking:</b> ${esc(_ask)}`:`<b>${esc(tj.by||'Sarah')} sent it without saying what she needs</b> — the newer Send to Jack asks her.`):'';
+    const _sheetLine=_sh.length?`<b>On the Purchase Sheet:</b> ${_sh.map(x=>esc((x.arrived?x.arrived+' — ':'')+(x.notes?'“'+x.notes+'”':''))).join(' · ')}`:'';
+    const _refund=_sh.some(x=>/refund/i.test(x.notes||''));
     items.push({kind:'lav',id:g.key,prod:g.lines.map(x=>x.name).join(', '),sup:g.sup,oid:g.ref,acct:'',sku:'',
       by:tj.by||'Check-in',at:tj.at||(g.on?g.on+'T12:00:00Z':''),wait:days(tj.at||(g.on?g.on+'T12:00:00Z':'')),
-      type:['SHORTAGE','#38bdf8','Short or damaged at a Lavarion check-in — yours first. Send Sarah a job with your note, or clear it.'],
+      type:['SHORTAGE','#38bdf8','Short or damaged at a PLUB check-in — yours first. Send Sarah a job with your note, or clear it.'],
       why:esc([g.short?g.short+' short':'',g.dmg?g.dmg+' damaged':''].filter(Boolean).join(' · ')+(g.sup?' · '+g.sup:'')),
-      note:(g.log&&g.log.length?g.log[g.log.length-1].msg:''),value:g.val||0,left:null,
+      whyHtml:[_askLine,_sheetLine,g.note?`<b>Becki at check-in:</b> “${esc(g.note)}”`:''].filter(Boolean).join('<br>'),
+      note:(_ask||_sh.length||g.note)?'':(g.log&&g.log.length?g.log[g.log.length-1].msg:''),value:g.val||0,left:null,
       acts:(g.toJack?`<button class="csAct good" onclick="lavBackFromJack('${esc1(g.key)}')" title="Sarah sent this back to you — your answer goes on it and it returns to her">Answer &amp; hand back</button>`:'')
-        +`<button class="csAct go" onclick="lavIssueSarahBox('${esc1(g.key)}',this)" title="Something for Sarah to do — chase the supplier, get a credit, ring them. It lands on her Admin with your note.">Send Sarah a job&hellip;</button>
+        +(g.short?`<button class="csAct ${_refund?'good':'plain'}" onclick="jackLavSettle('${esc1(g.key)}','auto')" title="The supplier refunded the missing units on their own — closes it for everyone. Nothing is lost.">Auto refunded &mdash; close it</button>`:'')
+        +`<button class="csAct plain" style="border-color:rgba(248,113,113,.55);color:#fca5a5;" onclick="jackLavSettle('${esc1(g.key)}','writeoff')" title="Nothing is coming and nothing will be recovered — take the loss. It stops counting as incoming and stays in the history.">Write it off${g.val?' &mdash; '+fmtGBP2(g.val):''}</button>
+          <button class="csAct go" onclick="lavIssueSarahBox('${esc1(g.key)}',this)" title="Something for Sarah to do — chase the supplier, get a credit, ring them. It lands on her Admin with your note.">Send Sarah a job&hellip;</button>
           <button class="csAct plain" onclick="clearOldLav('${esc1(g.key)}')" title="Dealt with — off every list. Undo from the toast.">Sorted &mdash; clear it</button>
           <button class="csAct plain" onclick="openLavIssue('${esc1(g.key)}')" title="Photos, the conversation so far, every line">Open it</button>`});});
   fixes.forEach(r=>{const f=r.qtyFix||{};
@@ -376,6 +393,7 @@ function renderJack(){
         <div class="jkC2">
           <div class="jkWhy">${it.why}</div>
           <div class="jkWhySub">${esc(it.type[2])}</div>
+          ${it.whyHtml?`<div class="jkAsk">${it.whyHtml}</div>`:''}
           ${_story||`<div style="font-size:10.5px;color:var(--text3);font-weight:600;">Nothing written yet</div>`}
           <button class="stMore" style="margin-top:8px;" onclick="jkStory('${it.kind}','${esc1(String(it.id))}')" title="Everything on this one — order, units, notes, every step, who and when">&#9656; Full story</button>
         </div>
@@ -557,7 +575,7 @@ function jackAnswerAsk(rid){
   }
   el.innerHTML=`<div class="modal srtCfm">
     <div class="srtCfmTtl">What did you find?</div>
-    <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${esc(r.oid||'no order id')}</div>
+    <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${r.oid?oidHtml(r.oid,r.sup,r.acct):'no order id'}</div>
     <div class="srtCfmOpen"><b>${esc(q.by||'someone')} asked</b>
       <ul><li>${esc(q.ask||'Check this order')}</li></ul>
       ${q.note?`<span>${esc(q.note)}</span>`:''}</div>
@@ -634,7 +652,7 @@ function askJackAsk(rid,pick){
   }
   el.innerHTML=`<div class="modal srtCfm">
     <div class="srtCfmTtl">Send this to Jack</div>
-    <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${esc(r.oid||'no order id')}${r.sup?' · '+esc(r.sup):''}${r.acct?' · '+esc(r.acct):''}</div>
+    <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${r.oid?oidHtml(r.oid,r.sup,r.acct):'no order id'}${r.sup?' · '+esc(r.sup):''}${r.acct?' · '+esc(r.acct):''}</div>
     ${!_amazonRow(r)?`<div class="srtNeed" style="margin:0 0 10px;"><b>Not an Amazon order.</b> A refund from ${esc(r.sup||'this supplier')} is yours to see through: if they have promised it, wait 48 hours, check the emails, then close it as <b>Refund being processed — done</b> or chase again. Only send it to Jack if you need something only he can do.</div>`:''}
     <div class="srtCfmLab">What is it about?</div>
     <div class="askOpts">${ASK_REASONS.map((o,n)=>`<label class="srtChk">
@@ -887,6 +905,51 @@ function jackWriteOff(rid){
       logAudit('Written off',`${r.sku||r.asin||''} — ${fmt(owe)} unit${owe===1?'':'s'} · ${fmtGBP2(val)} taken as a loss by ${_who()}`);
       toast('Written off — closed for everyone','ok');
       renderJack();try{renderAdmin();renderPrep();}catch(e){}
+    },{icon:'\u26A0\uFE0F',ok:'Write it off'});
+}
+/* Lavarion shortage from Jack's card — auto refunded (nothing lost) or written
+   off (take the loss). Confirmed once; the data is the same as the Lavarion
+   page's own buttons write. */
+function jackLavSettle(key,kind){
+  let g=null;try{g=(LV3.supplierIssues()||[]).find(x=>x.key===key);}catch(e){}
+  if(!g){toast('Could not find that shortage — open PLUB and try again','er');return;}
+  const units=(g.short||0)+(g.dmg||0),val=g.val||0;
+  const wo=kind==='writeoff';
+  showConfirm(wo?'Write it off?':'Auto refunded?',
+    wo?`<b>${fmt(units)} unit${units===1?'':'s'} · ${fmtGBP2(val)}</b> on ${esc(g.sup)} ${esc(g.ref||'')} taken as a loss.\nIt stops counting as incoming, closes for you, Sarah and Becki, and stays in the history.`
+      :`<b>${fmt(units)} unit${units===1?'':'s'}</b> on ${esc(g.sup)} ${esc(g.ref||'')} — the supplier refunded them on their own.\nNothing is lost. It closes for you, Sarah and Becki.`,
+    ()=>{
+      let res=null;try{res=LV3.settleIssue(key,wo?'writeoff':'auto');}catch(e){console.warn(e);}
+      if(!res||!res.units){toast('Nothing to close on that order','er');return;}
+      logAudit(wo?'PLUB shortage written off':'PLUB shortage auto refunded',`${g.sup} ${g.ref||''} — ${fmt(res.units)} unit${res.units===1?'':'s'}${res.value?' · '+fmtGBP2(res.value):''} by ${_who()}`);
+      toast(wo?'Written off — closed for everyone':'Recorded as auto refunded — closed for everyone','ok');
+      renderJack();try{renderAdmin();}catch(e){}
+    },{icon:wo?'\u26A0\uFE0F':'\u2705',ok:wo?'Write it off':'Yes, auto refunded'});
+}
+/* Jack, 30 Sep, on the Bob's Red Mill claim (2 damaged, £7.12, 21 days with
+   him): "way for us to write it off". The claim closes as a loss: Resolved,
+   reimbursed = Write-off, filed. That is the same final outcome the Claims page
+   already records, so every list and money figure understands it, and its Prep
+   Sheet row counts as finished by itself (nothing open against it). Confirmed
+   once; if the save fails nothing changes. */
+function jackClaimWriteOff(id){
+  const c=claims.find(x=>String(x.id)===String(id));if(!c)return;
+  const units=parseInt(c.dif)||parseInt(c.exp)||0,val=+c.claimValue||0;
+  showConfirm('Write it off?',
+    `<b>${fmt(units)} unit${units===1?'':'s'} · ${fmtGBP2(val)}</b> taken as a loss.\nThe claim closes for you and Sarah — nothing more is chased.\nThe loss stays on the claim's story, on the Claims page as a Write-off, and in the Audit Log.`,
+    async()=>{
+      const was=JSON.stringify(c);
+      if(!c.log)c.log=[];
+      c.log.push({t:getNowUK(),msg:`Written off — ${fmt(units)} unit${units===1?'':'s'} · ${fmtGBP2(val)} taken as a loss by ${_who()}`});
+      c.cst='Resolved';c.resolvedAt=todayISO();c.reimbursed='Write-off';c.outcome='written-off';
+      if(!c.reimburseNote)c.reimburseNote='Written off from Jack\u2019s Admin — taking the loss';
+      c.sentToJack=null;c.archived=true;
+      let ok=false;try{ok=await saveClaim(c);}catch(e){ok=false;}
+      if(!ok){Object.keys(c).forEach(k=>delete c[k]);Object.assign(c,JSON.parse(was));
+        toast('Didn\u2019t save — nothing was recorded','er');renderJack();return;}
+      logAudit('Claim written off',`${c.sku||c.sup||''} — ${fmt(units)} unit${units===1?'':'s'} · ${fmtGBP2(val)} taken as a loss by ${_who()}`);
+      toast('Written off — closed for everyone','ok');
+      renderJack();try{paintJackBadge();renderAdmin();renderClaims();}catch(e){}
     },{icon:'\u26A0\uFE0F',ok:'Write it off'});
 }
 /* Jack, 10 Sep: "2 never cancelled — this automated wrong on the webapp's side".

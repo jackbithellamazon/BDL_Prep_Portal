@@ -15,8 +15,8 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v52.7 · lav3 · 2026-09-27 · b587';
-console.log('[Lavarion] build',BUILD);
+const BUILD='v53.3 · lav3 · 2026-10-13 · b593';
+console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
 let MIGRATED=false;       // true once old onHand/orders have been turned into layers
@@ -71,25 +71,44 @@ function rowToComp(d){return{uuid:d.id,id:d.id,name:d.name||'',
   _legacyOnHand:d.on_hand||0,
   _legacyOrders:(function(){try{return JSON.parse(d.orders||'[]');}catch(e){return[];}})()};}
 
+/* every row of a table, 1,000 at a time — PostgREST stops at 1,000 per request,
+   so a plain select would silently drop the rest once a table passes it
+   (purchases were 391 and growing ~60 a sync on 13 Oct 2026) */
+async function _allRows(table,order,asc){
+  const out=[];
+  for(let from=0;;from+=1000){
+    let q=sb.from(table).select('*');
+    q=order?q.order(order,{ascending:asc!==false}).order('id',{ascending:true}):q.order('id',{ascending:true});   /* a fixed order, or pages skip rows */
+    const r=await q.range(from,from+999);
+    if(r.error)throw r.error;
+    out.push(...(r.data||[]));
+    if(!r.data||r.data.length<1000)break;
+  }
+  return out;
+}
 let _crLoadedOK=false,_crLoadedCount=0;
+const _recipeSig={};
+const _recipeSigOf=asin=>JSON.stringify((RECIPES[asin]||[]).map(r=>[String(r.c),parseInt(r.q)||1]).sort());
 async function loadCompsRecipes(){
   try{
-    const cr=await sb.from('lavarion_components').select('*').order('created_at',{ascending:true});
-    if(cr.error)throw cr.error;
-    COMPS.length=0;(cr.data||[]).map(rowToComp).forEach(c=>COMPS.push(c));
+    /* read BOTH first, swap only when both arrived — a dropped connection half
+       way must not leave the parts loaded and the build lists empty */
+    const cData=await _allRows('lavarion_components','created_at',true);
+    const rData=await _allRows('lavarion_recipes');
+    COMPS.length=0;cData.map(rowToComp).forEach(c=>{c._pushed=JSON.stringify(compRow(c));COMPS.push(c);});
     _crLoadedCount=COMPS.length;
-    const rr=await sb.from('lavarion_recipes').select('*');
-    if(rr.error)throw rr.error;
     const byUuid={};COMPS.forEach(c=>{byUuid[c.uuid]=String(c.id);});
     Object.keys(RECIPES).forEach(k=>delete RECIPES[k]);
-    (rr.data||[]).forEach(d=>{const cid=byUuid[d.component_id];if(!cid)return;
+    rData.forEach(d=>{const cid=byUuid[d.component_id];if(!cid)return;
       (RECIPES[d.asin]=RECIPES[d.asin]||[]).push({c:cid,q:d.qty||1});});
+    Object.keys(_recipeSig).forEach(k=>delete _recipeSig[k]);
+    Object.keys(RECIPES).forEach(a=>{_recipeSig[a]=_recipeSigOf(a);});
     _crLoadedOK=true;
     return true;
   }catch(e){console.warn('[lav3] components/recipes load failed',e);return false;}
 }
 let _crT=null;
-function saveCompsRecipes(){clearTimeout(_crT);_crT=setTimeout(pushCompsRecipes,600);}
+function saveCompsRecipes(){clearTimeout(_crT);_crT=setTimeout(()=>{_crT=null;pushCompsRecipes();},600);}
 /* A row created in the UI gets a temporary id ("c1785…"). Supabase then hands
    back a permanent one, and after the next reload the component IS that id —
    but its stock batches and build-list lines still point at the temporary one,
@@ -118,58 +137,121 @@ function adoptId(kind,oldId,newId){
   const m=model.find(x=>String(x.id)===o);if(m)m.id=nu;
   if(moved){_dirty=true;clearTimeout(_pt);_pt=setTimeout(pushNow,400);}
 }
+/* PRODUCTS & PARTS SAVE (rewritten 13 Oct 2026). It used to UPDATE every part,
+   DELETE every part this laptop did not happen to hold, and replace the WHOLE
+   recipe table with this laptop's copy — so a laptop open since yesterday
+   deleted the part Sarah added this morning and put her recipe edit back.
+   Now: one save at a time; only parts that changed are written; nothing is
+   deleted here (an explicit Delete does that, see deleteComponent_db); and a
+   build list is rewritten only for the products whose list changed HERE. */
+let _crPushing=null,_crAgain=false;
 async function pushCompsRecipes(){
-  if(!_crLoadedOK){console.warn('[lav3] refusing to save — components never loaded');return;}
-  _writing++;
-  try{
-    for(const c of COMPS){
-      const row=compRow(c);
-      const strip=o=>{const x={...o};delete x.kind;delete x.tag;return x;};
-      if(c.uuid){
-        let r=await sb.from('lavarion_components').update(row).eq('id',c.uuid);
-        if(r.error&&/kind|tag/i.test(r.error.message||''))r=await sb.from('lavarion_components').update(strip(row)).eq('id',c.uuid);
-        if(r.error)throw r.error;
-      }else{
-        let r=await sb.from('lavarion_components').insert(row).select('id').single();
-        if(r.error&&/kind|tag/i.test(r.error.message||''))r=await sb.from('lavarion_components').insert(strip(row)).select('id').single();
-        if(!r.error){
+  if(!_crLoadedOK){_saveFailed('products & parts (they never loaded — reload the page)');return;}
+  if(_crPushing){_crAgain=true;return _crPushing;}
+  _crPushing=(async()=>{
+    _writing++;let failed=false;
+    try{
+      for(const c of COMPS.slice()){
+        const row=compRow(c),sig=JSON.stringify(row);
+        const strip=o=>{const x={...o};delete x.kind;delete x.tag;return x;};
+        if(c.uuid){
+          if(c._pushed===sig)continue;
+          let r=await sb.from('lavarion_components').update(row).eq('id',c.uuid);
+          if(r.error&&/kind|tag/i.test(r.error.message||''))r=await sb.from('lavarion_components').update(strip(row)).eq('id',c.uuid);
+          if(r.error){failed=true;console.warn('[lav3] part save',r.error);continue;}
+          c._pushed=sig;
+        }else{
+          let r=await sb.from('lavarion_components').insert(row).select('id').single();
+          if(r.error&&/kind|tag/i.test(r.error.message||''))r=await sb.from('lavarion_components').insert(strip(row)).select('id').single();
+          if(r.error){failed=true;console.warn('[lav3] part insert',r.error);continue;}
           const oldId=String(c.id);
-          c.uuid=r.data.id;c.id=r.data.id;
+          c.uuid=r.data.id;c.id=r.data.id;c._pushed=sig;
           adoptId('component',oldId,r.data.id);   // batches and build lists follow the id
         }
       }
-    }
-    /* pruning is only ever safe when we hold the full loaded set — and never
-       when memory looks suspiciously emptier than what we loaded */
-    const keep=COMPS.map(c=>c.uuid).filter(Boolean);
-    if(_crLoadedOK&&keep.length&&keep.length>=_crLoadedCount){
-      const d=await sb.from('lavarion_components').delete().not('id','in','('+keep.join(',')+')');
-      if(d.error)console.warn('[lav3] component prune',d.error);
-    }else if(keep.length<_crLoadedCount){
-      console.warn('[lav3] skipped prune — memory has fewer components than the database');
-    }
-    const rows=[];
-    Object.keys(RECIPES).forEach(asin=>(RECIPES[asin]||[]).forEach(r=>{
-      const c=COMPS.find(x=>String(x.id)===String(r.c));
-      if(c&&c.uuid)rows.push({asin:asin,component_id:c.uuid,qty:parseInt(r.q)||1});}));
-    const ex=await sb.from('lavarion_recipes').select('id');
-    const old=(ex.data||[]).map(x=>x.id);
-    if(rows.length){const ir=await sb.from('lavarion_recipes').insert(rows);
-      if(ir.error)throw ir.error;
-      if(old.length)await sb.from('lavarion_recipes').delete().in('id',old);}
-    else if(old.length)await sb.from('lavarion_recipes').delete().in('id',old);
-  }catch(e){console.warn('[lav3] components/recipes save failed',e);}
-  finally{setTimeout(()=>{_writing=Math.max(0,_writing-1);},1500);}
+      for(const asin of new Set([...Object.keys(RECIPES),...Object.keys(_recipeSig)])){
+        const has=(RECIPES[asin]||[]).length>0,sig=has?_recipeSigOf(asin):null;
+        if(sig===(_recipeSig[asin]===undefined?null:_recipeSig[asin]))continue;   // unchanged here
+        const rows=[];let missing=false;
+        (RECIPES[asin]||[]).forEach(r=>{const c=COMPS.find(x=>String(x.id)===String(r.c));
+          if(c&&c.uuid)rows.push({asin,component_id:c.uuid,qty:parseInt(r.q)||1});else missing=true;});
+        if(missing)continue;                       // a part is not saved yet — the next pass does this one
+        const ex=await sb.from('lavarion_recipes').select('id').eq('asin',asin);
+        if(ex.error){failed=true;continue;}
+        if(rows.length){const ir=await sb.from('lavarion_recipes').insert(rows);if(ir.error){failed=true;continue;}}
+        const old=(ex.data||[]).map(x=>x.id);let delOk=true;
+        for(let i=0;i<old.length;i+=60){const d=await sb.from('lavarion_recipes').delete().in('id',old.slice(i,i+60));if(d.error){delOk=false;failed=true;break;}}
+        if(!delOk)continue;
+        if(sig===null)delete _recipeSig[asin];else _recipeSig[asin]=sig;
+      }
+    }catch(e){failed=true;console.warn('[lav3] components/recipes save failed',e);}
+    finally{setTimeout(()=>{_writing=Math.max(0,_writing-1);},1500);}
+    if(failed)_saveFailed('products & parts');
+  })();
+  try{await _crPushing;}
+  finally{_crPushing=null;if(_crAgain){_crAgain=false;setTimeout(pushCompsRecipes,0);}}
 }
 window._lv2Reload=function(){loadCompsRecipes().then(()=>{try{paint();}catch(e){}});};
 /* so the realtime listener can tell whether it is safe to rebuild from the database */
 window._lv2HasUnsaved=function(){
-  try{return _dirty||LAYERS.some(l=>!l.uuid)||PURCH.some(p=>!p.uuid);}catch(e){return false;}
+  /* a parts/recipe save waiting on its 600 ms timer counts too — a reload in that
+     window used to wipe a part that had just been added */
+  try{return _dirty||!!_crT||!!_crPushing||!!_pushing||LAYERS.some(l=>!l.uuid&&!l._failed)||PURCH.some(p=>!p.uuid&&!p._failed);}catch(e){return false;}
 };
 window._lv2Flush=function(){try{clearTimeout(_pt);pushNow();}catch(e){}};
 let _writing=0;
 window._lv2IsSaving=function(){return _writing>0;};
 
+/* ── KEEPING EVERY LAPTOP CURRENT (13 Oct 2026) ─────────────────────────────
+   Batches and purchases were read once, when the page opened, and every save
+   wrote from that copy — so a laptop open since the morning wrote its old
+   "remaining" over Sarah's send (her 60 hampers came back on 7 Sep), and a Sync
+   on it re-added lines another laptop had already brought in. Now Lavarion
+   reloads on the 15-minute check, after a sleep, before every Sync, and a few
+   seconds after another laptop changes a batch or a purchase. It only ever
+   reloads when nothing here is waiting to be saved, reads everything first and
+   swaps only when it all arrived. */
+let _reloading=null,_rtT=null;
+async function reloadData(){
+  if(!_booted||!READY)return false;
+  if(_reloading)return _reloading;
+  _reloading=(async()=>{
+    try{
+      if(document.querySelector('#lav3Ov1.on,#lav3Ov2.on'))return false;          // never under an open window
+      if(_pushing)await _pushing;
+      if(_dirty||LAYERS.some(l=>!l.uuid&&!l._failed)||PURCH.some(p=>!p.uuid&&!p._failed))await pushNow();
+      if(window._lv2HasUnsaved())return false;
+      const layers=await _allRows('lavarion_stock_layers','bought_on',true);
+      const purch=await _allRows('lavarion_purchases','bought_on',false);
+      if(window._lv2HasUnsaved())return false;                                    // something changed while reading
+      await loadCompsRecipes();
+      await loadCloud({layers,purch});
+      hydrate();try{paint();}catch(e){}
+      return true;
+    }catch(e){console.warn('[lav3] reload',e);return false;}
+    finally{_reloading=null;}
+  })();
+  return _reloading;
+}
+/* a realtime change: our own write coming back is ignored; anybody else's
+   schedules one reload a few seconds later (a burst is one reload) */
+function rtChange(table,payload){
+  try{
+    const nu=payload.new||{},old=payload.old||{},id=nu.id||old.id;
+    const mine=table==='lavarion_purchases'?PURCH.find(p=>p.uuid===id):LAYERS.find(l=>l.uuid===id);
+    if(payload.eventType==='DELETE'&&!mine)return;                          // we deleted it
+    if(payload.eventType==='INSERT'&&mine)return;                           // we inserted it
+    if(payload.eventType==='UPDATE'&&mine&&mine._pushedRow){
+      const sameAs=Object.keys(mine._pushedRow).every(k=>{
+        const a=mine._pushedRow[k],b=nu[k];
+        if(k==='meta'||k==='alloc'){try{return JSON.stringify(typeof a==='string'?JSON.parse(a):a)===JSON.stringify(typeof b==='string'?JSON.parse(b):b);}catch(e){return true;}}
+        if(typeof a==='number'||typeof b==='number')return Math.abs((+a||0)-(+b||0))<1e-6;
+        return String(a==null?'':a)===String(b==null?'':b);});
+      if(sameAs)return;                                                     // the echo of our own save
+    }
+  }catch(e){}
+  clearTimeout(_rtT);_rtT=setTimeout(()=>{reloadData();},4000);
+}
 /* ── hydrate: build D from what the app already has in memory ───────────── */
 function hydrate(){
   D.products=(typeof lavAsins!=='undefined'?lavAsins:[]).map(a=>({
@@ -206,11 +288,11 @@ let _layersLoadedCount=0;
 let LAYERS=[];   // {id,kind,tid,date,qty,rem,cost,sup,oid,loc,arr,src,note,uuid}
 let PURCH=[];    // {id,uuid,tab,date,name,qty,price,sup,oid,loc,arr,alloc:[{to,kind,qty}]}
 
-async function loadCloud(){
+async function loadCloud(fresh){
   try{
-    const lr=await sb.from('lavarion_stock_layers').select('*').order('bought_on',{ascending:true});
-    if(lr.error)throw lr.error;
-    LAYERS=(lr.data||[]).map(d=>({uuid:d.id,id:d.id,kind:d.target_kind,tid:String(d.target_id||''),
+    const lrData=fresh?fresh.layers:await _allRows('lavarion_stock_layers','bought_on',true);
+    const prData=fresh?fresh.purch:await _allRows('lavarion_purchases','bought_on',false);
+    LAYERS=lrData.map(d=>({uuid:d.id,id:d.id,kind:d.target_kind,tid:String(d.target_id||''),
       date:(d.bought_on||'').slice(0,10),qty:d.qty||0,rem:d.remaining||0,cost:Number(d.unit_cost)||0,
       sup:d.supplier||'',oid:d.order_ref||'',loc:d.location||'Warehouse',arr:d.arrived?1:0,
       src:d.source||'',note:d.note||'',
@@ -233,13 +315,15 @@ async function loadCloud(){
        held, so any other open tab's next save rewrote stock it never touched.
        Remember what each batch looked like when it loaded (or was last
        pushed) and only send the ones that differ. */
-    LAYERS.forEach(l=>{l._pushed=JSON.stringify(layerRow(l));});
-    const pr=await sb.from('lavarion_purchases').select('*').order('bought_on',{ascending:false});
-    if(pr.error)throw pr.error;
-    PURCH=(pr.data||[]).map(d=>({uuid:d.id,id:d.id,tab:d.sheet_tab||'',date:(d.bought_on||'').slice(0,10),
+    LAYERS.forEach(l=>{l._pushedRow=layerRow(l);l._pushed=JSON.stringify(l._pushedRow);});
+    PURCH=prData.map(d=>({uuid:d.id,id:d.id,tab:d.sheet_tab||'',date:(d.bought_on||'').slice(0,10),
       name:d.name||'',qty:d.qty||0,price:Number(d.buy_price)||0,sup:d.supplier||'',oid:d.order_ref||'',
       loc:d.location||'',arr:d.arrived?1:0,alloc:(function(){try{return JSON.parse(d.alloc||'[]');}catch(e){return Array.isArray(d.alloc)?d.alloc:[];}})(),
       ...(d.meta&&typeof d.meta==='object'?d.meta:{})}));
+    /* Oct 2026: purchases had no "what did it look like last time" — so every
+       push rewrote ALL of them (391 PATCHes for one click). Same fix the batches
+       above already had. */
+    PURCH.forEach(p=>{p._pushedRow=purchRow(p);p._pushed=JSON.stringify(p._pushedRow);});
     READY=true;SCHEMA_MSG='';
   }catch(e){
     READY=false;
@@ -248,7 +332,7 @@ async function loadCloud(){
     const which=/relation "?([a-z_]+)"? does not exist|Could not find the table '([^']+)'/i.exec(
       (e&&e.message||'')+' '+(e&&e.details||''));
     SCHEMA_MSG=which?`The table <b>${esc(which[1]||which[2])}</b> doesn't exist in the database yet.`
-      :'The Lavarion tables don’t exist in the database yet.';
+      :'The PLUB tables don’t exist in the database yet.';
     SCHEMA_ERR=(e&&e.message)||'unknown error';
     console.warn('[lav3] tables missing — running in memory only',e&&e.message);
   }
@@ -274,7 +358,7 @@ async function migrateOld(){
   if(!made.length){MIGRATED=true;return;}
   for(const m of made){await insertLayer(m);}
   MIGRATED=true;
-  try{logAudit('Lavarion migrated to stock batches',made.length+' batches created from old on-hand and orders');}catch(e){}
+  try{logAudit('PLUB migrated to stock batches',made.length+' batches created from old on-hand and orders');}catch(e){}
   hydrate();
 }
 
@@ -346,6 +430,16 @@ async function insertLayer(l){
   l.uuid=r.data.id;return l;
 }
 let _pt=null,_dirty=false,_warned=false,_lastStatus=0;
+/* the database row for a purchase — one builder for load, save and the checks */
+function purchRow(p){
+  return{sheet_tab:p.tab||'',bought_on:p.date,name:p.name,qty:p.qty,buy_price:p.price,supplier:p.sup,
+    order_ref:p.oid,location:p.loc,arrived:!!p.arr,alloc:JSON.stringify(p.alloc||[]),
+    /* A purchase carries the account it was bought on, the invoice link, the
+       notes column, the sheet's own Arrived status and — most importantly —
+       SPEND, the sheet's own total. */
+    meta:{acct:p.acct||'',invoice:p.invoice||'',notes:p.notes||'',sheetArr:p.sheetArr||'',
+          spend:(p.spend!=null?p.spend:null),mismatch:p.mismatch||0,link:p.link||''}};
+}
 /* the badge is shared with the whole app — never strobe it */
 function status(st){
   const now=Date.now();
@@ -353,63 +447,136 @@ function status(st){
   _lastStatus=now;
   try{setSyncStatus(st);}catch(e){}
 }
-function persist(){_dirty=true;clearTimeout(_pt);_pt=setTimeout(pushNow,900);}
+let _remRpc=null;                          // null = not known yet, true = stock safety on, false = SQL not run yet
+const _noRpc=e=>!!e&&(e.code==='PGRST202'||e.code==='42883'||/could not find the function|function .*does not exist/i.test(String(e.message||'')));
+async function checkStockSafety(){
+  /* a no-op call (no such batch, nothing changes) — just asks whether the function is there */
+  try{const r=await sb.rpc('lav_add_remaining',{p_id:'00000000-0000-0000-0000-000000000000',p_delta:0});
+    _remRpc=r.error?(_noRpc(r.error)?false:_remRpc):true;}catch(e){}
+  return _remRpc;
+}
+let _gen=0;
+function persist(){_dirty=true;_gen++;clearTimeout(_pt);_pt=setTimeout(pushNow,900);}
+/* only the columns that changed — another laptop's change to the others survives */
+function _colDiff(row,prev){if(!prev)return row;const out={};Object.keys(row).forEach(k=>{if(JSON.stringify(row[k])!==JSON.stringify(prev[k]))out[k]=row[k];});return out;}
+/* ONE SAVE AT A TIME (Oct 2026). Every change called pushNow 0.9 s later, and
+   one pass took ~25 s because it rewrote every purchase one by one — so a busy
+   receiving session ran several passes AT ONCE. A brand-new purchase has no id
+   yet, so every pass that reached it INSERTED it: the app-made copies (60 extra
+   rows on 13 Oct; Mrs Crimble Macaroon twice within 30 ms on 12 Oct). Now a
+   second call while a pass is running just asks for one more pass afterwards. */
+let _pushing=null,_pushAgain=false;
 async function pushNow(){
+  if(_pushing){_pushAgain=true;return _pushing;}
+  _pushing=_pushOnce();
+  try{await _pushing;}
+  finally{_pushing=null;if(_pushAgain){_pushAgain=false;setTimeout(pushNow,0);}}
+}
+async function _pushOnce(){
   if(!READY)return;
-  const dirty=LAYERS.some(l=>!l.uuid)||PURCH.some(p=>!p.uuid)||_dirty;
+  const dirty=LAYERS.some(l=>!l.uuid&&!(l._failed&&Date.now()-l._failed<15000))||PURCH.some(p=>!p.uuid&&!(p._failed&&Date.now()-p._failed<15000))||_dirty;
   if(!dirty)return;                       // nothing changed — don't touch the badge
-  /* Do NOT clear the flag up front. Clearing it here meant a pass that threw
-     half way left the rest unsaved AND marked clean, so the change was gone at
-     the next refresh with no error anyone would see. */
+  /* Do NOT clear the flag up front. A change made while this pass runs bumps
+     _gen; the flag is only cleared if nothing changed since the pass began. */
+  const g0=_gen,fails=[];
   try{
     status('syncing');
-    for(const l of LAYERS){
-      if(l._failed&&Date.now()-l._failed<15000)continue;   // recently failed — back off briefly
-      if(l.uuid){const row=layerRow(l),sig=JSON.stringify(row);if(l._pushed===sig)continue;
-        const r=await sb.from('lavarion_stock_layers').update(row).eq('id',l.uuid);if(r.error)throw r.error;l._pushed=sig;}
-      else{const row=layerRow(l);const r=await sb.from('lavarion_stock_layers').insert(row).select('id').single();
-        if(r.error){l._failed=true;if(!_layerErr){_layerErr=true;console.warn('[lav3] layer insert',r.error);}}
-        else{l.uuid=r.data.id;l._pushed=JSON.stringify(row);}}
+    /* PURCHASES FIRST (13 Oct 2026): a batch always goes into the database with
+       its purchase's real id, never a temporary "P:Pm…" one. */
+    for(const p of PURCH.slice()){
+      if(!PURCH.includes(p))continue;                                   // removed while this pass ran — never insert it
+      if(p._failed&&Date.now()-p._failed<15000)continue;
+      const row=purchRow(p),sig=JSON.stringify(row);
+      if(p.uuid){
+        if(p._pushed===sig)continue;                                    // unchanged — nothing to write
+        const r=await sb.from('lavarion_purchases').update(p._pushedRow?_colDiff(row,p._pushedRow):row).eq('id',p.uuid).select('id');
+        if(r.error){p._failed=Date.now();fails.push(r.error);continue;}
+        if(!r.data||!r.data.length){
+          /* gone from the database. Only an Undo puts a removed row back —
+             anything else was removed on purpose (perhaps on another laptop) */
+          if(!p._restore){PURCH.splice(PURCH.indexOf(p),1);continue;}
+          const ri=await sb.from('lavarion_purchases').insert(Object.assign({id:p.uuid},row)).select('id').single();
+          if(ri.error){p._failed=Date.now();fails.push(ri.error);continue;}
+        }
+        delete p._restore;delete p._failed;p._pushed=sig;p._pushedRow=row;
+      }else{
+        const r=await sb.from('lavarion_purchases').insert(row).select('id').single();
+        if(r.error){p._failed=Date.now();fails.push(r.error);continue;}
+        delete p._failed;p._pushed=sig;p._pushedRow=row;
+        /* the batches this purchase created are tagged with its id — if the id
+           changes underneath them they orphan */
+        const oldTag='P:'+p.id;
+        p.uuid=r.data.id;p.id=r.data.id;
+        const newTag='P:'+r.data.id;
+        LAYERS.forEach(l=>{if(l.src===oldTag){l.src=newTag;l._dirty=1;}});
+        D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{if(l.src===oldTag){l.src=newTag;l._dirty=1;}}));
+      }
+    }
+    for(const l of LAYERS.slice()){
+      if(!LAYERS.includes(l))continue;                                  // removed while this pass ran
+      if(l._failed&&Date.now()-l._failed<15000)continue;                // recently failed — back off briefly
+      const row=layerRow(l),sig=JSON.stringify(row);
+      if(l.uuid){
+        if(l._pushed===sig)continue;
+        let send=l._pushedRow?_colDiff(row,l._pushedRow):row,delta=0;
+        /* STOCK SAFETY (13 Oct 2026). "remaining" is sent as "take 60 off", not
+           "it is now 240" — Supabase does the sum, so two laptops sending from
+           the same batch within seconds can never overwrite each other (Jack's
+           60 hampers, 7 Sep). Needs lav_add_remaining (one-time SQL); until it
+           exists this falls back to the old way by itself. */
+        if(l._pushedRow&&('remaining' in send)&&_remRpc!==false&&!l._restore){
+          delta=(parseInt(row.remaining)||0)-(parseInt(l._pushedRow.remaining)||0);
+          send=Object.assign({},send);delete send.remaining;
+        }
+        if(Object.keys(send).length){
+          const r=await sb.from('lavarion_stock_layers').update(send).eq('id',l.uuid).select('id');
+          if(r.error){l._failed=Date.now();fails.push(r.error);continue;}
+          if(!r.data||!r.data.length){
+            if(!l._restore||_layerTombs.has(l.uuid))continue;             // removed on purpose — never resurrect stock
+            const ri=await sb.from('lavarion_stock_layers').insert(Object.assign({id:l.uuid},row)).select('id').single();
+            if(ri.error){l._failed=Date.now();fails.push(ri.error);continue;}
+          }
+        }
+        if(delta){
+          const rr=await sb.rpc('lav_add_remaining',{p_id:l.uuid,p_delta:delta});
+          if(rr.error&&(_noRpc(rr.error)||rr.error.code==='42501')){
+            if(_noRpc(rr.error))_remRpc=false;                               // not installed yet (or no permission) — the old way
+            const r2=await sb.from('lavarion_stock_layers').update({remaining:row.remaining}).eq('id',l.uuid);
+            if(r2.error){l._failed=Date.now();fails.push(r2.error);continue;}
+          }else if(rr.error){l._failed=Date.now();fails.push(rr.error);continue;}
+          else{
+            _remRpc=true;
+            const v=Array.isArray(rr.data)?(rr.data[0]&&typeof rr.data[0]==='object'?rr.data[0].lav_add_remaining:rr.data[0]):rr.data;
+            if(v===null){continue;}                                          // the batch is gone from the database
+            if(v!==undefined&&Number.isFinite(+v)){l.rem=+v;row.remaining=+v;} // the database's answer includes everyone's sends
+          }
+        }
+        delete l._restore;delete l._failed;l._pushedRow=row;l._pushed=JSON.stringify(row);
+      }else{
+        const r=await sb.from('lavarion_stock_layers').insert(row).select('id').single();
+        if(r.error){l._failed=Date.now();fails.push(r.error);if(!_layerErr){_layerErr=true;console.warn('[lav3] layer insert',r.error);}continue;}
+        l.uuid=r.data.id;delete l._failed;l._pushed=sig;l._pushedRow=row;
+      }
     }
     if(_layerTombs.size){
       const ids=[..._layerTombs];
-      const d=await sb.from('lavarion_stock_layers').delete().in('id',ids);
-      if(d.error)console.warn('[lav3] layer delete',d.error);
-      else ids.forEach(id=>_layerTombs.delete(id));
+      for(let i=0;i<ids.length;i+=60){
+        const part=ids.slice(i,i+60);
+        const d=await sb.from('lavarion_stock_layers').delete().in('id',part);
+        if(d.error){fails.push(d.error);break;}
+        part.forEach(id=>_layerTombs.delete(id));
+      }
     }
-    for(const p of PURCH){
-      /* Same hole as the stock table had. A purchase carries the account it was
-         bought on, the invoice link, the notes column and — most importantly —
-         SPEND, the sheet's own total. None of it was written, so after a refresh
-         the line total went back to qty × price and the £11.90 on the sheet read
-         as £11.88 again. It only ever looked right because the next sync
-         refilled it. */
-      const row={sheet_tab:p.tab||'',bought_on:p.date,name:p.name,qty:p.qty,buy_price:p.price,supplier:p.sup,
-        order_ref:p.oid,location:p.loc,arrived:!!p.arr,alloc:JSON.stringify(p.alloc||[]),
-        meta:{acct:p.acct||'',invoice:p.invoice||'',notes:p.notes||'',
-              spend:(p.spend!=null?p.spend:null),mismatch:p.mismatch||0,link:p.link||'',
-              /* "the sheet has two lines that look identical — are they?" The
-                 answer has to survive a refresh or it gets asked forever. */
-              dupCheck:p.dupCheck||null}};
-      if(p.uuid){const r=await sb.from('lavarion_purchases').update(row).eq('id',p.uuid);if(r.error)throw r.error;}
-      else{const r=await sb.from('lavarion_purchases').insert(row).select('id').single();
-        if(!r.error){
-          /* the batches this purchase created are tagged with its id — if the id
-             changes underneath them they orphan, and re-allocating would leave
-             the old stock behind as a duplicate */
-          const oldTag='P:'+p.id;
-          p.uuid=r.data.id;p.id=r.data.id;
-          const newTag='P:'+r.data.id;
-          LAYERS.forEach(l=>{if(l.src===oldTag){l.src=newTag;l._dirty=1;}});
-        }}
-    }
-    _dirty=false;                          // only now is everything genuinely written
-    status('synced');
-  }catch(e){
-    _dirty=true;                           // still unsaved — try again on the next tick
-    clearTimeout(_pt);_pt=setTimeout(pushNow,4000);
-    status('error');console.warn('[lav3] save failed',e);
-    if(!_warned){_warned=true;toast('Lavarion save failed — retrying. If the badge stays red, Settings → Check the database','er');setTimeout(()=>{_warned=false;},15000);}}
+  }catch(e){fails.push(e);}
+  if(fails.length){
+    _dirty=true;                           // still unsaved — try again shortly
+    clearTimeout(_pt);_pt=setTimeout(pushNow,15000);
+    status('error');console.warn('[lav3] save failed',fails[0]);
+    if(!_warned){_warned=true;toast('PLUB save failed — retrying. If the badge stays red, Settings → Check the database','er');setTimeout(()=>{_warned=false;},15000);}
+    return;
+  }
+  if(_gen===g0)_dirty=false;               // only now is everything genuinely written
+  status('synced');
 }
 /* products and components still save through the app's existing helpers */
 function saveProductSrc(p){
@@ -964,7 +1131,7 @@ function amzParse(txt){
     : (_amzRows.length?'<span style="color:var(--red)">Nothing on those lines matched a product</span>':'Nothing entered yet');
   const go=$('amzGo');if(go){go.disabled=!ok.length;go.style.opacity=ok.length?'1':'.45';}
 }
-function amzSave(){
+async function amzSave(){
   const ok=_amzRows.filter(r=>r.p);
   if(!ok.length){toast('Nothing to save','er');return;}
   snap();
@@ -977,7 +1144,12 @@ function amzSave(){
     if(r.qty!=null)D.settings.atAmz[r.p.asin]=r.qty;
     if(r.inb!=null)D.settings.atAmzIn[r.p.asin]=r.inb;
     D.settings.atAmzAt[r.p.asin]=when;});
-  savePrefs();save();
+  /* Oct 2026: this said "saved" whatever happened. It now waits for the
+     database, and if the save did not land the window stays open with the
+     numbers still in it — press Save counts again. */
+  const landed=await savePrefs();
+  if(!landed){toast('Counts NOT saved — the database didn\u2019t answer. Your numbers are still here: press Save counts again.','er');return;}
+  save();
   const uIn=ok.reduce((t,r)=>t+(r.inb||0),0);
   logIt('edit',`Stock at Amazon counted ${whenTxt(when)} — ${ok.length} product${ok.length===1?'':'s'}, ${ok.reduce((t,r)=>t+(r.qty||0),0)} available${uIn?`, ${uIn} inbound`:''}`);
   cm('lav3Ov2');render();
@@ -1396,7 +1568,7 @@ function openHubReview(){
         </div>`).join('')}
       </div>`:`<div class="note good" style="margin:0">Every product has a sales figure for ${ymName(M.ym)}. Nothing to do.</div>`}
       ${rv.extra.length?`<div class="note info" style="margin-top:12px"><b>${fmt(rv.extra.length)} ASIN${rv.extra.length===1?'':'s'} in the hub ${rv.extra.length===1?'is':'are'} not on this page.</b>
-        They sell on Amazon but nothing here is built for them — that is fine if they are not Lavarion.
+        They sell on Amazon but nothing here is built for them — that is fine if they are not PLUB.
         <div class="hbChips">${rv.extra.map(h=>
           `<span class="hbChip" title="${esc(h.asin)} — ${esc(h.name||'')}"><b class="hbAs">${esc(h.asin)}</b><i>${esc(h.name||'')}</i><b>${h.last?fmt(h.last.n):'—'}</b></span>`).join('')}</div></div>`:''}
       ${rv.skipped.length?`<div class="note" style="margin-top:12px"><b>${fmt(rv.skipped.length)} marked as not selling yet.</b>
@@ -2596,12 +2768,12 @@ function vOverview(){
     const s1=D.components.length>0,s2=D.products.length>0,s3=D.products.some(p=>p.recipe.length);
     $('lav3View').innerHTML=`
     <div class="panel" style="max-width:760px">
-      <div class="ph"><span class="t">Set Lavarion up</span><span class="sub">four steps, then it runs itself</span></div>
+      <div class="ph"><span class="t">Set PLUB up</span><span class="sub">four steps, then it runs itself</span></div>
       <div class="setup ${s1?'done':''}"><span class="n">${s1?'✓':'1'}</span>
         <span class="tx"><b>Add your components</b><span class="s">Every part and box that goes into a bundle — paste the lot in one go.</span></span>
         <button class="btn ${s1?'':'pri'}" onclick="LV3.openBulkComp()">Bulk add components</button></div>
       <div class="setup ${s2?'done':''}"><span class="n">${s2?'✓':'2'}</span>
-        <span class="tx"><b>Add your products</b><span class="s">Every Lavarion ASIN, each tagged bundle or private label.</span></span>
+        <span class="tx"><b>Add your products</b><span class="s">Every PLUB ASIN, each tagged bundle or private label.</span></span>
         <button class="btn ${s2?'':(s1?'pri':'')}" onclick="LV3.openBulkProd()">Bulk add products</button></div>
       <div class="setup ${s3?'done':''}"><span class="n">${s3?'✓':'3'}</span>
         <span class="tx"><b>Set what each bundle is made of</b><span class="s">Pick the parts for a bundle and how many go into one unit. Do several at a time.</span></span>
@@ -3007,7 +3179,7 @@ async function delProductNow(id){
   const src=p._src;
   D.products=D.products.filter(x=>x.id!==id);
   if(src){const i=lavAsins.indexOf(src);if(i>=0)lavAsins.splice(i,1);}
-  delete RECIPES[p.asin];
+  if(!D.products.some(x=>x.asin===p.asin))delete RECIPES[p.asin];   /* a duplicate shares this build list — keep it */
   for(let i=LAYERS.length-1;i>=0;i--)if(LAYERS[i].kind==='product'&&String(LAYERS[i].tid)===String(id))LAYERS.splice(i,1);
   logIt('edit','Deleted product '+p.name);
   await deleteProduct_db(src,p);
@@ -3797,7 +3969,7 @@ function delProduct(id){
         const i=lavAsins.indexOf(src);
         if(i>=0)lavAsins.splice(i,1);
       }
-      delete RECIPES[p.asin];
+      if(!D.products.some(x=>x.asin===p.asin))delete RECIPES[p.asin];   /* a duplicate shares this build list — keep it */
       for(let i=LAYERS.length-1;i>=0;i--)if(LAYERS[i].kind==='product'&&String(LAYERS[i].tid)===String(id))LAYERS.splice(i,1);
       logIt('edit','Deleted product '+p.name);
       cm('lav3Ov2');cm('lav3Ov1');render();
@@ -3809,9 +3981,12 @@ function delProduct(id){
 }
 async function deleteProduct_db(src,p){
   try{
-    if(p&&p.asin){
+    /* 13 Oct 2026: build lists are keyed by ASIN, so deleting one of two
+       duplicate products used to wipe the build list of the one kept */
+    if(p&&p.asin&&!D.products.some(x=>x!==p&&x.asin===p.asin&&!x.archived)){
       const rr=await sb.from('lavarion_recipes').delete().eq('asin',p.asin);
       if(rr.error)console.warn('[lav3] recipe cleanup',rr.error);
+      delete _recipeSig[p.asin];
     }
     const lr=await sb.from('lavarion_stock_layers').delete().eq('target_id',String(p.id));
     if(lr.error)console.warn('[lav3] layer cleanup',lr.error);
@@ -4440,47 +4615,126 @@ function shipFba(el){SHIP.fba=(el.value||'').toUpperCase();el.value=SHIP.fba;}
    That is why the two pages drifted apart. Read first, merge, then write — the
    maps (supplier methods, sales figures, aliases) are combined key by key so a
    save can only ever add to what the other person did. */
-let _prefsQ=null;
+/* Oct 2026 — Sarah's Stock at Amazon count of 12 Oct vanished; the screen
+   still said 5 Oct. The merge above was "remote, then EVERYTHING this laptop
+   holds on top", so any laptop opened before her count — Becki's, receiving
+   stock all day — wrote its stale copy of every count back the next time it
+   saved any setting at all. "A save can only add" was only true for new keys.
+   Now it is a three-way merge: _prefsBase is what this laptop last read from
+   (or wrote to) the database, and only what it has CHANGED since then goes
+   over the top. Untouched values — the stale counts — never overwrite anyone.
+   And a save that does not land says so, instead of console.warn. */
+let _prefsQ=null,_prefsBase=null;
+const _clone=o=>{try{return JSON.parse(JSON.stringify(o==null?{}:o));}catch(e){return {};}};
+const _same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const _isMap=o=>!!o&&typeof o==='object'&&!Array.isArray(o);
+function _prefsMerge(remote,local,base){
+  const out=_clone(remote);base=base||{};local=local||{};
+  new Set([...Object.keys(local),...Object.keys(base)]).forEach(k=>{
+    const l=local[k],b=base[k];
+    if(_same(l,b)){                                   // not changed on this laptop
+      if(!(k in out)&&l!==undefined)out[k]=_clone(l); // keep local defaults the database never had
+      return;}
+    const r=out[k];
+    if(_isMap(l)&&_isMap(r)){                         // a map: only the entries changed here
+      const bb=_isMap(b)?b:{},m={...r};
+      new Set([...Object.keys(l),...Object.keys(bb)]).forEach(sk=>{
+        if(_same(l[sk],bb[sk]))return;
+        if(l[sk]===undefined)delete m[sk];else m[sk]=_clone(l[sk]);});
+      out[k]=m;
+    }else if(l===undefined)delete out[k];
+    else out[k]=_clone(l);
+  });
+  return out;
+}
+function _saveFailed(what){
+  toast(`Didn\u2019t save the ${what} — the database didn\u2019t answer. It is still on this screen; try again in a minute.`,'er');
+}
 function savePrefs(){
   if(_prefsQ)return _prefsQ;                   // collapse a burst into one round trip
+  /* never save before a load worked — this laptop's defaults would go over the
+     shared settings (13 Oct 2026) */
+  if(_prefsBase===null){return loadPrefs().then(()=>_prefsBase===null?(_saveFailed('PLUB settings'),false):savePrefs());}
   _prefsQ=(async()=>{
+    let again=false;
     try{
-      let remote={};
-      try{const r=await sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle();
-        if(r&&r.data&&r.data.value)remote=JSON.parse(r.data.value)||{};}catch(e){}
-      const MAPS=['coverDays','supplierModes','supplierModesBy','sold30','sold30At','untracked','aliases','modeDays','hubMap','hubSkip','atAmz','atAmzIn','atAmzAt','buySkip','acSnooze','wlAck'];
-      const merged={...remote,...D.settings};
-      MAPS.forEach(k=>{
-        const a=remote[k],b=D.settings[k];
-        if(a&&typeof a==='object'&&b&&typeof b==='object')merged[k]={...a,...b};
-      });
-      D.settings=merged;
-      await sb.from('app_settings').upsert({key:'lavarion_prefs',value:JSON.stringify(merged)},{onConflict:'key'})
-        .then(r=>{if(r&&r.error)console.warn('prefs save',r.error);});
-    }catch(e){console.warn('prefs save',e);}
-    finally{_prefsQ=null;}
+      const r=await sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle();
+      if(r&&r.error)throw r.error;               // never merge against a read that failed
+      const remote=(r&&r.data&&r.data.value)?(JSON.parse(r.data.value)||{}):{};
+      const localAt=_clone(D.settings);
+      const merged=_prefsMerge(remote,localAt,_prefsBase);
+      const w=await sb.from('app_settings').upsert({key:'lavarion_prefs',value:JSON.stringify(merged)},{onConflict:'key'});
+      if(w&&w.error)throw w.error;
+      /* anything changed while the save was in flight stays, and goes up next */
+      again=!_same(D.settings,localAt);
+      D.settings=again?_prefsMerge(merged,D.settings,localAt):merged;
+      _prefsBase=_clone(merged);
+      return true;
+    }catch(e){console.warn('prefs save',e);_saveFailed('PLUB settings');return false;}
+    finally{_prefsQ=null;if(again)setTimeout(()=>savePrefs(),0);}
   })();
   return _prefsQ;
 }
 /* movement log + "dealt with" ticks — small, so they ride along in app_settings */
-let _stateT=null;
-function saveState(){clearTimeout(_stateT);_stateT=setTimeout(()=>{
-  try{sb.from('app_settings').upsert({key:'lavarion_state',
-    value:JSON.stringify({log:D.log.slice(0,300),ack:ACK})},{onConflict:'key'})
-    .then(r=>{if(r.error)console.warn('state save',r.error);});}catch(e){}
+/* Same flaw as the settings, Oct 2026: each laptop wrote ITS log over the
+   shared one, so Becki receiving stock all day could wipe Sarah's "Stock at
+   Amazon counted" line. Now the log is a union (deduped, newest first) and the
+   ticks merge three-way like the settings. */
+let _stateT=null,_ackBase=null;
+function _logUnion(a,b){
+  const seen=new Set(),out=[];
+  (a||[]).concat(b||[]).forEach(l=>{if(!l)return;const k=l.t+'|'+l.txt+'|'+l.who;if(seen.has(k))return;seen.add(k);out.push(l);});
+  return out.sort((x,y)=>String(y.t||'').localeCompare(String(x.t||'')));
+}
+function saveState(){clearTimeout(_stateT);_stateT=setTimeout(async()=>{
+  _stateT=null;
+  try{
+    const r=await sb.from('app_settings').select('value').eq('key','lavarion_state').maybeSingle();
+    if(r&&r.error)throw r.error;
+    const rem=(r&&r.data&&r.data.value)?(JSON.parse(r.data.value)||{}):{};
+    const log=_logUnion(D.log,Array.isArray(rem.log)?rem.log:[]);
+    const ackAt=_clone(ACK);
+    const ack=_prefsMerge(_isMap(rem.ack)?rem.ack:{},ackAt,_ackBase);
+    const w=await sb.from('app_settings').upsert({key:'lavarion_state',value:JSON.stringify({log:log.slice(0,300),ack})},{onConflict:'key'});
+    if(w&&w.error)throw w.error;
+    D.log=_logUnion(D.log,log).slice(0,4000);
+    ACK=_same(ACK,ackAt)?ack:_prefsMerge(ack,ACK,ackAt);
+    _ackBase=_clone(ack);
+  }catch(e){console.warn('state save',e);_saveFailed('activity log');}
 },1200);}
 async function loadState(){
   try{const r=await sb.from('app_settings').select('value').eq('key','lavarion_state').maybeSingle();
     if(r&&r.data&&r.data.value){const v=JSON.parse(r.data.value);
       if(Array.isArray(v.log))D.log=v.log;
-      if(v.ack&&typeof v.ack==='object')ACK=v.ack;}}catch(e){}
+      if(v.ack&&typeof v.ack==='object')ACK=v.ack;
+      _ackBase=_clone(ACK);}}catch(e){}
 }
 async function loadPrefs(){
   try{const r=await sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle();
     if(r&&r.data&&r.data.value){const v=JSON.parse(r.data.value);
       D.settings=Object.assign({},D.settings,v);
       D.settings.cols=Object.assign({},{pIncoming:true,pOrdered:false,pSold:true,pCog:true,pSendBy:true,
-        cOnOrder:true,cOrdered:true,cUsed:true},v.cols||{});}}catch(e){}
+        cOnOrder:true,cOrdered:true,cUsed:true},v.cols||{});
+      _prefsBase=_clone(v);}}catch(e){}
+}
+/* The 15-minute routine re-pull (db.js resyncNow) also brings Lavarion's shared
+   settings and log up to date, so a laptop open all day sees Sarah's counts
+   without a reload. Skipped while a save is on its way up. */
+async function refreshShared(){
+  if(_prefsQ||_stateT)return false;
+  try{
+    const r=await sb.from('app_settings').select('key,value').in('key',['lavarion_prefs','lavarion_state']);
+    if(!r||r.error||_prefsQ||_stateT)return false;
+    (r.data||[]).forEach(x=>{
+      const v=JSON.parse(x.value||'{}')||{};
+      if(x.key==='lavarion_prefs'){D.settings=_prefsMerge(v,D.settings,_prefsBase);_prefsBase=_clone(v);}
+      if(x.key==='lavarion_state'){
+        if(Array.isArray(v.log))D.log=_logUnion(D.log,v.log).slice(0,4000);
+        if(_isMap(v.ack)){ACK=_prefsMerge(v.ack,ACK,_ackBase);_ackBase=_clone(v.ack);}
+      }
+    });
+    return true;
+  }catch(e){return false;}
 }
 function pickKind(k){
   window._ck=k;
@@ -4609,7 +4863,7 @@ function lavGate(retry){
   if(!_lavIsSarah())return false;
   if(_lavGateOk){_lavGateOk=false;return false;}
   confirmBox('Checking stock in is the UK team\u2019s job',
-    `<div style="margin-bottom:10px">Receiving and marking arrived on the Lavarion page is Becki\u2019s. A press here moves real stock on the bench.</div>
+    `<div style="margin-bottom:10px">Receiving and marking arrived on the PLUB page is Becki\u2019s. A press here moves real stock on the bench.</div>
      <div class="pmeta" style="margin:0">If you are doing it on purpose, carry on \u2014 it is logged under your name.</div>`,
     ()=>{_lavGateOk=true;try{retry();}finally{_lavGateOk=false;}},
     {danger:true,ok:'Proceed anyway'});
@@ -5107,12 +5361,13 @@ function lavSheetId(){
   return m?m[1]:String(u).trim();
 }
 function sheetNum(v){const x=parseFloat(String(v==null?'':v).replace(/[£,\s]/g,''));return isNaN(x)?0:x;}
+let _parseSkips={date:0,qty:0};
 function parseSheetRows(rows,tab){
   const out=[];
   (rows||[]).forEach(raw=>{
     const r={};Object.keys(raw).forEach(k=>{r[k.trim().toLowerCase()]=raw[k];});
     const get=k=>(r[k]==null?'':String(r[k])).trim();
-    const ds=get('date');if(!ds)return;
+    const ds=get('date').split(/\s+/)[0];if(!ds){_parseSkips.date++;return;}   /* "13/10/2026 14:00" — the time is not part of the date */
     /* build the ISO date from the parts — toISOString() shifts to UTC and in
        British Summer Time that moved 02/08 back to the 1st */
     let iso='';const p=ds.split('/');
@@ -5123,13 +5378,24 @@ function parseSheetRows(rows,tab){
          after 2026 and slipped straight past the import cut-off. */
       if(yy<100)yy+=2000;
       iso=`${yy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+      /* 13 Oct 2026: "10/13/2026" (a US-style date) became month 13, "31/09" was
+         accepted. A date must survive a round trip or the line is set aside. */
+      const _chk=new Date(yy,mm-1,dd);
+      if(mm<1||mm>12||_chk.getFullYear()!==yy||_chk.getMonth()!==mm-1||_chk.getDate()!==dd){_parseSkips.date++;return;}
     }else{const d=new Date(ds);if(isNaN(d))return;
       iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
     const name=get('name').replace(/\s+/g,' ').trim();if(!name)return;
     const qty=Math.round(sheetNum(get('quanity bought')||get('quantity bought')||get('qty')))||0;
+    /* 13 Oct 2026: a line with no quantity came in as a 0-unit purchase that
+       could never be linked, and once the quantity was typed it came in AGAIN
+       and the 0 one stayed for ever. Set aside and counted until it has one. */
+    if(qty<=0){_parseSkips.qty++;return;}
     let price=sheetNum(get('buy price'));
     let spend=sheetNum(get('spent'));
     if(!price&&qty&&spend)price=spend/qty;
+    /* the database keeps 4 decimal places — £25/12 = 2.0833333… read back as
+       2.0833 and looked "changed" on every first sync after a reload */
+    price=Math.round((price||0)*10000)/10000;
     if(!spend)spend=price*qty;
     if(spend<=0)return;
     out.push({tab,date:iso,name,qty,price:price||0,spend,
@@ -5137,7 +5403,9 @@ function parseSheetRows(rows,tab){
          price × qty is expected — Spent is what actually left the account */
       mismatch:0,
       sup:get('bought from')||'—',oid:get('order id')||'—',
-      acct:get('account')||'',invoice:get('link to invoice')||'',notes:get('notes')||''});
+      acct:get('account')||'',invoice:get('link to invoice')||'',notes:get('notes')||'',
+      /* the sheet's own Arrived column (Confirmed / Issue …) — Becki's word */
+      sheetArr:get('arrived')||''});
   });
   return out;
 }
@@ -5172,6 +5440,16 @@ function killPurchLine(p,why){
    sentence inside the duplicate panel, which disappears the moment there are no
    duplicates — so the way to undo an ignore vanished exactly when you had
    nothing else to go on. */
+function stockSafetyPanel(){
+  const on=_remRpc===true,off=_remRpc===false;
+  return `<div class="panel">
+    <div class="ph"><span class="t">Stock safety</span>
+      <span class="sub">${on?'<b style="color:var(--grn)">✓ On</b> — Supabase does the sums when stock is taken off':off?'<b style="color:var(--amb)">Off</b> — the one-time SQL has not been run yet':'checking…'}</span></div>
+    <div style="padding:12px" class="pmeta">${on
+      ?'Two laptops sending from the same batch at the same moment can no longer overwrite each other\u2019s counts.'
+      :off?'Run <b>BDL PrepHub - stock safety - run once in Supabase.sql</b> (in Downloads) in Supabase → SQL Editor. Until then stock is saved the old way, which works but can lose a count if two people send from the same batch within seconds.'
+      :'Checked when the page loads.'}</div></div>`;
+}
 function ignoredPanel(){
   const k=Object.entries(purchKilled());
   return `<div class="panel">
@@ -5277,13 +5555,13 @@ async function syncPurchases(){
     const id=lavSheetId(),from=D.settings.purchFrom||'2026-08-01';
     if(!id){
       say('<b>No purchase sheet linked.</b> Paste the sheet link in <b>Settings → Purchase sheet</b> and press this again. Nothing is wrong — the address just is not saved yet.');
-      try{toast('No purchase sheet linked — paste it in Lavarion Settings','er');}catch(e){}
+      try{toast('No purchase sheet linked — paste it in PLUB Settings','er');}catch(e){}
       return;
     }
     /* a year ahead of today is generous for a lead time and still catches 2028 */
     const fd=new Date(TODAY);fd.setFullYear(fd.getFullYear()+1);
     const future=fd.toISOString().slice(0,10);
-    const all=[],failed=[],absent=[];let skipped=0,ahead=0;
+    const all=[],failed=[],absent=[];let skipped=0,ahead=0;_parseSkips={date:0,qty:0};
     const readTabs=new Set();
     /* tests hand the sync their own sheet rows through this hook — live never sets it */
     const _rowsHook=(typeof window!=='undefined'&&typeof window.__lavSheetRowsHook==='function')?window.__lavSheetRowsHook:null;
@@ -5294,10 +5572,19 @@ async function syncPurchases(){
         let csv=null;
         try{csv=await lavFetchCsv(id,tab);}catch(e){failed.push(`${tab} — ${e.message}`);continue;}
         if(!csv){absent.push(tab);continue;}            // tab not created yet — normal
-        rowsIn=parseSheetRows(lavCsvRows(csv),tab);
+        const _raw=lavCsvRows(csv);
+        /* 13 Oct 2026: renaming "Order ID" would have turned every order number
+           into "—" and re-keyed ~400 lines at once. The columns the sync relies
+           on must be there, or the tab is treated as not read. */
+        const _h=new Set(Object.keys(_raw[0]||{}).map(k=>k.trim().toLowerCase()));
+        const _need=[['date'],['name'],['order id'],['quanity bought','quantity bought','qty'],['spent','buy price']];
+        const _miss=_need.filter(alts=>!alts.some(a=>_h.has(a)));
+        if(_raw.length&&_miss.length){failed.push(`${tab} — the sheet is missing the column${_miss.length===1?'':'s'} ${_miss.map(a=>'"'+a[0]+'"').join(', ')} (renamed?)`);continue;}
+        rowsIn=parseSheetRows(_raw,tab);
       }
       readTabs.add(tab);
       rowsIn.forEach(r=>{
+        if(!(parseInt(r.qty)>0)){_parseSkips.qty++;return;}   // no quantity — set aside until the sheet has one
         if(r.date>future){ahead++;return;}             // dated years out — a sheet typo, not a buy
         if(r.date<from){skipped++;return;}
         all.push(r);});
@@ -5317,10 +5604,26 @@ async function syncPurchases(){
         : `<span class="pmeta" style="margin:0">Read ${fmt(LAV_TABS.length-absent.length)} tab${LAV_TABS.length-absent.length===1?'':'s'}, nothing dated ${dshort(from)} or later.${skipped?` ${fmt(skipped)} older row${skipped===1?'':'s'} skipped.`:''}</span>`);
       return;
     }
+    /* 13 Oct 2026: start from what the database holds NOW, not what this
+       laptop loaded this morning — or lines another laptop already brought in
+       come in again, and a purchase linked elsewhere looks unlinked */
+    if(!_rowsHook){try{await reloadData();}catch(e){}}             // (checks hand in their own rows — never reload over them)
+    /* orphaned stock first, so the line-to-purchase pairing below sees which
+       copy actually holds the stock */
+    let _relinked={done:[],left:[]};try{_relinked=relinkOrphans();}catch(e){console.warn('[lav3] relink',e);}
     const have=new Set(D.purchases.map(purchKey));
     const claimed=new Set();
+    /* stock booked against a purchase — looked for in both places Lavarion keeps batches */
+    const _booked=id=>LAYERS.some(l=>l.src==='P:'+id)
+      ||D.components.concat(D.products).some(o=>(o.layers||[]).some(l=>l.src==='P:'+id));
     const fresh=[];                       // lines this sync added as brand new
     let added=0,updated=0,renamed=0,dupAsk=0,corrected=0;
+    /* 13 Oct 2026: TWO PASSES. Every line that matches a purchase exactly is
+       claimed first; only then are the rest looked at as renames or new. In one
+       pass, a new line ABOVE an existing one (same order, quantity and price —
+       "Pump Bottle 12 @ £1" above "Foam Nozzle 12 @ £1") renamed the nozzle's
+       purchase and the nozzle came in again as new. */
+    const _rest=[];
     all.forEach(r=>{
       const k=purchKey(r);
       if(have.has(k)){
@@ -5332,31 +5635,52 @@ async function syncPurchases(){
            If it is already taken, this is a second real line: it gets added and
            flagged, so the question is asked in To review instead of being
            answered silently and wrongly. Never drop somebody's purchase. */
-        const ex=D.purchases.find(x=>purchKey(x)===k&&!claimed.has(x.id));
+        /* when the app holds copies, the sheet line keeps the one stock was booked
+           against (13 Oct: claiming the first copy left the booked one as the "copy") */
+        const _cands=D.purchases.filter(x=>purchKey(x)===k&&!claimed.has(x.id));
+        const ex=_cands.find(x=>x.arr||_booked(x.id))||_cands.find(x=>x.uuid)||_cands[0];
         if(ex){
           claimed.add(ex.id);
-          if(ex.price!==r.price||ex.sup!==r.sup){ex.price=r.price;ex.sup=r.sup;updated++;}
+          if(Math.abs((+ex.price||0)-(+r.price||0))>0.00005||ex.sup!==r.sup){
+            const _pc=Math.abs((+ex.price||0)-(+r.price||0))>0.00005;
+            ex.price=r.price;ex.sup=r.sup;updated++;
+            /* 13 Oct 2026: a price corrected on the sheet never reached the
+               stock bought with it, so COG kept the old figure */
+            if(_pc)D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{if(l.src==='P:'+ex.id&&l.cost!==ex.price){l.cost=ex.price;l._dirty=1;}}));
+          }
           ex.spend=r.spend;ex.mismatch=r.mismatch;
+          /* Oct 2026, Nisbets UK18964986: Becki wrote "OOS - auto refund on 58
+             units" and set Arrived to Issue on the sheet. A line already in was
+             "left alone", so none of it ever reached Jack's card. The sheet owns
+             its own columns — they follow it on every sync. */
+          ex.acct=r.acct;ex.invoice=r.invoice;ex.notes=r.notes;ex.sheetArr=r.sheetArr;ex.tab=r.tab;
           return;
         }
         /* every stored copy already spoken for — fall through and add this one,
            marked so somebody confirms it rather than the app deciding */
         /* somebody already looked at this exact line and removed it — do not
            hand it back to them on every sync */
-        if(purchKilled()[k]){have.add(k);killedSkipped++;return;}
-        const twinId=(D.purchases.find(x=>purchKey(x)===k)||{}).id||'';
-        have.add(k);added++;dupAsk++;
+        if(purchKilled()[k]){killedSkipped++;return;}
+        /* Jack, 13 Oct: "the Lavarion sheet has dups maybe 0.0000001% of the
+           time — get rid of the dup thingy." One line on the sheet is one
+           purchase here. Two identical lines on the sheet are two purchases. */
+        have.add(k);added++;
         D.purchases.push({id:newId('P'),uuid:null,tab:r.tab,date:r.date,name:r.name,
           qty:r.qty,price:r.price,sup:r.sup,oid:r.oid,loc:'Warehouse',arr:0,alloc:[],
-          acct:r.acct,invoice:r.invoice,notes:r.notes,spend:r.spend,mismatch:r.mismatch,
-          /* Jack, 8 Sep: "99.999% of the time Becki won't do it as a dup — it's
-             super rare." So the app no longer asks: both lines are kept as
-             separate purchases, it says so, and "Same one — remove it" stays
-             one click away for the once-a-year case. */
-          dupCheck:{of:twinId,on:dayISO(),answered:'separate',by:'auto'}});
-        logIt('edit',`Kept as a second purchase — ${r.name} ${dshort(r.date)} · ${r.sup||'supplier'} (an identical line on the sheet — two shops in one day)`);
+          acct:r.acct,invoice:r.invoice,notes:r.notes,sheetArr:r.sheetArr,spend:r.spend,mismatch:r.mismatch});
+        claimed.add(D.purchases[D.purchases.length-1].id);
+        fresh.push(D.purchases[D.purchases.length-1]);
         return;
       }
+      _rest.push(r);
+    });
+    const _sheetKeysNow=new Set(all.map(purchKey));
+    _rest.forEach(r=>{
+      const k=purchKey(r);
+      /* a line somebody removed by hand stays removed — this used to run only
+         when the purchase still existed, and removing it deletes the purchase,
+         so it came straight back on the next sync (13 Oct 2026) */
+      if(purchKilled()[k]){killedSkipped++;return;}
       /* Renamed on the sheet. A row's identity WAS its name, so changing
          "Borders Biscuit Assortment" to "Borders Assorted Biscuits" read as a
          brand new purchase: the new one was added and the old one left sitting
@@ -5365,7 +5689,8 @@ async function syncPurchases(){
          Only acted on when exactly ONE line matches, so two different products
          bought in the same quantity at the same price are never merged. */
       const idk=purchId(r);
-      const cand=D.purchases.filter(x=>purchId(x)===idk&&!claimed.has(x.id));
+      /* only a purchase whose own line is no longer on the sheet can have been renamed */
+      const cand=D.purchases.filter(x=>purchId(x)===idk&&!claimed.has(x.id)&&!_sheetKeysNow.has(purchKey(x)));
       if(cand.length===1){
         const ex=cand[0];
         claimed.add(ex.id);
@@ -5373,7 +5698,7 @@ async function syncPurchases(){
           logIt('edit',`Purchase renamed on the sheet — “${ex.name}” is now “${r.name}”`);
           ex.name=r.name;renamed++;
         }
-        ex.sup=r.sup;ex.acct=r.acct;ex.invoice=r.invoice;ex.notes=r.notes;
+        ex.sup=r.sup;ex.acct=r.acct;ex.invoice=r.invoice;ex.notes=r.notes;ex.sheetArr=r.sheetArr;ex.tab=r.tab;
         ex.spend=r.spend;ex.mismatch=r.mismatch;
         have.add(purchKey(ex));
         return;
@@ -5381,7 +5706,8 @@ async function syncPurchases(){
       have.add(k);added++;
       D.purchases.push({id:newId('P'),uuid:null,tab:r.tab,date:r.date,name:r.name,
         qty:r.qty,price:r.price,sup:r.sup,oid:r.oid,loc:'Warehouse',arr:0,alloc:[],
-        acct:r.acct,invoice:r.invoice,notes:r.notes,spend:r.spend,mismatch:r.mismatch});
+        acct:r.acct,invoice:r.invoice,notes:r.notes,sheetArr:r.sheetArr,spend:r.spend,mismatch:r.mismatch});
+      claimed.add(D.purchases[D.purchases.length-1].id);
       fresh.push(D.purchases[D.purchases.length-1]);
     });
     /* ── A CORRECTION, OR A SECOND PURCHASE? ─────────────────────────────────
@@ -5401,23 +5727,32 @@ async function syncPurchases(){
       const _oid=x=>String((x&&x.oid)||'').trim().toLowerCase();
       const freshIds=new Set(fresh.map(p=>p.id));
       const pairs=fresh.map(p=>{
+        /* 13 Oct 2026: a changed DATE was never recognised (same date was
+           required), nor an old line nobody had linked yet — both left the old
+           purchase behind and added the edited line again. Within 14 days now,
+           linked or not; still exactly one candidate either way. */
+        const _dd=(a,b)=>Math.abs((new Date(a)-new Date(b))/864e5);
         const c=D.purchases.filter(q=>!freshIds.has(q.id)&&!claimed.has(q.id)
-          &&readTabs.has(q.tab)&&q.tab===p.tab&&q.date===p.date
+          &&readTabs.has(q.tab)&&q.tab===p.tab&&_dd(q.date,p.date)<=14
+          &&!_sheetKeysNow.has(purchKey(q))
           &&norm(q.sup)===norm(p.sup)&&nameClose(q.name,p.name)
           /* no order-number test here: the old line is GONE from the sheet, so a
              new order/invoice number is an edit, not a second purchase (Becki
              hand-deleted three of those on 23 Sep) */
-          &&(q.alloc||[]).length&&(q.alloc||[]).every(a=>targetOf(a.to)));
+          &&(q.alloc||[]).every(a=>targetOf(a.to)));
         return{p,q:c.length===1?c[0]:null};});
       pairs.forEach(({p,q})=>{
         if(!q)return;
         if(pairs.filter(x=>x.q===q).length!==1)return;          // two new lines for one old one — not clear, leave both
         const oldQty=parseInt(q.qty)||0,newQty=parseInt(p.qty)||0;
-        const oldName=q.name,oldOid=q.oid;
+        const oldName=q.name,oldOid=q.oid,oldDate=q.date;
         q.qty=newQty;q.price=p.price;q.spend=p.spend;q.mismatch=p.mismatch;
         q.acct=p.acct;q.invoice=p.invoice;q.notes=p.notes;q.oid=p.oid;q.name=p.name;
+        q.date=p.date;q.sheetArr=p.sheetArr;q.tab=p.tab;
         const al=q.alloc||[];
         if(al.length===1&&(parseInt(al[0].qty)||0)===oldQty){al[0].qty=newQty;setAlloc(q,al);}
+        else if(al.length>1&&oldQty!==newQty)logIt('edit',`Check the split — ${q.name} ${dshort(q.date)} went from ${fmt(oldQty)} to ${fmt(newQty)} on the sheet and is split across ${al.length} products`);
+        if(oldDate!==q.date)D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{if(l.src==='P:'+q.id&&!l.arr&&l.date!==q.date){l.date=q.date;l._dirty=1;}}));
         claimed.add(q.id);
         D.purchases=D.purchases.filter(x=>x.id!==p.id);
         added--;corrected++;
@@ -5429,18 +5764,47 @@ async function syncPurchases(){
        already linked — cannot be a second real purchase: the sheet holds that
        line once. They are removed here, quietly, and said so below. A near
        copy (name differs by a typo) is left for a person, with its own Remove. */
-    const healed=healExactCopies('sync');
+    try{healExactCopies('sync');}catch(e){}        // still runs the received/sent heal; copy-matching is retired
+    /* MIRROR THE SHEET (13 Oct 2026). Every line still on the sheet was claimed
+       by exactly one purchase above. Any OTHER purchase for the same line — same
+       date, order, name and quantity, on a tab this sync read — is a copy the APP
+       made (the old two-saves-at-once race: 60 of them on 13 Oct). It goes, but
+       only if no stock was ever booked against it. Booked stock is always kept. */
+    const sheetKeys=new Set(all.map(purchKey));
+    const _copies=D.purchases.filter(p=>!claimed.has(p.id)&&readTabs.has(p.tab)&&sheetKeys.has(purchKey(p))&&!p.arr&&!_booked(p.id));
+    _copies.forEach(p=>dropReview(p.id,true,true));
+    const healed=_copies.length;
+    if(healed){
+      logIt('edit',`Removed ${healed} purchase cop${healed===1?'y':'ies'} the app had made — the sheet has each of these lines once`);
+      try{logAudit('PLUB copies removed',`${healed} app-made cop${healed===1?'y':'ies'} — the sheet has each line once`);}catch(e){}
+    }
     PURCH=D.purchases;
     save();
+    /* THE SELF-CHECK (13 Oct 2026). After every sync the app compares itself
+       with the sheet, line for line, and says so — drift shows up the same day
+       instead of weeks later on somebody's card. It reports; it changes nothing. */
+    const _cnt=arr=>arr.reduce((m,x)=>{const k=purchKey(x);m[k]=(m[k]||0)+1;return m;},{});
+    const _sC=_cnt(all.filter(r=>!purchKilled()[purchKey(r)]));
+    const _aC=_cnt(D.purchases.filter(p=>readTabs.has(p.tab)&&p.date>=from&&p.date<=future));
+    const _diff=[...new Set([...Object.keys(_sC),...Object.keys(_aC)])].filter(k=>(_sC[k]||0)!==(_aC[k]||0));
+    window.__lavSheetDiff=_diff.map(k=>({k,sheet:_sC[k]||0,app:_aC[k]||0}));
+    SHEET_DIFF={at:new Date().toISOString(),rows:window.__lavSheetDiff,sheetKeys:new Set(Object.keys(_sC)),
+      inRange:p=>readTabs.has(p.tab)&&p.date>=from&&p.date<=future};
+    const _matchLine=_diff.length
+      ?`<br><b style="color:var(--amb)">⚠ ${fmt(_diff.length)} line${_diff.length===1?'':'s'} differ between the sheet and the app</b> <span class="pmeta" style="margin:0">— ${esc(_diff.slice(0,3).map(k=>{const p=k.split('|');return `${p[2]} ${dshort(p[0])} (sheet ${_sC[k]||0}, app ${_aC[k]||0})`;}).join('; '))}${_diff.length>3?'…':''}</span> <button class="btn sm warn" onclick="LV3.openSheetDiff()">Review them</button>`
+      :`<br><b style="color:var(--grn)">✓ Sheet and app match</b> <span class="pmeta" style="margin:0">— ${fmt(Object.values(_sC).reduce((t,n)=>t+n,0))} lines, each once</span>`;
     const un=D.purchases.filter(x=>allocState(x).k==='none'&&!dupTwin(x)).length;
     say(`<b style="color:var(--grn)">${fmt(added)} new</b>${corrected?` · <b style="color:var(--blu)">${fmt(corrected)} corrected on the sheet</b> (updated in place)`:''}${updated?` · ${fmt(updated)} price${updated===1?'':'s'} refreshed`:''}${renamed?` · <b style="color:var(--blu)">${fmt(renamed)} renamed on the sheet</b>`:''} · ${fmt(all.length)} row${all.length===1?'':'s'} read
       ${un?` · <b style="color:var(--amb)">${fmt(un)} waiting to be linked</b>`:''}
-      ${healed?` · <b style="color:var(--red)">${fmt(healed)} leftover cop${healed===1?'y':'ies'} removed</b> <span class="pmeta" style="margin:0">(the same line was already on order — nothing on the sheet changed)</span>`:''}
+      ${_relinked.done.length?` · <b style="color:var(--blu)">${fmt(_relinked.done.length)} stock batch${_relinked.done.length===1?'':'es'} re-attached to their purchases</b>`:''}
+      ${healed?` · <b style="color:var(--blu)">${fmt(healed)} cop${healed===1?'y':'ies'} the app had made removed</b> <span class="pmeta" style="margin:0">(the sheet has each of these lines once — no stock was booked against them)</span>`:''}
       ${skipped?`<br><span class="pmeta" style="margin:0">${fmt(skipped)} row${skipped===1?'':'s'} before ${dshort(from)} left out — that stock is covered by the physical count.</span>`:''}
+      ${_parseSkips.qty?`<br><span style="color:var(--amb)">${fmt(_parseSkips.qty)} line${_parseSkips.qty===1?' has':'s have'} no quantity on the sheet — set aside until it is filled in.</span>`:''}
+      ${_parseSkips.date?`<br><span style="color:var(--amb)">${fmt(_parseSkips.date)} line${_parseSkips.date===1?' has':'s have'} a date that isn't a real day (dd/mm/yyyy) — set aside until it is fixed.</span>`:''}
       ${ahead?`<br><span style="color:var(--amb)">${fmt(ahead)} row${ahead===1?'':'s'} dated years in the future left out — check the date column on the sheet, it's usually a typo.</span>`:''}
       ${absent.length?`<br><span class="pmeta" style="margin:0">${esc(absent.join(', '))} ${absent.length===1?'does':'do'} not exist on the sheet yet — that's normal.</span>`:''}
-      ${failed.length?`<br><span style="color:var(--red)">Couldn't read: ${esc(failed.join('; '))}</span>`:''}`);
-    logIt('edit',`Purchase sheet read — ${added} new row${added===1?'':'s'}`);
+      ${failed.length?`<br><span style="color:var(--red)">Couldn't read: ${esc(failed.join('; '))}</span>`:''}${failed.length?'':_matchLine}`);
+    logIt('edit',`Purchase sheet read — ${added} new row${added===1?'':'s'}${_diff.length?` · ${_diff.length} line${_diff.length===1?'':'s'} differ from the sheet`:' · sheet and app match'}`);
     render();
   }catch(e){
     say(`<span style="color:var(--red)">Sync failed — ${esc(e.message||'')}</span>`);
@@ -6529,6 +6893,11 @@ function killPurch(pid){
       killPurchLine(p,'ignored by hand');
       const i=D.purchases.findIndex(x=>x.id===pid);
       if(i>=0)D.purchases.splice(i,1);
+      /* 13 Oct 2026: it was only taken out of this laptop's memory — after a
+         reload it was back, still linked. Its on-order batches go with it;
+         stock already received stays. */
+      D.components.concat(D.products).forEach(o=>{if(o.layers)o.layers=o.layers.filter(l=>!(l.src==='P:'+p.id&&!l.arr&&!(l.rcpts&&l.rcpts.length)));});
+      if(p.uuid)sb.from('lavarion_purchases').delete().eq('id',p.uuid).then(r=>{if(r.error){console.warn('[lav3] ignore purchase',r.error);_saveFailed('ignored line');}});
       logIt('edit',`Ignored a purchase line by hand — “${p.name}” ${dshort(p.date)} from ${p.sup||'supplier'} — the sync will skip it`);
       save();render();
       toastUndo('Ignored — the sync will not bring it back','ok');
@@ -7144,6 +7513,11 @@ function typoOf(a,b){
   return prev[n]<=allow;
 }
 function dupTwin(p){
+  /* RETIRED 13 Oct 2026 (Jack: "get rid of the dup thingy for Lavarion").
+     The sheet is the truth: one line there is one purchase here, and copies the
+     APP made are removed by the sync (mirrorSheetCopies). Nothing asks, flags or
+     blocks linking any more. The old body is kept below for the record. */
+  return null;
   const norm=x=>(x||'').toLowerCase().replace(/\s+/g,' ').trim();
   /* answered "a separate purchase" — it is its own line from here on, and it
      can be linked like any other */
@@ -7260,7 +7634,7 @@ function mergeKeepBoth(pid){
    Two Tescos, same day, same product, same money, no order number. The sync
    used to decide on its own that the second one wasn't real. It now adds it and
    asks, because only a person knows whether they went to two shops. */
-function dupPending(){return D.purchases.filter(p=>p.dupCheck&&!p.dupCheck.answered);}
+function dupPending(){return [];}   /* retired 13 Oct 2026 — see dupTwin */
 function dupConfirm(pid,separate){
   const p=D.purchases.find(x=>x.id===pid);if(!p)return;
   const twin=D.purchases.find(x=>x.id===(p.dupCheck||{}).of);
@@ -7407,7 +7781,142 @@ function ghostAllocs(){
     return have<want;         // linked on paper, missing in stock
   });
 }
+/* ── LINES THAT DON'T MATCH THE SHEET (13 Oct 2026) ─────────────────────────
+   Becki edits a line on the sheet — corrects an order number, a date, a
+   quantity, a typo — and the old sync could not tell it was the same line: it
+   added the edited one as NEW and kept the old one, which already had the stock
+   booked against it. So the new one reads "on order" for stock that came in
+   weeks ago (Walkers Assorted Biscuits 400 under 1000166275). Every sync now
+   lists these; a person decides each one here. Nothing changes without a press. */
+let SHEET_DIFF=null;
+function _layersOfP(id){return D.components.concat(D.products).flatMap(o=>(o.layers||[]).filter(l=>l.src==='P:'+id).map(l=>({o,l})));}
+function sheetDiffItems(){
+  if(!SHEET_DIFF)return [];
+  const ack=(D.settings.diffAck)||{};
+  const nref=x=>String(x||'').toLowerCase().replace(/[#\s]/g,'');
+  const days=(a,b)=>Math.abs((new Date(a)-new Date(b))/864e5);
+  return D.purchases.filter(p=>SHEET_DIFF.inRange(p)&&!SHEET_DIFF.sheetKeys.has(purchKey(p))&&!ack[purchKey(p)]).map(p=>{
+    const L=_layersOfP(p.id),inQ=L.filter(x=>x.l.arr).reduce((t,x)=>t+(x.l.qty||0),0),
+      leftQ=L.filter(x=>x.l.arr).reduce((t,x)=>t+Math.max(0,x.l.rem||0),0),
+      dueQ=L.filter(x=>!x.l.arr&&!x.l.short&&!x.l.writtenOff).reduce((t,x)=>t+(x.l.qty||0),0);
+    const tg=new Set((p.alloc||[]).map(a=>a.to));
+    const cands=D.purchases.filter(q=>q!==p&&SHEET_DIFF.sheetKeys.has(purchKey(q))&&(q.alloc||[]).some(a=>tg.has(a.to))
+      &&q.qty===p.qty&&days(q.date,p.date)<=14).map(q=>{
+        const QL=_layersOfP(q.id),qIn=QL.filter(x=>x.l.arr).reduce((t,x)=>t+(x.l.qty||0),0);
+        const score=(nref(q.oid)===nref(p.oid)?3:0)+(Math.abs(parseInt(nref(q.oid).replace(/\D/g,''))-parseInt(nref(p.oid).replace(/\D/g,'')))<=5?2:0)+(q.date===p.date?2:0)+(qIn===0?2:0)-days(q.date,p.date)/14;
+        return{q,qIn,score};}).sort((a,b)=>b.score-a.score);
+    const best=cands[0]&&(!cands[1]||cands[0].score-cands[1].score>=1)?cands[0]:null;
+    return{p,inQ,dueQ,leftQ,best,cands:cands.length};
+  });
+}
+function openSheetDiff(){
+  const items=sheetDiffItems();
+  $('lav3Mod2').className='mod xl';
+  $('lav3Mod2').innerHTML=`
+    <div class="mh"><h3>Lines that don't match the sheet</h3>
+      <span class="pmeta" style="margin:0">${fmt(items.length)} to look at · from the last sync</span>
+      <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
+    <div class="mb">
+      <div class="note" style="margin:0 0 12px">Each of these is a line the app has that the sheet no longer has — almost always because it was
+        <b>edited on the sheet</b> (order number, date, quantity or a typo) and the old sync kept both versions.
+        Nothing here changes until you press a button.</div>
+      ${items.length?`<table class="tbl"><thead><tr><th class="l">In the app</th><th>Stock booked</th><th class="l">The sheet now has</th><th></th></tr></thead><tbody>
+      ${items.map(({p,inQ,dueQ,leftQ,best})=>`<tr>
+        <td class="l"><div class="pname">${esc(p.name)}</div><div class="pmeta">${dshort(p.date)} · ${fmt(p.qty)} · ${esc(p.sup||'—')} · ${esc(p.oid||'no order no.')}</div></td>
+        <td>${inQ?`<b style="color:var(--grn)">${fmt(inQ)} received</b>`:''}${dueQ?`<div style="color:var(--amb)">${fmt(dueQ)} on order</div>`:''}${!inQ&&!dueQ?'<span class="pmeta" style="margin:0">nothing</span>':''}</td>
+        <td class="l">${best?`<div>${dshort(best.q.date)} · ${fmt(best.q.qty)} · ${esc(best.q.oid||'—')}</div><div class="pmeta" style="margin:0">${best.qIn?`<b style="color:var(--red)">${fmt(best.qIn)} already received there too — counted twice?</b>`:'not received there yet'}</div>`:'<span class="pmeta" style="margin:0">no matching line found</span>'}</td>
+        <td style="white-space:nowrap">${best&&!best.qIn&&(inQ||dueQ)
+            ?`<button class="btn sm go" onclick="LV3.mergeIntoSheetLine('${esc(p.id)}','${esc(best.q.id)}')">Same purchase — move ${inQ?'the stock':'it'}</button>`
+          :(!best&&!inQ&&dueQ)?`<button class="btn sm warn" onclick="LV3.cancelDiffLine('${esc(p.id)}')" title="Gone from the sheet and never arrived — it stops counting as on order">Gone from the sheet — cancel it</button>`
+          :(!inQ&&!dueQ)?`<button class="btn sm" onclick="LV3.dropDiffLine('${esc(p.id)}')">Not on the sheet — remove</button>`
+          :(inQ&&!leftQ)?`<span class="pmeta" style="margin:0">All used up — no effect on stock now</span>`
+          :best&&best.qIn?`<span class="pmeta" style="margin:0">Counted twice — ask Becki to count it</span>`:''}
+          <button class="btn sm" onclick="LV3.ackDiffLine('${esc(p.id)}')" title="It is right as it is — stop listing it">Leave it</button></td>
+      </tr>`).join('')}</tbody></table>`:'<div class="pmeta">Nothing to look at — the app and the sheet match.</div>'}
+    </div>`;
+  om('lav3Ov2');
+}
+function mergeIntoSheetLine(pid,cid){
+  const p=D.purchases.find(x=>x.id===pid),c=D.purchases.find(x=>x.id===cid);if(!p||!c)return;
+  const pL=_layersOfP(p.id),cL=_layersOfP(c.id);
+  const pIn=pL.filter(x=>x.l.arr).reduce((t,x)=>t+(x.l.qty||0),0);
+  const pDue=pL.filter(x=>!x.l.arr&&!x.l.short&&!x.l.writtenOff).reduce((t,x)=>t+(x.l.qty||0),0);
+  const cDue=cL.filter(x=>!x.l.arr&&!x.l.short&&!x.l.writtenOff&&!(x.l.rcpts&&x.l.rcpts.length));
+  const dueQ=cDue.reduce((t,x)=>t+(x.l.qty||0),0),keepDue=Math.max(0,(c.qty||0)-pIn-pDue);
+  confirmBox('Same purchase — move the stock?',
+    `<div style="margin-bottom:10px"><b>${esc(p.name)}</b></div>
+     <div style="margin-bottom:6px">The app's old line: ${dshort(p.date)} · ${fmt(p.qty)} · ${esc(p.oid||'—')} — <b>${fmt(pIn)} received</b>.</div>
+     <div style="margin-bottom:10px">The sheet's line now: ${dshort(c.date)} · ${fmt(c.qty)} · ${esc(c.oid||'—')} — ${fmt(dueQ)} showing as on order.</div>
+     <div class="pmeta" style="margin:0">The received stock moves onto the sheet's line and the old line goes. ${keepDue?`${fmt(keepDue)} stays on order (the part not yet received).`:`The ${fmt(dueQ)} "on order" goes — it was this same stock.`} Stock on the shelf does not change.</div>`,
+    ()=>{
+      snap();
+      let need=keepDue;const drop=new Set();
+      cDue.forEach(({l})=>{if(need<=0){drop.add(l);return;}const k=Math.min(need,l.qty||0);l.qty=k;if(l.rem!=null)l.rem=k;l._dirty=1;need-=k;});
+      D.components.concat(D.products).forEach(o=>{if(o.layers)o.layers=o.layers.filter(l=>!drop.has(l));});
+      pL.forEach(({l})=>{l.src='P:'+c.id;l._dirty=1;});
+      if(!(c.alloc||[]).length&&(p.alloc||[]).length)c.alloc=(p.alloc||[]).map(a=>({to:a.to,qty:a.qty}));   /* the link comes too */
+      dropReview(p.id,true,true);
+      logIt('edit',`Merged an edited sheet line — ${p.name}: ${fmt(pIn)} received moved from ${p.oid||'—'} (${dshort(p.date)}) to ${c.oid||'—'} (${dshort(c.date)})${dueQ-keepDue>0?`, ${fmt(dueQ-keepDue)} phantom "on order" removed`:''}`);
+      save();render();openSheetDiff();toastUndo('Moved — one purchase, stock unchanged','ok');
+    },{ok:'Yes, move it'});
+}
+function cancelDiffLine(pid){
+  const p=D.purchases.find(x=>x.id===pid);if(!p)return;
+  const L=_layersOfP(p.id);
+  if(L.some(x=>x.l.arr||(x.l.rcpts&&x.l.rcpts.length))){toast('Some of it arrived — that stock stays; use Leave it','er');return;}
+  const due=L.reduce((t,x)=>t+(x.l.qty||0),0);
+  confirmBox('Gone from the sheet — cancel it?',`<b>${esc(p.name)}</b> ${dshort(p.date)} · ${fmt(p.qty)} · ${esc(p.oid||'—')} is no longer on the Purchase Sheet and nothing ever arrived. ${due?`The ${fmt(due)} showing as on order stops counting.`:''}`,
+    ()=>{snap();const drop=new Set(L.map(x=>x.l));
+      D.components.concat(D.products).forEach(o=>{if(o.layers)o.layers=o.layers.filter(l=>!drop.has(l));});
+      dropReview(p.id,true,true);
+      logIt('edit',`Cancelled — gone from the sheet, never arrived: ${p.name} ${dshort(p.date)} ×${p.qty}${due?` (${fmt(due)} no longer on order)`:''}`);
+      save();render();openSheetDiff();},{ok:'Cancel it'});
+}
+function dropDiffLine(pid){
+  const p=D.purchases.find(x=>x.id===pid);if(!p)return;
+  if(_layersOfP(p.id).length){toast('Stock is booked against this line — it can\u2019t just be removed','er');return;}
+  confirmBox('Remove this line?',`<b>${esc(p.name)}</b> ${dshort(p.date)} · ${fmt(p.qty)} · ${esc(p.oid||'—')} — not on the sheet, nothing booked against it.`,
+    ()=>{dropReview(p.id,true,true);logIt('edit',`Removed a line the sheet no longer has — ${p.name} ${dshort(p.date)} ×${p.qty}`);save();render();openSheetDiff();},{ok:'Remove it'});
+}
+function ackDiffLine(pid){
+  const p=D.purchases.find(x=>x.id===pid);if(!p)return;
+  D.settings.diffAck=D.settings.diffAck||{};D.settings.diffAck[purchKey(p)]={on:dayISO(),by:(window.currentUserName||'')};
+  savePrefs();openSheetDiff();
+}
+/* ORPHANED STOCK (13 Oct 2026). A batch tagged with a purchase id that no longer
+   exists — a temporary "P:Pm…" id that never got swapped for the real one, or a
+   purchase the old copy-remover deleted. The stock is real (Reindeer Food Bag
+   2,500 received), it has just lost its purchase, so the purchase reads as
+   "linked but no stock" — and the old Repair would then build the stock AGAIN.
+   This re-attaches each orphan to its own purchase: same product, same order
+   number, same date (same quantity preferred), one that has no stock of its own.
+   Only the link changes; no quantity does. Anything not certain is left alone. */
+function relinkOrphans(){
+  const ids=new Set(D.purchases.map(p=>p.id)),objs=D.components.concat(D.products);
+  const booked=new Set();
+  objs.forEach(o=>(o.layers||[]).forEach(l=>{const m=/^P:(.+)$/.exec(l.src||'');if(m&&ids.has(m[1]))booked.add(m[1]);}));
+  const done=[],left=[];
+  objs.forEach(o=>(o.layers||[]).forEach(l=>{
+    const m=/^P:(.+)$/.exec(l.src||'');if(!m||ids.has(m[1]))return;          // not an orphan
+    const ref=String(l.oid||'').trim().toLowerCase(),day=String(l.date||'').slice(0,10);
+    const cands=D.purchases.filter(p=>!booked.has(p.id)&&p.date===day
+      &&String(p.oid||'').trim().toLowerCase()===ref&&(p.alloc||[]).some(a=>a.to===o.id));
+    const exact=cands.filter(p=>(p.alloc||[]).some(a=>a.to===o.id&&parseInt(a.qty)===parseInt(l.qty)));
+    const pick=(exact.length?exact:cands).slice().sort((a,b)=>String(a.id).localeCompare(String(b.id)))[0];
+    if(!pick){left.push(`${o.name} ${fmt(l.qty)} (${l.oid||'no ref'}, ${dshort(l.date)})`);return;}
+    l.src='P:'+pick.id;l._dirty=1;booked.add(pick.id);
+    done.push(`${o.name} ${fmt(l.qty)} → ${pick.oid||'—'}`);
+  }));
+  if(done.length){
+    logIt('edit',`Re-attached ${done.length} stock batch${done.length===1?'':'es'} to their purchases (the link had been lost — no quantities changed)`);
+    try{logAudit('PLUB stock re-linked',done.join('; '));}catch(e){}
+    persist();
+  }
+  return{done,left};
+}
 function repairAllocLinks(){
+  /* never rebuild stock that already exists somewhere: re-attach orphans first */
+  const _rl=relinkOrphans();
   const byName={};
   D.components.concat(D.products).forEach(o=>{const k=_norm(o.name);if(k&&!byName[k])byName[k]=o;});
   let fixed=0,broke=0;
@@ -7436,11 +7945,16 @@ function repairAllocLinks(){
       try{setAlloc(p,a.map(x=>({to:x.to,qty:x.qty})));}catch(e){console.warn('repair',e);}
     }
   });
-  /* and the ghosts: linked, targets fine, stock missing — rebuild those too */
-  ghostAllocs().forEach(p=>{
+  /* and the ghosts: linked, targets fine, stock missing — rebuild those too.
+     13 Oct 2026: but NOT a copy of a purchase whose twin already holds the
+     stock (the app-made copies) — rebuilding those created phantom stock on
+     order. The Sync removes such copies; here they are simply skipped. */
+  const _hasStock=id=>D.components.concat(D.products).some(o=>(o.layers||[]).some(l=>l.src==='P:'+id));
+  ghostAllocs().filter(p=>!D.purchases.some(q=>q!==p&&purchKey(q)===purchKey(p)&&_hasStock(q.id))).forEach(p=>{
     try{setAlloc(p,(p.alloc||[]).map(x=>({to:x.to,qty:x.qty})));fixed++;}
     catch(e){console.warn('ghost rebuild',e);}
   });
+  fixed+=_rl.done.length;
   if(fixed){
     save();
     logIt('edit',`Repaired ${fixed} broken purchase link${fixed===1?'':'s'} — their stock is back on order`);
@@ -8193,6 +8707,45 @@ function _issueLayers(key){
     const k=(l.oid&&l.oid!=='—')?('o:'+String(l.oid).toLowerCase()):('l:'+l.id);
     if(k===key)out.push({o,l});
   });
+  return out;
+}
+/* Jack, 13 Oct, on the Nisbets Simply Chocolate Duster: "add a write off
+   button where we just take the loss". The endings already existed on the
+   Lavarion page (shortEnd / writeOffShort / dmgEnd) but not on his card. This
+   closes a whole issue — every short and damaged line on the order — with the
+   SAME data those buttons write, so every list and report already understands
+   it. The confirm is the caller's (his page has its own). */
+function settleIssue(key,kind){
+  const hits=_issueLayers(key);if(!hits.length)return null;
+  const who=(window.currentUserName||'someone'),on=dayISO();let units=0,value=0;
+  snap();
+  hits.forEach(({o,l})=>{
+    const sh=l.short&&!l.writtenOff?Math.max(0,outQty(l)):0;
+    if(sh>0){
+      units+=sh;value+=sh*(l.cost||0);
+      if(kind==='writeoff'){l.shortQty=sh;l.writtenOff=on;l.qty=0;l.short=0;l.shortEnd={k:'writeoff',on,by:who};}
+      else{l.short=0;l.writtenOff=1;l.shortEnd={k:kind,on,by:who};
+        if(kind==='auto')l.autoRefund={on,by:who,units:sh,value:l.cost>0?sh*l.cost:0};}
+    }
+    const dm=!l.dmgEnd?Math.max(0,parseInt(l.dmg)||0):0;
+    if(dm>0){units+=dm;value+=dm*(l.cost||0);l.dmgEnd={k:kind==='writeoff'?'binned':'refund',on,by:who};}
+    l.log=Array.isArray(l.log)?l.log:[];
+    l.log.push({by:who,at:new Date().toISOString(),msg:kind==='writeoff'?'Written off — taking the loss':kind==='auto'?'Auto refunded by the supplier':'Refunded'});
+  });
+  if(!units)return{units:0,value:0};
+  const g=hits[0].l,what=kind==='writeoff'?'Wrote off':kind==='auto'?'Auto refunded':'Refunded';
+  logIt('edit',`${what} — ${fmt(units)} unit${units===1?'':'s'} on ${g.sup||'supplier'} ${g.oid&&g.oid!=='—'?g.oid:''}${value?' ('+gbp(value)+')':''} · ${who}`);
+  save();render();
+  return{units,value};
+}
+/* what the Purchase Sheet says about this order right now — Becki's Arrived
+   status and Notes, which the sync keeps up to date */
+function sheetSays(ref){
+  const r=String(ref||'').trim().toLowerCase();if(!r||r==='—')return [];
+  const seen=new Set(),out=[];
+  D.purchases.filter(p=>String(p.oid||'').trim().toLowerCase()===r).forEach(p=>{
+    const k=(p.sheetArr||'')+'|'+(p.notes||'');if(k==='|'||seen.has(k))return;seen.add(k);
+    out.push({arrived:p.sheetArr||'',notes:p.notes||'',name:p.name});});
   return out;
 }
 function logSupplierIssue(key,entry){
@@ -9241,7 +9794,7 @@ function drawBulkProd(){
   $('lav3Mod2').className='mod wide';
   $('lav3Mod2').innerHTML=`
   <div class="mh"><h3>Add several products</h3>
-    <span class="pmeta" style="margin:0">Lavarion ASINs — bundles you build, or private label that arrives finished</span>
+    <span class="pmeta" style="margin:0">PLUB ASINs — bundles you build, or private label that arrives finished</span>
     <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
   <div class="mb">
     ${bulkTabs('prod','bpMode')}
@@ -9608,7 +10161,7 @@ function openData(){
   $('lav3Mod2').className='mod slim';
   $('lav3Mod2').innerHTML=`<div class="mh"><h3>Data</h3><button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
   <div class="mb">
-    <div class="lab" style="margin-bottom:6px">Lavarion currently holds</div>
+    <div class="lab" style="margin-bottom:6px">PLUB currently holds</div>
     <table class="ltab" style="margin-top:0"><tbody>
       <tr><td>Products</td><td>${fmt(D.products.length)}</td></tr>
       <tr><td>Components</td><td>${fmt(D.components.length)}</td></tr>
@@ -9642,7 +10195,7 @@ function backupAll(){
   };
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
-  a.download=`lavarion-backup-${stamp}.json`;a.click();
+  a.download=`plub-backup-${stamp}.json`;a.click();
   toast('Backup downloaded — keep it somewhere safe','ok');
 }
 function exportCsv(){
@@ -9652,7 +10205,7 @@ function exportCsv(){
     p.recipe.forEach(r=>{const c=comp(r.c);if(c)rows.push(['recipe',p.name,c.name,r.q,'']);});});
   const csv=rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download='lavarion-setup.csv';a.click();toast('CSV downloaded','ok');
+  a.download='plub-setup.csv';a.click();toast('CSV downloaded','ok');
 }
 
 
@@ -9730,7 +10283,7 @@ function vGuide(){
 
     <div class="ghero">
       <div>
-        <div class="gh1">How Lavarion works</div>
+        <div class="gh1">How PLUB works</div>
         <div class="gh2">Everything on this page is our own brand. This is what it does, what you do, and why.</div>
       </div>
       <div class="ghero-k">
@@ -9899,7 +10452,7 @@ function vGuide(){
         <div class="panel"><div class="ph"><span class="t">Each tab, and what to look at</span></div>
           <div class="gbody">
             ${q('Overview','The morning check. Out of stock, what is landing, what moved recently.')}
-            ${q('Products','Every Lavarion ASIN. <b>Sold 30d</b> is typed in by you; <b>${D.settings.targetDays||60}d target</b> and <b>send N more</b> follow from it. Click a row to see what it is made of and what one unit costs. <b>Open</b> gives the full picture — stock, incoming, cost build-up, history.')}
+            ${q('Products','Every PLUB ASIN. <b>Sold 30d</b> is typed in by you; <b>${D.settings.targetDays||60}d target</b> and <b>send N more</b> follow from it. Click a row to see what it is made of and what one unit costs. <b>Open</b> gives the full picture — stock, incoming, cost build-up, history.')}
             ${q('Components','Every part and box. A part used in five bundles is <b>one shared pool</b> — building any of them draws from the same stock, so it does not need splitting up.')}
             ${q('Purchases','Two things. At the top, <b>On order</b> — everything bought and not yet arrived, with how it is coming and when it is due. Underneath, rows from the purchase sheet waiting to be pointed at the right component or product. Nothing is ever linked automatically — that is deliberate, because names on the sheet do not always match.')}
             ${q('Settings','Hide columns you never use, set how many days of stock to aim for at Amazon, pick which tab opens first. The build number lives here too — quote it in any bug report.')}
@@ -10008,7 +10561,7 @@ function exportHistory(){
   const csv=rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download=`lavarion-history-${dayISO()}.csv`;a.click();
+  a.download=`plub-history-${dayISO()}.csv`;a.click();
   toast('History downloaded','ok');
 }
 function vHistory(){
@@ -10118,6 +10671,7 @@ function vSettings(){
       ${supplierPanel()}
       ${salesPanel()}
       ${overridePanel()}
+      ${stockSafetyPanel()}
       ${ignoredPanel()}
 
       <div class="panel">
@@ -10191,7 +10745,7 @@ function vSettings(){
                 style="text-align:center" onchange="LV3.setPrimeDays(this.value)">
               <div class="pmeta" style="margin-top:4px">Mon&ndash;Fri only &mdash; weekends are never counted. Drives the
                 <b>Send by</b> column. Put it up when Amazon slows down in Q4 and back down when it speeds up.</div></div>
-            <div><span class="lab">Open Lavarion on</span>
+            <div><span class="lab">Open PLUB on</span>
               <select class="in" onchange="LV3.setPref('startTab',this.value)">
                 ${[['overview','Overview'],['products','Products'],['components','Components'],['purchases','Purchases']]
                   .map(([v,l])=>`<option value="${v}" ${(D.settings.startTab||'overview')===v?'selected':''}>${l}</option>`).join('')}</select></div>
@@ -10316,7 +10870,17 @@ function snap(){
 function doUndo(){
   if(!_undoState){toast('Nothing to undo','er');return;}
   const s=JSON.parse(_undoState);_undoState=null;
-  LAYERS=s.L;PURCH=s.P;
+  /* 13 Oct 2026: "Undone" used to be on screen only. The restored rows carried
+     their old "already saved" marks, so nothing was written; batches made after
+     the snapshot were never removed; removed purchases never came back. */
+  const preL={},preP={};
+  LAYERS.forEach(l=>{if(l.uuid)preL[l.uuid]=JSON.stringify(layerRow(l));});
+  PURCH.forEach(p=>{if(p.uuid)preP[p.uuid]=JSON.stringify(purchRow(p));});
+  const keepL=new Set(s.L.map(l=>l.uuid).filter(Boolean)),keepP=new Set(s.P.map(p=>p.uuid).filter(Boolean));
+  Object.keys(preL).forEach(u=>{if(!keepL.has(u))_layerTombs.add(u);});
+  s.L.forEach(l=>{if(!l.uuid||preL[l.uuid]!==JSON.stringify(layerRow(l))){delete l._pushed;delete l._pushedRow;l._restore=1;}});
+  s.P.forEach(p=>{if(!p.uuid||preP[p.uuid]!==JSON.stringify(purchRow(p))){delete p._pushed;delete p._pushedRow;p._restore=1;}});
+  LAYERS=s.L;PURCH=s.P;_dirty=true;_gen++;
   Object.keys(RECIPES).forEach(k=>delete RECIPES[k]);Object.assign(RECIPES,s.R);
   hydrate();
   s.T.forEach(t=>{const p=prod(t.id);if(p){p.type=t.type;p.name=t.name;p.vat=t.vat;}});
@@ -10500,6 +11064,7 @@ async function boot(){
      the page drawing. The page appears with the sold column reading "reading
      the hub…", then fills in. */
   hubLoad().then(()=>{try{paint();}catch(e){}}).catch(e=>console.warn('hub sales',e));
+  checkStockSafety().then(()=>{try{paint();}catch(e){}});
 }
 const isUntracked=id=>!!(D.settings&&D.settings.untracked&&D.settings.untracked[String(id)]);
 const COL=k=>{const c=(D.settings&&D.settings.cols)||{};return c[k]!==false;};
@@ -10532,7 +11097,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
   openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,setHWho,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,orderState,ordQty,rcvdQty,outQty,
   sendBy,sendState,primeDays,setPrimeDays,workDaysBefore,workDaysBetween,
-  undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
+  undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,refreshShared,reloadData,rtChange,checkStockSafety,__save:()=>save(),__remRpc:()=>_remRpc,__setRemRpc:v=>{_remRpc=v;},settleIssue,sheetSays,relinkOrphans,openSheetDiff,mergeIntoSheetLine,dropDiffLine,cancelDiffLine,ackDiffLine,sheetDiffItems,__persist:()=>persist(),__pushNow:()=>pushNow(),__PURCH:()=>PURCH,__prefsMerge:_prefsMerge,__savePrefs:()=>savePrefs(),__saveState:()=>saveState(),__prefsBase:()=>_prefsBase,__setPrefsBase:v=>{_prefsBase=v;},__ack:()=>ACK,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,localDT,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
@@ -10578,8 +11143,8 @@ return API;
            and if it still cannot, refuse the line rather than write a lie. */
         if(!(LV3.isReady&&LV3.isReady())){try{await LV3.boot();}catch(e){}}
         if(!(LV3.isReady&&LV3.isReady())){
-          toast('BLOCKED — the Lavarion stock is not loaded in this tab, so the parts cannot be taken off. Reload the page and send again.','er');
-          try{logAudit('Lavarion send refused',`${sh.asin} x${n} on ${sh.shipId} — stock not loaded, nothing recorded`);}catch(e){}
+          toast('BLOCKED — the PLUB stock is not loaded in this tab, so the parts cannot be taken off. Reload the page and send again.','er');
+          try{logAudit('PLUB send refused',`${sh.asin} x${n} on ${sh.shipId} — stock not loaded, nothing recorded`);}catch(e){}
           return false;
         }
         /* Jack, 30 Aug: oversending is a HARD BLOCK now, not a warning. */
@@ -10595,8 +11160,8 @@ return API;
            that ran beforehand and could disagree with it. */
         const res=LV3.shipConsume(sh.asin,n);
         if(!res){
-          toast(`⚠ ${sh.prod||sh.asin} is not a product the Lavarion page knows — recorded, but no parts were taken off. Check the ASIN on the Products tab.`,'er');
-          try{logAudit('Lavarion sent — parts NOT taken off',`${sh.asin} x${n} on ${sh.shipId} — ASIN not found on the Lavarion page`);}catch(e){}
+          toast(`⚠ ${sh.prod||sh.asin} is not a product the PLUB page knows — recorded, but no parts were taken off. Check the ASIN on the Products tab.`,'er');
+          try{logAudit('PLUB sent — parts NOT taken off',`${sh.asin} x${n} on ${sh.shipId} — ASIN not found on the PLUB page`);}catch(e){}
         }
         if(res){
           if(res.per!=null&&res.per>0&&(!sh.cost||sh.cost===0))sh.cost=Math.round(res.per*10000)/10000;
@@ -10605,15 +11170,15 @@ return API;
           if(res.over>0){
             sh.overSent=res.over;
             try{LV3.noteOverSent(sh.asin,res.over,sh.shipId);}catch(e){}
-            toast(`⚠ ${sh.prod||sh.asin} — only ${res.consumed} were in stock. ${res.over} more went out than exists; recorded as owed, settle it on the Lavarion page when the delivery lands.`,'er');
-            try{logAudit('Lavarion sent short',`${sh.asin} x${n} on ${sh.shipId} — ${res.consumed} in stock, ${res.over} overdrawn`);}catch(e){}
+            toast(`⚠ ${sh.prod||sh.asin} — only ${res.consumed} were in stock. ${res.over} more went out than exists; recorded as owed, settle it on the PLUB page when the delivery lands.`,'er');
+            try{logAudit('PLUB sent short',`${sh.asin} x${n} on ${sh.shipId} — ${res.consumed} in stock, ${res.over} overdrawn`);}catch(e){}
           }
           /* the quiet one: enough stock, but a part was booked in with no
              price, so the COG came out as nothing and nobody was told */
           if((res.unpriced||[]).length){
             const names=res.unpriced.map(u=>u.name).filter(Boolean).join(', ');
             toast(`⚠ ${sh.prod||sh.asin} — no purchase price on ${names||'a component'}, so the COG could not be worked out. Check the figure on the line.`,'er');
-            try{logAudit('Lavarion sent unpriced',`${sh.asin} x${n} on ${sh.shipId} — no price on ${names}`);}catch(e){}
+            try{logAudit('PLUB sent unpriced',`${sh.asin} x${n} on ${sh.shipId} — no price on ${names}`);}catch(e){}
           }
         }
       }
@@ -10713,7 +11278,7 @@ function _mhRender(ser){
     </div>`;
 
   const segs=[['Standard',m.mixStd||0,'#60a5fa'],['DG',m.mixDG||0,'#f87171'],
-              ['Oversize',m.mixOS||0,'#fb923c'],['Lavarion',m.mixLav||0,'#c084fc']];
+              ['Oversize',m.mixOS||0,'#fb923c'],['PLUB',m.mixLav||0,'#c084fc']];
   const mixTot=segs.reduce((a,s)=>a+s[1],0), mixDen=mixTot||1;
   const mixBar=segs.filter(s=>s[1]>0).map(([l,u,c])=>{
     const pc=u/mixDen*100;
@@ -10800,7 +11365,7 @@ function _mhRender(ser){
             ${mixBar||`<div style="width:100%"></div>`}</div>
           <div style="display:flex;flex-direction:column;gap:7px;">${mixLegend||`<div style="font-size:12px;color:${MUTE};">Nothing sent this month</div>`}</div>
           <div style="font-size:11.5px;color:${MUTE};margin-top:10px;line-height:1.5;">
-            Lavarion ships as standard but is counted on its own, so it is never doubled into the Standard figure.</div>
+            PLUB ships as standard but is counted on its own, so it is never doubled into the Standard figure.</div>
         </div>
 
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:13px 15px;">

@@ -380,3 +380,12 @@ select.fsel option{background:var(--bg3);color:var(--text);padding:4px;}
 .kb-hint{display:flex;align-items:center;gap:12px;padding:3px 14px;background:#111110;border-bottom:1px solid var(--border);flex-shrink:0;}
 .kb-hint span{font-size:9px;color:var(--text3);display:flex;align-items:center;gap:4px;}
 .kbd{display:inline-flex;align-items:center;justify-content:center;background:var(--bg4);border:1px solid var(--border2);border-radius:3px;padding:1px 4px;font-size:8px;font-family:var(--mono);color:var(--text2);min-width:16px;}
+
+/* ── ORDER NUMBERS (v52.8) — oidHtml in js/core.js: click to copy, still selectable ── */
+.oidCopy{cursor:pointer;user-select:text;border-bottom:1px dotted transparent;overflow-wrap:anywhere;}
+.oidCopy:hover{border-bottom-color:currentColor;}
+
+/* Jack's Admin — what she wants from him, and what the sheet says (v53.1) */
+.jkAsk{margin:7px 0 5px;padding:7px 10px;border-left:3px solid #fbbf24;background:rgba(251,191,36,.08);border-radius:4px;font-size:12px;line-height:1.5;color:var(--text);}
+.jkAsk b{color:#fcd34d;font-weight:700;}
+html.light-mode .jkAsk b{color:#92400e;}

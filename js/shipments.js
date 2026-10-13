@@ -252,7 +252,7 @@ function renderShipments(){
     const period=({today:'today',yesterday:'yesterday',week:'this week','7d':'last 7 days',
       mtd:'this month',ytd:'this year',all:'all time',custom:'the dates you picked'})[_shipDateFilter]||'this period';
     el.innerHTML=`<div class="shipBarP">Showing <b>${esc(period)}</b>${
-        typeF?` · ${esc(typeF)} only`:''}${_shipLavOnly?' · Lavarion only':''}${q?` · matching “${esc(q)}”`:''}</div>
+        typeF?` · ${esc(typeF)} only`:''}${_shipLavOnly?' · PLUB only':''}${q?` · matching “${esc(q)}”`:''}</div>
       <div class="shipBar">
       ${_sc('Shipments',fmt(shipments.length),'#60a5fa','shipments')}
       ${_sc('Units',fmt(sumUnits),'#4ade80','units')}
@@ -401,7 +401,7 @@ function renderShipments(){
           <option value="DG" ${s.type==='DG'?'selected':''}>DG</option>
           <option value="Oversize" ${s.type==='Oversize'?'selected':''}>Oversize</option>
         </select>
-        <button onclick="event.stopPropagation();openLavShip('${s.id}')" style="padding:2px 8px;background:var(--btn-purple-bg);border:1px solid var(--btn-purple-border);color:var(--btn-purple-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Lavarion</button>
+        <button onclick="event.stopPropagation();openLavShip('${s.id}')" style="padding:2px 8px;background:var(--btn-purple-bg);border:1px solid var(--btn-purple-border);color:var(--btn-purple-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ PLUB</button>
         <button onclick="event.stopPropagation();openRetShip('${s.id}')" style="padding:2px 8px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Returns</button>
         <button onclick="event.stopPropagation();openEditShipment('${s.id.replace(/'/g,"\\'")}')" title="Rename this Shipment ID or remove it if added by mistake" style="padding:2px 8px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">✎ Edit / Delete</button>
         <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);" onclick="event.stopPropagation()">
@@ -483,7 +483,7 @@ function renderShipments(){
               </td>
               <td><span class="s-asin" onclick="copyVal('${ls.asin}',this)" style="display:inline-flex;font-size:10px;">${ls.asin}</span></td>
               <td class="td-left"><span class="s-sku" onclick="copyVal('${ls.sku}',this)" style="display:inline-flex;font-size:10px;">${ls.sku}</span>${vatTag(lavVat)}</td>
-              <td style="font-size:11px;color:var(--text3);">Lavarion</td>
+              <td style="font-size:11px;color:var(--text3);">PLUB</td>
               <td style="color:var(--green);font-family:var(--mono);font-weight:700;">
                 <span id="lav-units-disp-${lavId}">${ls.units||0}</span>
               </td>
@@ -495,7 +495,7 @@ function renderShipments(){
               </td>
               <td>
                 <button onclick="editLavShipLine('${lavId}')" style="padding:2px 6px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:11px;cursor:pointer;">Edit</button>
-                <button onclick="delLavShipLine('${lavId}')" title="Remove this Lavarion ASIN from this shipment" style="padding:2px 6px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:11px;cursor:pointer;margin-left:3px;">✕</button>
+                <button onclick="delLavShipLine('${lavId}')" title="Remove this PLUB ASIN from this shipment" style="padding:2px 6px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:3px;font-size:11px;cursor:pointer;margin-left:3px;">✕</button>
               </td>
             </tr>`;
           }).join('')}

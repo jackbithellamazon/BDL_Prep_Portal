@@ -152,7 +152,7 @@ function openShipDate(shipId){
     <div style="padding:16px 18px">
       <div style="font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:800;margin-bottom:10px">${shipId}</div>
       <p style="margin:0 0 12px;font-size:12.5px;line-height:1.6;color:var(--text)">The date this shipment actually went to Amazon.
-        Changing it moves <b>every line in it</b> — ${counts.oa} prep row${counts.oa===1?'':'s'}${counts.lav?`, ${counts.lav} Lavarion line${counts.lav===1?'':'s'}`:''}${counts.ret?`, ${counts.ret} return line${counts.ret===1?'':'s'}`:''} — so the whole shipment stays on one date.</p>
+        Changing it moves <b>every line in it</b> — ${counts.oa} prep row${counts.oa===1?'':'s'}${counts.lav?`, ${counts.lav} PLUB line${counts.lav===1?'':'s'}`:''}${counts.ret?`, ${counts.ret} return line${counts.ret===1?'':'s'}`:''} — so the whole shipment stays on one date.</p>
       <label style="display:block;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--text3);margin-bottom:5px">Shipment date</label>
       <input type="date" id="shipDateFix" value="${cur}" style="width:100%;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:15px;font-weight:700">
       <p style="margin:11px 0 0;font-size:11.5px;color:var(--text3);line-height:1.55">Monthly reporting follows the date, so this puts the units back in the month they were really sent.</p>

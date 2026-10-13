@@ -9,7 +9,7 @@ function renderLavarion(){
   let data=lavAsins.filter(a=>!q||(a.asin+a.sku+a.prod).toLowerCase().includes(q));
 
   if(!data.length){
-    w.innerHTML=`<div class="empty"><div class="empty-ico">📦</div><div class="empty-t">${q?'No Lavarion ASINs match your search':'No Lavarion ASINs yet — click "+ Add Lavarion ASIN" to get started'}</div></div>`;
+    w.innerHTML=`<div class="empty"><div class="empty-ico">📦</div><div class="empty-t">${q?'No PLUB ASINs match your search':'No PLUB ASINs yet — click "+ Add PLUB ASIN" to get started'}</div></div>`;
     return;
   }
 
@@ -47,7 +47,7 @@ function renderLavarion(){
 
 function openAddLav(){
   lavEditId=null;
-  document.getElementById('lavModalTitle').textContent='Add Lavarion ASIN';
+  document.getElementById('lavModalTitle').textContent='Add PLUB ASIN';
   ['lav-asin','lav-sku','lav-prod','lav-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const v=document.getElementById('lav-vat');if(v)v.value='20';
   om('lavModal');
@@ -55,7 +55,7 @@ function openAddLav(){
 function openEditLav(id){
   const a=lavAsins.find(x=>x.id===id);if(!a)return;
   lavEditId=id;
-  document.getElementById('lavModalTitle').textContent='Edit Lavarion ASIN';
+  document.getElementById('lavModalTitle').textContent='Edit PLUB ASIN';
   document.getElementById('lav-asin').value=a.asin||'';
   document.getElementById('lav-sku').value=a.sku||'';
   document.getElementById('lav-prod').value=a.prod||'';
@@ -80,8 +80,8 @@ function saveLav(){
   else lavAsins.push(obj);
   saveLavAsin(obj);
   cm('lavModal');renderLavarion();
-  toast(lavEditId?'Lavarion ASIN updated':'Lavarion ASIN added ✓');
-  logAudit('Lavarion ASIN '+(lavEditId?'updated':'added'),sku);
+  toast(lavEditId?'PLUB ASIN updated':'PLUB ASIN added ✓');
+  logAudit('PLUB ASIN '+(lavEditId?'updated':'added'),sku);
 }
 function deleteLav(id){
   const a=lavAsins.find(x=>x.id===id);
@@ -89,12 +89,12 @@ function deleteLav(id){
   const histNote=usedIn.length
     ? ` It has been sent in ${usedIn.length} shipment ${usedIn.length===1?'entry':'entries'} — that shipment data is kept and stays on your reports; only the catalogue entry is removed.`
     : '';
-  showConfirm('Delete Lavarion ASIN?',`This removes ${a?.prod||'this ASIN'} from your Lavarion stock list.${histNote}`,()=>{
+  showConfirm('Delete PLUB ASIN?',`This removes ${a?.prod||'this ASIN'} from your PLUB stock list.${histNote}`,()=>{
     deleteLavAsin_db(a);
     if(a&&lv2Recipes[a.asin]){delete lv2Recipes[a.asin];if(typeof lv2Save==='function')lv2Save();}
     lavAsins=lavAsins.filter(x=>x.id!==id);
-    renderLavarion();toast('Lavarion ASIN deleted — shipment history kept');
-    logAudit('Lavarion ASIN deleted',(a?.sku||a?.asin||'')+(usedIn.length?` (history in ${usedIn.length} shipment${usedIn.length!==1?'s':''} preserved)`:''));
+    renderLavarion();toast('PLUB ASIN deleted — shipment history kept');
+    logAudit('PLUB ASIN deleted',(a?.sku||a?.asin||'')+(usedIn.length?` (history in ${usedIn.length} shipment${usedIn.length!==1?'s':''} preserved)`:''));
   });
 }
 
@@ -103,7 +103,7 @@ let _lavLineCount=0;
 function openLavShip(shipId){
   _lavShipId=shipId;
   _lavLineCount=0;
-  document.getElementById('lavShipModalTitle').textContent='Add Lavarion to '+shipId;
+  document.getElementById('lavShipModalTitle').textContent='Add PLUB to '+shipId;
   document.getElementById('lavShipLines').innerHTML='';
   addLavShipLine();
   om('lavShipModal');
@@ -161,7 +161,7 @@ function addLavShipLine(){
    the id prefix on the inputs and which footer button they drive.        */
 const PK={
   'lsl'   :{go:'lavShipGo',label:n=>n?`Add ${n} to Shipment`:'Add to Shipment'},
-  'ns-lav':{go:'nsGo',label:n=>n?`Create Shipment · ${n} Lavarion line${n===1?'':'s'}`:'Create Shipment'}
+  'ns-lav':{go:'nsGo',label:n=>n?`Create Shipment · ${n} PLUB line${n===1?'':'s'}`:'Create Shipment'}
 };
 const _pk=(pfx,part,idx)=>document.getElementById(`${pfx}-${part}-${idx}`);
 
@@ -353,7 +353,7 @@ function pkCheck(pfx,idx){
   }else{
     const total=(v.per||0)*v.want;
     html=line('var(--text2)',`${v.want} × ${gbp(v.per||0)} = <span style="color:var(--text)">${gbp(total)}</span>`)
-      +sub(`${esc(info.sku||'no SKU set')}${info.available!=null?` · ${info.available} buildable, ${info.available-v.want} left after this`:''}${info.fallback?" · price is the ASIN's own cost, open Lavarion for the built-up figure":''}`);
+      +sub(`${esc(info.sku||'no SKU set')}${info.available!=null?` · ${info.available} buildable, ${info.available-v.want} left after this`:''}${info.fallback?" · price is the ASIN's own cost, open PLUB for the built-up figure":''}`);
   }
   box.innerHTML=html;
   pkFoot(pfx);
@@ -406,7 +406,14 @@ function pkMeta(pfx,idx){
   return (v.k==='blended')?{blended:true,per:v.per,why:v.why,note:v.note}:null;
 }
 
+/* 13 Oct 2026: two quick clicks ran this twice — two shipment rows and the
+   stock taken off twice. One at a time. */
+let _lsmBusy=false;
 async function confirmLavShipMulti(){
+  if(_lsmBusy)return;_lsmBusy=true;
+  try{return await _confirmLavShipMultiGo();}finally{_lsmBusy=false;}
+}
+async function _confirmLavShipMultiGo(){
   if(!_lavShipId){toast('No shipment selected','er');return;}
   const stop=pkStops('lsl');
   if(stop.length){toast(stop[0],'er');return;}
@@ -427,7 +434,7 @@ async function confirmLavShipMulti(){
     lavShipments.push(entry);
     const _ok=await saveLavShipment(entry);
     if(_ok===false){const _i=lavShipments.indexOf(entry);if(_i>=0)lavShipments.splice(_i,1);continue;}
-    logAudit('Lavarion added to shipment',entry.asin+' x '+entry.units+' -> '+_lavShipId
+    logAudit('PLUB added to shipment',entry.asin+' x '+entry.units+' -> '+_lavShipId
       +(meta?` — COG £${entry.cost} blended across two purchase prices by ${window.currentUserName||'someone'} (${meta.why}${meta.note?': '+meta.note:''})`:''));
     /* a blend is a decision, counted the same way the Lavarion page counts its own */
     if(meta){try{if(window.LV3&&LV3.noteOverride)LV3.noteOverride({k:meta.why||'other',
@@ -435,5 +442,5 @@ async function confirmLavShipMulti(){
   }
   cm('lavShipModal');
   renderShipments();renderLavarion();
-  toast('✓ '+lines.length+' Lavarion ASIN'+(lines.length!==1?'s':'')+' added to '+_lavShipId);
+  toast('✓ '+lines.length+' PLUB ASIN'+(lines.length!==1?'s':'')+' added to '+_lavShipId);
 }

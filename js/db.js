@@ -105,7 +105,7 @@ async function dbLoad(){
     }
     _totalRowCount=(countRes&&countRes.count)||0;
     rows=(rowsRes.data||[]).map(dbToRow);
-    if(!LEGACY)_histStreaming=true;
+    if(!LEGACY){_histStreaming=true;_historyReady=false;}   /* archive streaming again — realtime for archived rows waits for it (13 Oct 2026) */
     {
       const dbMax=parseInt(maxIdRes&&maxIdRes.data&&maxIdRes.data[0]&&maxIdRes.data[0].local_id)||0;
       const memMax=rows.reduce((m,r)=>{const n=parseInt(r.id);return(Number.isFinite(n)&&n>m)?n:m;},0);
@@ -345,6 +345,31 @@ async function _finalizeHistory(){
 }
 
 // ── ROW CONVERTERS ────────────────────────────────────────────────────────────
+/* ── FIELD-LEVEL SAVES (13 Oct 2026) ─────────────────────────────────────────
+   Every save used to write the WHOLE row from this laptop's copy. A laptop open
+   since the morning therefore undid other people's work on the same row —
+   Becki's note, Sarah's "chased", an archive, a VA note — the moment it saved
+   that row for any reason at all (a heal, a count, a case step). _base is what
+   this laptop last knew the database held for the row. A save sends ONLY the
+   columns that differ from it, so a column somebody else changed is never
+   touched; and a change arriving from another laptop is merged column by
+   column instead of replacing the row. */
+function _canon(v){
+  if(v===undefined)return 'u';
+  if(v===null||typeof v!=='object')return JSON.stringify(v);
+  if(Array.isArray(v))return '['+v.map(_canon).join(',')+']';
+  return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+_canon(v[k])).join(',')+'}';   /* jsonb sorts keys */
+}
+function _colsOf(r){const d=rowToDb(r);delete d.id;return d;}
+function _setBase(r,cols){
+  try{Object.defineProperty(r,'_base',{value:cols||_colsOf(r),writable:true,configurable:true,enumerable:false});}catch(e){}
+  return r;
+}
+function _rowDiff(r){
+  const now=_colsOf(r),b=r._base;if(!b)return now;
+  const out={};Object.keys(now).forEach(k=>{if(_canon(now[k])!==_canon(b[k]))out[k]=now[k];});
+  return out;
+}
 function rowToDb(r){
   return{
     id:r.uuid||undefined,
@@ -403,7 +428,7 @@ function rowToDb(r){
   };
 }
 function dbToRow(d){
-  return{
+  const _r={
     uuid:d.id,
     id:d.local_id||d.id,
     _ca:(d.created_at||''),  // full-precision timestamp; rowToDb never writes it back
@@ -468,6 +493,7 @@ function dbToRow(d){
     wrongSku:d.wrong_sku||'',
     createdISO:d.created_at?d.created_at.split('T')[0]:'',
   };
+  return _setBase(_r);   /* what the database holds right now — see FIELD-LEVEL SAVES */
 }
 function claimToDb(c){
   return{
@@ -498,15 +524,21 @@ function claimToDb(c){
     // Envelope carries the log entries PLUS follow-up fields (next action, due
     // date, last-chase date) — piggybacked in this JSON column so no database
     // migration is needed. Old rows are plain arrays; both shapes are read.
-    contact_log:JSON.stringify({e:c.log||[],na:c.nextAction||'',nd:c.nextDue||'',lc:c.lastChase||'',ow:c.owner||'',dc:c.gatedDecision||'',sj:c.sentToJack||'',rb:c.raisedBy||'',dl:c.discordLink||''}),
+    /* 13 Oct 2026: when and how a claim ended (ra/oc) and that it already settled
+       its row (so) lived only in memory — after any refresh "This week: N
+       resolved" read 0 and the row-settling could run again. They ride in the
+       same envelope; no database change. */
+    contact_log:JSON.stringify({e:c.log||[],na:c.nextAction||'',nd:c.nextDue||'',lc:c.lastChase||'',ow:c.owner||'',dc:c.gatedDecision||'',sj:c.sentToJack||'',rb:c.raisedBy||'',dl:c.discordLink||'',
+      ra:c.resolvedAt||'',oc:c.outcome||'',so:c.settledOnRow||''}),
   };
 }
 function dbToClaim(d){
-  let log=[],na='',nd='',lc='',ow='',dc='',sj='',rb='',dl='';
+  let log=[],na='',nd='',lc='',ow='',dc='',sj='',rb='',dl='',ra='',oc='',so='';
   try{
     const parsed=JSON.parse(d.contact_log||'[]');
     if(Array.isArray(parsed))log=parsed;
-    else if(parsed&&typeof parsed==='object'){log=parsed.e||[];na=parsed.na||'';nd=parsed.nd||'';lc=parsed.lc||'';ow=parsed.ow||'';dc=parsed.dc||'';sj=parsed.sj||'';rb=parsed.rb||'';dl=parsed.dl||'';}
+    else if(parsed&&typeof parsed==='object'){log=parsed.e||[];na=parsed.na||'';nd=parsed.nd||'';lc=parsed.lc||'';ow=parsed.ow||'';dc=parsed.dc||'';sj=parsed.sj||'';rb=parsed.rb||'';dl=parsed.dl||'';
+      ra=parsed.ra||'';oc=parsed.oc||'';so=parsed.so||'';}
   }catch(e){}
   // Map old statuses to new ones
   const statusMap={'In Progress':'Chasing','Refunded':'Resolved','Closed':'Resolved','Refund Required':'Chasing','Issue':'Needs Attention'};
@@ -529,7 +561,19 @@ function dbToClaim(d){
        when it is sent. */
     owner:ow||'VA',
     gatedDecision:dc,sentToJack:sj||null,raisedBy:rb||'',discordLink:dl||'',
+    outcome:oc||'',settledOnRow:so||'',
+    /* claims closed before this was stored: the date comes from their own log
+       (its "dd/mm hh:mm" stamp, year rolled back if it would be in the future) */
+    resolvedAt:ra||(mappedStatus==='Resolved'?_claimEndedOn(log):''),
   };
+}
+function _claimEndedOn(log){
+  const e=(log||[]).slice().reverse().find(l=>/closed|resolved|refund (received|confirmed)|written off|ungated|recovery stock/i.test(String(l&&l.msg||'')));
+  const m=e&&/^(\d{1,2})\/(\d{1,2})/.exec(String(e.t||''));if(!m)return '';
+  const now=new Date();let y=now.getFullYear();
+  const iso=d=>`${d}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+  if(new Date(iso(y))>now)y--;
+  return iso(y);
 }
 function dbToLav(d){
   return{uuid:d.id,id:d.id,asin:d.asin||'',sku:d.sku||'',prod:d.product_name||'',cost:d.cost||0,total:d.total_stock||0,dg:d.dg||'No',vat:(d.vat!=null&&d.vat!=='')?String(d.vat):'20',notes:d.notes||'',
@@ -695,26 +739,33 @@ async function saveRow(r){
     }
     return out;
   };
-  let res;
+  let res,_sent=null;
   if(r.uuid&&!r._minted){
+    /* only the columns this laptop changed (FIELD-LEVEL SAVES, above) */
+    const _diff=r._base?_rowDiff(r):null;
+    if(_diff&&!Object.keys(_diff).length){setTimeout(()=>{r._dirty=false;},1500);setSyncStatus('synced');return true;}
     // Ask for the updated rows back so we can tell if it actually matched
     // anything. Supabase .update() does NOT error when it matches zero rows —
     // it silently succeeds — so a stale/missing uuid would "save" but write
     // nothing, and the value reverts on refresh. Verify the match count.
-    res=await runWrite(data=>sb.from('prep_rows').update(data).eq('id',r.uuid).select());
+    res=await runWrite(data=>{
+      const send=_diff?Object.fromEntries(Object.keys(_diff).filter(k=>k in data).map(k=>[k,data[k]])):data;
+      delete send.id;_sent=send;
+      if(!Object.keys(send).length)return Promise.resolve({data:[{id:r.uuid}],error:null});
+      return sb.from('prep_rows').update(send).eq('id',r.uuid).select('id');});
     if(!res.error&&(!res.data||res.data.length===0)){
       // The uuid didn't match any DB row. Insert a fresh one and adopt its id
       // so future saves update correctly.
       console.warn('saveRow: uuid matched 0 rows, re-inserting',r.uuid,r.sku);
       const r2={...r,uuid:undefined};
       const ins=await runWrite(()=>{const d=rowToDb(r2);_missingCols.forEach(c=>delete d[c]);return sb.from('prep_rows').insert(d).select().single();});
-      if(!ins.error&&ins.data)r.uuid=ins.data.id;
-      res=ins;
+      if(!ins.error&&ins.data){r.uuid=ins.data.id;_setBase(r);}
+      res=ins;_sent=null;
     }
   }else{
     res=await runWrite(data=>sb.from('prep_rows').insert(data).select().single());
     if(res.data)r.uuid=res.data.id;
-    if(!res.error)delete r._minted;
+    if(!res.error){delete r._minted;_setBase(r);}
     else if(_isDupKeyErr(res.error)&&r._minted){
       /* Retrying an insert whose first attempt actually committed: the PK
          already exists because WE put it there. That is success. */
@@ -736,6 +787,8 @@ async function saveRow(r){
     toast('Save failed: '+res.error.message,'er');
     return false;
   }
+  /* the database now holds what we sent — nothing else about the row changes */
+  if(_sent)_setBase(r,Object.assign({},r._base||{},_sent));
   // Keep _dirty TRUE briefly so Supabase's realtime echo of THIS write
   // (which can arrive a few hundred ms after the update commits) doesn't
   // overwrite our fresh local value and snap the status back. Clear it on a
@@ -795,12 +848,16 @@ async function saveClaim(c){
   };
   let res;
   if(c.uuid){
-    res=await runWrite(data=>sb.from('actions').update(data).eq('id',c.uuid));
+    res=await runWrite(data=>sb.from('actions').update(data).eq('id',c.uuid).select('id'));
+    if(!res.error&&Array.isArray(res.data)&&res.data.length===0)res={error:{message:'that claim is no longer in the database (removed on another laptop?)'}};
   }else{
     res=await runWrite(data=>sb.from('actions').insert(data).select().single());
     if(res.data)c.uuid=res.data.id;
   }
-  if(res.error){console.error('Save claim error:',res.error);setSyncStatus('error');return false;}
+  if(res.error){console.error('Save claim error:',res.error);setSyncStatus('error');
+    /* it was console-only, while the page said "Closed" (13 Oct 2026) */
+    try{toast('Claim didn\u2019t save: '+(res.error.message||'database error')+' — refresh and try again','er');}catch(e){}
+    return false;}
   setSyncStatus('synced');return true;
 }
 async function deleteClaim_db(c){
@@ -832,7 +889,7 @@ async function saveLavAsin(a){
     a.uuid=res.data.id;a.id=res.data.id;
     if(typeof adoptId==='function')adoptId('product',oldId,res.data.id);
   }
-  if(res.error){setSyncStatus('error');console.warn('saveLavAsin failed',res.error);toast('Lavarion save failed — check connection','er');return;}
+  if(res.error){setSyncStatus('error');console.warn('saveLavAsin failed',res.error);toast('PLUB save failed — check connection','er');return;}
   setSyncStatus('synced');
 }
 async function deleteLavAsin_db(a){
@@ -927,6 +984,7 @@ const resyncUI={
 let _aliveTick=Date.now(),_resyncBusy=false,_resyncQueued=false;
 async function resyncNow(why,quiet){
   if(_resyncBusy)return;
+  if(_histStreaming)return;                 /* the last reload's archive is still streaming in — one at a time */
   /* mid-edit is a bad moment to swap the data out from under a modal — wait */
   if(document.querySelector('.overlay.open')){
     if(!quiet&&!_resyncQueued){_resyncQueued=true;
@@ -943,7 +1001,7 @@ async function resyncNow(why,quiet){
     if(!quiet)resyncUI.step(82,'Redrawing every page');
     ['renderPrep','renderShipments','renderDashboard','renderReturns','renderAdmin','renderStats']
       .forEach(f=>{try{window[f]&&window[f]()}catch(e){}});
-    try{if(window.LV3&&LV3.isReady&&LV3.isReady())LV3.render();}catch(e){}
+    try{if(window.LV3&&LV3.isReady&&LV3.isReady()){if(LV3.refreshShared)await LV3.refreshShared();if(LV3.reloadData)await LV3.reloadData();LV3.render();}}catch(e){}
     /* dbLoad can resolve while rows is still filling (paged fetch) — a paint
        at that moment shows a near-empty page and nothing repaints (Jack's
        "gone blank after 60 seconds"). Wait for the row count to settle, then
@@ -980,7 +1038,10 @@ function watchForSleep(){
     const gap=Date.now()-_aliveTick;
     if(gap>3*60*1000){_aliveTick=Date.now();resyncNow('sitting in the background');}
   });
-  window.addEventListener('online',()=>resyncNow('the connection coming back'));
+  /* only a real outage (over a minute) is worth a full reload — flaky Wi-Fi
+     used to reload everything, with the overlay, on every blip */
+  window.addEventListener('offline',()=>{window._offAt=Date.now();});
+  window.addEventListener('online',()=>{if(window._offAt&&Date.now()-window._offAt>60000)resyncNow('the connection coming back');window._offAt=0;});
   /* the backstop for whatever we have not thought of: whatever else fails —
      a live connection dying quietly while the machine stays awake, an event
      that never fires — a full quiet re-pull every 15 minutes caps how stale
@@ -1005,6 +1066,25 @@ async function reviveRealtime(){
     return true;
   }catch(e){console.warn('[realtime] revive failed',e);return false;}
 }
+/* the realtime UPDATE merge (FIELD-LEVEL SAVES) — its own function so the checks can drive it */
+function _rtMergeUpdate(i,incoming){
+  const mine=rows[i],myCols=_colsOf(mine),myBase=mine._base||myCols,inCols=incoming._base||_colsOf(incoming);
+  const pending=Object.keys(myCols).filter(k=>_canon(myCols[k])!==_canon(myBase[k]));
+  if(Object.keys(inCols).every(k=>_canon(inCols[k])===_canon(myCols[k]))){_setBase(mine,inCols);return 'same';}
+  if(pending.length){
+    const keep={};
+    Object.keys(mine).forEach(f=>{
+      if(f[0]==='_')return;
+      const t=_colsOf(Object.assign({},incoming,{[f]:mine[f]}));
+      if(pending.some(k=>_canon(t[k])===_canon(myCols[k])&&_canon(inCols[k])!==_canon(myCols[k])))keep[f]=mine[f];
+    });
+    Object.assign(incoming,keep);
+  }
+  _setBase(incoming,inCols);
+  incoming._dirty=mine._dirty;
+  rows[i]=incoming;
+  return 'merged';
+}
 function setupRealtime(){
   sb.channel('prep_rows').on('postgres_changes',{event:'*',schema:'public',table:'prep_rows'},payload=>{
     if(payload.eventType==='INSERT'){
@@ -1028,6 +1108,14 @@ function setupRealtime(){
         // forever was the last staleness hole (the audit's "_dirty drop").
         // Note it and quietly re-pull once our edit has had time to save.
         const incoming=dbToRow(payload.new);
+        /* 13 Oct 2026 — FIELD-LEVEL MERGE. The old checks below compared ten
+           fields, so a change to any other column (archived, the snooze, a
+           flag, the VA note, the late label…) was thrown away here, and this
+           laptop's next save wrote the old value back. Now: if the database
+           already holds what we hold, the base just catches up; otherwise we
+           take the incoming row and keep only the columns WE have changed and
+           not yet saved. */
+        _rtMergeUpdate(i,incoming);rtRepaint();return;
         /* Jack, 7 Sep: "the whole page is very glitchy and jumpy." Every save
            held _dirty for 1.5s; the echo of OUR OWN write landed inside that
            window, was read as another laptop crossing the edit, and booked a
@@ -1139,9 +1227,14 @@ function setupRealtime(){
        holds changes that haven't been written yet, that reload would quietly
        throw them away — so flush first, then refresh. */
     if(window._lv2HasUnsaved&&window._lv2HasUnsaved()){
+      /* capped — one row that can never save used to keep this re-arming every
+         1.2 s forever (13 Oct 2026) */
+      window._lv2RtTries=(window._lv2RtTries||0)+1;
+      if(window._lv2RtTries>20){window._lv2RtTries=0;return;}
       if(window._lv2Flush)window._lv2Flush();
       clearTimeout(_lv2RtT);_lv2RtT=setTimeout(_lv2RemoteRefresh,1200);return;
     }
+    window._lv2RtTries=0;
     clearTimeout(_lv2RtT);
     _lv2RtT=setTimeout(function _run(){
       // Don't reload out from under an open editor — it would discard the user's
@@ -1153,6 +1246,10 @@ function setupRealtime(){
     },400);
   }
   sb.channel('lavarion_components').on('postgres_changes',{event:'*',schema:'public',table:'lavarion_components'},_lv2RemoteRefresh).subscribe();
+  /* 13 Oct 2026: batches and purchases had no live channel at all — another
+     laptop's receipt or send was invisible here until a full reload */
+  ['lavarion_stock_layers','lavarion_purchases'].forEach(tb=>{
+    sb.channel(tb).on('postgres_changes',{event:'*',schema:'public',table:tb},pl=>{try{if(window.LV3&&LV3.rtChange)LV3.rtChange(tb,pl);}catch(e){}}).subscribe();});
   sb.channel('lavarion_recipes').on('postgres_changes',{event:'*',schema:'public',table:'lavarion_recipes'},_lv2RemoteRefresh).subscribe();
   /* Recovery Stock — quiet re-pull on any change from the other laptop */
   try{sb.channel('recovery_items').on('postgres_changes',{event:'*',schema:'public',table:'recovery_items'},()=>{
