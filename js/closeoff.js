@@ -344,7 +344,7 @@ function openSorted(rid,preset){
              retyping a history the app watched her create. */
           const c=_caseOf(r);
           if(!c||!(c.log||[]).length)return r.notes||'';
-          return c.log.map(e=>`${new Date(e.at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})} — ${e.what}${e.by?' ('+e.by+')':''}`).join('\n');
+          return c.log.map(e=>`${new Date(e.at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',timeZone:'Europe/London'})} — ${e.what}${e.by?' ('+e.by+')':''}`).join('\n');
         })())}</textarea>
       </div>
 
@@ -591,7 +591,7 @@ function srtCopyMsg(btn){
     [d.ord?d.ord+' ordered':'',d.got?d.got+' arrived':'',d.cx?d.cx+' cancelled':''].filter(Boolean).join(' / '),
     d.due?'expected '+d.due:'',
     d.note?'“'+d.note+'”':'',
-    'closed by '+_who()+' '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
+    'closed by '+_who()+' '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',timeZone:'Europe/London'})
   ].filter(Boolean).join(' · ');
   copyVal((r.oid?r.oid+' — ':'')+bits,btn);
 }
@@ -1412,7 +1412,7 @@ function lkFind(q){
 function lkStory(r){
   const seg=(r.shipSegments||[]).map(s=>`${fmt(s.units||0)} units → shipment ${s.shipId||'?'}${s.date?' on '+s.date:''}`);
   const cls=(claims||[]).filter(c=>String(c.prepRowId)===String(r.uuid||r.id));
-  const cl=(r.resolution&&r.resolution.chase&&r.resolution.chase.log)||[];
+  const cl=_squashBounces((r.resolution&&r.resolution.chase&&r.resolution.chase.log)||[]);
   const L=[];
   L.push(`${r.prod||r.sku||''}`);
   L.push(`SKU ${r.sku||'—'} · ASIN ${r.asin||'—'} · ${r.sup||'—'} · ${r.acct||'—'}${r.oid?' · order '+r.oid:''}`);

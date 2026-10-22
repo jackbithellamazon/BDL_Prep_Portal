@@ -84,6 +84,9 @@ function _issueDefaults(type){
     case 'Missing':return{owner:'VA',na:'Investigate — already shipped? portal not updated? Then contact supplier',nd:plus(2)};
     case 'Not Arrived':return{owner:'VA',na:'Check tracking, then chase supplier for delivery ETA',nd:plus(2)};
     case 'Incorrect':return{owner:'VA',na:'Contact supplier — wrong item received, arrange swap/refund',nd:plus(2)};
+    /* Becki, 15 Oct / Jack, 21 Oct: stock we have simply decided to sell on eBay —
+       not a problem, nobody to chase. It goes straight to Recovery Stock. */
+    case 'eBay stock':return{owner:'VA',na:'On Recovery Stock to sell on eBay — nothing to chase',nd:''};
     default:return{owner:'VA',na:'Investigate and decide next step',nd:plus(3)};
   }
 }
@@ -95,6 +98,7 @@ function _autoIssueNote(type,qty,r){
   if(type==='Damaged')return `${qty} unit${qty===1?'':'s'} arrived damaged`;
   if(type==='Incorrect')return `${qty} incorrect unit${qty===1?'':'s'} received`;
   if(type==='Not Arrived')return `${qty} unit${qty===1?'':'s'} not arrived — no delivery received`;
+  if(type==='eBay stock')return `${qty} unit${qty===1?'':'s'} set aside to sell on eBay`;
   return '';
 }
 // When staff pick a type, prefill the obvious quantity from the row itself:
@@ -121,6 +125,7 @@ function addIssueLine(existing=null){
       <option value="Incorrect"${existing?.issT==='Incorrect'?' selected':''}>Incorrect</option>
       <option value="Gated"${existing?.issT==='Gated'?' selected':''}>Gated</option>
       <option value="Not Arrived"${existing?.issT==='Not Arrived'?' selected':''}>Not Arrived</option>
+      <option value="eBay stock"${existing?.issT==='eBay stock'?' selected':''}>eBay stock</option>
     </select>
     <div style="position:relative;">
       <input type="number" id="il-qty-${idx}" class="fi-in" min="1" value="${existing?.dif||''}" placeholder="Qty" style="font-size:12px;padding-right:24px;">
@@ -202,6 +207,14 @@ async function saveIssueModal(){
   if(gatedLine&&gatedLine.qty>got)
     return _blockIssue(`Only ${got} unit${got===1?'':'s'} counted in`,
       `You have marked ${gatedLine.qty} as gated but only ${got} ${got===1?'has':'have'} been received. Book the rest in first, or lower the gated quantity to ${got}.`);
+  const ebayLine=lines.find(l=>l.type==='eBay stock');
+  if(ebayLine){
+    const shelf=Math.max(0,got-(parseInt(r.ship)||0));
+    if(got<=0)return _blockIssue('This stock has not been booked in yet',
+      `eBay stock means it is here on the shelf and we are selling it on eBay instead. Nothing has been counted in on this order yet — book it in first.`);
+    if(ebayLine.qty>shelf)return _blockIssue(`Only ${shelf} on the shelf`,
+      `${got} counted in${(parseInt(r.ship)||0)?` and ${parseInt(r.ship)} already sent to Amazon`:''}, so at most ${shelf} can go to eBay. Lower the quantity to ${shelf}.`);
+  }
   // Remove old open claims for this row (match by uuid or local id)
   const oldClaims=claims.filter(cl=>(cl.prepRowId===(r.uuid||r.id)||cl.prepRowId===r.id||cl.prepRowId===r.uuid)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
   for(const oc of oldClaims){
@@ -219,7 +232,8 @@ async function saveIssueModal(){
       if(cl){cl.issT=line.type;cl.dif=line.qty;cl.claimValue=cog*line.qty;await saveClaim(cl);}
     } else {
       // Create new
-      try{await _createIssueClaim(r,line.type,line.qty);}
+      try{const _cl=await _createIssueClaim(r,line.type,line.qty,line.type==='eBay stock'?{logMsg:'Set aside for eBay by '+_who()}:undefined);
+        if(line.type==='eBay stock')await _ebayToRecovery(_cl,line.qty);}
       catch(e){toast('Issue save failed: '+((e&&e.message)||e),'er');setSyncStatus('error');return;}
     }
   }
@@ -234,6 +248,20 @@ async function saveIssueModal(){
   logAudit('Issue raised',r.sku+' — '+lines.map(l=>l.type+' '+l.qty+'u').join(', '));
 }
 
+/* eBay stock is decided the moment it is raised: the record closes itself and
+   the units land on Recovery Stock, where the "not listed yet" clock keeps them
+   from being forgotten. Nobody's to-do list. */
+async function _ebayToRecovery(cl,qty){
+  if(!cl)return;
+  cl.cst='Resolved';cl.gatedDecision='eBay';cl.resolvedAt=todayISO();cl.outcome='ebay';
+  (cl.log=cl.log||[]).push({t:getNowUK(),msg:`Sent to Recovery Stock — ${qty} unit${qty===1?'':'s'} (eBay stock)`});
+  try{await saveClaim(cl);}catch(e){}
+  if(typeof recFromClaim!=='function')return;
+  const it=await recFromClaim(cl,{source:'eBay stock',allowSameSku:true,
+    notes:`Set aside to sell on eBay by ${_who()}`+(cl.sup?' — '+cl.sup:'')+(cl.oid?' · '+cl.oid:'')});
+  if(it==='nosetup')toast('Recovery Stock needs its one-time setup before it can hold this — tell Jack','er');
+  else if(it&&it.qty)toast(`${fmt(it.qty)} unit${it.qty===1?'':'s'} on Recovery Stock to sell on eBay`,'ok');
+}
 /* one issue line → one claim record. Used by the Raise Issue popup and by the
    answer to a warehouse question ("nothing more is coming" = Missing). */
 async function _createIssueClaim(r,type,qty,opts){

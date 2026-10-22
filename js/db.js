@@ -493,6 +493,9 @@ function dbToRow(d){
     wrongSku:d.wrong_sku||'',
     createdISO:d.created_at?d.created_at.split('T')[0]:'',
   };
+  /* no date on the sheet → the SKU's order date, in memory only (it is part of
+     the base, so it is never sent as a change) — see skuDateDDMM in core.js */
+  if(!_r.date){const _sd=skuDateDDMM(_r.sku);if(_sd){_r.date=_sd;_r.dateFromSku=true;}}
   return _setBase(_r);   /* what the database holds right now — see FIELD-LEVEL SAVES */
 }
 function claimToDb(c){

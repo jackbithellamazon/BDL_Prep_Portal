@@ -1,9 +1,9 @@
 /* BDL PrepHub — js/boot.js — midnight refresh, init (auth-gated), boot loader, clock.
    Cut from the single app.js on 2026-09-10 (b560). Classic script: shared global scope, load order matters. */
 // ── AUTO MIDNIGHT REFRESH ─────────────────────────────────────────────────────
-let _lastDay=new Date().getDate();
+let _lastDay=todayISO();
 setInterval(()=>{
-  const d=new Date().getDate();
+  const d=todayISO();                                   /* UK midnight, not the laptop's */
   if(d!==_lastDay){_lastDay=d;renderDashboard();renderPrep();renderShipments();toast('Day changed — dashboard updated');}
 },300000); // day-change check — 5 min is plenty, saves 48 wake-ups/hour
 
@@ -142,11 +142,8 @@ sb.auth.onAuthStateChange((event)=>{
 
 // UK date/time clock
 function updateClock(){
-  const now=new Date();
-  const dd=String(now.getDate()).padStart(2,'0');
-  const mm=String(now.getMonth()+1).padStart(2,'0');
-  const hh=String(now.getHours()).padStart(2,'0');
-  const min=String(now.getMinutes()).padStart(2,'0');
+  const p=_ukParts();
+  const dd=_p2(p.d),mm=_p2(p.m),hh=_p2(p.h),min=_p2(p.mi);
   const el=document.getElementById('ukClock');
   if(el)el.textContent=`${dd}.${mm} ${hh}:${min}`;
 }

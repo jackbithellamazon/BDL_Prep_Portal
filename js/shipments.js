@@ -388,7 +388,7 @@ function renderShipments(){
           title="Click to correct the shipment date — this sets the date on every line in it"
           style="font-size:10px;color:var(--text3);cursor:pointer;border-bottom:1px dashed var(--border);padding-bottom:1px;">${dateDisp} <span style="opacity:.5">✎</span></span>
         <span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;background:${tbg};color:${tc};border:1px solid ${tc};">${s.type||'Standard'}</span>
-        ${s.hasLav?`<span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);">LAV</span>`:''}
+        ${s.hasLav?`<span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);">PLUB</span>`:''}
         ${s.retUnits?`<span title="${fmt(s.retUnits)} unit${s.retUnits===1?'':'s'} coming back on this shipment${s.retValue?` · ${fmtGBP2(s.retValue)} of stock`:''} — counted in the units above, deliberately not in the COG" style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);">RET</span>`:''}
         <span style="font-size:10px;color:var(--blue);font-weight:700;">${skuCount} SKU${skuCount!==1?'s':''}</span>
         <span style="font-size:10px;color:var(--green);font-weight:700;">${fmt(s.units)} units</span>
@@ -401,9 +401,9 @@ function renderShipments(){
           <option value="DG" ${s.type==='DG'?'selected':''}>DG</option>
           <option value="Oversize" ${s.type==='Oversize'?'selected':''}>Oversize</option>
         </select>
-        <button onclick="event.stopPropagation();openLavShip('${s.id}')" style="padding:2px 8px;background:var(--btn-purple-bg);border:1px solid var(--btn-purple-border);color:var(--btn-purple-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ PLUB</button>
-        <button onclick="event.stopPropagation();openRetShip('${s.id}')" style="padding:2px 8px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Returns</button>
-        <button onclick="event.stopPropagation();openEditShipment('${s.id.replace(/'/g,"\\'")}')" title="Rename this Shipment ID or remove it if added by mistake" style="padding:2px 8px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap;">✎ Edit / Delete</button>
+        <button onclick="event.stopPropagation();openLavShip('${s.id}')" style="padding:4px 10px;background:var(--btn-purple-bg);border:1px solid var(--btn-purple-border);color:var(--btn-purple-text);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">+ PLUB</button>
+        <button onclick="event.stopPropagation();openRetShip('${s.id}')" style="padding:4px 10px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Returns</button>
+        <button onclick="event.stopPropagation();openEditShipment('${s.id.replace(/'/g,"\\'")}')" title="Rename this Shipment ID or remove it if added by mistake" style="padding:4px 10px;background:var(--btn-orange-bg);border:1px solid var(--btn-orange-border);color:var(--btn-orange-text);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">✎ Edit / Delete</button>
         <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);" onclick="event.stopPropagation()">
           📦
           <input type="number" min="0" value="${s.boxes||''}" placeholder="0"
@@ -479,7 +479,7 @@ function renderShipments(){
             return`<tr style="background:rgba(204,153,255,.08);">
               <td class="td-left" style="font-size:11px;font-weight:500;">
                 <span id="lav-prod-${lavId}">${ls.prod}</span>
-                <span style="font-size:10.5px;padding:1px 5px;border-radius:8px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);margin-left:4px;">LAV</span>
+                <span style="font-size:10.5px;padding:1px 5px;border-radius:8px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);margin-left:4px;">PLUB</span>
               </td>
               <td><span class="s-asin" onclick="copyVal('${ls.asin}',this)" style="display:inline-flex;font-size:10px;">${ls.asin}</span></td>
               <td class="td-left"><span class="s-sku" onclick="copyVal('${ls.sku}',this)" style="display:inline-flex;font-size:10px;">${ls.sku}</span>${vatTag(lavVat)}</td>

@@ -891,7 +891,7 @@ async function saveShipmentDate(){
   const shipId=_editShipId;
   const newDate=(document.getElementById('editShipDate').value||'').trim();
   if(!shipId)return;
-  if(!newDate){toast('Pick a date first','er');return;}
+  if(!newDate){toast(dateBoxMsg(document.getElementById('editShipDate'),'Pick a date first'),'er');return;}
   const c=shipmentContents(shipId);
   setSyncStatus('syncing');
   for(const r of c.oaRows){
@@ -1103,7 +1103,27 @@ function saveEditLavLine(){
   const ls=lavShipments.find(s=>s.uuid===_editLavLineId||(s.uuid||String(lavShipments.indexOf(s)))===String(_editLavLineId));
   if(!ls)return;
   const was=parseInt(ls.units)||0;
-  ls.units=parseInt(document.getElementById('editLavUnits').value)||0;
+  const want=parseInt(document.getElementById('editLavUnits').value)||0;
+  /* 21 Oct 2026: raising a line used to take what was there and quietly log the
+     rest as "owed". Same rule as every other send: if the parts are not in
+     stock, either the extras are on the bench (book them in, with why) or the
+     number is wrong. */
+  if(want>was&&window.LV3&&LV3.shipCheck&&!ls._xok){
+    const chk=LV3.shipCheck(ls.asin,want-was);
+    if(chk&&chk.available!=null&&(want-was)>chk.available){
+      const plan=(LV3.extraPlan&&LV3.extraPlan(ls.asin,want-was))||[];
+      showConfirm(`Only ${chk.available} more can be built`,
+        `You are adding ${want-was} to ${esc(ls.prod||ls.asin)}, but the parts for ${(want-was)-chk.available} are not in stock.<br><br>
+         If the supplier sent extra and the parts are on the bench, they are booked in first —
+         ${plan.map(x=>`<b>${esc(x.name)} +${x.qty}</b>`).join(', ')} — and the line goes to ${want}.
+         If not, cancel and lower the number.`,
+        ()=>{try{LV3.bookExtraForBuild(ls.asin,want-was,'Supplier sent extra','raised on line '+(ls.shipId||''));}catch(e){}
+          ls._xok=1;saveEditLavLine();delete ls._xok;},
+        {icon:'📦',ok:'Extra parts are here — book them in',cancel:'Cancel — I\u2019ll lower it'});
+      return;
+    }
+  }
+  ls.units=want;
   ls.cost=parseFloat(document.getElementById('editLavCog').value)||0;
   /* This wrote straight to the database and skipped the stock entirely, so
      changing 14 to 4 left ten units consumed by nothing. Move the difference. */
@@ -1435,10 +1455,14 @@ async function _saveNewShipmentGo(){
   // Save Lavarion shipments
   for(const ls of lavRows){
     const meta=ls._meta;delete ls._meta;
+    if(meta&&meta.extra&&typeof pkBookExtra==='function')pkBookExtra(ls,meta);   /* Becki, 21 Oct — extras booked in first */
     lavShipments.push(ls);
     const _ok=await saveLavShipment(ls);
     if(_ok===false){const _i=lavShipments.indexOf(ls);if(_i>=0)lavShipments.splice(_i,1);continue;}
-    if(meta){
+    if(meta&&meta.extra){
+      logAudit('PLUB added to shipment',
+        `${ls.asin} x ${ls.units} -> ${shipId} — extra parts booked in at packing by ${window.currentUserName||'someone'} (${meta.why}${meta.note?': '+meta.note:''})`);
+    }else if(meta){
       logAudit('PLUB added to shipment',
         `${ls.asin} x ${ls.units} -> ${shipId} — COG £${ls.cost} blended across two purchase prices by ${window.currentUserName||'someone'} (${meta.why}${meta.note?': '+meta.note:''})`);
       try{if(window.LV3&&LV3.noteOverride)LV3.noteOverride({k:meta.why||'other',

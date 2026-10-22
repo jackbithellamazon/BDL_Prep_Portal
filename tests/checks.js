@@ -254,7 +254,8 @@ window.PrepChecks=(function(){
     const d=n=>{const x=new Date();x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
     const park=mkRow({exp:3,expectedDelivery:d(3),resolution:asked({chase:{path:'never-arrived',step:'due-date',due:d(3),log:[]}})});
     eq(_rowOwner(park).owner,'none','future date → nobody’s list');ok(!onJack(park),'not on Jack’s');ok(!onSarahActive(park),'not on Sarah’s');
-    const slip=mkRow({exp:3,expectedDelivery:d(-1),resolution:asked({chase:{path:'never-arrived',step:'due-date',due:d(-1),log:[]}})});
+    /* asked before the date (13 Oct: a question sent AFTER the date slipped is a new one, and Jack's — check 57) */
+    const slip=mkRow({exp:3,expectedDelivery:d(-1),resolution:asked({at:new Date(Date.now()-5*864e5).toISOString(),chase:{path:'never-arrived',step:'due-date',due:d(-1),log:[]}})});
     eq(_rowOwner(slip).owner,'sarah','slipped date → Sarah');ok(!onJack(slip),'not on Jack’s page');
     ok(onSarahActive(slip),'on Sarah’s active list');eq(slip.resolution.state,'working','healed to a live chase');
   };
@@ -925,6 +926,388 @@ window.PrepChecks=(function(){
       ok(upd.some(u=>u.remaining===200),'without the SQL it saves the old way — nothing breaks');eq(LV3.__remRpc(),false,'and knows the SQL is not there yet');
     }finally{if(own)sb.from=orig;else delete sb.from;if(ownR)sb.rpc=origR;else delete sb.rpc;LV3.__setRemRpc(keepRpc);
       comp.layers=comp.layers.filter(x=>x!==l);LV3.__save();}
+  };
+
+  /* 56 · STOCK AT AMAZON IN UK TIME (13 Oct): Sarah counts from the Philippines. The count is stamped and
+     shown in UK time on every laptop, and two presses of Save are one save */
+  S['stock at Amazon: stamped and shown in UK time, saved once']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    eq(LV3.ukStamp('2026-10-13T14:18'),'2026-10-13T14:18+01:00','a summer count carries +01:00');
+    eq(LV3.ukStamp('2026-12-01T10:00'),'2026-12-01T10:00+00:00','a winter count carries +00:00');
+    eq(LV3.whenTxt('2026-10-13T21:18+08:00'),'13 Oct 14:18','a Manila-clock time reads as UK time');
+    eq(LV3.whenTxt('2026-10-13T14:18+01:00',true),'14:18','and the short form');
+    eq(LV3.whenTxt('2026-10-05T13:55'),'5 Oct 13:55','an old stamp reads as it was written');
+    const D=LV3.__D(),base=LV3.__prefsBase(),logN=D.log.length;
+    const keep={a:JSON.stringify(D.settings.atAmz||{}),i:JSON.stringify(D.settings.atAmzIn||{}),t:JSON.stringify(D.settings.atAmzAt||{})};
+    const own=Object.prototype.hasOwnProperty.call(sb,'from'),orig=sb.from;let writes=0;
+    sb.from=t=>{const q={select:()=>q,eq:()=>q,maybeSingle:()=>Promise.resolve({data:{value:JSON.stringify(LV3.__prefsBase())},error:null}),
+      upsert:()=>{if(t==='app_settings')writes++;return Promise.resolve({error:null});}};return q;};
+    try{
+      LV3.openAtAmz();await wait(300);
+      const box=document.querySelector('#lav3Mod2 .amzQ');ok(box,'the window opened');
+      const asin=box.dataset.asin;
+      box.value='7';box.dispatchEvent(new Event('input',{bubbles:true}));
+      const w=document.getElementById('amzWhenIn');w.value='2026-10-13T14:18';w.dispatchEvent(new Event('change',{bubbles:true}));
+      await Promise.all([LV3.amzSave(),LV3.amzSave()]);
+      eq(D.settings.atAmzAt[asin],'2026-10-13T14:18+01:00','stamped in UK time, offset on the end');
+      eq(D.log.slice(0,4).filter(l=>/^Stock at Amazon counted 13 Oct 14:18 UK/.test(l.txt)).length,1,'two presses of Save log it once');
+    }finally{if(own)sb.from=orig;else delete sb.from;
+      D.settings.atAmz=JSON.parse(keep.a);D.settings.atAmzIn=JSON.parse(keep.i);D.settings.atAmzAt=JSON.parse(keep.t);
+      LV3.__setPrefsBase(base);if(D.log.length>logN)D.log.splice(0,D.log.length-logN);try{LV3.cm('lav3Ov2');}catch(e){}}
+  };
+
+  /* 57 · SEND TO JACK AFTER THE DATE SLIPPED (Logitech X56, 13 Oct): Sarah pressed it three times and each time
+     her list put the row straight back — the old promise was still on it. A question asked after the date is Jack's;
+     a promise still waiting on its date comes back to Sarah when it slips, as before. */
+  S['send to Jack after a slipped date stays with Jack']=async()=>{
+    const past=new Date(Date.now()-12*864e5).toISOString().slice(0,10);
+    const slipped=mkRow({exp:6,rcvd:3,ship:3,status:'Part Sent',sup:'Amazon UK',acct:'Biz 02',expectedDelivery:past,
+      resolution:{state:'working',kind:'check',what:'jack-check',slippedAt:iso(),
+        chase:{path:'never-arrived',step:'due-date',due:past,log:[{at:iso(),by:'PrepHub',what:'The promised date passed with nothing booked in — back with Sarah to chase'}]}}});
+    ok(onSarahActive(slipped),'the slipped promise starts on Sarah’s list');
+    const keep=window._mustSave;window._mustSave=async()=>true;
+    try{await amzAskJack(rid(slipped));}finally{window._mustSave=keep;}
+    _adminItems();                                                    /* her list runs its slip check */
+    eq(slipped.resolution.state,'asked','her list leaves the question alone');
+    eq(_rowOwner(slipped).owner,'jack','Jack’s');ok(onJack(slipped),'on Jack’s page');ok(!onSarahActive(slipped),'off her active list');
+    const old=mkRow({exp:6,rcvd:3,ship:3,status:'Part Sent',sup:'Amazon UK',expectedDelivery:past,
+      resolution:{state:'asked',kind:'check',what:'jack-check',ask:'Still coming?',at:new Date(Date.now()-20*864e5).toISOString(),
+        chase:{path:'never-arrived',step:'due-date',due:past,log:[]}}});
+    eq(_rowOwner(old).owner,'sarah','a question from before the date is the old promise — Sarah chases');
+  };
+
+  /* 58 · OPENING PLUB WRITES NOTHING (13 Oct): the products' "last saved" mark was taken before the build lists had
+     loaded, and the first save afterwards rewrote all 43 product rows, twice each. A build-list change goes to the
+     build list only; a rename still saves the product. */
+  S['PLUB: opening and build-list changes never rewrite product rows']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),own=Object.prototype.hasOwnProperty.call(sb,'from'),orig=sb.from;const W=[];
+    sb.from=t=>{const q={select:()=>q,eq:()=>q,in:()=>q,single:()=>Promise.resolve({data:{id:'x'},error:null}),
+      then:(a,b)=>Promise.resolve({data:[],error:null}).then(a,b),
+      insert:row=>{W.push([t,'insert',row]);return q;},update:row=>{W.push([t,'update',row]);const p={eq:()=>p,select:()=>Promise.resolve({data:[{id:'x'}],error:null}),then:(a,b)=>Promise.resolve({data:null,error:null}).then(a,b)};return p;},
+      upsert:()=>Promise.resolve({error:null}),delete:()=>({in:()=>Promise.resolve({error:null}),eq:()=>Promise.resolve({error:null})})};return q;};
+    D.products.forEach(x=>{if(x._src){delete x._src._sig;delete x._src._rsig;}});
+    LV3.rehydrate();                                                  /* rebuilds D.products — pick the product after */
+    const p=D.products.find(x=>x.type==='bundle'&&x.recipe&&x.recipe.length);const was=p.recipe[0].q,wasName=p.name;
+    try{
+      LV3.__save();await wait(900);
+      eq(W.filter(w=>w[0]==='lavarion_asins').length,0,'a fresh load writes no product rows');
+      p.recipe[0].q=was+1;LV3.__save();await wait(900);
+      eq(W.filter(w=>w[0]==='lavarion_asins').length,0,'a build-list change writes no product row');
+      ok(W.some(w=>w[0]==='lavarion_recipes'),'it goes to the build list');
+      p.name=wasName+' CHECK';LV3.__save();await wait(300);
+      ok(W.some(w=>w[0]==='lavarion_asins'&&w[2].product_name===wasName+' CHECK'),'a rename still saves the product');
+    }finally{p.recipe[0].q=was;p.name=wasName;LV3.__save();await wait(900);if(own)sb.from=orig;else delete sb.from;}
+  };
+
+  /* 59 · UK TIME + THE SKU DATE (13 Oct): Sarah is 7–8 hours ahead, so "today" and "now" are the UK's on every
+     laptop; a promise is parked through the whole UK day it names. A row the sheet gave no date takes the order
+     date from its SKU — in memory only, never sent as a change. */
+  S['UK time, promised days and the SKU date']=async()=>{
+    eq(skuDateDDMM('Amuk_3.2_02096_0_PS_30'),'02/09','SKU date read');eq(skuDateDDMM('Amuk_129.99_11096_197_Jac_06'),'11/09','another');
+    eq(skuDateDDMM('not a sku'),'','nothing made up');
+    eq(todayISO(),ukDayISO(),'today is the UK day');ok(/^\d{2}\/\d{2} \d{2}:\d{2}$/.test(getNowUK()),'now reads dd/mm hh:mm');
+    ok(_parkedOnDate({expectedDelivery:todayISO()}),'promised today → still parked');
+    ok(!_parkedOnDate({expectedDelivery:yesterdayISO()}),'promised yesterday → slipped');
+    eq(ukAddDays('2026-10-30',3),'2026-11-02','days add across a month');eq(ukWeekdayOf('2026-10-17'),6,'17 Oct 2026 is a Saturday');
+    const r=dbToRow({id:'chk-sku-1',sku:'Amuk_3.2_02096_0_PS_30',date_ddmm:'',status:'In-Transit',exp:30});
+    eq(r.date,'02/09','blank date takes the SKU’s');ok(r.dateFromSku,'and says so');
+    eq(Object.keys(_rowDiff(r)||{}).length,0,'never sent to the database as a change');
+    const r2=dbToRow({id:'chk-sku-2',sku:'Amuk_3.2_02096_0_PS_30',date_ddmm:'05/09'});
+    eq(r2.date,'05/09','the sheet’s own date always wins');ok(!r2.dateFromSku,'not marked');
+  };
+
+  /* 60 · PREP SHEET BARCODE SEARCH (14 Oct): Becki types EANs as printed ("0 619659 204853") or just the last 4
+     digits. Spaces/dashes in a number don't count, nor a leading 0; a background refresh while the cursor is in
+     the search box must not freeze the search. */
+  S['Prep Sheet search: barcodes as printed, last 4, leading 0']=async()=>{
+    const r=mkRow({sku:'Amuk_99_14106_0_CHK_01',asin:'B0CHK00001',ean:'0619659204853',prod:'CHECK SanDisk',oid:'202-5524591-7700353',status:'In-Transit',exp:2});
+    const u=mkRow({sku:'Amg_96_06106_0_CHK_01',asin:'B0CHK00002',ean:'192876749692',prod:'CHECK ASUS board',status:'In-Transit',exp:1});
+    const m=(row,q)=>_prepMatch(row,q.trim().toLowerCase());
+    ok(m(r,'0619659204853'),'the full number');ok(m(r,'0 619659 204853'),'typed as printed, with spaces');
+    ok(m(r,'0-619659-204853'),'with dashes');ok(m(r,'0619659204853 '),'a stray space at the end');
+    ok(m(r,'619659204853'),'without its leading 0');ok(m(r,'4853'),'the last 4 digits');
+    ok(m(u,'0192876749692'),'the box’s 13 digits find the stored 12');ok(m(u,'0 192876 749692'),'and as printed');
+    ok(m(r,'202-5524591-7700353'),'an order number with dashes still works');ok(m(r,'check sandisk'),'words still work');
+    ok(!m(u,'0619659204853'),'and a different barcode does not match');
+    r.ean='0000000012345';ok(m(r,'12345'),'a new EAN is searchable straight away');
+    /* a refresh while the cursor is in the search box */
+    goPage('prep');await wait(200);const box=document.getElementById('prepSrch');const was=box.value;
+    try{box.focus();_rtFlush();await wait(150);
+      ok(!_pendingPrepRender,'the search box is not treated as a cell being edited');
+      box.value='CHECK ASUS board';applyPrepSearch();
+      const shown=[...document.querySelectorAll('#prepBody tr[data-id]')].filter(tr=>tr.style.display!=='none').map(tr=>tr.dataset.id);
+      ok(shown.includes(String(u.id))&&shown.length<5,'the search still filters');
+    }finally{box.value=was;applyPrepSearch();box.blur();}
+  };
+
+  /* 61 · EDIT ROW KEEPS WHAT IT DOESN'T SHOW (14 Oct): Part Sent wasn't in the Status list, so opening a Part Sent row
+     and saving wiped its status; the send date and "received at" were wiped or re-stamped on every save; Add New Row
+     kept the last row's barcode; the order year was fixed at 2026. */
+  S['Edit Row: Part Sent, send date, received-at, fresh Add New Row']=async()=>{
+    goPage('prep');await wait(150);
+    const r=mkRow({sku:'Amuk_5_01106_0_CHK_02',sup:'Amazon UK',status:'Part Sent',sent:'No',sentDate:'2026-10-01',rcvdAt:'2026-09-30T10:00:00.000Z',
+      exp:6,rcvd:6,ship:3,ean:'0619659204853',asin:'B0CHK00003',prod:'CHECK edit row',date:'01/10'});
+    /* only this row's save counts — an earlier check's delayed save (renderAdmin debounces
+       its own saveRow by 1.5s) can land here while saveRow is swapped out */
+    const keep=window.saveRow;let got=null;window.saveRow=async x=>{if(x&&x.uuid===r.uuid)got=x;return true;};
+    try{
+      openEdit(r.uuid);await wait(80);
+      eq(document.getElementById('f-status').value,'Part Sent','Part Sent shows in the box');
+      eq(document.getElementById('f-date').value,_ddmmToISO('01/10'),'the order date fills');
+      saveRowForm();await wait(80);
+      ok(got,'it saved');eq(got&&got.status,'Part Sent','status kept');eq(got&&got.sentDate,'2026-10-01','send date kept');
+      eq(got&&got.rcvdAt,'2026-09-30T10:00:00.000Z','received-at kept');eq(got&&got.ean,'0619659204853','barcode kept');
+      openAdd();await wait(50);eq(document.getElementById('f-ean').value,'','Add New Row starts with no barcode');
+      eq(document.getElementById('f-date').value,todayISO(),'and today’s UK date');
+      const t=todayISO(),fut=ukAddDays(t,10);const dm=fut.slice(8,10)+'/'+fut.slice(5,7);
+      ok(_ddmmToISO(dm)<=t,'a dd/mm still to come this year is last year’s order');
+    }finally{window.saveRow=keep;try{cm('addModal');}catch(e){}}
+  };
+
+  /* 62 · PLUB EXTRAS (21 Oct): 30 counted in against an order of 25 kept its 5 extras only until the purchase was
+     re-applied, which capped it back at 25. And at packing, "We have extra parts" books the missing parts in first,
+     so the send never takes stock the app does not have. */
+  S['PLUB extras: counted-in extras survive; packing books the missing parts']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),c=D.components.find(x=>!x.archived&&!x.untracked);
+    const pu={id:'chkx'+Date.now(),name:'CHECK extra purchase',date:'2026-10-20',qty:25,price:0.9,sup:'CHECK SUP',oid:'CHK-X1',loc:'Warehouse',arr:0,alloc:[]};
+    const tag='P:'+pu.id,lay=()=>(c.layers||[]).find(x=>x.src===tag);
+    try{
+      LV3.__setAlloc(pu,[{to:c.id,qty:25}]);ok(lay(),'the order sits on the part');
+      LV3.receiveRow('component',c.id,lay().id,30,'',0,false,{quiet:true});
+      eq(lay().rem,30,'30 counted in against 25 ordered');eq(lay().extra,5,'5 remembered as extra');
+      LV3.__setAlloc(pu,[{to:c.id,qty:25}]);
+      eq(lay().rem,30,'a re-apply keeps all 30');eq(lay().qty,30,'and the batch quantity');
+      LV3.__setAlloc(pu,[{to:c.id,qty:20}]);
+      eq(lay().rem,25,'shrinking the allocation to 20 keeps 20 plus the 5 extra');
+    }finally{c.layers=(c.layers||[]).filter(x=>x.src!==tag);}
+    const p=D.products.find(x=>!x.archived&&x.type==='bundle'&&x.recipe&&x.recipe.length&&LV3.shipCheck(x.asin,1)&&LV3.shipCheck(x.asin,1).available!=null);
+    if(p){
+      const can=LV3.shipCheck(p.asin,1).available,want=can+3;
+      const plan=LV3.extraPlan(p.asin,want);ok(plan.length,'the short parts are named');
+      const keepL=new Map(D.components.map(x=>[x.id,(x.layers||[]).length]));
+      try{
+        const r=LV3.bookExtraForBuild(p.asin,want,'CHECK supplier sent extra','');
+        eq(r.added.length,plan.length,'each short part booked in');
+        eq(LV3.shipCheck(p.asin,want).available>=want,true,`now ${want} can be built`);
+        ok(D.components.some(x=>(x.layers||[]).some(l=>l.sup==='Found extra'&&/CHECK supplier sent extra/.test(l.note||''))),'booked as Found extra, with the reason');
+      }finally{D.components.forEach(x=>{if(x.layers)x.layers=x.layers.filter(l=>!(l.sup==='Found extra'&&/CHECK supplier sent extra/.test(l.note||'')));});
+        (D.log||[]).splice(0,(D.log||[]).findIndex(l=>!/CHECK/.test(l.txt||''))>0?(D.log||[]).findIndex(l=>!/CHECK/.test(l.txt||'')):0);}
+    }
+    LV3.__save();
+  };
+
+  /* 63 · NUMBERS GO TO THE SEARCH (21 Oct): with a row selected, "0" used to set Expected Qty to 0 and save. */
+  S['Prep Sheet: a typed number searches, never edits the selected row']=async()=>{
+    const r=mkRow({exp:10,rcvd:0,status:'In-Transit',prod:'CHECK numbers row'});
+    goPage('prep');await wait(250);renderPrep();await wait(200);
+    const box=document.getElementById('prepSrch'),was=box.value;
+    const trs=getRowEls();let ri=-1,ci=-1;
+    trs.forEach((tr,i)=>{if(ri<0)getVisibleTds(tr).forEach((td,c)=>{const inp=td.querySelector('input');if(ci<0&&inp&&inp.type==='number'){ri=i;ci=c;}});});
+    ok(ri>=0,'a number cell to select');
+    const inp=getVisibleTds(trs[ri])[ci].querySelector('input'),before=inp.value;
+    try{
+      box.value='';setFocus(ri,ci);if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+      document.dispatchEvent(new KeyboardEvent('keydown',{key:'0',bubbles:true}));
+      await wait(80);
+      eq(inp.value,before,'the cell was not touched');eq(box.value,'0','the digit went into the search box');
+      eq(document.activeElement,box,'and the cursor is there, so the rest of the barcode types straight in');
+    }finally{box.value=was;applyPrepSearch();box.blur();}
+  };
+
+  /* 64 · eBAY STOCK (Becki 15 Oct, Jack 21 Oct): stock we decide to sell on eBay — not a problem, nobody to chase.
+     Raised at the bench, it goes straight to Recovery Stock, comes off "to send", and the row files once the rest is gone. */
+  S['eBay stock: straight to Recovery Stock, off "to send", row files itself']=async()=>{
+    const r=mkRow({exp:10,rcvd:10,ship:0,status:'In Warehouse',sku:'Amuk_5_14106_0_CHK_10',prod:'CHECK eBay row',asin:'B0CHKEBAY1',sup:'Amazon UK',oid:'202-CHK-EBAY'});
+    const keep={cc:window._createIssueClaim,rfc:window.recFromClaim,sc:window.saveClaim,sr:window.saveRow};
+    let recArgs=null,made=null;
+    window._createIssueClaim=async(row,type,qty,opts)=>{made={id:'chk-c-ebay',prepRowId:row.uuid||row.id,issT:type,dif:qty,cst:'Needs Attention',log:[],_chk:true,sku:row.sku,oid:row.oid};claims.push(made);return made;};
+    window.recFromClaim=async(c,o)=>{recArgs={c,o};return{qty:c.dif};};
+    window.saveClaim=async()=>true;window.saveRow=async()=>true;
+    try{
+      openIssueModal(r.uuid);await wait(80);
+      ok([...document.getElementById('il-type-0').options].some(o=>o.value==='eBay stock'),'eBay stock is on the list');
+      document.getElementById('il-type-0').value='eBay stock';document.getElementById('il-qty-0').value='3';
+      await saveIssueModal();await wait(80);
+      ok(made&&made.cst==='Resolved','the record closes itself — nobody to chase');
+      ok(recArgs&&recArgs.o&&recArgs.o.source==='eBay stock','the units go to Recovery Stock as eBay stock');
+      eq(r.issueType,'eBay stock','the row knows');eq(sendableQty(r),7,'3 come off "to send" — 7 left for Amazon');
+      ok(!_recoveryFiled(r),'with 7 still on the shelf the row stays');
+      r.ship=7;r.shipSegments=[{shipId:'FBA15CHK',units:7,date:todayISO(),type:'Standard'}];
+      ok(_recoveryFiled(r),'once the 7 have gone, the row files itself');ok(/eBay stock/.test(r.notes||''),'and says why');
+    }finally{Object.assign(window,{_createIssueClaim:keep.cc,recFromClaim:keep.rfc,saveClaim:keep.sc,saveRow:keep.sr});try{cm('issueModal');}catch(e){}}
+  };
+
+  /* 65 · EVERY SEND ROUTE KNOWS ABOUT EXTRAS (22 Oct): the PLUB page's own Ship popup and raising a line on the
+     Shipments page. The Ship popup offers "book them in & send"; raising a line past what can be built stops and asks
+     instead of quietly logging the rest as owed. */
+  S['extras: PLUB Ship popup and raising a shipment line']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D();
+    const p=D.products.find(x=>!x.archived&&x.type==='bundle'&&x.recipe&&x.recipe.length&&LV3.shipCheck(x.asin,1)&&LV3.shipCheck(x.asin,1).available!=null);
+    if(!p)return;
+    const can=LV3.shipCheck(p.asin,1).available,want=can+2;
+    const tidy=()=>D.components.forEach(x=>{if(x.layers)x.layers=x.layers.filter(l=>!(l.sup==='Found extra'&&/CHECK/.test(l.note||'')));});
+    try{
+      LV3.openShip(p.id);await wait(150);LV3.shipQty(want);await wait(120);
+      const send=()=>[...document.getElementById('lav3Mod1').querySelectorAll('button')].find(b=>new RegExp('Send '+want).test(b.textContent));
+      ok(send()&&send().disabled,`${want} is blocked to start with`);
+      ok(document.getElementById('shipXWhy'),'the Ship popup offers the extra-parts way out');
+      document.getElementById('shipXWhy').value='Something else';document.getElementById('shipXNote').value='CHECK extra';
+      LV3.shipExtra();await wait(150);
+      ok(!document.getElementById('shipXWhy')&&!/Can't send/.test(document.getElementById('lav3Mod1').textContent),'after booking them in, the stock block is gone');
+      ok(/Ship —/.test(document.getElementById('lav3Mod1').textContent),'and you are still on the Ship popup');
+    }finally{tidy();try{LV3.cm('lav3Ov1');}catch(e){}}
+    const ls=(typeof lavShipments!=='undefined'?lavShipments:[]).find(s=>s.uuid&&s.asin===p.asin);
+    if(ls){
+      const keep=window.showConfirm,was=ls.units;let asked=null;window.showConfirm=(t)=>{asked=t;};
+      try{
+        editLavShipLine(ls.uuid);await wait(80);
+        document.getElementById('editLavUnits').value=was+LV3.shipCheck(p.asin,1).available+3;
+        saveEditLavLine();await wait(80);
+        ok(asked&&/more can be built/.test(asked),'raising the line past what can be built stops and asks');
+        eq(ls.units,was,'nothing changed while it asks');
+      }finally{window.showConfirm=keep;try{cm('editLavLineModal');}catch(e){}}
+    }
+  };
+
+  /* 66 · IMPOSSIBLE DATES (22 Oct): Jack typed 31/11/2026 into "When did Amazon say?" and got "Pick a date first" —
+     the box shows the date but hands the app nothing. The message says what is wrong. */
+  S['date boxes: an impossible date says so']=async()=>{
+    ok(/doesn.t exist/.test(dateBoxMsg({validity:{badInput:true}},'Pick a date first')),'31 November is called out');
+    eq(dateBoxMsg({validity:{badInput:false}},'Pick a date first'),'Pick a date first','an empty box still asks for a date');
+    eq(dateBoxMsg(null,'Pick a date'),'Pick a date','no box, plain message');
+  };
+
+  /* 67 · RESTOCKS "LAST BOUGHT" (22 Oct): the newest real purchase of a part — never a found-extra or correction batch. */
+  S['Restocks: last bought is the newest real purchase']=async()=>{
+    const c={layers:[{sup:'Tesco',cost:0.85,date:'2026-09-01',qty:40,arr:1,rem:0},
+      {sup:'Holleys Fine Foods',cost:0.87,date:'2026-10-12',qty:3010,arr:0,rem:0},
+      {sup:'Found extra',cost:0.9,date:'2026-10-21',qty:9,arr:1,rem:0},
+      {sup:'Stock correction',cost:0.9,date:'2026-10-20',qty:5,arr:1,rem:0}]};
+    const lb=LV3.lastBuy(c);
+    eq(lb&&lb.sup,'Holleys Fine Foods','newest real supplier');eq(lb&&lb.cost,0.87,'with its price');
+    eq(LV3.lastBuy({layers:[]}),null,'nothing bought, nothing shown');
+  };
+
+  /* 68 · SENT OVER STOCK, SETTLED PROPERLY (22 Oct): Settle used to tick the line and nothing else, so the parts the
+     over-sent units used never came off and the shelf read high for good. "Take the parts off now" takes them off;
+     "Close" takes nothing and says so; both ask first. */
+  S['sent over stock: Settle takes the parts off, Close takes nothing']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D();D.settings.overSent=D.settings.overSent||{};
+    const p=D.products.find(x=>!x.archived&&x.type==='bundle'&&x.recipe&&x.recipe.length
+      &&(LV3.shipCheck(x.asin,1)||{}).available>=2&&!LV3.overSentFor(x.asin));
+    if(!p)return;
+    const rems=[];D.components.forEach(c=>(c.layers||[]).forEach(l=>rems.push([l,l.rem])));
+    const had=D.settings.overSent[p.asin],logN=D.log.length;
+    const av0=LV3.shipCheck(p.asin,1).available;
+    try{
+      D.settings.overSent[p.asin]=[{on:new Date().toISOString(),units:1,shipId:'CHECK',by:'check',settled:false}];
+      LV3.settleOverSent(p.asin,'take');await wait(60);
+      ok(/Take the parts/.test(document.getElementById('lav3Mod2').textContent),'it asks before taking anything');
+      eq(LV3.overSentFor(p.asin),1,'nothing settled while it asks');
+      LV3.cm('lav3Ov2');
+      LV3.settleOverSent(p.asin,'take',true);await wait(60);
+      eq(LV3.shipCheck(p.asin,1).available,av0-1,'the parts for 1 came off the shelf');
+      eq(LV3.overSentFor(p.asin),0,'and the line is settled');
+      eq(D.settings.overSent[p.asin][0].settledHow,'parts taken off','it says how');
+      D.settings.overSent[p.asin].push({on:new Date().toISOString(),units:3,shipId:'CHECK',by:'check',settled:false});
+      LV3.settleOverSent(p.asin,'gone',true);await wait(60);
+      eq(LV3.shipCheck(p.asin,1).available,av0-1,'Close takes nothing off');
+      eq(LV3.overSentFor(p.asin),0,'but closes it');
+      ok(/nothing to take off/.test((D.log[0]||{}).txt||''),'and the log says so');
+    }finally{
+      rems.forEach(([l,r])=>{l.rem=r;});
+      if(had)D.settings.overSent[p.asin]=had;else delete D.settings.overSent[p.asin];
+      D.log.splice(0,D.log.length-logN);
+      try{LV3.cm('lav3Ov1');LV3.cm('lav3Ov2');}catch(e){}
+    }
+  };
+
+  /* 69 · ALL ARRIVED, SOME NEVER SENT (22 Oct, BioEars): Jack's card asked "12 of 12 booked in — what happened to
+     the other 0?". With nothing owed and units left unsent it asks where the unsent ones are; Sarah's Send-to-Jack
+     popup says nothing is missing from the order. */
+  S['Jack: all arrived, some never sent — asks the right question']=async()=>{
+    who('Sarah');const r=mkRow({exp:12,rcvd:12,ship:10,status:'Part Sent',resolution:asked()});
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      goPage('jack');renderJack();await wait(50);   /* Jack's page only paints while it is open */
+      const t=document.getElementById('page-jack').textContent;
+      const i=t.indexOf(r.prod),card=i>=0?t.slice(i,i+900):'';
+      ok(i>=0,'the row is on Jack’s page');
+      ok(/Where are the other 2\?/.test(card),'it asks where the other 2 are');
+      ok(!/the other 0/.test(card),'never "the other 0"');
+      ok(/Still on the shelf/.test(card)&&/Went out under another SKU/.test(card),'with the warehouse answers');
+      askJackAsk(rid(r));await wait(30);
+      ok(/All 12 of 12 are booked in/.test(document.getElementById('askModal').innerText),'Sarah’s Send-to-Jack says nothing is missing');
+    }finally{try{askShut();}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 70 · NOTHING CUT OFF (22 Oct): prep.css table{min-width:1280px} pushed PLUB popup columns off the edge (Settle was
+     never visible), and Sarah's waiting rows lost Undo / Details off a 118px column. Tables fit their popup; every
+     button on a waiting row sits inside its row. */
+  S['layout: popup tables fit, waiting-row buttons are visible']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),p=D.products.find(x=>!x.archived&&x.type==='bundle'&&x.recipe&&x.recipe.length);
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      if(p){
+        LV3.openProduct(p.id);await wait(200);
+        const mb=document.querySelector('#lav3Mod1 .mb'),W=mb.getBoundingClientRect().width;
+        [...mb.querySelectorAll('table')].filter(t=>!t.classList.contains('mx')).forEach(t=>ok(t.getBoundingClientRect().width<=W+2,'a product-popup table fits the popup'));
+        LV3.cm('lav3Ov1');
+      }
+      who('Sarah');mkRow({exp:10,resolution:asked()});
+      goPage('admin');renderAdmin();await wait(80);
+      const rowsC=[...document.querySelectorAll('#page-admin tr.tfuCompact')];
+      ok(rowsC.length>0,'a waiting row is drawn');
+      rowsC.forEach(tr=>{const R=tr.getBoundingClientRect();tr.querySelectorAll('button').forEach(b=>{const r=b.getBoundingClientRect();
+        ok(r.width>0&&r.right<=R.right+1,`"${b.textContent.trim()}" sits inside its row`);});});
+    }finally{try{LV3.cm('lav3Ov1');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 71 · READING TIDY (22 Oct): the X56's 12 bounced sends read as one line, and a written-off remainder (Dove MD ×2,
+     Superdrug) is not "on the way in". */
+  S['history: bounced sends read as one line; written-off is not on the way']=async()=>{
+    const t0=Date.parse('2026-10-13T13:49:50Z'),L=[{at:'2026-09-17T14:46:11Z',by:'Jack',what:'parked'}];
+    for(let k=0;k<4;k++){const a=new Date(t0+k*864e5).toISOString(),b=new Date(t0+k*864e5+2).toISOString();
+      L.push({at:a,by:'Sarah',what:'Sent to Jack — Check whether it was cancelled or refunded'},{at:b,by:'PrepHub',what:'The promised date passed with nothing booked in — back with Sarah to chase'});}
+    L.push({at:'2026-10-22T16:41:51Z',by:'Sarah',what:'Sent to Jack — has Amazon delivered it?'});
+    const q=_squashBounces(L);
+    eq(q.length,3,'nine lines become three');ok(/Sent to Jack 4 times/.test(q[1].what),'the bounces are counted');
+    eq(q[2].what,'Sent to Jack — has Amazon delivered it?','a send that stuck is kept as it is');
+    eq(_squashBounces([L[1],L[2]]).length,2,'a single bounce is left alone');
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),p=D.products.find(x=>!x.archived&&x.type==='bundle'&&x.recipe&&x.recipe.length);if(!p)return;
+    const c=D.components.find(x=>x.id===p.recipe[0].c);if(!c)return;
+    const l={id:'chk-wo',sup:'CHECK',date:'2026-08-02',qty:2,cost:1,rem:0,arr:0,writtenOff:1};c.layers=(c.layers||[]).concat([l]);
+    try{LV3.openProduct(p.id);await wait(150);
+      ok(!/CHECK/.test(document.getElementById('lav3Mod1').innerText),'a written-off line is not listed as on the way');}
+    finally{c.layers=c.layers.filter(x=>x!==l);LV3.cm('lav3Ov1');}
+  };
+
+  /* 72 · WRITTEN OFF ON JACK'S PAGE (22 Oct): every loss in one list — a Prep Sheet write-off, a claim written off,
+     a PLUB shortage written off — and a PLUB line closed as refunded is NOT a loss. */
+  S['Jack: Written off lists every loss, never a refund']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const r=mkRow({exp:10,rcvd:4,cancelledQty:6,archived:true,prod:'CHECK WO row',
+      resolution:{state:'approved',what:'no-refund',refundUnits:6,approvedBy:'Jack',approvedAt:iso(),moneyOff:{by:'Jack',at:iso(),why:'Written off — taking the loss'}}});
+    mkClaim({prod:'CHECK WO claim',dif:3,claimValue:12.5,reimbursed:'Write-off',outcome:'written-off',cst:'Resolved',resolvedAt:iso().slice(0,10),archived:true});
+    const D=LV3.__D(),c=D.components[0],L1={id:'chk-wo1',sup:'CHECK',date:'2026-10-01',qty:0,shortQty:5,cost:2,rem:0,arr:0,writtenOff:'2026-10-20',shortEnd:{k:'writeoff',on:'2026-10-20',by:'Jack'}},
+      L2={id:'chk-wo2',sup:'CHECKREF',date:'2026-10-01',qty:4,shortQty:4,cost:2,rem:0,arr:0,writtenOff:1,shortEnd:{k:'refund',on:'2026-10-20',by:'Becki'}};
+    c.layers=(c.layers||[]).concat([L1,L2]);
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      const W=_writeOffs();
+      const pr=W.find(x=>x.prod==='CHECK WO row');ok(pr&&pr.units===6&&pr.src==='Prep Sheet','the Prep Sheet write-off is listed with its 6 units');
+      const cl=W.find(x=>x.prod==='CHECK WO claim');ok(cl&&cl.val===12.5&&cl.src==='Claim','the claim write-off is listed with its £');
+      const pl=W.find(x=>x.sup==='CHECK'&&x.src==='PLUB short');ok(pl&&pl.units===5&&pl.val===10,'the PLUB shortage write-off is listed — 5 × £2');
+      ok(!W.some(x=>x.sup==='CHECKREF'),'a PLUB line closed as refunded is not a loss');
+      goPage('jack');renderJack();await wait(60);
+      ok(/Written off/.test((document.querySelector('#page-jack details.jkWo summary')||{}).textContent||''),'the panel is on Jack’s page');
+    }finally{c.layers=c.layers.filter(x=>x!==L1&&x!==L2);if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
 
   function D_products(){try{return (LV3.allProducts&&LV3.allProducts())||[];}catch(e){return [];}}

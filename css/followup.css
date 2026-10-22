@@ -27,7 +27,7 @@
 .srtCard.on{border-color:var(--accent);background:rgba(251,191,36,.1);box-shadow:0 0 0 1px var(--accent);}
 .srtCardT{font-size:12px;font-weight:800;color:var(--text);line-height:1.25;}
 .srtCardD{font-size:11.5px;font-weight:600;color:#b3ada1;line-height:1.35;}
-.srtCardK{font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-top:2px;}
+.srtCardK{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-top:2px;}
 /* The chosen card goes to the TOP of the grid the instant it is chosen. This
    is the whole glitch: the grid collapses from 460px to one row, but the card
    you picked was sitting in the middle of it, so for a quarter of a second the
@@ -77,7 +77,7 @@
   transition:border-top-color .15s;}
 .jkKpi b{display:block;font:800 26px var(--num);font-variant-numeric:tabular-nums;
   color:var(--text);letter-spacing:-.5px;line-height:1.05;}
-.jkKpi span{display:block;font-size:9px;font-weight:800;color:var(--text3);
+.jkKpi span{display:block;font-size:10px;font-weight:800;color:var(--text3);
   text-transform:uppercase;letter-spacing:.08em;margin-top:5px;}
 .jkKpi.hot{border-top-color:#60a5fa;}   .jkKpi.hot b{color:#60a5fa;}
 .jkKpi.warn{border-top-color:var(--accent);} .jkKpi.warn b{color:var(--accent);}

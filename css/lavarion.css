@@ -371,7 +371,7 @@
 #page-lavarion .rsTop .rsWhoM,.lav3 .rsTop .rsWhoM{font-size:11px;color:var(--text3);margin-top:2px;}
 #page-lavarion .rsTop .rsFacts,.lav3 .rsTop .rsFacts{display:flex;gap:18px;margin:0;flex-wrap:wrap;}
 #page-lavarion .rsTop .rsFact .v,.lav3 .rsTop .rsFact .v{font-size:16px;}
-#page-lavarion .rsTop .rsFact .k,.lav3 .rsTop .rsFact .k{font-size:9px;}
+#page-lavarion .rsTop .rsFact .k,.lav3 .rsTop .rsFact .k{font-size:10px;}
 #page-lavarion .rsTop .rsFact .s,.lav3 .rsTop .rsFact .s{font-size:9.5px;}
 #page-lavarion .rsBuild,.lav3 .rsBuild{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;}
 #page-lavarion .rsBuild .rsLbl,.lav3 .rsBuild .rsLbl{font:800 9px var(--sans);letter-spacing:.07em;
@@ -477,7 +477,7 @@
   padding-left:8px;padding-right:8px;}
 #page-lavarion .rsLog,.lav3 .rsLog{flex:0 0 100%;margin-top:9px;border-top:1px solid var(--border);padding-top:9px;}
 #page-lavarion .rsTbl.mini,.lav3 .rsTbl.mini{font-size:12px;}
-#page-lavarion .rsTbl.mini th,.lav3 .rsTbl.mini th{font-size:9px;padding-top:5px;padding-bottom:5px;}
+#page-lavarion .rsTbl.mini th,.lav3 .rsTbl.mini th{font-size:10px;padding-top:5px;padding-bottom:5px;}
 #page-lavarion .rsTbl.mini td,.lav3 .rsTbl.mini td{padding-top:5px;padding-bottom:5px;}
 #page-lavarion .rsTbl.mini .pname,.lav3 .rsTbl.mini .pname{font-size:12px;}
 #page-lavarion .ph>.rsChev,.lav3 .ph>.rsChev{margin-right:2px;}
@@ -496,12 +496,6 @@
   max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #page-lavarion .rsFromC b,.lav3 .rsFromC b{font:800 11px var(--num);color:var(--accent);flex:0 0 auto;}
 /* the count's own date and time — it is not always "now" */
-#page-lavarion .amzWhen,.lav3 .amzWhen{display:flex;align-items:center;gap:9px;flex-wrap:wrap;
-  background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:11px;}
-#page-lavarion .amzWhen .k,.lav3 .amzWhen .k{font:800 10px var(--sans);letter-spacing:.07em;
-  text-transform:uppercase;color:var(--text2);}
-#page-lavarion .amzWhen input,.lav3 .amzWhen input{width:auto;flex:0 0 auto;font:700 12.5px var(--num);}
-#page-lavarion .amzWhen .pmeta,.lav3 .amzWhen .pmeta{flex:1;min-width:210px;}
 /* end sales css */
 #page-lavarion .dupbar,.lav3 .dupbar{display:flex;gap:13px;align-items:flex-start;margin-bottom:13px;
   background:rgba(248,113,113,.11);border:1px solid rgba(248,113,113,.45);border-left:5px solid var(--red);
@@ -922,7 +916,7 @@
 /* the name was chopped at 18 characters — "Dove LM 75ml Tanni". Cut on the
    pixel boundary with an ellipsis so it never ends mid-word. */
 #page-lavarion .incNm,.lav3 .incNm{min-width:0;overflow:hidden;text-overflow:ellipsis;}
-#page-lavarion .thSub,.lav3 .thSub{font-size:9px;font-weight:600;letter-spacing:0;text-transform:none;
+#page-lavarion .thSub,.lav3 .thSub{font-size:10px;font-weight:600;letter-spacing:0;text-transform:none;
   color:var(--text3);margin-top:3px;font-style:italic;}
 #page-lavarion .incU,.lav3 .incU{font-size:10.5px;color:var(--grn);margin-top:2px;}
 /* stock-at-Amazon, one ASIN at a time */
@@ -932,6 +926,7 @@
 #page-lavarion .seg.on,.lav3 .seg.on{background:var(--accent);color:var(--accent-ink);}
 #page-lavarion .amzHelp,.lav3 .amzHelp{font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:12px;
   padding:10px 13px;border-left:3px solid var(--blu);background:var(--bg3);border-radius:0 8px 8px 0;}
+#page-lavarion .amzHelp,.lav3 .amzHelp{max-width:1000px;margin-left:auto;margin-right:auto;}
 /* Jack, 3 Sep: "maybe freeze heading". Thirty-nine rows of two identical
    number boxes, and by row ten you cannot remember which column is Available
    and which is Inbound. The header now stays put while the list scrolls. */
@@ -939,45 +934,12 @@
    wider than the content needs, so a 1fr product column swallowed ~400px of
    nothing while the numbers were squeezed against the right edge. Cap the
    width and centre the lot; the number columns get room and sit together. */
-#page-lavarion .amzGrid,.lav3 .amzGrid{border:1px solid var(--border);border-radius:10px;overflow:visible;
-  max-width:1000px;margin-left:auto;margin-right:auto;}
-#page-lavarion .amzWhen,.lav3 .amzWhen,#page-lavarion .amzHelp,.lav3 .amzHelp{max-width:1000px;margin-left:auto;margin-right:auto;}
 /* the two numbers are the job — make them big enough to hit and read */
-#page-lavarion .amzQ,.lav3 .amzQ,#page-lavarion .amzI,.lav3 .amzI{text-align:center;font:800 14px var(--num);
-  font-variant-numeric:tabular-nums;padding:7px 6px;}
-#page-lavarion .amzGrid .amzHead,.lav3 .amzGrid .amzHead{position:sticky;top:0;z-index:6;
-  box-shadow:0 1px 0 var(--border2),0 6px 12px rgba(0,0,0,.35),0 -18px 0 #131311;
-  border-radius:10px 10px 0 0;}
 /* the wrapper used overflow:hidden to round its corners, but that also stops
    a sticky child from sticking — so the corners are done on the ends instead */
-#page-lavarion .amzGrid .amzRow:last-child,.lav3 .amzGrid .amzRow:last-child{border-radius:0 0 10px 10px;}
 /* the line you are actually typing on, so the eye never loses its place */
-#page-lavarion .amzRow:focus-within,.lav3 .amzRow:focus-within{background:rgba(245,158,11,.09);
-  box-shadow:inset 3px 0 0 var(--accent);}
-#page-lavarion .amzRow:focus-within .amzNm,.lav3 .amzRow:focus-within .amzNm{color:var(--text);font-weight:700;}
-#page-lavarion .amzHead,.lav3 .amzHead,#page-lavarion .amzRow,.lav3 .amzRow{
-  display:grid;grid-template-columns:minmax(0,1fr) 124px 120px 116px 78px;gap:12px;align-items:center;padding:8px 14px;}
-#page-lavarion .amzHead,.lav3 .amzHead{background:var(--bg3);font:800 9.5px var(--num);letter-spacing:.07em;
-  text-transform:uppercase;color:var(--text3);}
-#page-lavarion .amzRow,.lav3 .amzRow{border-top:1px solid var(--border);}
 /* two numbers off the same SAS panel: available, then inbound */
-#page-lavarion .amzGrid.two .amzHead,.lav3 .amzGrid.two .amzHead,
-#page-lavarion .amzGrid.two .amzRow,.lav3 .amzGrid.two .amzRow{
-  grid-template-columns:minmax(0,1fr) 124px 120px 116px 116px 78px;}
-#page-lavarion .amzI,.lav3 .amzI{border-color:rgba(96,165,250,.35)!important;}
-#page-lavarion .amzI:focus,.lav3 .amzI:focus{border-color:var(--blu)!important;}
-#page-lavarion .amzSent,.lav3 .amzSent{display:inline-block;margin-left:7px;font:700 9.5px var(--sans);
-  padding:1px 7px;border-radius:20px;background:rgba(96,165,250,.16);color:#93c5fd;}
 #page-lavarion .amzInb,.lav3 .amzInb{font:700 10px var(--num);color:var(--blu);text-align:center;margin-top:1px;}
-#page-lavarion .amzRow:hover,.lav3 .amzRow:hover{background:var(--bg3);}
-#page-lavarion .amzRow.done,.lav3 .amzRow.done{background:rgba(85,255,85,.06);}
-#page-lavarion .amzNm,.lav3 .amzNm{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-#page-lavarion .amzAsin,.lav3 .amzAsin{font-size:11.5px;color:var(--text2);}
-#page-lavarion .amzWas,.lav3 .amzWas{font-size:12.5px;color:var(--text2);font-family:var(--num);}
-#page-lavarion .amzAge,.lav3 .amzAge{font-size:10px;color:var(--text3);margin-left:5px;}
-#page-lavarion .amzQ,.lav3 .amzQ{width:100%;text-align:center;font:800 15px var(--num);padding:7px 6px;}
-#page-lavarion .amzQ:focus,.lav3 .amzQ:focus{border-color:var(--accent);outline:none;}
-#page-lavarion .amzSas,.lav3 .amzSas{text-align:center;text-decoration:none;}
 #page-lavarion .rsStart,.lav3 .rsStart{max-width:640px;margin:40px auto 0;text-align:center;}
 #page-lavarion .rsStartT,.lav3 .rsStartT{font-size:22px;font-weight:800;color:var(--text);margin-bottom:8px;}
 #page-lavarion .rsStartB,.lav3 .rsStartB{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:18px;}
@@ -1140,7 +1102,8 @@
 .shipKpiC.on{background:rgba(255,255,255,.055);}
 .shipKpiC.on i{color:var(--text2);}
 .shipKpiC.on b{font-weight:900;color:var(--text);}
-@media(max-width:1500px){.shipBar{grid-template-columns:repeat(4,minmax(0,1fr));}}
+/* 4 + 3 left an empty slot under the fourth card — the last card takes it */
+@media(max-width:1500px){.shipBar{grid-template-columns:repeat(4,minmax(0,1fr));}.shipBar>:nth-child(7):last-child{grid-column:span 2;}}
 @media(max-width:900px){.shipBar{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:1180px){
   .shipBar{grid-template-columns:repeat(4,minmax(0,1fr));}
@@ -1270,6 +1233,12 @@
    reached it and global table{min-width:1280px} (380) widened the whole page.
    .rsTbl (1,1,0) loses to .panel>table (1,1,1), so the big table keeps 100%. */
 #page-lavarion .rsTbl,.lav3 .rsTbl{min-width:0;}
+/* 22 Oct 2026: the same global table{min-width:1280px} reached every table inside
+   a PLUB popup (980px wide, body overflow hidden): the product popup's parts and
+   purchases tables, the component popup's batches, Add several products /
+   components and Data all lost their right-hand columns off the edge. A popup
+   table fits its popup. */
+.overlay.lav3 .mb table{min-width:0;}
 /* rows, not a spreadsheet grid — the status rail is the only vertical line
    that should mean anything, and a hairline 1px away cancelled it */
 #page-lavarion .rsTbl th,.lav3 .rsTbl th,
@@ -1743,7 +1712,10 @@
 #page-lavarion .setup.done .n,.lav3 .setup.done .n{background:var(--grn-bg);border-color:var(--grn-br);color:var(--grn);}
 #page-lavarion .setup .tx,.lav3 .setup .tx{flex:1;font-size:13px;}
 #page-lavarion .setup .tx .s,.lav3 .setup .tx .s{display:block;font-size:11.5px;color:var(--text3);margin-top:3px;}
-#page-lavarion table.mx,.lav3 table.mx{border-collapse:separate;border-spacing:0;}
+/* 22 Oct 2026: the popup's table-layout:fixed ignored the 86px / 220px cell
+   minimums below — 103 columns were squeezed into the box (~12px each, inputs
+   unusable). The grid sizes to its cells and scrolls sideways, as designed. */
+#page-lavarion table.mx,.lav3 table.mx{border-collapse:separate;border-spacing:0;table-layout:auto;width:max-content;min-width:100%;}
 #page-lavarion table.mx th,.lav3 table.mx th{position:sticky;top:0;z-index:5;background:var(--bg4);border-bottom:2px solid var(--border2);
   padding:10px 7px;min-width:86px;vertical-align:bottom;}
 #page-lavarion table.mx th.stick,.lav3 table.mx th.stick,#page-lavarion table.mx td.stick,.lav3 table.mx td.stick{position:sticky;left:0;z-index:2;background:var(--bg2);
@@ -1752,7 +1724,7 @@
 #page-lavarion table.mx td,.lav3 table.mx td{border-bottom:1px solid var(--border);padding:5px;}
 #page-lavarion .mxh,.lav3 .mxh{font-size:11px;font-weight:600;color:var(--text2);line-height:1.25;max-width:86px;white-space:normal;
   text-transform:none;letter-spacing:-.01em;overflow-wrap:anywhere;}
-#page-lavarion .mxc,.lav3 .mxc{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);
+#page-lavarion .mxc,.lav3 .mxc{width:76px;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);
   font-family:var(--num);font-size:13.5px;font-weight:600;text-align:center;padding:7px 2px;
   font-variant-numeric:tabular-nums;font-feature-settings:'zero' 0;}
 #page-lavarion .mxc:focus,.lav3 .mxc:focus{outline:none;border-color:var(--accent);background:var(--bg3);}
@@ -1874,3 +1846,161 @@ button.rsAlso{display:block;margin:5px 0 0 auto;padding:3px 8px;max-width:100%;w
 button.rsAlso:hover{background:rgba(251,191,36,.14);border-style:solid;}
 button.rsAlso.ok{border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.07);color:var(--grn);}
 button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
+/* ══ Stock at Amazon — v53.4 (Jack, 13 Oct: "improve the ui ux design of it") ══
+   Two cards up top (when it was counted, in UK time · how to do it), then the
+   list: name with its ASIN under it, the last count, the two boxes in their own
+   colours (green available, blue inbound — the column header matches), and the
+   change against the last count as it is typed. Progress sits by Save. */
+#page-lavarion .mod.amzMod .mh,.lav3 .mod.amzMod .mh{padding:14px 20px;gap:14px;}
+#page-lavarion .mod.amzMod .mh .x,.lav3 .mod.amzMod .mh .x{margin-left:4px;}
+#page-lavarion .amzTitle,.lav3 .amzTitle{display:flex;flex-direction:column;gap:2px;min-width:0;}
+#page-lavarion .amzTitle h3,.lav3 .amzTitle h3{font-size:16px;font-weight:800;letter-spacing:-.01em;color:var(--text);}
+#page-lavarion .amzSub,.lav3 .amzSub{font-size:11.5px;font-weight:600;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .amzSub b,.lav3 .amzSub b{color:var(--text);font-weight:700;}
+#page-lavarion .amzSeg,.lav3 .amzSeg{margin-left:auto;display:inline-flex;gap:2px;padding:3px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;flex:0 0 auto;}
+#page-lavarion .amzSeg button,.lav3 .amzSeg button{background:none;border:none;color:var(--text3);font:700 12px var(--sans);padding:6px 14px;border-radius:7px;cursor:pointer;transition:background .15s,color .15s;}
+#page-lavarion .amzSeg button:hover,.lav3 .amzSeg button:hover{color:var(--text);background:var(--bg3);}
+#page-lavarion .amzSeg button.on,.lav3 .amzSeg button.on{background:var(--accent);color:var(--accent-ink);}
+#page-lavarion .amzTop,.lav3 .amzTop{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.55fr);gap:12px;max-width:1040px;margin:0 auto 14px;}
+#page-lavarion .amzTop.solo,.lav3 .amzTop.solo{display:flex;max-width:none;}
+#page-lavarion .amzCard,.lav3 .amzCard{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 14px;min-width:0;}
+#page-lavarion .amzCard .k,.lav3 .amzCard .k{display:flex;align-items:center;gap:8px;margin-bottom:9px;font:800 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#b6c2d4;}
+#page-lavarion .ukTag,.lav3 .ukTag{font:800 9.5px var(--sans);letter-spacing:.06em;padding:2px 8px;border-radius:20px;color:#93c5fd;background:rgba(96,165,250,.14);border:1px solid rgba(96,165,250,.4);}
+#page-lavarion .amzWhenRow,.lav3 .amzWhenRow{display:flex;gap:8px;align-items:center;}
+#page-lavarion .amzWhenRow input,.lav3 .amzWhenRow input{width:auto;flex:0 0 auto;font:700 13px var(--num);padding:7px 10px;}
+#page-lavarion .amzYou,.lav3 .amzYou{margin-top:8px;font-size:11.5px;font-weight:600;color:#93c5fd;}
+#page-lavarion .amzYou b,.lav3 .amzYou b{color:var(--text);font-family:var(--num);}
+#page-lavarion .amzCardSub,.lav3 .amzCardSub{margin-top:9px;font-size:11.5px;font-weight:500;line-height:1.5;color:var(--text3);}
+#page-lavarion .amzCardSub b,.lav3 .amzCardSub b{color:var(--text);font-weight:700;}
+#page-lavarion .amzSteps,.lav3 .amzSteps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+#page-lavarion .amzSteps li,.lav3 .amzSteps li{display:flex;align-items:center;gap:9px;min-width:0;padding:8px 10px;font-size:12px;font-weight:500;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:9px;}
+#page-lavarion .amzSteps .n,.lav3 .amzSteps .n{flex:0 0 22px;height:22px;border-radius:50%;display:grid;place-items:center;font:800 11px var(--num);background:var(--accent);color:var(--accent-ink);}
+#page-lavarion .amzSteps b,.lav3 .amzSteps b{color:var(--text);font-weight:800;}
+#page-lavarion .amzSteps b.cA,.lav3 .amzSteps b.cA{color:#86efac;}
+#page-lavarion .amzSteps b.cI,.lav3 .amzSteps b.cI{color:#93c5fd;}
+#page-lavarion .amzGrid,.lav3 .amzGrid{max-width:1040px;margin:0 auto;background:var(--bg2);border:1px solid var(--border);border-radius:12px;}
+#page-lavarion .amzHead,.lav3 .amzHead,#page-lavarion .amzRow,.lav3 .amzRow{display:grid;grid-template-columns:minmax(0,1fr) 132px 118px 118px 96px 62px;gap:12px;align-items:center;padding:9px 16px;}
+#page-lavarion .amzHead,.lav3 .amzHead{position:sticky;top:0;z-index:6;padding-top:10px;padding-bottom:10px;background:#1a1917;border-bottom:1px solid var(--border2);border-radius:12px 12px 0 0;
+  font:800 9.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#b6c2d4;box-shadow:0 6px 12px rgba(0,0,0,.35),0 -18px 0 var(--bg2);}
+#page-lavarion .amzHead .cA,.lav3 .amzHead .cA{color:#86efac;text-align:center;}
+#page-lavarion .amzHead .cI,.lav3 .amzHead .cI{color:#93c5fd;text-align:center;}
+#page-lavarion .amzHead span:nth-child(5),.lav3 .amzHead span:nth-child(5){text-align:center;}
+#page-lavarion .amzRow,.lav3 .amzRow{border-top:1px solid rgba(255,255,255,.05);box-shadow:inset 3px 0 0 transparent;transition:background .12s,box-shadow .12s;}
+#page-lavarion .amzHead+.amzRow,.lav3 .amzHead+.amzRow{border-top:none;}
+#page-lavarion .amzRow:last-child,.lav3 .amzRow:last-child{border-radius:0 0 12px 12px;}
+#page-lavarion .amzRow:hover,.lav3 .amzRow:hover{background:var(--bg3);}
+#page-lavarion .amzRow.done,.lav3 .amzRow.done{background:rgba(74,222,128,.06);box-shadow:inset 3px 0 0 #4ade80;}
+#page-lavarion .amzRow:focus-within,.lav3 .amzRow:focus-within{background:rgba(245,158,11,.08);box-shadow:inset 3px 0 0 var(--accent);}
+#page-lavarion .amzP,.lav3 .amzP{min-width:0;}
+#page-lavarion .amzNm,.lav3 .amzNm{font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-lavarion .amzRow:focus-within .amzNm,.lav3 .amzRow:focus-within .amzNm{font-weight:800;}
+#page-lavarion .amzMeta,.lav3 .amzMeta{display:flex;align-items:center;gap:8px;margin-top:2px;min-width:0;}
+#page-lavarion .amzAsin .asinC,.lav3 .amzAsin .asinC{font:600 11px var(--num);color:var(--text3);letter-spacing:.02em;}
+#page-lavarion .amzSent,.lav3 .amzSent{font:800 10px var(--sans);padding:1px 8px;border-radius:20px;white-space:nowrap;color:#93c5fd;background:rgba(96,165,250,.14);border:1px solid rgba(96,165,250,.4);}
+#page-lavarion .amzWas,.lav3 .amzWas{line-height:1.25;font-variant-numeric:tabular-nums;}
+#page-lavarion .amzWasN b,.lav3 .amzWasN b{font:800 15px var(--num);color:var(--text);}
+#page-lavarion .amzWasIn,.lav3 .amzWasIn{margin-left:5px;font:700 11.5px var(--num);color:#93c5fd;}
+#page-lavarion .amzAge,.lav3 .amzAge{margin-top:2px;font-size:11px;font-weight:600;color:var(--text3);}
+#page-lavarion .amzAge.old,.lav3 .amzAge.old{color:var(--amb);}
+#page-lavarion .amzNever,.lav3 .amzNever{font-size:11.5px;font-weight:600;font-style:italic;color:var(--text3);}
+#page-lavarion .amzQ,.lav3 .amzQ,#page-lavarion .amzI,.lav3 .amzI{width:100%;text-align:center;font:800 15px var(--num);font-variant-numeric:tabular-nums;padding:8px 6px;background:var(--bg);border-radius:8px;-moz-appearance:textfield;}
+#page-lavarion .amzQ::-webkit-inner-spin-button,.lav3 .amzQ::-webkit-inner-spin-button,#page-lavarion .amzQ::-webkit-outer-spin-button,.lav3 .amzQ::-webkit-outer-spin-button,#page-lavarion .amzI::-webkit-inner-spin-button,.lav3 .amzI::-webkit-inner-spin-button,#page-lavarion .amzI::-webkit-outer-spin-button,.lav3 .amzI::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+#page-lavarion .amzQ::placeholder,.lav3 .amzQ::placeholder,#page-lavarion .amzI::placeholder,.lav3 .amzI::placeholder{color:#5a6b82;}
+#page-lavarion .amzQ,.lav3 .amzQ{border:1px solid rgba(74,222,128,.3)!important;color:#86efac;}
+#page-lavarion .amzI,.lav3 .amzI{border:1px solid rgba(96,165,250,.34)!important;color:#93c5fd;}
+#page-lavarion .amzQ:focus,.lav3 .amzQ:focus{border-color:#4ade80!important;background:var(--bg3);outline:none;}
+#page-lavarion .amzI:focus,.lav3 .amzI:focus{border-color:#60a5fa!important;background:var(--bg3);outline:none;}
+#page-lavarion .amzDelta,.lav3 .amzDelta{text-align:center;white-space:nowrap;font:800 12.5px var(--num);font-variant-numeric:tabular-nums;color:var(--text3);}
+#page-lavarion .amzDelta.up,.lav3 .amzDelta.up{color:#4ade80;}
+#page-lavarion .amzDelta.down,.lav3 .amzDelta.down{color:#fca5a5;}
+#page-lavarion .amzDelta.same,.lav3 .amzDelta.same{font:600 11.5px var(--sans);color:var(--text3);}
+#page-lavarion .amzDelta.new,.lav3 .amzDelta.new{font:700 11px var(--sans);color:#c4b5fd;}
+#page-lavarion .amzDelta.big,.lav3 .amzDelta.big{color:#1a1400;background:#fbbf24;border-radius:6px;padding:2px 7px;justify-self:center;}
+#page-lavarion .amzSas,.lav3 .amzSas{display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 10px;border-radius:7px;font:800 11px var(--sans);text-decoration:none;white-space:nowrap;
+  color:#fcd34d;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);transition:background .12s;}
+#page-lavarion .amzSas:hover,.lav3 .amzSas:hover{background:rgba(245,158,11,.22);color:#fde68a;}
+#page-lavarion .mf.amzFoot,.lav3 .mf.amzFoot{gap:14px;padding:12px 20px;}
+#page-lavarion .amzBar,.lav3 .amzBar{flex:0 0 150px;height:6px;border-radius:6px;background:var(--bg4);overflow:hidden;}
+#page-lavarion .amzBar i,.lav3 .amzBar i{display:block;height:100%;width:0;background:#4ade80;border-radius:6px;transition:width .25s ease;}
+#page-lavarion .amzSum,.lav3 .amzSum{font-size:12px;font-weight:600;color:var(--text3);min-width:0;}
+#page-lavarion .amzSum b,.lav3 .amzSum b{color:var(--text);font-family:var(--num);}
+#page-lavarion .amzSum b.amzSumN,.lav3 .amzSum b.amzSumN{color:#4ade80;}
+#page-lavarion .amzSum b.amzBlu,.lav3 .amzSum b.amzBlu{color:#93c5fd;}
+#page-lavarion #amzGo,.lav3 #amzGo{padding:8px 20px;font-weight:800;}
+@media(max-width:900px){
+#page-lavarion .amzTop,.lav3 .amzTop{grid-template-columns:minmax(0,1fr);}
+#page-lavarion .amzSteps,.lav3 .amzSteps{grid-template-columns:minmax(0,1fr);}
+}
+@media(max-width:760px){
+#page-lavarion .amzHead,.lav3 .amzHead,#page-lavarion .amzRow,.lav3 .amzRow{grid-template-columns:minmax(0,1fr) 78px 78px 50px;gap:8px;padding:8px 10px;}
+#page-lavarion .amzHead span:nth-child(2),.lav3 .amzHead span:nth-child(2),#page-lavarion .amzHead span:nth-child(5),.lav3 .amzHead span:nth-child(5),#page-lavarion .amzWas,.lav3 .amzWas,#page-lavarion .amzDelta,.lav3 .amzDelta{display:none;}
+#page-lavarion .amzSub,.lav3 .amzSub{white-space:normal;}
+#page-lavarion .amzBar,.lav3 .amzBar{display:none;}
+}
+/* ══ Product drop-down — v53.4 (Jack, 13 Oct: "improve dropdown make it look nicer") ══
+   The drawer carries the row's state colour down its left edge, so it reads as
+   part of that row. Inside: the plan strip tinted in the same colour, then two
+   cards — what it is made of, what one unit costs — and the buttons on a rule. */
+#page-lavarion .rbox,.lav3 .rbox{text-align:left;padding:14px 20px 14px 42px;box-shadow:inset 3px 0 0 var(--rail,transparent),inset 0 10px 14px -12px rgba(0,0,0,.75);}
+#page-lavarion .rplan,.lav3 .rplan{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:11px 14px;margin:0 0 12px;border:1px solid var(--border);border-radius:11px;}
+#page-lavarion .rpChip,.lav3 .rpChip{flex:0 0 auto;}
+#page-lavarion .rpStat,.lav3 .rpStat{display:flex;flex-direction:column;line-height:1.05;flex:0 0 auto;}
+#page-lavarion .rpStat b,.lav3 .rpStat b{font:900 20px var(--num);font-variant-numeric:tabular-nums;color:var(--text);}
+#page-lavarion .rpStat span,.lav3 .rpStat span{margin-top:4px;font:800 9.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#b6c2d4;white-space:nowrap;}
+#page-lavarion .rpMeter,.lav3 .rpMeter{flex:0 0 200px;}
+#page-lavarion .rpTrack,.lav3 .rpTrack{position:relative;height:7px;border-radius:7px;background:rgba(255,255,255,.09);}
+#page-lavarion .rpTrack i,.lav3 .rpTrack i{display:block;height:100%;border-radius:7px;}
+#page-lavarion .rpTrack em,.lav3 .rpTrack em{position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;margin-left:-1px;border-radius:1px;background:var(--text);opacity:.6;}
+#page-lavarion .rpScale,.lav3 .rpScale{display:grid;grid-template-columns:1fr auto 1fr;margin-top:5px;font:700 10px var(--num);color:var(--text3);}
+#page-lavarion .rpScale span:nth-child(2),.lav3 .rpScale span:nth-child(2){color:var(--text2);}
+#page-lavarion .rpScale span:first-child,.lav3 .rpScale span:first-child{text-align:left;}
+#page-lavarion .rpScale span:last-child,.lav3 .rpScale span:last-child{text-align:right;}
+#page-lavarion .rpScale span:nth-child(2),.lav3 .rpScale span:nth-child(2){text-align:center;}
+#page-lavarion .rpWhy,.lav3 .rpWhy{flex:1;min-width:220px;font-size:12px;font-weight:500;line-height:1.45;color:var(--text2);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+#page-lavarion .rplan>.btn,.lav3 .rplan>.btn{margin-left:auto;flex:0 0 auto;}
+#page-lavarion .rbox .rgrid,.lav3 .rbox .rgrid{gap:14px;grid-template-columns:minmax(0,1.75fr) minmax(340px,1fr);}
+@media(max-width:1100px){#page-lavarion .rbox .rgrid,.lav3 .rbox .rgrid{grid-template-columns:minmax(0,1fr);}}
+#page-lavarion .rbox .rcard,.lav3 .rbox .rcard,#page-lavarion .rbox .cogbox,.lav3 .rbox .cogbox{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:12px 14px;margin-top:0;box-shadow:0 2px 10px rgba(0,0,0,.3);}
+#page-lavarion .rbox .rsh,.lav3 .rbox .rsh{margin:0 0 8px;font:800 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#b6c2d4;}
+#page-lavarion .rbox .rsh:after,.lav3 .rbox .rsh:after{background:rgba(255,255,255,.06);}
+#page-lavarion .rbox .rcard .rsh:not(:first-child),.lav3 .rbox .rcard .rsh:not(:first-child){margin-top:12px;}
+#page-lavarion .rbox .rshN,.lav3 .rbox .rshN{padding:1px 8px;border-radius:20px;font:700 10.5px var(--sans);letter-spacing:0;text-transform:none;color:var(--text3);background:rgba(255,255,255,.06);}
+#page-lavarion .rbox .rline,.lav3 .rbox .rline{align-items:center;gap:12px;padding:7px 10px;border-radius:9px;border:1px solid transparent;transition:background .12s,border-color .12s;}
+#page-lavarion .rbox .rline+.rline,.lav3 .rbox .rline+.rline{margin-top:2px;}
+#page-lavarion .rbox .rline:hover,.lav3 .rbox .rline:hover{background:var(--bg3);border-color:var(--border2);}
+#page-lavarion .rbox .rline.lim,.lav3 .rbox .rline.lim{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.3);}
+#page-lavarion .rbox .rline .q,.lav3 .rbox .rline .q{flex:0 0 auto;width:auto;min-width:34px;padding:4px 6px;text-align:center;font:800 12px var(--num);color:var(--text);background:var(--bg4);border:1px solid var(--border2);border-radius:7px;}
+#page-lavarion .rlMain,.lav3 .rlMain{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;}
+#page-lavarion .rbox .rline .nm,.lav3 .rbox .rline .nm{flex:1 1 200px;min-width:0;gap:8px;font-size:13px;font-weight:700;flex-wrap:wrap;}
+#page-lavarion .rlName,.lav3 .rlName{min-width:0;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .rbox .rline .st,.lav3 .rbox .rline .st{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px;margin-top:0;font-size:11.5px;}
+#page-lavarion .rpill,.lav3 .rpill{display:inline-block;line-height:1.35;padding:2px 9px;border-radius:20px;white-space:nowrap;text-decoration:none;
+  font:600 11.5px var(--sans);color:var(--text2);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);}
+#page-lavarion .rpill b,.lav3 .rpill b{font:800 12px var(--num);font-variant-numeric:tabular-nums;color:var(--text);}
+#page-lavarion .rpill.gold,.lav3 .rpill.gold{color:#fcd34d;background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35);}
+#page-lavarion .rpill.gold b,.lav3 .rpill.gold b{color:#fbbf24;}
+#page-lavarion .rpill.grn,.lav3 .rpill.grn{color:#86efac;background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.35);}
+#page-lavarion .rpill.grn b,.lav3 .rpill.grn b{color:#4ade80;}
+#page-lavarion .rpill.red,.lav3 .rpill.red{color:#fca5a5;background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);}
+#page-lavarion .rpill.red b,.lav3 .rpill.red b{color:#f87171;}
+#page-lavarion .rpill.blu,.lav3 .rpill.blu{color:#93c5fd;background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.4);}
+#page-lavarion .rpill.blu b,.lav3 .rpill.blu b{color:#60a5fa;}
+#page-lavarion .rpill.amb,.lav3 .rpill.amb{color:#fdba74;background:rgba(251,146,60,.12);border-color:rgba(251,146,60,.4);}
+#page-lavarion .rpill.amb b,.lav3 .rpill.amb b{color:#fb923c;}
+#page-lavarion .rbox .cogbox .lab,.lav3 .rbox .cogbox .lab{display:block;text-align:left;margin-bottom:9px!important;font:800 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#b6c2d4;}
+#page-lavarion .rbox .cogHead,.lav3 .rbox .cogHead,#page-lavarion .rbox .cogrow4,.lav3 .rbox .cogrow4{grid-template-columns:minmax(0,1fr) 44px 88px 70px;}
+#page-lavarion .rbox .cogHead,.lav3 .rbox .cogHead{padding-bottom:6px;font:800 9.5px var(--sans);letter-spacing:.07em;color:var(--text3);border-bottom:1px solid rgba(255,255,255,.06);}
+#page-lavarion .rbox .cogrow4,.lav3 .rbox .cogrow4{padding:8px 0;border-top:none;border-bottom:1px solid rgba(255,255,255,.05);}
+#page-lavarion .rbox .cogtot,.lav3 .rbox .cogtot{align-items:center;margin-top:10px;padding:9px 12px;font-weight:700;color:var(--text);
+  background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);border-radius:9px;}
+#page-lavarion .rbox .cogBig,.lav3 .rbox .cogBig{font:900 20px var(--num);font-variant-numeric:tabular-nums;color:#fbbf24;}
+#page-lavarion .racts,.lav3 .racts{display:flex;gap:6px;align-items:center;margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.06);}
+#page-lavarion .raSp,.lav3 .raSp{flex:1;}
+@media(max-width:760px){
+#page-lavarion .rbox,.lav3 .rbox{padding:12px 12px 12px 16px;}
+#page-lavarion .rpMeter,.lav3 .rpMeter{flex:1 1 100%;}
+}
+/* Restocks: the last purchase of a part — where a reorder starts (22 Oct) */
+#page-lavarion .rsLast,.lav3 .rsLast{margin-top:2px;color:var(--text2);}
+#page-lavarion .rsLast b,.lav3 .rsLast b{color:var(--text);}

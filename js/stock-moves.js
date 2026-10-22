@@ -85,7 +85,7 @@ function sendableQty(r){
      off as wrong-SKU, so they are not on this row's shelf to send (Jack, 21 Sep) */
   const away=Math.max(0,parseInt(r.resolution&&r.resolution.elsewhereShipped)||0);
   if(got>0){
-    const heldBack=/damag|incorrect|wrong/i.test(String(r.issueType||''))?issues:0;
+    const heldBack=/damag|incorrect|wrong|ebay/i.test(String(r.issueType||''))?issues:0;   /* eBay stock: here, but going to eBay */
     return Math.max(0,got-heldBack-away);
   }
   return Math.max(0,exp-issues-away);
@@ -166,7 +166,7 @@ function openShipDate(shipId){
 }
 function applyShipDate(shipId){
   const v=(document.getElementById('shipDateFix')||{}).value||'';
-  if(!v){toast('Pick a date','er');return;}
+  if(!v){toast(dateBoxMsg(document.getElementById('shipDateFix'),'Pick a date'),'er');return;}
   cm('shipDateModal');
   setShipmentDate(shipId,v);
 }
@@ -615,12 +615,12 @@ function flushPending(){
 function getFilteredRows(){
   if(_prepShown&&_prepShown.length)return _prepShown.slice();
   // nothing drawn yet (first paint) — fall back, still excluding archived
-  const q=(document.getElementById('prepSrch')||{}).value?.toLowerCase()||'';
+  const q=((document.getElementById('prepSrch')||{}).value||'').trim().toLowerCase();
   const st=(document.getElementById('prepStF')||{}).value||'';
   return rows.filter(r=>{
     if(_showArchived?!r.archived:r.archived)return false;
     if(st&&r.status!==st)return false;
-    if(q&&!(r.sku+r.asin+r.prod+r.sup+r.oid).toLowerCase().includes(q))return false;
+    if(q&&!_prepMatch(r,q))return false;
     return true;
   });
 }

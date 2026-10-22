@@ -246,9 +246,21 @@ function pkSetUnits(pfx,idx,n){
   const u=_pk(pfx,'units',idx);if(!u)return;
   u.value=n;
   const c=_pk(pfx,'cost',idx);if(c)delete c.dataset.touched;
-  const h=_pk(pfx,'asin',idx);if(h){delete h.dataset.blend;delete h.dataset.why;}
+  const h=_pk(pfx,'asin',idx);if(h){delete h.dataset.blend;delete h.dataset.why;delete h.dataset.extra;delete h.dataset.xwhy;delete h.dataset.xnote;}
   pkCheck(pfx,idx);
 }
+/* Becki, 21 Oct: the supplier sent more than the order and nobody counted the
+   extras in. Ticked on deliberately, with a reason — the parts are booked into
+   stock first (LV3.bookExtraForBuild), so nothing goes out that the app does
+   not have. */
+const PK_XWHY=[['supplier','Supplier sent extra'],['case','Case held more than it said'],['found','Found stock that was never booked in'],['other','Something else']];
+function pkExtraToggle(pfx,idx,on){
+  const h=_pk(pfx,'asin',idx);if(!h)return;
+  if(on)h.dataset.extra='1'; else {delete h.dataset.extra;delete h.dataset.xwhy;delete h.dataset.xnote;}
+  pkCheck(pfx,idx);
+}
+function pkExtraWhy(pfx,idx,k){const h=_pk(pfx,'asin',idx);if(!h)return;h.dataset.xwhy=k||'';pkCheck(pfx,idx);}
+function pkExtraNote(pfx,idx,v){const h=_pk(pfx,'asin',idx);if(!h)return;h.dataset.xnote=v||'';pkFoot(pfx);}
 /* Blending is a decision, so it is made the way the Lavarion page makes it:
    ticked on deliberately, with a reason that can be counted afterwards. */
 function pkBlendToggle(pfx,idx,on){
@@ -281,8 +293,12 @@ function pkVerdict(pfx,idx){
   /* You cannot send stock you do not have. There is no tick and no override —
      Jack, 20 Aug: "they can't send 14 units as we only have 12". The units
      that are not there yet go out on a later shipment, once they exist. */
-  if(info.available!=null&&want>info.available)
-    return{k:'short',info,want,can:info.available,gap:want-info.available};
+  if(info.available!=null&&want>info.available){
+    const ex=hid.dataset.extra==='1',xwhy=hid.dataset.xwhy||'',xnote=hid.dataset.xnote||'';
+    const base={info,want,can:info.available,gap:want-info.available,ex,xwhy,xnote};
+    if(ex&&xwhy&&!(xwhy==='other'&&!xnote.trim()))return{k:'extra',...base,per:typed||info.coveredPer};
+    return{k:'short',...base};
+  }
   /* The stock IS there, but it was bought in two batches at two prices. Same
      rule as the Lavarion page: blocked by default, overridable with a reason. */
   let split=null;
@@ -330,11 +346,30 @@ function pkCheck(pfx,idx){
   }else if(v.k==='noprice'){
     html=line('var(--amber)',`No purchase price on ${(info.unpriced||[]).map(u=>esc(u.name)).join(', ')||'a component'}`)
       +sub('The COG cannot be worked out, so this line needs one typed in. It will be recorded as a typed figure, not a calculated one.');
-  }else if(v.k==='short'){
+  }else if(v.k==='short'||v.k==='extra'){
     const short=(info.blocked||[]).map(b=>`${esc(b.name)} (need ${b.need}, have ${b.have})`).join(', ');
-    html=line('var(--red)',`Only ${v.can} can be built — you are asking for ${v.want}`)
-      +sub((short?`Short on ${short}. `:'')+`The other ${v.gap} do not exist yet, so they go out on a later shipment once the parts land.`)
-      +(v.can>0?row(btn(`pkSetUnits('${pfx}',${idx},${v.can})`,`Send ${v.can} instead`)):'');
+    let plan=[];try{if(window.LV3&&LV3.extraPlan)plan=LV3.extraPlan(info.asin||(_pk(pfx,'asin',idx)||{}).value,v.want)||[];}catch(e){}
+    const xtick=`<label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:${v.ex?'var(--amber)':'var(--text2)'};cursor:pointer;font-weight:${v.ex?'700':'400'};">
+      <input type="checkbox" ${v.ex?'checked':''} onchange="pkExtraToggle('${pfx}',${idx},this.checked)" style="cursor:pointer;">We have extra parts — send all ${v.want}</label>`;
+    const xwhy=`<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+      <select class="fi-in" style="font-size:11.5px;max-width:250px;" onchange="pkExtraWhy('${pfx}',${idx},this.value)">
+        <option value="">Where did the extra come from?…</option>
+        ${PK_XWHY.map(r=>`<option value="${r[0]}" ${v.xwhy===r[0]?'selected':''}>${esc(r[1])}</option>`).join('')}
+      </select>
+      ${v.xwhy==='other'?`<input class="fi-in" style="font-size:11.5px;max-width:230px;" placeholder="Say where it came from"
+        value="${esc(v.xnote||'')}" oninput="pkExtraNote('${pfx}',${idx},this.value)">`:''}
+    </div>`;
+    /* extra of ONE part is a supplier being generous; a whole build's worth is a
+       stock count that is wrong somewhere — say so before anyone books it in */
+    const wide=plan.length>1||v.can===0;
+    const books=plan.length?`Booked into stock first: ${plan.map(p=>`<b>${esc(p.name)} +${p.qty}</b> at ${gbp(p.cost)}`).join(', ')} — so all ${v.want} go out at the same ${v.per!=null?gbp(v.per):'COG'} each.`
+      +(wide?`<div style="color:var(--red);font-weight:700;margin-top:4px;">That is ${plan.length} different part${plan.length===1?'':'s'}${v.can===0?' and none can be built':''} — only tick this if every one of them is physically on the bench. If the stock count is wrong across the board, correct each part on the PLUB page instead.</div>`:''):'';
+    html=(v.k==='extra'
+        ? line('var(--amber)',`Sending ${v.want} — ${v.gap} more than the stock said, from extra parts`)+sub(books)
+        : line('var(--red)',`Only ${v.can} can be built — you are asking for ${v.want}`)
+          +sub((short?`Short on ${short}. `:'')+`If the parts are not here, the other ${v.gap} go out on a later shipment once they land.`))
+      +row((v.can>0?btn(`pkSetUnits('${pfx}',${idx},${v.can})`,`Send ${v.can} instead`):'')+xtick)
+      +(v.ex?xwhy+(v.k==='short'&&books?sub(books):''):'');
   }else if(v.k==='mixed'){
     const f=v.split.first,r=v.split.rest;
     html=line('var(--amber)',`Only ${f.units} were bought at ${f.per!=null?gbp(f.per):'this price'}`)
@@ -362,7 +397,7 @@ function pkCheck(pfx,idx){
 function pkFoot(pfx){
   const cfg=PK[pfx]||{};
   const b=document.getElementById(cfg.go);if(!b)return;
-  let n=0,bad=0,blend=0;
+  let n=0,bad=0,blend=0,xtra=0;
   document.querySelectorAll(`[id^="${pfx}-asin-"]`).forEach(sel=>{
     const idx=sel.id.split('-').pop();
     if(!sel.value)return;
@@ -371,8 +406,9 @@ function pkFoot(pfx){
     n++;
     if(v.k==='short'||v.k==='noprice'||v.k==='mixed')bad++;
     if(v.k==='blended')blend++;
+    if(v.k==='extra')xtra++;
   });
-  b.textContent=(cfg.label?cfg.label(n):'Save')+(blend?` · ${blend} blended COG`:'');
+  b.textContent=(cfg.label?cfg.label(n):'Save')+(blend?` · ${blend} blended COG`:'')+(xtra?` · extra parts booked in`:'');
   b.style.opacity=bad?'.55':'1';
   b.title=bad?'One or more lines cannot go as they are':'';
 }
@@ -387,8 +423,10 @@ function pkStops(pfx){
     const cost=parseFloat((_pk(pfx,'cost',idx)||{}).value)||0;
     const v=pkVerdict(pfx,idx);
     const who=(v.info&&v.info.name)||sel.value;
-    if(v.k==='short')
-      stop.push(`${who}: only ${v.can} can be built, so ${v.want} cannot go. Send ${v.can} now and the other ${v.gap} on a later shipment.`);
+    if(v.k==='short'&&v.ex)
+      stop.push(`${who}: say where the extra parts came from${v.xwhy==='other'?', in your own words':''}.`);
+    else if(v.k==='short')
+      stop.push(`${who}: only ${v.can} can be built, so ${v.want} cannot go. Send ${v.can} now and the other ${v.gap} on a later shipment — or tick "We have extra parts" if they are on the bench.`);
     else if(v.k==='noprice')
       stop.push(`${who}: no purchase price on record — type the COG for this line.`);
     else if(v.k==='mixed'&&v.on)
@@ -403,9 +441,17 @@ function pkStops(pfx){
 /* what a saved line should record about how it was decided */
 function pkMeta(pfx,idx){
   const v=pkVerdict(pfx,idx);
+  if(v.k==='extra'){const lab=(PK_XWHY.find(r=>r[0]===v.xwhy)||[])[1]||v.xwhy;return{extra:true,why:lab,note:v.xwhy==='other'?v.xnote:''};}
   return (v.k==='blended')?{blended:true,per:v.per,why:v.why,note:v.note}:null;
 }
 
+/* book the found-extra parts in before the send takes them off (both shipment screens) */
+function pkBookExtra(entry,meta){
+  try{if(!(window.LV3&&LV3.bookExtraForBuild))return null;
+    const r=LV3.bookExtraForBuild(entry.asin,entry.units,meta.why||'Extra parts',meta.note||'');
+    if(r&&r.added&&r.added.length)toast('Extra parts booked in: '+r.added.map(a=>a.name+' +'+a.qty).join(', '),'ok');
+    return r;}catch(e){console.warn('[pk] extra',e);return null;}
+}
 /* 13 Oct 2026: two quick clicks ran this twice — two shipment rows and the
    stock taken off twice. One at a time. */
 let _lsmBusy=false;
@@ -431,13 +477,15 @@ async function _confirmLavShipMultiGo(){
   if(!lines.length){toast('Add at least one ASIN with units','er');return;}
   for(const entry of lines){
     const meta=entry._meta;delete entry._meta;
+    if(meta&&meta.extra)pkBookExtra(entry,meta);
     lavShipments.push(entry);
     const _ok=await saveLavShipment(entry);
     if(_ok===false){const _i=lavShipments.indexOf(entry);if(_i>=0)lavShipments.splice(_i,1);continue;}
     logAudit('PLUB added to shipment',entry.asin+' x '+entry.units+' -> '+_lavShipId
-      +(meta?` — COG £${entry.cost} blended across two purchase prices by ${window.currentUserName||'someone'} (${meta.why}${meta.note?': '+meta.note:''})`:''));
+      +(meta&&meta.blended?` — COG £${entry.cost} blended across two purchase prices by ${window.currentUserName||'someone'} (${meta.why}${meta.note?': '+meta.note:''})`:'')
+      +(meta&&meta.extra?` — extra parts booked in at packing by ${window.currentUserName||'someone'} (${meta.why}${meta.note?': '+meta.note:''})`:''));
     /* a blend is a decision, counted the same way the Lavarion page counts its own */
-    if(meta){try{if(window.LV3&&LV3.noteOverride)LV3.noteOverride({k:meta.why||'other',
+    if(meta&&meta.blended){try{if(window.LV3&&LV3.noteOverride)LV3.noteOverride({k:meta.why||'other',
       shipId:_lavShipId,prod:entry.prod,units:entry.units,cost:entry.cost,note:meta.note});}catch(e){}}
   }
   cm('lavShipModal');

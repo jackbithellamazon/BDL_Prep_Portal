@@ -21,6 +21,7 @@ function renderPrepRows(data){
     }
     return;
   }
+  _pendingPrepRender=false;                 // this redraw is the one that was waiting
   // Clear stale DOM refs
   _prevFocusTr=null;_prevFocusTd=null;
   // The DOM is about to be rewritten with an arbitrary row set — the search
@@ -148,7 +149,7 @@ function renderPrepRows(data){
       <td class="sasCell">${r.issueType&&r.issueType!=='—'?`<span data-issue="1" class="sasFlag" title="Issue: ${r.issueType}${r.issueQty?' — '+r.issueQty+' unit'+(r.issueQty===1?'':'s'):''}">⚑</span>`:''}<a class="sas-btn" href="${r.sas}" target="_blank" style="font-size:10px;padding:2px 5px;">SAS</a></td>
       <td class="td-left">
         <div class="stack-date" style="gap:1px;">
-          <div class="s-date" style="font-size:12px;">${r.date}</div>
+          <div class="s-date" style="font-size:12px;"${r.dateFromSku?' title="No date on the Purchase Sheet — this is the order date in the SKU"':''}>${r.date}${r.dateFromSku?'<span style="font-size:9.5px;font-weight:700;color:var(--text3);margin-left:4px;">SKU</span>':''}</div>
           <div class="s-oid" style="font-size:11px;" onclick="copyVal('${r.oid.replace(/'/g,"\\'")}',this)">${r.oid||`<span style="color:var(--text3);font-style:italic;font-size:11px;">no order id</span>`}</div>
           <div class="s-sup" style="font-size:10px;">${r.sup}</div>
           ${r.acct?`<div style="font-size:11px;color:var(--text3);margin-top:1px;">${r.acct}</div>`:''}
@@ -178,7 +179,7 @@ function renderPrepRows(data){
       <td>${_cxParts(r).cx?`<div class="expLive" title="${fmt(r.exp||0)} ordered${_cxLabel(r,' · ')} — the number below is the order as written; this is what is still expected">${fmt(_effExp(r))}<small>${_cxLabel(r,' · ').replace(/^ · /,'')}</small></div>`:''}<input class="ci ci-num${_cxParts(r).cx?' expRaw':''}" type="number" value="${r.exp}" onchange="uf('${r.uuid||r.id}','exp',+this.value);updateDiffCell(${r.id},${r.rcvd||0},+this.value);debounce('stats',renderStats);" tabindex="-1">${(r.bun==='Yes'&&(parseInt(r.bqty)||0)>1)?`<div class="expPack" title="Bundle of ${r.bqty} — ${r.exp||0} saleable unit${(r.exp||0)!==1?'s':''}, ${(r.exp||0)*(parseInt(r.bqty)||1)} individual items to handle"><b>${(r.exp||0)*(parseInt(r.bqty)||1)}</b> items<br>&times;${r.bqty} per bundle</div>`:''}</td>
       <td><select class="ci-sel" onchange="handleStatusChange('${r.uuid||r.id}',this);" tabindex="-1">
         ${['In-Transit','Delivered','In Warehouse','Part Sent','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
-      </select>${r.status==='Part Sent'?(()=>{const _left=remainingToShip(r);const _bs='display:block;margin-top:3px;width:100%;box-sizing:border-box;padding:4px 4px;border:none;border-radius:4px;font-size:9px;font-weight:800;cursor:pointer;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;background:#2563eb;color:#fff;';return `<button onclick="${_left>0?'sendMore':'sendExtra'}('${r.uuid||r.id}')" title="Send ${_left>0?'the remaining '+_left+' unit'+(_left===1?'':'s'):'another unit (none calculated as outstanding, but you can still send 1+ more)'} to a shipment ID" style="${_bs}">↗ Send more${_left>0?` (${_left})`:''}</button>`;})():''}</td>
+      </select>${r.status==='Part Sent'?(()=>{const _left=remainingToShip(r);const _bs='display:block;margin-top:4px;width:100%;box-sizing:border-box;padding:5px 4px;border:none;border-radius:5px;font-size:10.5px;font-weight:800;cursor:pointer;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;background:#2563eb;color:#fff;';return `<button onclick="${_left>0?'sendMore':'sendExtra'}('${r.uuid||r.id}')" title="Send ${_left>0?'the remaining '+_left+' unit'+(_left===1?'':'s'):'another unit (none calculated as outstanding, but you can still send 1+ more)'} to a shipment ID" style="${_bs}">↗ Send more${_left>0?` (${_left})`:''}</button>`;})():''}</td>
       <td>${(()=>{
         /* Existing rows that already carry the impossible state — shipped more
            than was ever booked in. NOT rewritten silently: history is his, so
@@ -220,14 +221,14 @@ function renderPrepRows(data){
         ${(()=>{const _tg=(typeof _rowStateTag==='function')?_rowStateTag(r):null;   /* Jack, 15 Sep: "where are all of these?" — the row says whose it is */
           return _tg?`<div class="ownTag" style="color:${_tg.col};border-color:${_tg.col}55;" title="${esc(_tg.tip||'')}">${esc(_tg.t)}</div>`:'';})()}
         ${(()=>{const _q=_ukQuery(r);const _rs=r.resolution||{};
-          if(_isAmzDel(r))return `<div class="qryTag amz" title="Amazon say this was delivered. Found it on the shelves? Book it in and send it on the next shipment — the flag clears itself, nothing to press. Not here? Press the button and it goes to Jack to raise with Amazon.">Amazon say delivered — check the shelves</div>
+          if(_isAmzDel(r))return `<div class="qryTag amz" title="Amazon say this was delivered. Found it on the shelves? Book it in and send it on the next shipment — the flag clears itself, nothing to press. Not here? Press the button and it goes to Jack to raise with Amazon.">Becki — Amazon say delivered, check the shelves</div>
             <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk qryNot" onclick="amzNotHere('${r.uuid||r.id}')" title="Checked the shelves, back stock and anywhere else — it is not here. It goes straight to Jack to raise with Amazon.">Not here</button></div>`;
           if(typeof _partShipStale==='function'&&_partShipStale(r)){const _lf=(typeof remainingToShip==='function')?remainingToShip(r):0;
-            return `<div class="qryTag" title="${fmt(parseInt(r.ship)||0)} went out${r.sentDate?' by '+_dmy(r.sentDate):''}; ${fmt(_lf)} never followed. Still on the shelf? Send them. Went out under another SKU? Press the button.">${fmt(_lf)} never went &mdash; still here, or another SKU?</div>
+            return `<div class="qryTag" title="${fmt(parseInt(r.ship)||0)} went out${r.sentDate?' by '+_dmy(r.sentDate):''}; ${fmt(_lf)} never followed. Still on the shelf? Send them. Went out under another SKU? Press the button.">Becki &mdash; ${fmt(_lf)} never went: still here, or another SKU?</div>
             <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk" onclick="wentOutUnder('${r.uuid||r.id}')" title="They went out on another SKU's shipment — record it; Sarah confirms it in Seller Central">Went out under another SKU&hellip;</button></div>`;}
           if(_q)return `<div class="qryTag" onclick="openQuery('${r.uuid||r.id}')" title="${esc(_q.ask||'')}${_q.note?' — “'+esc(_q.note)+'”':''} — asked by ${esc(_q.by||'')} ${_qryWhen(_q.at)} · with ${_rs.state==='asked'?'Jack':'the admin team'}. The answer comes back in the VA Note.">&#10148; Admin team</div>`;
           const _aq=_rs.query;
-          if(_aq&&_aq.answer==='more-coming'&&r.expectedDelivery&&new Date(r.expectedDelivery)>=new Date(new Date().toDateString()))return `<div class="qryTag ok" title="${esc(_aq.answeredBy||'')} answered ${_qryWhen(_aq.answeredAt)}: more is still coming${_aq.reply?' — “'+esc(_aq.reply)+'”':''}. See the VA Note.">&#10003; Due ${new Date(r.expectedDelivery).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}</div>`;
+          if(_aq&&_aq.answer==='more-coming'&&r.expectedDelivery&&String(r.expectedDelivery).slice(0,10)>=todayISO())return `<div class="qryTag ok" title="${esc(_aq.answeredBy||'')} answered ${_qryWhen(_aq.answeredAt)}: more is still coming${_aq.reply?' — “'+esc(_aq.reply)+'”':''}. See the VA Note.">&#10003; Due ${new Date(r.expectedDelivery).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}</div>`;
           if(_qryOwed(r)>0&&!['Delivered','In Warehouse','Returned'].includes(r.status)&&!/missing|not arrived/i.test(String(r.issueType||'')))return `<button class="qryAsk" onclick="openQuery('${r.uuid||r.id}')" title="Not an issue — a question for Sarah: is more of this still on the way?">? ask</button>`;
           return '';})()}
       </td>
@@ -820,6 +821,33 @@ let _prepSearchT=null;
    filter, sort, archive toggle, data edits) — renderPrepRows invalidates
    `_prepDomSig` whenever it rewrites the DOM, and the next keystroke rebuilds
    the base set exactly once before returning to the cheap toggle path. */
+/* ── PREP SHEET SEARCH: ONE RULE (14 Oct 2026) ─────────────────────────────
+   Becki types barcodes the way they are printed under the lines — "0 619659
+   204853" — and the moment she typed the space after the 0 the whole sheet
+   went blank. Or she types just the last 4 digits. So: spaces and dashes inside
+   a number do not count, a leading 0 does not count (the box says 0192876749692,
+   Keepa gave us 192876749692), and the last 4 digits still find it. Three
+   copies of the search text used to be built in three places, each with
+   different fields, and whichever ran first was the one kept. */
+function _prepSrchText(r){
+  if(r._srch&&r._srchEan===(r.ean||''))return r._srch;          // a new EAN rebuilds it
+  const ean=String(r.ean||'').replace(/\D/g,'');
+  r._srch=(r.sku+'|'+r.asin+'|'+ean+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+(r.acct||'')+'|'+r.date+'|'
+    +(r.notes||'')+'|'+(r.vaNote||'')+'|'+(r.transitAction||'')).toLowerCase();
+  r._srchEan=r.ean||'';
+  return r._srch;
+}
+function _prepMatch(r,q){
+  const t=_prepSrchText(r);
+  if(t.includes(q))return true;
+  if(/^[\d\s-]+$/.test(q)){                                    // a number, perhaps typed with spaces
+    const d=q.replace(/\D/g,'');
+    if(d.length>=4&&t.includes(d))return true;
+    const z=d.replace(/^0+/,'');
+    if(z!==d&&z.length>=4&&String(r.ean||'').replace(/\D/g,'').includes(z))return true;
+  }
+  return false;
+}
 function onPrepSearch(){
   clearTimeout(_prepSearchT);
   // Tiny coalescing delay: the keystroke handler itself does nothing heavy,
@@ -863,7 +891,7 @@ function _prepBaseRows(){
 }
 function applyPrepSearch(){
   const inp=document.getElementById('prepSrch');if(!inp)return;
-  const q=inp.value.toLowerCase();
+  const q=inp.value.trim().toLowerCase();
   const sig=_prepBaseSig();
   if(_prepDomSig!==sig){
     // DOM doesn't currently hold the plain base set — rebuild it ONCE (without
@@ -871,7 +899,8 @@ function applyPrepSearch(){
     const wrap=document.querySelector('#page-prep .tbl-wrap');
     const scrollTop=wrap?wrap.scrollTop:0;
     renderPrepRows(_prepBaseRows());   // sets _prepDomSig=null internally
-    if(_pendingPrepRender)return;      // rebuild was deferred (cell mid-edit)
+    {const _ae=document.activeElement;                              // rebuild was deferred (cell mid-edit)
+     if(_ae&&_ae.closest&&_ae.closest('#prepBody')&&/^(INPUT|SELECT|TEXTAREA)$/.test(_ae.tagName))return;}
     _prepDomSig=sig;
     if(wrap)wrap.scrollTop=scrollTop;
   }
@@ -884,8 +913,7 @@ function applyPrepSearch(){
     if(q){
       if(!r)show=false;
       else{
-        if(!r._srch)r._srch=(r.sku+'|'+r.asin+'|'+(r.ean||'')+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+(r.acct||'')+'|'+r.date+'|'+(r.notes||'')+'|'+(r.vaNote||'')+'|'+(r.transitAction||'')).toLowerCase();
-        show=r._srch.includes(q);
+        show=_prepMatch(r,q);
       }
     }
     tr.style.display=show?'':'none';
@@ -967,7 +995,7 @@ function filterPrep(skipFlush){
   if(_stVal&&_lateFilterActive){_lateFilterActive=false;const lb=document.getElementById('showLateBtn');if(lb){lb.textContent='⏱ Late';lb.style.background='rgba(251,146,60,.15)';lb.style.borderColor='rgba(251,146,60,.4)';}}  
   const wrap=document.querySelector('#page-prep .tbl-wrap');
   const scrollTop=wrap?wrap.scrollTop:0;
-  const q=document.getElementById('prepSrch').value.toLowerCase();
+  const q=document.getElementById('prepSrch').value.trim().toLowerCase();
   const st=document.getElementById('prepStF').value;
   const _acctF=(document.getElementById('prepAcctF')||{}).value||'';
   // _showArchived ON = show ONLY archived rows; OFF = show only active rows.
@@ -995,8 +1023,7 @@ function filterPrep(skipFlush){
         if(!matchesStatus&&!matchesIssueFilter)return false;
       }
       if(q){
-        if(!r._srch)r._srch=(r.sku+'|'+r.asin+'|'+(r.ean||'')+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+(r.acct||'')+'|'+r.date+'|'+(r.notes||'')+'|'+(r.vaNote||'')+'|'+(r.transitAction||'')).toLowerCase();
-        if(!r._srch.includes(q))return false;
+        if(!_prepMatch(r,q))return false;
       }
       return true;
     });
@@ -1113,7 +1140,11 @@ function _rtFlush(){
      now would destroy their input mid-type. Defer the prep re-render until
      they click away; dashboard and badges still update. */
   const ae=document.activeElement;
-  const editingPrep=ae&&ae.closest&&(ae.closest('#page-prep')||ae.closest('#page-admin'))&&(ae.tagName==='INPUT'||ae.tagName==='SELECT'||ae.tagName==='TEXTAREA');
+  /* 14 Oct 2026: '#page-prep' counted the SEARCH BOX as a cell being edited.
+     A refresh arriving while Becki's cursor sat in the search left this flag
+     up, and the search then filtered nothing until she clicked out of it —
+     "the EAN search sometimes doesn't work". Only a table cell waits. */
+  const editingPrep=ae&&ae.closest&&(ae.closest('#prepBody')||ae.closest('#page-admin'))&&(ae.tagName==='INPUT'||ae.tagName==='SELECT'||ae.tagName==='TEXTAREA');
   if(editingPrep){
     _pendingPrepRender=true;
     ae.addEventListener('blur',()=>{if(_pendingPrepRender){_pendingPrepRender=false;renderPrep();}},{once:true});
@@ -1155,7 +1186,7 @@ function renderPrep(){
   const wrap=document.querySelector('#page-prep .tbl-wrap');
   const scrollTop=wrap?wrap.scrollTop:0;
   // Re-apply active filter instead of showing all rows
-  const q=(document.getElementById('prepSrch')||{}).value?.toLowerCase()||'';
+  const q=((document.getElementById('prepSrch')||{}).value||'').trim().toLowerCase();
   const st=(document.getElementById('prepStF')||{}).value||'';
   const _acctF=(document.getElementById('prepAcctF')||{}).value||'';
   // Archived rows are hidden from the active prep sheet (but kept in `rows` so
@@ -1183,8 +1214,7 @@ function renderPrep(){
         if(!matchesStatus&&!matchesIssueFilter)return false;
       }
       if(q){
-        if(!r._srch)r._srch=(r.sku+'|'+r.asin+'|'+(r.ean||'')+'|'+r.prod+'|'+r.oid+'|'+r.sup+'|'+r.date).toLowerCase();
-        if(!r._srch.includes(q))return false;
+        if(!_prepMatch(r,q))return false;
       }
       return true;
     });
@@ -1204,9 +1234,27 @@ function autoSAS(){
 function tbq(){document.getElementById('bqG').style.display=document.getElementById('f-bun').value==='Yes'?'block':'none';}
 function openAdd(){
   editId=null;document.getElementById('addTitle').textContent='Add New Row';
-  clearForm();document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
+  clearForm();document.getElementById('f-date').value=todayISO();
   const db=document.getElementById('deleteEditBtn');if(db)db.style.display='none';
   om('addModal');
+}
+/* 14 Oct 2026: a value the dropdown did not list showed as BLANK, and saving
+   wrote the blank back — every Part Sent row lost its status the moment
+   anyone opened it in Edit Row to fix a barcode. Keep whatever the row has. */
+function _selKeep(id,v){
+  const el=document.getElementById(id);if(!el)return;
+  v=v==null?'':String(v);
+  if(v&&![...el.options].some(o=>o.value===v)){
+    const o=document.createElement('option');o.value=v;o.textContent=v;o.dataset.extra='1';el.appendChild(o);}
+  el.value=v;
+}
+/* the sheet only carries dd/mm: this year, or last year if that is still to come */
+function _ddmmToISO(ddmm){
+  const[dd,mm]=String(ddmm||'').split('/');if(!dd||!mm)return '';
+  const t=todayISO();let y=+t.slice(0,4);
+  let iso=`${y}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
+  if(iso>t)iso=`${y-1}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
+  return iso;
 }
 function openEdit(id){
   const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));if(!r)return;
@@ -1218,14 +1266,14 @@ function openEdit(id){
   if(exb){const hasShip=r.shipId||(r.allShipIds||[]).length||(r.shipSegments||[]).length;const isSent=r.sent==='Yes'||r.status==='Sent to Amazon';exb.style.display=(!hasShip&&!isSent)?'':'none';}
   clearForm();
   // populate date
-  if(r.date){const[dd,mm]=r.date.split('/');document.getElementById('f-date').value=`2026-${(mm||'01').padStart(2,'0')}-${(dd||'01').padStart(2,'0')}`;}  
+  if(r.date)document.getElementById('f-date').value=_ddmmToISO(r.date);
   document.getElementById('f-oid').value=r.oid||'';
   document.getElementById('f-sup').value=r.sup||'';
   const acctEl=document.getElementById('f-acct');if(acctEl)acctEl.value=r.acct||'';
   document.getElementById('f-prod').value=r.prod||'';
   document.getElementById('f-asin').value=r.asin||'';
   document.getElementById('f-ean').value=r.ean||'';
-  document.getElementById('f-dg').value=r.dg||'';
+  _selKeep('f-dg',r.dg||'');
   document.getElementById('f-sku').value=r.sku||'';
   const vatEl=document.getElementById('f-vat');if(vatEl)vatEl.value=r.vat||'';
   const vatDisp=document.getElementById('f-vat-display');
@@ -1233,18 +1281,18 @@ function openEdit(id){
   document.getElementById('f-sas').value=r.sas||'';
   document.getElementById('f-exp').value=r.exp||'';
   document.getElementById('f-aqty').value=r.aqty||'';
-  document.getElementById('f-bun').value=r.bun||'No';
+  _selKeep('f-bun',r.bun||'No');
   document.getElementById('f-bqty').value=r.bqty||'';
-  const ssEl=document.getElementById('f-subSave');if(ssEl)ssEl.value=r.subSave||'No';
-  document.getElementById('f-status').value=r.status||'In-Transit';
+  _selKeep('f-subSave',r.subSave||'No');
+  _selKeep('f-status',r.status||'In-Transit');
   document.getElementById('f-rcvd').value=r.rcvd||'';
-  document.getElementById('f-issueType').value=r.issueType||'';
+  _selKeep('f-issueType',r.issueType||'');
   document.getElementById('f-issueQty').value=r.issueQty||'';
   document.getElementById('f-ship').value=r.ship||'';
   document.getElementById('f-shipId').value=r.shipId||'';
-  document.getElementById('f-sent').value=r.sent||'No';
-  document.getElementById('f-reimb').value=r.reimb||'No';
-  document.getElementById('f-pri').value=r.pri||'No';
+  _selKeep('f-sent',r.sent||'No');
+  _selKeep('f-reimb',r.reimb||'No');
+  _selKeep('f-pri',r.pri||'No');
   document.getElementById('f-notes').value=r.notes||'';
   const vaN=document.getElementById('f-vaNotes');if(vaN)vaN.value=r.vaNote||'';
   /* Jack, 7 Sep: "who is writing these?" — Sarah, through this form: the stop
@@ -1256,12 +1304,15 @@ function openEdit(id){
      pn.title=sar?'Packing Notes are Becki\u2019s \u2014 what to do with the box. What you found out goes in VA Notes below.':'';}}
   const exD=document.getElementById('f-expectedDelivery');if(exD)exD.value=r.expectedDelivery||'';
   const srEl=document.getElementById('f-sheetRow');if(srEl)srEl.value=r.sheetRow||'';
-  const pS=document.getElementById('f-prepStatus');if(pS)pS.value=r.prepStatus||'Pending';
+  _selKeep('f-prepStatus',r.prepStatus||'Pending');
   tbq();
   om('addModal');
 }
 function clearForm(){
-  ['f-oid','f-prod','f-asin','f-sku','f-sas','f-exp','f-aqty','f-bqty','f-rcvd','f-ship','f-shipId','f-issueQty','f-notes','f-vaNotes','f-expectedDelivery','f-sheetRow'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  document.querySelectorAll('#addModal option[data-extra]').forEach(o=>o.remove());
+  /* f-ean was never cleared: Add New Row after editing a row saved the last
+     product's barcode onto the new one — and the auto-fetch then skipped it */
+  ['f-ean','f-oid','f-prod','f-asin','f-sku','f-sas','f-exp','f-aqty','f-bqty','f-rcvd','f-ship','f-shipId','f-issueQty','f-notes','f-vaNotes','f-expectedDelivery','f-sheetRow'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
   document.getElementById('f-sup').value='';
   ['f-bun','f-sent','f-reimb','f-pri','f-subSave'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='No';});
   document.getElementById('f-status').value='In-Transit';
@@ -1868,7 +1919,7 @@ function saveRowForm(){
     acct:(document.getElementById('f-acct')||{}).value||'',
     prod:document.getElementById('f-prod').value,
     asin:document.getElementById('f-asin').value,
-    ean:(document.getElementById('f-ean')||{}).value||'',
+    ean:((document.getElementById('f-ean')||{}).value||'').replace(/[\s-]/g,''),   /* "0 619659 204853" → 0619659204853 */
     dg:document.getElementById('f-dg').value,
     sku:document.getElementById('f-sku').value,
     vat:(document.getElementById('f-vat')||{}).value||'',
@@ -1876,7 +1927,8 @@ function saveRowForm(){
     exp:parseInt(document.getElementById('f-exp').value)||0,
     aqty:parseInt(document.getElementById('f-aqty').value)||0,
     bun:document.getElementById('f-bun').value,
-    bqty:document.getElementById('f-bqty').value,
+    /* a number box cannot show the sheet's "N/A", so a blank box keeps what was there */
+    bqty:(v=>(v===''&&existing&&!/^\d+$/.test(String(existing.bqty==null?'':existing.bqty)))?existing.bqty:v)(document.getElementById('f-bqty').value),
     subSave:(document.getElementById('f-subSave')||{}).value||'No',
     status:document.getElementById('f-status').value,
     rcvd:parseInt(document.getElementById('f-rcvd').value)||0,
@@ -1884,7 +1936,10 @@ function saveRowForm(){
     issueQty:parseInt(document.getElementById('f-issueQty').value)||0,
     ship:parseInt(document.getElementById('f-ship').value)||0,
     sent:sentVal,
-    sentDate:sentVal==='Yes'?(existing?.sentDate||todayISO()):'',
+    /* 14 Oct 2026: a Part Sent row has a send date while "Sent to Amazon?" still
+       says No — and every save of this form wiped that date. It is only cleared
+       when someone actually changes Sent from Yes to No. */
+    sentDate:sentVal==='Yes'?(existing?.sentDate||todayISO()):((existing&&existing.sent==='Yes')?'':(existing?.sentDate||'')),
     reimb:document.getElementById('f-reimb').value,
     pri:document.getElementById('f-pri').value,
     notes:document.getElementById('f-notes').value,
@@ -1930,7 +1985,10 @@ function saveRowForm(){
      Correcting a supplier's spelling must not delete a fortnight of chasing. */
   if(existing)['resolution','qtyFix','cancelledQty','delivered','wrongSku','archived',
     'sheetSyncId','sheetRow','importedFrom','expectedDelivery','chaseSnoozeUntil',
-    'transitAction','notesBy','notesAt','vaNote','vaNoteBy','vaNoteAt','allShipIds','shipSegments','sentAt']
+    'transitAction','notesBy','notesAt','vaNote','vaNoteBy','vaNoteAt','allShipIds','shipSegments','sentAt',
+    /* 14 Oct 2026: not on the form, so a save re-stamped "received at" as NOW —
+       restarting the part-arrived clock on every edit */
+    'rcvdAt']
     .forEach(k=>{if(!(k in r)&&existing[k]!==undefined)r[k]=existing[k];});
   if(existing&&String(r.vaNote||'').trim()!==String(existing.vaNote||'').trim()){
     r.vaNoteBy=String(r.vaNote||'').trim()?_who():'';r.vaNoteAt=String(r.vaNote||'').trim()?new Date().toISOString():'';}
@@ -1948,6 +2006,9 @@ function saveRowForm(){
     try{logAudit('Received corrected to match what shipped',
       `${r.sku||''} — was ${_wasR}, now ${r.rcvd} (row edit)`);}catch(e){}
   }
+  /* the rebuilt row keeps the old one's "what the database holds", so the save
+     sends only the fields that changed — not the whole row from this form */
+  if(existing&&existing._base&&typeof _setBase==='function')_setBase(r,existing._base);
   if(editId){const i=rows.findIndex(x=>(r.uuid&&x.uuid===r.uuid)||String(x.id)===String(editId)||x.uuid===String(editId));if(i>=0)rows[i]=r;else{toast('Row not found','er');return;}}
   else rows.push(r);
   editId=null;

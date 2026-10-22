@@ -37,7 +37,9 @@ async function _keepaEan(asin,acct){
   if(!r.ok)throw new Error('lookup failed ('+r.status+')');
   const j=await r.json();
   if(j.error)throw new Error(j.error);
-  return j.ean||null;
+  /* a UPC (US 12-digit barcode) when there is no EAN — the search treats the
+     two as the same barcode either way */
+  return j.ean||j.upc||null;
 }
 // Fill EAN for one row (used from the row editor and on new rows).
 async function _editorFetchEan(){

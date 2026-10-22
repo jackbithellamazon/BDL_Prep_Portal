@@ -458,20 +458,21 @@ function renderDashboard(){
       <!-- Col 1: how we are tracking — Weekly Activity + Month Pace -->
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;">
-            <div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px 10px;">
+            <div style="flex:1 1 150px;min-width:0;">
               <div style="font-size:12px;font-weight:700;color:#f1f5f9;letter-spacing:.01em;">Weekly Activity</div>
-              <div style="font-size:10.5px;color:var(--text3);margin-top:2px;">${(()=>{const{s:a,e:b}=getWeekRange();
-                const f=d=>d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+              ${/* 22 Oct 2026: the week, the dates and "N active days" squeezed into a
+                    47px strip beside the picker and wrapped over four lines. One line now. */''}
+              <div style="font-size:10.5px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(()=>{
                 /* Loud when you are NOT on this week. Every week before the app
                    went live is empty, so a past week rendered in the same quiet
                    grey was indistinguishable from an arrow that did nothing. */
                 const lbl=WEEK_OFFSET===0?'this week':WEEK_OFFSET===1?'last week':WEEK_OFFSET+' weeks ago';
-                return WEEK_OFFSET===0?lbl+' · '+f(a)+' – '+f(b)
-                  :`<b style="color:var(--accent);font-weight:800;">${lbl}</b> · ${f(a)} – ${f(b)}`;})()}</div>
+                /* the dates are in the week picker beside it — not said twice */
+                return WEEK_OFFSET===0?lbl
+                  :`<b style="color:var(--accent);font-weight:800;">${lbl}</b>`;})()} · <span style="color:#9aa7ba;">${weekDays.filter(d=>!d.isFuture&&d.units>0).length} active day${weekDays.filter(d=>!d.isFuture&&d.units>0).length===1?'':'s'}</span></div>
             </div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:11px;color:#9aa7ba;">${weekDays.filter(d=>!d.isFuture&&d.units>0).length} active day${weekDays.filter(d=>!d.isFuture&&d.units>0).length===1?'':'s'}</span>
+            <div style="display:flex;align-items:center;gap:6px;flex:none;margin-left:auto;">
               ${/* data-week is the real handler — see wireWeekArrows(). The inline
                     onclick is kept as a belt-and-braces fallback, but it is no
                     longer the thing this depends on: an inline handler has to
@@ -863,7 +864,7 @@ function renderDashboard(){
             </div>`).join('');})()}
         </div>
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
-          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Stock vs Lavarion</div>
+          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Stock vs PLUB</div>
           ${(()=>{const stockU=Math.max(0,weekTotal.units-weekLav.units-(weekRet.units||0));const den=(stockU+weekLav.units)||1;const sPc=stockU/den*100,lPc=weekLav.units/den*100;
             return `<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.06);margin-bottom:10px;">
               ${sPc>0?`<div title="Stock (OA) ${fmt(stockU)}" style="width:${sPc}%;background:${COL.sku};"></div>`:''}

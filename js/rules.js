@@ -94,6 +94,21 @@ function _partShipStale(r){
   const ms=(typeof _workMsSince==='function')?_workMsSince(String(last).slice(0,10)+'T12:00:00Z'):(Date.now()-new Date(last).getTime());
   return ms>=(TM.partDays||2)*24*3600e3;
 }
+/* 22 Oct 2026, the X56: Sarah pressed Send to Jack 12 times between 13 and 22 Oct
+   and every press bounced straight back (fixed in v54.3) — 24 lines of the same
+   two. Read as one line. Display only: the saved log is never changed. */
+function _squashBounces(log){
+  const L=log||[],out=[];
+  const pair=j=>{const a=L[j],b=L[j+1];return !!(a&&b&&/^Sent to Jack/.test(String(a.what||''))&&String(b.by||'')==='PrepHub'
+    &&/back with Sarah/.test(String(b.what||''))&&Math.abs(new Date(b.at)-new Date(a.at))<10000);};
+  const dm=t=>{try{return new Date(t).toLocaleDateString('en-GB',{day:'2-digit',month:'short',timeZone:'Europe/London'});}catch(e){return '';}};
+  for(let i=0;i<L.length;i++){
+    if(pair(i)){let j=i,n=0;while(pair(j)){n++;j+=2;}
+      if(n>=2){out.push({at:L[j-1].at,by:'PrepHub',what:`Sent to Jack ${n} times (${dm(L[i].at)} – ${dm(L[j-2].at)}) — each one bounced straight back to Sarah. That was a bug, fixed in v54.3.`});i=j-1;continue;}}
+    out.push(L[i]);
+  }
+  return out;
+}
 /* Jack, 15 Sep, Gtech: "10 of 10 booked in — what happened to the other 0?"
    A question about missing stock that the stock has since answered. Same rule
    as the Becki flag: booking in clears it, nothing to press. Files the question
@@ -117,12 +132,16 @@ function _stockAnsweredCheck(r){
    ones). Derived from the claim's own log — nothing new stored. */
 function _recoveryClaim(r){
   if(!r)return null;
-  return (typeof claims!=='undefined'?claims:[]).find(c=>c&&!c.archived&&String(c.prepRowId)===String(r.uuid||r.id)&&/gated/i.test(c.issT||'')&&c.cst==='Resolved'&&(c.log||[]).some(l=>/^Sent to Recovery Stock/.test(String(l.msg||''))))||null;
+  return (typeof claims!=='undefined'?claims:[]).find(c=>c&&!c.archived&&String(c.prepRowId)===String(r.uuid||r.id)&&/gated|ebay/i.test(c.issT||'')&&c.cst==='Resolved'&&(c.log||[]).some(l=>/^Sent to Recovery Stock/.test(String(l.msg||''))))||null;
 }
 function _recoveryFiled(r){
   if(!r||r.archived)return false;
   const c=_recoveryClaim(r);if(!c)return false;
-  const left=(typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,(parseInt(r.rcvd)||0)-(parseInt(r.ship)||0));
+  const isEbay=/ebay/i.test(c.issT||'');
+  /* eBay units are already held out of "to send", so what decides it is the
+     shelf: everything still here went to eBay */
+  const left=isEbay?Math.max(0,(parseInt(r.rcvd)||0)-(parseInt(r.ship)||0))
+    :(typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,(parseInt(r.rcvd)||0)-(parseInt(r.ship)||0));
   if(left<=0)return false;
   /* 13 Oct 2026: sending PART of a row to Recovery still closed the claim, and
      this then filed the whole row — the units still on the shelf vanished off
@@ -132,16 +151,18 @@ function _recoveryFiled(r){
   const when=((c.log||[]).find(l=>/^Sent to Recovery Stock/.test(String(l.msg||'')))||{}).t||'';
   /* the note and the audit line are written ONCE — refiling a row that came
      back (the Oct 2026 ping-pong) must not grow its notes forever */
-  const line=`→ Recovery Stock (gated${when?', '+when:''}) — filed`;
+  const line=`→ Recovery Stock (${isEbay?'eBay stock':'gated'}${when?', '+when:''}) — filed`;
   const first=!String(r.notes||'').includes(line);
   if(first)r.notes=((r.notes||'').trim()?(r.notes.trim()+'\n'):'')+`${_ddUK()}: ${fmt(left)} ${line}`;
   r.archived=true;r._dirty=true;
-  if(first)try{logAudit('Filed — units are in Recovery Stock',`${r.sku||r.asin||''} — ${fmt(left)} unit${left===1?'':'s'} · gated claim closed ${when}`);}catch(e){}
+  if(first)try{logAudit('Filed — units are in Recovery Stock',`${r.sku||r.asin||''} — ${fmt(left)} unit${left===1?'':'s'} · ${isEbay?'eBay stock':'gated claim closed'} ${when}`);}catch(e){}
   return true;
 }
 /* one short label for the Prep Sheet's Issues column — what the row is waiting on */
 function _rowStateTag(r){
-  const c=_recoveryClaim(r);if(c)return{t:'Gated → Recovery Stock',col:'#c084fc',tip:'The gated units went to Recovery Stock — this row is filed'};
+  const c=_recoveryClaim(r);if(c)return /ebay/i.test(c.issT||'')
+    ?{t:'eBay → Recovery Stock',col:'#c084fc',tip:'Units set aside to sell on eBay are on Recovery Stock'}
+    :{t:'Gated → Recovery Stock',col:'#c084fc',tip:'The gated units went to Recovery Stock — this row is filed'};
   const o=_rowOwner(r);
   if(o.finished)return null;
   if(o.owner==='jack')return{t:'With Jack',col:'#60a5fa',tip:o.why};
@@ -149,7 +170,8 @@ function _rowStateTag(r){
   if(o.owner==='sarah'){const late=(typeof _prepRowLate==='function')&&_prepRowLate(r);
     return{t:(/^flagged/.test(o.why)?'Flagged — Sarah'
       :/Jack answered/.test(o.why)?'Jack answered — Sarah closes':/part shipped/.test(o.why)?'Part shipped — Sarah':/part arrived/.test(o.why)?'Part arrived — Sarah':/slipped/.test(o.why)?'Date slipped — Sarah':/claim/.test(o.why)?'Claim — Sarah':late?'Late — Sarah chasing':'With Sarah'),col:late?'#f87171':'#fbbf24',tip:o.why};}
-  if(/parked/.test(o.why))return{t:'Parked — date '+(r.expectedDelivery?_dmy(r.expectedDelivery):''),col:'#94a3b8',tip:o.why};
+  /* Jack, 22 Oct: "whose page is it on" — parked is nobody's until the date, then Sarah's */
+  if(/parked/.test(o.why))return{t:'Parked till '+(r.expectedDelivery?_dmy(r.expectedDelivery):'its date')+' → Sarah',col:'#94a3b8',tip:o.why+' — then it is back on Sarah\'s list'};
   if(/snoozed/.test(o.why))return{t:'Snoozed',col:'#94a3b8',tip:o.why};
   return null;
 }
@@ -211,6 +233,20 @@ function _claimSettledRow(r){
   try{saveRow(r).then(ok=>{if(ok)_cs.forEach(c=>{c.settledOnRow=new Date().toISOString();try{saveClaim(c);}catch(e){}});});}catch(e){}
   return true;
 }
+/* "Asked" with a due-date chase means a date was promised and the row waits on
+   it; once the date passes it is Sarah's chase. But a question sent to Jack
+   AFTER the date had already passed is not that promise — it is someone asking
+   him something new. Logitech X56, 13 Oct: Sarah pressed "Send to Jack — has
+   Amazon delivered it?" on a row whose 1 Oct date had slipped; the old promise
+   was still on the row, so her list put it straight back ("back with Sarah to
+   chase") and Jack's list never showed it. */
+function _askIsSlippedDate(r){
+  const res=r&&r.resolution;
+  if(!res||res.state!=='asked'||!res.chase||res.chase.step!=='due-date'||!r.expectedDelivery)return false;
+  const asked=new Date(res.at||0);
+  if(isNaN(asked.getTime()))return true;
+  return !(ukDayISO(asked)>String(r.expectedDelivery).slice(0,10));     /* asked after the promised UK day → a new question */
+}
 function _rowOwner(r){
   if(!r)return{owner:'none',finished:true,why:'no row'};
   const res=r.resolution||null,st=(res&&res.state)||'';
@@ -233,7 +269,7 @@ function _rowOwner(r){
   /* parked on a promised delivery date — off every list until the date slips (Jack, 7 Sep) */
   if(typeof _parkedOnDate==='function'&&_parkedOnDate(r))return{owner:'none',finished:false,why:'parked on a promised date — comes back by itself if it slips'};
   /* a promised date that has slipped is a chase — Sarah's, whoever put the date on */
-  if(st==='asked'&&res.chase&&res.chase.step==='due-date'&&r.expectedDelivery)return{owner:'sarah',finished:false,why:'the promised date slipped — Sarah chases'};
+  if(_askIsSlippedDate(r))return{owner:'sarah',finished:false,why:'the promised date slipped — Sarah chases'};
   /* a live question to Jack outranks the claim paperwork on the same row */
   if(st==='asked')return{owner:'jack',finished:false,why:'with Jack: '+(res.ask||'check')};
   /* an open claim on the row (damage, short, gated…) is somebody's job even when the stock itself is fine */

@@ -126,25 +126,59 @@ const USERS=[
 ];
 let cu={id:'',name:'-',role:'',init:'?',col:'#888888'}; // neutral until a real login sets identity
 
-// UK local date ISO string (YYYY-MM-DD) — avoids UTC offset bug
-function todayISO(){
-  const now=new Date();
-  const y=now.getFullYear();
-  const m=String(now.getMonth()+1).padStart(2,'0');
-  const d=String(now.getDate()).padStart(2,'0');
-  return`${y}-${m}-${d}`;
+/* ── UK TIME, WHATEVER THE LAPTOP SAYS (13 Oct 2026) ──────────────────────
+   Sarah works from the Philippines, 7–8 hours ahead. "Today" and "now" were
+   read off each laptop's own clock, so after 17:00 UK her laptop was already
+   on tomorrow: a chase was saved with tomorrow's date, a promised date came
+   back a day early, and her 14:00 was written down as 21:00. Every helper here
+   is the UK calendar and the UK clock. Jack: "as long as it says UK time". */
+let _ukF=null;
+function _ukParts(d){
+  d=d==null?new Date():new Date(d);if(isNaN(d))d=new Date();
+  try{
+    if(!_ukF)_ukF=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',
+      day:'2-digit',hour:'2-digit',minute:'2-digit',weekday:'short',hourCycle:'h23'});
+    const o={};_ukF.formatToParts(d).forEach(x=>{o[x.type]=x.value;});
+    return{y:+o.year,m:+o.month,d:+o.day,h:o.hour==='24'?0:+o.hour,mi:+o.minute,
+      wd:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(o.weekday)};
+  }catch(e){return{y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate(),h:d.getHours(),mi:d.getMinutes(),wd:d.getDay()};}
 }
-function yesterdayISO(){
-  const now=new Date();
-  now.setDate(now.getDate()-1);
-  const y=now.getFullYear();
-  const m=String(now.getMonth()+1).padStart(2,'0');
-  const d=String(now.getDate()).padStart(2,'0');
-  return`${y}-${m}-${d}`;
+const _p2=n=>String(n).padStart(2,'0');
+/* the UK calendar day of a moment (default now), as YYYY-MM-DD */
+function ukDayISO(d){const p=_ukParts(d);return`${p.y}-${_p2(p.m)}-${_p2(p.d)}`;}
+/* minutes the UK is ahead of UTC at that moment: 60 in summer, 0 in winter */
+function _ukOffMin(ms){const p=_ukParts(ms);return Math.round((Date.UTC(p.y,p.m-1,p.d,p.h,p.mi)-Math.floor(ms/6e4)*6e4)/6e4);}
+/* the moment a UK calendar day starts (00:00 UK), in ms */
+const _ukStartC={};
+function _ukDayStart(y,m,d){
+  const k=y+'-'+m+'-'+d;if(_ukStartC[k]!=null)return _ukStartC[k];
+  const g=Date.UTC(y,m-1,d);return(_ukStartC[k]=g-_ukOffMin(g-36e5)*6e4);
 }
-const todayDDMM=()=>{const n=new Date();return`${String(n.getDate()).padStart(2,'0')}/${String(n.getMonth()+1).padStart(2,'0')}`;};
-const getNowUK=()=>{const n=new Date();const d=String(n.getDate()).padStart(2,'0');const m=String(n.getMonth()+1).padStart(2,'0');const h=String(n.getHours()).padStart(2,'0');const min=String(n.getMinutes()).padStart(2,'0');return`${d}/${m} ${h}:${min}`;};
+/* a UK date plus n calendar days, as YYYY-MM-DD */
+function ukAddDays(iso,n){const p=String(iso).slice(0,10).split('-').map(Number);
+  return new Date(Date.UTC(p[0],p[1]-1,p[2]+n)).toISOString().slice(0,10);}
+/* UK day of the week for a YYYY-MM-DD: 0 Sunday … 6 Saturday */
+const ukWeekdayOf=iso=>{const p=String(iso).slice(0,10).split('-').map(Number);return new Date(Date.UTC(p[0],p[1]-1,p[2])).getUTCDay();};
+function todayISO(){return ukDayISO();}
+function yesterdayISO(){return ukAddDays(ukDayISO(),-1);}
+const todayDDMM=()=>{const p=_ukParts();return`${_p2(p.d)}/${_p2(p.m)}`;};
+const getNowUK=()=>{const p=_ukParts();return`${_p2(p.d)}/${_p2(p.m)} ${_p2(p.h)}:${_p2(p.mi)}`;};
 
+/* 22 Oct 2026: Jack typed 31/11/2026 — November has 30 days. A date box holding
+   an impossible date SHOWS it but hands the app an empty value, so every save
+   said "Pick a date first". Say what is actually wrong — on the save, and the
+   moment you leave the box. */
+function dateBoxMsg(el,fallback){
+  return (el&&el.validity&&el.validity.badInput)
+    ?'That date doesn\u2019t exist \u2014 check the day and month (31 November, 31 April, 30 February are not real days)'
+    :fallback;
+}
+document.addEventListener('focusout',e=>{
+  const el=e.target;if(!el||el.type!=='date')return;
+  const bad=!!(el.validity&&el.validity.badInput);
+  el.style.outline=bad?'2px solid #ef4444':'';
+  if(bad)try{toast(dateBoxMsg(el),'er');}catch(_){}
+},true);
 // Parse DD/MM date to sortable YYYY/MM/DD using current year
 function parseDDMM(s){
   if(!s)return'';
@@ -161,6 +195,18 @@ function _ddUK(d){
   try{const p=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',day:'2-digit',month:'2-digit'}).formatToParts(d);
     const g=t=>(p.find(x=>x.type===t)||{}).value||'';return g('day')+'/'+g('month');}
   catch(e){return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');}
+}
+/* The order date is in the SKU: Amuk_3.2_02096_0_PS_30 → 02096 = 02/09 (day,
+   month, last digit of the year). Oct 2026: the Q3 tab's date column is headed
+   "find", so 106 rows came in with no date — and a row with no date can never
+   be late, so it never reached anyone's list (HIGH5 ×6, ordered 2 Sep, 41 days,
+   nobody chasing). The sheet's own date always wins; this only fills a blank,
+   in memory, and the Prep Sheet marks it as from the SKU. */
+function skuDateDDMM(sku){
+  const m=String(sku||'').match(/^[A-Za-z0-9]+_[\d.]+_(\d{2})(\d{2})\d_/);
+  if(!m)return '';
+  const dd=+m[1],mm=+m[2];
+  return(dd>=1&&dd<=31&&mm>=1&&mm<=12)?m[1]+'/'+m[2]:'';
 }
 // ── SKU PARSER ─────────────────────────────────────────────────────────────────
 // Format: Supplier_COGS_MinSellPrice_DateCode_Type_Units
@@ -454,29 +500,15 @@ document.addEventListener('keydown',e=>{
   const inSelect=active&&active.tagName==='SELECT'&&active.classList.contains('ci-sel');
   const trs=getRowEls();if(!trs.length)return;
 
-  // Number keys directly replace value on number cells
-  if(!inInput&&!inSelect&&/^[0-9]$/.test(e.key)&&focusRow>=0&&focusCol>=0){
-    const inp=getFocusedInput();
-    if(inp&&inp.type==='number'){
-      e.preventDefault();
-      inp.value=e.key;
-      inp.focus();
-      inp.dispatchEvent(new Event('change'));
-      return;
-    }
-    // 1-7 shortcuts for Status column — find status select in focused cell
-    const td=getVisibleTds(trs[focusRow])[focusCol];
-    const sel=td&&td.querySelector('select.ci-sel');
-    if(sel&&sel.options.length>1){
-      const statuses=['In-Transit','Delivered','In Warehouse','Part Sent','Sent to Amazon','Issue','Not Arrived','Returned'];
-      const idx=parseInt(e.key)-1;
-      if(idx>=0&&idx<statuses.length&&Array.from(sel.options).some(o=>o.value===statuses[idx])){
-        e.preventDefault();
-        sel.value=statuses[idx];
-        sel.dispatchEvent(new Event('change'));
-        return;
-      }
-    }
+  /* 21 Oct 2026 (Jack: yes). Digits typed with a row selected used to EDIT it:
+     "0" on Expected Qty saved 0 and the row dropped off the sheet, 1–8 on
+     Status changed it (5 = Sent to Amazon). Becki types and scans barcodes, so
+     a number typed anywhere on the Prep Sheet goes into the search box. A cell
+     is still edited by clicking it, or Enter. */
+  if(!inInput&&!inSelect&&/^[0-9]$/.test(e.key)&&!e.metaKey&&!e.ctrlKey&&!e.altKey){
+    const sb_=document.getElementById('prepSrch');
+    if(sb_){e.preventDefault();sb_.focus();sb_.value=(sb_.value||'')+e.key;
+      sb_.dispatchEvent(new Event('input',{bubbles:true}));return;}
   }
 
   // Space opens dropdown on focused cell

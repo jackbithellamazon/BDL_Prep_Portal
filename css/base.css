@@ -291,10 +291,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .pa-cells{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
 @media(max-width:720px){.pa-cells{grid-template-columns:repeat(2,1fr);}}
 .pa-cell{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 12px;text-align:center;}
-.pa-cell .pa-lab{font-size:8.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);}
+.pa-cell .pa-lab{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);}
 .pa-cell .pa-u{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--text);line-height:1.1;}
-.pa-cell .pa-un{font-size:8.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-left:3px;}
-.pa-cell .pa-meta{font-size:9px;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:1px;}
+.pa-cell .pa-un{font-size:9.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-left:3px;}
+.pa-cell .pa-meta{font-size:10.5px;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:1px;}
 .pa-cell .pa-split{font-size:9.5px;font-variant-numeric:tabular-nums;margin-top:3px;}
 .pa-cell .pa-it{color:#5599ff;font-weight:700;}
 .pa-cell .pa-arr{color:#86efac;font-weight:700;}
@@ -323,7 +323,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .nbMore{align-self:center;font-size:11px;color:var(--text3);}
 /* the shipment you were sent to, so you can see which one it is */
 .nbFlash{box-shadow:0 0 0 3px var(--amber);transition:box-shadow .25s;}
-.stat-label{font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;font-weight:800;white-space:nowrap;}
+.stat-label{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;font-weight:800;white-space:nowrap;}
 .stat-val{font-size:32px;font-weight:900;font-family:var(--num);font-variant-numeric:tabular-nums;line-height:1;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;letter-spacing:-.5px;}
 .sv-blue{color:var(--blue);}
 .sv-green{color:var(--green);}

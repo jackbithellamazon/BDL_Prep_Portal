@@ -420,7 +420,7 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .stLast{font-size:10.5px;margin-top:2px;}
 .stNext{font-size:10px;margin-top:2px;}
 .csNote{font-size:10.5px;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.tfuCap{font-size:8.5px;}
+.tfuCap{font-size:10px;}
 .tfuTri{padding:4px 6px;font-size:11px;}
 .tfuGuide{font-size:10px;margin-top:4px;padding:3px 6px;}
 .tfu td.tfuActs .tfuWork{padding:5px 8px;font-size:11px;display:block;width:100%;box-sizing:border-box;}
@@ -514,6 +514,13 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .jkDoneP{font-weight:700;color:var(--text2);flex:0 1 38%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .jkDoneW{flex:1 1 auto;color:var(--text3);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .jkDoneRow .csAct{margin:0;width:auto;padding:4px 10px;}
+/* Written off (22 Oct 2026) — same rows as Done, with the day, where it came from, units and £ */
+.jkWoRow{cursor:pointer;}
+.jkWoRow:hover{background:rgba(255,255,255,.03);opacity:1;}
+.jkWoD{flex:none;width:52px;font:700 11px var(--num);color:var(--text3);}
+.jkWoS{flex:none;font-size:10px;font-weight:800;letter-spacing:.04em;padding:1px 8px;border:1px solid;border-radius:999px;white-space:nowrap;}
+.jkWoU{flex:none;font:700 11.5px var(--num);color:var(--text2);white-space:nowrap;}
+.jkWoV{flex:none;width:76px;text-align:right;font:800 12px var(--num);color:#f87171;font-variant-numeric:tabular-nums;}
 /* readability bump — Jack: "some of the text is unreadable due to colour/font/size" */
 .stState{font-size:10px;}
 .stLast{font-size:11px;color:var(--text);}
@@ -528,10 +535,10 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .stFixNote{margin:6px 0 4px;padding:6px 9px;border-left:3px solid #fbbf24;background:rgba(251,191,36,.07);font-size:10.5px;line-height:1.45;color:#fde68a;white-space:normal;}
 .stFixNote b{color:#fbbf24;font-weight:800;}
 .stFixNote i{color:var(--text3);}
-.stSec{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);
+.stSec{font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);
   margin:10px 0 4px;padding-top:7px;border-top:1px solid var(--border);}
 .stGrid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;align-items:baseline;}
-.stK{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
+.stK{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
 .stV{font-size:10.5px;font-weight:600;color:var(--text2);line-height:1.4;overflow-wrap:anywhere;min-width:0;}
 .stFact{font-size:10.5px;font-weight:600;color:var(--text2);line-height:1.4;margin-top:2px;overflow-wrap:anywhere;}
 .stNote{font-size:10.5px;font-weight:600;line-height:1.4;margin-top:3px;padding-left:7px;border-left:2px solid var(--border2);color:var(--text2);overflow-wrap:anywhere;}
@@ -817,7 +824,7 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
    rather than relying on the class's own white-space. */
 .csStand,.csWas,.csWho,.csNote,.csNowTxt,.csAct,.csDateL,.tfuGuide,.tfuSelf{white-space:normal!important;}
 .csNow{text-align:center;}
-.csNowCap{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#fbbf24;margin-bottom:3px;}
+.csNowCap{font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#fbbf24;margin-bottom:3px;}
 .csDate{margin:2px 0 0;}
 .csDate input{margin-bottom:5px;}
 .csNow{padding-bottom:0;}
@@ -825,7 +832,7 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 .csNowTxt{font-size:11.5px;font-weight:700;color:var(--text);line-height:1.35;margin-bottom:7px;cursor:help;}
 .csActs{display:flex;flex-direction:column;gap:4px;}
 .csDate{display:flex;flex-direction:column;gap:4px;margin-bottom:7px;padding-bottom:7px;border-bottom:1px dashed var(--border2);}
-.csDateL{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);}
+.csDateL{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);}
 .csDate input[type=date]{width:100%;box-sizing:border-box;padding:5px 7px;border-radius:6px;cursor:pointer;
   background:var(--bg);border:1px solid var(--border2);color:var(--text);font-size:11.5px;font-weight:700;
   font-family:var(--num);font-variant-numeric:tabular-nums;}
@@ -869,7 +876,8 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 .csSub{font-size:12.5px;font-weight:600;color:var(--text2);margin-top:3px;line-height:1.35;}
 .csSub2{font-size:11px;font-weight:600;color:var(--text3);margin-top:3px;font-family:var(--mono);}
 .csMoney{font:800 20px var(--num);font-variant-numeric:tabular-nums;color:#fbbf24;line-height:1;}
-.csMoneyCap{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-top:3px;}
+/* 22 Oct 2026: micro-labels across the app raised from 8.5–9px to the house 10px */
+.csMoneyCap{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-top:3px;}
 .csBody{padding:16px 20px;overflow:auto;flex:1;}
 .csRow{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px;}
 .csChip{font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:9px;white-space:nowrap;

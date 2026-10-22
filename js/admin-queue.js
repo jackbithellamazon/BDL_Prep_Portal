@@ -124,7 +124,7 @@ function _ukQuery(r){
 }
 /* working days a question has sat unanswered */
 function _queryWait(q){return q&&q.at?Math.floor(_workMsSince(q.at)/864e5):0;}
-function _qryWhen(t){const d=new Date(t);return isNaN(d)?'':d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
+function _qryWhen(t){const d=new Date(t);return isNaN(d)?'':d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',timeZone:'Europe/London'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/London'});}
 function _qryAskText(got,exp,short){
   return got?`${got} of ${exp} booked in — ${short===1?'is the other one':'are the other '+short} still on the way, or does the order say fully delivered?`
             :`Nothing booked in yet — has this order been dispatched, and when is it due?`;
@@ -299,20 +299,20 @@ function _caseStep(c){
 }
 /* How overdue the next look is, in days. Negative = still has time. */
 /* n WORKING days from now — weekends don't count as chasing time */
-function _wdays(n){const d=new Date();let a=0;while(a<n){d.setDate(d.getDate()+1);const w=d.getDay();if(w!==0&&w!==6)a++;}return d.toISOString().split('T')[0];}
+function _wdays(n){let iso=todayISO(),a=0;while(a<n){iso=ukAddDays(iso,1);const w=ukWeekdayOf(iso);if(w!==0&&w!==6)a++;}return iso;}
 /* elapsed WORKING-hours ms since t0 — Sat/Sun contribute nothing */
 function _workMsSince(t0){
-  const a=new Date(t0),b=new Date();
+  /* UK days: on Sarah's laptop the weekend used to start at 17:00 UK on Friday */
+  const a=new Date(t0).getTime(),b=Date.now();
   if(isNaN(a)||a>=b)return 0;
-  let ms=0;const d=new Date(a);d.setHours(0,0,0,0);
-  while(d<b){
-    const w=d.getDay();
-    if(w!==0&&w!==6){
-      const s=Math.max(d.getTime(),a.getTime());
-      const e=Math.min(d.getTime()+864e5,b.getTime());
-      if(e>s)ms+=e-s;
-    }
-    d.setDate(d.getDate()+1);
+  let ms=0,iso=ukDayISO(a),guard=0;
+  while(guard++<4000){
+    const p=iso.split('-').map(Number),s0=_ukDayStart(p[0],p[1],p[2]);
+    if(s0>=b)break;
+    const nx=ukAddDays(iso,1),q=nx.split('-').map(Number),e0=_ukDayStart(q[0],q[1],q[2]);
+    const w=ukWeekdayOf(iso);
+    if(w!==0&&w!==6){const s=Math.max(s0,a),e=Math.min(e0,b);if(e>s)ms+=e-s;}
+    iso=nx;
   }
   return ms;
 }
@@ -369,7 +369,7 @@ async function caseGo(rid,actKey,stepKey){
    normal overdue machinery brings the row back on its own. */
 async function caseDate(rid,val){
   const r=_rowById(rid);const c=_caseOf(r);if(!c)return;
-  if(!val){toast('Pick the date first, then Confirm','er');return;}
+  if(!val){toast(dateBoxMsg(document.getElementById('cd_'+rid),'Pick the date first, then Confirm'),'er');return;}
   if(!saneDate(val))return;               /* half-typed year — let them finish */
   if(val===r.expectedDelivery&&c.due===val)return;  /* no-op — no log spam */
   markSeen(rid);
@@ -413,8 +413,8 @@ function _logWhen(t){
   const s=String(t||'').trim();
   if(!s)return '—';
   const d=new Date(s.includes('T')||/^\d{4}-/.test(s)?s:s.replace(' ','T'));
-  if(!isNaN(d))return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+
-    d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  if(!isNaN(d))return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',timeZone:'Europe/London'})+' '+
+    d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/London'});
   return s.slice(0,16);
 }
 function openClaimCase(id){
@@ -914,7 +914,7 @@ function jackAmzDate(rid,btn){
   box.querySelector('[data-x]').onclick=()=>box.remove();
   box.querySelector('[data-go]').onclick=async()=>{
     const v=inp.value;
-    if(!v||!saneDate(v)){toast('Pick a date first','er');return;}
+    if(!v||!saneDate(v)){toast(dateBoxMsg(inp,'Pick a date first'),'er');return;}
     box.remove();
     /* Answering through jackAnswered marks the case REJECTED, which is the
        "here you go, carry on" route and puts the row straight back on her chase
@@ -967,8 +967,7 @@ async function setDueDate(rid,val){
   try{renderDashboard();}catch(e){}
 }
 function bumpDue(rid,days){
-  const d=new Date();d.setDate(d.getDate()+days);
-  setDueDate(rid,d.toISOString().split('T')[0]);
+  setDueDate(rid,ukAddDays(todayISO(),days));
 }
 
 // ── THE SECTIONS SARAH AND JACK WORK FROM ────────────────────────────────────
@@ -2216,18 +2215,18 @@ function renderAdmin(){
             const _bAge=i.withBecki.at?Math.max(0,Math.floor((Date.now()-new Date(i.withBecki.at).getTime())/864e5)):null;
             return`<tr class="tfuWaiting tfuCompact">
               <td class="tfuNumCell" style="text-align:center;"><span class="tfuStripe" style="background:#22d3ee;" title="With Becki — Amazon say delivered, she is checking the shelves"></span><span style="font:800 12px var(--mono);color:var(--text3);">${n+1}</span>
-              <td colspan="6"><div class="tfuCmp">
+              <td colspan="7"><div class="tfuCmp">
                 <span class="tfuCmpName" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</span>
                 <span class="tfuCmpMeta">${esc(i.sup||'')}${i.oid?' · '+oidHtml(i.oid,i.sup,i.acct):''}${i.acct?' · '+esc(i.acct):''}</span>
                 <span class="tfuCmpChip" style="background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.5);color:#22d3ee;" title="With Becki — checking the shelves">With Becki &middot; checking the shelves${_bAge!=null?' &middot; '+_bAge+'d':''}</span>
                 <span class="tfuCmpAsk" title="Sent ${esc(i.withBecki.sentBy||'')}${i.withBecki.at?' '+esc(_logWhen(i.withBecki.at)):''}">Amazon say delivered &mdash; Becki is checking the shelves. Found: it books in and clears. Not there: it goes to Jack for the refund.</span>
-                ${i.value?`<span class="tfuCmpVal">${fmtGBP2(i.value)}</span>`:''}
-              </div></td>
-              <td class="tfuActs">
-                <button class="tfuAsk" style="margin-top:0;" onclick="amzBackToJack('${i.rid}')" title="Nothing for the warehouse to find — the order or the Purchase Sheet is wrong. It goes to Jack to answer and comes off Becki's list.">Back to Jack</button>
-                <button class="tfuAsk" style="margin-top:0;" onclick="amzUndoBecki('${i.rid}')" title="Sent by mistake — pull it back off Becki's list. Jack's answer stays on the row and your Yes / No buttons come back.">Undo</button>
+                <span class="tfuCmpVal">${i.value?fmtGBP2(i.value):''}</span>
+                <span class="tfuCmpActs">
+                <button class="tfuAsk" onclick="amzBackToJack('${i.rid}')" title="Nothing for the warehouse to find — the order or the Purchase Sheet is wrong. It goes to Jack to answer and comes off Becki's list.">Back to Jack</button>
+                <button class="tfuAsk" onclick="amzUndoBecki('${i.rid}')" title="Sent by mistake — pull it back off Becki's list. Jack's answer stays on the row and your Yes / No buttons come back.">Undo</button>
                 <button class="tfuMore" onclick="openWork('${i.rid}')" title="Everything on this issue — nothing to do until Becki answers">Details</button>
-              </td></tr>`;
+                </span>
+              </div></td></tr>`;
           }
           if(waiting&&!i.sortedGrace&&!i.parkedRow){
             const _e1=s=>String(s).replace(/'/g,"\\'");
@@ -2244,17 +2243,17 @@ function renderAdmin(){
             const _q=i.query;
             return`<tr class="tfuWaiting tfuCompact">
               <td class="tfuNumCell" style="text-align:center;"><span class="tfuStripe" style="background:#94a3b8;" title="${esc(edgeTitle)}"></span><span style="font:800 12px var(--mono);color:var(--text3);cursor:help;" title="${esc(edgeTitle)}">${n+1}</span></td>
-              <td colspan="6"><div class="tfuCmp">
+              <td colspan="7"><div class="tfuCmp">
                 <span class="tfuCmpName" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</span>
                 <span class="tfuCmpMeta">${esc(i.sup||'')}${i.oid?' · '+oidHtml(i.oid,i.sup,i.acct):''}${i.acct?' · '+esc(i.acct):''}</span>
                 <span class="tfuCmpChip"${_jackOwned?' style="background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.5);color:#22d3ee;"':''} title="${esc(_stage)}">${esc(_stage)}${_wAge!=null?' &middot; '+_wAge+'d':''}</span>
                 <span class="tfuCmpAsk" title="${esc(_wWhat)}">${_q?'Warehouse asked: '+esc(_q.got?_q.got+' of '+_q.exp+' in — is more coming?':'has it been dispatched?')+' · ':''}${esc(_wWhat)}</span>
-                ${i.value?`<span class="tfuCmpVal">${fmtGBP2(i.value)}</span>`:''}
-              </div></td>
-              <td class="tfuActs" style="text-align:center;">
-                ${_jackOwned?'':`<button class="tfuAsk" style="margin-top:0;" onclick="undoSend('${i.kind}','${i.kind==='claim'?i.claimId:i.kind==='lav'?_e1(i.lavKey):i.rid}')" title="Changed your mind — pull it back off Jack's list and carry on yourself">Undo</button>`}
+                <span class="tfuCmpVal">${i.value?fmtGBP2(i.value):''}</span>
+                <span class="tfuCmpActs">
+                ${_jackOwned?'':`<button class="tfuAsk" onclick="undoSend('${i.kind}','${i.kind==='claim'?i.claimId:i.kind==='lav'?_e1(i.lavKey):i.rid}')" title="Changed your mind — pull it back off Jack's list and carry on yourself">Undo</button>`}
                 <button class="tfuMore" onclick="${i.kind==='claim'?`openClaimCase('${i.claimId}')`:i.kind==='lav'?`openLavIssue('${_e1(i.lavKey)}')`:`openWork('${i.rid}')`}" title="Everything on this issue — it is locked while Jack has it">Details</button>
-              </td></tr>`;
+                </span>
+              </div></td></tr>`;
           }
           return`<tr class="${(waiting||i.sortedGrace||i.parkedRow)?'tfuWaiting':''}"${sentBack?' style="background:rgba(239,68,68,.05);"':''}>
             <td class="tfuNumCell" style="text-align:center;padding-top:13px;">
@@ -2677,7 +2676,7 @@ function renderAdmin(){
                 let expLine='';
                 if(i.expDate){const aw=Math.round((new Date(i.expDate)-new Date())/864e5);
                   expLine=`<div class="stExp" style="color:${aw<0?'#f87171':'#4ade80'};">&#128197; expected ${_ds(i.expDate)}${aw<0?` — slipped ${Math.abs(aw)}d ago`:aw===0?' — today':` — in ${aw}d`}</div>`;}
-                const _cl=(i.caseC&&i.caseC.log)||[];
+                const _cl=_squashBounces((i.caseC&&i.caseC.log)||[]);
                 /* Jack, 4 Sep: "this column needs improving — it's a mega notes
                    section, maybe a dropdown with notes and more detail." Closed:
                    the state, the latest line in full, the next move. Open: the

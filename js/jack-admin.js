@@ -140,6 +140,25 @@ function renderJack(){
           <button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Back to Sarah with a note</button>`});
       return;
     }
+    /* Jack, 22 Oct, BioEars: "12 of 12 booked in — what happened to the other 0?"
+       Sarah sent it as "cancelled or refunded?", but every unit had arrived; 10
+       went to Amazon and 2 never followed. The card only knew how to ask about a
+       delivery, so it asked about none. When nothing is owed and units are left
+       unsent, it asks the question that is actually open. */
+    {const _got=parseInt(r.rcvd)||0,_left=(typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,_got-(parseInt(r.ship)||0));
+     if(!Q&&_owedUnits(r)<=0&&_left>0&&(parseInt(r.ship)||0)>0&&typeof _partShipStale==='function'&&_partShipStale(r)){
+      const _last=(r.shipSegments||[]).map(x=>x.date).filter(Boolean).sort().pop()||r.sentDate||'';
+      items.push({kind:'check',id:_id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
+        asin:r.asin||'',by:q.by||'someone',at:q.at,wait:days(q.at),
+        type:['NOT SENT','#fb923c','Nothing is missing from the order — some never went to Amazon'],
+        why:esc(`All ${fmt(_got)} arrived · ${fmt(parseInt(r.ship)||0)} went to Amazon${_last?' on '+_dmy(_last):''} · the other ${fmt(_left)} never went`)
+          +`<div style="font-size:9.5px;font-weight:700;color:var(--text3);margin-top:3px;">Sarah asked: ${esc(q.ask||'check')}${q.note?' — “'+esc(q.note)+'”':''}</div>`,
+        note:q.note||'',clog:(q.chase&&q.chase.log)||[],expDate:r.expectedDelivery||'',
+        /* no claim clock and no late clock — nothing on the order is missing */
+        value:(parseSKU(r.sku).cogs||0)*_left,left:null,odate:r.date||'',
+        acts:_jkLeftActs(r,_id,_got,_left,_last)});
+      return;
+     }}
     /* a warehouse question Sarah passed over is answered in its own terms —
        "is more on the way?" — not with Arrived YES/NO */
     items.push({kind:'check',id:_id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
@@ -350,7 +369,7 @@ function renderJack(){
        <button>s out of the action HTML, so the date box the button reads from
        was never drawn. Inputs ride along, in front of their buttons. */
     const _i=(String(it.acts).match(/<input[^>]*>/g)||[]);
-    const _cl=(it.clog||[]).slice().reverse();const _open=_stOpen.has('jk:'+String(it.id));
+    const _cl=_squashBounces(it.clog||[]).slice().reverse();const _open=_stOpen.has('jk:'+String(it.id));
     const _line=L=>`<div class="stLog"><span class="stLogWhen">${esc(_logWhen(L.at))}</span>${L.by?` · <b>${esc(L.by)}</b>`:''} — ${esc(L.what||'')}</div>`;
     const _r=(it.kind==='claim'||it.kind==='lav')?null:_rowById(it.id);
     const _story=[
@@ -415,6 +434,21 @@ function renderJack(){
     return `<details class="jkDone" open><summary><span class="jkInfoT">Done</span><span class="jkInfoN">${fmt(ap.length+an.length)}</span><span class="ovDim2">what you dealt with — approvals stay undoable for 48 working hours</span></summary>
       ${ap.map(r=>line(r,`approved — ${esc(_resText(r.resolution.what))} · ${esc(_logWhen(r.resolution.approvedAt))}`,`<button class="csAct plain" onclick="reopenResolution('${r.uuid||r.id}',true)" title="Bring it back — everything it knew is still on it">Undo</button>`)).join('')}
       ${an.map(r=>line(r,`answered — ${esc((r.resolution.rejectNote||'').slice(0,90))} · ${esc(_logWhen(r.resolution.at))}`,'')).join('')}
+    </details>`;})();
+  const _woHtml=(()=>{
+    const L=_writeOffs();if(!L.length)return '';
+    const ym=todayISO().slice(0,7),sum=a=>a.reduce((t,x)=>t+(x.val||0),0),mon=L.filter(x=>x.on.slice(0,7)===ym);
+    const SRC={'Prep Sheet':'#f87171','Amazon refund':'#22d3ee','Supplier refused':'#fbbf24','Backlog tidy-up':'#94a3b8','Claim':'#fbbf24','PLUB short':'#c084fc','PLUB damaged':'#fb7185'};
+    return `<details class="jkInfo jkWo"><summary><span class="jkInfoT">Written off</span><span class="jkInfoN">${fmt(L.length)}</span>
+      <span class="ovDim2">${sum(mon)?`<b style="color:#f87171;">${fmtGBP2(sum(mon))}</b> lost this month`:'nothing lost this month'} · ${fmtGBP2(sum(L))} in all &mdash; taken as a loss, nothing more coming</span></summary>
+      ${L.slice(0,60).map(x=>`<div class="jkDoneRow jkWoRow" onclick="${x.open}" title="Open it">
+        <span class="jkWoD">${esc(_woDay(x.on))}</span>
+        <span class="jkWoS" style="color:${SRC[x.src]||'#cbd5e1'};border-color:${SRC[x.src]||'#cbd5e1'}66;">${esc(x.src)}</span>
+        <span class="jkDoneP">${esc(x.prod)}</span>
+        <span class="jkDoneW">${esc([x.sup,x.ref].filter(Boolean).join(' · '))}${x.why?' &mdash; '+esc(x.why):''}${x.by?' · '+esc(x.by):''}</span>
+        <span class="jkWoU">${fmt(x.units)} unit${x.units===1?'':'s'}</span>
+        <span class="jkWoV">${x.val?fmtGBP2(x.val):'—'}</span></div>`).join('')}
+      ${L.length>60?`<div class="jkDoneRow"><span class="jkDoneW">&hellip;and ${fmt(L.length-60)} older</span></div>`:''}
     </details>`;})();
   const kpi=(v,l,cls,kind)=>`<div class="jkKpi ${cls||''}" style="flex:1;${kind?'cursor:pointer;':''}" ${kind?`onclick="_jkKind=_jkKind==='${kind}'?'all':'${kind}';renderJack();" title="Click to show only these"`:''}><b>${v}</b><span>${l}</span></div>`;
   w.innerHTML=`
@@ -519,6 +553,7 @@ function renderJack(){
     ${_doneHtml}
     ${!shown.length?`<div style="text-align:center;padding:26px;color:var(--text3);font-weight:700;font-size:12.5px;">Nothing matches — clear the search or press All.</div>`:''}`
     :`<div class="jkEmpty"><b>All clear</b><span>When Sarah sends something over it lands here.</span></div>`}
+    ${_woHtml}
     `;/* Issues page killed — Jack, 30 Aug: "issues are split into Sarah Admin + Jack Admin. Remove it." */
   paintJackBadge();
   if(_st)w.scrollTop=_st;
@@ -601,7 +636,7 @@ function jackAnswerAsk(rid){
 }
 function askStillComing(){
   const v=(document.getElementById('askDate')||{}).value;
-  if(!v||!saneDate(v)){toast('Pick the date first','er');return;}
+  if(!v||!saneDate(v)){toast(dateBoxMsg(document.getElementById('askDate'),'Pick the date first'),'er');return;}
   const rid=_askRid;askShut();jackStillComing(rid,v);
 }
 function jackAnsCheck(){
@@ -654,6 +689,8 @@ function askJackAsk(rid,pick){
     <div class="srtCfmTtl">Send this to Jack</div>
     <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${r.oid?oidHtml(r.oid,r.sup,r.acct):'no order id'}${r.sup?' · '+esc(r.sup):''}${r.acct?' · '+esc(r.acct):''}</div>
     ${!_amazonRow(r)?`<div class="srtNeed" style="margin:0 0 10px;"><b>Not an Amazon order.</b> A refund from ${esc(r.sup||'this supplier')} is yours to see through: if they have promised it, wait 48 hours, check the emails, then close it as <b>Refund being processed — done</b> or chase again. Only send it to Jack if you need something only he can do.</div>`:''}
+    ${(()=>{const g=parseInt(r.rcvd)||0,e=parseInt(r.exp)||0,lf=(typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,g-(parseInt(r.ship)||0));
+      return e>0&&_owedUnits(r)<=0&&g>0?`<div class="srtNeed" style="margin:0 0 10px;"><b>All ${fmt(g)} of ${fmt(e)} are booked in</b> &mdash; nothing is missing from the order, so &ldquo;did it arrive&rdquo; and &ldquo;cancelled or refunded&rdquo; do not apply.${lf>0?` The other ${fmt(lf)} were never sent to Amazon: that is for the warehouse &mdash; Becki sees it on the Prep Sheet. If you know they went out under another SKU, use <b>Went out under another SKU&hellip;</b> instead.`:''}</div>`:'';})()}
     <div class="srtCfmLab">What is it about?</div>
     <div class="askOpts">${ASK_REASONS.map((o,n)=>`<label class="srtChk">
       <input type="radio" name="askWhy" value="${esc(o)}" ${n===0?'checked':''} onchange="askNoteCheck()"><span>${esc(o)}</span></label>`).join('')}</div>
@@ -876,6 +913,46 @@ function _jkCheckActs(r,_id){
   if(owe>0)B.push(`<button class="csAct plain" style="border-color:rgba(248,113,113,.55);color:#fca5a5;" onclick="jackWriteOff('${_id}')" title="Nothing more is coming and nothing will be claimed — the ${fmt(owe)} ${owe===1?'unit is':'units are'} taken as a loss. The row closes for you, Sarah and Becki, and the loss stays on the row's story and in the Audit Log.">Write ${got>0?'the other '+fmt(owe):'all '+fmt(owe)} off &mdash; taking the loss</button>`);
   B.push(`<button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`);
   return B.join('\n        ');
+}
+/* All arrived, some never sent (see the BioEars note above): a warehouse
+   question. Nothing about the order is wrong, so none of the delivery answers
+   apply. */
+function _jkLeftActs(r,_id,got,left,last){
+  const sent=parseInt(r.ship)||0,B=[];
+  B.push(`<div class="jkWhere"><b class="jkQ">All ${fmt(got)} arrived &mdash; ${fmt(sent)} went to Amazon${last?' on '+_dmy(last):''}. Where are the other ${fmt(left)}?</b><span class="jkQsub">Nothing is missing from the order &mdash; your answer goes back to Sarah.</span></div>`);
+  B.push(`<button class="csAct good" onclick="jackAnswered('${_id}','All ${fmt(got)} arrived — nothing is missing from the order. The other ${fmt(left)} should be on the shelf: Becki, send them on the next shipment.')" title="Back to Sarah with that answer. Becki already sees this row on the Prep Sheet as ${fmt(left)} left to send — once they go out it clears itself.">Still on the shelf &mdash; send them</button>`);
+  B.push(`<button class="csAct plain" onclick="wentOutUnder('${_id}')" title="They went out on another SKU's shipment — record it here; Sarah then confirms it in Seller Central and the row closes">Went out under another SKU&hellip;</button>`);
+  B.push(`<button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`);
+  return B.join('\n        ');
+}
+/* Jack, 22 Oct: "add a written off thing on Jack's page". Every loss in one list —
+   Prep Sheet rows, Amazon refunds that never came, supplier refusals, the old
+   backlog tidy-up, claims, PLUB shortages and binned damage. Read only: each line
+   opens its own record. */
+function _writeOffs(){
+  const out=[],q=s=>String(s).replace(/'/g,"\\'");
+  rows.forEach(r=>{const s=r.resolution;if(!s)return;
+    const mo=s.moneyOff;
+    if(!mo&&s.what!=='written-off'&&s.what!=='refused-loss')return;
+    const units=parseInt(s.refundUnits)||Math.max(0,(parseInt(r.exp||r.ship)||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0))||parseInt(r.cancelledQty)||0;
+    out.push({src:mo&&/amazon/i.test(mo.why||'')?'Amazon refund':s.what==='written-off'?'Backlog tidy-up':s.what==='refused-loss'?'Supplier refused':'Prep Sheet',
+      prod:r.prod||r.sku||'',sup:r.sup||'',ref:r.oid||'',units,val:units*(parseSKU(r.sku||'').cogs||0),
+      on:String((mo&&mo.at)||s.approvedAt||s.at||''),by:(mo&&mo.by)||s.approvedBy||s.by||'',
+      why:mo?(mo.why||''):s.what==='written-off'?'Claim window closed with nothing received':'Supplier refused to refund',
+      open:`openWork('${q(r.uuid||r.id)}')`});});
+  (typeof claims!=='undefined'?claims:[]).forEach(c=>{if(c.reimbursed!=='Write-off'&&c.outcome!=='written-off')return;
+    const l=(c.log||[]).slice().reverse().find(x=>/^Written off/.test(String(x.msg||''))),m=l&&/ by ([^—]+)$/.exec(String(l.msg||''));
+    out.push({src:'Claim',prod:c.prod||c.sku||'',sup:c.sup||'',ref:c.oid||'',units:parseInt(c.dif)||parseInt(c.exp)||0,val:+c.claimValue||0,
+      on:String(c.resolvedAt||''),by:m?m[1].trim():'',why:(c.issT?c.issT+' — ':'')+(c.reimburseNote||'written off'),
+      open:`openClaimCase('${q(c.id)}')`});});
+  try{if(window.LV3&&LV3.isReady&&LV3.isReady()&&LV3.woList)LV3.woList().forEach(x=>out.push(Object.assign({},x,
+    {open:`goPage('lavarion');setTimeout(()=>{try{LV3.${x.kind==='comp'?'openComp':'openProduct'}('${q(x.id)}');}catch(e){}},400)`})));}catch(e){}
+  return out.sort((a,b)=>String(b.on).localeCompare(String(a.on)));
+}
+function _woDay(on){
+  const s=String(on||'');if(!s)return '—';
+  const d=new Date(s.length===10?s+'T12:00:00Z':s);
+  return isNaN(d)?s.slice(0,10):d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',timeZone:'Europe/London'});
 }
 /* Taking the loss. Same shape as the Amazon "no money coming" close so every
    list, filter and money report already understands it: approved, no-refund,

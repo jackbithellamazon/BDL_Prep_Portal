@@ -1884,8 +1884,9 @@ function getNextSyncStr(){
    ~2 seconds, so the banner reports what is happening. */
 const SHIFT_START_HOUR=5;
 function _shiftStart(){
-  const d=new Date(); d.setHours(SHIFT_START_HOUR,0,0,0);
-  if(Date.now()<d.getTime())d.setDate(d.getDate()-1);   // before 5am, yesterday's shift
+  const at=iso=>{const p=iso.split('-').map(Number);return new Date(_ukDayStart(p[0],p[1],p[2])+SHIFT_START_HOUR*36e5);};
+  let d=at(todayISO());
+  if(Date.now()<d.getTime())d=at(yesterdayISO());        // before 5am UK, yesterday's shift
   return d;
 }
 let _firstInState=null;

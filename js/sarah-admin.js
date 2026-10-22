@@ -77,7 +77,7 @@ function _adminItems(){
     /* Jack, 10 Sep 22:13 (three Amazon Germany rows parked on the 10th): "they
        go on Sarah's sheet then, don't they?" Yes — a promised date that slips
        is a chase, and chasing is hers, whoever put the date on. */
-    if(r.resolution&&r.resolution.state==='asked'&&r.resolution.chase&&r.resolution.chase.step==='due-date'&&expDate&&expPassed){
+    if(_askIsSlippedDate(r)&&expDate&&expPassed){
       const _ch=r.resolution.chase;_ch.step='due-date';_ch.due=r.expectedDelivery||_ch.due||'';
       _ch.log=(_ch.log||[]).concat([{at:new Date().toISOString(),by:'PrepHub',what:'The promised date passed with nothing booked in — back with Sarah to chase'}]);
       r.resolution=Object.assign({},r.resolution,{state:'working',slippedAt:new Date().toISOString(),chase:_ch});
@@ -271,8 +271,7 @@ function exportTransitCsv(){
       (i.value||0).toFixed(2)];
   });
   const csv=[head].concat(body).map(r=>r.map(_csvCell).join(',')).join('\r\n');
-  const d=new Date();
-  const stamp=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const stamp=todayISO();
   const a=document.createElement('a');
   // BOM so Sheets and Excel read the £ signs and any accents correctly
   a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
@@ -348,7 +347,7 @@ async function refundWait(rid){
   const until=new Date();until.setDate(until.getDate()+2);
   r.chaseSnoozeUntil=until.toISOString();
   const ch=(r.resolution&&r.resolution.chase)||null;
-  if(ch)ch.log=(ch.log||[]).concat([{at:new Date().toISOString(),by:_who(),what:'Refund promised — checking the emails on '+until.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}]);
+  if(ch)ch.log=(ch.log||[]).concat([{at:new Date().toISOString(),by:_who(),what:'Refund promised — checking the emails on '+until.toLocaleDateString('en-GB',{day:'2-digit',month:'short',timeZone:'Europe/London'})}]);
   r._dirty=true;
   try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
   logAudit('Refund wait 48h',`${r.sku||r.asin||''} — back ${until.toISOString().slice(0,10)}`);
@@ -857,7 +856,7 @@ function addWorkingHours(from,hrs){
   let left=hrs,guard=0;
   while(left>0&&guard<24*60){
     d.setHours(d.getHours()+1);guard++;
-    const dow=d.getDay();
+    const dow=_ukParts(d).wd;                       /* the UK weekday, not this laptop's */
     if(dow>=1&&dow<=5)left--;
   }
   return d;
@@ -879,8 +878,8 @@ function _dueWord(due){
   const h=Math.round((due-now)/3600000);
   if(h<0)return 'overdue';
   if(h<24)return 'due in '+h+'h';
-  return 'due '+due.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'})+' '+
-    due.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  return 'due '+due.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',timeZone:'Europe/London'})+' '+
+    due.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/London'});
 }
 
 // ── WEBHOOK ───────────────────────────────────────────────────────────────────
@@ -930,12 +929,10 @@ async function _whFresh(){
 async function jackDigestWatch(){
   if(!WEBHOOK_CFG.on||!WEBHOOK_CFG.url)return;
   if(_whBusy||(WEBHOOK_CFG._failAt&&Date.now()-WEBHOOK_CFG._failAt<3600e3))return;
-  const now=new Date();
-  if(now.getHours()<DIGEST_HOUR)return;                 // not yet
-  /* Local date, built from parts — NOT toISOString(), which is UTC and would
-     roll the "sent today" stamp over an hour early in British Summer Time.
-     (LV3 has its own localDay but it is private to that module.) */
-  const today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  /* 2pm UK and the UK date — from Sarah's laptop it used to go at 2pm Manila
+     (07:00 UK) and stamp tomorrow's date in the evening */
+  if(_ukParts().h<DIGEST_HOUR)return;                   // not yet
+  const today=todayISO();
   if(WEBHOOK_CFG.digestOn===today)return;               // already sent today
   _whBusy=true;
   try{await _whFresh();}finally{_whBusy=false;}

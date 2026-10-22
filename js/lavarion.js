@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v53.3 · lav3 · 2026-10-13 · b593';
+const BUILD='v54.3 · lav3 · 2026-10-22 · b603';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -32,14 +32,18 @@ let D={products:[],components:[],purchases:[],log:[],settings:{
   cols:{pIncoming:true,pOrdered:false,pSold:true,pCog:true,pSendBy:true,
         cOnOrder:true,cOrdered:true,cUsed:true}}};
 
-const TODAY=new Date();
+/* "Now", refreshed every minute. It was fixed at the moment the page opened, so
+   a laptop left open overnight (they all are) worked from yesterday. */
+let TODAY=new Date();
+setInterval(()=>{TODAY=new Date();},60000);
 const nowISO=()=>new Date().toISOString();
 /* LOCAL date, built from parts. toISOString() is UTC, and in British Summer
    Time UTC is an hour behind — so anything logged between midnight and 1am was
    stamped with YESTERDAY'S date. Receipts, chases, stock counts: all off by a
    day for that hour, every night, silently. */
 const localDay=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-const dayISO=()=>localDay(new Date());
+/* today is the UK day on every laptop (Sarah is 7–8 hours ahead) — core.js */
+const dayISO=()=>ukDayISO();
 
 
 /* ── components + recipes: this module now owns both stores ──────────────
@@ -261,8 +265,14 @@ function hydrate(){
     recipe:(RECIPES[a.asin]||[]).map(r=>({c:String(r.c),q:r.q})),
     layers:LAYERS.filter(l=>l.kind==='product'&&l.tid===String(a.id)),
     ship30:shipStats(a.asin).u30,lastSent:shipStats(a.asin).last,_src:a}));
-  D.products.forEach(p=>{const a=p._src;if(a&&a._sig===undefined)
-    a._sig=[p.name,p.asin,p.sku,p.vat,p.type,JSON.stringify(p.recipe)].join('|');});
+  /* 13 Oct 2026: the "last saved" mark held the build list too. Another page
+     asking PLUB a question before its build lists had loaded took that mark
+     with no parts, and the first save afterwards rewrote all 43 products —
+     whole rows, twice each. The row's own fields and the build list are now
+     marked apart, and the build list only once it has actually loaded. */
+  D.products.forEach(p=>{const a=p._src;if(!a)return;
+    if(a._sig===undefined)a._sig=[p.name,p.asin,p.sku,p.vat,p.type].join('|');
+    if(a._rsig===undefined&&_crLoadedOK)a._rsig=JSON.stringify(p.recipe);});
   D.components=COMPS.map(c=>({
     archived:!!c.archived,
     id:String(c.id),uuid:c.uuid,name:c.name||'',
@@ -386,6 +396,9 @@ const LAYER_META=['mode','eta1','eta2','_etaTouched','_etaGuess',
      every receipt that made it up. Without these a second box against the same
      order looked like a brand new order and the shortfall vanished. */
   'ord','rcvd','rcpts','repl','closed','ofOrd',
+  /* units counted in OVER what was ordered (Becki, 21 Oct) — real stock the
+     purchase sheet doesn't know about; see setAlloc */
+  'extra','extraWhy',
   /* which line of its purchase's allocation this layer is. The only stable way
      to find it again after a refresh — see setAlloc. */
   'allocIx',
@@ -707,7 +720,10 @@ const arrLayers=o=>(o.layers||[]).filter(l=>l.arr&&!isShell(l))
              ||String(a.date||'').localeCompare(String(b.date||'')));
 const onHand=o=>arrLayers(o).reduce((s,l)=>s+l.rem,0);
 const onOrder=o=>(o.layers||[]).filter(l=>!l.arr&&!l.writtenOff).reduce((s,l)=>s+l.qty,0);
-const nextIn=o=>{const p=(o.layers||[]).filter(l=>!l.arr).sort((a,b)=>a.date.localeCompare(b.date))[0];return p||null;};
+/* 22 Oct 2026: a written-off remainder is closed, not coming — Dove MD ×2 (Superdrug,
+   2 Aug, written off) still read "On the way in · waiting 81d" in the product popup.
+   Every "still to come" list skips write-offs, like onOrder and inboundAll already did. */
+const nextIn=o=>{const p=(o.layers||[]).filter(l=>!l.arr&&!l.writtenOff).sort((a,b)=>a.date.localeCompare(b.date))[0];return p||null;};
 function avgCost(o){const ls=arrLayers(o).filter(l=>l.rem>0);const u=ls.reduce((s,l)=>s+l.rem,0);
   if(!u){const all=(o.layers||[]);return all.length?all[all.length-1].cost:0;}
   return ls.reduce((s,l)=>s+l.rem*l.cost,0)/u;}
@@ -951,11 +967,58 @@ function amzMode(m){_amzMode=m;openAtAmz(true);}
    sell in between. So the count carries its own date and time, it defaults to
    now, and it can be corrected. */
 const localDT=d=>`${localDay(d)}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+/* Oct 2026: Sarah counts from the Philippines, where "now" is seven or eight
+   hours ahead of the warehouse, so her 14:18 count showed here as 21:18 — later
+   than it really was. Jack: "as long as it says UK time". A count is typed,
+   stamped and shown in UK time on every laptop, with the offset kept on the end
+   (2026-10-13T14:18+01:00) so slice(0,10) is still the UK day. Older stamps
+   have no offset and read exactly as they were written. */
+const UK_TZ='Europe/London';
+let _ukFmt=null;
+function ukParts(d){
+  if(!_ukFmt)_ukFmt=new Intl.DateTimeFormat('en-GB',{timeZone:UK_TZ,year:'numeric',month:'2-digit',
+    day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+  const o={};_ukFmt.formatToParts(d).forEach(x=>{o[x.type]=x.value;});
+  if(o.hour==='24')o.hour='00';
+  return o;
+}
+const ukDT=d=>{const o=ukParts(d);return `${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}`;};
+/* minutes the UK is ahead of UTC at that moment: 60 in summer, 0 in winter */
+function ukOffsetMin(ms){
+  const o=ukParts(new Date(ms));
+  return Math.round((Date.UTC(+o.year,+o.month-1,+o.day,+o.hour,+o.minute)-Math.floor(ms/6e4)*6e4)/6e4);
+}
+/* '2026-10-13T14:18' read as UK time → '2026-10-13T14:18+01:00' */
+function ukStamp(local){
+  const m=String(local||'').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if(!m)return local;
+  const wall=Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5]);
+  let off=ukOffsetMin(wall);off=ukOffsetMin(wall-off*6e4);
+  const a=Math.abs(off);
+  return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}${off<0?'-':'+'}${String(Math.floor(a/60)).padStart(2,'0')}:${String(a%60).padStart(2,'0')}`;
+}
+const hasZone=s=>/(Z|[+-]\d{2}:?\d{2})$/i.test(String(s).slice(16));
 let _amzWhen='';
-function amzWhen(v){_amzWhen=v||'';}
+function amzWhen(v){_amzWhen=v||'';amzWhenYou();}
+function amzNow(){_amzWhen=ukDT(new Date());const el=document.getElementById('amzWhenIn');if(el)el.value=_amzWhen;amzWhenYou();}
+/* a laptop that is not on UK time is told what that UK time is on its own clock */
+function amzWhenYou(){
+  const el=document.getElementById('amzWhenYou');if(!el)return;
+  const at=new Date(ukStamp(_amzWhen));
+  if(!_amzWhen||isNaN(at.getTime())||ukOffsetMin(at.getTime())===-at.getTimezoneOffset()){el.hidden=true;return;}
+  el.hidden=false;
+  el.innerHTML=`That is <b>${String(at.getHours()).padStart(2,'0')}:${String(at.getMinutes()).padStart(2,'0')}</b> on this laptop's clock`
+    +(localDay(at)!==String(_amzWhen).slice(0,10)?` (${at.getDate()} ${MONTHNM[at.getMonth()]})`:'')+'.';
+}
 function whenTxt(iso,short){
   if(!iso)return '';
   const s=String(iso);
+  if(s.length>16&&hasZone(s)){
+    const z=new Date(s);
+    if(isNaN(z.getTime()))return s.slice(0,10);
+    const o=ukParts(z),hm=`${o.hour}:${o.minute}`;
+    return short?hm:`${+o.day} ${MONTHNM[+o.month-1]} ${hm}`;
+  }
   const d=new Date(s.length>10?s:s+'T00:00:00');
   if(isNaN(d.getTime()))return s.slice(0,10);
   const day=`${d.getDate()} ${MONTHNM[d.getMonth()]}`;
@@ -968,7 +1031,7 @@ const SAS_DEFAULT='https://sas.selleramp.com/sas/lookup?search_term={ASIN}&asin=
 const sasUrl=asin=>String(D.settings.sasUrl||SAS_DEFAULT).split('{ASIN}').join(encodeURIComponent(asin||''));
 function openAtAmz(keepWhen){
   _amzRows=[];
-  if(!keepWhen||!_amzWhen)_amzWhen=localDT(new Date());
+  if(!keepWhen||!_amzWhen)_amzWhen=ukDT(new Date());
   /* Jack, 3 Sep: "can this popup be sorted from highest sales to lowest." A-Z
      put 151 Filler Wall Repair Kit above everything that actually sells, so the
      count started on the things that matter least. Anything with no sales
@@ -979,47 +1042,59 @@ function openAtAmz(keepWhen){
       if(na!==nb)return na?1:-1;
       if(!na&&sb!==sa)return sb-sa;
       return a.name.localeCompare(b.name);});
-  $('lav3Mod2').className='mod xl';
+  const lastLog=(D.log||[]).find(l=>/^Stock at Amazon counted/.test(String(l.txt||'')));
+  $('lav3Mod2').className='mod xl amzMod';
   $('lav3Mod2').innerHTML=`
-    <div class="mh"><h3>Stock at Amazon</h3>
-      <span class="pmeta" style="margin:0">${fmt(live.length)} ASINs</span>
-      <div class="segs" style="margin-left:auto">
-        <button class="seg ${_amzMode==='grid'?'on':''}" onclick="LV3.amzMode('grid')">One by one</button>
-        <button class="seg ${_amzMode==='paste'?'on':''}" onclick="LV3.amzMode('paste')">Paste a list</button>
+    <div class="mh"><div class="amzTitle"><h3>Stock at Amazon</h3>
+        <div class="amzSub">${fmt(live.length)} ASINs${lastLog?` <span class="stSep">·</span> last saved <b>${esc(whenTxt(lastLog.t))}</b> UK by ${esc(lastLog.who||'someone')}`:''}</div></div>
+      <div class="amzSeg">
+        <button class="${_amzMode==='grid'?'on':''}" onclick="LV3.amzMode('grid')">One by one</button>
+        <button class="${_amzMode==='paste'?'on':''}" onclick="LV3.amzMode('paste')">Paste a list</button>
       </div>
       <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
     <div class="mb">
-      <div class="amzWhen">
-        <span class="k">Counted at</span>
-        <input class="in" type="datetime-local" id="amzWhenIn" value="${esc(_amzWhen)}"
-          onchange="LV3.amzWhen(this.value)">
-        <button class="btn sm" onclick="LV3.amzWhen('${esc(localDT(new Date()))}');document.getElementById('amzWhenIn').value='${esc(localDT(new Date()))}'">Now</button>
-        <span class="pmeta" style="margin:0">These counts are stamped with this time, not the time you press Save.
-          If you read them off Seller Central earlier, set it back — otherwise everything downstream thinks the numbers are fresher than they are.</span>
+      <div class="amzTop${_amzMode==='grid'?'':' solo'}">
+        <div class="amzCard amzWhen">
+          <div class="k">Counted at <span class="ukTag">UK time</span></div>
+          <div class="amzWhenRow">
+            <input class="in" type="datetime-local" id="amzWhenIn" value="${esc(_amzWhen)}" onchange="LV3.amzWhen(this.value)">
+            <button class="btn sm" onclick="LV3.amzNow()">Now</button>
+          </div>
+          <div class="amzYou" id="amzWhenYou" hidden></div>
+          <div class="amzCardSub">The time the numbers were <b>read</b>, not when you press Save — read them earlier, set it back.</div>
+        </div>
+        ${_amzMode==='grid'?`<div class="amzCard amzHow">
+          <div class="k">How</div>
+          <ol class="amzSteps">
+            <li><span class="n">1</span><span>Press <b>SAS ↗</b> on the row</span></li>
+            <li><span class="n">2</span><span>Type <b class="cA">Available</b> and <b class="cI">Inbound</b></span></li>
+            <li><span class="n">3</span><span><b>Tab</b> or <b>Enter</b> to the next</span></li>
+          </ol>
+          <div class="amzCardSub">Blank is left as it was — it is not a zero. Inbound is kept apart because
+            <b>3 available with 70 inbound</b> is still out of stock today.</div>
+        </div>`:''}
       </div>
     ${_amzMode==='grid'?`
-      <div class="amzHelp">Open <b>SAS</b> next to an ASIN and copy both numbers it shows —
-        <b>Your Available Stock</b> and <b>Stock Inbound</b> — then press <b>Tab</b> to move on.
-        Leave anything you don't check blank; blank is left exactly as it was, it is not a zero.
-        <div style="margin-top:6px">Inbound counts toward the ${D.settings.targetDays||60}-day target but is kept separate,
-        because <b>3 available with 70 inbound is not the same as 73 available</b> — the first is out of stock today.</div></div>
-      <div class="amzGrid two">
-        <div class="amzHead"><span>Product</span><span>ASIN</span><span>Last count</span><span>Available</span><span>Inbound</span><span></span></div>
+      <div class="amzGrid">
+        <div class="amzHead"><span>Product</span><span>Last count</span><span class="cA">Available</span><span class="cI">Inbound</span><span>Change</span><span></span></div>
         ${live.map((x,i)=>{const was=atAmz(x),wasIn=amzIn(x),age=atAmzAge(x),sent=sentSince(x);
+          const when=whenTxt((D.settings.atAmzAt||{})[x.asin]);
           return `<div class="amzRow" id="amzRow-${i}">
-            <span class="amzNm">${esc(x.name)}
-              ${sent.units?`<span class="amzSent" title="We have sent this much since the last count — it should be showing as inbound, or already checked in">we sent ${fmt(sent.units)}</span>`:''}</span>
-            <span class="amzAsin mono">${asinBtn(x.asin)}</span>
-            <span class="amzWas">${was==null?'<span class="dim">never</span>'
-              :`${fmt(was)}${wasIn?` <span style="color:var(--blu)">+${fmt(wasIn)}</span>`:''}<span class="amzAge">${esc(whenTxt((D.settings.atAmzAt||{})[x.asin]))||(age===0?'today':age+'d')}</span>`}</span>
-            <input class="in num amzQ" type="number" min="0" inputmode="numeric" data-i="${i}" data-asin="${esc(x.asin)}"
+            <div class="amzP">
+              <div class="amzNm" title="${esc(x.name)}">${esc(x.name)}</div>
+              <div class="amzMeta"><span class="amzAsin">${asinBtn(x.asin)}</span>${sent.units?`<span class="amzSent" title="We have sent this much since the last count — it should be showing as inbound, or already checked in">we sent ${fmt(sent.units)}</span>`:''}</div>
+            </div>
+            <div class="amzWas">${was==null&&wasIn==null?'<span class="amzNever">never counted</span>'
+              :`<div class="amzWasN"><b>${was==null?'—':fmt(was)}</b>${wasIn?`<span class="amzWasIn">+${fmt(wasIn)}</span>`:''}</div>
+                <div class="amzAge${age!=null&&age>=14?' old':''}">${esc(when)||(age===0?'today':age+'d ago')}</div>`}</div>
+            <input class="in num amzQ" type="number" min="0" inputmode="numeric" data-i="${i}" data-asin="${esc(x.asin)}" data-was="${was==null?'':was}"
               placeholder="—" oninput="LV3.amzGridSum()"
               onkeydown="if(event.key==='Enter'){event.preventDefault();const n=document.querySelector('.amzI[data-i=&quot;${i}&quot;]');if(n){n.focus();n.select();}}">
             <input class="in num amzI" type="number" min="0" inputmode="numeric" data-i="${i}" data-asin="${esc(x.asin)}"
               placeholder="—" oninput="LV3.amzGridSum()"
               onkeydown="if(event.key==='Enter'){event.preventDefault();const n=document.querySelector('.amzQ[data-i=&quot;${i+1}&quot;]');if(n){n.focus();n.select();}}">
-            <a class="btn sm amzSas" href="${sasUrl(x.asin)}" target="_blank" rel="noopener"
-              title="Open this ASIN in SAS">SAS ↗</a>
+            <span class="amzDelta" id="amzD-${i}"></span>
+            <a class="amzSas" href="${sasUrl(x.asin)}" target="_blank" rel="noopener" title="Open this ASIN in SAS">SAS ↗</a>
           </div>`;}).join('')}
       </div>`
     :`<div class="pasteWrap">
@@ -1043,10 +1118,16 @@ function openAtAmz(keepWhen){
         </div>
       </div>`}
     </div>
-    <div class="mf"><span id="amzSum" class="pmeta" style="margin:0">Nothing entered yet</span>
+    <div class="mf amzFoot">
+      ${_amzMode==='grid'?'<div class="amzBar"><i id="amzBarFill"></i></div>':''}
+      <span id="amzSum" class="amzSum">Nothing entered yet</span>
       <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
       <button class="btn pri" id="amzGo" disabled onclick="LV3.amzSave()">Save counts</button></div></div>`;
   om('lav3Ov2');
+  /* Tab goes number box to number box: the copy and SAS links stay clickable
+     but are skipped, so it is Available → Inbound → next row's Available */
+  document.querySelectorAll('#lav3Mod2 .amzRow .asinC,#lav3Mod2 .amzRow .amzSas').forEach(el=>el.setAttribute('tabindex','-1'));
+  amzWhenYou();
   setTimeout(()=>{const t=document.getElementById(_amzMode==='grid'?'':'amzIn');
     const first=document.querySelector('.amzQ');
     if(_amzMode==='grid'&&first)first.focus(); else if(t)t.focus();},60);
@@ -1067,6 +1148,19 @@ function amzGridSum(){
     const row=el.closest('.amzRow');
     const inb=inbBy[el.dataset.i];
     if(row)row.classList.toggle('done',v!==''||inb!=null);
+    /* the change against the last count, as it is typed — 800 where 80 was
+       meant shows up as +720 before anything is saved */
+    const dEl=document.getElementById('amzD-'+el.dataset.i);
+    if(dEl){
+      const was=el.dataset.was===''||el.dataset.was==null?null:+el.dataset.was;
+      const n0=v===''?null:parseInt(v,10);
+      if(n0==null||!(n0>=0)){dEl.className='amzDelta';dEl.textContent=inb!=null?'inbound only':'';}
+      else if(was==null){dEl.className='amzDelta new';dEl.textContent='first count';}
+      else{const d=n0-was;
+        dEl.className='amzDelta '+(d===0?'same':d>0?(d>=50&&n0>was*3?'big':'up'):'down');
+        dEl.textContent=d===0?'no change':`${d>0?'+':'\u2212'}${fmt(Math.abs(d))}`;
+        dEl.title=d>=50&&n0>was*3?'Much higher than the last count — worth a second look':'';}
+    }
     const p=byAsin[String(el.dataset.asin||'').toUpperCase()];
     if(!p)return;
     const n=v===''?null:parseInt(v,10);
@@ -1078,9 +1172,12 @@ function amzGridSum(){
   });
   const sum=$('amzSum');
   const uAv=_amzRows.reduce((t,r)=>t+(r.qty||0),0),uIn=_amzRows.reduce((t,r)=>t+(r.inb||0),0);
+  const total=document.querySelectorAll('.amzQ').length;
+  const fill=document.getElementById('amzBarFill');
+  if(fill)fill.style.width=(total?Math.min(100,Math.round(_amzRows.length/total*100)):0)+'%';
   if(sum)sum.innerHTML=_amzRows.length
-    ? `<b style="color:var(--grn)">${fmt(_amzRows.length)}</b> counted · ${fmt(uAv)} available${uIn?` · <span style="color:var(--blu)">${fmt(uIn)} inbound</span>`:''} · the rest are left as they were`
-    : 'Nothing entered yet';
+    ? `<b class="amzSumN">${fmt(_amzRows.length)}</b> of ${fmt(total)} counted <span class="stSep">·</span> <b>${fmt(uAv)}</b> available${uIn?` <span class="stSep">·</span> <b class="amzBlu">${fmt(uIn)}</b> inbound`:''}${_amzRows.length<total?' <span class="stSep">·</span> the rest stay as they were':''}`
+    : `0 of ${fmt(total)} counted`;
   const go=$('amzGo');if(go){go.disabled=!_amzRows.length;go.style.opacity=_amzRows.length?'1':'.45';}
 }
 /* paste mode — same _amzRows, same Save path as the grid */
@@ -1131,14 +1228,24 @@ function amzParse(txt){
     : (_amzRows.length?'<span style="color:var(--red)">Nothing on those lines matched a product</span>':'Nothing entered yet');
   const go=$('amzGo');if(go){go.disabled=!ok.length;go.style.opacity=ok.length?'1':'.45';}
 }
+/* one save at a time — Sarah's 13 Oct count went in twice, 0.1s apart */
+let _amzSaving=false;
 async function amzSave(){
+  if(_amzSaving)return;
   const ok=_amzRows.filter(r=>r.p);
   if(!ok.length){toast('Nothing to save','er');return;}
+  _amzSaving=true;
+  const go=$('amzGo');if(go){go.disabled=true;go.textContent='Saving\u2026';}
+  try{await amzSaveGo(ok);}
+  finally{_amzSaving=false;
+    const g=$('amzGo');if(g){g.disabled=!_amzRows.length;g.textContent='Save counts';}}
+}
+async function amzSaveGo(ok){
   snap();
   D.settings.atAmz=D.settings.atAmz||{};
   D.settings.atAmzAt=D.settings.atAmzAt||{};
   /* the time the count was TAKEN, which the person can correct — not save-time */
-  const when=_amzWhen||localDT(new Date());
+  const when=ukStamp(_amzWhen||ukDT(new Date()));
   D.settings.atAmzIn=D.settings.atAmzIn||{};
   ok.forEach(r=>{
     if(r.qty!=null)D.settings.atAmz[r.p.asin]=r.qty;
@@ -1151,7 +1258,7 @@ async function amzSave(){
   if(!landed){toast('Counts NOT saved — the database didn\u2019t answer. Your numbers are still here: press Save counts again.','er');return;}
   save();
   const uIn=ok.reduce((t,r)=>t+(r.inb||0),0);
-  logIt('edit',`Stock at Amazon counted ${whenTxt(when)} — ${ok.length} product${ok.length===1?'':'s'}, ${ok.reduce((t,r)=>t+(r.qty||0),0)} available${uIn?`, ${uIn} inbound`:''}`);
+  logIt('edit',`Stock at Amazon counted ${whenTxt(when)} UK — ${ok.length} product${ok.length===1?'':'s'}, ${ok.reduce((t,r)=>t+(r.qty||0),0)} available${uIn?`, ${uIn} inbound`:''}`);
   cm('lav3Ov2');render();
   toastUndo(`${fmt(ok.length)} count${ok.length===1?'':'s'} saved`,'ok');
 }
@@ -1414,7 +1521,7 @@ function hubMonth(){
   if(HUB.state==='loading')return{ym:HUB.order[HUB.order.length-1]||null,want,status:'loading'};
   if(!HUB.order.length)return{ym:null,want,status:HUB.state==='err'?'off':'none'};
   if(HUB.months[want])return{ym:want,want,status:'ok'};
-  return{ym:HUB.order[HUB.order.length-1],want,status:TODAY.getDate()<=7?'due':'late'};
+  return{ym:HUB.order[HUB.order.length-1],want,status:_ukParts(TODAY).d<=7?'due':'late'};
 }
 /* Same product, a different ASIN on each system — a relist, or a parent/child
    split. Set by hand in the review. Never guessed: a wrong guess here puts one
@@ -1454,8 +1561,9 @@ function soldSrc(p){
 }
 /* the month a figure describes — entered in August, it is July's number */
 function lastFullMonth(d){
-  const t=d?new Date(d):new Date(TODAY);
-  const y=t.getFullYear(),m=t.getMonth();          // 0-based
+  let y,m;                                          // m 0-based
+  if(d){const t=new Date(d);y=t.getFullYear();m=t.getMonth();}
+  else{const u=_ukParts(TODAY);y=u.y;m=u.m-1;}
   const pm=m===0?11:m-1, py=m===0?y-1:y;
   return `${py}-${String(pm+1).padStart(2,'0')}`;
 }
@@ -2019,11 +2127,26 @@ function setProdTime(cid,v){
    column plus the layer history; the route comes from "Who ships how".
    An ask-every-time supplier deliberately has no planning route — that is
    surfaced as a gap, never guessed around (spec §7.3). */
+/* bookkeeping batches are not suppliers — including the found-extra ones
+   booked at packing (21 Oct) */
+const _SUP_JUNK=/^(opening stock|stock (correction|adjust)|stocktake|found extra|—|-|n\/a|unknown)$/i;
+/* Jack, 22 Oct: "is it worth adding the last supplier we used?" The usual
+   supplier is a count of batches, so a part that just moved to a bulk supplier
+   still read as the old shop. The most recent real purchase, with its price
+   and date, is what a reorder starts from. */
+/* "Free From Direct" and "FreeFromDirect" are one supplier typed two ways */
+const _supKey=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function lastBuy(c){
+  const ls=(c.layers||[]).filter(l=>{const n=(l.sup||'').trim();return n&&!_SUP_JUNK.test(n)&&(l.qty||l.ord);})
+    .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  const l=ls[0];if(!l)return null;
+  return{sup:l.sup.trim(),cost:l.cost||0,date:l.date||'',qty:ordQty(l)||l.qty||0};
+}
 function compSupplier(c){
   /* "Stock correction" and "Opening stock" are bookkeeping, not suppliers —
      counting them made the glove's "usual supplier" an accounting artifact,
      which then had no route, which kept the part unpriced everywhere. */
-  const junk=/^(opening stock|stock (correction|adjust)|stocktake|—|-|n\/a|unknown)$/i;
+  const junk=_SUP_JUNK;
   const own=(c.supplier||'').trim();
   if(own&&!junk.test(own))return own;
   const names={};
@@ -2664,7 +2787,7 @@ function houseList(){
   if(owed.length)jobs.push({k:'owed',o:'jack',sev:1,n:owedUnits,
     t:`${fmt(owedUnits)} unit${owedUnits===1?'':'s'} went out that we did not have`,
     s:owed.slice(0,3).map(o=>`${esc(o.name)} (${o.n})`).join(', ')+(owed.length>3?` +${owed.length-3} more`:'')
-      +' — approved at the time; settle it once the delivery lands',
+      +' — the parts never came off: take them off, or close it if a count already allows for it',
     btn:'Settle',go:"openOverSent()"});
   if(orders.length)jobs.push({k:'link',o:'wh',sev:2,n:orders.length,
     t:`${fmt(orders.length)} order${orders.length===1?'':'s'} waiting to be linked`,
@@ -2760,8 +2883,8 @@ function vOverview(){
   const oosOwn=D.products.filter(p=>p.type!=='bundle'&&onHand(p)===0);
 
   const inbound=[];
-  D.components.forEach(c=>(c.layers||[]).filter(l=>!l.arr).forEach(l=>inbound.push({o:c,l,type:'component'})));
-  D.products.forEach(p=>(p.layers||[]).filter(l=>!l.arr).forEach(l=>inbound.push({o:p,l,type:'product'})));
+  D.components.forEach(c=>(c.layers||[]).filter(l=>!l.arr&&!l.writtenOff).forEach(l=>inbound.push({o:c,l,type:'component'})));
+  D.products.forEach(p=>(p.layers||[]).filter(l=>!l.arr&&!l.writtenOff).forEach(l=>inbound.push({o:p,l,type:'product'})));
   inbound.sort((a,b)=>a.l.date.localeCompare(b.l.date));
 
   if(isEmpty()){
@@ -3324,8 +3447,8 @@ function prodRow(p){
          first lands. The detail is one click away in the expanded row. */
       const inc=[];
       if(p.type==='bundle')p.recipe.forEach(r=>{const c=comp(r.c);if(!c||c.untracked)return;
-        (c.layers||[]).filter(l=>!l.arr).forEach(l=>inc.push({n:c.name,q:l.qty,d:l.date}));});
-      else (p.layers||[]).filter(l=>!l.arr).forEach(l=>inc.push({n:p.name,q:l.qty,d:l.date}));
+        (c.layers||[]).filter(l=>!l.arr&&!l.writtenOff).forEach(l=>inc.push({n:c.name,q:l.qty,d:l.date}));});
+      else (p.layers||[]).filter(l=>!l.arr&&!l.writtenOff).forEach(l=>inc.push({n:p.name,q:l.qty,d:l.date}));
       if(!inc.length)return '<span class="dim">—</span>';
       inc.sort((a,b)=>(a.d||'').localeCompare(b.d||''));
       const units=inc.reduce((t,x)=>t+(x.q||0),0);
@@ -3386,49 +3509,64 @@ function prodRow(p){
   let inner='',planStrip='';
   if(_R){
     const _blocked=(_R.state==='act'||_R.state==='critical')&&_R.buildCap===0;
-    planStrip=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;margin:0 0 10px;background:var(--bg3);border-radius:8px;border-left:3px solid ${_rail};">
-      ${plStateChip(_blocked?'parts':_R.state)}
-      ${_R.protDays!=null?`<span class="num b" style="font-size:13px;">${fmt(Math.round(_R.protDays))}d protection</span>`:''}
-      ${(_R.state==='act'||_R.state==='critical')&&_R.alloc>0?`<span style="font-size:12px;color:var(--text);"><b>send ${fmt(_R.alloc)}</b>${_R.alloc<_R.rec?' of '+fmt(_R.rec)+' wanted':''}</span>`:''}
-      <span style="flex:1;min-width:200px;font-size:11.5px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(_R.why||'')}">${esc((_R.why||'').slice(0,140))}</span>
+    /* Jack, 13 Oct: "improve dropdown make it look nicer". One tinted strip in
+       the row's own state colour: the verdict, how many days we are covered
+       against the trigger (as a bar, with the trigger marked), what to send,
+       and why — the why no longer cut off at one line. */
+    const _k=_blocked?'parts':_R.state, _hue=plStateCol(_k);
+    const _trig=fbaCalDays()+safetyDays(), _pd=_R.protDays;
+    const _pct=_pd==null?0:Math.max(2,Math.min(100,Math.round(_pd/Math.max(1,_trig*2)*100)));
+    planStrip=`<div class="rplan" style="background:${_hue}12;border-color:${_hue}40">
+      <div class="rpChip">${plStateChip(_k)}</div>
+      ${_pd!=null?`<div class="rpStat"><b style="color:${_hue}">${fmt(Math.round(_pd))}d</b><span>protection</span></div>
+      <div class="rpMeter" title="${fmt(Math.round(_pd))} days of protection against a ${_trig}-day trigger (${fbaCalDays()} FBA + ${safetyDays()} safety)">
+        <div class="rpTrack"><i style="width:${_pct}%;background:${_hue}"></i><em></em></div>
+        <div class="rpScale"><span>0</span><span>${_trig}d trigger</span><span>${_trig*2}d</span></div></div>`:''}
+      ${(_R.state==='act'||_R.state==='critical')&&_R.alloc>0?`<div class="rpStat"><b>${fmt(_R.alloc)}</b><span>to send${_R.alloc<_R.rec?' of '+fmt(_R.rec)+' wanted':''}</span></div>`:''}
+      <div class="rpWhy" title="${esc(_R.why||'')}">${esc(_R.why||'')}</div>
       <button class="btn sm" onclick="event.stopPropagation();LV3.openPlanRow('${p.id}')">Full working</button>
     </div>`;
   }
   if(p.type==='bundle'){
     const parts=p.recipe.filter(r=>comp(r.c)&&comp(r.c).kind!=='packaging');
     const pack=p.recipe.filter(r=>comp(r.c)&&comp(r.c).kind==='packaging');
-    const line=r=>{const c=comp(r.c);const h=onHand(c);const can=Math.floor(h/r.q);const isLim=a.limiter===c.id;
-      return `<div class="rline" onclick="LV3.openComp('${c.id}')"><span class="q">×${r.q}</span>
-        <span class="nm">${esc(c.name)}<span class="chip ${c.kind}">${c.kind==='packaging'?'Packaging':'Component'}</span>
-        ${isLim?'<span class="chip bad">limits build</span>':''}</span>
-        <span class="st">${c.untracked?'<span class="dim">not tracked</span>'
+    /* with one part, that part always limits the build — the red chip only
+       means something when there is more than one */
+    const multi=parts.length>1;
+    const line=r=>{const c=comp(r.c);const h=onHand(c);const can=Math.floor(h/r.q);const isLim=multi&&a.limiter===c.id;
+      return `<div class="rline${isLim?' lim':''}" onclick="LV3.openComp('${c.id}')"><span class="q">×${r.q}</span>
+        <div class="rlMain"><div class="nm"><span class="rlName">${esc(c.name)}</span>${c.kind==='packaging'?'<span class="chip packaging">Packaging</span>':''}
+        ${isLim?'<span class="chip bad">limits build</span>':''}</div>
+        <div class="st">${c.untracked?'<span class="rpill">not tracked</span>'
           :(()=>{
             /* "72 on hand · next out £2.95 →36units" — three facts jammed
                together with no space and an arrow doing unexplained work.
-               Nobody could tell that 36 meant BUNDLES, not units of the part. */
+               Nobody could tell that 36 meant BUNDLES, not units of the part.
+               Each fact is its own pill now, in the colour it has everywhere
+               else: stock white, money gold, builds green, incoming blue. */
             const l=arrLayers(c).filter(x=>x.rem>0)[0];
             const _oo=onOrder(c),_nx=nextIn(c);
             let _inc='';
             if(_oo){let st=null;try{st=_nx?etaState(_nx):null;}catch(e){}
               const due=_nx&&(_nx.eta2||_nx.eta1);
-              _inc=` <span class="stSep">·</span> <span style="color:${st&&st.k==='late'?'var(--red)':'var(--blu)'}">+${fmt(_oo)} ${st&&st.k==='late'?'late':due?'due '+dshort(String(due).slice(0,10)):'coming'}</span>`;}
+              _inc=`<span class="rpill ${st&&st.k==='late'?'red':'blu'}"><b>+${fmt(_oo)}</b> ${st&&st.k==='late'?'late':due?'due '+dshort(String(due).slice(0,10)):'coming'}</span>`;}
             const EL2=(function(){try{return (plData().byComp||{})[c.id]||null;}catch(e){return null;}})();
             let _buy='';
-            if(EL2&&EL2.buyQty>0)_buy=` <span class="stSep">·</span> <b style="color:var(--amb)">buy&nbsp;${fmt(EL2.buyQty)}</b>&nbsp;${EL2.buyByDays<0?'<span style="color:var(--red)">'+fmt(-EL2.buyByDays)+'d&nbsp;overdue</span>':EL2.buyByDays===0?'today':'by&nbsp;'+dshort(EL2.buyBy)}`;
-            else if(EL2&&(EL2.state==='noroute'))_buy=` <span class="stSep">·</span> <a href="javascript:void(0)" onclick="event.stopPropagation();LV3.go('planner')" style="color:var(--amb)">set&nbsp;route</a>`;
-            return `<span class="stHave">${fmt(h)}</span>&nbsp;in stock`
-              +(l&&l.cost>0?` <span class="stSep">·</span> ${gbp(l.cost)}&nbsp;each`:'')
-              +` <span class="stSep">·</span> enough for&nbsp;<b style="color:${can?'var(--text2)':'var(--red)'}">${fmt(can)}</b>&nbsp;${can===1?'build':'builds'}`+_inc+_buy;
-          })()}</span></div>`;};
-    inner=`<div class="rsh">Components</div>${parts.map(line).join('')||'<div class="pmeta">None</div>'}
-      ${pack.length?`<div class="rsh">Packaging</div>${pack.map(line).join('')}`:''}`;
+            if(EL2&&EL2.buyQty>0)_buy=`<span class="rpill amb"><b>buy&nbsp;${fmt(EL2.buyQty)}</b>&nbsp;${EL2.buyByDays<0?fmt(-EL2.buyByDays)+'d&nbsp;overdue':EL2.buyByDays===0?'today':'by&nbsp;'+dshort(EL2.buyBy)}</span>`;
+            else if(EL2&&(EL2.state==='noroute'))_buy=`<a class="rpill amb" href="javascript:void(0)" onclick="event.stopPropagation();LV3.go('planner')">set&nbsp;route</a>`;
+            return `<span class="rpill"><b>${fmt(h)}</b>&nbsp;in stock</span>`
+              +(l&&l.cost>0?`<span class="rpill gold"><b>${gbp(l.cost)}</b>&nbsp;each</span>`:'')
+              +`<span class="rpill ${can?'grn':'red'}">enough for&nbsp;<b>${fmt(can)}</b>&nbsp;${can===1?'build':'builds'}</span>`+_inc+_buy;
+          })()}</div></div></div>`;};
+    inner=`<div class="rcard"><div class="rsh">Made of <span class="rshN">${fmt(parts.length)} part${parts.length===1?'':'s'}</span></div>${parts.map(line).join('')||'<div class="pmeta">None</div>'}
+      ${pack.length?`<div class="rsh">Packaging <span class="rshN">${fmt(pack.length)}</span></div>${pack.map(line).join('')}`:''}</div>`;
   }else{
     const ls=arrLayers(p).filter(l=>l.rem>0);
-    inner=`<div class="rsh">Stock on hand — oldest used first</div>
+    inner=`<div class="rcard"><div class="rsh">Stock on hand <span class="rshN">oldest used first</span></div>
       ${ls.length?`<table class="ltab"><thead><tr><th>Batch</th><th>Bought</th><th>Qty</th><th>Left</th><th>Unit cost</th><th>Value</th></tr></thead><tbody>
       ${ls.map((l,i)=>`<tr><td>${i===0?'<span class="chip warn">next out</span> ':''}${esc(l.sup)}</td><td>${dshort(l.date)}</td>
         <td>${fmt(l.qty)}</td><td>${fmt(l.rem)}</td><td>${gbp(l.cost)}</td><td>${gbp(l.rem*l.cost)}</td></tr>`).join('')}
-      </tbody></table>`:'<div class="pmeta">No stock on hand.</div>'}`;
+      </tbody></table>`:'<div class="pmeta">No stock on hand.</div>'}</div>`;
   }
   const c1=cogOf(p,1);
   /* A private-label product is bought in finished: its cost is simply what the
@@ -3455,7 +3593,7 @@ function prodRow(p){
           <span class="cgQ mono">${fmt(l.rem)}</span>
           <span class="cgU mono">${gbp(l.cost)}</span>
           <span class="cgL mono b">${gbp(l.rem*l.cost)}</span></div>`).join('')}
-        <div class="cogtot"><span>Next unit out costs</span><span class="mono" style="color:var(--accent)">${gbp(ls[0].cost)}</span></div>
+        <div class="cogtot"><span>Next unit out costs</span><span class="cogBig">${gbp(ls[0].cost)}</span></div>
         <div class="pmeta" style="margin-top:5px">${fmt(qty)} units on hand worth ${gbp(val)} — each unit keeps the price of the batch it came from.</div>`;})()}
   </div>`:`<div class="cogbox">
     <div class="lab" style="margin-bottom:6px">Cost of one unit — oldest stock first</div>
@@ -3473,19 +3611,20 @@ function prodRow(p){
     <div class="cogtot"><span>COG per unit</span>${c1.short
       ? `<span style="color:${c1.noPrice?'var(--red)':'var(--amb)'};font-size:12px;font-weight:700">${
           c1.noPrice?'a batch has no price':'not until every part is in stock'}</span>`
-      : `<span class="mono" style="color:var(--accent)">${gbp(c1.per)}</span>`}</div>
+      : `<span class="cogBig">${gbp(c1.per)}</span>`}</div>
     ${c1.noPrice?`<div class="note bad" style="margin:9px 0 0"><b>Stock booked in with no price.</b>
       ${esc(c1.unpriced.map(u=>u.name).slice(0,3).join(', '))}${c1.unpriced.length>3?` +${c1.unpriced.length-3} more`:''} —
       there is nothing to cost from, so COG can't be shown. Put the price on the batch and it comes straight back.
       ${c1.unpriced[0]&&c1.unpriced[0].cid?`<div style="margin-top:7px"><button class="btn sm warn" onclick="event.stopPropagation();LV3.openComp('${c1.unpriced[0].cid}')">Fix ${esc(c1.unpriced[0].name)}</button></div>`:''}</div>`:''}
     </div>`;
-  return main+`<tr class="sub-row"><td colspan="${5+['pIncoming','pOrdered','pSold','pSendBy','pCog'].filter(COL).length}" style="padding:0"><div class="rbox">${planStrip}<div class="rgrid"><div>${inner}</div><div>${cogHtml}</div></div>
-    <div style="margin-top:9px;display:flex;gap:6px">
+  return main+`<tr class="sub-row"><td colspan="${5+['pIncoming','pOrdered','pSold','pSendBy','pCog'].filter(COL).length}" style="padding:0"><div class="rbox" style="--rail:${_rail}">${planStrip}<div class="rgrid"><div>${inner}</div><div>${cogHtml}</div></div>
+    <div class="racts">
     ${isPL?`<button class="btn sm" onclick="LV3.openAddBatch('${p.id}','product')">+ Add a batch</button>
             <button class="btn sm" onclick="LV3.editProduct('${p.id}')">Edit product</button>`
           :`<button class="btn sm" onclick="LV3.editProduct('${p.id}')">Edit build list</button>`}
     <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Full detail</button>
-    <button class="btn sm" style="margin-left:auto" onclick="LV3.setArchived('product','${p.id}',true)">Archive</button>
+    <span class="raSp"></span>
+    <button class="btn sm" onclick="LV3.setArchived('product','${p.id}',true)">Archive</button>
     <button class="btn sm dgr" onclick="LV3.delProduct('${p.id}')">Delete</button></div></div></td></tr>`;
 }
 /* Four buttons per row never fitted, and the one that fell off the edge was
@@ -3537,8 +3676,8 @@ function openProduct(id){
   /* everything on its way in */
   const inbound=[];
   if(isB)p.recipe.forEach(r=>{const c=comp(r.c);if(!c||c.untracked)return;
-    (c.layers||[]).filter(l=>!l.arr).forEach(l=>inbound.push({name:c.name,l,per:r.q}));});
-  else (p.layers||[]).filter(l=>!l.arr).forEach(l=>inbound.push({name:p.name,l,per:1}));
+    (c.layers||[]).filter(l=>!l.arr&&!l.writtenOff).forEach(l=>inbound.push({name:c.name,l,per:r.q}));});
+  else (p.layers||[]).filter(l=>!l.arr&&!l.writtenOff).forEach(l=>inbound.push({name:p.name,l,per:1}));
   inbound.sort((x,y)=>(x.l.date||'').localeCompare(y.l.date||''));
 
   const stockVal=isB
@@ -4185,6 +4324,21 @@ function shipBlock(p,cg,n){
     <div style="font-size:13.5px;font-weight:800;color:var(--red);margin-bottom:4px">Can't send ${fmt(n)} unit${n===1?'':'s'}</div>
     ${p.type==='bundle'?`There are only enough components for <b>${fmt(avail(p).n)}</b>.`:`There are only <b>${fmt(onHand(p))}</b> in stock.`}
     Lower the quantity, receive a delivery, or correct the stock if the count is wrong.</div>
+  ${/* Becki, 21 Oct — the same way out the Shipments page has: the parts ARE
+        here, the supplier sent more than the order. Booked in first, with why. */''}
+  <div class="note warn" style="margin-bottom:12px">
+    <div style="font-weight:800;margin-bottom:6px">Are the extra parts on the bench?</div>
+    <div style="font-size:12px;margin-bottom:8px">If the supplier sent more than the order, book them in here and send all ${fmt(n)} —
+      ${extraPlan(p.asin,n).map(x=>`<b>${esc(x.name)} +${fmt(x.qty)}</b> at ${gbp(x.cost)}`).join(', ')}.
+      ${(extraPlan(p.asin,n).length>1||!avail(p).n)?`<div style="color:var(--red);font-weight:700;margin-top:4px">That is ${extraPlan(p.asin,n).length} different parts${!avail(p).n?' and none can be built':''} — only do this if every one is physically on the bench. If the count is wrong across the board, use Correct stock on each part below.</div>`:''}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select class="in" id="shipXWhy" style="max-width:260px" onchange="document.getElementById('shipXNote').style.display=this.value==='Something else'?'':'none'">
+        <option value="">Where did the extra come from?…</option>
+        <option>Supplier sent extra</option><option>Case held more than it said</option>
+        <option>Found stock that was never booked in</option><option>Something else</option></select>
+      <input class="in" id="shipXNote" placeholder="Say where it came from" style="max-width:230px;display:none">
+      <button class="btn warn sm" onclick="LV3.shipExtra()">Book them in &amp; send ${fmt(n)}</button>
+    </div></div>
   ${cg.blocked.map(b=>{
     const o=b.o;const isC=!!comp(o.id);
     const last=arrLayers(o).slice(-1)[0];
@@ -4209,6 +4363,16 @@ function shipBlock(p,cg,n){
         </tbody></table>
         ${inc?`<button class="btn sm go" style="margin-top:9px" onclick="LV3.markArrived('${isC?'component':'product'}','${o.id}','${inc.id}')">Mark that delivery arrived (+${fmt(inc.qty)})</button>`:''}
       </div></div>`;}).join('')}`;
+}
+function shipExtra(){
+  const p=prod(SHIP.id),n=SHIP.units;if(!p)return;
+  const why=((document.getElementById('shipXWhy')||{}).value||'').trim();
+  const note=((document.getElementById('shipXNote')||{}).value||'').trim();
+  if(!why){toast('Say where the extra parts came from','er');return;}
+  if(why==='Something else'&&!note){toast('Say where it came from, in your own words','er');return;}
+  const r=bookExtraForBuild(p.asin,n,why,note);
+  toast(r.added.length?'Booked in: '+r.added.map(a=>a.name+' +'+a.qty).join(', ')+' — now press Send':'Nothing was short','ok');
+  drawShip();
 }
 function copyCog(v){navigator.clipboard&&navigator.clipboard.writeText(v);toast('COG £'+v+' copied','ok');}
 function doShip(){
@@ -4237,7 +4401,7 @@ function doShip(){
      is monkey-patched to call shipConsume — so every send from this modal took
      the stock off twice. One send, one deduction: the patch owns it now, and
      it is the same path the Shipments page uses. */
-  p.ship30=(p.ship30||0)+n;p.lastSent=localDay(TODAY);
+  p.ship30=(p.ship30||0)+n;p.lastSent=dayISO();
   /* record it where the rest of the app looks: the Shipments page, the monthly
      numbers and the COG history all read lavShipments */
   const rec={shipId:fba,asin:p.asin,sku:p.sku||'',prod:p.name,units:n,
@@ -4767,7 +4931,7 @@ function saveComp(id){
     const oq=parseInt(($('c-open-qty')||{}).value)||0;
     const oc=parseFloat(($('c-open-cost')||{}).value)||0;
     if(oq>0){opened=oq;
-      layers.push({id:newId('O'),date:localDay(TODAY),qty:oq,rem:oq,cost:oc,
+      layers.push({id:newId('O'),date:dayISO(),qty:oq,rem:oq,cost:oc,
         sup:'Opening stock',oid:'—',loc:'Warehouse',arr:1});}
     D.components.push({id:cid,layers,...obj});
   }
@@ -4911,7 +5075,7 @@ function openReceive(kind,oid,lid){
           <button class="rcvAll" onclick="LV3.rcvSet(${outstanding})" title="Everything still owed turned up">All ${fmt(outstanding)}</button>
           <button class="rcvAll" onclick="LV3.rcvSet(0)" title="Nothing turned up">None</button>
         </div>
-        <div class="rcvTip">Count everything that came out of the box — damaged included.</div>
+        <div class="rcvTip">Count everything that came out of the box — damaged included, and <b>any extra over the order</b> (it goes into stock at the same price).</div>
         <div class="rcvDmg">
           <button type="button" id="rcvDmgLink" onclick="LV3.rcvShowDmg()">Any of them damaged?</button>
           <div id="rcvDmgBox" style="display:none;">
@@ -5143,7 +5307,7 @@ function receiveRow(kind,oid,lid,qtyIn,noteIn,dmgIn,thatsIt,opts){
        sellable stock, so they are recorded and held back. */
     l.arr=1;l.rem=usable;l.qty=got;l.recvOn=landed;l.recvBy=who;
     if(dmg){l.dmg=(l.dmg||0)+dmg;l.dmgOn=landed;l.dmgBy=who;}
-    if(over)l.note=((l.note?l.note+' · ':'')+`${over} more than ordered`);
+    if(over){l.note=((l.note?l.note+' · ':'')+`${over} more than ordered`);l.extra=(parseInt(l.extra)||0)+over;}
     logIt('recv',`Received ${fmt(got)} × ${o.name}${l.cost>0?' @ '+gbp(l.cost):''}${l.sup?' — '+l.sup:''} · ${who}${over?` · ${over} over`:''}${dmg?` · ${dmg} DAMAGED, held out of stock`:''}`);
     say(`${fmt(got)} × ${o.name} received${dmg?` · ${fmt(dmg)} damaged, ${fmt(usable)} into stock`:''}${over?` · ${fmt(over)} more than ordered`:''}`,dmg?'er':'ok');
   }else{
@@ -5311,15 +5475,22 @@ function doAdjust(kind,oid){
   if(diff>0){
     /* extra units join as a new batch at the newest known cost, dated today */
     const cost=avgCost(o)||0;
-    (o.layers=o.layers||[]).push({id:newId('A'),date:localDay(TODAY),qty:diff,rem:diff,cost,
+    (o.layers=o.layers||[]).push({id:newId('A'),date:dayISO(),qty:diff,rem:diff,cost,
       sup:'Stock correction',oid:'—',loc:'Warehouse',arr:1});
   }else{
     let need=-diff;
     for(const l of arrLayers(o)){if(need<=0)break;const t=Math.min(l.rem,need);l.rem-=t;need-=t;}
   }
   logIt('adj',`Stock corrected: ${o.name} ${fmt(have)} → ${fmt(want)} (${diff>0?'+':''}${diff}) — ${$('adj-r').value}${$('adj-note').value?': '+$('adj-note').value:''}`);
+  /* 21 Oct 2026: this never called save() — the correction sat on one screen
+     and the next 15-minute refresh (or a reload) threw it away */
+  save();
   cm('lav3Ov2');render();
-  if($('lav3Ov1').classList.contains('on')){kind==='component'?openComp(oid):openProduct(oid);}
+  /* opened from the Ship popup's block screen: redraw the Ship popup, don't
+     swap it for the part's own page (you lost your place and your FBA ID) */
+  if($('lav3Ov1').classList.contains('on')){
+    if(SHIP&&SHIP.id&&/Ship —/.test(($('lav3Mod1')||{}).textContent||''))drawShip();
+    else kind==='component'?openComp(oid):openProduct(oid);}
   toastUndo(`${o.name} corrected to ${fmt(want)}`,'ok');
 }
 
@@ -6711,7 +6882,10 @@ function vRestocks(){
           const spare=x.buying-x.shortfall;
           return `<tr class="${x.ok?'':'short'}">
           <td class="l"><span class="pname">${esc(x.c.name)}</span>
-            <div class="pmeta">${x.kind}${multi?'':` · ×${fmt(per)} each`}${x.caseQty>1?` · case of ${fmt(x.caseQty)}`:' · singles'}${(function(){const s=compSupplier(x.c);return s?` · ${esc(s)}`:'';})()}${x.shared?' · <b style="color:var(--accent)">shared</b>':''}</div></td>
+            <div class="pmeta">${x.kind}${multi?'':` · ×${fmt(per)} each`}${x.caseQty>1?` · case of ${fmt(x.caseQty)}`:' · singles'}${(function(){if(lastBuy(x.c))return'';const s=compSupplier(x.c);return s?` · ${esc(s)}`:'';})()}${x.shared?' · <b style="color:var(--accent)">shared</b>':''}</div>
+            ${(function(){const lb=lastBuy(x.c);if(!lb)return'';const usual=compSupplier(x.c);
+              return `<div class="pmeta rsLast">Last bought: <b>${esc(lb.sup)}</b>${lb.cost>0?` · ${gbp(lb.cost)}`:''}${lb.date?` · ${dshort(lb.date)}`:''}${lb.qty?` · ${fmt(lb.qty)}`:''}${usual&&_supKey(usual)!==_supKey(lb.sup)?` <span class="dim">(usually ${esc(usual)})</span>`:''}</div>`;})()}
+          </td>
           ${multi?`<td class="l"><div class="rsFrom">${x.from.map(f=>
               `<span class="rsFromC" title="${esc(f.p.name)} — ${fmt(f.per)} each &times; ${fmt(f.qty)} = ${fmt(f.need)}">
                 ${esc(f.p.name)}<b>${fmt(f.need)}</b></span>`).join('')}</div></td>`:''}
@@ -7068,7 +7242,7 @@ function overridePanel(){
           <span class="ovN">${fmt(v.n)}</span></div>`).join('')}
       </div>
       <div class="dsec" style="margin-top:14px"><span class="lab">Most recent</span></div>
-      <table><thead><tr><th>When</th><th class="l">Shipment</th><th class="l">Product</th><th>Units</th><th class="l">Reason</th><th class="l">Who</th></tr></thead><tbody>
+      <table style="min-width:0"><thead><tr><th>When</th><th class="l">Shipment</th><th class="l">Product</th><th>Units</th><th class="l">Reason</th><th class="l">Who</th></tr></thead><tbody>
       ${list.slice(0,12).map(o=>`<tr>
         <td class="mono">${dshort(o.on)}</td>
         <td class="l mono">${esc(o.shipId||'—')}</td>
@@ -8011,10 +8185,25 @@ function setAlloc(p,alloc){
          part-received order forget it had ever been 30 — qty means "what is
          still owed" the moment anything is counted in. */
       was.ord=a.qty;
-      was.qty=Math.max(0,a.qty-rcvdQty(was));
-      if(was.short&&was.qty>0)was.shortQty=was.qty;
-      if(!was.arr)was.rem=0;                       // still on order: nothing on the shelf
-      else if(was.rem>a.qty)was.rem=a.qty;         // received: keep what is left of it
+      if(was.closed){
+        /* every unit already came in on its own batches — nothing here to change */
+      }else if(was.arr){
+        /* RECEIVED. 21 Oct 2026 audit: this capped the stock at the ordered
+           quantity and set qty to "still owed" (0) — so 30 counted in against an
+           order of 25 lost its 5 extras the next time the purchase was
+           re-applied (a sheet correction, an allocation change). Counted stock
+           is physical. It only shrinks when the allocation itself shrinks —
+           part of the purchase moved to another product — and never below what
+           was counted over the order. */
+        const cap=a.qty+(parseInt(was.extra)||0);
+        const inQ=rcvdQty(was)||parseInt(was.qty)||0;
+        was.qty=Math.min(inQ,cap);
+        if(was.rem>was.qty)was.rem=was.qty;
+      }else{
+        was.qty=Math.max(0,a.qty-rcvdQty(was));
+        if(was.short&&was.qty>0)was.shortQty=was.qty;
+        was.rem=0;                                 // still on order: nothing on the shelf
+      }
       was.loc=p.loc==='Home'?'Warehouse':p.loc;
       if(!was.mode)was.mode=mode;
       if(!was.eta1)was.eta1=add(m.lo);
@@ -8493,7 +8682,7 @@ function inboundCount(){
    modal. Sea freight from China lands months after it is ordered, so "when is
    it due" needs to be visible next to what was bought. */
 function etaState(l){
-  const t=localDay(TODAY);
+  const t=dayISO();
   const e1=l.eta1||'',e2=l.eta2||'';
   if(!e1&&!e2){
     const m=shipMode(l.mode);
@@ -8566,7 +8755,7 @@ function setEta(kind,oid,lid,field,v){
 function daysSince(iso){
   if(!iso)return 0;
   const a=new Date(String(iso).slice(0,10)+'T00:00:00Z').getTime();
-  const t=TODAY, b=Date.UTC(t.getFullYear(),t.getMonth(),t.getDate());
+  const _u=_ukParts(TODAY), b=Date.UTC(_u.y,_u.m-1,_u.d);
   return Math.max(0,Math.round((b-a)/864e5));
 }
 /* ── ONE ORDER, MANY DELIVERIES ───────────────────────────────────────────
@@ -9156,9 +9345,9 @@ function shortPanel(){
 /* Three working days from today — the only extra thing anyone has to think
    about when they chase, and the thing that stops a shortfall drifting. */
 function replyByDate(days){
-  const d=new Date(TODAY);let left=days||3;
-  while(left>0){d.setDate(d.getDate()+1);const w=d.getDay();if(w!==0&&w!==6)left--;}
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  let iso=dayISO(),left=days||3;
+  while(left>0){iso=ukAddDays(iso,1);const w=ukWeekdayOf(iso);if(w!==0&&w!==6)left--;}
+  return iso;
 }
 /* Where a shortfall is up to. Age is measured from the day it was noticed and
    NEVER from its value — £1 missing and £400 missing hit the same wall on the
@@ -9216,6 +9405,23 @@ function shortEnd(oid,lid,kind){
       toastUndo(kind==='auto'?'Recorded as auto refunded — not sent to Sarah'
         :kind==='refund'?'Recorded as refunded':'Recorded as a miscount','ok');
     },{ok:kind==='auto'?'Yes, it was auto refunded':kind==='refund'?'Yes, it was refunded':'Yes, it was a miscount'});
+}
+/* 22 Oct 2026, Jack: "add a written off thing on Jack's page". Every PLUB loss:
+   a shortage or a delivery line written off, damaged units binned. writtenOff on
+   its own only means "closed" — refunded, auto refunded and miscount set it too
+   (Dove MD ×2 was refunded, not lost) — so those stay out. */
+function woList(){
+  const out=[];
+  const add=(o,l,src,units,on,by,why)=>{if(!(units>0))return;
+    out.push({src,prod:o.name||'',sup:l.sup||'',ref:(l.oid&&l.oid!=='—')?l.oid:'',units,val:units*(l.cost||0),
+      on:String(on||''),by:by||'',why,id:o.id,kind:D.components.includes(o)?'comp':'prod'});};
+  D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{
+    const se=l.shortEnd||{},de=l.dmgEnd||{};
+    if(se.k==='writeoff')add(o,l,'PLUB short',parseInt(l.shortQty)||0,se.on,se.by,'Never arrived — taking the loss');
+    else if(typeof l.writtenOff==='string'&&!se.k)add(o,l,'PLUB short',parseInt(l.shortQty)||0,l.writtenOff,'','Never arrived — written off');
+    if(de.k==='binned')add(o,l,'PLUB damaged',parseInt(l.dmg)||0,de.on,de.by,'Damaged — binned');
+  }));
+  return out;
 }
 function writeOffShort(oid,lid){
   const o=comp(oid)||prod(oid);if(!o)return;
@@ -9762,7 +9968,7 @@ function bcSave(){
   if(!rows.length){toast('Nothing new to add','er');return;}
   rows.forEach((r,i)=>{
     const c={id:newId('c'),name:r.name,kind:r.pack?'packaging':'component',tag:'complementary',caseQty:null,layers:[]};
-    if(r.qty>0)c.layers.push({id:newId('O'),date:localDay(TODAY),qty:r.qty,rem:r.qty,cost:r.cost,
+    if(r.qty>0)c.layers.push({id:newId('O'),date:dayISO(),qty:r.qty,rem:r.qty,cost:r.cost,
       sup:'Opening stock',oid:'—',loc:'Warehouse',arr:1});
     D.components.push(c);
   });
@@ -10817,10 +11023,15 @@ function writeBack(){
   D.products.forEach(p=>{
     const a=p._src;if(!a)return;
     const rec=JSON.stringify(p.recipe);
-    const sig=[p.name,p.asin,p.sku,p.vat,p.type,rec].join('|');
-    if(a._sig===sig)return;
-    a._sig=sig;
-    saveProductSrc(p);compsDirty=true;
+    const sig=[p.name,p.asin,p.sku,p.vat,p.type].join('|');
+    if(a._sig!==sig){a._sig=sig;a._rsig=rec;saveProductSrc(p);compsDirty=true;return;}
+    if(!_crLoadedOK)return;                          // build lists not loaded — nothing to compare
+    if(a._rsig===undefined){a._rsig=rec;return;}
+    if(a._rsig===rec)return;
+    /* only the build list changed: that lives in lavarion_recipes, not on the product row */
+    a._rsig=rec;
+    RECIPES[p.asin]=p.recipe.map(r=>({c:r.c,q:r.q}));
+    saveCompsRecipes();compsDirty=true;
   });
   D.components.forEach(c=>{
     const src=c._src;if(!src)return;
@@ -10916,6 +11127,38 @@ function shipConsume(asin,units){
     layers:((cg&&cg.lines)||[]).map(l=>({name:l.name,parts:l.parts.map(x=>({qty:x.take,cost:x.cost}))}))};
 }
 
+/* ── FOUND EXTRA AT PACKING (Becki, 21 Oct 2026) ──────────────────────────
+   "Expected to send 11, had enough for 16." The supplier put more in the case
+   than the order said and nobody counted the extras in, so the app thought
+   only 11 could be built. Jack's rule stands — nothing leaves that the app
+   does not have — so the override books the missing parts IN first, as found
+   extra, at the cost of the batch that goes out next, with the reason. The
+   stock is then real, the send takes it off as normal, and the shipment keeps
+   the same COG per unit as the units that were already there. */
+function extraPlan(asin,units){
+  const p=_prodByAsin(asin);if(!p||!(units>0))return[];
+  const out=[];
+  /* priced like the NEWEST batch still in stock — the extras go out last, so
+     they extend that batch's run instead of starting a second price (which the
+     mixed-cost check would then block) */
+  const one=(o,n)=>{const gap=n-onHand(o);if(gap<=0)return;
+    const nx=arrLayers(o).filter(l=>l.rem>0&&l.cost>0).slice(-1)[0]||arrLayers(o).filter(l=>l.cost>0).slice(-1)[0];
+    out.push({o,name:o.name,qty:gap,cost:(nx&&nx.cost>0)?nx.cost:(avgCost(o)||0)});};
+  if(p.type!=='bundle')one(p,units);
+  else p.recipe.forEach(r=>{const c=comp(r.c);if(c&&!c.untracked)one(c,r.q*units);});
+  return out;
+}
+function bookExtraForBuild(asin,units,why,note){
+  const plan=extraPlan(asin,units);if(!plan.length)return{added:[]};
+  const p=_prodByAsin(asin),who=window.currentUserName||'someone',said=why+(note?': '+note:'');
+  snap();
+  plan.forEach(x=>{(x.o.layers=x.o.layers||[]).push({id:newId('X'),date:dayISO(),qty:x.qty,rem:x.qty,cost:x.cost,
+    sup:'Found extra',oid:'—',loc:'Warehouse',arr:1,extra:x.qty,extraWhy:said,
+    note:`Found extra at packing — ${said} (${who})`});});
+  logIt('adj',`Found extra at packing for ${fmt(units)} × ${p.name}: ${plan.map(x=>`${x.name} +${fmt(x.qty)}`).join(', ')} — ${said}`);
+  save();
+  return{added:plan.map(x=>({name:x.name,qty:x.qty,cost:x.cost}))};
+}
 /* Taking a line off a shipment has to put the stock back, or the units are
    gone for good. Layers carry both what was bought (qty) and what is left
    (rem), so the inverse of a FIFO draw is exact: refill oldest-first, capped
@@ -10951,28 +11194,35 @@ function openOverSent(){
   });
   rows.sort((a,b)=>String(b.on).localeCompare(String(a.on)));
   const open=rows.filter(r=>!r.settled),done=rows.filter(r=>r.settled);
+  /* prep.css gives every table min-width:1280px for the Prep Sheet; in this popup that
+     pushed the buttons column out of sight — nobody could ever see Settle */
+  const tb=`<table class="tbl" style="min-width:0"><colgroup><col style="width:34%"><col style="width:9%"><col style="width:19%"><col style="width:38%"></colgroup>`;
   const line=r=>`<tr>
     <td class="l"><div class="pname" style="font-size:12.5px;">${esc(r.name)}</div>
       <div class="psub">${esc(r.asin)}${r.shipId?' · '+esc(r.shipId):''}</div></td>
     <td style="text-align:right;font-weight:800;color:${r.settled?'var(--text3)':'var(--red)'};">${fmt(r.units)}</td>
     <td style="font-size:12px;color:var(--text2);">${esc(String(r.on||'').slice(0,10))} · ${esc(r.by||'—')}</td>
     <td style="text-align:right;">${r.settled
-      ? `<span style="font-size:11.5px;color:var(--grn);">settled ${esc(String(r.settledOn||'').slice(0,10))}</span>`
-      : `<button class="btn sm" onclick="LV3.settleOverSent('${r.asin}')">Settle</button>`}</td></tr>`;
+      ? `<span style="font-size:11.5px;color:var(--grn);">settled ${esc(String(r.settledOn||'').slice(0,10))}${r.settledHow?' · '+esc(r.settledHow):''}${r.settledBy?' · '+esc(r.settledBy):''}</span>`
+      : (()=>{const av=(shipCheck(r.asin,1)||{}).available;
+          return `${av>0?`<button class="btn sm go" onclick="LV3.settleOverSent('${r.asin}','take')" title="The parts are on the shelf — take them off now">Take the parts off now${av<r.units?` (${fmt(av)} can)`:''}</button> `:''}
+            <button class="btn sm" onclick="LV3.settleOverSent('${r.asin}','gone')" title="The parts are not here — a count or later sends already allowed for them">Close — the count already allows for it</button>
+            <div class="pmeta" style="margin-top:3px">${av>0?`${fmt(av)} can be built from the shelf now`:'nothing on the shelf for it now'}</div>`;})()}</td></tr>`;
   $('lav3Mod1').className='mod wide';
   $('lav3Mod1').innerHTML=`
   <div class="mh"><h3>Sent over stock</h3>
     <button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
   <div class="mb">
     <div style="font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:14px;">
-      Someone sent more units than the shelf held and approved it at the time. Whatever stock
-      existed was taken; what is listed here is the gap. Settle a line once the delivery that
-      covers it has been booked in — the record stays either way.</div>
-    ${open.length?`<table class="tbl"><thead><tr><th class="l">Product</th><th style="text-align:right;">Over</th><th>When · who</th><th></th></tr></thead>
+      Units went out that the shelf did not have on the system — the parts they used were never taken off.
+      Once the delivery that covers them is booked in, <b>take the parts off</b> so the shelf is right.
+      If a stock count or later sends have already allowed for it, <b>close</b> it. The record stays either way.
+      New sends can no longer do this — every route now blocks, or books found-extra parts in first.</div>
+    ${open.length?`${tb}<thead><tr><th class="l">Product</th><th style="text-align:right;">Over</th><th>When · who</th><th></th></tr></thead>
       <tbody>${open.map(line).join('')}</tbody></table>`
      :`<div style="font-size:13px;color:var(--grn);padding:10px 0;">Nothing outstanding.</div>`}
     ${done.length?`<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin:18px 0 6px;">Settled</div>
-      <table class="tbl"><tbody>${done.slice(0,25).map(line).join('')}</tbody></table>`:''}
+      ${tb}<tbody>${done.slice(0,25).map(line).join('')}</tbody></table>`:''}
   </div>`;
   om('lav3Ov1');
 }
@@ -11006,11 +11256,48 @@ function overSentFor(asin){
   const l=((D.settings||{}).overSent||{})[asin]||[];
   return l.filter(x=>!x.settled).reduce((s,x)=>s+(x.units||0),0);
 }
-function settleOverSent(asin){
-  const l=((D.settings||{}).overSent||{})[asin]||[];
-  l.forEach(x=>{if(!x.settled){x.settled=true;x.settledOn=new Date().toISOString();
-                               x.settledBy=(window.currentUserName||'someone');}});
-  savePrefs();render();
+/* 22 Oct 2026 (Jack: "this is where this needs to be fixed"). Settle used to
+   tick the line and nothing else — the parts those units used never came off,
+   so when the delivery was booked in the shelf read high by exactly that much,
+   for good. Settling now does one of two honest things:
+     'take' — the parts are on the shelf: take them off now, oldest first;
+     'gone' — they are not (a count or later sends already allowed for it):
+              close it, and say so in the log. */
+function settleOverSent(asin,mode,go){
+  const list=((D.settings||{}).overSent||{})[asin]||[];
+  const open=list.filter(x=>!x.settled);if(!open.length)return;
+  const owed=open.reduce((t,x)=>t+(parseInt(x.units)||0),0);
+  const who=window.currentUserName||'someone',now=new Date().toISOString(),p=_prodByAsin(asin);
+  const name=(p&&p.name)||asin;
+  if(!go){
+    const av=(shipCheck(asin,1)||{}).available,n=mode==='take'?Math.min(owed,av==null?owed:av):owed;
+    confirmBox(mode==='take'?`Take the parts for ${fmt(n)} off the shelf?`:`Close ${fmt(owed)} × ${esc(name)}?`,
+      mode==='take'
+        ?`<b>${esc(name)}</b> — ${fmt(owed)} went out that the shelf did not have on the system.<br>
+          This takes the parts for <b>${fmt(n)}</b> off now, oldest batch first, so the stock is right.
+          ${n<owed?`<br><span style="color:var(--amb)">Only ${fmt(n)} can be built from the shelf — the other ${fmt(owed-n)} stay on this list.</span>`:''}`
+        :`Nothing comes off the shelf. Use this when a stock count, or later sends, already allowed for these ${fmt(owed)} units.<br>It is written in the log either way.`,
+      ()=>settleOverSent(asin,mode,true),{ok:mode==='take'?'Take them off':'Close it'});
+    return;
+  }
+  let took=0;
+  if(mode==='take'){
+    const r=shipConsume(asin,owed);took=r?r.consumed:0;
+    if(!took){toast('Nothing on the shelf to take off — use Close instead','er');return;}
+  }
+  let left=mode==='take'?took:owed;
+  open.forEach(x=>{
+    if(left<=0)return;
+    const u=parseInt(x.units)||0,t=Math.min(u,left);left-=t;
+    if(t<u){list.push({...x,units:u-t});x.units=t;}      // part of it is still owed
+    x.settled=true;x.settledOn=now;x.settledBy=who;x.settledHow=mode==='take'?'parts taken off':'already counted';
+  });
+  logIt('adj',mode==='take'
+    ?`Sent over stock settled — parts for ${fmt(took)} × ${name} taken off the shelf${took<owed?` (${fmt(owed-took)} still owed)`:''}`
+    :`Sent over stock closed — ${fmt(owed)} × ${name}: nothing to take off, the stock count already allows for it`);
+  savePrefs();save();render();
+  try{openOverSent();}catch(e){}
+  toast(mode==='take'?`Parts for ${fmt(took)} taken off${took<owed?` — ${fmt(owed-took)} still owed`:''}`:'Closed — nothing taken off','ok');
 }
 /* what a shipment would cost / whether it can go — no mutation */
 /* Jack, 7 Sep, live: "Tea & Biscuits Hamper is not a product the Lavarion
@@ -11099,8 +11386,8 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   sendBy,sendState,primeDays,setPrimeDays,workDaysBefore,workDaysBetween,
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,refreshShared,reloadData,rtChange,checkStockSafety,__save:()=>save(),__remRpc:()=>_remRpc,__setRemRpc:v=>{_remRpc=v;},settleIssue,sheetSays,relinkOrphans,openSheetDiff,mergeIntoSheetLine,dropDiffLine,cancelDiffLine,ackDiffLine,sheetDiffItems,__persist:()=>persist(),__pushNow:()=>pushNow(),__PURCH:()=>PURCH,__prefsMerge:_prefsMerge,__savePrefs:()=>savePrefs(),__saveState:()=>saveState(),__prefsBase:()=>_prefsBase,__setPrefsBase:v=>{_prefsBase=v;},__ack:()=>ACK,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
-  sortCol,amzWhen,localDT,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
-  shipCheck,shipConsume,shipRestore,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
+  sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},

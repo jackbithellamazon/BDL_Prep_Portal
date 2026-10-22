@@ -77,7 +77,7 @@
 .srtFacts{padding:9px 20px 10px;border-bottom:1px solid var(--border);background:var(--bg);
   display:flex;flex-wrap:wrap;gap:6px 24px;}
 .srtFact{display:flex;flex-direction:column;gap:1px;min-width:0;}
-.srtFacts .srtFactL{font-size:9px;font-weight:800;color:#8a857b;
+.srtFacts .srtFactL{font-size:10px;font-weight:800;color:#8a857b;
   text-transform:uppercase;letter-spacing:.08em;line-height:1.4;}
 .srtFacts .srtFactV{font-size:12.5px;font-weight:700;color:#f0ece4;line-height:1.35;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px;}
@@ -159,7 +159,7 @@
    working queue she has to recognise the product, not just fit the column */
 .tfuProd2{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.35;text-align:left;
   overflow-wrap:anywhere;max-height:3.5em;overflow:hidden;}
-.tfuCap{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;
+.tfuCap{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;
   letter-spacing:.07em;margin-bottom:2px;}
 .tfuSrc{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:5px;
   background:rgba(148,163,184,.14);border:1px solid rgba(148,163,184,.3);color:#cbd5e1;white-space:nowrap;}
@@ -191,14 +191,19 @@
    nothing lined up down the page, and the table centred them on top of that.
    Fixed columns, left aligned, so the grey rows read as a list. */
 .tfu tr.tfuCompact td{text-align:left;}
-.tfuCmp{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(0,1.5fr) auto minmax(0,2.6fr) auto;
+/* 22 Oct 2026: the waiting rows' buttons sat in the 118px Actions column with
+   nowrap — "Undo · Details" and "Back to Jack · Undo · Details" were cut off.
+   They now live at the end of the row's own grid. */
+.tfuCmp{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(0,1.5fr) auto minmax(0,2.6fr) auto auto;
   align-items:center;gap:12px;min-width:0;text-align:left;}
 .tfuCmpName{min-width:0;font-size:12px;font-weight:700;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .tfuCmpMeta{min-width:0;font:600 10.5px var(--mono);color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tfuCmpChip{flex:none;font-size:10px;font-weight:800;letter-spacing:.05em;padding:2px 8px;border-radius:999px;color:#b6c2d4;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.4);white-space:nowrap;}
 .tfuCmpAsk{flex:1 1 auto;min-width:0;font-size:11px;font-weight:600;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .tfuCmpVal{flex:none;font:800 12px var(--num);color:#b6c2d4;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
-@media(max-width:1200px){.tfuCmp{grid-template-columns:minmax(0,2.4fr) auto minmax(0,2.6fr) auto;}
+.tfuCmpActs{display:flex;gap:5px;justify-content:flex-end;white-space:nowrap;}
+.tfu .tfuCmpActs button{display:inline-block;width:auto;margin:0;padding:4px 10px;font-size:11px;}
+@media(max-width:1200px){.tfuCmp{grid-template-columns:minmax(0,2.4fr) auto minmax(0,2.6fr) auto auto;}
   .tfuCmpMeta{display:none;}}
 .tfu tr.tfuCompact .tfuActs{white-space:nowrap;}
 .tfu tr.tfuCompact .tfuActs button{display:inline-block;width:auto;margin:0 2px;padding:4px 9px;font-size:10.5px;}
@@ -288,7 +293,7 @@
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
 .fi{display:flex;flex-direction:column;gap:4px;}
 .fi.full{grid-column:1/-1;}
-.fl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;}
+.fl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;}
 input.fi-in,select.fi-in,textarea.fi-in{background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:6px 9px;color:var(--text);font-family:var(--sans);font-size:12px;outline:none;width:100%;transition:border-color .15s;}
 input.fi-in:focus,select.fi-in:focus,textarea.fi-in:focus{border-color:var(--accent);}
 input.fi-in::placeholder,textarea.fi-in::placeholder{color:var(--text3);}

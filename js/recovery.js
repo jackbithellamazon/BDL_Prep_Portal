@@ -584,24 +584,26 @@ async function recGridCommit(){
    claim back to Sarah, so the units he had just decided to sell on eBay never
    appeared anywhere. One press now does both. It never invents a second copy:
    the same Amazon SKU already in recovery is left alone. */
-async function recFromClaim(c){
+async function recFromClaim(c,opts){
+  opts=opts||{};
   if(typeof REC==='undefined'||!c)return null;
   if(!_recLoaded){try{await recLoad();}catch(e){}}
   if(_recErr)return 'nosetup';
   const sku=(c.sku||'').trim();
-  if(sku&&REC.some(i=>!i.archived&&(i.amz_sku||'').trim().toLowerCase()===sku.toLowerCase()))return 'dupe';
+  /* a second eBay batch of the same SKU next week is a real second batch */
+  if(!opts.allowSameSku&&sku&&REC.some(i=>!i.archived&&(i.amz_sku||'').trim().toLowerCase()===sku.toLowerCase()))return 'dupe';
   const qty=parseInt(c.dif)||parseInt(c.exp)||1;
   const unit=(c.claimValue&&qty)?Math.round((c.claimValue/qty)*100)/100:null;   /* £36.70 / 10 is 3.6700000000000004 */
   let cost=unit;
   if(cost==null){try{cost=parseSKU(sku).cogs||null;}catch(e){cost=null;}}
   const i={id:recUid(),name:c.prod||sku||'(no name)',id_type:c.asin?'ASIN':'None',id_value:c.asin||'',
     amz_sku:sku,extra_ids:[],qty,locations:[],condition:'New',condition_notes:'',cost,
-    status:'here',channels:[],notes:'Gated on Amazon'+(c.sup?' — '+c.sup:'')+(c.oid?' · '+c.oid:''),
-    source:'Gated Amazon stock',source_ref:c.oid||'',listed_at:null,sold_price:null,rack:'',
+    status:'here',channels:[],notes:opts.notes||('Gated on Amazon'+(c.sup?' — '+c.sup:'')+(c.oid?' · '+c.oid:'')),
+    source:opts.source||'Gated Amazon stock',source_ref:c.oid||'',listed_at:null,sold_price:null,rack:'',
     batch_id:'',pack:[],added_by:_who(),created_at:recNow(),last_action_at:recNow(),
     last_action:'Added',archived:false,gone_at:null};
   REC.unshift(i);
-  await recSave(i,'Added','from a gated Amazon claim'+(c.oid?' · '+c.oid:''));
+  await recSave(i,'Added',(opts.source==='eBay stock'?'set aside for eBay':'from a gated Amazon claim')+(c.oid?' · '+c.oid:''));
   try{if(_pageActive('page-recovery'))renderRecovery();}catch(e){}
   return i;
 }
@@ -903,7 +905,10 @@ function recExport(){
 
 function _parkedOnDate(r){
   const v=r&&r.expectedDelivery;if(!v||!saneDate(v))return false;
-  const t=new Date();t.setHours(0,0,0,0);return new Date(v)>t;
+  /* the UK day, not the laptop's midnight: Sarah's laptop let a promise slip
+     at 17:00 UK the day before, and from 25 Oct (GMT) every laptop let it slip
+     at the start of the promised day itself */
+  return String(v).slice(0,10)>=todayISO();
 }
 function jackTodo(){
   /* No !archived guard on the decisions: a row archived by some other path is
@@ -918,7 +923,7 @@ function jackTodo(){
     try{if(typeof _recoveryFiled==='function'&&_recoveryFiled(r))debounce('recfiled_'+(r.uuid||r.id),()=>saveRow(r),1500);}catch(e){}
     try{if(typeof _claimSettledRow==='function'&&_claimSettledRow(r))debounce('clsettle_'+(r.uuid||r.id),()=>saveRow(r),1500);}catch(e){}});
   const checks=rows.filter(r=>r.resolution&&r.resolution.state==='asked'&&!_parkedOnDate(r)
-    &&!(r.resolution.chase&&r.resolution.chase.step==='due-date'&&r.expectedDelivery)   /* a slipped date is Sarah's chase, not his question */
+    &&!_askIsSlippedDate(r)   /* a slipped date is Sarah's chase, not his question — unless she asked him after it slipped */
     &&!(typeof _rowOwner==='function'&&_rowOwner(r).finished));   /* v50.5: the one owner rule */
   /* Jack, 5 Sep: qty fixes are read-and-wave-through — they vanish on their
      own after a week so they cannot pile up */
