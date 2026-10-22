@@ -204,7 +204,7 @@ window.PrepChecks=(function(){
     const live=rows.filter(r=>!r._chk&&!r.archived);
     const t=jackTodo();const onJ=new Set([].concat(t.checks||[],t.closures||[]).map(r=>String(r.uuid||r.id)));
     (t.claimsQ||[]).forEach(cl=>{if(cl.prepRowId)onJ.add(String(cl.prepRowId));});   /* gated claims are cards on his page too */
-    const sa=_adminItems();const onS=new Set(sa.filter(i=>!i.waiting).map(i=>String(i.rid)));const withB=new Set(sa.filter(i=>i.withBecki).map(i=>String(i.rid)));
+    const sa=_adminItems();const onS=new Set(sa.filter(i=>!i.waiting&&!i.sortedGrace&&!i.parkedRow).map(i=>String(i.rid)));   /* grey done/parked rows are not her job */const withB=new Set(sa.filter(i=>i.withBecki).map(i=>String(i.rid)));
     /* her open claims are rows on her page too — but claim paperwork may legitimately sit with her while the ROW is with Jack, so they only count for "is it shown", never for "shown but shouldn't be" */
     const onSc=new Set();(claims||[]).forEach(cl=>{if(cl&&!cl.archived&&cl.cst!=='Resolved'&&cl.cst!=='Closed'&&String(cl.owner||'VA')!=='Jack'&&cl.prepRowId)onSc.add(String(cl.prepRowId));});
     const rowsOut=[];const tally={};
@@ -1226,23 +1226,27 @@ window.PrepChecks=(function(){
     }
   };
 
-  /* 69 · ALL ARRIVED, SOME NEVER SENT (22 Oct, BioEars): Jack's card asked "12 of 12 booked in — what happened to
-     the other 0?". With nothing owed and units left unsent it asks where the unsent ones are; Sarah's Send-to-Jack
-     popup says nothing is missing from the order. */
-  S['Jack: all arrived, some never sent — asks the right question']=async()=>{
-    who('Sarah');const r=mkRow({exp:12,rcvd:12,ship:10,status:'Part Sent',resolution:asked()});
-    const was=(document.querySelector('.page.active')||{}).id||'';
+  /* 69 · LEFTOVERS FOLLOW JACK'S PROCESS (22 Oct): booked in, never sent. Sarah first → Amazon order to Jack to
+     check the account → back to Sarah: wrong SKU? → Becki checks the shelves → Not here corrects the count and it
+     goes back to Jack to raise with Amazon. Before this, the leftover went round Sarah ↔ Jack and never reached Becki. */
+  S['leftovers: Sarah → Jack → Sarah → Becki → Not here → Jack']=async()=>{
+    const keep={s:window.saveRow,v:window.addVaActions};window.saveRow=async()=>true;window.addVaActions=async()=>{};
+    const old=new Date(Date.now()-6*864e5).toISOString();
+    const r=mkRow({exp:9,rcvd:9,ship:5,status:'Part Sent',rcvdAt:old,sentDate:old.slice(0,10)});
+    r.shipSegments=[{shipId:'FBA-CHKL',units:5,date:old.slice(0,10),type:'Standard'}];
     try{
-      goPage('jack');renderJack();await wait(50);   /* Jack's page only paints while it is open */
-      const t=document.getElementById('page-jack').textContent;
-      const i=t.indexOf(r.prod),card=i>=0?t.slice(i,i+900):'';
-      ok(i>=0,'the row is on Jack’s page');
-      ok(/Where are the other 2\?/.test(card),'it asks where the other 2 are');
-      ok(!/the other 0/.test(card),'never "the other 0"');
-      ok(/Still on the shelf/.test(card)&&/Went out under another SKU/.test(card),'with the warehouse answers');
-      askJackAsk(rid(r));await wait(30);
-      ok(/All 12 of 12 are booked in/.test(document.getElementById('askModal').innerText),'Sarah’s Send-to-Jack says nothing is missing');
-    }finally{try{askShut();}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+      eq(_rowOwner(r).owner,'sarah','Sarah first');
+      who('Sarah');await amzAskJack(r.uuid);eq(_rowOwner(r).owner,'jack','an Amazon order goes to Jack to check the account');
+      const T=jackTodo();ok((T.checks||[]).some(x=>same(x,r)),'it is on Jack’s page');
+      who('Jack');await jackAnswered(r.uuid,'Arrived — YES, the account shows it delivered.');
+      eq(_rowOwner(r).owner,'sarah','his answer goes back to Sarah');
+      who('Sarah');await amzToBecki(r.uuid);
+      eq(_rowOwner(r).owner,'becki','Sarah sends it to Becki — and it is Becki’s');
+      ok(_isAmzDel(r)&&r.resolution.amzDelivered.kind==='leftover','on Becki’s shelf list as a leftover check');
+      who('Becki');await amzNotHere(r.uuid);
+      eq(r.rcvd,5,'Not here corrects the booked-in count to what went');
+      eq(_rowOwner(r).owner,'jack','and it goes to Jack to raise with Amazon');eq(_owedUnits(r),4,'4 owed on the claim');
+    }finally{window.saveRow=keep.s;window.addVaActions=keep.v;}
   };
 
   /* 70 · NOTHING CUT OFF (22 Oct): prep.css table{min-width:1280px} pushed PLUB popup columns off the edge (Settle was
@@ -1308,6 +1312,52 @@ window.PrepChecks=(function(){
       goPage('jack');renderJack();await wait(60);
       ok(/Written off/.test((document.querySelector('#page-jack details.jkWo summary')||{}).textContent||''),'the panel is on Jack’s page');
     }finally{c.layers=c.layers.filter(x=>x!==L1&&x!==L2);if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 73 · JACK'S ANSWERS ON A LEFTOVER (22 Oct): the Amazon question with the answers that apply — and "Only 5 were
+     ordered" corrects the sheet AND the booked-in count, so the row closes clean. */
+  S['leftovers: Jack answers the Amazon question; Only N ordered fixes sheet and count']=async()=>{
+    who('Jack');const r=mkRow({exp:9,rcvd:9,ship:5,status:'Part Sent',resolution:asked()});
+    const keep={s:window.saveRow,v:window.addVaActions,w:window.fireWebhook};
+    window.saveRow=async x=>true;window.addVaActions=async()=>{};window.fireWebhook=async()=>{};
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      goPage('jack');renderJack();await wait(60);
+      const tr=[...document.querySelectorAll('#page-jack tr')].find(t=>t.textContent.includes(r.prod)&&t.querySelector('.csActs'));
+      ok(tr,'the row is on Jack’s page');
+      const t=tr.innerText;
+      ok(/What does the Amazon order show\?/.test(t),'it asks the Amazon question');ok(!/the other 0/.test(t),'never "the other 0"');
+      ok(/All 9 were delivered/.test(t)&&/Only 5 were ordered/.test(t),'with delivered and sheet-wrong answers');
+      openQtyFix(r.uuid,{to:5});await wait(40);
+      ok(getComputedStyle(document.getElementById('qfRcvdWrap')).display!=='none'&&document.getElementById('qfRcvd').checked,'the booked-in fix is offered, ticked');
+      await saveQtyFix();await wait(40);
+      eq(r.exp,5,'sheet corrected');eq(r.rcvd,5,'booked-in count corrected');eq(r.resolution.state,'approved','the question closes');
+    }finally{window.saveRow=keep.s;window.addVaActions=keep.v;window.fireWebhook=keep.w;try{closeQtyFix();}catch(e){}
+      if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 74 · SHIPMENTS SEARCH MARKS THE LINE (22 Oct): paste a SKU (stray space and all) — its shipment opens and the
+     line is highlighted at the top, not just the shipment listed. */
+  S['Shipments: a pasted SKU highlights its line']=async()=>{
+    const r=mkRow({exp:3,rcvd:3,ship:3,status:'Sent to Amazon',sent:'Yes'});
+    const was=(document.querySelector('.page.active')||{}).id||'',keepF=_shipDateFilter,box=document.getElementById('shipSrch'),keepQ=box?box.value:'';
+    try{
+      goPage('shipments');box.value=r.sku+' ';setShipDateFilter('all');await wait(80);
+      const tr=document.querySelector('#page-shipments tr.shHit');
+      ok(tr&&tr.textContent.includes(r.sku),'the searched line is highlighted');
+      ok(tr&&tr.closest('.hgroup').classList.contains('open'),'its shipment opens by itself');
+      eq(tr&&tr.parentElement.querySelector('tr'),tr,'and it sits at the top of the shipment');
+    }finally{if(box)box.value=keepQ;try{setShipDateFilter(keepF);}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 75 · A PART ARRIVAL IS SARAH'S WHATEVER THE STATUS (22 Oct, Shark vacuum): 1 of 2 booked in and the row set to
+     "In Warehouse" — the missing one fell off every list for 9 days. */
+  S['part arrived, status In Warehouse — still on Sarah’s list']=async()=>{
+    who('Sarah');const old=new Date(Date.now()-6*864e5).toISOString();
+    const r=mkRow({exp:2,rcvd:1,ship:0,status:'In Warehouse',rcvdAt:old});
+    eq(_rowOwner(r).owner,'sarah','the rules say Sarah');
+    ok(onSarahActive(r),'and it is on her list');
+    const i=sarahItem(r);ok(i&&i.partOverdue,'as part arrived — the rest overdue');
   };
 
   function D_products(){try{return (LV3.allProducts&&LV3.allProducts())||[];}catch(e){return [];}}

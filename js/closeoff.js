@@ -1299,6 +1299,7 @@ function openQtyFix(rid,preset){
         <div><span>Actually ordered</span><input type="number" id="qfNew" value="" placeholder="${r.exp||0}" min="0" oninput="qfSync()" onchange="qfSync()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveQtyFix();}"></div>
       </div>
       <div class="srtHint" id="qfHint"></div>
+      <label id="qfRcvdWrap" class="srtChk" style="display:none;margin-top:8px;"><input type="checkbox" id="qfRcvd" ${(typeof _amazonRow==='function'&&_amazonRow(r))?'checked':''}><span id="qfRcvdT"></span></label>
       ${r.sheetRow?`<div class="srtHint" style="margin-top:8px;color:var(--text3);">Purchase Sheet row <b style="color:var(--text2);">${esc(r.sheetRow)}</b> needs the same correction — it'll be added to your list.</div>`:''}
       <label class="srtLab" style="margin-top:14px;">Why is it different? <span style="color:var(--text3);font-weight:600;">optional</span></label>
       <textarea id="qfWhy" class="srtNote" rows="2" oninput="qfSync()" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();saveQtyFix();}" placeholder="e.g. purchase sheet was typed wrong — only 9 were ever ordered"></textarea>
@@ -1329,6 +1330,14 @@ function qfSync(){
     else if(nv<got){h.textContent='That is fewer than the '+got+' already booked in.';h.style.color='#f87171';}
     else{h.textContent=(nv-got)+' unit'+(nv-got===1?'':'s')+' would still be outstanding.';h.style.color='#fbbf24';}
   }
+  /* 22 Oct 2026, Centrum: if fewer were ordered than were booked in, the count is wrong too —
+     Becki's box was filled with the order quantity. Offered, never silent; on an Amazon order
+     it starts ticked, because more cannot arrive than were ordered. */
+  {const wr=document.getElementById('qfRcvdWrap'),t=document.getElementById('qfRcvdT'),sent=parseInt(r.ship)||0;
+   if(wr){const show=!isNaN(nv)&&nv<got&&nv>=sent;wr.style.display=show?'flex':'none';
+     if(show&&t)t.innerHTML=`Booked in says <b>${got}</b> — only ${nv} can have come. Set booked in to <b>${nv}</b> as well.`;
+     if(show&&h){h.textContent='Fewer than the '+got+' booked in — the box below puts that right too.';h.style.color='#fbbf24';}}
+   if(h&&!isNaN(nv)&&nv<sent){h.textContent='That is fewer than the '+sent+' already sent to Amazon — check the number.';h.style.color='#f87171';}}
   if(go){go.disabled=!ok;go.style.opacity=ok?'1':'.45';}
   if(msg)msg.textContent=ok?'Enter saves it.':(isNaN(nv)?'Type the real number.':'Change the number to save.');
 }
@@ -1340,6 +1349,10 @@ async function saveQtyFix(){
   const from=r.exp||0;
   r.qtyFix={from,to:nv,by:_who(),at:new Date().toISOString(),why,seen:false};
   r.exp=nv;r.aqty=nv;
+  {const was=parseInt(r.rcvd)||0,box=document.getElementById('qfRcvd'),wrap=document.getElementById('qfRcvdWrap');
+   if(nv<was&&nv>=(parseInt(r.ship)||0)&&box&&box.checked&&wrap&&wrap.style.display!=='none'){
+     r.rcvd=nv;r.qtyFix.rcvdFrom=was;
+     try{logAudit('Booked-in count corrected',`${r.sku||r.asin||''} — ${was} → ${nv} (only ${nv} ordered) by ${_who()}`);}catch(e){}}}
   try{_statusFollowsStock(r);}catch(e){}
   /* A claim raised only because the sheet was wrong is not a real claim. */
   const got=parseInt(r.rcvd)||0;

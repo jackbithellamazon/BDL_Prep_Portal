@@ -63,7 +63,12 @@ function _adminItems(){
        arrived was invisible to her: three of his were 70+ days old. Part Sent is
        judged on what is still owed, like any other row — the outstanding test a
        few lines down drops it the moment nothing is left. */
-    if(['Delivered','In Warehouse','Returned'].includes(r.status)&&!_partShip)return;
+    /* 22 Oct 2026, Shark vacuum: 1 of 2 booked in on 13 Oct, status "In Warehouse" — and
+       the missing one fell off every list for 9 days. The status says where the stock
+       IS, not whether any is still owed; a part arrival past its 2 working days is
+       Sarah's whatever the status says (same lesson as Part Sent, 4 Sep). */
+    const _partLate=(typeof _partOverdue==='function')&&_partOverdue(r);
+    if(['Delivered','In Warehouse','Returned'].includes(r.status)&&!_partShip&&!_partLate)return;
     /* Jack, 4 Sep: two OneBlade rows — 3 ordered, 2 in, both sent on — went
        "Sent to Amazon" because everything received had shipped, and the unit
        Amazon France still owed fell off her page (the warehouse had typed

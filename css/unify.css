@@ -501,6 +501,18 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .jkSt>span{color:var(--text3);font-weight:800;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;padding-top:2px;}
 .jkSt i{color:var(--text3);font-style:normal;font-size:11px;}
 .jkSt .stLog{margin:2px 0;}
+/* Full story, wide (22 Oct 2026): units strip on top, facts | what happened side by side */
+.jsFlow{display:flex;align-items:stretch;gap:6px;margin:2px 0 14px;flex-wrap:wrap;}
+.jsTile{flex:1 1 120px;min-width:110px;background:var(--bg3);border:1px solid var(--border);border-top:3px solid var(--c);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;}
+.jsTile b{font:900 24px var(--mono);color:var(--c);line-height:1.1;}
+.jsTile span{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);}
+.jsTile i{font-style:normal;font-size:11px;font-weight:600;color:var(--text3);line-height:1.35;margin-top:2px;}
+.jsArr{align-self:center;color:var(--text3);font-size:15px;flex:none;}
+.jsCols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:22px;}
+.jsCols.one{grid-template-columns:1fr;}
+.jsCap{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:2px;}
+.jsCol .jkSt{grid-template-columns:118px 1fr;}
+@media(max-width:820px){.jsCols{grid-template-columns:1fr;}}
 .jkMove.open .jkRest{display:contents;}
 .jkMove .jkMoreBtn{opacity:.75;}
 .jkWhere{font-size:10px;color:var(--text3);line-height:1.4;margin:0 0 6px;text-align:center;white-space:normal;}
@@ -514,6 +526,14 @@ html.light-mode .stat{box-shadow:0 2px 8px rgba(15,23,42,.08)!important;}
 .jkDoneP{font-weight:700;color:var(--text2);flex:0 1 38%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .jkDoneW{flex:1 1 auto;color:var(--text3);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .jkDoneRow .csAct{margin:0;width:auto;padding:4px 10px;}
+/* option tiles (22 Oct 2026, Jack: "different options mean different things" + "dead space"):
+   each answer across the card, with what happens underneath */
+.jkC3 .csActs:has(.csOpt){display:grid!important;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;}
+.csActs .csOpt{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;
+  text-align:left;white-space:normal;padding:10px 12px;margin:0;width:auto;min-height:64px;line-height:1.25;}
+.csOpt b{font-size:12.5px;font-weight:800;}
+.csOpt small{font-size:11px;font-weight:600;opacity:.82;line-height:1.35;color:var(--text2);}
+.csOpt.good small{color:#bbf7d0;}
 /* Written off (22 Oct 2026) — same rows as Done, with the day, where it came from, units and £ */
 .jkWoRow{cursor:pointer;}
 .jkWoRow:hover{background:rgba(255,255,255,.03);opacity:1;}
@@ -1002,8 +1022,24 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 .jkC3 .csActs{display:flex!important;flex-direction:row!important;flex-wrap:wrap;gap:6px 8px;width:100%;grid-template-columns:none;}
 .jkC3 .csAct{width:auto;flex:0 1 auto;min-width:140px;max-width:360px;padding:7px 14px;min-height:32px;}
 .jkC3 .csActs>.csAct:last-child:nth-child(odd){grid-column:auto;}
+.jkC3 .csActs:has(.csOpt){display:grid!important;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));}
 .jkC3 .jkAnsBox,.jkC3 .amzDateBox{flex:1 1 100%;}
 .jkC3 .jkAnsDate{flex:0 0 auto;width:auto;min-width:150px;min-height:32px;padding:6px 10px;}
 @media(max-width:1180px){.jkC3{border-top:1px solid var(--border);}}
+/* Jack, 22 Oct: "can we improve dead space". The one-column bands (10 Sep) left the
+   right half of the story and of the answers empty. Header stays across the top;
+   the story and the answers sit side by side underneath on a laptop. */
+@media(min-width:1200px){
+  .jkCard{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr)!important;}
+  .jkCard>.jkC1{grid-column:1/-1;}
+  .jkCard>.jkC2{border-right:1px solid var(--border);}
+  .jkCard>.jkC3{border-top:none;align-content:flex-start;}
+}
+.jkTick{font-size:10.5px;font-weight:700;color:var(--text3);margin-top:3px;}
 
 .stRest[hidden]{display:none;}
+
+/* Shipments search (22 Oct 2026): the line you searched for, marked inside its shipment */
+.hgroup tr.shHit td{background:rgba(251,191,36,.14)!important;}
+.hgroup tr.shHit td:first-child{box-shadow:inset 4px 0 0 #fbbf24;}
+.hgroup tr.shHit .s-sku,.hgroup tr.shHit .s-asin{color:#fbbf24!important;font-weight:800;}

@@ -221,10 +221,13 @@ function renderPrepRows(data){
         ${(()=>{const _tg=(typeof _rowStateTag==='function')?_rowStateTag(r):null;   /* Jack, 15 Sep: "where are all of these?" — the row says whose it is */
           return _tg?`<div class="ownTag" style="color:${_tg.col};border-color:${_tg.col}55;" title="${esc(_tg.tip||'')}">${esc(_tg.t)}</div>`:'';})()}
         ${(()=>{const _q=_ukQuery(r);const _rs=r.resolution||{};
+          if(_isAmzDel(r)&&r.resolution.amzDelivered.kind==='leftover'){const _lf=_leftUnits(r);
+            return `<div class="qryTag amz" title="${fmt(_lf)} booked in but never sent. Found them? Send them on the next shipment (Send more) — it clears itself. Not here? Press the button: the count is corrected and it goes back${_amazonRow(r)?' to Jack to raise with Amazon':' to Sarah'}.">Becki — check the shelves: ${fmt(_lf)} booked in, never sent</div>
+            <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk qryNot" onclick="amzNotHere('${r.uuid||r.id}')" title="Checked the shelves, back stock and anywhere else — they are not here. The booked-in count is corrected.">Not here</button><button class="qryAsk" onclick="wentOutUnder('${r.uuid||r.id}')" title="They went out on another SKU's shipment — record it; Sarah confirms it in Seller Central">Another SKU&hellip;</button></div>`;}
           if(_isAmzDel(r))return `<div class="qryTag amz" title="Amazon say this was delivered. Found it on the shelves? Book it in and send it on the next shipment — the flag clears itself, nothing to press. Not here? Press the button and it goes to Jack to raise with Amazon.">Becki — Amazon say delivered, check the shelves</div>
             <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk qryNot" onclick="amzNotHere('${r.uuid||r.id}')" title="Checked the shelves, back stock and anywhere else — it is not here. It goes straight to Jack to raise with Amazon.">Not here</button></div>`;
           if(typeof _partShipStale==='function'&&_partShipStale(r)){const _lf=(typeof remainingToShip==='function')?remainingToShip(r):0;
-            return `<div class="qryTag" title="${fmt(parseInt(r.ship)||0)} went out${r.sentDate?' by '+_dmy(r.sentDate):''}; ${fmt(_lf)} never followed. Still on the shelf? Send them. Went out under another SKU? Press the button.">Becki &mdash; ${fmt(_lf)} never went: still here, or another SKU?</div>
+            return `<div class="qryTag" title="${fmt(parseInt(r.ship)||0)} went out${r.sentDate?' by '+_dmy(r.sentDate):''}; ${fmt(_lf)} never followed. Sarah is working out what happened; if it needs a shelf check it comes to Becki. Still on the shelf? Send them. Went out under another SKU? Press the button.">${fmt(_lf)} booked in, not sent yet &mdash; with Sarah</div>
             <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk" onclick="wentOutUnder('${r.uuid||r.id}')" title="They went out on another SKU's shipment — record it; Sarah confirms it in Seller Central">Went out under another SKU&hellip;</button></div>`;}
           if(_q)return `<div class="qryTag" onclick="openQuery('${r.uuid||r.id}')" title="${esc(_q.ask||'')}${_q.note?' — “'+esc(_q.note)+'”':''} — asked by ${esc(_q.by||'')} ${_qryWhen(_q.at)} · with ${_rs.state==='asked'?'Jack':'the admin team'}. The answer comes back in the VA Note.">&#10148; Admin team</div>`;
           const _aq=_rs.query;
@@ -358,27 +361,34 @@ function healSentBelowReceived(why){
    when received catches up, or when she answers Not here. */
 function _amzFoundBySave(r){
   const a=r&&!r.archived&&r.resolution&&r.resolution.amzDelivered;
-  if(!a||a.done||_owedUnits(r)>0)return false;
+  if(!a||a.done||(a.kind==='leftover'?_leftUnits(r)>0:_owedUnits(r)>0))return false;
   const _d=new Date(),_dd=_ddUK(_d);
   a.done={by:_who(),at:_d.toISOString(),how:'found'};
-  r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${_dd}: found it — all booked in`;
+  r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${_dd}: ${a.kind==='leftover'?'found them — sent':'found it — all booked in'}`;
   r.vaNoteBy=_who();r.vaNoteAt=_d.toISOString();
   try{logAudit('Amazon-says-delivered cleared — all booked in',`${r.sku||r.asin||''} — ${fmt(parseInt(r.rcvd)||0)} of ${fmt(parseInt(r.exp)||0)} in`);}catch(e){}
   return true;
 }
-function _isAmzDel(r){const a=r&&r.resolution&&r.resolution.amzDelivered;return !!(a&&!a.done&&_owedUnits(r)>0);}
+/* 22 Oct 2026, Jack: "if Sarah eventually needs to send something to Becki, it should
+   then appear with Becki for the physical check." Units booked in but never sent are
+   the same shelf job — but nothing is owed on them, so the old rule (owed > 0) hid
+   them from Becki and the send went nowhere. A leftover check is kind:'leftover' and
+   clears when the units are SENT, not when they are booked in. */
+function _leftUnits(r){return (_owedUnits(r)>0)?0:((typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,(parseInt(r.rcvd)||0)-(parseInt(r.ship)||0)));}
+function _isAmzDel(r){const a=r&&r.resolution&&r.resolution.amzDelivered;if(!a||a.done)return false;return a.kind==='leftover'?_leftUnits(r)>0:_owedUnits(r)>0;}
 function _amzDelRows(){return rows.filter(r=>!r.archived&&_isAmzDel(r));}
 let _amzFilterActive=false;
 function toggleAmzFilter(){_amzFilterActive=!_amzFilterActive;renderPrep();}
 function renderAmzBanner(){
   const el=document.getElementById('amzDelBanner');if(!el)return;
-  const n=_amzDelRows().length;
+  const _R=_amzDelRows(),n=_R.length,nL=_R.filter(r=>r.resolution.amzDelivered.kind==='leftover').length,nA=n-nL;
   if(!n){if(_amzFilterActive){_amzFilterActive=false;}el.innerHTML='';return;}
   el.innerHTML=`<div class="nbBanner" style="border-color:rgba(34,211,238,.5);">
     <div class="nbTop">
       <span class="nbDot" style="color:#22d3ee;">&#9679;</span>
-      <b>${n} order${n===1?'':'s'} Amazon say ${n===1?'was':'were'} delivered but ${n===1?'is':'are'}n\u2019t fully booked in</b>
-      <span class="nbSub">check the shelves &mdash; if it is here, book it in and send it. If it is not, press the red <b style="color:#f87171;">Not here</b> button in the Issues column of the row</span>
+      <b>${[nA?`${nA} order${nA===1?'':'s'} Amazon say ${nA===1?'was':'were'} delivered but ${nA===1?'is':'are'}n\u2019t fully booked in`:'',
+           nL?`${nL} row${nL===1?'':'s'} booked in but never sent`:''].filter(Boolean).join(' · ')}</b>
+      <span class="nbSub">check the shelves &mdash; if it is here, book it in or send it. If it is not, press the red <b style="color:#f87171;">Not here</b> button in the Issues column of the row</span>
       <button class="nbGo" style="background:rgba(34,211,238,.18);border-color:rgba(34,211,238,.5);color:#22d3ee;" onclick="toggleAmzFilter()">${_amzFilterActive?'Show everything':'Show just those'}</button>
     </div></div>`;
 }
@@ -429,11 +439,14 @@ async function amzToBecki(rid){
   const r=_rowById(rid);if(!r)return;
   const now=new Date().toISOString(),d=new Date(),dd=_ddUK(d);
   const who=(r.resolution&&r.resolution.rejectedBy)||'Jack';
-  r.resolution=Object.assign({},r.resolution||{},{amzDelivered:{by:who,at:now,sentBy:_who()}});
-  r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${dd}: ${who} says Amazon show this delivered — please check the shelves`;
+  const lf=_leftUnits(r);   /* everything booked in, some never sent — the shelf check is for those */
+  r.resolution=Object.assign({},r.resolution||{},{amzDelivered:lf>0?{by:_who(),at:now,sentBy:_who(),kind:'leftover',left:lf}:{by:who,at:now,sentBy:_who()}});
+  r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+(lf>0
+    ?`${_who()} ${dd}: ${fmt(lf)} booked in but never sent — please check the shelves`
+    :`${_who()} ${dd}: ${who} says Amazon show this delivered — please check the shelves`);
   r.vaNoteBy=_who();r.vaNoteAt=now;
   const ch=(r.resolution.chase)||null;
-  if(ch)ch.log=(ch.log||[]).concat([{at:now,by:_who(),what:'Sent to Becki — Amazon say delivered, check the shelves'}]);
+  if(ch)ch.log=(ch.log||[]).concat([{at:now,by:_who(),what:lf>0?`Sent to Becki — ${fmt(lf)} booked in but never sent, check the shelves`:'Sent to Becki — Amazon say delivered, check the shelves'}]);
   r._dirty=true;
   try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
   logAudit('Sent to the warehouse to check',`${r.sku||r.asin||''} — Amazon say delivered`);
@@ -506,6 +519,30 @@ async function amzRaiseToJack(rid){
 async function amzNotHere(rid){
   const r=_rowById(rid);if(!r||!r.resolution||!r.resolution.amzDelivered)return;
   const now=new Date().toISOString(),d=new Date(),dd=_ddUK(d);
+  /* a leftover that is not on the shelf was never really here — booked in drops to
+     what actually went, and the row becomes an ordinary shortage: on an Amazon order
+     Jack raises it, on a supplier order it is Sarah's (22 Oct 2026) */
+  if(r.resolution.amzDelivered.kind==='leftover'){
+    const lf=_leftUnits(r),was=parseInt(r.rcvd)||0;
+    r.resolution.amzDelivered.done={by:_who(),at:now,how:'not-here'};
+    if(lf>0){r.rcvd=Math.max(0,was-lf);r.rcvdFix={from:was,to:r.rcvd,by:_who(),at:now,why:'not on the shelf'};}
+    try{_statusFollowsStock(r);}catch(e){}
+    r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${dd}: checked the shelves — the ${fmt(lf)} are not here (booked in corrected ${was} → ${r.rcvd})`;
+    r.vaNoteBy=_who();r.vaNoteAt=now;
+    const ch=r.resolution.chase||{path:'never-arrived',step:'',due:'',log:[]};
+    const amz=(typeof _amazonRow==='function')&&_amazonRow(r);
+    ch.log=(ch.log||[]).concat([{at:now,by:_who(),what:`Checked the shelves — the ${fmt(lf)} are not here. Booked in corrected ${was} → ${r.rcvd}`+(amz?' — to Jack to raise with Amazon':' — back to Sarah')}]);
+    r.resolution=amz
+      ?Object.assign({},r.resolution,{state:'asked',kind:'check',what:'amz-missing',
+         ask:`Becki checked the shelves — the ${fmt(lf)} are not here. Booked in corrected ${was} → ${r.rcvd}. Raise it with Amazon.`,note:'',by:_who(),at:now,chase:ch})
+      :Object.assign({},r.resolution,{chase:ch});
+    r._dirty=true;
+    try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
+    logAudit('Not on the shelf — count corrected',`${r.sku||r.asin||''} — booked in ${was} → ${r.rcvd}, ${amz?'to Jack':'back to Sarah'}`);
+    toast(amz?`Count corrected to ${r.rcvd} — to Jack to raise with Amazon`:`Count corrected to ${r.rcvd} — back to Sarah`,'ok');
+    renderPrep();try{renderAdmin();renderJack();}catch(e){}
+    return;
+  }
   r.resolution.amzDelivered.done={by:_who(),at:now,how:'not-here'};
   r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${dd}: checked the shelves — not here`;
   r.vaNoteBy=_who();r.vaNoteAt=now;
@@ -769,7 +806,7 @@ function uf(id,field,val){
   }
   /* the 48-hour part-arrival clock reads this: when did the count last move */
   if(field==='rcvd'&&(parseInt(val)||0)!==(parseInt(r.rcvd)||0))r.rcvdAt=new Date().toISOString();
-  if(field==='rcvd'&&r.resolution&&r.resolution.amzDelivered&&!r.resolution.amzDelivered.done){
+  if(field==='rcvd'&&r.resolution&&r.resolution.amzDelivered&&!r.resolution.amzDelivered.done&&r.resolution.amzDelivered.kind!=='leftover'){
     const _owe=Math.max(0,(parseInt(r.exp)||0)-(parseInt(val)||0)-(parseInt(r.cancelledQty)||0));
     if(_owe===0){r.resolution.amzDelivered.done={by:_who(),at:new Date().toISOString(),how:'found'};
       const _d=new Date(),_dd=_ddUK(_d);

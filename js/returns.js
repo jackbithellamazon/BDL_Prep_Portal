@@ -1011,8 +1011,12 @@ async function deleteShipment(){
    the app holds on a row or claim: order, units, both notes with who wrote
    them, the case, the warehouse question, and every step in order. */
 function jkStory(kind,id){
-  const H=[];const when=t=>t?esc(_logWhen(t)):'';
-  const line=(k,v)=>{if(v===undefined||v===null||v==='')return;H.push(`<div class="jkSt"><span>${k}</span><div>${v}</div></div>`);};
+  /* Jack, 22 Oct: "popup needs improving — use the dead space". Facts on the left, what
+     people said and did on the right, and for a row the units as a strip across the top —
+     ordered → booked in → sent → what is left — so "where are the other 4" is one look. */
+  const F=[],S=[];let flow='';const when=t=>t?esc(_logWhen(t)):'';
+  const put=(A,k,v)=>{if(v===undefined||v===null||v==='')return;A.push(`<div class="jkSt"><span>${k}</span><div>${v}</div></div>`);};
+  const line=(k,v)=>put(F,k,v),say=(k,v)=>put(S,k,v);
   let title='';
   if(kind==='lavlate'){
     const g=((window.LV3&&LV3.lavLateList)?LV3.lavLateList():[]).find(x=>x.key===id);if(!g){toast('Order not found','er');return;}
@@ -1021,9 +1025,9 @@ function jkStory(kind,id){
     line('Units',fmt(g.owed)+' still owed'+(g.cost?' · '+fmtGBP2(g.cost)+' at stake':''));
     line('Ordered',g.ordered?esc(_dmy(g.ordered))+' · '+g.days+' days ago':'—');
     line('Was due',g.eta?esc(_dmy(g.eta)):'no window set');
-    if(tj)line('Sent to Jack',when(tj.at)+(tj.by?' by '+esc(tj.by):'')+(tj.note?' — '+esc(tj.note):''));
+    if(tj)say('Sent to Jack',when(tj.at)+(tj.by?' by '+esc(tj.by):'')+(tj.note?' — '+esc(tj.note):''));
     let ts=null;try{ts=g.toSarah?JSON.parse(g.toSarah):null;}catch(e){}
-    if(ts)line('Job for Sarah',when(ts.at)+(ts.by?' from '+esc(ts.by):'')+(ts.note?' — '+esc(ts.note):''));
+    if(ts)say('Job for Sarah',when(ts.at)+(ts.by?' from '+esc(ts.by):'')+(ts.note?' — '+esc(ts.note):''));
   }else if(kind==='claim'){
     const c=claims.find(x=>String(x.id)===String(id));if(!c){toast('Claim not found','er');return;}
     title=c.prod||c.sku||'Claim';
@@ -1033,29 +1037,45 @@ function jkStory(kind,id){
     line('Raised',when(c.raisedAt)+(c.raisedBy?' by '+esc(c.raisedBy):''));
     line('Status',esc(c.cst||'')+(c.owner?' · with '+esc(c.owner):''));
     line('Next action',esc(c.nextAction||''));
-    line('Notes',esc(c.notes||''));line('VA note',esc(c.vaNote||''));line('Jack note',esc(c.jackNote||''));
+    say('Notes',esc(c.notes||''));say('VA note',esc(c.vaNote||''));say('Jack note',esc(c.jackNote||''));
     const lg=(c.log||[]).slice().reverse();
-    if(lg.length)line('History',lg.map(L=>`<div class="stLog"><span class="stLogWhen">${esc(String(L.t||'').slice(0,17))}</span> — ${esc(L.msg||'')}</div>`).join(''));
+    if(lg.length)say('History',lg.map(L=>`<div class="stLog"><span class="stLogWhen">${esc(String(L.t||'').slice(0,17))}</span> — ${esc(L.msg||'')}</div>`).join(''));
   }else{
     const r=_rowById(id);if(!r){toast('Row not found','er');return;}
     title=r.prod||r.sku||'Row';const q=r.resolution||{};
+    const exp=parseInt(r.exp)||0,got=parseInt(r.rcvd)||0,sent=parseInt(r.ship)||0,cx=parseInt(r.cancelledQty)||0;
+    const owed=Math.max(0,exp-got-cx),left=(typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,got-sent);
+    const segs=(r.shipSegments||[]).filter(x=>x&&x.shipId);
+    const tile=(n,k,sub,col)=>`<div class="jsTile" style="--c:${col};"><b>${fmt(n)}</b><span>${k}</span>${sub?`<i>${sub}</i>`:''}</div>`;
+    const ar='<div class="jsArr">&rarr;</div>';
+    flow=`<div class="jsFlow">${[
+      tile(exp,'Ordered',r.date?'on '+esc(r.date):'','#93c5fd'),
+      tile(got,'Booked in',r.rcvdAt?esc(_logWhen(r.rcvdAt)):(got?'':'nothing yet'),'#4ade80'),
+      tile(sent,'Sent to Amazon',segs.length?segs.map(x=>`${fmt(x.units||0)} on ${esc(x.shipId)}${x.date?' · '+esc(_dmy(x.date)):''}`).join('<br>'):'','#c084fc')].join(ar)}
+      ${cx?ar+tile(cx,'Cancelled','','#94a3b8'):''}
+      ${owed?ar+tile(owed,'Never arrived','still owed on the order','#f87171'):''}
+      ${left?ar+tile(left,'Never sent','booked in, not on a shipment','#fbbf24'):''}
+      ${!owed&&!left?ar+tile(0,'Left','all accounted for','#4ade80'):''}</div>`;
     line('Order',(r.oid?oidHtml(r.oid,r.sup,r.acct):'—')+(r.sup?' · '+esc(r.sup):'')+(r.acct?' · '+esc(r.acct):'')+(r.date?' · ordered '+esc(r.date):''));
     line('SKU / ASIN',esc(r.sku||'')+(r.asin?' · '+esc(r.asin):''));
-    line('Units',`${fmt(r.exp||0)} expected · ${fmt(parseInt(r.rcvd)||0)} received · ${fmt(parseInt(r.ship)||0)} shipped${_cxLabel(r)} · ${esc(r.status||'')}`);
+    line('Status',esc(r.status||'')+(r.qtyFix?` · sheet corrected ${fmt(r.qtyFix.from)} → ${fmt(r.qtyFix.to)}${r.qtyFix.rcvdFrom!=null?` (booked in ${fmt(r.qtyFix.rcvdFrom)} → ${fmt(r.qtyFix.to)})`:''}`:''));
     if(q.wentAs)line('Went out under',`<b>${esc(q.wentAs)}</b> — ${esc(q.by||'Sarah')} confirmed in Seller Central${q.at?', '+when(q.at):''}${q.wentAsQty?' · '+fmt(q.wentAsQty)+' unit'+(q.wentAsQty===1?'':'s'):''}`);
     if(r.expectedDelivery)line('Expected delivery',esc(_dmy(r.expectedDelivery)));
     if(r.notes)line('Packing notes',esc(r.notes)+(r.notesBy?` <i>— ${esc(r.notesBy)}${r.notesAt?', '+when(r.notesAt):''}</i>`:''));
-    if(r.vaNote)line('VA note',esc(r.vaNote).replace(/\n/g,'<br>')+(r.vaNoteBy?` <i>— ${esc(r.vaNoteBy)}${r.vaNoteAt?', '+when(r.vaNoteAt):''}</i>`:''));
-    if(q.state)line('Case',esc(q.state)+(q.what?' · '+esc(typeof _resText==='function'?_resText(q.what):q.what):'')+(q.by?' · by '+esc(q.by):'')+(q.at?' · '+when(q.at):''));
-    line('Sarah asked',esc(q.ask||''));line('Her note',esc(q.note||''));line('She suggests',esc(q.fix||''));
-    if(q.rejectNote)line('Answer given',esc(q.rejectNote)+(q.rejectedBy?' — '+esc(q.rejectedBy):''));
+    if(q.state)say('Case',(q.state==='asked'?'With Jack':esc(q.state)+(q.what?' · '+esc(typeof _resText==='function'?_resText(q.what):q.what):''))+(q.by?' · sent by '+esc(q.by):'')+(q.at?' · '+when(q.at):''));
+    say('Sarah asked',esc(q.ask||''));say('Her note',q.note?'&ldquo;'+esc(q.note)+'&rdquo;':'');say('She suggests',esc(q.fix||''));
+    if(q.rejectNote)say('Answer given',esc(q.rejectNote)+(q.rejectedBy?' — '+esc(q.rejectedBy):''));
+    if(r.vaNote)say('VA note',esc(r.vaNote).replace(/\n/g,'<br>')+(r.vaNoteBy?` <i>— ${esc(r.vaNoteBy)}${r.vaNoteAt?', '+when(r.vaNoteAt):''}</i>`:''));
     const Q=(typeof _ukQuery==='function')?_ukQuery(r):null;
-    if(Q)line('Warehouse question',esc(Q.ask||'')+(Q.note?' — “'+esc(Q.note)+'”':'')+(Q.by?' · '+esc(Q.by):'')+(Q.at?' · '+when(Q.at):'')+(Q.answer?'<br>Answer: '+esc(Q.answer)+(Q.reply?' — '+esc(Q.reply):''):''));
-    const lg=((q.chase&&q.chase.log)||[]).slice().reverse();
-    if(lg.length)line('History',lg.map(L=>`<div class="stLog"><span class="stLogWhen">${when(L.at)}</span>${L.by?' · <b>'+esc(L.by)+'</b>':''} — ${esc(L.what||'')}</div>`).join(''));
+    if(Q)say('Warehouse question',esc(Q.ask||'')+(Q.note?' — “'+esc(Q.note)+'”':'')+(Q.by?' · '+esc(Q.by):'')+(Q.at?' · '+when(Q.at):'')+(Q.answer?'<br>Answer: '+esc(Q.answer)+(Q.reply?' — '+esc(Q.reply):''):''));
+    const lg=_squashBounces((q.chase&&q.chase.log)||[]).slice().reverse();
+    if(lg.length)say('History',lg.map(L=>`<div class="stLog"><span class="stLogWhen">${when(L.at)}</span>${L.by?' · <b>'+esc(L.by)+'</b>':''} — ${esc(L.what||'')}</div>`).join(''));
   }
   document.getElementById('jkStoryTitle').textContent=title;
-  document.getElementById('jkStoryBody').innerHTML=H.join('')||'<div style="color:var(--text3);font-size:12px;">Nothing recorded on this one yet.</div>';
+  const col=(h,A)=>A.length?`<div class="jsCol"><div class="jsCap">${h}</div>${A.join('')}</div>`:'';
+  document.getElementById('jkStoryBody').innerHTML=(F.length||S.length)
+    ?flow+`<div class="jsCols${F.length&&S.length?'':' one'}">${col('The facts',F)}${col('What happened',S)}</div>`
+    :'<div style="color:var(--text3);font-size:12px;">Nothing recorded on this one yet.</div>';
   om('jkStoryModal');
 }
 // ── LAVARION SHIPMENT LINE EDIT ───────────────────────────────────────────────

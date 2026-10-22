@@ -30,7 +30,11 @@ function renderShipments(){
   /* Same story as renderClaims: prep actions rebuilt this page invisibly. */
   if(document.hidden||!_pageActive('page-shipments'))return;
   const w=document.getElementById('shipList');
-  const q=(document.getElementById('shipSrch')||{}).value?.toLowerCase()||'';
+  /* trimmed — a pasted SKU often carries a space or a line break and matched nothing */
+  const q=((document.getElementById('shipSrch')||{}).value||'').trim().toLowerCase();
+  /* Jack, 22 Oct: "when I paste in the SKU highlight it on the shipments" — the line
+     itself, not just the shipment it sits in */
+  const _hit=x=>!!q&&((x.sku||'')+' '+(x.asin||'')+' '+(x.prod||'')).toLowerCase().includes(q);
   const typeF=(document.getElementById('shipTypeF')||{}).value||'';
   const{s:dateFrom,e:dateTo}=getShipDateRange();
 
@@ -376,7 +380,8 @@ function renderShipments(){
     const tbg=s.type==='DG'?'var(--red-bg)':s.type==='Oversize'?'var(--amber-bg)':'var(--blue-bg)';
     // Flag shipments with no box number entered — needs a box count before it's complete.
     const noBox=!s.boxes||s.boxes<=0;
-    return`<div class="hgroup${_openIds.has('ship-'+safeId)?' open':''}" id="ship-${safeId}"${noBox?' style="border:1px solid var(--red);border-left:4px solid var(--red);background:rgba(248,113,113,.06);border-radius:8px;"':''}>
+    const _lineHit=!!q&&!s.id.toLowerCase().includes(q)&&(s.skus.some(_hit)||(s.lavSkus||[]).some(_hit)||(s.retSkus||[]).some(_hit));
+    return`<div class="hgroup${_openIds.has('ship-'+safeId)||_lineHit?' open':''}" id="ship-${safeId}"${noBox?' style="border:1px solid var(--red);border-left:4px solid var(--red);background:rgba(248,113,113,.06);border-radius:8px;"':''}>
       <div class="hhead" onclick="this.parentElement.classList.toggle('open')" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer;">
         <span class="hchev" style="font-size:20px;font-weight:900;line-height:1;">›</span>
         <span class="htitle" style="font-family:var(--mono);font-size:13px;font-weight:800;letter-spacing:.04em;display:inline-flex;align-items:center;gap:4px;">
@@ -450,7 +455,7 @@ function renderShipments(){
             <th style="width:60px;"></th>
           </tr></thead>
           <tbody>
-          ${s.skus.map(r=>{
+          ${s.skus.slice().sort((a,b)=>_hit(b)-_hit(a)).map(r=>{
             const cogs=parseSKU(r.sku).cogs;
             // _segUnits is this shipment's slice of the row; fall back to ship.
             const segUnits=(r._segUnits!=null)?r._segUnits:(r.ship||0);
@@ -458,7 +463,7 @@ function renderShipments(){
             // If this SKU is split across more than one shipment, note it.
             const splitNote=(Array.isArray(r.shipSegments)&&r.shipSegments.filter(x=>x&&x.shipId&&(x.units||0)>0).length>1)
               ?`<span style="font-size:10.5px;font-weight:700;padding:1px 5px;border-radius:8px;background:rgba(255,170,51,.15);color:var(--amber);border:1px solid rgba(255,170,51,.35);margin-left:5px;" title="This SKU is split across multiple shipments">SPLIT</span>`:'';
-            return`<tr>
+            return`<tr${_hit(r)?' class="shHit"':''}>
               <td class="td-left" style="font-size:11px;font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.prod}">${r.prod}${splitNote}</td>
               <td><span class="s-asin" onclick="copyVal('${r.asin}',this)" style="display:inline-flex;font-size:10px;">${r.asin}</span></td>
               <td class="td-left"><span class="s-sku" onclick="copyVal('${r.sku}',this)" style="display:inline-flex;font-size:10px;">${r.sku}</span>${vatTag(r.vat)}</td>
@@ -476,7 +481,7 @@ function renderShipments(){
             // to anything stored on the line itself.
             const _lavCat=lavAsins.find(a=>a.asin===ls.asin||(ls.sku&&a.sku===ls.sku));
             const lavVat=_lavCat?_lavCat.vat:ls.vat;
-            return`<tr style="background:rgba(204,153,255,.08);">
+            return`<tr${_hit(ls)?' class="shHit"':''} style="background:rgba(204,153,255,.08);">
               <td class="td-left" style="font-size:11px;font-weight:500;">
                 <span id="lav-prod-${lavId}">${ls.prod}</span>
                 <span style="font-size:10.5px;padding:1px 5px;border-radius:8px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);margin-left:4px;">PLUB</span>
@@ -499,7 +504,7 @@ function renderShipments(){
               </td>
             </tr>`;
           }).join('')}
-          ${(s.retSkus||[]).map(rs=>`<tr style="background:rgba(96,165,250,.06);">
+          ${(s.retSkus||[]).map(rs=>`<tr${_hit(rs)?' class="shHit"':''} style="background:rgba(96,165,250,.06);">
               <td class="td-left" style="font-size:11px;font-weight:500;">${retProdDesc(rs)} <span style="font-size:10.5px;padding:1px 5px;border-radius:8px;background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3);margin-left:4px;">RETURN</span></td>
               <td><span onclick="copyVal('${rs.asin||''}',this)" style="display:inline-flex;font-size:10px;">${rs.asin||'—'}</span></td>
               <td class="td-left"><span onclick="copyVal('${rs.sku}',this)" style="display:inline-flex;font-size:10px;">${rs.sku}</span></td>

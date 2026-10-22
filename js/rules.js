@@ -118,6 +118,7 @@ function _stockAnsweredCheck(r){
   if(!['asked','rejected'].includes(res.state)||res.what!=='jack-check')return false;
   const exp=parseInt(r.exp)||0;if(exp<=0||_owedUnits(r)>0)return false;
   if(typeof _partShipStale==='function'&&_partShipStale(r))return false;
+  if(typeof _isAmzDel==='function'&&_isAmzDel(r))return false;   /* Becki is still checking */
   const now=new Date().toISOString();
   const ch=res.chase||{path:'never-arrived',step:'',due:'',log:[]};
   ch.log=(ch.log||[]).concat([{at:now,by:'PrepHub',what:`All ${fmt(exp)} booked in — the stock answered the question, nothing left to ask`}]);
@@ -277,6 +278,8 @@ function _rowOwner(r){
   if(_cl.some(c=>String(c.owner||'VA')==='Jack'))return{owner:'jack',finished:false,why:'claim with Jack: '+(_cl.find(c=>String(c.owner||'VA')==='Jack').issT||'claim')};
   if(_cl.length)return{owner:'sarah',finished:false,why:'claim in hand: '+(_cl[0].issT||'claim')};
   if(typeof _offPrepSheet==='function'&&_offPrepSheet(r))return{owner:'jack',finished:false,why:'gated — Jack took it off their lists'};
+  /* with Becki for a shelf check — before "nothing owed": a leftover check owes nothing */
+  if(typeof _isAmzDel==='function'&&_isAmzDel(r)&&r.resolution.amzDelivered.kind==='leftover')return{owner:'becki',finished:false,why:'booked in, never sent — Becki checks the shelves'};
   /* the stock answers a question about missing stock — nothing left to ask */
   if(exp>0&&owed<=0&&!_partShipStale(r))return{owner:'none',finished:true,why:'nothing owed — the stock answered it'+(st==='asked'||st==='rejected'?' (question still open on the row)':'')};
   if(typeof _isAmzDel==='function'&&_isAmzDel(r))return{owner:'becki',finished:false,why:'Amazon say delivered — Becki checks the shelves'};

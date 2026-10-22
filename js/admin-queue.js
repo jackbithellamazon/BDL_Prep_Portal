@@ -2219,7 +2219,7 @@ function renderAdmin(){
                 <span class="tfuCmpName" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</span>
                 <span class="tfuCmpMeta">${esc(i.sup||'')}${i.oid?' · '+oidHtml(i.oid,i.sup,i.acct):''}${i.acct?' · '+esc(i.acct):''}</span>
                 <span class="tfuCmpChip" style="background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.5);color:#22d3ee;" title="With Becki — checking the shelves">With Becki &middot; checking the shelves${_bAge!=null?' &middot; '+_bAge+'d':''}</span>
-                <span class="tfuCmpAsk" title="Sent ${esc(i.withBecki.sentBy||'')}${i.withBecki.at?' '+esc(_logWhen(i.withBecki.at)):''}">Amazon say delivered &mdash; Becki is checking the shelves. Found: it books in and clears. Not there: it goes to Jack for the refund.</span>
+                <span class="tfuCmpAsk" title="Sent ${esc(i.withBecki.sentBy||'')}${i.withBecki.at?' '+esc(_logWhen(i.withBecki.at)):''}">${i.withBecki.kind==='leftover'?`Booked in but never sent &mdash; Becki is checking the shelves. Found: she sends them and it clears. Not there: the count is corrected and it comes back${_amazonRow(_rowById(i.rid))?' via Jack':' to you'}.`:'Amazon say delivered &mdash; Becki is checking the shelves. Found: it books in and clears. Not there: it goes to Jack for the refund.'}</span>
                 <span class="tfuCmpVal">${i.value?fmtGBP2(i.value):''}</span>
                 <span class="tfuCmpActs">
                 <button class="tfuAsk" onclick="amzBackToJack('${i.rid}')" title="Nothing for the warehouse to find — the order or the Purchase Sheet is wrong. It goes to Jack to answer and comes off Becki's list.">Back to Jack</button>
@@ -2402,7 +2402,7 @@ function renderAdmin(){
                    I've just sent it back saying nothing is coming — this is a mess."
                    His answer settles the question. What belongs here now is the
                    move that follows from it, not the question again. */
-                {const _rr=_rowById(i.rid);if(_rr&&typeof _isAmzDel==='function'&&_isAmzDel(_rr))return '<div class="tfuSelf" style="color:#22d3ee;font-weight:700;text-align:center;">Amazon say delivered &mdash; Becki is checking the shelves. It comes back by itself.</div>';}
+                {const _rr=_rowById(i.rid);if(_rr&&typeof _isAmzDel==='function'&&_isAmzDel(_rr))return '<div class="tfuSelf" style="color:#22d3ee;font-weight:700;text-align:center;">'+(_rr.resolution.amzDelivered.kind==='leftover'?'Becki is checking the shelves for the ones never sent':'Amazon say delivered &mdash; Becki is checking the shelves')+'. It comes back by itself.</div>';}
                 /* Sarah, 9 Sep (Discord): "I haven't sent to Becki yet because
                    there is no note like the one above." The row was LATE with
                    nothing booked in, so it missed this branch and showed the old
@@ -2465,7 +2465,9 @@ function renderAdmin(){
                         <button class="csAct good" onclick="openSorted('${i.rid}','refund-done')" title="They have said the refund is coming — that is processed. Close it; Jack watches the bank himself.">Refund being processed &mdash; done</button>
                         <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')" title="The supplier cancelled the rest — the row balances, nothing missing">Supplier cancelled the rest</button>`
                       :arrivedYes?`<div class="csNowTxt" style="margin:2px 0 4px;color:#fbbf24;">Has it gone out on the wrong SKU?</div>
-                        <button class="csAct good" onclick="openSorted('${i.rid}','wrong-sku')" title="The unit is accounted for — it went out on another listing. Close it off here; the popup asks which SKU if you know it.">Yes &mdash; sort it and close it</button>
+                        ${(typeof _leftUnits==='function'&&_leftUnits(_rowById(i.rid))>0)
+                          ?`<button class="csAct good" onclick="wentOutUnder('${i.rid}')" title="Record which SKU and shipment the ${fmt(_leftUnits(_rowById(i.rid)))} went out on — the units are accounted for and the row closes; you confirm it in Seller Central">Yes &mdash; went out under another SKU&hellip;</button>`
+                          :`<button class="csAct good" onclick="openSorted('${i.rid}','wrong-sku')" title="The unit is accounted for — it went out on another listing. Close it off here; the popup asks which SKU if you know it.">Yes &mdash; sort it and close it</button>`}
                         <button class="csAct go" onclick="amzToBecki('${i.rid}')" title="Not the wrong SKU — Becki checks the shelves, back stock and anywhere it could have been put. It is flagged on the Prep Sheet and comes back with her answer.">No &mdash; send to Becki to check the warehouse</button>
                         ${!_amazonRow(_rowById(i.rid))?`<button class="csAct warn" onclick="queryNoneComing('${i.rid}')" title="Delivered but ${fmt(short)} never reached the warehouse — raise them as Missing">Delivered &mdash; raise ${fmt(short)} missing</button>`:''}`
                       :`<button class="csAct go" onclick="jackAmzDate('${i.rid}',this)">More still coming &mdash; date&hellip;</button>
@@ -2477,15 +2479,20 @@ function renderAdmin(){
                     </div>
                   </div>`;
                 }
-                if(i.partShip)return `<div class="csNow">
+                /* Jack, 22 Oct — the process: Sarah first; an Amazon order goes to Jack to check
+                   the account and comes back; then wrong SKU; then Becki for the shelf. */
+                if(i.partShip){const _pr=_rowById(i.rid),_amzP=_amazonRow(_pr),_lf=(typeof _leftUnits==='function')?_leftUnits(_pr):0;
+                  return `<div class="csNow">
                   <div class="csNowCap" style="color:#fb923c;">Some went &mdash; the rest never followed</div>
-                  <div class="csNowTxt">Still on the shelf, or sent under another SKU?</div>
+                  <div class="csNowTxt">${fmt(_lf)} booked in but never sent &mdash; what happened to them?</div>
                   <div class="csActs">
-                    <button class="csAct go" onclick="wentOutUnder('${i.rid}')" title="They went out on another SKU's shipment — record it here; you then confirm it in Seller Central">Went out under another SKU&hellip;</button>
+                    ${_amzP?`<button class="csAct go" onclick="amzAskJack('${i.rid}')" title="Amazon order — Jack checks what the account shows (all delivered, or the Purchase Sheet is wrong) and it comes back to you">Send to Jack &mdash; check the Amazon order</button>`:''}
+                    <button class="csAct ${_amzP?'plain':'go'}" onclick="wentOutUnder('${i.rid}')" title="They went out on another SKU's shipment — record it here; you then confirm it in Seller Central">Went out under another SKU&hellip;</button>
+                    ${_amzP?'':`<button class="csAct plain" onclick="amzToBecki('${i.rid}')" title="Becki checks the shelves. Found: she sends them and it clears. Not there: the count is corrected and it comes back to you.">Ask Becki to check the shelves</button>`}
                     <button class="csAct plain" onclick="openSorted('${i.rid}')" title="The full Close-off popup — every outcome">Close it off another way&hellip;</button>
                   </div>
-                  <div class="tfuGuide">Becki sees the same question on the Prep Sheet row &mdash; if the units are still here she sends them and this clears itself.</div>
-                </div>`;
+                  <div class="tfuGuide">${_amzP?'Amazon order &mdash; Jack checks the account first, then it comes back to you: wrong SKU, or Becki checks the shelves.':'Check for a wrong SKU first &mdash; if it is not that, Becki checks the shelves.'}</div>
+                </div>`;}
                 if(i.query||i.partOverdue){
                   const Q=i.query||{got:i.got,exp:i.units,ask:`${i.got} of ${i.units} arrived ${i.partSince} — the rest has not followed`,note:''};
                   return `<div class="csNow">

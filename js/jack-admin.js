@@ -140,38 +140,21 @@ function renderJack(){
           <button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Back to Sarah with a note</button>`});
       return;
     }
-    /* Jack, 22 Oct, BioEars: "12 of 12 booked in — what happened to the other 0?"
-       Sarah sent it as "cancelled or refunded?", but every unit had arrived; 10
-       went to Amazon and 2 never followed. The card only knew how to ask about a
-       delivery, so it asked about none. When nothing is owed and units are left
-       unsent, it asks the question that is actually open. */
-    {const _got=parseInt(r.rcvd)||0,_left=(typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,_got-(parseInt(r.ship)||0));
-     if(!Q&&_owedUnits(r)<=0&&_left>0&&(parseInt(r.ship)||0)>0&&typeof _partShipStale==='function'&&_partShipStale(r)){
-      const _last=(r.shipSegments||[]).map(x=>x.date).filter(Boolean).sort().pop()||r.sentDate||'';
-      items.push({kind:'check',id:_id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
-        asin:r.asin||'',by:q.by||'someone',at:q.at,wait:days(q.at),
-        type:['NOT SENT','#fb923c','Nothing is missing from the order — some never went to Amazon'],
-        why:esc(`All ${fmt(_got)} arrived · ${fmt(parseInt(r.ship)||0)} went to Amazon${_last?' on '+_dmy(_last):''} · the other ${fmt(_left)} never went`)
-          +`<div style="font-size:9.5px;font-weight:700;color:var(--text3);margin-top:3px;">Sarah asked: ${esc(q.ask||'check')}${q.note?' — “'+esc(q.note)+'”':''}</div>`,
-        note:q.note||'',clog:(q.chase&&q.chase.log)||[],expDate:r.expectedDelivery||'',
-        /* no claim clock and no late clock — nothing on the order is missing */
-        value:(parseSKU(r.sku).cogs||0)*_left,left:null,odate:r.date||'',
-        acts:_jkLeftActs(r,_id,_got,_left,_last)});
-      return;
-     }}
     /* a warehouse question Sarah passed over is answered in its own terms —
        "is more on the way?" — not with Arrived YES/NO */
     items.push({kind:'check',id:_id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
       asin:r.asin||'',by:q.by||'someone',at:q.at,wait:days(q.at),
       type:Q?['QUERY','#38bdf8','The warehouse asked whether more is on the way — Sarah passed it to you']:['CHECK','#60a5fa','An Amazon order she cannot see — did it arrive?'],
       why:Q?esc(`${Q.by||'Warehouse'} asked: ${Q.got?Q.got+' of '+Q.exp+' booked in — is more on the way?':'nothing booked in — has it been dispatched?'}${Q.note?' — “'+Q.note+'”':''}${q.ask?' · Sarah: '+q.ask:''}`)
-         :(q.note?`${esc(q.note)}<div style="font-size:9.5px;font-weight:700;color:var(--text3);margin-top:3px;">${esc(q.ask||'')}</div>`:esc(q.ask||'Check this order')),
+         /* her words first, in quotes, then which box she ticked — said once (22 Oct 2026) */
+         :(q.note?`&ldquo;${esc(q.note)}&rdquo;<div class="jkTick">${esc(q.by||'Sarah')} ticked: ${esc(q.ask||'')}</div>`:esc(q.ask||'Check this order')),
       note:q.note||'',
       /* a fresh question has no chase yet — the question itself is the latest line */
       clog:((q.chase&&q.chase.log&&q.chase.log.length)?q.chase.log:(Q?[{at:Q.at,by:Q.by,what:'Asked — '+(Q.ask||'')+(Q.note?' — “'+Q.note+'”':'')}]:[])),expDate:r.expectedDelivery||'',
-      value:(parseSKU(r.sku).cogs||0)*Math.max(0,(r.exp||r.ship||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0)),
+      /* owed units, or — when everything was booked in — the ones never sent */
+      value:(parseSKU(r.sku).cogs||0)*(Math.max(0,(r.exp||r.ship||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0))||(typeof _leftUnits==='function'?_leftUnits(r):0)),
       left:refundLeft(r.date,r),
-      owedU:Math.max(0,(r.exp||r.ship||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0)),
+      owedU:Math.max(0,(r.exp||r.ship||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0))||(typeof _leftUnits==='function'?_leftUnits(r):0),
       age:_ordAge(r),odate:r.date||'',
       acts:_jkCheckActs(r,_id)});});
   /* Jack, 10 Sep, the Wella: one order number, two rows, 24 units shipped
@@ -373,7 +356,8 @@ function renderJack(){
     const _line=L=>`<div class="stLog"><span class="stLogWhen">${esc(_logWhen(L.at))}</span>${L.by?` · <b>${esc(L.by)}</b>`:''} — ${esc(L.what||'')}</div>`;
     const _r=(it.kind==='claim'||it.kind==='lav')?null:_rowById(it.id);
     const _story=[
-      it.note?`<div class="tfuRaiseNote" title="What was written when it was raised or sent">&ldquo;${esc(it.note)}&rdquo;</div>`:'',
+      /* the heading already shows her note on a check — said once */
+      (it.note&&!String(it.why||'').includes(esc(it.note)))?`<div class="tfuRaiseNote" title="What was written when it was raised or sent">&ldquo;${esc(it.note)}&rdquo;</div>`:'',
       it.fix?`<div class="tfuRaiseNote" style="color:#93c5fd;border-left-color:#60a5fa;">She suggests: ${esc(it.fix)}</div>`:'',
       it.expDate?(()=>{const aw=Math.round((new Date(it.expDate)-new Date())/864e5);const ds=new Date(it.expDate).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
         return `<div class="stExp" style="color:${aw<0?'#f87171':'#4ade80'};">&#128197; expected ${ds}${aw<0?` — slipped ${Math.abs(aw)}d ago`:aw===0?' — today':` — in ${aw}d`}</div>`;})():'',
@@ -689,8 +673,6 @@ function askJackAsk(rid,pick){
     <div class="srtCfmTtl">Send this to Jack</div>
     <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${r.oid?oidHtml(r.oid,r.sup,r.acct):'no order id'}${r.sup?' · '+esc(r.sup):''}${r.acct?' · '+esc(r.acct):''}</div>
     ${!_amazonRow(r)?`<div class="srtNeed" style="margin:0 0 10px;"><b>Not an Amazon order.</b> A refund from ${esc(r.sup||'this supplier')} is yours to see through: if they have promised it, wait 48 hours, check the emails, then close it as <b>Refund being processed — done</b> or chase again. Only send it to Jack if you need something only he can do.</div>`:''}
-    ${(()=>{const g=parseInt(r.rcvd)||0,e=parseInt(r.exp)||0,lf=(typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,g-(parseInt(r.ship)||0));
-      return e>0&&_owedUnits(r)<=0&&g>0?`<div class="srtNeed" style="margin:0 0 10px;"><b>All ${fmt(g)} of ${fmt(e)} are booked in</b> &mdash; nothing is missing from the order, so &ldquo;did it arrive&rdquo; and &ldquo;cancelled or refunded&rdquo; do not apply.${lf>0?` The other ${fmt(lf)} were never sent to Amazon: that is for the warehouse &mdash; Becki sees it on the Prep Sheet. If you know they went out under another SKU, use <b>Went out under another SKU&hellip;</b> instead.`:''}</div>`:'';})()}
     <div class="srtCfmLab">What is it about?</div>
     <div class="askOpts">${ASK_REASONS.map((o,n)=>`<label class="srtChk">
       <input type="radio" name="askWhy" value="${esc(o)}" ${n===0?'checked':''} onchange="askNoteCheck()"><span>${esc(o)}</span></label>`).join('')}</div>
@@ -889,6 +871,18 @@ function _jkCheckActs(r,_id){
   const amz=(typeof _amazonRow==='function')&&_amazonRow(r);
   const who=amz?'Amazon':'the supplier';
   const B=[];
+  /* Jack, 22 Oct (BioEars, Centrum — "what happened to the other 0?"): everything was
+     booked in and some never went. His job is the same as ever — what does the Amazon
+     order show — and the answer goes back to Sarah: wrong SKU, then Becki's shelf. */
+  const _left=(owe<=0&&got>0&&typeof _leftUnits==='function')?_leftUnits(r):0;
+  if(_left>0){const sent=parseInt(r.ship)||0;
+    B.push(`<div class="jkWhere"><b class="jkQ">All ${fmt(got)} booked in &mdash; ${fmt(sent)} sent to Amazon, ${fmt(_left)} not sent. What does the Amazon order show?</b><span class="jkQsub">Your answer goes back to Sarah &mdash; she checks for a wrong SKU, then Becki checks the shelves.</span></div>`);
+    B.push(`<button class="csAct good" onclick="jackAnswered('${_id}','Arrived — YES, the account shows it delivered.')" title="The account shows all ${fmt(exp)} delivered. Back to Sarah: wrong SKU? If not, Becki checks the shelves.">All ${fmt(exp)} were delivered</button>`);
+    B.push(`<button class="csAct plain" style="border-color:rgba(251,191,36,.5);color:#fcd34d;" onclick="openQtyFix('${_id}',{to:${sent},why:'Jack checked the account — only ${sent} ordered'})" title="The account shows only ${fmt(sent)} ordered — the sheet says ${fmt(exp)} and ${fmt(got)} were booked in. Corrects both; it closes and Sarah fixes the Purchase Sheet.">Only ${fmt(sent)} ${sent===1?'was':'were'} ordered &mdash; the sheet is wrong</button>`);
+    B.push(`<button class="csAct plain" style="border-color:rgba(96,165,250,.5);color:#93c5fd;" onclick="openQtyFix('${_id}')" title="Nothing is missing — the Purchase Sheet quantity itself is wrong. Correct it here.">The sheet quantity is wrong&hellip;</button>`);
+    B.push(`<button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`);
+    return B.join('\n        ');
+  }
   B.push(`<div class="jkWhere"><b class="jkQ">${got>0?`${fmt(got)} of ${fmt(exp)} booked in &mdash; what happened to the other ${fmt(owe)}?`:`Nothing booked in &mdash; what happened to all ${fmt(exp)}?`}</b><span class="jkQsub">None of these close the row &mdash; your answer goes back to Sarah.</span></div>`);
   B.push(`<button class="csAct good" onclick="jackAnswered('${_id}','Arrived — YES, the account shows it delivered.')" title="The account shows the full order delivered, so the missing ${fmt(owe)} are somewhere. Sarah checks the wrong SKU next, then Becki the shelves.">All ${fmt(exp)} were delivered</button>`);
   if(got>0){
@@ -917,14 +911,6 @@ function _jkCheckActs(r,_id){
 /* All arrived, some never sent (see the BioEars note above): a warehouse
    question. Nothing about the order is wrong, so none of the delivery answers
    apply. */
-function _jkLeftActs(r,_id,got,left,last){
-  const sent=parseInt(r.ship)||0,B=[];
-  B.push(`<div class="jkWhere"><b class="jkQ">All ${fmt(got)} arrived &mdash; ${fmt(sent)} went to Amazon${last?' on '+_dmy(last):''}. Where are the other ${fmt(left)}?</b><span class="jkQsub">Nothing is missing from the order &mdash; your answer goes back to Sarah.</span></div>`);
-  B.push(`<button class="csAct good" onclick="jackAnswered('${_id}','All ${fmt(got)} arrived — nothing is missing from the order. The other ${fmt(left)} should be on the shelf: Becki, send them on the next shipment.')" title="Back to Sarah with that answer. Becki already sees this row on the Prep Sheet as ${fmt(left)} left to send — once they go out it clears itself.">Still on the shelf &mdash; send them</button>`);
-  B.push(`<button class="csAct plain" onclick="wentOutUnder('${_id}')" title="They went out on another SKU's shipment — record it here; Sarah then confirms it in Seller Central and the row closes">Went out under another SKU&hellip;</button>`);
-  B.push(`<button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`);
-  return B.join('\n        ');
-}
 /* Jack, 22 Oct: "add a written off thing on Jack's page". Every loss in one list —
    Prep Sheet rows, Amazon refunds that never came, supplier refusals, the old
    backlog tidy-up, claims, PLUB shortages and binned damage. Read only: each line

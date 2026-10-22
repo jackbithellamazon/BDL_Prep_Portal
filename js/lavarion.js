@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v54.3 · lav3 · 2026-10-22 · b603';
+const BUILD='v54.5 · lav3 · 2026-10-22 · b605';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist

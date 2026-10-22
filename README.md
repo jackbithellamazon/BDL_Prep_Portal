@@ -88,6 +88,10 @@ Rollback: upload the previous dated folder the same way.
 - **Restocks shows "Last bought":** supplier, price, date and quantity of the newest real purchase (`lastBuy`). It also names the usual supplier when that differs. Found-extra and correction batches are never counted as suppliers (`_SUP_JUNK`). Check 67.
 - **Sent over stock is settled properly (v54.3):** Settle used to tick the line only, so the parts never came off and the shelf read high. Now there are two buttons, and each asks first. *Take the parts off now* runs `shipConsume` and takes what the shelf can build; anything left stays owed. *Close — the count already allows for it* takes nothing off and logs that. The way it was settled is shown on the row (`settledHow`). Check 68.
 - **All arrived, some never sent (v54.3, BioEars):** Jack's check card used to ask "12 of 12 booked in — what happened to the other 0?". When nothing is owed and units are still unsent (`_partShipStale`), it now shows a NOT SENT card that asks where the other N are. Its buttons are *Still on the shelf — send them*, *Went out under another SKU…* and *Answer with a note* (`_jkLeftActs`). Sarah's Send-to-Jack popup now says when every unit is booked in. Check 69.
+  - **Option tiles (22 Oct, Jack: "easy to use — different options mean different things", "dead space"):** the NOT SENT card's answers are tiles across the card (`.csOpt`, grid via `.jkC3 .csActs:has(.csOpt)`), each with what happens underneath. *Only N ordered* is back (Centrum: Sarah asked "9 or 5?"). The card's header is just what Sarah asked; the facts sit in the question and her note is the quote.
+  - **Qty fix corrects the count too:** when the new number is below what was booked in (and at least what was sent), a tick box (`#qfRcvd`) sets booked in to the same number. It starts ticked on Amazon orders. It is logged as `qtyFix.rcvdFrom` plus an audit line. Check 73.
+- **Full story popup, wide (v54.3):** `jkStory` is 1040px wide. Rows get a units strip across the top (Ordered → Booked in → Sent to Amazon with the shipment IDs → Cancelled / Never arrived / Never sent / all accounted for). Below it, "The facts" sit beside "What happened". Claims and late orders use the same two columns.
+- **Shipments search marks the line (v54.3):** the search is trimmed, so pasted spaces don't matter. A SKU, ASIN or product match highlights its line (`tr.shHit`), moves it to the top of the shipment and opens that shipment. Check 74.
 - **Layout sweep (v54.3):** these were all checked at 1440px.
   - `prep.css table{min-width:1280px}` was reaching every table in a PLUB popup and pushing columns off the edge: product, component, Add several, Data, and Sent over stock (whose Settle buttons were never visible). Fixed with `.overlay.lav3 .mb table{min-width:0}`.
   - The Recipes grid (`table.mx`) now sizes to its cells (`table-layout:auto; width:max-content`, 76px inputs) and scrolls sideways. It had been squeezed to about 12px per column.
@@ -111,3 +115,29 @@ Rollback: upload the previous dated folder the same way.
   Each line shows day, source, product, supplier · order, why · who, units and £. Its heading gives £ this month and in all. Click a line to open its record. PLUB lines closed as refunded, auto refunded or miscount are NOT losses (`writtenOff:1` only means closed). Check 72.
 
 Build number: in `js/lavarion.js` (`BUILD`) and on Settings.
+
+## Leftovers follow Jack's triage again (v54.3, 22 Oct 2026)
+Jack's process: **Sarah first → OA: Sarah handles it · Amazon: Jack checks the account → back to Sarah → wrong SKU? → physical check: Becki.**
+
+Units booked in but never sent ("part shipped", `_partShipStale`, added 11 Sep for the Cadbury) never fitted this, in four ways:
+- Sarah's card had no Send to Jack and no Ask Becki.
+- Becki's list only counts rows where units are owed (`_isAmzDel` needed owed > 0). Leftovers owe nothing, so "No — send to Becki" went nowhere.
+- "Yes — wrong SKU" closed the row without accounting for the units, so it came straight back (approved but `_partShipStale`).
+- A v54.3 draft gave Jack shelf answers instead of the Amazon question.
+
+Now:
+- **Sarah's leftover card:** on an Amazon order, *Send to Jack — check the Amazon order*. On OA, *Went out under another SKU…* and *Ask Becki to check the shelves*.
+- **Jack's card** asks "All N booked in — X sent, Y not sent. What does the Amazon order show?" The answers are *All N were delivered*, *Only X were ordered — the sheet is wrong* (fixes sheet and count), *The sheet quantity is wrong…* and *Answer with a note*.
+- **After "delivered", back to Sarah:** *Yes — went out under another SKU…* (`wentOutUnder`, which accounts for the units) or *No — send to Becki*.
+- **Becki:** `amzDelivered.kind='leftover'` (`_leftUnits`, `_isAmzDel`) puts it on her banner, with Not here and Another SKU on the row. Found means she sends them; it clears when sent (`_amzFoundBySave`). **Not here** corrects booked in to what went. On Amazon it goes to Jack (amz-missing, owed = the leftover); on OA it goes back to Sarah as a normal part-arrived shortage.
+- The Sarah ↔ Jack loop is gone. Checks 69 and 73 walk the flow.
+
+## v54.4 · b604 (22 Oct 2026)
+- Same content as the v54.3 work above. The build number is bumped because files changed after b603 was stamped, and browsers kept serving cached b603 files: Jack was seeing the removed NOT SENT card and the old narrow popup.
+- **Jack's cards, side by side:** the header stays across the top; the story (left) and the answers (right) sit side by side from 1200px wide. This removes the empty right half of each band.
+- **Sarah's note on a check:** her words in quotes, then "Sarah ticked: …", said once.
+
+## v54.5 · b605 (22 Oct 2026): full audit
+- **Shark vacuum bug:** Sarah's list skipped every row with status "In Warehouse", so a part arrival (1 of 2 booked in, the other never came) dropped off every list for 9 days. A part arrival past its 2 working days now reaches Sarah whatever the status (`_partLate` in sarah-admin.js). Check 75.
+- The checks' audit no longer counts grey done/parked rows as Sarah's active work (false alarms on the two rows Jack parked on Amazon dates).
+- Live audit after the fix: 0 rows on the wrong page; no late order, open claim, PLUB shortage or PLUB late order on nobody's list.
