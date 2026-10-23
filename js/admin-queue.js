@@ -2518,7 +2518,10 @@ function renderAdmin(){
                         ${(typeof _leftUnits==='function'&&_leftUnits(_rowById(i.rid))>0)
                           ?`<button class="csAct good" onclick="wentOutUnder('${i.rid}')" title="Record which SKU and shipment the ${fmt(_leftUnits(_rowById(i.rid)))} went out on — the units are accounted for and the row closes; you confirm it in Seller Central">Yes &mdash; went out under another SKU&hellip;</button>`
                           :`<button class="csAct good" onclick="openSorted('${i.rid}','wrong-sku')" title="The unit is accounted for — it went out on another listing. Close it off here; the popup asks which SKU if you know it.">Yes &mdash; sort it and close it</button>`}
-                        <button class="csAct go" onclick="skuCheckOpen('${i.rid}')" title="Check Seller Central and the same product's other SKUs first — only then does it go to Becki, with your check on record.">No &mdash; check, then send to Becki&hellip;</button>
+                        ${(typeof sfLateFor==='function'&&(sfLateFor(_rowById(i.rid))||{}).state==='clear')
+                          ?`<button class="csAct go" onclick="sfCheckedToBecki('${i.rid}')" title="Claude checked SellerFuse: not on any shipment, nothing extra under its other SKUs. It goes to Becki with that check on record.">SellerFuse checked: not shipped &mdash; send to Becki</button>
+                            <button class="csAct plain" onclick="skuCheckOpen('${i.rid}')" title="Check it yourself anyway">Check it myself&hellip;</button>`
+                          :`<button class="csAct go" onclick="skuCheckOpen('${i.rid}')" title="Check Seller Central and the same product's other SKUs first — only then does it go to Becki, with your check on record.">No &mdash; check, then send to Becki&hellip;</button>`}
                         ${!_amazonRow(_rowById(i.rid))?`<button class="csAct warn" onclick="queryNoneComing('${i.rid}')" title="Delivered but ${fmt(short)} never reached the warehouse — raise them as Missing">Delivered &mdash; raise ${fmt(short)} missing</button>`:''}`
                       :`<button class="csAct go" onclick="jackAmzDate('${i.rid}',this)">More still coming &mdash; date&hellip;</button>
                         <button class="csAct warn" onclick="queryNoneComing('${i.rid}')">Nothing more &mdash; raise ${fmt(short)} missing</button>
@@ -2766,6 +2769,7 @@ function renderAdmin(){
                 if(i.expDate)_facts.push(['Expected',esc(_ds(i.expDate))]);
                 {const L2=refundLeft(i.date,i);if(L2!==null)_facts.push(['Refund',L2<0?`<span style="color:#f87171;">window shut ${Math.abs(L2)}d ago</span>`:`${L2}d left to claim`]);}
                 if(i.wentAs)_facts.push(['Went out as',esc(i.wentAs)]);
+                if(i.kind==='transit'&&typeof sfFactHtml==='function'){const _sfh=sfFactHtml(_rowById(i.rid));if(_sfh)_facts.push(['SellerFuse',_sfh]);}
                 if(i.query)_facts.push(['Question',esc(i.query.ask||'')+(i.query.note?' <span style="color:var(--text3);">&ldquo;'+esc(i.query.note)+'&rdquo;</span>':'')]);
                 if(i.claimId&&i.kind==='transit')_facts.push(['Claim',`${esc(i.claimType||'')} ${fmtGBP2(i.claimVal||0)}${i.claimState?' <span style="color:var(--text3);">&middot; '+esc(i.claimState)+'</span>':''}`]);
                 const _notes=[];
@@ -3005,6 +3009,8 @@ function renderAdmin(){
       <span class="vaWhy">Nothing to chase, nothing to finish off. Press Checked and you're done.</span></div>
   </div>`;
 
+  /* the SellerFuse check sits on top — Jack, 23 Oct: "on Sarah's page" */
+  try{if(typeof sfAdminHtml==='function')html=sfAdminHtml()+html;}catch(e){}
   wrap.innerHTML=html;
   _restoreScroll();
   /* fires the reminder if this page has gone unchecked past the deadline */

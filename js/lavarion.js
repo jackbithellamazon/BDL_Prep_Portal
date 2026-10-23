@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v54.9 · lav3 · 2026-10-23 · b609';
+const BUILD='v55.1 · lav3 · 2026-10-23 · b611';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -29,7 +29,8 @@ let D={products:[],components:[],purchases:[],log:[],settings:{
      Amazon. It is a setting and not a constant because it is genuinely not a
      constant — Q4 is slower, the quiet months are quicker. */
   primeDays:10,
-  cols:{pIncoming:true,pOrdered:false,pSold:true,pCog:true,pSendBy:true,
+  cols:{pIncoming:false,pOrdered:false,pSold:true,pCog:false,pSendBy:true,
+        pInb:true,pLeft:true,pS7:true,pDay:true,pLast:true,
         cOnOrder:true,cOrdered:true,cUsed:true}}};
 
 /* "Now", refreshed every minute. It was fixed at the moment the page opened, so
@@ -1546,18 +1547,82 @@ function hubAll(){
   return Object.values(out).sort((x,y)=>(x.name||x.asin).localeCompare(y.name||y.asin));
 }
 
-/* The hub is the source. Anything typed in before the two were joined up is
-   kept as a fallback so no work is lost, but it can never override a real
-   figure from the hub. */
+/* 23 Oct 2026 (Jack: "B yes, C yes") — sales come from SellerFuse's rolling 30 days,
+   brought in by the Mon/Wed/Fri check. The hub's figure is last CALENDAR month: on 23 Oct
+   that was September, so Decaf (launched end of Sep) planned at 1 a month while it sold 16,
+   and Reindeer and GF Hot Choc had no figure at all. The hub stays the fallback when the
+   check has not run for over a week. A zero from SellerFuse never wipes out a real hub
+   month: an empty shelf sells nothing (Dove 75ml MD, 119 then 0), which is not the same
+   as nobody wanting it. */
+const SF_SOLD_DAYS=8;
+function sfSoldOf(p){
+  const m=(D.settings.sfSold||{})[p&&p.asin];
+  if(!m||!m.at||daysSince(m.at)>SF_SOLD_DAYS)return null;
+  return m;
+}
+/* units a day from SellerFuse: the 30-day pace, or 0.7 × the last 7 days when that is
+   faster — a Christmas ramp leans the plan up, one good week cannot triple an order */
+function sfPace(p){
+  const s=sfSoldOf(p);if(!s)return null;
+  const u30=Math.max(0,parseInt(s.u30)||0),u7=s.u7==null?null:Math.max(0,parseInt(s.u7)||0);
+  const p30=s.p30==null?null:Math.max(0,parseInt(s.p30)||0);
+  /* Jack, 23 Oct: "it should be using good sales data". A month spent partly empty undersells
+     a product, and planning off it makes the next stock-out more likely (Autosol: empty in
+     September, so "sold none", so nothing planned). Two guards:
+     - once the Mon/Wed/Fri counts cover the last 30 days, sales ÷ the days it was IN STOCK;
+     - until then, if it is empty now or stopped selling this week, the month before counts too.
+     Seasonal lines are protected by their dated figure, which wins over all of this. */
+  let base=u30/30,why='';
+  const ins=inStockDays(p);
+  if(ins!=null&&ins>=5&&ins<26&&u30>0&&u30/ins>base){base=u30/ins;why='instock';}
+  const now=atAmz(p),ranOut=now===0||(u7===0&&u30>0);
+  if(ranOut&&p30!=null&&p30/30>base){base=p30/30;why='prev30';}
+  const w=u7==null?null:u7/7,spike=w!=null&&0.7*w>base;
+  return{perDay:spike?0.7*w:base,base,u30,u7,p30,spike,why,ins,at:s.at};
+}
+/* days in stock at Amazon over the last 30, from the counts each SellerFuse check keeps
+   (D.settings.amzHist). Null until the history reaches back the full 30 days. */
+function inStockDays(p){
+  const h=((D.settings.amzHist||{})[p&&p.asin]||[]).slice().sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
+  if(!h.length)return null;
+  const start=addCalDays(dayISO(),-29);if(String(h[0][0])>start)return null;
+  let n=0,j=0,cur=null;
+  for(let i=0;i<30;i++){const d=addCalDays(start,i);
+    while(j<h.length&&String(h[j][0])<=d){cur=h[j][1];j++;}
+    if(cur>0)n++;}
+  return n;
+}
 function sold30(p){
-  const h=hubUnits(p);
+  const sf=sfSoldOf(p),h=hubUnits(p);
+  if(sf&&(parseInt(sf.u30)||0)>0)return parseInt(sf.u30)||0;
+  if(sf)return (h>0)?h:0;
   if(h===0||h)return h;
   const m=D.settings.sold30||{};const v=m[p.asin];return (v===0||v)?v:null;
 }
 function soldSrc(p){
-  const h=hubUnits(p);
+  const sf=sfSoldOf(p),h=hubUnits(p);
+  if(sf&&((parseInt(sf.u30)||0)>0||!(h>0)))return 'sf';
   if(h===0||h)return 'hub';
   const m=D.settings.sold30||{};const v=m[p.asin];return (v===0||v)?'manual':null;
+}
+/* a dated planning figure — Jack, 23 Oct: "Dove — go back in but low sales not in summer".
+   His number wins over every sales figure until its end date, then it steps aside on its own. */
+function planSeasonOf(p){
+  const s=(D.settings.planSeason||{})[p&&p.asin];
+  if(!s||!(parseFloat(s.m)>=0)||!s.until||String(s.until).slice(0,10)<dayISO())return null;
+  return s;
+}
+function setPlanSeason(asin,m,until){
+  D.settings.planSeason=D.settings.planSeason||{};
+  const p=D.products.find(x=>x.asin===asin),n=parseFloat(m),by=window.currentUserName||'someone';
+  if(Number.isFinite(n)&&n>=0&&until){
+    D.settings.planSeason[asin]={m:n,until:String(until).slice(0,10),by,at:new Date().toISOString()};
+    try{logIt('edit',`Planning figure: ${(p&&p.name)||asin} — ${fmt(n)} a month until ${dshort(until)} (${by})`);}catch(e){}
+  }else{
+    delete D.settings.planSeason[asin];
+    try{logIt('edit',`Planning figure removed: ${(p&&p.name)||asin} — back to its sales (${by})`);}catch(e){}
+  }
+  savePrefs();render();
 }
 /* the month a figure describes — entered in August, it is July's number */
 function lastFullMonth(d){
@@ -1789,6 +1854,11 @@ function hbSaveAll(){
 }
 /* the caption under the Sold column — never a bare number without its month */
 function salesStrip(){
+  /* 23 Oct (B): SellerFuse leads when its check is fresh — say so, and how many it covers */
+  {const live=D.products.filter(p=>!p.archived),n=live.filter(p=>sfSoldOf(p)).length;
+    if(n){const at=Object.values(D.settings.sfSold||{}).map(x=>x&&x.at).filter(Boolean).sort().pop();
+      return `<div class="salesBar"><span class="sbDot"></span><div class="sbTxt"><b>Sales from SellerFuse · last 30 days and last 7 days.</b> <span>${fmt(n)} of ${fmt(live.length)} products, checked ${esc(whenTxt(ukStamp(ukDT(new Date(at)))))} UK. Anything it has no figure for uses the BDL hub's ${esc(ymName(hubMonth().ym))}.</span></div>
+        <button class="btn sm" onclick="LV3.hubRefresh()" title="Re-read the BDL hub (the fallback)">Refresh hub</button></div>`;}}
   const M=hubMonth(),rv=(HUB.state==='ok')?hubReview():null;
   const todo=rv?(rv.missing.length+rv.blank.length):0;
   const bad=M.status==='off'||M.status==='none'||M.status==='late'||HUB.cached;
@@ -2042,6 +2112,7 @@ function plNum(key,def,min,max){const n=parseFloat((D.settings||{})[key]);
 const safetyDays=()=>plNum('safetyDays',14,0,60);
 const prepDaysN =()=>plNum('prepDays',3,0,30);
 const cycleDaysN=()=>plNum('cycleDays',60,7,365);
+const aheadDays =()=>plNum('aheadDays',7,0,30);
 function plSet(key,v){const n=parseFloat(v);
   if(Number.isFinite(n)&&n>0)D.settings[key]=n;else delete D.settings[key];
   savePrefs();render();}
@@ -2072,12 +2143,17 @@ function planDemandOf(p){
      sold in August, and the planner still ignored them. The mark means "no
      sales yet, stop asking" — the moment the hub shows real sales, the sales
      win. The mark stays on the row (and can be cleared) but no longer blocks. */
-  if(hubSkipped(p)&&!(hubUnits(p)>0))return{m:0,src:'skip',label:'marked as not selling'};
+  /* a dated figure is the owner's call — it beats every sales number until its end date */
+  {const se=planSeasonOf(p);if(se)return{m:+se.m,src:'season',label:'your figure until '+dshort(se.until)};}
+  if(hubSkipped(p)&&!(sold30(p)>0))return{m:0,src:'skip',label:'marked as not selling'};
+  const pc=sfPace(p);
+  if(pc&&pc.perDay>0)return{m:Math.round(pc.perDay*30*10)/10,mBase:Math.round(pc.base*30*10)/10,src:'sf',pace:pc,
+    label:pc.spike?'last 7 days ×0.7 (SellerFuse)':pc.why==='prev30'?'the month before — it ran out (SellerFuse)':pc.why==='instock'?'in-stock days only (SellerFuse)':'last 30 days (SellerFuse)'};
   const s=sold30(p);
-  if(s!=null&&s>0)return{m:s,src:'hub',label:ymName(hubMonth().ym)+' sales'};
+  if(s!=null&&s>0)return{m:s,src:soldSrc(p)==='manual'?'typed':'hub',label:soldSrc(p)==='manual'?'typed-in sales':ymName(hubMonth().ym)+' sales'};
   const v=parseFloat((D.settings.planDemand||{})[p.asin]);
   if(Number.isFinite(v)&&v>0)return{m:v,src:'manual',label:'your planning figure'};
-  if(s===0)return{m:0,src:'zero',label:'sold none in '+ymName(hubMonth().ym)};
+  if(s===0)return{m:0,src:'zero',label:pc?'sold none in 30 days':'sold none in '+ymName(hubMonth().ym)};
   return null;
 }
 function setRouteGroup(keys,mode){
@@ -2150,12 +2226,22 @@ function compSupplier(c){
      counting them made the glove's "usual supplier" an accounting artifact,
      which then had no route, which kept the part unpriced everywhere. */
   const junk=_SUP_JUNK;
-  const own=(c.supplier||'').trim();
+  const own=(c.supplier||(c._src&&c._src.supplier)||'').trim();
   if(own&&!junk.test(own))return own;
   const names={};
   (c.layers||[]).forEach(l=>{const n=(l.sup||'').trim();
     if(n&&!junk.test(n))names[n]=(names[n]||0)+1;});
   return Object.keys(names).sort((a,b)=>names[b]-names[a])[0]||'';
+}
+/* Jack, 23 Oct (M): a part with no supplier on record can't be planned at all — the
+   Ube Powder part sat off everyone's order list because its only batches were opening
+   stock. Set it on the part; it is saved with the part and written into the history. */
+function setCompSupplier(id,name){
+  const c=comp(id);if(!c)return;const v=String(name||'').trim();
+  c.supplier=v;if(c._src)c._src.supplier=v;
+  try{logIt('edit',`Supplier set on ${c.name}: ${v||'none'} — ${window.currentUserName||'someone'}`);}catch(e){}
+  saveCompsRecipes();render();
+  if(v)toast(`${c.name}: supplier ${v}${routeDaysFor(v)?'':' — set how they ship next'}`,'ok');
 }
 function routeDaysFor(sup){
   const s=(sup||'').trim();if(!s)return null;
@@ -2203,8 +2289,17 @@ function plAmazonRow(p){
      Anything sent after the count's day is on its way. */
   const _cAt=String((D.settings.atAmzAt||{})[p.asin]||'').slice(0,10);
   const since=(_cAt&&typeof lavShipments!=='undefined')?lavShipments.filter(x=>x.asin===p.asin&&x.date&&String(x.date).slice(0,10)>_cAt).reduce((t,x)=>t+(parseInt(x.units)||0),0):0;
-  const sell=atAmz(p),inb=(amzIn(p)||0)+since;
-  const out={p,demand:d,sell,inb,since,alloc:0,rec:0};
+  /* Jack, 23 Oct: "make sure we don't run out of stock". A count is a moment — by Monday,
+     Friday's count of Ube has sold ~20 more. Sends since the count are added above; sales
+     since the count come off here, at the planned pace. The Products page still shows the
+     count as taken, with its age. */
+  const counted=atAmz(p);let sell=counted,soldSince=0;
+  {const at=(D.settings.atAmzAt||{})[p.asin];
+    if(counted!=null&&counted>0&&at&&d&&d.m>0){const t=new Date(hasZone(String(at))?at:ukStamp(String(at).length>10?String(at).slice(0,16):String(at).slice(0,10)+'T12:00'));
+      const days=(Date.now()-t.getTime())/864e5;
+      if(days>0.25){soldSince=Math.min(counted,Math.round(d.m/30*days));sell=counted-soldSince;}}}
+  const inb=(amzIn(p)||0)+since;
+  const out={p,demand:d,sell,counted,soldSince,inb,since,alloc:0,rec:0};
   if(!d){out.state='nodata';
     out.why='No sales figure and no planning demand. Nothing is planned for it — type a monthly estimate below and it joins in.';return out;}
   if(d.m===0){out.state='paused';
@@ -2212,7 +2307,9 @@ function plAmazonRow(p){
       ?'Paused ('+d.label+'), so the planner leaves it alone. Press “Selling again” on the Action centre when it comes back.'
       :d.src==='skip'
       ?'Marked as not selling, so the planner leaves it alone completely. Press “Selling again” below when it comes back.'
-      :'Sold none in '+ymName(hubMonth().ym)+', so nothing is planned. Give it a planning figure if it should still be stocked.';return out;}
+      :d.src==='season'
+      ?'Your planning figure is 0 ('+d.label+'), so nothing is planned until then.'
+      :d.label.charAt(0).toUpperCase()+d.label.slice(1)+', so nothing is planned. Give it a planning figure if it should still be stocked.';return out;}
   if(sell==null){out.state='nocount';
     out.why='Amazon stock has never been counted for this one, so there is no starting point to plan from.';return out;}
   const ads=d.m/30;out.ads=ads;
@@ -2235,14 +2332,22 @@ function plAmazonRow(p){
   out.protDays=protUnits/ads;
   out.inbEta=inbEta;out.inbInTime=inbInTime;out.sellDry=sellDry;
   out.stockout=addCalDays(dayISO(),Math.floor(out.protDays));
-  out.trigger=out.protDays<=fba+saf;
+  /* Jack, 23 Oct: "we should always have a buffer in Amazon but shouldn't be leaving it to the
+     last minute" — lines come onto the list a week (aheadDays) before they are due, so they can
+     go in the same shipment, not on the day the buffer starts to go */
+  out.trigger=out.protDays<=fba+saf+aheadDays();
   /* how many: land the shipment with roughly targetDays of cover ON ARRIVAL
      (spec §14) — projected position when it becomes sellable, not today's */
   const landIso=workDaysAfter(dayISO(),primeDays());
   const landDays=Math.round((new Date(landIso+'T00:00:00')-new Date(dayISO()+'T00:00:00'))/864e5);
   const inbByLand=(inb>0&&inbEta!=null&&inbEta<=landIso)?inb:0;
   const projAtLand=Math.max(0,sell-ads*landDays)+inbByLand;
-  const want=ads*coverDaysOf(p);
+  /* Jack, 23 Oct: "we might need to send in a bunch one week if sales increase, but it might be
+     a blip so don't wanna do it too much". A jump gets the faster pace for the next 3 weeks only;
+     the rest of the cover is planned at the normal pace. If it lasts, the next check tops it up. */
+  const _cov=coverDaysOf(p),_pc=d.pace,SPK=21;
+  const want=(_pc&&_pc.spike&&_cov>SPK)?ads*SPK+_pc.base*(_cov-SPK):ads*_cov;
+  out.spikeCapped=!!(_pc&&_pc.spike&&_cov>SPK);
   out.rec=out.trigger?Math.max(0,Math.ceil(want-projAtLand)):0;
   out.landIso=landIso;out.projAtLand=Math.round(projAtLand);out.want=Math.round(want);
   if(!out.trigger){
@@ -2329,7 +2434,7 @@ function planComponents(){
   const cyc={},anyCover=D.products.some(p=>coverOverride(p));
   live.forEach(p=>{
     const d=planDemandOf(p);if(!d||!d.m)return;
-    const ads=d.m/30;
+    const ads=(d.mBase!=null&&d.mBase<d.m?(d.m+d.mBase)/2:d.m)/30;
     if(p.type!=='bundle'){selfLines.push({o:p,isProd:true,daily:ads,drivers:[p.name],cycDays:coverOverride(p)||null});return;}
     (p.recipe||[]).forEach(rc=>{const c=comp(rc.c);if(!c||c.untracked)return;
       cd[c.id]=(cd[c.id]||0)+ads*rc.q;
@@ -2379,7 +2484,10 @@ function planComponents(){
     L.buyBy=addCalDays(today,Math.max(0,L.buyByDays));
     if(L.buyQty<=0)L.state=(L.pendQty>0)?'waiting':'safe';
     else if(L.buyByDays<=0)L.state='buy';
-    else if(L.buyByDays<=7)L.state='soon';
+    /* Jack, 23 Oct (J): a part that takes a month or more to come (Alibaba rail, 60
+       days) shows 30 days before its order-by date, not 7 — a week's notice on a
+       two-month lead is no notice. */
+    else if(L.buyByDays<=(L.lead>=30?30:7))L.state='soon';
     else L.state='upcoming';
     if(L.overdue)L.chase=true;
     L.skip=_buySkip(o);
@@ -2447,10 +2555,19 @@ function openPlanRow(pid){
       <div style="font-size:12px;color:var(--text3);line-height:1.6;margin:0 0 4px;">${R.why||''}
         ${gap?' '+esc(gap.txt):''}</div>
       ${plDebugPre(R)}
+      ${(()=>{const se=(D.settings.planSeason||{})[p.asin],on=planSeasonOf(p);
+        /* Jack, 23 Oct: seasonal lines — "go back in but low sales not in summer" */
+        return `<div class="plSeason"><div class="plSeasonT">Planning figure${on?` <span class="plSeasonOn">in use until ${dshort(on.until)} — set by ${esc(on.by||'someone')}</span>`:''}</div>
+          <div class="pmeta" style="margin:2px 0 7px">Beats the sales figures until its end date, then steps aside on its own. For seasonal lines: a winter figure until 31 March, or a Christmas figure until 20 December.</div>
+          <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+            <input class="in" id="psM" type="number" min="0" step="1" style="width:90px" value="${se?esc(String(se.m)):''}" placeholder="e.g. 9"><span class="pmeta" style="margin:0">a month until</span>
+            <input class="in" id="psU" type="date" style="width:150px" value="${se?esc(String(se.until)):''}" min="${dayISO()}">
+            <button class="btn sm pri" onclick="LV3.setPlanSeason('${esc(p.asin)}',document.getElementById('psM').value,document.getElementById('psU').value);LV3.cm('lav3Ov2')">Save</button>
+            ${se?`<button class="btn sm ghost" onclick="LV3.setPlanSeason('${esc(p.asin)}',null,null);LV3.cm('lav3Ov2')">Remove</button>`:''}</div></div>`;})()}
     </div>
     <div class="mf"><span class="pmeta" style="margin:0">the same row, with the same working, lives on the Planner</span>
       <div class="sp">
-        ${R.alloc>0?`<button class="btn go" onclick="LV3.cm('lav3Ov2');LV3.openShip('${p.id}')">Ship units</button>`:''}
+        ${R.alloc>0?`<button class="btn go" onclick="LV3.cm('lav3Ov2');LV3.openShip('${p.id}',${R.alloc})">Ship ${fmt(R.alloc)}</button>`:''}
         ${hubSkipped(p)?`<button class="btn pri" onclick="LV3.cm('lav3Ov2');LV3.plUnskip('${esc(p.asin)}')" title="Take the not-selling mark off — the planner picks it up again on the spot">Selling again</button>`:''}
         <button class="btn" onclick="LV3.cm('lav3Ov2');LV3.go('planner')">Planner</button>
         <button class="btn" onclick="LV3.cm('lav3Ov2')">Close</button></div></div>`;
@@ -2480,12 +2597,24 @@ function plDebugPre(r){
    work, as is shit"). One row per product, one row per part, the same
    numbers the Overview prints, and the working one click away. */
 function _plannerTable(az,buys,gaps,fba,saf,setBox){
-  const M=ovModel();const trig=fba+saf;
-  const rows=az.rows.filter(r=>r.demand&&['nodata','nocount','paused'].indexOf(r.state)<0)
-    .sort((a,b)=>(a.protDays==null?1e9:a.protDays)-(b.protDays==null?1e9:b.protDays));
-  const live=rows.filter(r=>r.state!=='safe'),safe=rows.filter(r=>r.state==='safe');
-  const paused=az.rows.filter(r=>r.state==='paused').length;
-  const covCol=d=>d==null?'var(--text3)':d<=fba?'#ef4444':d<=trig?'#fbbf24':'#4ade80';
+  /* ═══ THE PLANNER — rebuilt 23 Oct 2026 (Jack: "L yes, full on rebuild"; 23 Oct: "it just
+     looks like shit"). One table, worst first: every product and every part that needs
+     something, sorted by the date something has to HAPPEN — the day a send has to leave so
+     it lands before Amazon empties, or the day an order has to go so it arrives in time.
+     Each row has a 60-day timeline, whose job it is (Alibaba is Jack's, every other
+     supplier is Becki's, sends are the UK team's) and the button that does it. What the
+     planner can't see past (no sales figure, no supplier, no route) sits IN the list in
+     red, not in a collapsed box at the bottom where nobody looked. */
+  const today=dayISO(),trig=fba+saf,HZ=60,M=ovModel();
+  const owner=sup=>/alibab/i.test(String(sup||''))?'Jack':'Becki';
+  const pc=d=>Math.max(0,Math.min(100,d/HZ*100));
+  const dTo=iso=>iso?Math.round((new Date(String(iso).slice(0,10)+'T00:00:00')-new Date(today+'T00:00:00'))/864e5):null;
+  const n1=x=>x>=10?fmt(Math.round(x)):(+x).toFixed(1);
+  const whoChip=w=>`<span class="plWho ${w==='Jack'?'j':w==='Becki'?'b':'u'}">${w}</span>`;
+  const chip=(t,c)=>`<span class="plChip" style="--c:${c}">${t}</span>`;
+  const dlTxt=dl=>dl==null?'<span class="ovDim">—</span>':dl<0?`<b class="plLate">${fmt(-dl)}d late</b>`:dl===0?'<b class="plToday">today</b>'
+    :`<span class="plBy">by ${dshort(addCalDays(today,dl))}</span><small>in ${fmt(dl)}d</small>`;
+  const bar=(segs,marks,cap)=>`<div class="plTl">${segs.filter(x=>x[2]>x[1]).map(x=>`<i class="${x[0]}" style="left:${pc(x[1])}%;width:${pc(x[2])-pc(x[1])}%"></i>`).join('')}${marks.filter(m=>m[1]!=null&&m[1]>=0&&m[1]<=HZ).map(m=>`<b class="${m[0]}" style="left:${pc(m[1])}%" title="${esc(m[2])}"></b>`).join('')}</div><div class="plCap">${cap}</div>`;
   const stateOf=r=>{
     if(r.state==='act'||r.state==='critical'){
       if(r.alloc>0&&r.alloc>=r.rec)return['SEND '+fmt(r.alloc),'#4ade80'];
@@ -2493,51 +2622,174 @@ function _plannerTable(az,buys,gaps,fba,saf,setBox){
       if(r.alloc>0)return['SEND '+fmt(r.alloc)+' · '+fmt(r.rec-r.alloc)+' SHORT','#fbbf24'];
       if(g&&g.kind==='intime')return['PARTS LAND '+dshort(g.eta),'#60a5fa'];
       if(g&&g.kind==='late')return['PARTS LAND '+dshort(g.eta)+' — LATE',(r.sell||0)<=0?'#ef4444':'#fb923c'];
-      if(g&&g.kind==='noeta')return['ON ORDER · NO ETA','#fbbf24'];
+      if(g&&g.kind==='noeta')return['ON ORDER · NO DATE','#fbbf24'];
       return['BUY PARTS',(r.sell||0)<=0?'#ef4444':'#fb923c'];}
     if(r.state==='waiting')return['INBOUND COVERS IT','#60a5fa'];
     if(r.state==='watch')return['WATCH','#fbbf24'];
     return['SAFE','#4ade80'];};
-  const pRow=r=>{const sc=stateOf(r);const st=sc[0],col=sc[1];
-    const g=(r.alloc<r.rec&&(r.state==='act'||r.state==='critical'))?plGapInfo(r):null;
-    return `<div class="plnRow" onclick="LV3.openPlanRow('${r.p.id}')" style="border-left-color:${col};">
-      <span class="plnName">${esc(r.p.name)}${coverOverride(r.p)?`<b class="covChip" title="Holds ${coverDaysOf(r.p)} days of stock, not the usual ${D.settings.targetDays||60}">${coverDaysOf(r.p)}d</b>`:''}${r.demand&&r.demand.m?`<small>${fmt(r.demand.m)}/month</small>`:''}</span>
-      <span class="plnNum" style="color:${(r.sell||0)<=0?'#ef4444':'var(--text)'}">${r.sell==null?'—':fmt(r.sell)}</span>
-      <span class="plnNum" style="color:var(--blu)">${r.inb?fmt(r.inb)+`<small>${r.inbEta?'~'+dshort(r.inbEta):''}</small>`:'—'}</span>
-      <span class="plnNum" style="color:${covCol(r.protDays)};font-weight:800;">${r.protDays==null?'—':fmt(Math.round(r.protDays))+'d'}<small>${r.stockout?'empty ~'+dshort(r.stockout):''}</small></span>
-      <span class="plnNum">${r.buildCap!=null?fmt(r.buildCap):fmt((avail(r.p)||{}).n||0)}</span>
-      <span class="plnNum" style="color:${r.rec?'var(--text)':'var(--text3)'}">${r.rec?fmt(r.rec):'—'}</span>
-      <span class="plnPart">${(r.lim&&r.alloc<r.rec)?esc(r.lim.name)+(g?`<small>${g.short}</small>`:''):'<span class="ovDim">—</span>'}</span>
-      <span class="plnState" style="color:${col};border-color:${col}55;background:${col}1a;">${st}</span></div>`;};
-  const head=`<div class="plnRow plnHead"><span class="plnName">Product</span><span class="plnNum">At Amazon</span><span class="plnNum">Inbound</span><span class="plnNum">Cover</span><span class="plnNum">Buildable</span><span class="plnNum">Wanted</span><span class="plnPart">Held up by</span><span class="plnState plnHeadState">Action</span></div>`;
-  const bRows=buys.filter(L=>!L.isProd&&['buy','soon','upcoming','waiting'].indexOf(L.state)>=0);
-  const bRow=L=>{const onway=(L.pendQty||0)>0,skip=!!L.skip;
-    const sc=skip?['SET ASIDE','#7f8896']:onway?['ON ORDER · '+fmt(L.pendQty),'#60a5fa']
-      :L.state==='buy'?[L.buyByDays<0?fmt(-L.buyByDays)+'D OVERDUE':'ORDER TODAY','#ef4444']
-      :L.state==='soon'?['ORDER BY '+dshort(L.buyBy),'#fbbf24']
-      :L.state==='upcoming'?['BY '+dshort(L.buyBy),'#7f8896']:['COVERED','#4ade80'];
-    const st=sc[0],col=sc[1];
-    return `<div class="plnRow plnB" style="border-left-color:${col};${skip?'opacity:.6;':''}">
-      <span class="plnName">${esc(L.o.name)}<small>${esc(L.sup||'—')} · used by ${esc((L.drivers||[]).slice(0,3).join(', '))}${(L.drivers||[]).length>3?' +'+((L.drivers||[]).length-3):''}</small></span>
-      <span class="plnNum" style="color:${L.hand===0?'#ef4444':'var(--text)'}">${fmt(L.hand)}<small>${L.cover!=null?(L.cover>365?'1yr+ cover':Math.round(L.cover)+'d cover'):''}</small></span>
-      <span class="plnNum" style="color:var(--blu)">${L.pendQty?fmt(L.pendQty):'—'}</span>
-      <span class="plnNum" style="font-weight:800;color:${(L.buyQty>0&&!onway&&!skip)?'var(--amb)':'var(--text3)'}">${L.buyQty>0?fmt(L.buyQty):'—'}${(L.cases&&L.caseQty>1&&L.buyQty>0)?`<small>${fmt(L.cases)} × ${fmt(L.caseQty)}</small>`:''}</span>
-      <span class="plnNum">${(L.cost>0&&!onway)?gbp(L.cost):'—'}</span>
-      <span class="plnState" style="color:${col};border-color:${col}55;background:${col}1a;">${st}</span>
-      <span class="plnBtns">${(!onway&&!skip&&L.buyQty>0)?`<button class="btn sm pri" onclick="LV3.openLogOrder('${L.o.id}')">Log order</button><button class="btn sm ghost" title="Not buying this again — until its stock changes" onclick="LV3.buySkipSet('${L.o.id}','skip')">Not reordering</button>`:''}${skip?`<button class="btn sm ghost" onclick="LV3.buySkipSet('${L.o.id}','clear')">Bring back</button>`:''}</span></div>`;};
-  const bHead=`<div class="plnRow plnHead plnB"><span class="plnName">Part</span><span class="plnNum">On hand</span><span class="plnNum">On order</span><span class="plnNum">Buy</span><span class="plnNum">Cost</span><span class="plnState plnHeadState">When</span><span class="plnBtns"></span></div>`;
+  const srcTxt=d=>!d?'':d.src==='sf'?(d.pace&&d.pace.spike?'7-day pace':'30-day pace'):d.src==='season'?'your figure':d.src==='hub'?'hub month':d.src==='manual'?'your estimate':d.src==='typed'?'typed in':'';
+
+  /* ── a product row ── */
+  const pRow=(r,dl)=>{const p=r.p,d=r.demand,sc=stateOf(r);
+    const blocked=(r.state==='act'||r.state==='critical')&&r.alloc<r.rec&&r.lim;
+    const g=blocked?plGapInfo(r):null;
+    const who=blocked&&!r.alloc?owner(compSupplier(r.lim)):'UK team';
+    const own=r.sell/r.ads,inbD=r.inbEta?Math.max(0,dTo(r.inbEta)):null;
+    const segs=[],marks=[];let end,cap;
+    if(r.inb>0&&inbD!=null&&inbD>own){segs.push(['ok',0,own],['out',own,inbD],['ok',inbD,inbD+r.inb/r.ads]);end=inbD+r.inb/r.ads;
+      cap=(r.sell>0?`${fmt(Math.floor(own))} days at Amazon, then`:'Empty now,')+` <b class="plRed">~${fmt(Math.max(1,inbD-Math.floor(own)))} days empty</b> until the ${fmt(r.inb)} on the way land ~${dshort(r.inbEta)}`;}
+    else{end=(r.sell+(r.inb||0))/r.ads;segs.push(['ok',0,end]);
+      cap=r.sell<=0&&!(r.inb>0)?'<b class="plRed">Empty at Amazon now</b>':`${fmt(Math.floor(end))} days at Amazon${r.inb>0?` (incl. ${fmt(r.inb)} on the way)`:''} — runs out ~${dshort(r.stockout)}`;}
+    if(end<HZ)segs.push(['out',end,HZ]);
+    if(inbD!=null)marks.push(['inb',inbD,`${fmt(r.inb)} on the way land ~${dshort(r.inbEta)}`]);
+    if(r.landIso)marks.push(['ship',dTo(r.landIso),`A send today is sellable ~${dshort(r.landIso)}`]);
+    if(dl!=null&&r.state!=='safe')marks.push(['dl',Math.max(0,dl),'The send has to leave by this day']);
+    if(r.alloc>0)cap+=` · <span class="plOk">send today → sellable ~${dshort(r.landIso)}</span>`;
+    else if(blocked)cap+=` · held up by <b>${esc(r.lim.name)}</b>${g?' — '+g.short:''}`;
+    const btn=r.alloc>0?`<button class="btn sm go" onclick="LV3.openShip('${p.id}',${r.alloc})">Ship ${fmt(r.alloc)}</button>`
+      :(blocked&&(!g||g.kind==='none'||g.kind==='late'))?`<button class="btn sm pri" title="Order ${esc(r.lim.name)}" onclick="LV3.openLogOrder('${r.lim.id}')">Order part</button>`:'';
+    const _u0=sendUrgency(r);
+    /* when: a send is either due now or by a date — "14 days late" on every empty line
+       said nothing; inbound that already covers it needs nothing at all */
+    const when=(r.state==='waiting')?'<span class="ovDim">covered</span>'
+      :dl!=null&&dl<0?`<b class="plLate">now</b><small>${(_u0&&_u0.losing)?'losing sales every day it waits':'already into the '+safetyDays()+'-day buffer'}</small>`
+      :dl===0?'<b class="plToday">today</b><small>last day it can leave</small>':dlTxt(dl);
+    return `<tr class="plR${r.state==='safe'?' safe':''}" style="--c:${sc[1]}">
+      <td class="plWhat"><a href="javascript:void(0)" onclick="LV3.openPlanRow('${p.id}')">${esc(p.name)}</a>${coverOverride(p)?`<b class="covChip" title="Holds ${coverDaysOf(p)} days of stock">${coverDaysOf(p)}d</b>`:''}
+        <small>at Amazon <b>${r.sell==null?'—':fmt(r.sell)}</b> · on the way <b>${fmt(r.inb||0)}</b> · can build <b>${fmt(r.buildCap!=null?r.buildCap:((avail(p)||{}).n||0))}</b></small></td>
+      <td class="plN">${r.ads?n1(r.ads):'—'}<small>${esc(srcTxt(d))}</small></td>
+      <td>${chip(sc[0],sc[1])}</td>
+      <td class="plDl">${when}</td>
+      <td class="plBar">${bar(segs,marks,cap)}</td>
+      <td>${whoChip(who)}</td>
+      <td class="plBtns">${btn}<button class="btn sm ghost" title="Set a planning figure with an end date — for seasonal lines" onclick="LV3.openPlanRow('${p.id}')">Figure…</button></td></tr>`;};
+
+  /* ── a product the planner cannot plan ── */
+  const probRow=r=>{const p=r.p;
+    const what=r.state==='nodata'?['NO SALES FIGURE','No sales from SellerFuse or the hub, and no figure of yours — nothing is planned for it.']
+      :['NEVER COUNTED','Amazon stock has never been counted — the SellerFuse check fills it on its next run.'];
+    return `<tr class="plR prob" style="--c:#f87171">
+      <td class="plWhat"><a href="javascript:void(0)" onclick="LV3.openPlanRow('${p.id}')">${esc(p.name)}</a><small>${what[1]}</small></td>
+      <td class="plN">—</td><td>${chip(what[0],'#f87171')}</td><td class="plDl"><b class="plToday">set up</b></td>
+      <td class="plBar"><div class="plTl none"></div><div class="plCap">${r.state==='nodata'?'Type a monthly figure and it joins the plan straight away':'Waiting for a count'}</div></td>
+      <td>${whoChip('Jack')}</td>
+      <td class="plBtns">${r.state==='nodata'?`<input class="in plIn" type="number" min="0" placeholder="a month" onchange="LV3.setPlanDemand('${esc(p.asin)}',this.value)"><button class="btn sm ghost" title="Dead line? It stops asking everywhere." onclick="LV3.plSkip('${esc(p.asin)}')">Not selling</button>`:''}</td></tr>`;};
+
+  /* ── a part row ── */
+  const cRow=(L,dl)=>{const o=L.o,sup=L.sup||'';
+    const used=(L.drivers||[]).slice(0,3).join(', ')+((L.drivers||[]).length>3?' +'+((L.drivers||[]).length-3):'');
+    if(L.state==='nosup'||L.state==='noroute'){
+      const nosup=L.state==='nosup';
+      const sel=nosup?`<input class="in plIn wide" list="plSupList" placeholder="Supplier…" onchange="if(this.value)LV3.setCompSupplier('${o.id}',this.value)">`
+        :`<select class="in plIn wide" onchange="if(this.value)LV3.setRouteGroup('${esc(sup.toLowerCase().trim()).replace(/'/g,"\\'")}',this.value)"><option value="">How ${esc(sup)} ships…</option>${shipModes().map(m=>`<option value="${m.k}">${esc(String(m.label).split('—')[0].trim())} · ${m.lo}–${m.hi}d</option>`).join('')}</select>`;
+      const cov=L.cover!=null?Math.round(L.cover):null;
+      return `<tr class="plR prob" style="--c:#f87171">
+        <td class="plWhat"><span class="plPart">PART</span>${esc(o.name)}<small>${nosup?'no supplier on record':esc(sup)+' — no shipping route set'} · used by ${esc(used)}</small></td>
+        <td class="plN">${L.daily?n1(L.daily):'—'}</td><td>${chip(nosup?'NO SUPPLIER':'SET ROUTE','#f87171')}</td>
+        <td class="plDl"><b class="plToday">set up</b></td>
+        <td class="plBar">${bar(cov!=null?[['ok',0,cov],['out',cov,HZ]]:[],[],`${fmt(L.hand)} left${cov!=null?` ≈ ${fmt(cov)} days`:''} · can't work out when to order without ${nosup?'a supplier':'a route'}`)}</td>
+        <td>${whoChip(nosup?'Jack':owner(sup))}</td><td class="plBtns">${sel}</td></tr>`;}
+    const run=L.daily?(L.hand+(L.inTime||0))/L.daily:null,landD=L.lead||null;
+    const segs=run!=null?[['ok',0,run],['out',run,HZ]]:[],marks=[];
+    (o.layers||[]).filter(l=>!l.arr&&!l.writtenOff&&(l.eta2||l.eta1)).forEach(l=>marks.push(['inb',dTo(l.eta2||l.eta1),`${fmt(l.qty)} due ${dshort(l.eta2||l.eta1)}`]));
+    if(landD!=null)marks.push(['ship',landD,`Ordered today, it lands ~${dshort(addCalDays(today,landD))}`]);
+    if(L.buyByDays!=null)marks.push(['dl',Math.max(0,L.buyByDays),'Order by this day']);
+    const short=(run!=null&&landD!=null&&run<landD)?Math.round(landD-run):0;
+    let cap=`${fmt(L.hand)} left${run!=null?` ≈ ${fmt(Math.floor(run))} days`:''} · ${esc(L.route?L.route.label:'')} ${fmt(L.lead)}d → ordered today, lands ~${dshort(addCalDays(today,L.lead))}`;
+    if(short)cap+=` · <b class="plRed">~${fmt(short)} days short</b>`;
+    if(L.pendQty>0)cap+=` · ${fmt(L.pendQty)} already on order`;
+    const sc=L.skip?['SET ASIDE','#7f8896']:L.state==='buy'?[L.buyByDays<0?'ORDER — '+fmt(-L.buyByDays)+'D LATE':'ORDER TODAY','#ef4444']
+      :L.state==='soon'?['ORDER BY '+dshort(L.buyBy),'#fbbf24']:L.state==='upcoming'?['BY '+dshort(L.buyBy),'#94a3b8']:['ON ORDER · COVERED','#60a5fa'];
+    const qty=L.buyQty>0?`${fmt(L.buyQty)}${L.cases&&L.caseQty>1?` (${fmt(L.cases)}×${fmt(L.caseQty)})`:''}`:'';
+    return `<tr class="plR${dl>7?' safe':''}" style="--c:${sc[1]}${L.skip?';opacity:.6':''}">
+      <td class="plWhat"><span class="plPart">PART</span>${esc(o.name)}<small>${esc(sup||'—')} · used by ${esc(used)}</small></td>
+      <td class="plN">${L.daily?n1(L.daily):'—'}</td>
+      <td>${chip(sc[0],sc[1])}${L.topUp||(L.pendQty>0&&L.buyQty>0)?'<small class="plTop">top-up</small>':''}</td>
+      <td class="plDl">${L.buyQty>0?dlTxt(dl):'<span class="ovDim">covered</span>'}</td>
+      <td class="plBar">${bar(segs,marks,cap)}</td>
+      <td>${whoChip(owner(sup))}</td>
+      <td class="plBtns">${(L.buyQty>0&&!L.skip)?`<button class="btn sm pri" onclick="LV3.openLogOrder('${o.id}')">Order ${qty}</button><button class="btn sm ghost" title="Not buying this again — until its stock changes" onclick="LV3.buySkipSet('${o.id}','skip')">Not reordering</button>`:''}${L.skip?`<button class="btn sm ghost" onclick="LV3.buySkipSet('${o.id}','clear')">Bring back</button>`:''}${L.cost>0&&L.buyQty>0?`<small class="plCost">≈ ${gbp(L.cost)}</small>`:''}</td></tr>`;};
+
+  /* ── one supplier, several parts ── */
+  const gRow=g=>{const L0=g.lines[0],sup=g.sup,route=g.bucket==='route';
+    const list=g.lines.slice(0,3).map(L=>esc(L.o.name)+(L.buyQty>0?' ×'+fmt(L.buyQty):'')).join(', ')+(g.lines.length>3?` +${g.lines.length-3} more`:'');
+    const drv=[...new Set([].concat(...g.lines.map(L=>L.drivers||[])))];
+    const cost=g.lines.reduce((t,L)=>t+(L.buyQty>0?(L.cost||0):0),0),tops=g.lines.filter(L=>L.pendQty>0&&L.buyQty>0).length;
+    if(route){const sel=`<select class="in plIn wide" onchange="if(this.value)LV3.setRouteGroup('${esc(String(sup).toLowerCase().trim()).replace(/'/g,"\\'")}',this.value)"><option value="">How ${esc(sup)} ships…</option>${shipModes().map(m=>`<option value="${m.k}">${esc(String(m.label).split('—')[0].trim())} · ${m.lo}–${m.hi}d</option>`).join('')}</select>`;
+      return `<tr class="plR prob" style="--c:#f87171">
+        <td class="plWhat"><span class="plPart">${fmt(g.lines.length)} PARTS</span>${esc(sup)}<small>${list} · used by ${esc(drv.slice(0,3).join(', '))}${drv.length>3?' +'+(drv.length-3):''}</small></td>
+        <td class="plN">—</td><td>${chip('SET ROUTE','#f87171')}</td><td class="plDl"><b class="plToday">set up</b></td>
+        <td class="plBar"><div class="plTl none"></div><div class="plCap">No shipping route for ${esc(sup)}, so none of these can be dated — one answer covers all ${fmt(g.lines.length)}</div></td>
+        <td>${whoChip(owner(sup))}</td><td class="plBtns">${sel}</td></tr>`;}
+    const run=L0.daily?(L0.hand+(L0.inTime||0))/L0.daily:null,landD=L0.lead||null;
+    const segs=run!=null?[['ok',0,run],['out',run,HZ]]:[],marks=[];
+    if(landD!=null)marks.push(['ship',landD,`Ordered today, it lands ~${dshort(addCalDays(today,landD))}`]);
+    if(L0.buyByDays!=null)marks.push(['dl',Math.max(0,L0.buyByDays),'Order by this day']);
+    const short=(run!=null&&landD!=null&&run<landD)?Math.round(landD-run):0;
+    let cap=`First to run out: <b>${esc(L0.o.name)}</b> — ${fmt(L0.hand)} left${run!=null?` ≈ ${fmt(Math.floor(run))} days`:''} · ${esc(L0.route?L0.route.label:'')} ${fmt(L0.lead)}d → ordered today, lands ~${dshort(addCalDays(today,L0.lead))}`;
+    if(short)cap+=` · <b class="plRed">~${fmt(short)} days short</b>`;
+    const sc=L0.state==='buy'?[L0.buyByDays<0?'ORDER — '+fmt(-L0.buyByDays)+'D LATE':'ORDER TODAY','#ef4444']
+      :L0.state==='soon'?['ORDER BY '+dshort(L0.buyBy),'#fbbf24']:L0.state==='upcoming'?['BY '+dshort(L0.buyBy),'#94a3b8']:['ON ORDER · COVERED','#60a5fa'];
+    const buying=g.lines.filter(L=>L.buyQty>0&&!L.skip);
+    return `<tr class="plR${g.bucket==='later'?' safe':''}" style="--c:${sc[1]}">
+      <td class="plWhat"><span class="plPart">${fmt(g.lines.length)} PARTS</span>${esc(sup)}<small>${list} · used by ${esc(drv.slice(0,3).join(', '))}${drv.length>3?' +'+(drv.length-3):''}</small></td>
+      <td class="plN">—</td>
+      <td>${chip(sc[0],sc[1])}${tops?`<small class="plTop">${fmt(tops)} top-up${tops===1?'':'s'}</small>`:''}</td>
+      <td class="plDl">${buying.length?dlTxt(L0.buyByDays):'<span class="ovDim">covered</span>'}</td>
+      <td class="plBar">${bar(segs,marks,cap)}</td>
+      <td>${whoChip(owner(sup))}</td>
+      <td class="plBtns">${buying.length?`<button class="btn sm pri" onclick="LV3.openLogOrder('${buying[0].o.id}')">Log order</button>`:''}${cost>0?`<small class="plCost">${fmt(buying.length)} part${buying.length===1?'':'s'} · ≈ ${gbp(cost)}</small>`:''}</td></tr>`;};
+
+  /* ── gather, sort by the day something has to happen ── */
+  const now=[],later=[],probs=[];
+  az.rows.forEach(r=>{
+    if(r.state==='nodata'||r.state==='nocount'){probs.push({h:probRow(r),dl:-0.5});return;}
+    if(r.state==='paused'||!r.ads)return;
+    /* the same deadline the Action centre's send list uses */
+    const _u=sendUrgency(r),dl=_u?_u.slack:(r.protDays!=null?Math.floor(r.protDays-fba):null);
+    (r.state==='safe'?later:now).push({h:pRow(r,dl),dl:dl==null?999:(r.state==='waiting'?Math.max(dl,0)+30:dl)});});
+  /* parts go in one row per supplier order — the way they are actually bought (Love Pub
+     Snacks was eight rows for one phone call). A supplier with one part keeps the full row. */
+  const grp={};
+  buys.forEach(L=>{
+    if(L.state==='nosup'){probs.push({h:cRow(L,0),dl:-0.5});return;}
+    const bucket=L.state==='noroute'?'route':(L.state==='buy'||L.state==='soon')?'now':(L.state==='upcoming'||L.state==='waiting')?'later':null;
+    if(!bucket)return;
+    const k=bucket+':'+_supKey(L.sup||'?');(grp[k]=grp[k]||{bucket,sup:L.sup||'?',lines:[]}).lines.push(L);});
+  Object.values(grp).forEach(g=>{
+    g.lines.sort((a,b)=>(a.buyByDays==null?999:a.buyByDays)-(b.buyByDays==null?999:b.buyByDays));
+    const w=g.lines[0],dl=g.bucket==='route'?-0.5:(w.buyByDays==null?(g.bucket==='now'?0:999):w.buyByDays);
+    const h=g.lines.length===1?cRow(w,w.buyByDays):gRow(g);
+    (g.bucket==='route'?probs:g.bucket==='now'?now:later).push({h,dl});});
+  const main=now.concat(probs).sort((a,b)=>a.dl-b.dl);
+  later.sort((a,b)=>a.dl-b.dl);
+  const late=main.filter(x=>x.dl<0&&x.dl!==-0.5).length,week=main.filter(x=>x.dl>=0&&x.dl<=7).length;
+  const jackBuys=M.buys.filter(L=>owner(L.sup)==='Jack'),beckiBuys=M.buys.filter(L=>owner(L.sup)!=='Jack');
+  const paused=az.rows.filter(r=>r.state==='paused');
+  const sups=[...new Set(plSuppliers())];
   return `<div style="max-width:none;margin:0;">
-    <div class="plnStrip"><span><b style="color:#ef4444">${fmt(M.oosBlocked.length)}</b> empty at Amazon</span><span><b style="color:#4ade80">${fmt(M.send.length)}</b> to send · ${fmt(M.sendUnits)} units</span><span><b style="color:#fbbf24">${fmt(M.buys.length)}</b> part${M.buys.length===1?'':'s'} to order · ${gbp(M.buyCost)}</span>
-      <span class="ovDim" style="margin-left:auto;font-size:11.5px;">cover = days until the Amazon shelf empties, counting inbound that lands in time · trigger at <b>${trig}d</b> (${fba} FBA + ${saf} safety)</span></div>
-    <div class="panel"><div class="ph"><span class="t">Products</span><span class="sub">${fmt(live.length)} need watching · ${fmt(safe.length)} safe · click a row for the working</span></div>
-      <div class="plnTbl">${head}${live.map(pRow).join('')||'<div class="ovEmpty"><span class="ovTick">✓</span>Everything is protected.</div>'}</div>
-      ${safe.length?`<details class="plnMore"><summary>SAFE — ${fmt(safe.length)} products, nothing to do ▾</summary><div class="plnTbl">${safe.map(pRow).join('')}</div></details>`:''}
-      ${paused?`<div class="pmeta" style="padding:6px 14px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">${fmt(paused)} marked not selling — hidden. Selling again?
-        ${az.rows.filter(r=>r.state==='paused'&&hubSkipped(r.p)).map(r=>`<button class="btn sm" onclick="LV3.plUnskip('${esc(r.p.asin)}')" title="Take the not-selling mark off">${esc(r.p.name)}</button>`).join('')}</div>`:''}</div>
-    <div class="panel"><div class="ph"><span class="t">Parts</span><span class="sub">what to buy, how much, by when · full detail on Purchases</span></div>
-      <div class="plnTbl">${bHead}${bRows.map(bRow).join('')||'<div class="ovEmpty"><span class="ovTick">✓</span>Every part is covered.</div>'}</div></div>
-    ${gaps?`<details class="plnMore panel" style="margin-top:8px;"><summary>Setup gaps — routes, sales figures, counts the planner is missing ▾</summary><div style="display:grid;gap:10px;padding:10px 14px 12px;">${gaps}</div></details>`:''}
-    <details class="plnMore panel" style="margin-top:8px;"><summary>Assumptions ▾</summary><div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;padding:10px 14px 12px;">${setBox('safetyDays',safetyDays(),'Safety reserve','days')}${setBox('prepDays',prepDaysN(),'Warehouse prep','days')}${setBox('cycleDays',cycleDaysN(),'Purchase cycle','days')}<span class="pmeta" style="margin:0 0 4px;">FBA pipeline: <b>${primeDays()} working days = ${fba} calendar</b> — set in Settings</span></div></details>
+    <div class="plStrip">
+      <span><b style="color:#ef4444">${fmt(late)}</b> late</span>
+      <span><b style="color:#fbbf24">${fmt(week)}</b> due this week</span>
+      <span><b style="color:#f87171">${fmt(probs.length)}</b> to set up</span>
+      <span><b style="color:#4ade80">${fmt(M.send.length)}</b> to send · ${fmt(M.sendUnits)} units</span>
+      <span><b style="color:#93c5fd">${fmt(beckiBuys.length)}</b> for Becki to order · ${gbp(beckiBuys.reduce((t,L)=>t+(L.cost||0),0))}</span>
+      <span><b style="color:#c4b5fd">${fmt(jackBuys.length)}</b> for Jack (Alibaba) · ${gbp(jackBuys.reduce((t,L)=>t+(L.cost||0),0))}</span>
+      <span class="ovDim" style="margin-left:auto">sorted by the day something has to happen · a send takes ${fba} days to be sellable · ${saf} days' safety</span></div>
+    <div class="plLegend"><span><i class="ok"></i>stock at Amazon / on the shelf</span><span><i class="out"></i>empty</span><span><b class="inb"></b>stock landing</span><span><b class="ship"></b>if you send / order today</span><span><b class="dl"></b>has to happen by</span></div>
+    <div class="panel plPanel"><table class="plT">
+      <colgroup><col style="width:23%"><col style="width:6%"><col style="width:13%"><col style="width:8%"><col style="width:31%"><col style="width:7%"><col style="width:12%"></colgroup>
+      <thead><tr><th>Product or part</th><th class="plN">Per day</th><th>Status</th><th>When</th><th>Next 60 days</th><th>Who</th><th></th></tr></thead>
+      <tbody>${main.map(x=>x.h).join('')||'<tr><td colspan="7" class="ovEmpty"><span class="ovTick">✓</span>Nothing needs doing.</td></tr>'}</tbody>
+      ${later.length?`<tbody class="plLater" hidden>${later.map(x=>x.h).join('')}</tbody>
+      <tbody><tr><td colspan="7" class="plMore"><button class="btn sm ghost" onclick="const t=this.closest('table').querySelector('.plLater');t.hidden=!t.hidden;this.textContent=t.hidden?'Show the ${fmt(later.length)} that are fine for now ▾':'Hide them ▴'">Show the ${fmt(later.length)} that are fine for now ▾</button></td></tr></tbody>`:''}
+    </table>
+    <datalist id="plSupList">${sups.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+    ${paused.length?`<div class="pmeta" style="padding:8px 14px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px solid var(--border)">Not planned (${fmt(paused.length)}):
+      ${paused.map(r=>{const z=(D.settings.acPause||{})[r.p.asin];return `<span>${esc(r.p.name)}</span>${z?`<button class="btn sm" onclick="LV3.acUnpause('${esc(r.p.asin)}')">Selling again</button>`:hubSkipped(r.p)?`<button class="btn sm" onclick="LV3.plUnskip('${esc(r.p.asin)}')">Selling again</button>`:''}`;}).join(' ')}</div>`:''}
+    </div>
+    ${gaps?`<div class="panel" style="margin-top:8px;"><div class="ph"><span class="t">Also needs setting up</span></div><div style="display:grid;gap:10px;padding:10px 14px 12px;">${gaps}</div></div>`:''}
+    <details class="plnMore panel" style="margin-top:8px;"><summary>Assumptions ▾</summary><div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;padding:10px 14px 12px;">${setBox('safetyDays',safetyDays(),'Safety reserve','days')}${setBox('prepDays',prepDaysN(),'Warehouse prep','days')}${setBox('cycleDays',cycleDaysN(),'Purchase cycle','days')}${setBox('aheadDays',aheadDays(),'Plan sends ahead','days')}<span class="pmeta" style="margin:0 0 4px;">FBA pipeline: <b>${primeDays()} working days = ${fba} calendar</b> — set in Settings</span></div></details>
   </div>`;
 }
 function vPlanner(){
@@ -2583,28 +2835,11 @@ function vPlanner(){
     +'<div style="font-size:11.5px;font-weight:800;color:var(--amb);margin-bottom:6px;">'+title+'</div>'+body+'</div>';
 
   let gaps='';
-  if(noRoute.length)gaps+=gapCard('Set each supplier\u2019s route — no BUY date without one',
-    noRoute.map(g=>{const s=g.names[0];const extra=g.names.slice(1);
-      return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px;">'
-      +'<span style="flex:1;min-width:0;color:var(--text)">'+esc(s)
-      +(extra.length?'<div class="pmeta" style="margin:0">also covers: '+esc(extra.join(', '))+'</div>':'')+'</span>'
-      +'<select class="in" style="width:220px" onchange="if(this.value)LV3.setRouteGroup(\''+esc(g.names.map(n=>n.toLowerCase().trim()).join('|')).replace(/'/g,"\\'")+'\',this.value)">'
-      +'<option value="">'+(guessMode(s)?'guess: '+esc(String((shipModes().find(m=>m.k===guessMode(s))||{}).label||guessMode(s)).split('—')[0].trim().replace(' / parcel','')):'pick\u2026')+'</option>'
-      +shipModes().map(m=>'<option value="'+m.k+'">'+esc(String(m.label).split('—')[0].trim())+' · '+m.lo+'–'+m.hi+'d</option>').join('')
-      +'</select></div>';}).join('')
-    +'<div class="pmeta" style="margin:6px 0 0">One-time job — the same answer then covers everything that supplier sends, and you can change it in Settings later.</div>');
-  if(noDemand.length)gaps+=gapCard('No sales history and no planning figure — these are invisible to the planner',
-    noDemand.map(r=>'<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px;">'
-      +'<span style="flex:1;color:var(--text)">'+esc(r.p.name)+'</span>'
-      +'<input class="in" style="width:80px" type="number" placeholder="e.g. 50" value="" onchange="LV3.setPlanDemand(\''+esc(r.p.asin)+'\',this.value)">'
-      +'<span class="pmeta" style="margin:0">/month</span>'
-      +'<button class="btn sm" title="Dead line? One click and it stops nagging everywhere." onclick="LV3.plSkip(\''+esc(r.p.asin)+'\')">Not selling</button></div>').join('')
-    +'<div class="pmeta" style="margin:6px 0 0">Your estimate, clearly labelled as yours — the moment real sales land from the hub they take over automatically.</div>');
+  /* 23 Oct (L): routes, suppliers, sales figures and counts are set from their own row in
+     the table now — only orders with no delivery date stay down here */
   if(noEtaLines.length)gaps+=gapCard('Orders with no delivery method — the engine cannot tell if they land in time',
     noEtaLines.map(L=>'<div style="font-size:12px;padding:2px 0;color:var(--text)">'+fmt(L.pendNoEta)+' × '+esc(L.o.name)+' <span class="pmeta" style="margin:0">('+esc(L.sup||'?')+')</span></div>').join('')
     +'<div class="pmeta" style="margin:6px 0 0">Until a method is picked these count as NOT protecting you — deliberately harsh, so a late order can never hide. Set them on the <a href="javascript:void(0)" onclick="LV3.go(\'purchases\')" style="color:var(--blu)">Purchases tab</a>.</div>');
-  if(noCount.length)gaps+=gapCard('Never counted at Amazon',
-    noCount.map(r=>'<div style="font-size:12px;padding:2px 0;color:var(--text)">'+esc(r.p.name)+'</div>').join(''));
   /* Jack, 30 Aug: "the engine can be sophisticated — SHE sees BUY NOW / SEND
      NOW / dates." The simple action list replaces everything below; the old
      deep view still opens per product (openPlanRow). */
@@ -2613,6 +2848,10 @@ function vPlanner(){
 
 /* ═══════════════ TABS + ROUTER ═══════════════ */
 function render(){
+  /* one engine run per render pass — and a fresh one for every pass. The 800ms cache alone
+     let a change made just after a redraw (a planning figure, SellerFuse's numbers landing)
+     paint the old answer until something else redrew. */
+  _plCache=null;
   if(TAB==='guide')TAB='overview';        // the tab is gone; anyone parked on it lands home
   setTimeout(()=>{const b=$('dlvBtn');if(!b)return;const n=inboundCount();
     b.innerHTML='Deliveries'+(n?` <span class="chip info" style="margin-left:5px">${fmt(n)}</span>`:'');},0);
@@ -2677,11 +2916,17 @@ function syncSticky(){
     root.style.setProperty('--lavTh',thTop+'px');
   watchStickyBars(bar,ph);
 }
+/* 23 Oct 2026: disconnecting and re-observing on EVERY measurement — including the ones the
+   observer itself triggered — queued a fresh notification inside the observer's own callback,
+   so a single resize could chase itself round ("ResizeObserver loop completed with
+   undelivered notifications", seen by check 81 on the taller Planner). Now the bars are only
+   re-observed when they are new nodes, and the observer's work runs just after its callback. */
+let _roBar=null,_roPh=null,_roT=0;
 function watchStickyBars(bar,ph){
   if(typeof ResizeObserver==='undefined')return;
-  if(!_stickRO)_stickRO=new ResizeObserver(()=>{stickWatch();});
-  /* re-observing the same element is a no-op, and the panel header is a new
-     node after every render, so this has to run each time */
+  if(!_stickRO)_stickRO=new ResizeObserver(()=>{clearTimeout(_roT);_roT=setTimeout(stickWatch,0);});
+  if(bar===_roBar&&ph===_roPh)return;
+  _roBar=bar;_roPh=ph;
   try{_stickRO.disconnect();
     if(bar)_stickRO.observe(bar);
     if(ph)_stickRO.observe(ph);
@@ -2759,9 +3004,15 @@ function ovModel(){
     g.missing=g.rows.reduce((t,r)=>t+Math.max(0,(r.rec||0)-(r.alloc||0)),0);
     return g;}).sort((a,b)=>(a.oos===b.oos?0:(a.oos?-1:1))||(a.worst.protDays-b.worst.protDays));
   const buysAll=PE.buys.filter(L=>!L.isProd&&L.buyQty>0&&(L.state==='buy'||L.state==='soon'));
-  const onWay=buysAll.filter(L=>(L.pendQty||0)>0);
-  const skipped=buysAll.filter(L=>!((L.pendQty||0)>0)&&L.skip);
-  const buys=buysAll.filter(L=>!((L.pendQty||0)>0)&&!L.skip);
+  /* Jack, 23 Oct (J): some on order no longer hides the rest. When every open order
+     for the part has a date, the engine has already counted the ones landing in time,
+     so buyQty is the real extra — a top-up (flapjacks: 440 more on top of 1,520). An
+     order with no date can't be judged, so that part waits under Receive instead. */
+  const _top=L=>(L.pendQty||0)>0&&!(L.pendNoEta>0);
+  const onWay=buysAll.filter(L=>(L.pendQty||0)>0&&!_top(L));
+  buysAll.forEach(L=>{L.topUp=_top(L);});
+  const skipped=buysAll.filter(L=>!onWay.includes(L)&&L.skip);
+  const buys=buysAll.filter(L=>!onWay.includes(L)&&!L.skip);
   /* "LovePubSnacks" and "Love Pub Snacks" are one supplier and one order —
      group on the squashed name, show the first spelling seen */
   const bySup={};buys.forEach(L=>{const raw=(L.sup||'?').trim();const k=raw.toLowerCase().replace(/[^a-z0-9]/g,'')||'?';(bySup[k]=bySup[k]||{sup:raw,lines:[]}).lines.push(L);});
@@ -2903,6 +3154,52 @@ function wlUntick(k){
   delete D.settings.wlAck[k];
   savePrefs();render();
 }
+/* profit a unit, from SellerFuse (brought in with the stock check). A product it has no
+   figure for — never sold, or a listing SellerFuse has not seen lately — takes the middle
+   of the rest, so it still ranks instead of dropping to the bottom. */
+/* Jack, 23 Oct — when does a send stop being optional? Work out when ALL the stock we know
+   about is gone: what is at Amazon, plus what is on its way if it lands before the shelf
+   empties — or, when it lands in a gap a send made today could not reach anyway, from when
+   it lands. A send has to leave fbaCalDays() before that. Past that day, every day it waits
+   is a day of sales lost (`losing`); before it, waiting costs nothing yet (`slack` days). */
+function sendUrgency(r){
+  const ads=r&&r.ads;if(!ads||r.sell==null)return null;
+  const fba=r.landIso?Math.round((new Date(r.landIso+'T00:00:00')-new Date(dayISO()+'T00:00:00'))/864e5):fbaCalDays();
+  const sell=r.sell||0,inb=r.inb||0,own=sell/ads;
+  const inbD=r.inbEta?Math.max(0,Math.round((new Date(String(r.inbEta).slice(0,10)+'T00:00:00')-new Date(dayISO()+'T00:00:00'))/864e5)):null;
+  let end=own;
+  if(inb>0&&inbD!=null){
+    if(inbD<=own)end=(sell+inb)/ads;           /* lands before it runs out */
+    else if(inbD<=fba)end=inbD+inb/ads;        /* the gap before it lands can't be reached by a send now */
+  }
+  /* Jack, 23 Oct: "make sure we don't run out of stock and have a small buffer like we coded" —
+     the send has to land with the safety reserve (Planner → Assumptions, 14 days) still in
+     hand, so the last day it can leave is fbaCalDays() + safetyDays() before the stock is gone */
+  const saf=safetyDays(),slack=Math.floor(end-fba-saf),pu=profitOf(r.p),pr=priceOf(r.p);
+  return{end,slack,saf,losing:end<fba,buffer:end>=fba&&end<fba+saf,by:addCalDays(dayISO(),Math.max(0,slack)),
+    units:ads,profit:pu!=null?ads*pu:null,sales:pr!=null?ads*pr:null,lasts:r.alloc>0?r.alloc/ads:null};
+}
+/* selling price a unit, from SellerFuse (brought in with the stock check) */
+function priceOf(p){const v=(D.settings.sfPrice||{})[p&&p.asin];return v>0?v:null;}
+let _acSendCopy=[];
+function acCopySend(){
+  const txt='Send in this order — '+dshort(dayISO())+'\n'+_acSendCopy.join('\n');
+  try{navigator.clipboard.writeText(txt).then(()=>toast('Send list copied — paste it anywhere','ok'),()=>toast('Could not copy — select and copy by hand','er'));}
+  catch(e){toast('Could not copy','er');}
+}
+function profitOf(p){
+  const m=D.settings.sfProfit||{},v=m[p&&p.asin];if(v!=null&&v>0)return v;
+  const all=Object.values(m).filter(x=>x>0).sort((a,b)=>a-b);
+  return all.length?all[Math.floor(all.length/2)]:null;
+}
+/* Jack, 23 Oct (H): has anyone from the UK team opened the Action centre today? Jack and
+   Sarah don't count (Sarah stays out of PLUB). Only asked from 12:00 UK, so a quiet morning
+   isn't flagged before anyone has had the chance. Also read by the Dashboard. */
+function acUkMissing(seenMap){
+  const u=_ukParts(new Date());if(u.h<12||u.wd===0||u.wd===6)return false;
+  const day=dayISO(),seen=seenMap||D.settings.acSeen||{};
+  return !Object.keys(seen).some(n=>!/^(jack|sarah)\b/i.test(n)&&String(seen[n]).slice(0,10)===day);
+}
 function vOverview(){
   const live=D.products.filter(p=>!p.archived);
   const blockedAll=live.filter(p=>{const a=avail(p);return a.kind!=='norecipe'&&a.n===0;});
@@ -2976,17 +3273,39 @@ function vOverview(){
   /* who has opened it today — once a person a day */
   {D.settings.acSeen=D.settings.acSeen||{};const sn=D.settings.acSeen[who];
    if(who!=='someone'&&(!sn||String(sn).slice(0,10)!==today)){D.settings.acSeen[who]=new Date().toISOString();try{savePrefs();}catch(e){}}}
-  const LN={send:[],recv:[],order:[]};
+  const LN={send:[],recv:[],order:[],orderj:[]};
+  /* Jack, 23 Oct (I): "I only order the Alibaba stuff — Becki orders the rest" */
+  const _ownLane=sup=>/alibab/i.test(String(sup||''))?'orderj':'order';
   const put=(lane,o)=>LN[lane].push(Object.assign({lane},o));
-  /* BUILD & SEND — selling products first; one with no sends lately is greyed, not red */
-  M.send.forEach(r=>{const p=r.p,oos=(r.sell||0)<=0,cov=Math.round(r.protDays||0),sold=p.ship30||0,quiet=sold===0;
-    const can=(avail(p)||{}).n;
-    put('send',{k:'send_'+p.id,urg:quiet?4:oos?0:cov<=fba?1:cov<=trig?2:3,
-      chip:quiet?['NO SENDS IN 30 DAYS','#94a3b8']:oos?['EMPTY AT AMAZON','#ef4444']:[`${cov} DAYS LEFT`,cov<=fba?'#fb923c':'#fbbf24'],
-      title:`<b>${fmt(r.alloc)}</b> × ${esc(p.name)}`,
-      facts:`at Amazon <b>${fmt(r.sell||0)}</b> · on the way <b>${fmt(r.inb||0)}</b>${r.since?` (${fmt(r.since)} sent since the count)`:''} · can build <b>${can==null?'—':fmt(can)}</b> · sent 30d ${fmt(sold)}`
-        +(r.alloc<r.rec?` · <b style="color:#fbbf24">only ${fmt(r.alloc)} of ${fmt(r.rec)} — short of ${esc(r.lim?r.lim.name:'a part')}</b>`:''),
-      btns:[['Ship','pri',`openShip('${p.id}')`],['Not selling — pause','ghost',`acPause('${p.asin}')`]]});});
+  /* BUILD & SEND — Jack, 23 Oct (A): ranked by the money a line loses a day, empty and
+     selling first. The grey "NO SENDS IN 30 DAYS" is gone: it graded a line by what we had
+     SENT, so Dove 75ml MD (119 sold, then empty a month, 390 buildable) sank to the bottom
+     precisely because nobody had sent it. (F) Ship opens at the planned number. */
+  /* Jack, 23 Oct: "nothing should be out of stock — work out the units / profit / revenue lost
+     per day, highest to lowest — a little is better than nothing, but you know how long that
+     stock should last". Lines losing sales for every day the send waits come first, most money
+     a day first; then the rest by the last day they can leave; a line already covered by what
+     is on its way goes last but stays (a little is better than nothing). Numbered, so the UK
+     team works down from the top. (F) Ship opens at the planned number. */
+  M.send.forEach(r=>{const p=r.p,oos=(r.sell||0)<=0,u=sendUrgency(r)||{};
+    const can=(avail(p)||{}).n,d=r.demand||{},day=r.ads||0;
+    const money=x=>x==null?'—':'£'+(x<10?x.toFixed(2):fmt(Math.round(x)));
+    const losing=!!u.losing,covered=!losing&&u.slack!=null&&u.slack>fba;
+    put('send',{k:'send_'+p.id,urg:losing?0:covered?2:1,
+      val:losing?(u.profit!=null?u.profit:day):(-(u.slack||0)*1000+(u.profit||0)),
+      chip:losing?[oos?'EMPTY — LOSING SALES':'LOSING SALES UNTIL IT LANDS','#ef4444']
+        :covered?['COVERED BY WHAT IS ON ITS WAY','#60a5fa']
+        :[u.slack<0?'SEND NOW — INTO THE BUFFER':u.slack===0?'SEND TODAY':`SEND BY ${dshort(u.by).toUpperCase()}`,u.slack<=3?'#fb923c':'#fbbf24'],
+      chip2:losing?[`≈ ${money(u.profit)}/day lost`,'#f87171']:null,
+      title:esc(p.name),
+      facts:(!losing&&u.slack<0?`<b style="color:#fdba74">lands with ${fmt(Math.max(0,Math.floor(u.end-fbaCalDays())))} of the ${u.saf} buffer days left</b> · `:'')
+        +`${losing?'every day it waits':'if it ran out'}: <b>${day>=10?Math.round(day):day.toFixed(1)}</b> units · <b>${money(u.profit)}</b> profit · <b>${money(u.sales)}</b> sales a day`
+        +` · at Amazon <b>${r.soldSince?'~':''}${fmt(r.sell||0)}</b>${r.soldSince?` <span class="acxSrc">(${fmt(r.counted)} counted, ~${fmt(r.soldSince)} sold since)</span>`:''}${r.inb?` · on the way <b>${fmt(r.inb)}</b>${r.inbEta?' (~'+dshort(r.inbEta)+')':''}`:''}`
+        +` · this send lasts <b>~${u.lasts!=null?fmt(Math.max(1,Math.round(u.lasts))):'—'} days</b>`
+        +` · can build <b>${can==null?'—':fmt(can)}</b> <span class="acxSrc">${esc(d.label||'')}</span>`
+        +(r.alloc<r.rec?` · <b style="color:#fbbf24">${fmt(r.alloc)} of the ${fmt(r.rec)} wanted — short of ${esc(r.lim?r.lim.name:'a part')}; a little is better than nothing</b>`:''),
+      copy:`${p.name} — ${fmt(r.alloc)}`,units:r.alloc,
+      btns:[[`Ship ${fmt(r.alloc)}`,'go acxBig',`openShip('${p.id}',${r.alloc})`],['Not selling — pause','ghost',`acPause('${p.asin}')`]]});});
   /* RECEIVE — due within a week, overdue, or with no date */
   M.inbound.forEach(g=>{const x=g.x,l=x.l,due=g.due,d=due==='9999'?99:Math.round((new Date(due)-new Date(today))/864e5);
     if(!g.late&&due!=='9999'&&d>7)return;
@@ -3004,9 +3323,9 @@ function vOverview(){
   M.sups.forEach(g=>{const d=g.byDays,lines=g.lines;
     const k='buy_'+g.sup.toLowerCase().replace(/[^a-z0-9]/g,'')+'_'+lines.map(Ln=>String(Ln.o.id)).sort().join('.');
     const holds=[];M.parts.forEach(pg=>{if(pg.part&&lines.some(Ln=>String(Ln.o.id)===String(pg.part.id)))pg.rows.forEach(r=>holds.push(r.p.name));});
-    put('order',{k,urg:d<0?0:d===0?1:d<=3?2:3,
-      chip:d<0?[`SHOULD HAVE GONE ${fmt(-d)} DAYS AGO`,'#ef4444']:d===0?['ORDER TODAY','#fb923c']:[`ORDER BY ${dshort(addCalDays(today,d))}`,'#fbbf24'],
-      title:`<b>${esc(g.sup)}</b> — ${lines.slice(0,4).map(Ln=>fmt(Ln.buyQty)+' × '+esc(Ln.o.name)).join(', ')}${lines.length>4?' +'+(lines.length-4)+' more':''}`,
+    put(_ownLane(g.sup),{k,urg:d<0?0:d===0?1:d<=3?2:3,
+      chip:d<0?[`${fmt(-d)} DAY${-d===1?'':'S'} LATE`,'#ef4444']:d===0?['ORDER TODAY','#fb923c']:[`ORDER BY ${dshort(addCalDays(today,d))}`,'#fbbf24'],
+      title:`<b>${esc(g.sup)}</b> — ${lines.slice(0,4).map(Ln=>fmt(Ln.buyQty)+' × '+esc(Ln.o.name)+(Ln.topUp?` <span class="acxSrc">(top-up — ${fmt(Ln.pendQty)} already on order)</span>`:'')).join(', ')}${lines.length>4?' +'+(lines.length-4)+' more':''}`,
       facts:`${fmt(lines.length)} part${lines.length===1?'':'s'}${g.cost?' · about '+gbp(g.cost):''}${holds.length?' · holds up '+esc([...new Set(holds)].slice(0,3).join(', ')):''}`,
       btns:[['Log order','pri',`openLogOrder('${lines[0].o.id}')`],['Ordered outside the app','ghost',`acDone('${k}')`]]});});
   M.parts.forEach(g=>{if(!g.part||inBuy.has(String(g.part.id)))return;const g2=g.gap||{kind:'none'};
@@ -3015,19 +3334,30 @@ function vOverview(){
     if(g2.kind==='late'){put('recv',{k:'part_'+g.part.id,urg:g.oos?0:2,chip:[`LANDS ${dshort(g2.eta)} — TOO LATE`,g.oos?'#ef4444':'#fb923c'],
       title:`<b>${fmt(g2.qty)}</b> × ${esc(g.part.name)} on the way`,facts:`holds up ${list}${g.oos?' · Amazon is empty until then':''}`,
       btns:[['Open','pri',`openPlanRow('${g.worst.p.id}')`],['Change date','ghost',`openDeliveries()`]]});return;}
-    put('order',{k:'part_'+g.part.id,urg:g.oos?0:1,chip:[g.oos?'AMAZON EMPTY':'NOTHING ON ORDER',g.oos?'#ef4444':'#fb923c'],
+    put(_ownLane(compSupplier(g.part)),{k:'part_'+g.part.id,urg:g.oos?0:1,chip:[g.oos?'AMAZON EMPTY':'NOTHING ON ORDER',g.oos?'#ef4444':'#fb923c'],
       title:`<b>${esc(g.part.name)}</b> — nothing on order`,facts:`holds up ${list}${g.missing?` · ${fmt(g.missing)} units waiting`:''}`,
       btns:[['Order it','pri',`openLogOrder('${g.part.id}')`]]});});
   /* set-up jobs for the warehouse (link a purchase, set a route) sit with Receive */
   H.wh.forEach(j=>put('recv',{k:j.k,urg:2,chip:['SET UP','#fbbf24'],title:j.t,facts:j.s,btns:[[j.btn,'pri',j.go]]}));
   /* plain words for the record — the log used to say "ticked off buy alibaba 51308bdf…" */
-  _acLabels={};[].concat(LN.send,LN.recv,LN.order).forEach(x=>{_acLabels[x.k]=String(x.title||'').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&times;|×/g,'×');});
+  _acLabels={};[].concat(LN.send,LN.recv,LN.order,LN.orderj).forEach(x=>{_acLabels[x.k]=String(x.title||'').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&times;|×/g,'×');});
+  _acSendCopy=LN.send.filter(x=>!(snz[x.k]||ack[x.k])).sort((a,b)=>a.urg-b.urg||(b.val||0)-(a.val||0)).map((x,i)=>`${i+1}. ${x.copy}`);
   /* split each lane: to do, snoozed, done */
   const LANES=[['send','Build & send','Becki · UK team','Products to build and send to Amazon — most urgent first. A line clears itself once the send is recorded.'],
                ['recv','Receive deliveries','Becki · UK team','Deliveries due this week, overdue, or with no date. Wrong date? Change it — it is kept on the line.'],
-               ['order','To order','Jack','Parts to buy, one line per supplier.']];
+               ['order','To order — Becki','Becki · UK team','Parts to buy from every supplier except Alibaba, one line per supplier.'],
+               ['orderj','To order — Jack','Jack · Alibaba only','Alibaba parts. Long-lead ones show 30 days before their order-by date.']];
   const st=k=>snz[k]?'snz':ack[k]?'done':'todo';
-  const all=[].concat(LN.send,LN.recv,LN.order);
+  const all=[].concat(LN.send,LN.recv,LN.order,LN.orderj);
+  /* Jack, 23 Oct (H): how long a line has sat on the list. First seen is kept per line;
+     a line gone for over 2 days starts again when it comes back. Red after 2 working days. */
+  {const F=D.settings.acFirst=D.settings.acFirst||{};let ch=false;
+    all.forEach(x=>{if(st(x.k)!=='todo')return;const f=F[x.k];
+      if(!f||!f.l||daysSince(f.l)>2){F[x.k]={f:today,l:today};ch=true;}
+      else if(f.l!==today){f.l=today;ch=true;}
+      x.age=workDaysBetween(F[x.k].f,today);});
+    Object.keys(F).forEach(k=>{if(!F[k]||daysSince(F[k].l)>14){delete F[k];ch=true;}});
+    if(ch)try{savePrefs();}catch(e){}}
   const nTodo=lane=>LN[lane].filter(x=>st(x.k)==='todo').length;
   const snzAll=all.filter(x=>st(x.k)==='snz');
   /* Done today — what actually happened, from the record */
@@ -3037,11 +3367,11 @@ function vOverview(){
   (typeof lavShipments!=='undefined'?lavShipments:[]).forEach(x=>{if(String(x.date||'').slice(0,10)===today)doneToday.push({t:x.created_at||x.date,who:x.by||'',txt:`Sent ${fmt(x.units)} × ${x.prod||x.asin} on ${x.shipId}`});});
   doneToday.sort((a,b)=>String(b.t).localeCompare(String(a.t)));
   const _only=_acOnly;
-  const rowHtml=x=>{const s0=st(x.k),z=snz[x.k],dn=ack[x.k];
+  const rowHtml=(x,num)=>{const s0=st(x.k),z=snz[x.k],dn=ack[x.k];
     const chip=s0==='snz'?[`SNOOZED TILL ${dshort(z.until)}`,'#94a3b8']:s0==='done'?['DONE','#4ade80']:x.chip;
     return `<div class="acx${s0==='todo'?'':' dim'}" style="--c:${chip[1]};">
       <div class="acxMain">
-        <div class="acxTop"><span class="acxChip">${chip[0]}</span><span class="acxTitle">${x.title}</span></div>
+        <div class="acxTop">${num?`<span class="acxNum">${num}</span>`:''}<span class="acxChip">${chip[0]}</span>${s0==='todo'&&x.chip2?`<span class="acxChip2" style="--c2:${x.chip2[1]}">${x.chip2[0]}</span>`:''}<span class="acxTitle">${x.title}</span>${s0==='todo'&&x.age>0?`<span class="acxAge${x.age>=2?' late':''}" title="On this list since ${dshort((D.settings.acFirst[x.k]||{}).f)}">on the list ${fmt(x.age)} working day${x.age===1?'':'s'}${x.age>=2?' ▲':''}</span>`:''}</div>
         <div class="acxFacts">${s0==='snz'?`snoozed by ${esc(z.by||'someone')}${z.at?' on '+dshort(String(z.at).slice(0,10)):''} · `:s0==='done'?`by ${esc(dn.by||'someone')} on ${dshort(dn.d)} · `:''}${x.facts||''}</div>
       </div>
       <div class="acxBtns">${s0==='snz'?`<button class="btn sm" onclick="LV3.acUnsnooze('${x.k}')">Bring back now</button>`
@@ -3050,14 +3380,15 @@ function vOverview(){
           +`<span class="acxSnz"><button class="btn sm ghost" onclick="LV3.acSnoozeMenu('${x.k}',this)">Snooze &#9662;</button></span>`}</div>
     </div>`;};
   const laneHtml=([lane,lab,owner,sub])=>{if(_only&&_only!==lane)return '';
-    const rows=LN[lane].filter(x=>st(x.k)==='todo').sort((a,b)=>a.urg-b.urg);
+    const rows=LN[lane].filter(x=>st(x.k)==='todo').sort((a,b)=>a.urg-b.urg||(b.val||0)-(a.val||0));
     const off=LN[lane].filter(x=>st(x.k)!=='todo');
     const paused=lane==='send'?Object.keys(D.settings.acPause||{}).map(a=>D.products.find(p=>p.asin===a)).filter(Boolean):[];
     return `<section class="panel acLane" id="ac-${lane}">
       <div class="acLaneHd"><span class="acLaneT">${lab}</span><span class="acLaneN">${fmt(rows.length)}</span><span class="acLaneWho">${owner}</span></div>
       <div class="acLaneSub">${sub}</div>
-      ${rows.length?rows.map(rowHtml).join(''):'<div class="acxEmpty">Nothing to do here.</div>'}
-      ${off.length?`<details class="acOff"><summary>${fmt(off.length)} snoozed or done</summary>${off.map(rowHtml).join('')}</details>`:''}
+      ${lane==='send'&&rows.length?`<div class="acSendHd"><b>Send in this order — top first.</b><span>${fmt(rows.reduce((t,x)=>t+(x.units||0),0))} units in all</span><button class="btn sm" onclick="LV3.acCopySend()">Copy list</button></div>`:''}
+      ${rows.length?rows.map((x,i)=>rowHtml(x,lane==='send'?i+1:null)).join(''):'<div class="acxEmpty">Nothing to do here.</div>'}
+      ${off.length?`<details class="acOff"><summary>${fmt(off.length)} snoozed or done</summary>${off.map(x=>rowHtml(x)).join('')}</details>`:''}
       ${paused.length?`<div class="acPaused">Paused — not selling: ${paused.map(p=>{const z=D.settings.acPause[p.asin]||{};return `<span>${esc(p.name)} <i>(${esc(z.by||'someone')}${z.at?', '+dshort(String(z.at).slice(0,10)):''})</i> <a href="javascript:void(0)" onclick="LV3.acUnpause('${p.asin}')">selling again</a></span>`;}).join(' · ')}</div>`:''}
     </section>`;};
   const seen=D.settings.acSeen||{};const seenTxt=Object.keys(seen).filter(n=>String(seen[n]).slice(0,10)===today)
@@ -3075,16 +3406,19 @@ function vOverview(){
       <div class="pmeta" style="padding:7px 14px;border-top:1px solid var(--border);">Sarah’s chases are not listed here — they land on her Admin page automatically.</div>
     </details>`;
   $('lav3View').innerHTML=`
+  ${(typeof window.sfPlubHtml==='function')?window.sfPlubHtml():''}
   <div class="kpis acKpis">
     ${kpi2('send','Build &amp; send',nTodo('send'),'#ef4444','Becki · UK team')}
     ${kpi2('recv','Receive',nTodo('recv'),'#fb923c','Becki · UK team')}
-    ${kpi2('order','To order',nTodo('order'),'#fbbf24','Jack')}
+    ${kpi2('order','Becki to order',nTodo('order'),'#60a5fa','every supplier but Alibaba')}
+    ${kpi2('orderj','Jack to order',nTodo('orderj'),'#a78bfa','Alibaba')}
     ${kpi2('snz','Snoozed',snzAll.length,'#94a3b8','they come back on their day')}
     ${kpi2('done','Today',doneToday.length,'#4ade80','sent · received · ordered · snoozed · moved')}
   </div>
   <div class="acSeen">${seenTxt.length?'Opened today: <b>'+seenTxt.join('</b> · <b>')+'</b>':'<b style="color:#fbbf24">Not opened by anyone today yet</b>'}</div>
+  ${acUkMissing()?`<div class="acBanner"><b>Nobody from the UK team has opened this today.</b><span>It's past 12:00 — the lines below are waiting.</span></div>`:''}
   ${_only==='snz'?`<section class="panel acLane"><div class="acLaneHd"><span class="acLaneT">Snoozed</span><span class="acLaneN">${fmt(snzAll.length)}</span></div>${snzAll.map(rowHtml).join('')||'<div class="acxEmpty">Nothing snoozed.</div>'}</section>`:''}
-  ${_only==='done'?'':`<div class="acGrid">${laneHtml(LANES[0])}${laneHtml(LANES[1])}</div>${laneHtml(LANES[2])}`}
+  ${_only==='done'?'':`<div class="acGrid">${laneHtml(LANES[0])}${laneHtml(LANES[1])}</div><div class="acGrid">${laneHtml(LANES[2])}${laneHtml(LANES[3])}</div>`}
   ${(!_only||_only==='done')?`<section class="panel acLane"><div class="acLaneHd"><span class="acLaneT">Today — what happened</span><span class="acLaneN">${fmt(doneToday.length)}</span></div>
     ${doneToday.length?doneToday.slice(0,40).map(e=>`<div class="acDone"><span>${esc(String(e.t||'').length>10?new Date(e.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/London'}):'')}</span><b>${esc(e.who||'')}</b><span>${esc(String(e.txt||'').replace(/^Action centre: /,''))}</span></div>`).join(''):'<div class="acxEmpty">Nothing recorded yet today.</div>'}</section>`:''}
   ${_only?'':jackHtml}`;
@@ -3172,7 +3506,8 @@ const sortTh=(which,k,label,sub)=>{
     title="Sort by this${on?' — click again to reverse':''}">${label}<span class="thArr">${on?(dir>0?'▲':'▼'):'↕'}</span>
     ${sub?`<span class="thSub">${sub}</span>`:''}</button>`;
 };
-const P_SORTS=[['name','Name A–Z'],['reorder','Action — most urgent first'],
+const P_OPT_COLS=['pInb','pLeft','pIncoming','pOrdered','pS7','pSold','pDay','pLast','pSendBy','pCog'];
+const P_SORTS=[['name','Name A–Z'],['reorder','Action — most urgent first'],['left','Fewest days left'],['perday','Fastest selling'],
                ['avail','Least available'],['atamz','Least at Amazon'],['sold','Best selling'],
                ['cog','Highest COG'],['incoming','Most incoming']];
 const C_SORTS=[['urgent','What needs doing first'],['name','Name A–Z'],['short','Biggest buy first'],['cover','Least cover'],
@@ -3187,6 +3522,12 @@ function sortProducts(rows){
     sold:(a,b)=>demand30(b)-demand30(a),
     cog:(a,b)=>(cogOf(b,1).per||0)-(cogOf(a,1).per||0),
     incoming:(a,b)=>incOf(b)-incOf(a),
+    /* 23 Oct (K) — the new columns sort too; a blank sinks either way round */
+    inb:(a,b)=>prodLine(b).inb-prodLine(a).inb,
+    left:(a,b)=>{const x=prodLine(a),y=prodLine(b);return ((x.gap?-1e3:0)+(x.left==null?1e9:x.left))-((y.gap?-1e3:0)+(y.left==null?1e9:y.left));},
+    s7:(a,b)=>((prodLine(b).sf||{}).u7||0)-((prodLine(a).sf||{}).u7||0),
+    perday:(a,b)=>(prodLine(b).day||0)-(prodLine(a).day||0),
+    last:(a,b)=>String(a.lastSent||'').localeCompare(String(b.lastSent||'')),
     /* numeric, so 2 days sorts above 10 days. DUE NOW keeps its negative value
        internally so the most overdue leads; anything we cannot work out sorts
        to the bottom rather than pretending to be urgent. */
@@ -3275,18 +3616,21 @@ function vProducts(){
       ${/* No percentage width here. A % column collapses when the table is
            squeezed, and the dead space was never this column being too wide —
            it was the name DIV inside it capped at 290px while the cell stretched. */''}
-      <th class="l" style="min-width:300px">${sortTh('p','name','Product')}</th>
-      <th style="width:104px" title="Counted by hand off Seller Central. Use Stock at Amazon to enter them all in one go.">${sortTh('p','atamz','At Amazon',D.products.filter(x=>!x.archived).every(x=>atAmz(x)==null)?'never counted':'')}</th>
-      <th style="width:104px" title="What you hold here — buildable from parts, or on the shelf for a private-label product.">${sortTh('p','avail','Backstock')}</th>
-      ${/* Incoming is the flexible column now — it holds the longest text and was
-           the one clipping mid-word, while Product sat on 500px of nothing. */''}
-      ${COL('pIncoming')?`<th style="width:190px">${sortTh('p','incoming','Incoming')}</th>`:''}
+      <th class="l" style="min-width:240px">${sortTh('p','name','Product')}</th>
+      <th style="width:82px" title="Sellable at Amazon now — from the SellerFuse check (Mon/Wed/Fri) or a hand count, whichever is newer.">${sortTh('p','atamz','At Amazon',D.products.filter(x=>!x.archived).every(x=>atAmz(x)==null)?'never counted':'')}</th>
+      ${COL('pInb')?`<th style="width:88px" title="Sent and on its way to Amazon, with when it should be sellable.">${sortTh('p','inb','On the way')}</th>`:''}
+      ${COL('pLeft')?`<th style="width:92px" title="Days until Amazon is empty at the planned pace, counting what is on its way if it lands in time. If it lands after, it says how long the shelf sits empty in between.">${sortTh('p','left','Days left')}</th>`:''}
+      <th style="width:84px" title="What you hold here — buildable from parts, or on the shelf for a private-label product.">${sortTh('p','avail','Can build')}</th>
+      ${COL('pIncoming')?`<th style="width:150px">${sortTh('p','incoming','Parts coming')}</th>`:''}
       ${COL('pOrdered')?'<th style="width:84px">Ordered</th>':''}
-      ${COL('pSold')?`<th style="width:110px" title="Total units sold on Amazon, read straight from the BDL hub's monthly report. Nothing is typed in here and this app never writes back to the hub.">${sortTh('p','sold','Sold',(()=>{const M=hubMonth();return M.ym?esc(ymName(M.ym)):'last month';})())}</th>`:''}
-      ${COL('pSendBy')?`<th style="width:150px" title="The Planner's verdict: protection is how many days until the shelf at Amazon runs empty at the current selling rate, counting inbound that lands in time. The chip is what to do about it.">${sortTh('p','reorder','Action','protection · from the Planner')}</th>`:''}
-      ${COL('pCog')?`<th style="width:86px">${sortTh('p','cog','COG / unit')}</th>`:''}<th class="acts" style="width:132px"></th>
+      ${COL('pS7')?`<th style="width:66px" title="Units sold in the last 7 days — SellerFuse">${sortTh('p','s7','Sold 7d')}</th>`:''}
+      ${COL('pSold')?`<th style="width:76px" title="Units sold in the last 30 days — SellerFuse. Falls back to the BDL hub's last month when the check has not run.">${sortTh('p','sold','Sold 30d')}</th>`:''}
+      ${COL('pDay')?`<th style="width:80px" title="The pace the planner uses, units a day. ▲ selling faster this week, ▼ slower.">${sortTh('p','perday','Per day')}</th>`:''}
+      ${COL('pLast')?`<th style="width:72px">${sortTh('p','last','Last sent')}</th>`:''}
+      ${COL('pSendBy')?`<th style="width:124px" title="The Planner's verdict and how many to send.">${sortTh('p','reorder','Next step')}</th>`:''}
+      ${COL('pCog')?`<th style="width:86px">${sortTh('p','cog','COG / unit')}</th>`:''}<th class="acts" style="width:150px"></th>
     </tr></thead><tbody>
-    ${rows.length?rows.map(p=>prodRow(p)).join(''):`<tr><td colspan="${5+['pIncoming','pOrdered','pSold','pSendBy','pCog'].filter(COL).length}" class="empty">${D.products.length?'Nothing matches this filter.':
+    ${rows.length?rows.map(p=>prodRow(p)).join(''):`<tr><td colspan="${4+P_OPT_COLS.filter(COL).length}" class="empty">${D.products.length?'Nothing matches this filter.':
    'No products yet.<div style="margin-top:10px;display:flex;gap:7px;justify-content:center"><button class="btn pri" onclick="LV3.openBulkProd()">Bulk add products</button><button class="btn" onclick="LV3.editProduct(null)">Add one</button></div>'}</td></tr>`}
     </tbody></table>
   </div>
@@ -3473,7 +3817,32 @@ async function delCompNow(id){
   await deleteComponent_db(src&&src.uuid?src:{uuid:(src||{}).uuid,id});
   saveCompsRecipes();
 }
+/* Jack, 23 Oct (K): every number a product row shows, worked out once. Days left counts
+   what is on its way when it lands before the shelf empties; when it lands after, the row
+   says how long the shelf sits empty in between (Hot Choc: 4 days, then ~9 empty). */
+function prodLine(p){
+  const R=(function(){try{return (plData().azBy||{})[p.id]||null;}catch(e){return null;}})();
+  const sf=sfSoldOf(p),d=(R&&R.demand)||planDemandOf(p),day=d&&d.m>0?d.m/30:null;
+  const sell=atAmz(p),inb=R&&R.inb!=null?R.inb:(amzIn(p)||0),eta=(R&&R.inbEta)||null;
+  let left=null,gap=0,leftTip='';
+  if(day&&sell!=null){
+    const own=sell/day,dry=addCalDays(dayISO(),Math.floor(own));
+    if(inb>0&&eta&&eta>dry){left=own;gap=Math.max(1,Math.round((new Date(eta+'T00:00:00')-new Date(dry+'T00:00:00'))/864e5));
+      leftTip=`${fmt(sell)} at Amazon last ~${Math.floor(own)} days, then empty until the ${fmt(inb)} on the way land ~${dshort(eta)}`;}
+    else if(inb>0){left=(sell+inb)/day;leftTip=`${fmt(sell)} at Amazon + ${fmt(inb)} on the way, at ${day.toFixed(1)} a day`;}
+    else{left=own;leftTip=`${fmt(sell)} at Amazon at ${day.toFixed(1)} a day`;}
+  }
+  const fba=fbaCalDays(),trig=fba+safetyDays();
+  const leftCol=left==null?'var(--text3)':(gap||left<=fba)?'var(--red)':left<=trig?'var(--amb)':'var(--grn)';
+  let trend=null;
+  if(sf&&sf.u7!=null){const a30=(parseInt(sf.u30)||0)/30,a7=(parseInt(sf.u7)||0)/7;
+    if(a30>0||a7>0){const r=a30>0?a7/a30:9;
+      if(r>=1.3)trend={k:'up',t:'▲',tip:`Selling faster: ${fmt(sf.u7)} in the last 7 days vs ${fmt(sf.u30)} in 30`};
+      else if(r<=0.7)trend=(sell===0)?{k:'out',t:'empty',tip:'Slower this week — it is empty at Amazon'}:{k:'down',t:'▼',tip:`Slower: ${fmt(sf.u7)} in the last 7 days vs ${fmt(sf.u30)} in 30`};}}
+  return{R,sf,d,day,sell,inb,eta,left,gap,leftTip,leftCol,trend};
+}
 function prodRow(p){
+  const PL=prodLine(p);
   const a=avail(p),cw=coverWeeks(p),nx=nextIn(p);
   const cg=cogOf(p,1);
   let nextComp=null;
@@ -3506,13 +3875,14 @@ function prodRow(p){
       const stale=age!=null&&age>=14;
       const dry=amzDry(p);
       return `<span class="mono b" style="font-size:14px;color:${v===0?'var(--red)':dry?'var(--amb)':stale?'var(--amb)':'var(--text)'}">${v==null?'—':fmt(v)}</span>
-        ${inb?`<div class="amzInb" title="On its way to Amazon — counted toward the target, but not sellable yet">+${fmt(inb)} inbound</div>`:''}
         <div class="sldSub" title="${esc(whenTxt((D.settings.atAmzAt||{})[p.asin]))}">${
-          dry?`<span style="color:var(--amb)">${dry.days<=0?'out on the shelf':dry.days+'d left'}</span>`
-          :age==null?'counted'
+          age==null?'counted'
           :stale?`<span style="color:var(--amb)">${age}d old</span>`
           :age===0?esc(whenTxt((D.settings.atAmzAt||{})[p.asin],true)||'today')
           :`${age}d ago`}</div>`;})()}</td>
+    ${COL('pInb')?`<td>${PL.inb>0?`<span class="mono b" style="font-size:14px;color:var(--blu)">${fmt(PL.inb)}</span><div class="sldSub">${PL.eta?'lands ~'+dshort(PL.eta):'on its way'}</div>`:'<span class="dim">—</span>'}</td>`:''}
+    ${COL('pLeft')?`<td title="${esc(PL.leftTip||'')}">${PL.left==null?'<span class="dim">—</span>'
+      :`<span class="mono b" style="font-size:14px;color:${PL.leftCol}">${PL.sell===0&&!PL.gap&&!(PL.inb>0)?'empty':fmt(Math.floor(PL.left))+'d'}</span>${PL.gap?`<div class="sldSub" style="color:#f87171;font-weight:800">then ${fmt(PL.gap)}d empty</div>`:PL.inb>0&&PL.left!=null?`<div class="sldSub">incl. on the way</div>`:''}`}</td>`:''}
     <td><span class="num" style="color:${col}">${a.kind==='norecipe'?'—':fmt(a.n)}</span>
       <div class="pmeta">${a.kind==='build'?'buildable':a.kind==='norecipe'?'on the shelf':'in stock'}</div>
       </td>
@@ -3534,21 +3904,22 @@ function prodRow(p){
         <div class="incS"><span class="incNm" title="${esc(names.join(', '))}">${inc.length===1?esc(names[0]):`${fmt(inc.length)} lines`}</span> · from ${dshort(inc[0].d)}</div>
         ${oo?`<div class="incU">unlocks +${fmt(oo)}</div>`:''}`;})()}</td>`:''}
     ${COL('pOrdered')?`<td>${nn?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(nn.date)}</span><div class="pmeta">${esc(nn.sup.split('—')[0].trim())}</div>`:'<span class="dim">—</span>'}</td>`:''}
-    ${COL('pSold')?`<td onclick="event.stopPropagation()">
-      ${/* Read-only. The figure is coming from elsewhere, so a box anyone can
-            type into would only ever disagree with the real number. */''}
-      ${sold30(p)!=null
+    ${COL('pS7')?`<td>${PL.sf&&PL.sf.u7!=null?`<span class="mono b" style="font-size:14px">${fmt(PL.sf.u7)}</span>`:'<span class="dim">—</span>'}<div class="sldSub">last 7 days</div></td>`:''}
+    ${COL('pSold')?`<td onclick="event.stopPropagation()">${sold30(p)!=null
         ? `<span class="mono b" style="font-size:14px">${fmt(sold30(p))}</span>`
         : `<span class="dim" style="font-size:14px">—</span>`}
       <div class="sldSub">${(()=>{
-        /* Blank is not zero. Zero says it did not sell; blank says we do not
-           know — and the two lead to opposite decisions. */
+        /* Blank is not zero. Zero says it did not sell; blank says we do not know. */
         const src=soldSrc(p);
         if(!src)return hubSkipped(p)?`<button class="sldFix" title="Marked as not selling. Click if it is selling again — the planner picks it up on the spot." onclick="event.stopPropagation();LV3.plUnskip('${esc(p.asin)}')">not selling — selling again?</button>`
           :`<button class="sldFix" onclick="event.stopPropagation();LV3.openHubReview()">no figure — check</button>`;
-        if(src==='hub')return esc(ymName(hubMonth().ym))+(hubSkipped(p)?` · <button class="sldFix" title="Was marked not selling in the review; it is selling now, so the planner uses these sales. Click to clear the old mark." onclick="event.stopPropagation();LV3.plUnskip('${esc(p.asin)}')">clear old not-selling mark</button>`:'');
+        if(src==='sf')return 'last 30 days';
+        if(src==='hub')return esc(ymName(hubMonth().ym))+' (hub)'+(hubSkipped(p)?` · <button class="sldFix" title="Was marked not selling in the review; it is selling now, so the planner uses these sales. Click to clear the old mark." onclick="event.stopPropagation();LV3.plUnskip('${esc(p.asin)}')">clear old mark</button>`:'');
         const age=sold30Age(p);
         return `<span class="est">typed in${age!=null?` ${age}d ago`:''}</span>`;})()}</div></td>`:''}
+    ${COL('pDay')?`<td title="${esc(PL.d?'Planned at '+(PL.day!=null?PL.day.toFixed(2):'—')+' a day — '+PL.d.label:'No sales figure')}">${PL.day?`<span class="mono b" style="font-size:14px">${PL.day>=10?fmt(Math.round(PL.day)):PL.day.toFixed(1)}</span>${PL.trend?`<span class="pTrend ${PL.trend.k}" title="${esc(PL.trend.tip)}">${PL.trend.t}</span>`:''}`:'<span class="dim">—</span>'}
+      <div class="sldSub">${PL.d?esc(PL.d.src==='sf'?(PL.d.pace&&PL.d.pace.spike?'7-day pace':'30-day pace'):PL.d.src==='season'?'your figure':PL.d.src==='hub'?'hub month':PL.d.src==='manual'?'your estimate':PL.d.src==='paused'?'paused':PL.d.src==='zero'?'none sold':PL.d.label):''}</div></td>`:''}
+    ${COL('pLast')?`<td>${p.lastSent?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(p.lastSent)}</span><div class="sldSub">${fmt(daysSince(p.lastSent))}d ago</div>`:'<span class="dim">never</span>'}</td>`:''}
     ${COL('pSendBy')?`<td onclick="event.stopPropagation()">${(()=>{
       const R=(plData().azBy||{})[p.id];
       if(!R)return '<span class="dim">&mdash;</span>';
@@ -3576,7 +3947,7 @@ function prodRow(p){
       : `<span class="num" style="color:var(--accent)">${cg.per?gbp(cg.per):'—'}</span>${cg.batches>1?`<div class="pmeta" title="Stock was bought at ${cg.batches} different prices. Sending always uses the oldest first, so this is the cost of the next one out.">${cg.batches} prices in stock</div>`:''}`}</td>`:''}
     <td class="acts" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:flex-end">
       ${p.archived?`<button class="btn sm go" onclick="LV3.setArchived('product','${p.id}',false)">Restore</button>`
-        :`<button class="btn sm go" onclick="LV3.openShip('${p.id}')">Ship</button>
+        :`<button class="btn sm go" onclick="LV3.openShip('${p.id}',${(PL.R&&PL.R.alloc)||0})">${PL.R&&PL.R.alloc>0?'Ship '+fmt(PL.R.alloc):'Ship'}</button>
           <button class="btn sm" onclick="LV3.openProduct('${p.id}')">Open</button>
           <button class="btn sm dots" title="More" onclick="LV3.rowMenu(event,'product','${p.id}')">⋯</button>`}</div></td></tr>`;
   if(!open)return main;
@@ -3693,7 +4064,7 @@ function prodRow(p){
       there is nothing to cost from, so COG can't be shown. Put the price on the batch and it comes straight back.
       ${c1.unpriced[0]&&c1.unpriced[0].cid?`<div style="margin-top:7px"><button class="btn sm warn" onclick="event.stopPropagation();LV3.openComp('${c1.unpriced[0].cid}')">Fix ${esc(c1.unpriced[0].name)}</button></div>`:''}</div>`:''}
     </div>`;
-  return main+`<tr class="sub-row"><td colspan="${5+['pIncoming','pOrdered','pSold','pSendBy','pCog'].filter(COL).length}" style="padding:0"><div class="rbox" style="--rail:${_rail}">${planStrip}<div class="rgrid"><div>${inner}</div><div>${cogHtml}</div></div>
+  return main+`<tr class="sub-row"><td colspan="${4+P_OPT_COLS.filter(COL).length}" style="padding:0"><div class="rbox" style="--rail:${_rail}">${planStrip}<div class="rgrid"><div>${inner}</div><div>${cogHtml}</div></div>
     <div class="racts">
     ${isPL?`<button class="btn sm" onclick="LV3.openAddBatch('${p.id}','product')">+ Add a batch</button>
             <button class="btn sm" onclick="LV3.editProduct('${p.id}')">Edit product</button>`
@@ -4215,11 +4586,16 @@ async function deleteProduct_db(src,p){
 
 /* ═══════════════ SHIP FLOW ═══════════════ */
 let SHIP=null;
-function openShip(id){
+function openShip(id,planned){
   const p=prod(id);
   /* default to what can go out at one price — the normal, clean shipment */
   const clean=cogCheck(p,1).cleanMax;
-  const start=clean>0?Math.min(clean,avail(p).n||clean):Math.max(1,avail(p).n||1);
+  /* Jack, 23 Oct (F): from the Action centre or the Products page it opens at the
+     PLANNED number (Dove: 238, not the 390 it could build). Capped at what can be built;
+     if it spans two prices the mixed-cost screen offers the split, as before. */
+  const plan=parseInt(planned)||0;
+  const start=plan>0?Math.min(plan,avail(p).n||plan)
+    :clean>0?Math.min(clean,avail(p).n||clean):Math.max(1,avail(p).n||1);
   SHIP={id,units:Math.max(1,start),override:false,reason:''};
   drawShip();om('lav3Ov1');}
 function drawShip(){
@@ -4466,7 +4842,9 @@ function doShip(){
   /* Without an FBA ID this took stock off the shelf and told the Shipments page
      nothing — the two halves of the app then disagreed about what had been sent,
      and the month's reporting was short. */
-  const fba=(SHIP.fba||'').trim().toUpperCase();
+  const _cs=(typeof _cleanShipId==='function')?_cleanShipId(SHIP.fba||''):{id:(SHIP.fba||'').trim().toUpperCase(),ok:true};
+  const fba=_cs.id;
+  if(fba&&!_cs.ok){toast('That isn\u2019t an FBA shipment ID — it looks like FBA15 and 7 letters/numbers','er');return;}
   if(!fba){
     toast('Enter the FBA shipment ID — without it this would not reach the Shipments page','er');
     const el=document.getElementById('shipId');if(el)el.focus();
@@ -4953,8 +5331,12 @@ async function loadPrefs(){
   try{const r=await sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle();
     if(r&&r.data&&r.data.value){const v=JSON.parse(r.data.value);
       D.settings=Object.assign({},D.settings,v);
-      D.settings.cols=Object.assign({},{pIncoming:true,pOrdered:false,pSold:true,pCog:true,pSendBy:true,
+      D.settings.cols=Object.assign({},{pIncoming:false,pOrdered:false,pSold:true,pCog:false,pSendBy:true,
+        pInb:true,pLeft:true,pS7:true,pDay:true,pLast:true,
         cOnOrder:true,cOrdered:true,cUsed:true},v.cols||{});
+      /* 23 Oct (K): COG/unit and the parts-on-order column go behind the toggle once, for
+         everyone — the new sales and days-left columns need the room. Settings brings them back. */
+      if(!D.settings.cols55_1){D.settings.cols.pCog=false;D.settings.cols.pIncoming=false;D.settings.cols55_1=true;}
       _prefsBase=_clone(v);}}catch(e){}
 }
 /* The 15-minute routine re-pull (db.js resyncNow) also brings Lavarion's shared
@@ -10994,7 +11376,7 @@ function vSettings(){
         <div style="padding:12px 14px">
           <div class="lab" style="margin-bottom:7px">Products table</div>
           <div class="colgrid">
-            ${[['pIncoming','Incoming'],['pOrdered','Ordered date'],['pSold','Sold 30d'],['pSendBy','Action'],['pCog','COG / unit']]
+            ${[['pInb','On the way'],['pLeft','Days left'],['pIncoming','Parts coming'],['pOrdered','Ordered date'],['pS7','Sold 7d'],['pSold','Sold 30d'],['pDay','Per day'],['pLast','Last sent'],['pSendBy','Next step'],['pCog','COG / unit']]
               .map(([k,l])=>`<label><input type="checkbox" ${COL(k)?'checked':''} onchange="LV3.setCol('${k}',this.checked)"> ${l}</label>`).join('')}
           </div>
           <div class="lab" style="margin:14px 0 7px">Components table</div>
@@ -11396,6 +11778,92 @@ function shipCheck(asin,units){
 
 /* ── boot ───────────────────────────────────────────────────────────────── */
 let _booted=false;
+/* ── SellerFuse check (js/sfcheck.js), PLUB side — Jack, 23 Oct 2026 ───────────
+   Stock at Amazon and sold-in-30-days come from the latest run instead of
+   Sarah's SellerAmp lookups (tested 23 Oct: 8 of 10 identical, one a same-day
+   pending order the run takes off, one — Sally Hansen — SellerAmp could not see).
+   Applied once per run across every laptop (D.settings.sfApplied), never over a
+   count taken after the run, and logged like a paste. */
+function sfApplyFromRun(run){
+  if(!run||!run.id||!_booted)return 0;
+  if(D.settings.sfApplied===run.id)return 0;
+  const when=ukStamp(ukDT(new Date(run.at)));
+  const runMs=new Date(run.at).getTime();
+  D.settings.atAmz=D.settings.atAmz||{};D.settings.atAmzIn=D.settings.atAmzIn||{};
+  D.settings.atAmzAt=D.settings.atAmzAt||{};
+  /* 23 Oct: sales go in their own slot with the run's time — the old sold30 slot is the
+     typed-in fallback, and SellerFuse's figure now LEADS when it is fresh (sold30 above) */
+  D.settings.sfSold=D.settings.sfSold||{};D.settings.sfProfit=D.settings.sfProfit||{};
+  let n=0,avl=0,inb=0,ns=0;
+  /* one ASIN can sell under two SKUs (Gluten Free Snacks: 1 available on one, 36 inbound on
+     the other) — add them up per ASIN first, or the second SKU overwrites the first */
+  const _byA={};(run.stock||[]).forEach(x=>{const k=String(x.asin||'').toUpperCase();if(!k)return;
+    const t=_byA[k]=_byA[k]||{asin:x.asin,available:0,inbound:0,pending:0,profit:null,price:null,_pa:-1};
+    t.available+=parseInt(x.available)||0;t.inbound+=parseInt(x.inbound)||0;t.pending+=parseInt(x.pending)||0;
+    if(x.profit!=null&&Number.isFinite(+x.profit)&&(parseInt(x.available)||0)>t._pa){t.profit=+x.profit;t.price=x.price!=null?+x.price:t.price;t._pa=parseInt(x.available)||0;}
+    else if(t.price==null&&x.price!=null)t.price=+x.price;});
+  Object.values(_byA).forEach(x=>{
+    const p=_prodByAsin(x.asin);if(!p)return;
+    /* profit a unit, for ranking the Build & send list by money lost a day */
+    if(x.profit!=null&&Number.isFinite(+x.profit))D.settings.sfProfit[p.asin]=Math.round(+x.profit*100)/100;
+    if(x.price!=null&&+x.price>0){D.settings.sfPrice=D.settings.sfPrice||{};D.settings.sfPrice[p.asin]=Math.round(+x.price*100)/100;}
+    const was=D.settings.atAmzAt[p.asin];
+    if(was&&new Date(was).getTime()>runMs)return;      /* a newer hand count wins */
+    const q=Math.max(0,(parseInt(x.available)||0)-(parseInt(x.pending)||0));
+    D.settings.atAmz[p.asin]=q;D.settings.atAmzIn[p.asin]=Math.max(0,parseInt(x.inbound)||0);
+    D.settings.atAmzAt[p.asin]=when;n++;avl+=q;inb+=D.settings.atAmzIn[p.asin];
+    /* the count history that in-stock days are worked out from — one per day, 45 kept */
+    {D.settings.amzHist=D.settings.amzHist||{};const day=String(when).slice(0,10);
+      const h=(D.settings.amzHist[p.asin]||[]).filter(e=>e[0]!==day);h.push([day,q]);
+      D.settings.amzHist[p.asin]=h.sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).slice(-45);}
+  });
+  (run.sold||[]).forEach(x=>{const p=_prodByAsin(x.asin);if(!p||x.units30==null)return;
+    const v={u30:Math.max(0,parseInt(x.units30)||0),u7:x.units7==null?null:Math.max(0,parseInt(x.units7)||0),
+      p30:x.unitsPrev30==null?null:Math.max(0,parseInt(x.unitsPrev30)||0),at:run.at};
+    D.settings.sfSold[p.asin]=v;ns++;});
+  D.settings.sfApplied=run.id;
+  savePrefs();save();
+  if(n)logIt('edit',`Stock at Amazon from SellerFuse ${whenTxt(when)} UK — ${n} product${n===1?'':'s'}, ${avl} available${inb?`, ${inb} inbound`:''}`);
+  if(ns)logIt('edit',`Sold in 30 days from SellerFuse ${whenTxt(when)} UK — ${ns} product${ns===1?'':'s'} updated`);
+  return n+ns;
+}
+/* "Record the send" on a PLUB send Amazon has but PLUB doesn't: the normal Ship
+   popup, already filled in — Becki checks it and presses Send, so the parts come
+   off by the one route that takes them off. */
+function sfShipPreset(asin,units,fba){
+  const p=_prodByAsin(asin);if(!p){toast('That product is not in PLUB','er');return;}
+  openShip(p.id);SHIP.units=Math.max(1,parseInt(units)||1);SHIP.fba=String(fba||'').toUpperCase();drawShip();
+}
+/* 23 Oct 2026 — two of Jack's answers, applied once and written into the history:
+   N "Dove 75ml MD — go back in but low sales not in summer": last winter it sold 53 in six
+     months, so 9 a month until 31 March (then its own sales take over again);
+   M "the Ube Powder part — mine": Jack orders only from Alibaba. */
+function seedJack551(){
+  const S=D.settings;if(S.seed551Dove&&S.seed551Ube&&S.seed551Tan)return;
+  const by='Jack, 23 Oct (put in by Claude)';let ch=false;
+  /* each one is applied only once its product / part has actually loaded — on a cold
+     start the products can arrive after the first paint */
+  if(!S.seed551Dove){const dv=D.products.find(p=>p.asin==='B0DW5HPRWB'&&!p.archived);
+    if(dv){if(!(S.planSeason||{})[dv.asin]){S.planSeason=S.planSeason||{};
+        S.planSeason[dv.asin]={m:9,until:'2027-03-31',by,at:new Date().toISOString()};
+        logIt('edit',`Planning figure: ${dv.name} — 9 a month until 31 Mar (winter: 53 sold Oct–Mar last year) — ${by}`);}
+      S.seed551Dove=true;ch=true;}}
+  if(!S.seed551Ube){const ube=D.components.find(c=>!c.archived&&/^ube powder/i.test(c.name||''));
+    if(ube){if(!compSupplier(ube)){ube.supplier='Alibaba';if(ube._src)ube._src.supplier='Alibaba';
+        logIt('edit',`Supplier set on ${ube.name}: Alibaba — ${by}`);saveCompsRecipes();}
+      S.seed551Ube=true;ch=true;}}
+  /* Jack, 23 Oct: "it should be using good sales data" — in winter that is last winter's sales
+     (SellerFuse, Oct 2025–Mar 2026, ÷ 6), not September's summer figures. Only lines that sold
+     last winter; the 2026 launches have no winter yet. */
+  if(!S.seed551Tan&&D.products.length){
+    const W=[['B0DW4Y68XZ',7,40],['B0DW4L5296',7,43],['B0DY212VVC',20,120],['B0DVZXBZ94',6,36],['B0FHF3N7F6',14,85],['B0FYQSYTJJ',2,10]];
+    S.planSeason=S.planSeason||{};
+    W.forEach(([a,m,n])=>{const p=D.products.find(x=>x.asin===a&&!x.archived);if(!p||S.planSeason[a])return;
+      S.planSeason[a]={m,until:'2027-03-31',by,at:new Date().toISOString()};
+      logIt('edit',`Planning figure: ${p.name} — ${m} a month until 31 Mar (winter: ${n} sold Oct–Mar last year) — ${by}`);});
+    S.seed551Tan=true;ch=true;}
+  if(ch)savePrefs();
+}
 async function boot(){
   if(_booted)return;_booted=true;
   await loadPrefs();
@@ -11422,6 +11890,8 @@ async function boot(){
     if(_pend.length){_pend.forEach(p=>{p.dupCheck={...(p.dupCheck||{}),answered:'separate',by:'auto',on:dayISO()};
       logIt('edit',`Kept as a second purchase — ${p.name} ${dshort(p.date)} (identical sheet line, answered automatically)`);});save();}
   }catch(e){console.warn('[lav3] dup auto-keep',e);}
+  try{if(window.SFRUN)sfApplyFromRun(window.SFRUN);}catch(e){console.warn('[lav3] sellerfuse',e);}
+  try{seedJack551();}catch(e){console.warn('[lav3] seed',e);}
   paint();
   /* Sales come from the hub, over the network, so they are not held up behind
      the page drawing. The page appears with the sold column reading "reading
@@ -11432,6 +11902,7 @@ async function boot(){
 const isUntracked=id=>!!(D.settings&&D.settings.untracked&&D.settings.untracked[String(id)]);
 const COL=k=>{const c=(D.settings&&D.settings.cols)||{};return c[k]!==false;};
 function paint(){
+  try{seedJack551();}catch(e){}
   if(!document.getElementById('lav3View'))return;
   if(_firstPaint){_firstPaint=false;const t=D.settings.startTab;if(t&&t!=='overview')TAB=t;}
   const pg=document.getElementById('page-lavarion');
@@ -11463,7 +11934,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,refreshShared,reloadData,rtChange,checkStockSafety,__save:()=>save(),__remRpc:()=>_remRpc,__setRemRpc:v=>{_remRpc=v;},settleIssue,sheetSays,relinkOrphans,openSheetDiff,mergeIntoSheetLine,dropDiffLine,cancelDiffLine,ackDiffLine,sheetDiffItems,__persist:()=>persist(),__pushNow:()=>pushNow(),__PURCH:()=>PURCH,__prefsMerge:_prefsMerge,__savePrefs:()=>savePrefs(),__saveState:()=>saveState(),__prefsBase:()=>_prefsBase,__setPrefsBase:v=>{_prefsBase=v;},__ack:()=>ACK,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
-  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
+  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,priceOf,acCopySend,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},

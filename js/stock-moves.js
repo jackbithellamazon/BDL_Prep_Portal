@@ -254,6 +254,7 @@ function shipDateFor(shipId){
 }
 
 function addSegment(r,shipId,units,type){
+  if(shipId&&typeof _cleanShipId==='function'){const _cs=_cleanShipId(shipId);if(_cs.ok)shipId=_cs.id;}
   if(!shipId||!(units>0))return;
   const segs=normaliseSegments(r).slice();
   const sdate=shipDateFor(shipId);
@@ -745,7 +746,10 @@ function showShipIdModal(title,desc,defaultType,callback,isPartial,maxUnits){
   setTimeout(()=>{const el=document.getElementById('shipIdModalInput');if(el)el.focus();},120);
 }
 function confirmShipIdModal(){
-  const id=document.getElementById('shipIdModalInput').value.trim().toUpperCase();
+  /* 23 Oct 2026: "SHIPMENT ID: FBA15M720K7G" was saved as the ID — cleaned, or refused */
+  const _cs=_cleanShipId(document.getElementById('shipIdModalInput').value);
+  if(document.getElementById('shipIdModalInput').value.trim()&&!_cs.ok){toast('That isn\u2019t an FBA shipment ID — it looks like FBA15 and 7 letters/numbers','er');return;}
+  const id=_cs.id;
   const type=document.getElementById('shipIdModalType').value;
   if(!id){document.getElementById('shipIdModalInput').style.borderColor='var(--red)';return;}
   // Detect partial mode from the partial row's actual visibility (robust —
@@ -994,8 +998,10 @@ function doBulkAmazonFile(){
   if(skipped.length)toast(`${skipped.length} row${skipped.length===1?'':'s'} left out — no SKU or no quantity`,'er');
 }
 function doBulkShipId(){
-  const shipId=document.getElementById('bulkShipId').value.trim().toUpperCase();
+  const _cs=_cleanShipId(document.getElementById('bulkShipId').value);
+  const shipId=_cs.id;
   if(!shipId){toast('Enter a Shipment ID first','er');return;}
+  if(!_cs.ok){toast('That isn\u2019t an FBA shipment ID — it looks like FBA15 and 7 letters/numbers','er');return;}
   const shipType=(document.getElementById('bulkShipType')||{}).value||'Standard';
   const selected=getSelectedRows();
   if(!selected.length){toast('No rows selected','er');return;}

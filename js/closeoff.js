@@ -285,6 +285,10 @@ function openSorted(rid,preset){
           <div class="srtComboList" id="srtSkuList" style="display:none;"></div>
         </div>
         <div class="srtHint" id="srtSkuHint"></div>
+        <div id="srtSkuWarn" class="srtSkuWarn" style="display:none;">
+          <div id="srtSkuWarnTxt"></div>
+          <input id="srtSkuWhy" class="srtSel" autocomplete="off" placeholder="Override — why is it still right? (it goes in the history)" oninput="srtSync()">
+        </div>
       </div>
 
       <div id="srtAskShipid" style="display:none;margin-top:14px;">
@@ -831,6 +835,19 @@ function srtSync(){
       : 'Not a row in the app — still recorded on the note.';
     sh.style.color=!wentAs?'var(--text2)':(hit?'var(--green)':'#fbbf24');
   }
+  /* Jack, 23 Oct — the Bosch: closed as "went out under Amg_12.44", but 12.44 was
+     its own order of 5 and sent exactly 5. The answer could not have been right.
+     Now the SKU named has to have sent MORE than its own orders (PrepHub, or
+     SellerFuse via the latest check) — or someone overrides it with a reason. */
+  const _rSku=_rowById(_srtRid)||{};
+  const _need=Math.max(1,_owedUnits(_rSku)||0,(typeof _leftUnits==='function'?_leftUnits(_rSku):0)||0);
+  const _spare=(wentAs&&typeof sfSkuSpare==='function')?sfSkuSpare(wentAs,_rSku):null;
+  const _skuShort=!!wentAs&&ask.includes('sku')&&_spare!==null&&_spare<_need;
+  const _skuWhy=((document.getElementById('srtSkuWhy')||{}).value||'').trim();
+  window._srtSkuCheck={sku:wentAs,spare:_spare,need:_need,why:_skuWhy,short:_skuShort};
+  {const w=document.getElementById('srtSkuWarn'),wt=document.getElementById('srtSkuWarnTxt');
+    if(w)w.style.display=_skuShort?'block':'none';
+    if(wt&&_skuShort)wt.innerHTML=`<b>${esc(wentAs)}</b> only sent what its own order${_spare===0?'':'s'} had${_spare?` (${fmt(_spare)} spare, ${fmt(_need)} needed)`:''} — these can’t have gone out as it. Pick another SKU, or override with a reason.`;}
   const arrived=(document.getElementById('srtArrived')||{}).value||'';
   const due=(document.getElementById('srtDate')||{}).value||'';
   try{if(what)_srtPaintSteps(what,_resTodo(what));}catch(e){}
@@ -851,7 +868,8 @@ function srtSync(){
   const missingAsk=(ask.includes('paid')&&!paid)
     ||(ask.includes('paid')&&paid==='yes'&&!refunded)
     ||(ask.includes('arrived')&&!arrived)||(kind==='date'&&!due)
-    ||(ask.includes('sku')&&!wentAs);
+    ||(ask.includes('sku')&&!wentAs)
+    ||(_skuShort&&!_skuWhy);
   const ticked=FOLLOW_UPS.some((f,i)=>{const c=document.getElementById('srtF'+i);return c&&c.checked;});
   /* Sarah only has to write a recommendation when Jack is the one deciding, or
      when she has not ticked anything to say what happens next. Demanding it on
@@ -885,7 +903,8 @@ function srtSync(){
       :left<0?'The units don\'t add up.'
       :mism==='full'?`${got} unit${got===1?'':'s'} did arrive — that is a part cancellation, not the whole order.`
       :mism==='part'?'Nothing arrived at all — that is the whole order cancelled.'
-      :missingAsk?(ask.includes('sku')&&!wentAs?'Say which SKU it went out under — pick it from the list.':'Answer the question above.')
+      :missingAsk?(ask.includes('sku')&&!wentAs?'Say which SKU it went out under — pick it from the list.'
+        :(_skuShort&&!_skuWhy)?'That SKU has no spare units — pick another, or give a reason to override.':'Answer the question above.')
       :(needFix&&!fix)?'Say what you suggest we do.'
       :todoLeft.length?`${todoLeft.length} step${todoLeft.length===1?'':'s'} still to tick off.`
       :kind==='date'?'Stays on the list, just not overdue until then.'
@@ -1081,8 +1100,10 @@ async function submitSorted(){
      page and the Prep Sheet tell the same story. Same fields the Prep Sheet's
      own Stamp ID uses — nothing bespoke to drift. */
   if(what==='sent-not-stamped'){
-    const sid=((document.getElementById('srtShipId')||{}).value||'').trim().toUpperCase();
+    const _cs=_cleanShipId((document.getElementById('srtShipId')||{}).value||'');
+    const sid=_cs.id;
     if(!sid){toast('Enter the FBA shipment ID','er');_unlatch();return;}
+    if(!_cs.ok){toast('That isn\u2019t an FBA shipment ID — it looks like FBA15 and 7 letters/numbers','er');_unlatch();return;}
     if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
     const remain=remainingToShip(r);
     if(remain>0)addSegment(r,sid,remain,r.shipType||'Standard');
@@ -1092,6 +1113,8 @@ async function submitSorted(){
   }
   r.resolution={state:kind==='ops'?'approved':'proposed',kind,what,note,fix,followUps:follow,
     paid,refunded,arrived,wentAs,by:_who(),at:new Date().toISOString(),claim:_resClaim(what),
+    /* the SKU check behind a wrong-SKU close, and the reason if someone overrode it */
+    wentAsCheck:(wentAs&&window._srtSkuCheck&&window._srtSkuCheck.sku===wentAs)?{spare:window._srtSkuCheck.spare,need:window._srtSkuCheck.need,override:window._srtSkuCheck.short?window._srtSkuCheck.why:'',by:_who(),at:new Date().toISOString()}:null,
     chase:_priorCase||undefined,
     /* What she actually did, not just what she was told to do. stepsOpen is the
        honest bit — the jobs that went out of this popup unfinished, and why. */

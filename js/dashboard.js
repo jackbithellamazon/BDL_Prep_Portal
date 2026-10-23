@@ -5,6 +5,24 @@ const fmt=n=>n.toLocaleString('en-GB');
 const fmtGBP=n=>'£'+Math.round(n).toLocaleString('en-GB');
 const fmtGBP2=n=>'£'+(+n).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
 
+/* Jack, 23 Oct (H): has the UK team opened the PLUB Action centre today? Read from PLUB's
+   shared settings — straight from PLUB when it is loaded, otherwise one small read kept for
+   10 minutes, so the Dashboard never waits on the stock load. Jack only. */
+let _acSeenCache=null,_acSeenAt=0,_acSeenBusy=false;
+function _plubUnopened(){
+  try{
+    if(!(typeof _isJack==='function'&&_isJack()))return false;
+    if(!window.LV3||!LV3.acUkMissing)return false;
+    if(LV3.isReady&&LV3.isReady())return LV3.acUkMissing();
+    if(_acSeenCache&&Date.now()-_acSeenAt<6e5)return LV3.acUkMissing(_acSeenCache);
+    if(!_acSeenBusy&&typeof sb!=='undefined'){_acSeenBusy=true;
+      sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle().then(r=>{
+        try{const v=JSON.parse((r&&r.data&&r.data.value)||'{}');_acSeenCache=v.acSeen||{};}catch(e){_acSeenCache={};}
+        _acSeenAt=Date.now();_acSeenBusy=false;try{renderDashboard();}catch(e){}
+      },()=>{_acSeenBusy=false;});}
+    return false;
+  }catch(e){return false;}
+}
 function renderDashboard(){
   if(document.hidden||!_pageActive('page-dashboard')){_dirtyR.dash=true;return;}
   _dirtyR.dash=false;
@@ -386,6 +404,10 @@ function renderDashboard(){
       font-size:11.5px;font-weight:800;background:${col};border:1px solid ${col};color:#12100a;">${btn}</button>
   </div>`;
   const _banners=[
+    /* Jack, 23 Oct (H): the PLUB Action centre has to be looked at every day */
+    _plubUnopened()?_ban('#f87171','PLUB Action centre — not opened by the UK team today',
+      'It is past 12:00 and nobody from the UK team has opened it. Sends and orders are waiting.',
+      'Open',"navToPage('lavarion');setTimeout(()=>{try{LV3.go('overview')}catch(e){}},300)"):'',
     (()=>{const gated=claims.filter(c=>!c.archived&&c.cst!=='Resolved'&&(c.owner||'VA')==='Jack');
       return gated.length?_ban('#c084fc','Gated — '+gated.length+' waiting on your decision',
         'eBay it, ungate it, hold it or write it off — nobody else can move these',

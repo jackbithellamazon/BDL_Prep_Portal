@@ -1438,8 +1438,10 @@ async function saveNewShipment(){
   try{return await _saveNewShipmentGo();}finally{_nsBusy=false;}
 }
 async function _saveNewShipmentGo(){
-  const shipId=document.getElementById('ns-id').value.trim().toUpperCase();
+  const _cs=_cleanShipId(document.getElementById('ns-id').value);
+  const shipId=_cs.id;
   if(!shipId){toast('FBA Shipment ID is required','er');return;}
+  if(!_cs.ok){toast('That isn\u2019t an FBA shipment ID — it looks like FBA15 and 7 letters/numbers','er');return;}
   const type=document.getElementById('ns-type').value;
   const date=document.getElementById('ns-date').value||todayISO();
   const boxes=parseInt(document.getElementById('ns-boxes').value)||0;

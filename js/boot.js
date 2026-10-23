@@ -44,6 +44,8 @@ function bootApp(){
   /* never leave someone staring at a loader — bail out after 12s regardless */
   BootLoad._t=setTimeout(()=>BootLoad.fail('Still loading — carrying on'),12000);
   loadVaState();                     // check-in, alerts and the action centre
+  /* the SellerFuse check (js/sfcheck.js) — reads the latest run once the data is in */
+  setTimeout(()=>{try{if(typeof sfLoad==='function')sfLoad();}catch(e){}},2500);
   dbLoad().then(()=>{
     BootLoad.set(72,'Setting up live updates');
     setupRealtime();

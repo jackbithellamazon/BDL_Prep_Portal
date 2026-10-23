@@ -720,6 +720,9 @@ function wentOutUnder(rid){
     `Which SKU ${left===1?'did it':'did they'} go out under? Next it asks which shipment ${left===1?'it':'they'} rode on — then the ${fmt(left)} ${left===1?'unit is':'units are'} accounted for, this row closes, and Sarah gets the job of confirming it in Seller Central.`,
     'e.g. the old SKU','Next',sku=>{
       sku=String(sku||'').trim();if(!sku)return;
+      /* Jack, 23 Oct: "went out under X" only if X really sent more than its own
+         orders — or someone overrides it with a reason (js/sfcheck.js sfSkuSpare) */
+      const _go=()=>{
       /* Jack, 21 Sep, Cadbury: the old SKU's only shipment went out on 14 Aug —
          two weeks BEFORE these units arrived. Guessing it would have put 47
          units on a shipment that had already gone. Suggest it only when the
@@ -735,17 +738,30 @@ function wentOutUnder(rid){
         (cands.length?`Shipments recorded under ${sku}: ${listed}.`:`No shipment is recorded under ${sku}.`)
         +(guess?'' : cands.length?` None of them went out after these units landed${landed?' ('+_dmy(landed)+')':''} — type the shipment ID they actually rode on.`:' Type the shipment ID they went out on.'),
         'FBA…','Record it',id=>{
-          id=String(id||'').trim();
+          const _cs=_cleanShipId(id);id=_cs.id;
           if(!id){toast('Type the shipment ID','er');return;}
+          if(!_cs.ok){toast('That isn\u2019t an FBA shipment ID — it looks like FBA15 and 7 letters/numbers','er');return;}
           _wentOutGo(r,sku,id,left);
         },guess?guess.id:'',guess?'Checked: that shipment went out after these units landed. Change it if they rode a different one.':'Type the shipment ID — it is recorded against this row so the numbers add up.');
+      };
+      const _sp=(typeof sfSkuSpare==='function')?sfSkuSpare(sku,r):null;
+      if(_sp!==null&&_sp<left){
+        askText('That SKU has no spare units',
+          `${sku} only sent what its own orders had${_sp?` (${fmt(_sp)} spare, ${fmt(left)} needed)`:''}. Pick another SKU, or give a reason to record it anyway — the reason goes in the history.`,
+          'why it is still right…','Record anyway',why=>{
+            why=String(why||'').trim();if(!why){toast('Give a reason, or pick another SKU','er');return;}
+            r._wentWhy=why;_go();});
+        return;
+      }
+      _go();
     });
 }
 async function _wentOutGo(r,sku,shipId,units){
   if(!r||!shipId||!(units>0))return;
   const dd=_ddUK();
   try{addSegment(r,shipId,units,r.shipType||'Standard');}catch(e){toast('Could not record the shipment: '+(e&&e.message||e),'er');return;}
-  r.notes=((r.notes||'').trim()?(r.notes.trim()+'\n'):'')+`${_who()} ${dd}: ${fmt(units)} went out under ${sku} on ${shipId}`;
+  const _why=r._wentWhy?` — overridden: ${r._wentWhy}`:'';delete r._wentWhy;
+  r.notes=((r.notes||'').trim()?(r.notes.trim()+'\n'):'')+`${_who()} ${dd}: ${fmt(units)} went out under ${sku} on ${shipId}${_why}`;
   r._dirty=true;
   try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
   try{await addVaActions(r,['Confirm in Seller Central'],`${_who()} says ${fmt(units)} × ${r.prod||r.sku||''} went out under ${sku} on ${shipId} — confirm it in Seller Central, then it is accounted for`);}catch(e){}
@@ -1495,10 +1511,29 @@ const acOpenClaims=r=>{
 
 /* Null means this row can go. Anything else is the reason it cannot, written
    for the person reading the sheet, not for the log. */
+/* Jack, 23 Oct: "why are these still on the prep sheet?" Four finished rows could
+   never clear. Units that went out under another SKU (resolution.elsewhereShipped)
+   and damaged/eBay units held back are accounted for, so they count alongside the
+   ones stamped on this row. And an issue flag whose claims are all Resolved/Closed
+   is history, not an open issue. */
+function _acAccounted(r){
+  const res=r.resolution||{};
+  const away=Math.max(0,parseInt(res.elsewhereShipped)||0);
+  const held=/damag|incorrect|wrong|ebay/i.test(String(r.issueType||''))?Math.max(0,parseInt(r.issueQty)||0):0;
+  return{away,held,shp:parseInt(r.ship)||0};
+}
+function _acFlagDone(r){
+  const rid=r.uuid||String(r.id);
+  const cl=(typeof claims!=='undefined'?claims:[]).filter(c=>c&&(c.prepRowId===rid||c.prepRowId===r.id));
+  return cl.length>0&&cl.every(c=>c.cst==='Resolved'||c.cst==='Closed');
+}
 function acHold(r){
   if(!r||r.archived)return 'already archived';
-  if(r.status!=='Sent to Amazon')return r.status==='Part Sent'?'part sent':'not sent to Amazon yet';
-  if(r.sent!=='Yes')return 'not marked as sent';
+  const A=_acAccounted(r),rcv0=parseInt(r.rcvd)||0;
+  /* everything that arrived went out under another SKU — nothing is stamped here */
+  const allAway=A.away>0&&rcv0>0&&A.shp+A.away+A.held>=rcv0&&_owedUnits(r)===0;
+  if(r.status!=='Sent to Amazon'&&!allAway)return r.status==='Part Sent'?'part sent':'not sent to Amazon yet';
+  if(r.sent!=='Yes'&&!allAway)return 'not marked as sent';
   /* S&S used to be a permanent exclusion here. That was me reading "anything
      that is part sent or has S&S can't be sent" too literally — that list was
      about what makes a row UNFINISHED, and Subscribe & Save says nothing about
@@ -1506,17 +1541,20 @@ function acHold(r){
      S&S matters for arrival (it is exempt from overdue chasing, because those
      deliveries come on a schedule) — not for clearing. A finished row is a
      finished row, so it now clears on exactly the same rules as every other. */
-  if(r.issueType&&r.issueType!=='—')return `has an issue: ${r.issueType}`;
+  if(r.issueType&&r.issueType!=='—'&&!_acFlagDone(r))return `has an issue: ${r.issueType}`;
   if(acOpenClaims(r))return 'has an open claim';
   if(r.resolution&&['proposed','asked'].includes(r.resolution.state))return 'waiting on Jack';
   if(typeof _ukQuery==='function'&&_ukQuery(r))return 'question open — is more on the way?';
   if(r.reimb==='Yes')return 'reimbursement being chased';
   const hasShip=String(r.shipId||'').trim()||((r.allShipIds||[]).length>0);
-  if(!hasShip)return 'waiting on shipment ID';
-  const exp=_effExp(r),rcv=parseInt(r.rcvd)||0,shp=parseInt(r.ship)||0;
+  if(!hasShip&&!allAway)return 'waiting on shipment ID';
+  const exp=_effExp(r),rcv=parseInt(r.rcvd)||0,shp=A.shp+A.away+A.held;
   if(!exp||!shp)return 'quantities not filled in';
-  if(exp!==rcv||rcv!==shp)return `numbers do not match — ${exp} expected, ${rcv} received, ${shp} shipped`;
-  const m=sentMoment(r);
+  if(exp!==rcv||rcv!==shp)return `numbers do not match — ${exp} expected, ${rcv} received, ${A.shp} shipped`
+    +(A.away?`, ${A.away} under another SKU`:'')+(A.held?`, ${A.held} held back`:'');
+  /* a row closed off with everything gone elsewhere has no send of its own — it
+     finished when it was settled */
+  const m=sentMoment(r)||((allAway&&r.resolution&&r.resolution.settled&&r.resolution.settled.at)?new Date(r.resolution.settled.at):null);
   if(!m)return 'no sent date recorded';
   const need=parseInt(AC.hours)||48;
   const done=workHoursSince(m);
