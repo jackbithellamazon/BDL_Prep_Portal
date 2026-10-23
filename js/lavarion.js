@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v54.5 · lav3 · 2026-10-22 · b605';
+const BUILD='v54.9 · lav3 · 2026-10-23 · b609';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -2065,6 +2065,9 @@ function fbaCalDays(){
 /* ── demand: hub sales first, the owner's planning figure second, never a
    guess (spec §63). Zero sales is its own honest state, not a blank. */
 function planDemandOf(p){
+  /* 23 Oct 2026: a pause from the Action centre (seasonal, stopped) always wins — the
+     "not selling" mark below gives way to any sale, so it could not pause the Dove lines */
+  {const _pz=(D.settings.acPause||{})[p.asin];if(_pz)return{m:0,src:'paused',label:'paused by '+(_pz.by||'someone')+(_pz.at?' on '+dshort(String(_pz.at).slice(0,10)):'')};}
   /* Becki, 7 Sep: three bundles marked "not selling yet" in the July review
      sold in August, and the planner still ignored them. The mark means "no
      sales yet, stop asking" — the moment the hub shows real sales, the sales
@@ -2195,12 +2198,19 @@ function plSuppliers(){
 /* ═══ A. AMAZON REPLENISHMENT (spec §13-14) — build & send? when? how many? */
 function plAmazonRow(p){
   const d=planDemandOf(p);
-  const sell=atAmz(p),inb=amzIn(p)||0;
-  const out={p,demand:d,sell,inb,alloc:0,rec:0};
+  /* 23 Oct 2026: sends recorded after Sarah's last Amazon count were invisible — Becki sent
+     226 Gluten Free Biscuit on 21–22 Oct and it still read "Amazon is empty — build & send".
+     Anything sent after the count's day is on its way. */
+  const _cAt=String((D.settings.atAmzAt||{})[p.asin]||'').slice(0,10);
+  const since=(_cAt&&typeof lavShipments!=='undefined')?lavShipments.filter(x=>x.asin===p.asin&&x.date&&String(x.date).slice(0,10)>_cAt).reduce((t,x)=>t+(parseInt(x.units)||0),0):0;
+  const sell=atAmz(p),inb=(amzIn(p)||0)+since;
+  const out={p,demand:d,sell,inb,since,alloc:0,rec:0};
   if(!d){out.state='nodata';
     out.why='No sales figure and no planning demand. Nothing is planned for it — type a monthly estimate below and it joins in.';return out;}
   if(d.m===0){out.state='paused';
-    out.why=d.src==='skip'
+    out.why=d.src==='paused'
+      ?'Paused ('+d.label+'), so the planner leaves it alone. Press “Selling again” on the Action centre when it comes back.'
+      :d.src==='skip'
       ?'Marked as not selling, so the planner leaves it alone completely. Press “Selling again” below when it comes back.'
       :'Sold none in '+ymName(hubMonth().ym)+', so nothing is planned. Give it a planning figure if it should still be stocked.';return out;}
   if(sell==null){out.state='nocount';
@@ -2837,19 +2847,55 @@ function acSnooze(k,days,btn){
     const inp=document.createElement('input');inp.type='date';inp.className='acPick in';inp.min=dayISO();
     inp.onchange=()=>{if(inp.value){D.settings.acSnooze[k]={until:inp.value,by:window.currentUserName||'someone'};savePrefs();render();}};
     host.appendChild(inp);setTimeout(()=>inp.focus(),30);return;}
-  D.settings.acSnooze[k]={until:addCalDays(dayISO(),+days||3),by:window.currentUserName||'someone'};
+  D.settings.acSnooze[k]={until:addCalDays(dayISO(),+days||3),by:window.currentUserName||'someone',at:new Date().toISOString()};
   savePrefs();
-  try{logIt('edit','Action centre: snoozed “'+String(k).replace(/_/g,' ')+'” for '+days+' days');}catch(e){}
+  try{logIt('edit','Snoozed until '+dshort(D.settings.acSnooze[k].until)+': '+_acName(k));}catch(e){}
   render();
 }
-function acUnsnooze(k){if(D.settings.acSnooze)delete D.settings.acSnooze[k];savePrefs();render();}
+/* 23 Oct 2026 — the Action centre's own moves, each written into the history */
+let _acLabels={};
+const _acName=k=>(_acLabels&&_acLabels[k])||String(k).replace(/_/g,' ');
+function acSnoozeMenu(k,btn){
+  const host=btn&&btn.parentElement;if(!host)return;
+  host.innerHTML=`<button class="btn sm ghost" onclick="LV3.acSnooze('${k}',1)">Tomorrow</button><button class="btn sm ghost" onclick="LV3.acSnooze('${k}',7)">Next week</button><input type="date" class="acPick in" min="${addCalDays(dayISO(),1)}" title="Pick the day it comes back" onchange="if(this.value)LV3.acSnoozeTo('${k}',this.value)">`;
+}
+function acSnoozeTo(k,iso){D.settings.acSnooze=D.settings.acSnooze||{};
+  D.settings.acSnooze[k]={until:iso,by:window.currentUserName||'someone',at:new Date().toISOString()};savePrefs();
+  try{logIt('edit','Snoozed until '+dshort(iso)+': '+_acName(k));}catch(e){}render();}
+function acDone(k){wlTick(k,'Ordered outside the app');}
+function acPause(asin){const p=D.products.find(x=>x.asin===asin);
+  confirmBox(`Pause ${esc((p&&p.name)||asin)}?`,`It stops asking to be built and sent — on this page and the Planner — until someone presses <b>selling again</b>.<br>Use it for seasonal or stopped products. It is listed under Build &amp; send as paused, with who paused it and a way back.`,
+    ()=>{const by=window.currentUserName||'someone';D.settings.acPause=D.settings.acPause||{};
+      D.settings.acPause[asin]={by,at:new Date().toISOString()};
+      try{logIt('edit',`Paused — not selling: ${(p&&p.name)||asin}`);}catch(e){}
+      savePrefs();render();toast('Paused — it is listed under Build & send with a way back','ok');},{ok:'Pause it'});}
+function acUnpause(asin){const p=D.products.find(x=>x.asin===asin);
+  if(D.settings.acPause)delete D.settings.acPause[asin];
+  try{logIt('edit',`Selling again: ${(p&&p.name)||asin}`);}catch(e){}
+  savePrefs();render();toast('Selling again — it is back in the plan','ok');}
+function acDate(kind,oid,lid,btn){
+  const o=kind==='component'?comp(oid):prod(oid);if(!o)return;const l=(o.layers||[]).find(x=>x.id===lid);if(!l)return;
+  const host=btn&&btn.parentElement;if(!host)return;
+  host.insertAdjacentHTML('beforeend',`<input type="date" class="acPick in" value="${String(l.eta2||l.eta1||'').slice(0,10)}" title="The new delivery date" onchange="if(this.value)LV3.acDateSet('${kind}','${oid}','${lid}',this.value)">`);
+  btn.remove();
+}
+function acDateSet(kind,oid,lid,iso){
+  const o=kind==='component'?comp(oid):prod(oid);if(!o)return;const l=(o.layers||[]).find(x=>x.id===lid);if(!l)return;
+  const from=String(l.eta2||l.eta1||'').slice(0,10),by=window.currentUserName||'someone';
+  l.etaMoved={from,to:iso,by,at:new Date().toISOString()};
+  if(l.eta1&&l.eta1>iso)l.eta1=iso;
+  try{logIt('edit',`Delivery date changed: ${fmt(l.qty)} × ${o.name} from ${from?dshort(from):'no date'} to ${dshort(iso)} — ${by}`);}catch(e){}
+  setEta(kind,oid,lid,'eta2',iso);   /* saves and redraws */
+  toast(`New date ${dshort(iso)} — kept on the line`,'ok');
+}
+function acUnsnooze(k){if(D.settings.acSnooze)delete D.settings.acSnooze[k];savePrefs();try{logIt('edit','Brought back: '+_acName(k));}catch(e){}render();}
 let _wlWho=(function(){try{return lsGet('lv3_wlwho')||'all';}catch(e){return 'all';}})();
 function wlWho(k){_wlWho=k;lsSet('lv3_wlwho',k);render();}
-function wlTick(k){
+function wlTick(k,how){
   D.settings.wlAck=D.settings.wlAck||{};
-  D.settings.wlAck[k]={d:dayISO(),by:(window.currentUserName||'someone')};
+  D.settings.wlAck[k]={d:dayISO(),by:(window.currentUserName||'someone'),how:how||'done'};
   savePrefs();
-  try{logIt('edit','Action centre: ticked off \u201c'+k.replace(/_/g,' ')+'\u201d for today');}catch(e){}
+  try{logIt('edit',(how||'Done')+': '+_acName(k));}catch(e){}
   render();
 }
 function wlUntick(k){
@@ -2908,84 +2954,115 @@ function vOverview(){
     </div>`;
     return;
   }
-  /* ═══ THE ACTION CENTRE (Jack, 5 Sep) ═══
-     "The whole reason we're building these systems is to remove the need for
-     her to work out what to do next." One list, ranked: LATE → TODAY → NEXT 3
-     DAYS → THIS WEEK → CAN WAIT. Every line says what to do and why, and
-     carries its own button plus Snooze and DONE. DONE means done — it hides
-     the line and trusts her; it does not wait for the Purchase Sheet to catch
-     up (an Alibaba order takes weeks to cost). Everything here is Becky's. */
+  /* ═══ THE ACTION CENTRE — rebuilt 23 Oct 2026 ═══
+     Jack: "it should be looked at every day"; "tasks are being missed, mixed together or
+     disappearing"; "snooze and change date — with a clear record"; "Becki and the UK team
+     should have a clear view of their responsibilities, and I should see what's happening".
+     Becki opened it on 3, 9, 15, 19 and 20 Oct and pressed DONE 43 times — mostly on the
+     same Dove lines, which came back every time, and on lines she had already sent. So:
+     one lane per job with whose it is; a build line clears itself when the send is
+     recorded (no DONE to fake it); snoozes, pauses and date changes stay on the page with
+     who and when; a Done-today list; and who has opened it today. Sarah is not on this
+     page — PLUB is Becki, the UK team and Jack. */
   const M=ovModel();const H=houseList();
   const today=dayISO();const fba=fbaCalDays(),trig=fba+safetyDays();
+  const who=window.currentUserName||'someone';
   D.settings.acSnooze=D.settings.acSnooze||{};D.settings.wlAck=D.settings.wlAck||{};
-  Object.keys(D.settings.acSnooze).forEach(k=>{const z=D.settings.acSnooze[k];if(!z||!z.until||z.until<today)delete D.settings.acSnooze[k];});
-  const A=[];const add=o=>A.push(o);
-  const bandOf=d=>d<0?'late':d===0?'today':d<=3?'soon':d<=7?'week':'wait';
-  /* SEND */
-  M.send.forEach(r=>{const oos=(r.sell||0)<=0;const cov=Math.round(r.protDays||0);
-    add({k:'send_'+r.p.id,band:oos?'late':cov<=fba?'today':cov<=trig?'soon':'week',
-      do:`Build &amp; send <b>${fmt(r.alloc)}</b> × ${esc(r.p.name)}`,
-      why:(oos?'Amazon is empty — losing sales now':`${cov}d of cover left`)+(r.alloc<r.rec?` · only ${fmt(r.alloc)} of ${fmt(r.rec)} can be built${r.lim?' — short of '+esc(r.lim.name):''}`:''),
-      col:oos?'#ef4444':cov<=fba?'#fb923c':'#4ade80',btn:'Ship',go:`openShip('${r.p.id}')`});});
-  /* PARTS holding products up */
-  M.parts.forEach(g=>{const g2=g.gap||{kind:'none'};const names=g.rows.map(r=>r.p.name);
-    const who=g.part?esc(g.part.name):esc(names[0]);
-    const list=g.rows.length===1?esc(names[0]):fmt(g.rows.length)+' products — '+esc(names.slice(0,3).join(', '))+(names.length>3?' +'+(names.length-3):'');
-    const key='part_'+(g.part?g.part.id:g.worst.p.id);
-    if(!g.part){add({k:key,band:g.oos?'late':'today',col:g.oos?'#ef4444':'#fb923c',do:`Buy <b>${who}</b> — none in stock`,why:(g.oos?'Amazon is empty':'nothing to build from')+(g.missing?` · ${fmt(g.missing)} wanted`:''),btn:'Order it',go:`openLogOrder('${g.worst.p.id}')`});return;}
-    if(g2.kind==='intime'){add({k:key,band:'wait',col:'#60a5fa',do:`Nothing to do — <b>${fmt(g2.qty)} ${who}</b> land ${dshort(g2.eta)}, in time`,why:`then build ${list}`,btn:'Open',go:`openPlanRow('${g.worst.p.id}')`});return;}
-    if(g2.kind==='late'){add({k:key,band:g.oos?'late':'week',col:g.oos?'#ef4444':'#fb923c',do:`Waiting on <b>${fmt(g2.qty)} ${who}</b> — land ${dshort(g2.eta)}`,why:(g.oos?'Amazon is empty until then · ':`after the shelf empties ~${dshort(g.worst.stockout)} · `)+`holds up ${list}`,btn:'Open',go:`openPlanRow('${g.worst.p.id}')`});return;}
-    if(g2.kind==='noeta'){add({k:key,band:'today',col:'#fbbf24',do:`Set the delivery method on <b>${fmt(g2.qty)} ${who}</b> on order`,why:`nobody can say if it lands in time · holds up ${list}`,btn:'Deliveries',go:'openDeliveries()'});return;}
-    add({k:key,band:g.oos?'late':'today',col:g.oos?'#ef4444':'#fb923c',do:`Order <b>${who}</b> — nothing on order`,why:(g.oos?'Amazon is empty · ':'')+`holds up ${list}`+(g.missing?` · ${fmt(g.missing)} units waiting`:''),btn:'Order it',go:`openLogOrder('${g.part.id}')`});});
-  /* BUY — one line per supplier; the key changes when the set of parts does */
+  const snz=D.settings.acSnooze,ack=D.settings.wlAck;
+  Object.keys(snz).forEach(k=>{const z=snz[k];if(!z||!z.until||z.until<today)delete snz[k];});   /* a snooze ends on its day */
+  /* a DONE is kept for 14 days — it used to be wiped by any redraw where the line briefly
+     dropped out, which is why Becki's ticks kept coming back */
+  Object.keys(ack).forEach(k=>{const x=ack[k];if(!x||!x.d||daysSince(x.d)>14)delete ack[k];});
+  /* who has opened it today — once a person a day */
+  {D.settings.acSeen=D.settings.acSeen||{};const sn=D.settings.acSeen[who];
+   if(who!=='someone'&&(!sn||String(sn).slice(0,10)!==today)){D.settings.acSeen[who]=new Date().toISOString();try{savePrefs();}catch(e){}}}
+  const LN={send:[],recv:[],order:[]};
+  const put=(lane,o)=>LN[lane].push(Object.assign({lane},o));
+  /* BUILD & SEND — selling products first; one with no sends lately is greyed, not red */
+  M.send.forEach(r=>{const p=r.p,oos=(r.sell||0)<=0,cov=Math.round(r.protDays||0),sold=p.ship30||0,quiet=sold===0;
+    const can=(avail(p)||{}).n;
+    put('send',{k:'send_'+p.id,urg:quiet?4:oos?0:cov<=fba?1:cov<=trig?2:3,
+      chip:quiet?['NO SENDS IN 30 DAYS','#94a3b8']:oos?['EMPTY AT AMAZON','#ef4444']:[`${cov} DAYS LEFT`,cov<=fba?'#fb923c':'#fbbf24'],
+      title:`<b>${fmt(r.alloc)}</b> × ${esc(p.name)}`,
+      facts:`at Amazon <b>${fmt(r.sell||0)}</b> · on the way <b>${fmt(r.inb||0)}</b>${r.since?` (${fmt(r.since)} sent since the count)`:''} · can build <b>${can==null?'—':fmt(can)}</b> · sent 30d ${fmt(sold)}`
+        +(r.alloc<r.rec?` · <b style="color:#fbbf24">only ${fmt(r.alloc)} of ${fmt(r.rec)} — short of ${esc(r.lim?r.lim.name:'a part')}</b>`:''),
+      btns:[['Ship','pri',`openShip('${p.id}')`],['Not selling — pause','ghost',`acPause('${p.asin}')`]]});});
+  /* RECEIVE — due within a week, overdue, or with no date */
+  M.inbound.forEach(g=>{const x=g.x,l=x.l,due=g.due,d=due==='9999'?99:Math.round((new Date(due)-new Date(today))/864e5);
+    if(!g.late&&due!=='9999'&&d>7)return;
+    const mv=l.etaMoved;
+    put('recv',{k:'arr_'+l.id,urg:g.late?0:d<=0?1:due==='9999'?2:3,
+      chip:g.late?['OVERDUE','#ef4444']:d<=0?['DUE TODAY','#fb923c']:due==='9999'?['NO DATE','#fbbf24']:[`DUE ${dshort(due)}`,'#60a5fa'],
+      title:`<b>${fmt(l.qty)}</b> × ${esc(x.o.name)}`,
+      facts:`${esc(l.sup||'?')}${l.oid&&l.oid!=='—'?' · '+esc(l.oid):''} · ordered ${dshort(l.date)}`
+        +(g.late&&g.st&&g.st.sub?` · ${esc(g.st.sub)}`:'')+(l._etaGuess?' · date estimated':'')
+        +(mv?` · <b style="color:#93c5fd">date moved to ${dshort(mv.to)}${mv.from?' (was '+dshort(mv.from)+')':''} — ${esc(mv.by)}</b>`:''),
+      btns:[['Receive','pri',`markArrived('${x.kind}','${x.o.id}','${l.id}')`],['Change date','ghost',`acDate('${x.kind}','${x.o.id}','${l.id}',this)`]]});});
+  /* TO ORDER — one line per supplier; a part with nothing on order folds into its supplier's
+     line instead of appearing twice (Always Size 2, Piper's crisps, Ebin, Ube did) */
+  const inBuy=new Set();M.sups.forEach(g=>g.lines.forEach(Ln=>inBuy.add(String(Ln.o.id))));
   M.sups.forEach(g=>{const d=g.byDays,lines=g.lines;
-    add({k:'buy_'+g.sup.toLowerCase().replace(/[^a-z0-9]/g,'')+'_'+lines.map(L=>String(L.o.id)).sort().join('.'),band:bandOf(d),
-      col:d<0?'#ef4444':d===0?'#fb923c':d<=3?'#fbbf24':'#7f8896',
-      do:`Order from <b>${esc(g.sup)}</b> — ${lines.slice(0,4).map(L=>fmt(L.buyQty)+' × '+esc(L.o.name)).join(', ')}${lines.length>4?' +'+(lines.length-4)+' more':''}`,
-      why:(d<0?`should have gone ${fmt(-d)}d ago`:d===0?'order today':`order by ${dshort(addCalDays(today,d))}`)+` · ${fmt(lines.length)} part${lines.length===1?'':'s'}`,
-      money:g.cost,parts:lines,btn:'Log order',go:`openLogOrder('${lines[0].o.id}')`});});
-  /* ARRIVING — a delivery is an action when it is due or overdue */
-  M.inbound.forEach(g=>{const x=g.x;const due=g.due;
-    const d=due==='9999'?99:Math.round((new Date(due)-new Date(today))/864e5);
-    const band=g.late?'late':bandOf(d);
-    if(band==='wait'&&d>14)return;
-    add({k:'arr_'+x.l.id,band,col:g.late?'#ef4444':d<=0?'#fb923c':d<=3?'#fbbf24':'#60a5fa',
-      do:`Receive <b>${fmt(x.l.qty)} × ${esc(x.o.name)}</b> from ${esc(x.l.sup||'?')}`,
-      why:g.collect?'collection'+(due!=='9999'?' · '+dshort(due):''):g.late?(((g.st&&g.st.sub)||'overdue')+' — chase the supplier for a date'):due!=='9999'?'due '+dshort(due):'no date set',
-      btn:'Receive',go:`markArrived('${x.kind}','${x.o.id}','${x.l.id}')`});});
-  /* a purchase to name, a route to set */
-  H.wh.forEach(j=>add({k:j.k,band:'week',col:'#fbbf24',do:j.t,why:j.s,btn:j.btn,go:j.go}));
-  /* DONE and snoozed — acks for lines that no longer exist clean themselves up */
-  const ack=D.settings.wlAck,snz=D.settings.acSnooze;
-  const liveKeys=new Set(A.map(a=>a.k).concat(H.jack.map(j=>j.k)));
-  Object.keys(ack).forEach(k=>{if(!liveKeys.has(k))delete ack[k];});
-  const todo=A.filter(a=>!ack[a.k]&&!snz[a.k]);
-  const doneN=A.filter(a=>ack[a.k]).length;const snoozed=A.filter(a=>snz[a.k]&&!ack[a.k]);
-  const BANDS=[['late','LATE','#ef4444','should already have happened'],['today','TODAY','#fb923c','do these before anything else'],['soon','NEXT 3 DAYS','#fbbf24','becoming urgent'],['week','THIS WEEK','#60a5fa','plan them in'],['wait','CAN WAIT','#7f8896','nothing to do yet — here so you know']];
-  const order={late:0,today:1,soon:2,week:3,wait:4};
-  /* inside a band: an empty Amazon shelf outranks a late purchase order */
-  const pri=a=>a.k.startsWith('send_')?0:a.k.startsWith('part_')?1:a.k.startsWith('arr_')?2:a.k.startsWith('buy_')?3:4;
-  todo.sort((a,b)=>order[a.band]-order[b.band]||pri(a)-pri(b)||(b.money||0)-(a.money||0));
-  const nB=b=>todo.filter(a=>a.band===b).length;
-  /* Jack, 10 Sep: "make the KPIs interactive — clickable like filters". One
-     press shows only that band; pressing it again shows everything. */
+    const k='buy_'+g.sup.toLowerCase().replace(/[^a-z0-9]/g,'')+'_'+lines.map(Ln=>String(Ln.o.id)).sort().join('.');
+    const holds=[];M.parts.forEach(pg=>{if(pg.part&&lines.some(Ln=>String(Ln.o.id)===String(pg.part.id)))pg.rows.forEach(r=>holds.push(r.p.name));});
+    put('order',{k,urg:d<0?0:d===0?1:d<=3?2:3,
+      chip:d<0?[`SHOULD HAVE GONE ${fmt(-d)} DAYS AGO`,'#ef4444']:d===0?['ORDER TODAY','#fb923c']:[`ORDER BY ${dshort(addCalDays(today,d))}`,'#fbbf24'],
+      title:`<b>${esc(g.sup)}</b> — ${lines.slice(0,4).map(Ln=>fmt(Ln.buyQty)+' × '+esc(Ln.o.name)).join(', ')}${lines.length>4?' +'+(lines.length-4)+' more':''}`,
+      facts:`${fmt(lines.length)} part${lines.length===1?'':'s'}${g.cost?' · about '+gbp(g.cost):''}${holds.length?' · holds up '+esc([...new Set(holds)].slice(0,3).join(', ')):''}`,
+      btns:[['Log order','pri',`openLogOrder('${lines[0].o.id}')`],['Ordered outside the app','ghost',`acDone('${k}')`]]});});
+  M.parts.forEach(g=>{if(!g.part||inBuy.has(String(g.part.id)))return;const g2=g.gap||{kind:'none'};
+    if(g2.kind==='intime'||g2.kind==='noeta')return;   /* in time = nothing to do; no date shows under Receive */
+    const names=g.rows.map(r=>r.p.name),list=g.rows.length===1?esc(names[0]):fmt(g.rows.length)+' products';
+    if(g2.kind==='late'){put('recv',{k:'part_'+g.part.id,urg:g.oos?0:2,chip:[`LANDS ${dshort(g2.eta)} — TOO LATE`,g.oos?'#ef4444':'#fb923c'],
+      title:`<b>${fmt(g2.qty)}</b> × ${esc(g.part.name)} on the way`,facts:`holds up ${list}${g.oos?' · Amazon is empty until then':''}`,
+      btns:[['Open','pri',`openPlanRow('${g.worst.p.id}')`],['Change date','ghost',`openDeliveries()`]]});return;}
+    put('order',{k:'part_'+g.part.id,urg:g.oos?0:1,chip:[g.oos?'AMAZON EMPTY':'NOTHING ON ORDER',g.oos?'#ef4444':'#fb923c'],
+      title:`<b>${esc(g.part.name)}</b> — nothing on order`,facts:`holds up ${list}${g.missing?` · ${fmt(g.missing)} units waiting`:''}`,
+      btns:[['Order it','pri',`openLogOrder('${g.part.id}')`]]});});
+  /* set-up jobs for the warehouse (link a purchase, set a route) sit with Receive */
+  H.wh.forEach(j=>put('recv',{k:j.k,urg:2,chip:['SET UP','#fbbf24'],title:j.t,facts:j.s,btns:[[j.btn,'pri',j.go]]}));
+  /* plain words for the record — the log used to say "ticked off buy alibaba 51308bdf…" */
+  _acLabels={};[].concat(LN.send,LN.recv,LN.order).forEach(x=>{_acLabels[x.k]=String(x.title||'').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&times;|×/g,'×');});
+  /* split each lane: to do, snoozed, done */
+  const LANES=[['send','Build & send','Becki · UK team','Products to build and send to Amazon — most urgent first. A line clears itself once the send is recorded.'],
+               ['recv','Receive deliveries','Becki · UK team','Deliveries due this week, overdue, or with no date. Wrong date? Change it — it is kept on the line.'],
+               ['order','To order','Jack','Parts to buy, one line per supplier.']];
+  const st=k=>snz[k]?'snz':ack[k]?'done':'todo';
+  const all=[].concat(LN.send,LN.recv,LN.order);
+  const nTodo=lane=>LN[lane].filter(x=>st(x.k)==='todo').length;
+  const snzAll=all.filter(x=>st(x.k)==='snz');
+  /* Done today — what actually happened, from the record */
+  const doneToday=[];
+  (D.log||[]).forEach(e=>{if(String(e.t||'').slice(0,10)!==today)return;
+    if(['recv','order','ship'].includes(e.k)||/^Action centre:|^Paused|^Selling again|^Delivery date changed|^Snoozed until|^Done:|^Ordered outside the app:|^Brought back:/.test(e.txt||''))doneToday.push({t:e.t,who:e.who,txt:e.txt});});
+  (typeof lavShipments!=='undefined'?lavShipments:[]).forEach(x=>{if(String(x.date||'').slice(0,10)===today)doneToday.push({t:x.created_at||x.date,who:x.by||'',txt:`Sent ${fmt(x.units)} × ${x.prod||x.asin} on ${x.shipId}`});});
+  doneToday.sort((a,b)=>String(b.t).localeCompare(String(a.t)));
   const _only=_acOnly;
-  const row=a=>`<div class="acRow" style="border-left-color:${a.col};">
-      <div class="acMain"><div class="acDo">${a.do}</div>${a.why?`<div class="acWhy">${a.why}</div>`:''}
-        ${a.parts?`<details class="acParts"><summary>${fmt(a.parts.length)} part${a.parts.length===1?'':'s'} — log or set aside one at a time ▾</summary>${a.parts.map(L=>`<div class="acPart"><span class="acPartName">${esc(L.o.name)}</span><b>${fmt(L.buyQty)}${(L.cases&&L.caseQty>1)?` <small>${fmt(L.cases)} × ${fmt(L.caseQty)}</small>`:''}</b><span class="ovMoney sm">${gbp(L.cost||0)}</span>${L.buyByDays<0?`<span class="ovChip" style="color:#ef4444;border-color:#ef444455;background:#ef44441a;">${fmt(-L.buyByDays)}d overdue</span>`:''}<span class="ovGap"></span><button class="btn sm" onclick="LV3.openLogOrder('${L.o.id}')">Log order</button><button class="btn sm ghost" onclick="LV3.buySkipSet('${L.o.id}','skip')" title="Not buying this again — until its stock changes">Not reordering</button></div>`).join('')}</details>`:''}
+  const rowHtml=x=>{const s0=st(x.k),z=snz[x.k],dn=ack[x.k];
+    const chip=s0==='snz'?[`SNOOZED TILL ${dshort(z.until)}`,'#94a3b8']:s0==='done'?['DONE','#4ade80']:x.chip;
+    return `<div class="acx${s0==='todo'?'':' dim'}" style="--c:${chip[1]};">
+      <div class="acxMain">
+        <div class="acxTop"><span class="acxChip">${chip[0]}</span><span class="acxTitle">${x.title}</span></div>
+        <div class="acxFacts">${s0==='snz'?`snoozed by ${esc(z.by||'someone')}${z.at?' on '+dshort(String(z.at).slice(0,10)):''} · `:s0==='done'?`by ${esc(dn.by||'someone')} on ${dshort(dn.d)} · `:''}${x.facts||''}</div>
       </div>
-      ${a.money?`<span class="ovMoney">${gbp(a.money)}</span>`:''}
-      <div class="acBtns">
-        <button class="btn sm pri" onclick="LV3.${a.go}">${esc(a.btn)}</button>
-        <button class="btn sm ghost" title="Snooze 3 days — it comes back at the top when the time is up" onclick="LV3.acSnooze('${a.k}',3)">Snooze 3d</button>
-        <button class="btn sm ghost" title="Pick the day it should come back" onclick="LV3.acSnooze('${a.k}','pick',this)">&hellip;</button>
-        <button class="btn sm ok" title="Done — it leaves the list and stays gone. Nothing checks the Purchase Sheet." onclick="LV3.wlTick('${a.k}')">DONE</button>
-      </div></div>`;
-  const sections=BANDS.map(([b,lab,col,sub])=>{if(_only&&b!==_only)return '';const g=todo.filter(a=>a.band===b);if(!g.length)return '';
-    return `<details class="acSec" id="ac-${b}" ${b!=='wait'?'open':''}><summary><span class="acSecLab" style="color:${col}">${lab}</span><span class="acSecN" style="color:${col};border-color:${col}55;background:${col}1a;">${fmt(g.length)}</span><span class="ovDim">${sub}</span></summary>${g.map(row).join('')}</details>`;}).join('');
-  const buyFoot=(M.onWay.length||M.skipped.length)?`<div class="ovFoot">
-      ${M.onWay.length?`<span>Already on order — nothing to do: ${esc(M.onWay.slice(0,5).map(L=>L.o.name).join(', '))}${M.onWay.length>5?' +'+(M.onWay.length-5):''}</span>`:''}
-      ${M.skipped.length?`<span>Set aside: ${M.skipped.map(L=>`${esc(L.o.name)} <a href="javascript:void(0)" onclick="LV3.buySkipSet('${L.o.id}','clear')">bring back</a>`).join(' · ')}</span>`:''}</div>`:'';
+      <div class="acxBtns">${s0==='snz'?`<button class="btn sm" onclick="LV3.acUnsnooze('${x.k}')">Bring back now</button>`
+        :s0==='done'?`<button class="btn sm ghost" onclick="LV3.wlUntick('${x.k}')">Undo</button>`
+        :x.btns.map(b=>`<button class="btn sm ${b[1]}" onclick="LV3.${b[2]}">${esc(b[0])}</button>`).join('')
+          +`<span class="acxSnz"><button class="btn sm ghost" onclick="LV3.acSnoozeMenu('${x.k}',this)">Snooze &#9662;</button></span>`}</div>
+    </div>`;};
+  const laneHtml=([lane,lab,owner,sub])=>{if(_only&&_only!==lane)return '';
+    const rows=LN[lane].filter(x=>st(x.k)==='todo').sort((a,b)=>a.urg-b.urg);
+    const off=LN[lane].filter(x=>st(x.k)!=='todo');
+    const paused=lane==='send'?Object.keys(D.settings.acPause||{}).map(a=>D.products.find(p=>p.asin===a)).filter(Boolean):[];
+    return `<section class="panel acLane" id="ac-${lane}">
+      <div class="acLaneHd"><span class="acLaneT">${lab}</span><span class="acLaneN">${fmt(rows.length)}</span><span class="acLaneWho">${owner}</span></div>
+      <div class="acLaneSub">${sub}</div>
+      ${rows.length?rows.map(rowHtml).join(''):'<div class="acxEmpty">Nothing to do here.</div>'}
+      ${off.length?`<details class="acOff"><summary>${fmt(off.length)} snoozed or done</summary>${off.map(rowHtml).join('')}</details>`:''}
+      ${paused.length?`<div class="acPaused">Paused — not selling: ${paused.map(p=>{const z=D.settings.acPause[p.asin]||{};return `<span>${esc(p.name)} <i>(${esc(z.by||'someone')}${z.at?', '+dshort(String(z.at).slice(0,10)):''})</i> <a href="javascript:void(0)" onclick="LV3.acUnpause('${p.asin}')">selling again</a></span>`;}).join(' · ')}</div>`:''}
+    </section>`;};
+  const seen=D.settings.acSeen||{};const seenTxt=Object.keys(seen).filter(n=>String(seen[n]).slice(0,10)===today)
+    .map(n=>`${esc(n)} ${new Date(seen[n]).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/London'})}`);
+  const kpi2=(lane,lab,n,col,sub)=>`<div class="kpi clk${_only===lane?' on':''}" style="--rail:${col}" onclick="LV3.acOnly('${lane}')"><div class="k">${lab}</div><div class="v" style="color:${n?col:'var(--grn)'}">${fmt(n)}</div><div class="s">${_only===lane?'showing only these — press again for all':sub}</div></div>`;
   const jackN=H.jack.length;
   const jackHtml=`<details class="panel ovJack">
       <summary><span class="ovJackT">For Jack</span>
@@ -2998,20 +3075,19 @@ function vOverview(){
       <div class="pmeta" style="padding:7px 14px;border-top:1px solid var(--border);">Sarah’s chases are not listed here — they land on her Admin page automatically.</div>
     </details>`;
   $('lav3View').innerHTML=`
-  <div class="kpis">
-    ${kpi('Late',fmt(nB('late')),_only==='late'?'showing only these — press again for all':(nB('late')?'should already have happened':'nothing late'),nB('late')?'var(--red)':'var(--grn)',"LV3.acOnly('late')",_only==='late')}
-    ${kpi('Today',fmt(nB('today')),_only==='today'?'showing only these — press again for all':(nB('today')?'do these first':'nothing due today'),nB('today')?'var(--amb)':'var(--grn)',"LV3.acOnly('today')",_only==='today')}
-    ${kpi('Next 3 days',fmt(nB('soon')),_only==='soon'?'showing only these — press again for all':(nB('soon')?'becoming urgent':'clear'),'var(--accent)',"LV3.acOnly('soon')",_only==='soon')}
-    ${kpi('This week',fmt(nB('week')),_only==='week'?'showing only these — press again for all':(nB('week')?'plan them in':'clear'),'var(--blu)',"LV3.acOnly('week')",_only==='week')}
+  <div class="kpis acKpis">
+    ${kpi2('send','Build &amp; send',nTodo('send'),'#ef4444','Becki · UK team')}
+    ${kpi2('recv','Receive',nTodo('recv'),'#fb923c','Becki · UK team')}
+    ${kpi2('order','To order',nTodo('order'),'#fbbf24','Jack')}
+    ${kpi2('snz','Snoozed',snzAll.length,'#94a3b8','they come back on their day')}
+    ${kpi2('done','Today',doneToday.length,'#4ade80','sent · received · ordered · snoozed · moved')}
   </div>
-  <div class="panel acPanel">
-    <div class="ph"><span class="t">Action centre</span><span class="sub">${fmt(todo.length)} thing${todo.length===1?'':'s'} · work top to bottom · DONE means done · Snooze brings it back later</span>
-      ${doneN?`<div class="r"><span class="ovDim" style="color:var(--grn)">${fmt(doneN)} done</span></div>`:''}</div>
-    ${todo.length?sections:'<div class="ovEmpty"><span class="ovTick">✓</span>Nothing needs doing. Everything is stocked, ordered or on its way.</div>'}
-    ${snoozed.length?`<details class="acSec" id="ac-snoozed"><summary><span class="acSecLab" style="color:#7f8896">SNOOZED</span><span class="acSecN" style="color:#7f8896;border-color:#7f889655;background:#7f88961a;">${fmt(snoozed.length)}</span><span class="ovDim">back on their date</span></summary>${snoozed.map(a=>`<div class="acRow" style="border-left-color:#3a4048;opacity:.75"><div class="acMain"><div class="acDo">${a.do}</div><div class="acWhy">back ${dshort(snz[a.k].until)} · snoozed by ${esc(snz[a.k].by||'')}</div></div><div class="acBtns"><button class="btn sm ghost" onclick="LV3.acUnsnooze('${a.k}')">Bring back now</button></div></div>`).join('')}</details>`:''}
-    ${buyFoot}
-  </div>
-  ${jackHtml}`;
+  <div class="acSeen">${seenTxt.length?'Opened today: <b>'+seenTxt.join('</b> · <b>')+'</b>':'<b style="color:#fbbf24">Not opened by anyone today yet</b>'}</div>
+  ${_only==='snz'?`<section class="panel acLane"><div class="acLaneHd"><span class="acLaneT">Snoozed</span><span class="acLaneN">${fmt(snzAll.length)}</span></div>${snzAll.map(rowHtml).join('')||'<div class="acxEmpty">Nothing snoozed.</div>'}</section>`:''}
+  ${_only==='done'?'':`<div class="acGrid">${laneHtml(LANES[0])}${laneHtml(LANES[1])}</div>${laneHtml(LANES[2])}`}
+  ${(!_only||_only==='done')?`<section class="panel acLane"><div class="acLaneHd"><span class="acLaneT">Today — what happened</span><span class="acLaneN">${fmt(doneToday.length)}</span></div>
+    ${doneToday.length?doneToday.slice(0,40).map(e=>`<div class="acDone"><span>${esc(String(e.t||'').length>10?new Date(e.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/London'}):'')}</span><b>${esc(e.who||'')}</b><span>${esc(String(e.txt||'').replace(/^Action centre: /,''))}</span></div>`).join(''):'<div class="acxEmpty">Nothing recorded yet today.</div>'}</section>`:''}
+  ${_only?'':jackHtml}`;
 }
 const typeLabel=t=>t==='bundle'?'Bundle':t==='pl'?'Private label':'Single';   // 'single' kept only for legacy rows
 
@@ -11387,7 +11463,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,refreshShared,reloadData,rtChange,checkStockSafety,__save:()=>save(),__remRpc:()=>_remRpc,__setRemRpc:v=>{_remRpc=v;},settleIssue,sheetSays,relinkOrphans,openSheetDiff,mergeIntoSheetLine,dropDiffLine,cancelDiffLine,ackDiffLine,sheetDiffItems,__persist:()=>persist(),__pushNow:()=>pushNow(),__PURCH:()=>PURCH,__prefsMerge:_prefsMerge,__savePrefs:()=>savePrefs(),__saveState:()=>saveState(),__prefsBase:()=>_prefsBase,__setPrefsBase:v=>{_prefsBase=v;},__ack:()=>ACK,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
-  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
+  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},

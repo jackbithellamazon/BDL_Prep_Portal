@@ -1253,7 +1253,9 @@ function toggleShipLavFilter(){
    in the filter bar. Clicking the tile sets the status filter and scrolls to
    the rows it counted. */
 function statFilter(status){
-  const sel=document.getElementById('statusFilter')||document.querySelector('#page-prep select');
+  /* 23 Oct 2026: it looked for a #statusFilter that does not exist and fell back to the
+     page's FIRST select — the accounts box — so clicking the tile filtered nothing */
+  const sel=document.getElementById('prepStF');
   if(sel){
     sel.value=(sel.value===status)?'':status;
     sel.dispatchEvent(new Event('change',{bubbles:true}));

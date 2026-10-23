@@ -79,11 +79,6 @@ function renderInsights(){
   let stdUnits=0,dgUnits=0,osUnits=0;
   oaLines.forEach(l=>{ if(l.type==='DG')dgUnits+=l.units; else if(l.type==='Oversize')osUnits+=l.units; else stdUnits+=l.units; });
 
-  // Pipeline (not range-bound — current state)
-  /* the pipeline is what is moving NOW — archived rows are finished with */
-  const pipe=st=>{const rr=rows.filter(r=>r.status===st&&!r.archived);return{u:rr.reduce((a,r)=>a+(r.exp||0),0),v:rr.reduce((a,r)=>a+parseSKU(r.sku).cogs*(r.exp||0),0),n:rr.length};};
-  const transit=pipe('In-Transit'),warehouse=pipe('In Warehouse'),delivered=pipe('Delivered');
-
   // ── SUPPLIER ANALYSIS (segment-based) ──────────────────────────────────────
   const supMap={};
   const ensureSup=s=>{if(!supMap[s])supMap[s]={units:0,value:0,orders:new Set(),issues:0,issueVal:0,days:[],claims:0,claimVal:0};return supMap[s];};
@@ -1236,14 +1231,14 @@ function openSupplierModal(sup){
   const supRows=rows.filter(r=>r.sup===sup);
   const sentRows=supRows.filter(r=>r.sent==='Yes'&&r.sentDate);
   const activeRows=supRows.filter(r=>r.status!=='Sent to Amazon');
-  const transitRows=supRows.filter(r=>r.status==='In-Transit');
+  const transitRows=supRows.filter(r=>_toArrive(r)>0);
   const issueRows=supRows.filter(r=>r.issueQty>0);
   const supClaims=claims.filter(c=>c.sup===sup);
 
   // Units
   const totalOrdered=supRows.reduce((a,r)=>a+(r.exp||0),0);
   const totalSent=sentRows.reduce((a,r)=>a+(r.ship||0),0);
-  const totalInTransit=transitRows.reduce((a,r)=>a+(r.exp||0),0);
+  const totalInTransit=transitRows.reduce((a,r)=>a+_toArrive(r),0);
   const totalIssueUnits=issueRows.reduce((a,r)=>a+(r.issueQty||0),0);
 
   // Values

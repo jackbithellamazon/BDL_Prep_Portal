@@ -619,7 +619,7 @@ function getFilteredRows(){
   const st=(document.getElementById('prepStF')||{}).value||'';
   return rows.filter(r=>{
     if(_showArchived?!r.archived:r.archived)return false;
-    if(st&&r.status!==st)return false;
+    if(st&&!_stMatches(r,st))return false;
     if(q&&!_prepMatch(r,q))return false;
     return true;
   });

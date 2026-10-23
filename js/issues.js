@@ -20,7 +20,9 @@ async function riBookIn(){
   const was=parseInt(r.rcvd)||0;
   r.rcvd=n;
   r.rcvdAt=new Date().toISOString();
-  if(r.status==='In-Transit'||r.status==='Not Arrived')r.status=(n>=exp)?'In Warehouse':'In-Transit';
+  /* 23 Oct 2026: a part delivery is In Warehouse whichever way it is booked — the count-in
+     popup already did this; here it stayed In-Transit, so the same delivery read two ways */
+  if((r.status==='In-Transit'||r.status==='Not Arrived'||r.status==='Delivered')&&n>0)r.status='In Warehouse';
   r._dirty=true;
   try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');r.rcvd=was;return;}
   logAudit('Booked in from the issue popup',`${r.sku||r.asin||''} — ${was} → ${n} of ${exp}`);

@@ -11,6 +11,7 @@ The Bithell Distribution prep app: Prep Sheet, Sarah's Admin, Jack's Admin, Lava
 | `index.html` | The page itself — the layout only. Loads everything below. |
 | `css/` | How it looks. One file per area: `base`, `prep`, `modals`, `closeoff`, `pages`, `lavarion`, `followup`, `auth`, `unify`, `lavarion-overrides`. |
 | `js/` | What it does. One file per area, loaded in order: `core` (shared helpers) → `rules` (the rules every save obeys, and who owns a row) → `prep` → `claims` → `sarah-admin` → `closeoff` → `recovery` → `jack-admin` → `admin-queue` → `dashboard` → `lavarion-bridge` → `insights` → `audit-ean` → `ui` → `stock-moves` → `shipments` → `sheet-sync` → `db` (Supabase) → `issues` → `returns` → `boot` → `lavarion`. |
+| `js/usage.js` | Counts what each person clicks (one small audit line per 30 min). Jack reads it on Audit → What gets used. |
 | `tests/checks.js` | The agreed workflows, as checks. Run from the TEST MODE build ("Run the checks" on the red bar). A build only ships when they are all green. |
 | `README-DEPLOY.txt` | The three-step upload. |
 
@@ -141,3 +142,53 @@ Now:
 - **Shark vacuum bug:** Sarah's list skipped every row with status "In Warehouse", so a part arrival (1 of 2 booked in, the other never came) dropped off every list for 9 days. A part arrival past its 2 working days now reaches Sarah whatever the status (`_partLate` in sarah-admin.js). Check 75.
 - The checks' audit no longer counts grey done/parked rows as Sarah's active work (false alarms on the two rows Jack parked on Amazon dates).
 - Live audit after the fix: 0 rows on the wrong page; no late order, open claim, PLUB shortage or PLUB late order on nobody's list.
+
+## v54.6 · b606 (23 Oct 2026)
+- **Wrong-SKU check is real (Prep Sheet, Sarah):** "No — check, then send to Becki…" opens a check (`skuCheckOpen`).
+  - It lists the same product's other SKUs with ordered, in, sent and shipments, and flags any that sent more than they booked in.
+  - It shows where to look in Seller Central.
+  - Two ticks are needed before "Not there — send to Becki" works. The check is saved (`resolution.skuCheck`) and written into the history.
+  - Rows sent to Becki without a recorded check say so on Sarah's With Becki list. Check 76.
+- **PLUB Action centre rebuilt by job:** Build & send · Receive deliveries (Becki · UK team) · To order (Jack), plus Snoozed and Today.
+  - Build lines have no DONE; they clear when the send is recorded. Products with no sends in 30 days are grey, not red.
+  - **Change date** on a delivery is kept on the line (`etaMoved`).
+  - **Snooze** offers Tomorrow, Next week or a date.
+  - **Pause** (`D.settings.acPause`) always wins in `planDemandOf` until someone presses Selling again.
+  - Opened-today is recorded per person, and "Today — what happened" is the record in plain words.
+  - Fixes:
+    - Sends after Sarah's Amazon count count as on the way (`plAmazonRow` since).
+    - A DONE is kept 14 days instead of being wiped by a redraw.
+    - A part never appears twice.
+  - Check 77.
+
+## v54.7 · b607 (23 Oct 2026): In Transit counts what is still to arrive
+- **Cause:** the In Transit tiles added up `expected_qty` on rows whose status was "In-Transit". Booking in part of an order changes the status to "In Warehouse", so the whole order dropped out, including the units still to come. Shark 1 of 2, and every short delivery, vanished from the tile.
+- **Now:** one count, `_toArrive(r)` = `_owedUnits(r)` (ordered − booked in − cancelled), on any open row whatever its status. `_transitTotals()` in core.js feeds the Prep Sheet tiles, the Dashboard pipeline and Insights (pipeline + supplier transit). The tile adds "· N overdue" (late or part-overdue) and "· N being claimed".
+- **Tile click works:** `statFilter` was setting the accounts dropdown, so nothing happened. It now sets the status filter to "Still to arrive (any status)" (`__toArrive`, `_stMatches`).
+- **Typing a received number** on an In-Transit / Not Arrived / Delivered row moves it to In Warehouse, as Counted in already did, and writes "Received typed" to the audit log.
+- **Difference column:** amber "N to come" while the rest is not due, red −N once it needs chasing (`_diffChase` = part-overdue or late).
+- Data behind the choices (audit_log, 60 days): Becki books in with Counted in (691), almost never the dropdown. Of 76 part deliveries, the rest came later only twice (within a day), so the 2-working-day chase stays and there is no "rest coming separately" tick. "Delivered" was picked 5 times, last on 28 Aug.
+- Check 78.
+
+## v54.8 · b608 (23 Oct 2026): what actually gets clicked
+- **New file `js/usage.js`.** Jack asked to "see what's being clicked and what's being used". The audit log only records saves, so filters, tabs, popups and look-only buttons left no trace.
+  - Every click is counted per person per day, by place and control: "Prep Sheet › + issue", "Menu › PLUB ASINs", "PLUB · Deliveries › Arrived", "Prep Sheet › Statuses filter = In-Transit", "Prep Sheet › Status column = In Warehouse".
+  - Numbers, SKUs in popup titles and row ids are squashed so one button is one line. Nothing typed is recorded, only that a box was typed in.
+  - The counts go up as ONE `audit_log` line (action `Usage`, detail = JSON) at most every 30 minutes, or on leaving the tab if the last send was 10+ minutes ago. Unsent counts survive a closed laptop (`phUsagePending`). Test mode counts but never sends.
+  - The Audit page list leaves `Usage` lines out. Jack reads them on Audit → **What gets used** (Jack only): by person, Today / 7 / 30 days, grouped by page with clicks, days used, last used.
+  - Check 79.
+- Also in this build: the v54.7 In Transit fix above. The tile reads "N units overdue" / "N units being claimed".
+
+## v54.9 · b609 (23 Oct 2026): Dashboard Pipeline counts units where they are; "Delivered" retired
+- **Pipeline box (Dashboard):** the bars added up the whole order of every row by STATUS. A part delivery sat in "In Warehouse" at its full 100 while its missing 88 were also In Transit, and "Part Sent" counted units already at Amazon (264 "In Warehouse", only 173 on the shelf; 349 "Part Sent", 29 on the shelf). Now three bars, each unit counted once:
+  - **Still to arrive** = `_transitTotals()` (same as the Prep Sheet tile).
+  - **On the shelf, not sent** = `_onShelf(r)`: booked in minus on a shipment, via `sendableQty`, so damaged/eBay units held back and units that went out under another SKU are not counted. Rows Jack took off the lists (`_offPrepSheet`) are not counted.
+  - **Issue still open** = `_issueOpen(r)`: flagged issue units on rows `_rowOwner` does not call finished.
+  - Each bar shows its orders and COG. Clicking it opens the Prep Sheet on exactly those rows (`dashToPrep`: clears the other filters, sets `__toArrive` / `__onShelf` / `__issue`). The Prep Sheet status filter offers all three.
+- **Active Inventory (Dashboard):** same fix. Active = still to arrive + on the shelf (645 at build time, was 951 by status). Issue units = issue still open.
+- **"Delivered" retired** (Jack, 23 Oct; 5 uses in 60 days, last 28 Aug). It's gone from the row status dropdown, the bulk Set Status list, the Add/Edit Row list and the status filter. An old row that still has it keeps it (row dropdown shows it for that row; Edit Row's `_selKeep`). The rules that read "Delivered" stay, so old rows behave as before.
+- Insights: removed an unused pipeline line (worked out by status, never shown).
+- **Fixed before it went live:** v54.7 (b607/b608) removed `transitRows` from dashboard.js but the Suppliers pill still used it. The Dashboard failed to draw and the load logged "Load error". No check opened the Dashboard. **Check 81 now opens every page** and fails on any error; it was tested against a deliberately broken Dashboard.
+- Check 79 no longer fires real handlers from its test controls.
+- Checks 80 + 81. 81/81.
+- Audit note (old, not from this build; shows now because check 81 opens Recovery Stock, which live loads at start): Amuk_75_26066_146_Jac_02 (2 units, gated) is already in Recovery Stock. Jack's page hides its card (claimsQ checks REC), but `_rowOwner` still says "claim with Jack: Gated". Nothing visible is wrong; waiting on Jack before changing the owner rule.

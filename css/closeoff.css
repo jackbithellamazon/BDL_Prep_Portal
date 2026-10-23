@@ -308,3 +308,14 @@ select.fi-in option{background:var(--bg2);}
 .conf-ico{font-size:32px;margin-bottom:10px;}
 .conf-title{font-size:15px;font-weight:600;margin-bottom:6px;color:var(--text);}
 .conf-text{font-size:12px;color:var(--text2);line-height:1.6;}
+
+/* Wrong-SKU check before the warehouse (23 Oct 2026) */
+.skcList{max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:9px;margin-top:6px;}
+.skcRow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.2fr) minmax(0,1.3fr);gap:10px;align-items:center;padding:7px 11px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);}
+.skcRow:last-child{border-bottom:none;}
+.skcRow.over{background:rgba(251,191,36,.10);}
+.skcRow.over b{color:#fbbf24;}
+.skcSku{font:700 11.5px var(--mono);color:var(--text);cursor:copy;}
+.skcShip{font:600 11px var(--mono);color:var(--text3);}
+.skcNone{padding:10px 12px;font-size:12px;color:var(--text3);}
+.skcGuide{font-size:12px;color:var(--text2);line-height:1.5;margin-top:10px;}

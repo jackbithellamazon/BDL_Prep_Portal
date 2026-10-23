@@ -1043,3 +1043,25 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 .hgroup tr.shHit td{background:rgba(251,191,36,.14)!important;}
 .hgroup tr.shHit td:first-child{box-shadow:inset 4px 0 0 #fbbf24;}
 .hgroup tr.shHit .s-sku,.hgroup tr.shHit .s-asin{color:#fbbf24!important;font-weight:800;}
+
+/* What gets used (js/usage.js) — Jack's view of the click counts */
+.uOpen{padding:5px 12px;background:var(--bg2);border:1px solid rgba(96,165,250,.45);border-radius:6px;color:#60a5fa;font-size:11px;font-weight:800;cursor:pointer;}
+.uOpen:hover{background:rgba(96,165,250,.12);}
+.uBar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.uChips{display:flex;gap:6px;flex-wrap:wrap;}
+.uChip{padding:5px 12px;border-radius:999px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:11px;font-weight:800;cursor:pointer;}
+.uChip.on{background:rgba(96,165,250,.16);border-color:#60a5fa;color:#60a5fa;}
+.uKpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px;}
+.uKpis div{background:var(--bg3);border:1px solid var(--border);border-top:3px solid #60a5fa;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;}
+.uKpis b{font:900 24px var(--mono);color:#60a5fa;line-height:1.1;}
+.uKpis span{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);}
+.uPlace{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+.uPh{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg3);font-size:12px;font-weight:900;color:var(--text);}
+.uPh b{font:800 13px var(--mono);color:#60a5fa;}
+.uRow{display:grid;grid-template-columns:minmax(0,1fr) 70px 80px 110px minmax(0,160px);gap:10px;padding:5px 12px;font-size:12px;border-top:1px solid var(--border);align-items:center;}
+.uRow .r{text-align:right;font-family:var(--mono);font-weight:700;}
+.uHd{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);background:var(--bg2);}
+.uK{color:var(--text);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.uL,.uW{color:var(--text3);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.uNote{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.45;}
+@media(max-width:720px){.uKpis{grid-template-columns:repeat(2,minmax(0,1fr));}.uRow{grid-template-columns:minmax(0,1fr) 54px 60px;}.uRow>div:nth-child(n+4){display:none;}}

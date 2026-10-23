@@ -130,17 +130,12 @@ function renderDashboard(){
      transit while the Prep Sheet said 477 / £14,497 for the same thing. This
      line counted ARCHIVED rows too, so every old cleared row still read as
      stock on the road. Archived is not in transit. */
-  const transitRows=rows.filter(r=>r.status==='In-Transit'&&!r.archived);
-  const transit={units:transitRows.reduce((a,r)=>a+(r.exp||0),0),value:transitRows.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0),skus:transitRows.length,asins:new Set(transitRows.map(r=>r.asin)).size};
+  /* 23 Oct 2026: units still to arrive on every live row — the same figure as the Prep Sheet tile */
+  const transit=_transitTotals();
 
   // ── PIPELINE ─────────────────────────────────────────────────────────────────
-  const pipelineStages=[
-    {label:'In Transit',status:'In-Transit',color:'#5599ff'},
-    {label:'Delivered',status:'Delivered',color:'#86efac'},
-    {label:'In Warehouse',status:'In Warehouse',color:'#cc99ff'},
-    {label:'Issue',status:'Issue',color:'#ff5555'},
-    {label:'Not Arrived',status:'Not Arrived',color:'#ffaa33'},
-  ];
+  /* 23 Oct 2026: units by where they are, each counted once (core.js _onShelf / _issueOpen) */
+  const shelfT=_unitTotals(_onShelf),issueT=_unitTotals(_issueOpen);
 
   // ── CLAIMS ───────────────────────────────────────────────────────────────────
   const openClaimsList=claims.filter(c=>c.cst!=='Resolved'&&c.cst!=='Closed');  // includes Issue, Open, Chasing
@@ -416,7 +411,7 @@ function renderDashboard(){
       ${kTile('In Transit',COL.transit,
         fmt(transit.units),'units in transit',
         fmtGBP2(transit.value),'COG value in transit',
-        pill('SKUs',fmt(transit.skus),COL.sku)+pill('ASINs',fmt(transit.asins),COL.asin)+pill('Boxes','—',COL.box)+pill('COG/unit',transit.units?fmtGBP2(transit.value/transit.units):'—',GOLD)+pill('Suppliers',fmt(new Set(transitRows.map(r=>r.sup).filter(Boolean)).size),COL.ship),
+        pill('SKUs',fmt(transit.skus),COL.sku)+pill('ASINs',fmt(transit.asins),COL.asin)+pill('Boxes','—',COL.box)+pill('COG/unit',transit.units?fmtGBP2(transit.value/transit.units):'—',GOLD)+pill('Suppliers',fmt(new Set(transit.rows.map(r=>r.sup).filter(Boolean)).size),COL.ship),
         '','',null,'on the road — not yet checked in at Amazon')
       }
 
@@ -735,18 +730,18 @@ function renderDashboard(){
           </div>`:`<div style="color:${COL.today};font-size:11px;padding:4px 0;text-align:center;">✓ Nothing stuck</div>`}
         </div>
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
-          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Active Inventory</div><div style="font-size:10px;color:#aeb9c9;margin:-3px 0 7px;">In-Transit + Delivered + In-Warehouse + Part-Sent</div>
+          <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Active Inventory</div><div style="font-size:10px;color:#aeb9c9;margin:-3px 0 7px;">Still to arrive + on the shelf, not sent</div>
           ${(()=>{
             /* Jack, 4 Sep KPI sweep: "Active Inventory" was counting ARCHIVED
                rows — 1,622 units instead of 950. Archived is by definition not
                active. Same omission as the in-transit tile. */
-            const inTR=rows.filter(r=>['In-Transit','Delivered','In Warehouse','Part Sent'].includes(r.status)&&!r.archived);
-            const inTU=inTR.reduce((a,r)=>a+(r.exp||0),0);
-            const inTC=inTR.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
-            const issR=rows.filter(r=>r.status==='Issue'&&!r.archived);
-            const issU=issR.reduce((a,r)=>a+(r.exp||0),0);
-            const issC=issR.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.exp||0)),0);
-            const actA=new Set(inTR.map(r=>r.asin)).size;
+            /* 23 Oct 2026: the whole order of every In-Transit/In-Warehouse/Part-Sent row, so a
+               part delivery counted twice and Part Sent counted units already at Amazon.
+               Active = still to arrive + on the shelf, not sent; each unit once. */
+            const inTU=transit.units+shelfT.units;
+            const inTC=transit.value+shelfT.value;
+            const issU=issueT.units,issC=issueT.value;
+            const actA=new Set(transit.rows.concat(shelfT.rows).map(r=>r.asin)).size;
             return[
               ['Active pipeline units',fmt(inTU),COL.transit],
               ['Active pipeline ASINs',fmt(actA),COL.asin],
@@ -852,16 +847,18 @@ function renderDashboard(){
         })()}
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Pipeline</div>
-          ${(()=>{const st=[['In-Transit',transit.units,COL.transit],['Delivered',rows.filter(r=>r.status==='Delivered'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),COL.today],['In Warehouse',rows.filter(r=>r.status==='In Warehouse'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),COL.asin],['Part Sent',rows.filter(r=>r.status==='Part Sent'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),COL.box],['Issue',rows.filter(r=>r.status==='Issue'&&!r.archived).reduce((a,r)=>a+(r.exp||0),0),'#f87171']];
-            const pmax=Math.max(...st.map(s=>s[1]),1);
-            return st.map(([l,u,col])=>`
-            <div style="padding:5px 0 6px;border-bottom:1px solid rgba(255,255,255,.05);">
+          ${(()=>{/* one bar per place a unit can be; click = the Prep Sheet on exactly those rows */
+            const st=[['Still to arrive',transit,COL.transit,'__toArrive'],['On the shelf, not sent',shelfT,COL.asin,'__onShelf'],['Issue still open',issueT,'#f87171','__issue']];
+            const pmax=Math.max(...st.map(s=>s[1].units),1);
+            return st.map(([l,T,col,f])=>{const u=T.units;return `
+            <div onclick="dashToPrep('${f}')" title="Open the Prep Sheet on these ${fmt(T.skus)} order${T.skus===1?'':'s'}" style="cursor:pointer;padding:5px 0 6px;border-bottom:1px solid rgba(255,255,255,.05);">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                 <span style="font-size:11px;color:#c3cde0;font-weight:600;">${l}</span>
                 <span style="font-size:12px;font-weight:800;font-family:var(--mono);color:${u>0?col:'#5a6b82'};">${u>0?fmt(u):'—'}</span>
               </div>
               <div style="height:4px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden;">${u>0?`<div style="width:${Math.max(3,u/pmax*100)}%;height:100%;background:${col};border-radius:3px;"></div>`:''}</div>
-            </div>`).join('');})()}
+              ${u>0?`<div style="font-size:10px;color:#8b9bb3;margin-top:3px;">${fmt(T.skus)} order${T.skus===1?'':'s'} · ${fmtGBP2(T.value)} COG</div>`:''}
+            </div>`;}).join('');})()}
         </div>
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <div style="font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;">Stock vs PLUB</div>
@@ -921,4 +918,15 @@ function lavProblemStrip(){
       ${tile(fmt(live),'need actioning',live?'#f87171':'#4ade80',live?'':'all actioned')}
     </div>
   </div>`;
+}
+
+/* A Pipeline bar opens the Prep Sheet on exactly the rows it counted — every other
+   filter is cleared first, or the list could quietly show fewer than the bar says. */
+function dashToPrep(f){
+  goPage('prep',document.querySelector(`[onclick^="goPage('prep'"]`));
+  if(typeof _showArchived!=='undefined'&&_showArchived&&typeof toggleArchivedView==='function')toggleArchivedView();
+  if(typeof _amzFilterActive!=='undefined'&&_amzFilterActive)toggleAmzFilter();
+  prepShowEverything();
+  const sel=document.getElementById('prepStF');
+  if(sel){sel.value=f;sel.dispatchEvent(new Event('change',{bubbles:true}));}
 }

@@ -1360,6 +1360,159 @@ window.PrepChecks=(function(){
     const i=sarahItem(r);ok(i&&i.partOverdue,'as part arrived — the rest overdue');
   };
 
+  /* 76 · THE WRONG-SKU CHECK IS REAL (23 Oct): "have these been 1000% checked by Sarah … that is her triage". Becki
+     only after both ticks, and the check goes on record. */
+  S['wrong-SKU check: Becki only after the ticks, and it is on record']=async()=>{
+    who('Sarah');const r=mkRow({exp:3,rcvd:0,resolution:asked({state:'rejected',rejectNote:'Arrived — YES, the account shows it delivered.',rejectedBy:'Jack'})});
+    try{
+      skuCheckOpen(r.uuid);await wait(30);
+      ok(document.getElementById('skcGo').disabled,'Becki is locked until both boxes are ticked');
+      document.querySelectorAll('#skuChkModal .skcTick').forEach(c=>{c.checked=true;});skuCheckSync();
+      ok(!document.getElementById('skcGo').disabled,'both ticked — unlocked');
+      await skuCheckedToBecki(r.uuid);
+      ok(r.resolution.skuCheck&&r.resolution.skuCheck.by==='Sarah','the check is on record, with who');
+      eq(_rowOwner(r).owner,'becki','and it is with Becki');
+    }finally{try{skuCheckShut();}catch(e){}}
+  };
+
+  /* 77 · PLUB ACTION CENTRE, BY JOB (23 Oct): Becki opened it five times in October and the same lines kept coming
+     back. A send made after the Amazon count is on its way; a DONE survives a redraw; a part never shows twice;
+     pause, snooze and a moved date are all on the record, with who. */
+  S['PLUB Action centre: sends since the count, DONE sticks, no duplicates, everything on record']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),S0=JSON.stringify({a:D.settings.wlAck||{},z:D.settings.acSnooze||{},p:D.settings.acPause||{}}),logN=D.log.length;
+    const p=D.products.find(x=>!x.archived&&(D.settings.atAmzAt||{})[x.asin]);
+    const fake={asin:p&&p.asin,date:'2099-01-01',units:7,shipId:'FBA-CHK',prod:'CHECK'};
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      if(p){lavShipments.push(fake);const r=LV3.__plRow(p);ok(r.since>=7,'a send after the count is counted as on its way');lavShipments.splice(lavShipments.indexOf(fake),1);}
+      D.settings.wlAck=D.settings.wlAck||{};D.settings.wlAck.chk_line={d:new Date().toISOString().slice(0,10),by:'Becki'};
+      goPage('lavarion');LV3.go&&LV3.go('overview');await wait(200);
+      ok(D.settings.wlAck.chk_line,'a DONE survives a redraw even when its line is not on the list');
+      const pg=document.getElementById('page-lavarion');
+      const buyText=[...pg.querySelectorAll('#ac-order .acx')].map(r=>r.textContent);
+      const dup=buyText.filter(t=>/nothing on order/.test(t)).map(t=>(t.match(/\s([^—]+?) — nothing on order/)||[])[1]).filter(Boolean)
+        .some(nm=>buyText.some(t=>!/nothing on order/.test(t)&&t.includes(nm.trim())));
+      ok(!dup,'a part is never listed twice (supplier line and nothing-on-order line)');
+      const q=D.products.find(x=>!x.archived&&x.type==='bundle');
+      if(q){D.settings.acPause=D.settings.acPause||{};
+        D.settings.acPause[q.asin]={by:'Becki',at:new Date().toISOString()};
+        ok(LV3.__plRow(q).state==='paused','a paused product is left alone by the planner');delete D.settings.acPause[q.asin];}
+      LV3.acSnoozeTo('chk_line2','2099-01-01');ok(/^Snoozed until/.test((D.log[0]||{}).txt||''),'a snooze is written into the record in plain words');
+    }finally{
+      const o=JSON.parse(S0);D.settings.wlAck=o.a;D.settings.acSnooze=o.z;D.settings.acPause=o.p;
+      D.log.splice(0,D.log.length-logN);
+      if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}
+    }
+  };
+
+  /* 78 · IN TRANSIT IS UNITS STILL TO ARRIVE (23 Oct, the UK team): 100 ordered, 20 counted in — the other 80 stay
+     in transit, whatever the status says, and the tile's filter shows the row. */
+  S['In Transit: units still to arrive, whatever the status']=async()=>{
+    const keep=window.saveRow;window.saveRow=async()=>true;
+    try{
+      const t0=_transitTotals().units;
+      const r=mkRow({exp:100,rcvd:0,status:'In-Transit'});
+      eq(_transitTotals().units,t0+100,'100 ordered — 100 more in transit');
+      uf(r.uuid,'rcvd',20);
+      eq(r.status,'In Warehouse','a part delivery is In Warehouse');
+      eq(_transitTotals().units,t0+80,'20 in — the other 80 stay in transit');
+      ok(_stMatches(r,'__toArrive'),'the tile filter shows it');
+      uf(r.uuid,'rcvd',100);
+      eq(_transitTotals().units,t0,'all 100 in — nothing left in transit');
+    }finally{window.saveRow=keep;}
+  };
+
+  /* 79 — Jack, 23 Oct: "see what's being clicked and what's being used". */
+  S['What gets used: clicks counted per control, row ids and numbers squashed, test mode never sends']=async()=>{
+    const was=_usage,who={id:cu.id,name:cu.name};const host=document.querySelector('.page.active')||document.body;
+    const box=document.createElement('div');host.appendChild(box);
+    try{
+      cu.id=cu.id||'check';cu.name='CheckUser';_usage=null;
+      /* stand-in handlers: the controls must never run the real ones */
+      window.chkStatusPick=()=>{};window.chkRcvdTyped=()=>{};
+      box.innerHTML=`<button onclick="void 0">Send 12 more</button>
+        <select id="st-9f3a1" onchange="chkStatusPick(this)"><option>In-Transit</option><option>In Warehouse</option></select>
+        <input id="ufRcvd-77" onchange="chkRcvdTyped(this)">`;
+      const [b,sel,inp]=box.children;
+      b.click();b.click();
+      sel.value='In Warehouse';sel.dispatchEvent(new Event('change',{bubbles:true}));
+      inp.value='5';inp.dispatchEvent(new Event('change',{bubbles:true}));
+      const place=_usagePlace(b),c=_usage.c;
+      eq(c[place+' › Send N more'],2,'a button is counted by its words, the number squashed');
+      eq(c[place+' › [chkStatusPick] = In Warehouse'],1,'a dropdown is counted by what it does and what was picked, not its row id');
+      eq(c[place+' › typed in [chkRcvdTyped]'],1,'typing is counted, never what was typed');
+      const tb=document.createElement('table');box.appendChild(tb);
+      tb.innerHTML='<thead><tr><th>SKU</th><th>Status</th></tr></thead><tbody><tr><td>x</td><td><select id="st-77"><option>In-Transit</option><option>Issue</option></select></td></tr></tbody>';
+      const rs=tb.querySelector('select');rs.value='Issue';rs.dispatchEvent(new Event('change',{bubbles:true}));
+      eq(_usage.c[place+' › Status column = Issue'],1,'a row dropdown is named by its column heading');
+      ok(!JSON.stringify(c).includes('5')||!Object.keys(c).some(k=>k.endsWith('5')),'the typed value is not recorded');
+      eq(_usage.w,'CheckUser','counted against the person signed in');
+      await usageFlush(true);
+      eq(_usage.c[place+' › Send N more'],2,'test mode keeps the counts and sends nothing');
+      ok(String(loadAuditPage).includes("neq('action','Usage')"),'the Audit list leaves the count lines out');
+    }finally{box.remove();_usage=was;cu.id=who.id;cu.name=who.name;delete window.chkStatusPick;delete window.chkRcvdTyped;}
+  };
+
+  /* 80 — Jack, 23 Oct: Dashboard Pipeline counted whole orders by status (264 "In Warehouse",
+     only 175 on the shelf). Every unit once, by where it is; "Delivered" retired. */
+  S['Pipeline: each unit counted once by where it is; Delivered retired; bars open those rows']=async()=>{
+    const keep=window.saveRow;window.saveRow=async()=>true;
+    try{
+      const a0=_transitTotals().units,s0=_unitTotals(_onShelf).units;
+      const r=mkRow({exp:100,rcvd:0,status:'In-Transit'});
+      eq(_transitTotals().units-a0,100,'ordered, nothing in: 100 still to arrive');
+      eq(_unitTotals(_onShelf).units-s0,0,'nothing booked in = nothing on the shelf');
+      uf(r.uuid,'rcvd',20);
+      eq(_transitTotals().units-a0,80,'20 booked in: 80 still to arrive');
+      eq(_unitTotals(_onShelf).units-s0,20,'… and 20 on the shelf — 100 in all, never 180');
+      r.ship=5;r.shipSegments=[{shipId:'FBA-CHK80',units:5,date:'2026-10-23',type:'Standard'}];
+      eq(_onShelf(r),15,'5 sent to Amazon leave the shelf');
+      r.resolution={what:'wrong-sku',elsewhereShipped:15};
+      eq(_onShelf(r),0,'units that went out under another SKU are not on the shelf');
+      r.resolution=null;
+      ok(_stMatches(r,'__onShelf')&&_stMatches(r,'__toArrive'),'the row shows under both Prep Sheet filters');
+      const f=mkRow({exp:4,rcvd:4,ship:4,status:'Sent to Amazon',issueType:'Damaged',issueQty:2});
+      const fin=(_rowOwner(f)||{}).finished;
+      eq(_issueOpen(f),fin?0:2,'an issue flag counts only while somebody is still working it');
+      /* Delivered: gone from the row dropdown, kept on an old row that still has it */
+      const d=mkRow({exp:3,rcvd:0,status:'Delivered'});
+      renderPrepRows([r,d]);
+      const opts=x=>{const sel=document.querySelector('#row-'+x.id+' select.ci-sel');ok(sel,'row '+x.id+' drawn with its status dropdown');return [...sel.options].map(o=>o.text);};
+      ok(!opts(r).includes('Delivered'),'a normal row is no longer offered Delivered');
+      ok(opts(d).includes('Delivered'),'an old Delivered row keeps its status');
+      ok(![...document.querySelectorAll('#bulkActionDropdown option,#f-status option')].some(o=>o.value==='Delivered'||o.text==='Delivered'),'bulk and Add Row lists no longer offer it');
+      /* the Dashboard bar opens the Prep Sheet on exactly what it counted */
+      dashToPrep('__onShelf');
+      eq(document.getElementById('prepStF').value,'__onShelf','the bar sets the Prep Sheet filter');
+      const shown=_prepBaseRows().filter(x=>!x._chk);
+      const want=_unitTotals(_onShelf).rows.filter(x=>!x._chk);
+      eq(shown.length,want.length,'the Prep Sheet shows the same orders the bar counted');
+    }finally{window.saveRow=keep;const sel=document.getElementById('prepStF');if(sel)sel.value='';}
+  };
+
+  /* 81 — 23 Oct: v54.7 left the Dashboard using a name it had removed (transitRows), so the
+     whole page failed to draw and no check noticed, because no check opened it. Every page now. */
+  S['every page opens without an error']=async()=>{
+    const pages=['dashboard','prep','shipments','lavarion','returns','recovery','admin','jack','audit','lookup','settings','insights'];
+    const back=(document.querySelector('.page.active')||{id:'page-prep'}).id.slice(5);
+    const errs=[];const onErr=e=>errs.push((e.message||String(e.reason||e))+'');
+    window.addEventListener('error',onErr);window.addEventListener('unhandledrejection',onErr);
+    try{
+      for(const p of pages){
+        if(!document.getElementById('page-'+p))continue;
+        try{goPage(p,document.querySelector(`[onclick^="goPage('${p}'"]`));}catch(e){errs.push(p+': '+e.message);}
+        await new Promise(r=>setTimeout(r,250));
+        if(errs.length)throw new Error('opening '+p+' — '+errs.join(' · '));
+        const pg=document.getElementById('page-'+p);
+        ok(pg.classList.contains('active'),p+' is the page on screen');
+      }
+    }finally{
+      window.removeEventListener('error',onErr);window.removeEventListener('unhandledrejection',onErr);
+      try{goPage(back,document.querySelector(`[onclick^="goPage('${back}'"]`));}catch(e){}
+    }
+  };
+
   function D_products(){try{return (LV3.allProducts&&LV3.allProducts())||[];}catch(e){return [];}}
   async function run(only){
     R.length=0;const t0=Date.now();

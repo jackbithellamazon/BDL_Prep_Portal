@@ -2004,3 +2004,35 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 /* Restocks: the last purchase of a part — where a reorder starts (22 Oct) */
 #page-lavarion .rsLast,.lav3 .rsLast{margin-top:2px;color:var(--text2);}
 #page-lavarion .rsLast b,.lav3 .rsLast b{color:var(--text);}
+
+/* ── Action centre by job (23 Oct 2026) ── */
+#page-lavarion .acKpis{grid-template-columns:repeat(5,minmax(0,1fr));}
+#page-lavarion .acKpis .kpi{box-shadow:inset 0 3px 0 var(--rail);}
+#page-lavarion .acSeen{font-size:11.5px;color:var(--text3);margin:-2px 2px 10px;}
+#page-lavarion .acSeen b{color:var(--text2);}
+#page-lavarion .acGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;}
+@media(max-width:1100px){#page-lavarion .acGrid{grid-template-columns:1fr;}}
+#page-lavarion .acLane{margin-bottom:12px;padding:0 0 2px;overflow:hidden;}
+#page-lavarion .acLaneHd{display:flex;align-items:center;gap:10px;padding:12px 14px 2px;}
+#page-lavarion .acLaneT{font:800 14px var(--sans);color:var(--text);}
+#page-lavarion .acLaneN{font:800 11.5px var(--num);padding:1px 9px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--text);}
+#page-lavarion .acLaneWho{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#93c5fd;padding:2px 9px;border:1px solid rgba(147,197,253,.35);border-radius:999px;white-space:nowrap;}
+#page-lavarion .acLaneSub{font-size:11.5px;color:var(--text3);padding:2px 14px 9px;border-bottom:1px solid var(--border);}
+#page-lavarion .acx{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);box-shadow:inset 3px 0 0 var(--c);}
+#page-lavarion .acx:hover{background:rgba(255,255,255,.025);}
+#page-lavarion .acx.dim{opacity:.6;}
+#page-lavarion .acxMain{flex:1 1 auto;min-width:0;}
+#page-lavarion .acxTop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#page-lavarion .acxChip{font:800 10px var(--num);letter-spacing:.06em;color:var(--c);border:1px solid var(--c);border-radius:999px;padding:1px 8px;white-space:nowrap;background:color-mix(in srgb,var(--c) 12%,transparent);}
+#page-lavarion .acxTitle{font-size:13px;color:var(--text);line-height:1.35;}
+#page-lavarion .acxTitle b{font-weight:800;}
+#page-lavarion .acxFacts{font-size:11.5px;color:var(--text3);margin-top:3px;line-height:1.45;}
+#page-lavarion .acxFacts b{color:var(--text2);}
+#page-lavarion .acxBtns{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;flex:0 0 auto;max-width:50%;}
+#page-lavarion .acxSnz{display:inline-flex;gap:6px;align-items:center;}
+#page-lavarion .acxEmpty{padding:14px;font-size:12px;color:var(--grn);}
+#page-lavarion .acOff>summary{padding:8px 14px;font-size:11.5px;color:var(--text3);cursor:pointer;list-style:none;}
+#page-lavarion .acPaused{padding:8px 14px;font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);line-height:1.6;}
+#page-lavarion .acPaused a{color:#93c5fd;}
+#page-lavarion .acDone{display:grid;grid-template-columns:48px 70px minmax(0,1fr);gap:10px;padding:6px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);}
+#page-lavarion .acDone b{color:var(--text);}

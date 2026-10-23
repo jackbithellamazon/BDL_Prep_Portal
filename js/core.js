@@ -1008,12 +1008,59 @@ function sentRollup(start,end){
 }
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
+/* 23 Oct 2026, the UK team: "we booked 20 of 100 in and all 100 vanished from In Transit".
+   The tile counted rows whose STATUS was In-Transit and added the whole order — so a part
+   delivery counted in (status → In Warehouse, 691 times in 60 days) dropped every unit,
+   and one booked another way still counted all of it. In transit is a number of units:
+   ordered − booked in − cancelled / accounted for, on every live row whatever its status.
+   Units on an open claim stay in until they are refunded, cancelled or written off. */
+function _toArrive(r){return (!r||r.archived)?0:_owedUnits(r);}
+function _transitTotals(){
+  const live=rows.filter(r=>!r.archived&&_toArrive(r)>0);
+  let units=0,value=0,overdue=0,claimed=0;
+  live.forEach(r=>{const n=_toArrive(r);units+=n;value+=(parseSKU(r.sku).cogs||0)*n;
+    if((typeof _prepRowLate==='function'&&_prepRowLate(r))||(typeof _partOverdue==='function'&&_partOverdue(r)))overdue+=n;
+    const q=r.resolution||{};
+    if((typeof _openClaims==='function'&&_openClaims(r).length)||['amz-missing','amz-claim'].includes(q.what))claimed+=n;});
+  return{rows:live,units,value,overdue,claimed,skus:live.length,asins:new Set(live.map(r=>r.asin)).size};
+}
+/* 23 Oct 2026, Dashboard Pipeline: the bars added up the whole order by STATUS, so a part
+   delivery sat in In Warehouse at its full 100 while its missing 88 were also In Transit,
+   and Part Sent counted units already at Amazon. Each unit is now counted once, by where
+   it is. On the shelf = booked in, not on a shipment yet. sendableQty already leaves out
+   damaged/eBay units held back and units that went out under another SKU; with nothing
+   booked in it plans from the order, so that case is 0 here. Rows Jack took off the lists
+   (_offPrepSheet) are not on the shelf to send. */
+function _onShelf(r){
+  if(!r||r.archived||!(parseInt(r.rcvd)>0))return 0;
+  if(typeof _offPrepSheet==='function'&&_offPrepSheet(r))return 0;
+  return Math.max(0,sendableQty(r)-_sentOut(r));
+}
+/* units with an issue flag that somebody is still working on — a finished row's old flag is history */
+function _issueOpen(r){
+  if(!r||r.archived||!r.issueType||!(parseInt(r.issueQty)>0))return 0;
+  if(typeof _offPrepSheet==='function'&&_offPrepSheet(r))return 0;
+  const o=typeof _rowOwner==='function'?_rowOwner(r):null;
+  return (o&&o.finished)?0:parseInt(r.issueQty);
+}
+function _unitTotals(f){
+  let units=0,value=0;const rr=[];
+  rows.forEach(r=>{const n=f(r);if(n>0){units+=n;value+=(parseSKU(r.sku).cogs||0)*n;rr.push(r);}});
+  return{rows:rr,units,value,skus:rr.length,asins:new Set(rr.map(r=>r.asin)).size};
+}
+/* the Prep Sheet's status filter, plus three "any status" views that count units, not rows */
+function _stMatches(r,st){
+  if(st==='__toArrive')return _toArrive(r)>0;
+  if(st==='__onShelf')return _onShelf(r)>0;
+  if(st==='__issue')return _issueOpen(r)>0;
+  return r.status===st;
+}
 function renderStats(){
   {const _stEl=document.getElementById('prepStats');
    if(_histStreaming&&_stEl&&_stEl.children.length)return;}
-  const inTransitRows=rows.filter(r=>r.status==='In-Transit'&&!r.archived);
-  const inTransitUnits=inTransitRows.reduce((a,r)=>a+(r.exp||0),0);
-  const inTransitValue=inTransitRows.reduce((a,r)=>{const sku=parseSKU(r.sku);return a+(sku.cogs*(r.exp||0));},0);
+  const _T=_transitTotals();
+  const inTransitUnits=_T.units;
+  const inTransitValue=_T.value;
   
   const todayStr=todayISO();
   // Canonical rollup — includes OA, Lavarion and Returns so it matches the
@@ -1032,8 +1079,9 @@ function renderStats(){
   const sentMonth=monthRoll.units;
   const totalSent=allSentRows().reduce((a,r)=>a+(r.units||0),0);
   
-  const inTransitSkus=inTransitRows.length;
-  const inTransitAsins=new Set(inTransitRows.map(r=>r.asin)).size;
+  const inTransitSkus=_T.skus;
+  const inTransitAsins=_T.asins;
+  const _tExtra=(_T.overdue?` · <b style="color:#f87171">${fmt(_T.overdue)} units overdue</b>`:'')+(_T.claimed?` · ${fmt(_T.claimed)} units being claimed`:'');
   const sentWeekUnits=weekRoll.units;
   const sentWeekSkus=weekRoll.skus;
   const sentWeekAsins=weekRoll.asins;
@@ -1063,8 +1111,8 @@ function renderStats(){
        volume, so every one of them gets separated — and the two tiles that
        were missing their COG now carry it, because "876 units" without a
        value is half the sentence the other tiles are speaking. */
-    mk('In Transit',fmt(inTransitUnits)+' units',`${fmt(inTransitSkus)} SKUs · ${fmt(inTransitAsins)} ASINs · ${fmtGBP2(inTransitValue)} COG`,'#38bdf8','filter:In-Transit')+
-    mk('COG In Transit',fmtGBP2(inTransitValue),`stock value locked in transit`,'#fbbf24','filter:In-Transit')+
+    mk('In Transit',fmt(inTransitUnits)+' units',`${fmt(inTransitSkus)} SKUs · ${fmt(inTransitAsins)} ASINs · ${fmtGBP2(inTransitValue)} COG${_tExtra}`,'#38bdf8','filter:__toArrive')+
+    mk('COG In Transit',fmtGBP2(inTransitValue),`stock still to arrive${_tExtra}`,'#fbbf24','filter:__toArrive')+
     mk('Sent Today',fmt(sentTodayUnits)+' units',`${shipWord(todayRoll.shipments)} · ${fmt(sentTodaySkus)} SKU lines · ${fmtGBP2(valueToday)} COG`,'#4ade80','today')+
     mk('Sent This Week',fmt(sentWeekUnits)+' units',`${shipWord(weekRoll.shipments)} · ${fmt(sentWeekSkus)} SKU lines · ${fmt(sentWeekAsins)} ASINs · ${fmtGBP2(weekRoll.value)} COG`,'#a78bfa','week')+
     mk('Sent This Month',fmt(totalSentMonth)+' units',`${shipWord(monthRoll.shipments)} · ${fmt(monthRoll.skus)} SKU lines · ${fmt(monthRoll.asins)} ASINs · ${fmtGBP2(monthRoll.value)} COG`,'#34d399','mtd');

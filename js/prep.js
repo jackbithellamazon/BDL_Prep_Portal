@@ -37,7 +37,8 @@ function renderPrepRows(data){
     const _pk=packOf(r);
     const _inItems=n=>_pk>1?` (${Math.abs(n)*_pk} item${Math.abs(n)*_pk!==1?'s':''})`:'';
     const diffEl=r.rcvd>0
-      ? (diff===0?`<span class="nt nt-ok" style="font-family:Arial,sans-serif;" title="All ${r.exp} accounted for${_pk>1?` — ${itemsOf(r.exp,r)} items`:''}">✓</span>`
+      ? (diff>0&&!_diffChase(r)?`<span class="nt nt-amb" title="${diff} of the ${r.exp} still to come${_inItems(diff)} — normal waiting; it turns red when it needs chasing">${diff} to come</span>`
+        :diff===0?`<span class="nt nt-ok" style="font-family:Arial,sans-serif;" title="All ${r.exp} accounted for${_pk>1?` — ${itemsOf(r.exp,r)} items`:''}">✓</span>`
         : diff>0?`<span class="nt nt-bad" title="${diff} short of the ${r.exp} expected${_inItems(diff)}">-${diff}</span>`
         : `<span class="nt nt-ok" title="${Math.abs(diff)} more than expected${_inItems(diff)}">+${Math.abs(diff)}</span>`)
       : `<span class="nt-wait" title="Nothing booked in yet — this is not a discrepancy">none in</span>`;
@@ -178,7 +179,8 @@ function renderPrepRows(data){
       })()}</td>
       <td>${_cxParts(r).cx?`<div class="expLive" title="${fmt(r.exp||0)} ordered${_cxLabel(r,' · ')} — the number below is the order as written; this is what is still expected">${fmt(_effExp(r))}<small>${_cxLabel(r,' · ').replace(/^ · /,'')}</small></div>`:''}<input class="ci ci-num${_cxParts(r).cx?' expRaw':''}" type="number" value="${r.exp}" onchange="uf('${r.uuid||r.id}','exp',+this.value);updateDiffCell(${r.id},${r.rcvd||0},+this.value);debounce('stats',renderStats);" tabindex="-1">${(r.bun==='Yes'&&(parseInt(r.bqty)||0)>1)?`<div class="expPack" title="Bundle of ${r.bqty} — ${r.exp||0} saleable unit${(r.exp||0)!==1?'s':''}, ${(r.exp||0)*(parseInt(r.bqty)||1)} individual items to handle"><b>${(r.exp||0)*(parseInt(r.bqty)||1)}</b> items<br>&times;${r.bqty} per bundle</div>`:''}</td>
       <td><select class="ci-sel" onchange="handleStatusChange('${r.uuid||r.id}',this);" tabindex="-1">
-        ${['In-Transit','Delivered','In Warehouse','Part Sent','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
+        ${/* "Delivered" retired 23 Oct 2026 (5 uses in 60 days, last 28 Aug); an old row that still has it keeps it */
+          ['In-Transit',...(r.status==='Delivered'?['Delivered']:[]),'In Warehouse','Part Sent','Sent to Amazon','Issue','Not Arrived','Returned'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
       </select>${r.status==='Part Sent'?(()=>{const _left=remainingToShip(r);const _bs='display:block;margin-top:4px;width:100%;box-sizing:border-box;padding:5px 4px;border:none;border-radius:5px;font-size:10.5px;font-weight:800;cursor:pointer;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;background:#2563eb;color:#fff;';return `<button onclick="${_left>0?'sendMore':'sendExtra'}('${r.uuid||r.id}')" title="Send ${_left>0?'the remaining '+_left+' unit'+(_left===1?'':'s'):'another unit (none calculated as outstanding, but you can still send 1+ more)'} to a shipment ID" style="${_bs}">↗ Send more${_left>0?` (${_left})`:''}</button>`;})():''}</td>
       <td>${(()=>{
         /* Existing rows that already carry the impossible state — shipped more
@@ -597,6 +599,9 @@ async function amzMissingDone(rid,money){
   toast(money==='in'?'Done — money received, closed everywhere':money==='refused'?'Written off — no money coming':'Closed for everyone else — it stays on your money list until the money lands','ok');
   renderJack();try{renderAdmin();renderPrep();}catch(e){}
 }
+/* 23 Oct 2026 (Jack: "amber until it needs chasing, then red"): a part delivery is normal
+   waiting until Sarah's chase starts — 2 working days after it was counted in, or the late clock */
+function _diffChase(r){return !!((typeof _partOverdue==='function'&&_partOverdue(r))||(typeof _prepRowLate==='function'&&_prepRowLate(r)));}
 function _owedUnits(r){return Math.max(0,(parseInt(r&&r.exp)||0)-(parseInt(r&&r.rcvd)||0)-(parseInt(r&&r.cancelledQty)||0));}
 /* Jack, 10 Sep: "if no more are coming as they have been refunded, why is it
    still down as in transit?" The order quantity stays as the record (it is
@@ -782,7 +787,9 @@ function ufRcvdTyped(id,rid,exp,el){
   let v;
   if(/^[+\-−]\d+$/.test(raw)){v=Math.max(0,was+parseInt(raw.replace('−','-'),10));
     try{logAudit('Received added to',`${r.sku||r.asin||''} — ${was} ${raw.replace('−','-')} = ${v} (typed on the sheet)`);}catch(e){}}
-  else v=Math.max(0,parseInt(raw,10)||0);
+  else{v=Math.max(0,parseInt(raw,10)||0);
+    /* 23 Oct 2026: a typed number was the one booking-in route with no record */
+    if(v!==was)try{logAudit('Received typed',`${r.sku||r.asin||''} — ${was} → ${v} (typed on the sheet)`);}catch(e){}}
   el.value=v;
   uf(id,'rcvd',v);updateDiffCell(rid,v,exp);debounce('stats',renderStats);
 }
@@ -806,6 +813,9 @@ function uf(id,field,val){
   }
   /* the 48-hour part-arrival clock reads this: when did the count last move */
   if(field==='rcvd'&&(parseInt(val)||0)!==(parseInt(r.rcvd)||0))r.rcvdAt=new Date().toISOString();
+  /* booking anything in moves an In-Transit row to In Warehouse — the same as the count-in popup */
+  if(field==='rcvd'&&(parseInt(val)||0)>0&&['In-Transit','Not Arrived','Delivered'].includes(r.status||'')){
+    r.status='In Warehouse';try{const _sel=document.querySelector('#row-'+r.id+' select.stSel, #row-'+r.id+' td select');if(_sel)_sel.value='In Warehouse';}catch(e){}}
   if(field==='rcvd'&&r.resolution&&r.resolution.amzDelivered&&!r.resolution.amzDelivered.done&&r.resolution.amzDelivered.kind!=='leftover'){
     const _owe=Math.max(0,(parseInt(r.exp)||0)-(parseInt(val)||0)-(parseInt(r.cancelledQty)||0));
     if(_owe===0){r.resolution.amzDelivered.done={by:_who(),at:new Date().toISOString(),how:'found'};
@@ -921,7 +931,7 @@ function _prepBaseRows(){
     if(_lateFilterActive&&!_prepRowLate(r))return false;   /* one rule, shared with the dashboard */
     if(st){
       const hasIssueFlag=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
-      if(r.status!==st&&!(st==='Issue'&&hasIssueFlag))return false;
+      if(!_stMatches(r,st)&&!(st==='Issue'&&hasIssueFlag))return false;
     }
     return true;
   });
@@ -1055,7 +1065,7 @@ function filterPrep(skipFlush){
       if(_lateFilterActive&&!_prepRowLate(r))return false;   /* one rule, shared with the dashboard */
       if(st){
         const hasIssueFlag=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
-        const matchesStatus=r.status===st;
+        const matchesStatus=_stMatches(r,st);
         const matchesIssueFilter=st==='Issue'&&hasIssueFlag;
         if(!matchesStatus&&!matchesIssueFilter)return false;
       }
@@ -1246,7 +1256,7 @@ function renderPrep(){
       if(_lateFilterActive&&!_prepRowLate(r))return false;   /* one rule, shared with the dashboard */
       if(st){
         const hasIssueFlag=claims.some(cl=>(cl.prepRowId===rid||cl.prepRowId===r.id)&&cl.cst!=='Resolved'&&cl.cst!=='Closed');
-        const matchesStatus=r.status===st;
+        const matchesStatus=_stMatches(r,st);
         const matchesIssueFilter=st==='Issue'&&hasIssueFlag;
         if(!matchesStatus&&!matchesIssueFilter)return false;
       }

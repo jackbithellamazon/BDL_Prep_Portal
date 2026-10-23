@@ -105,6 +105,6 @@ function updateDiffCell(id,rcvd,exp){
   const diff=exp-(parseInt(_r&&_r.cancelledQty)||0)-rcvd;
   if(rcvd===0){td.innerHTML='<span class="nt-wait" title="Nothing booked in yet — this is not a discrepancy">none in</span>';return;}
   if(diff===0)td.innerHTML='<span class="nt nt-ok" style="font-family:Arial,sans-serif;">✓</span>';
-  else if(diff>0)td.innerHTML=`<span class="nt nt-bad">-${diff}</span>`;
+  else if(diff>0)td.innerHTML=(_r&&!_diffChase(_r))?`<span class="nt nt-amb" title="still to come — turns red when it needs chasing">${diff} to come</span>`:`<span class="nt nt-bad">-${diff}</span>`;
   else td.innerHTML=`<span class="nt nt-ok">+${Math.abs(diff)}</span>`;
 }

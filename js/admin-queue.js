@@ -1537,6 +1537,56 @@ This is a one-off tidy-up. New rows are unaffected.`))return;
   toast(`${dead.length} filed into history — the list is clear`,'ok');
   renderAdmin();try{renderPrep();renderDashboard();}catch(e){}
 }
+/* Jack, 23 Oct: "have these been 1000% checked by Sarah to see if they have gone out on the
+   wrong SKU … I know for a fact we sent these out … that is her triage." The step was one
+   No button — nothing to check against and no record. Eight rows went to Becki that way.
+   It is a real check now: the same product's other SKUs from the Prep Sheet (one that sent
+   more than it booked in is the giveaway), where to look in Seller Central, two ticks, and
+   only then Becki — with the check written into the row's story. */
+function _skuSiblings(r){return rows.filter(x=>x!==r&&x.asin&&x.asin===r.asin);}
+function skuCheckOpen(rid){
+  const r=_rowById(rid);if(!r)return;
+  const esc1=s=>String(s).replace(/'/g,"\\'");
+  const sib=_skuSiblings(r),over=x=>(parseInt(x.ship)||0)>(parseInt(x.rcvd)||0);
+  sib.sort((a,b)=>over(b)-over(a)||String(b.sentDate||'').localeCompare(String(a.sentDate||'')));
+  const lf=(typeof _leftUnits==='function')?_leftUnits(r):0,owe=_owedUnits(r);
+  let el=document.getElementById('skuChkModal');
+  if(!el){el=document.createElement('div');el.id='skuChkModal';el.className='overlay';el.style.zIndex='140';document.body.appendChild(el);
+    el.addEventListener('click',e=>{if(e.target===el)skuCheckShut();});}
+  const line=x=>`<div class="skcRow${over(x)?' over':''}">
+      <span class="skcSku" onclick="copyVal('${esc1(x.sku||'')}',this)" title="Click to copy">${esc(x.sku||'')}</span>
+      <span class="skcNum">${fmt(parseInt(x.exp)||0)} ordered · ${fmt(parseInt(x.rcvd)||0)} in · ${fmt(parseInt(x.ship)||0)} sent${over(x)?` · <b>${fmt((parseInt(x.ship)||0)-(parseInt(x.rcvd)||0))} more sent than booked in</b>`:''}</span>
+      <span class="skcShip">${esc((x.shipSegments||[]).filter(s=>s&&s.shipId).map(s=>s.shipId+(s.date?' · '+_dmy(s.date):'')).join(', ')||'not sent')}</span></div>`;
+  el.innerHTML=`<div class="modal srtCfm" style="max-width:760px;">
+    <div class="srtCfmTtl">Before the warehouse &mdash; did it go out under another SKU?</div>
+    <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${fmt(owe||lf)} unit${(owe||lf)===1?'':'s'} unaccounted for · ${r.oid?oidHtml(r.oid,r.sup,r.acct):''}${r.acct?' · '+esc(r.acct):''}</div>
+    <div class="srtCfmLab" style="margin-top:14px;">Same product on the Prep Sheet &mdash; ${sib.length?fmt(sib.length)+' other SKU'+(sib.length===1?'':'s'):'no other SKUs'}</div>
+    <div class="skcList">${sib.length?sib.map(line).join(''):'<div class="skcNone">This is the only SKU for this product on the Prep Sheet &mdash; Seller Central is the place to look.</div>'}</div>
+    <div class="skcGuide">In <b>Seller Central</b> &rarr; Manage inventory, search <span class="skcSku" onclick="copyVal('${esc1(r.asin||'')}',this)" title="Click to copy">${esc(r.asin||'')}</span>. Look for extra units under any of its SKUs, and the shipments they went on.</div>
+    <label class="srtChk" style="margin-top:10px;"><input type="checkbox" class="skcTick" onchange="skuCheckSync()"><span>I checked Seller Central for this ASIN</span></label>
+    <label class="srtChk"><input type="checkbox" class="skcTick" onchange="skuCheckSync()"><span>I checked the other SKUs above</span></label>
+    <div class="srtCfmFoot" style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px;">
+      <button class="srtGhost" onclick="skuCheckShut()">Cancel</button>
+      <button class="srtGhost" style="border-color:rgba(74,222,128,.5);color:#86efac;" onclick="skuCheckShut();${lf>0?`wentOutUnder('${rid}')`:`openSorted('${rid}','wrong-sku')`}">Found it &mdash; went out under another SKU&hellip;</button>
+      <button class="srtGo" id="skcGo" disabled style="opacity:.45;" onclick="skuCheckedToBecki('${rid}')">Not there &mdash; send to Becki</button>
+    </div></div>`;
+  el.style.display='flex';
+}
+function skuCheckShut(){const el=document.getElementById('skuChkModal');if(el)el.style.display='none';}
+function skuCheckSync(){const el=document.getElementById('skuChkModal');if(!el)return;
+  const all=[...el.querySelectorAll('.skcTick')].every(c=>c.checked);const b=document.getElementById('skcGo');if(b){b.disabled=!all;b.style.opacity=all?'1':'.45';}}
+async function skuCheckedToBecki(rid){
+  const r=_rowById(rid);if(!r)return;
+  const el=document.getElementById('skuChkModal');
+  if(el&&![...el.querySelectorAll('.skcTick')].every(c=>c.checked)){toast('Tick both checks first','er');return;}
+  const n=_skuSiblings(r).length,now=new Date().toISOString();
+  r.resolution=Object.assign({},r.resolution||{},{skuCheck:{by:_who(),at:now,others:n}});
+  const ch=r.resolution.chase;
+  if(ch)ch.log=(ch.log||[]).concat([{at:now,by:_who(),what:`Checked for a wrong SKU — Seller Central for ${r.asin||'the ASIN'} and ${fmt(n)} other SKU${n===1?'':'s'} on the Prep Sheet: not there`}]);
+  try{logAudit('Wrong-SKU check done',`${r.sku||r.asin||''} — Seller Central + ${fmt(n)} other SKUs, not there`);}catch(e){}
+  skuCheckShut();
+  await amzToBecki(rid);   /* saves the row, check included */
+}
 function _allAdminRows(){
   const out=_adminItems().map(i=>Object.assign({kind:'transit'},i));
   /* Lavarion shortages and damage — one row per supplier conversation */
@@ -2219,7 +2269,7 @@ function renderAdmin(){
                 <span class="tfuCmpName" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</span>
                 <span class="tfuCmpMeta">${esc(i.sup||'')}${i.oid?' · '+oidHtml(i.oid,i.sup,i.acct):''}${i.acct?' · '+esc(i.acct):''}</span>
                 <span class="tfuCmpChip" style="background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.5);color:#22d3ee;" title="With Becki — checking the shelves">With Becki &middot; checking the shelves${_bAge!=null?' &middot; '+_bAge+'d':''}</span>
-                <span class="tfuCmpAsk" title="Sent ${esc(i.withBecki.sentBy||'')}${i.withBecki.at?' '+esc(_logWhen(i.withBecki.at)):''}">${i.withBecki.kind==='leftover'?`Booked in but never sent &mdash; Becki is checking the shelves. Found: she sends them and it clears. Not there: the count is corrected and it comes back${_amazonRow(_rowById(i.rid))?' via Jack':' to you'}.`:'Amazon say delivered &mdash; Becki is checking the shelves. Found: it books in and clears. Not there: it goes to Jack for the refund.'}</span>
+                <span class="tfuCmpAsk" title="Sent ${esc(i.withBecki.sentBy||'')}${i.withBecki.at?' '+esc(_logWhen(i.withBecki.at)):''}">${(_rowById(i.rid)&&!((_rowById(i.rid).resolution||{}).skuCheck))?'<b style="color:#fbbf24;">No wrong-SKU check on record &mdash; Undo, check, send again.</b> ':''}${i.withBecki.kind==='leftover'?`Booked in but never sent &mdash; Becki is checking the shelves. Found: she sends them and it clears. Not there: the count is corrected and it comes back${_amazonRow(_rowById(i.rid))?' via Jack':' to you'}.`:'Amazon say delivered &mdash; Becki is checking the shelves. Found: it books in and clears. Not there: it goes to Jack for the refund.'}</span>
                 <span class="tfuCmpVal">${i.value?fmtGBP2(i.value):''}</span>
                 <span class="tfuCmpActs">
                 <button class="tfuAsk" onclick="amzBackToJack('${i.rid}')" title="Nothing for the warehouse to find — the order or the Purchase Sheet is wrong. It goes to Jack to answer and comes off Becki's list.">Back to Jack</button>
@@ -2468,7 +2518,7 @@ function renderAdmin(){
                         ${(typeof _leftUnits==='function'&&_leftUnits(_rowById(i.rid))>0)
                           ?`<button class="csAct good" onclick="wentOutUnder('${i.rid}')" title="Record which SKU and shipment the ${fmt(_leftUnits(_rowById(i.rid)))} went out on — the units are accounted for and the row closes; you confirm it in Seller Central">Yes &mdash; went out under another SKU&hellip;</button>`
                           :`<button class="csAct good" onclick="openSorted('${i.rid}','wrong-sku')" title="The unit is accounted for — it went out on another listing. Close it off here; the popup asks which SKU if you know it.">Yes &mdash; sort it and close it</button>`}
-                        <button class="csAct go" onclick="amzToBecki('${i.rid}')" title="Not the wrong SKU — Becki checks the shelves, back stock and anywhere it could have been put. It is flagged on the Prep Sheet and comes back with her answer.">No &mdash; send to Becki to check the warehouse</button>
+                        <button class="csAct go" onclick="skuCheckOpen('${i.rid}')" title="Check Seller Central and the same product's other SKUs first — only then does it go to Becki, with your check on record.">No &mdash; check, then send to Becki&hellip;</button>
                         ${!_amazonRow(_rowById(i.rid))?`<button class="csAct warn" onclick="queryNoneComing('${i.rid}')" title="Delivered but ${fmt(short)} never reached the warehouse — raise them as Missing">Delivered &mdash; raise ${fmt(short)} missing</button>`:''}`
                       :`<button class="csAct go" onclick="jackAmzDate('${i.rid}',this)">More still coming &mdash; date&hellip;</button>
                         <button class="csAct warn" onclick="queryNoneComing('${i.rid}')">Nothing more &mdash; raise ${fmt(short)} missing</button>

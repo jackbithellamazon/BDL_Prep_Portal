@@ -136,6 +136,7 @@ tbody tr.row-stuck:hover{background:rgba(239,68,68,.18)!important;}
 .nt{display:inline-flex;align-items:center;justify-content:center;min-width:32px;padding:4px 7px;border-radius:4px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.2px;}
 .nt-ok{background:var(--green-bg);color:var(--green);}
 .nt-bad{background:var(--red-bg);color:var(--red);}
+.nt-amb{background:rgba(251,191,36,.14);color:#fbbf24;white-space:nowrap;}
 .nt-zero{color:var(--text3);font-family:var(--mono);font-size:12px;font-weight:600;}
 
 /* ── ROW ACTIONS ── */

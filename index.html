@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v54.5</title>
+<title>BDL PrepHub v54.9</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/base.css?v=b605">
-<link rel="stylesheet" href="css/prep.css?v=b605">
-<link rel="stylesheet" href="css/modals.css?v=b605">
-<link rel="stylesheet" href="css/closeoff.css?v=b605">
-<link rel="stylesheet" href="css/pages.css?v=b605">
-<link rel="stylesheet" href="css/lavarion.css?v=b605">
-<link rel="stylesheet" href="css/followup.css?v=b605">
+<link rel="stylesheet" href="css/base.css?v=b609">
+<link rel="stylesheet" href="css/prep.css?v=b609">
+<link rel="stylesheet" href="css/modals.css?v=b609">
+<link rel="stylesheet" href="css/closeoff.css?v=b609">
+<link rel="stylesheet" href="css/pages.css?v=b609">
+<link rel="stylesheet" href="css/lavarion.css?v=b609">
+<link rel="stylesheet" href="css/followup.css?v=b609">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -22,11 +22,11 @@
      this is what actually protects the data: the public anon key in this
      file is useless without a valid login.
      ════════════════════════════════════════════════════════════════════ -->
-<link rel="stylesheet" href="css/auth.css?v=b605">
+<link rel="stylesheet" href="css/auth.css?v=b609">
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v54.5</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v54.9</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -60,7 +60,7 @@
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v54.5</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v54.9</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -182,7 +182,10 @@
       </select>
       <select class="fsel" id="prepStF" onchange="filterPrep()">
         <option value="">All Statuses</option>
-        <option>In-Transit</option><option>Delivered</option><option>In Warehouse</option>
+        <option value="__toArrive">Still to arrive (any status)</option>
+        <option value="__onShelf">On the shelf, not sent (any status)</option>
+        <option value="__issue">Issue still open (any status)</option>
+        <option>In-Transit</option><option>In Warehouse</option>
         <option>Part Sent</option><option>Sent to Amazon</option><option>Issue</option><option>Not Arrived</option><option>Returned</option>
       </select>
       <button id="showIssuesBtn" onclick="toggleIssuesFilter()" style="padding:5px 10px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⚑ Issues</button>
@@ -210,7 +213,6 @@
           <option value="">Set Status…</option>
           <option value="In-Transit">In-Transit</option>
           <option value="In Warehouse">In Warehouse</option>
-          <option value="Delivered">Delivered</option>
           <option value="Part Sent">Part Sent</option>
           <option value="Issue">Issue</option>
           <option value="Returned">Returned</option>
@@ -378,7 +380,7 @@
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v54.5</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v54.9</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -713,6 +715,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
         <option value="30d">Last 30 days</option>
       </select>
       <span id="auditCount" style="font-size:10px;color:var(--text3);margin-left:auto;font-family:var(--mono);"></span>
+      <button class="uOpen" id="usageBtn" style="display:none" title="Which buttons and filters each person actually clicks" onclick="usageOpen()">What gets used</button>
     </div>
     <div class="tbl-wrap" style="overflow-y:auto;">
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:12px;" id="auditList"></div>
@@ -765,7 +768,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
       <div class="fi" id="bqG" style="display:none;"><label class="fl">How Many in Bundle</label><input class="fi-in" type="number" id="f-bqty" placeholder="0"></div>
       <div class="fi"><label class="fl">Status</label>
         <select class="fi-in" id="f-status">
-          <option>In-Transit</option><option>Delivered</option><option>In Warehouse</option><option>Part Sent</option>
+          <option>In-Transit</option><option>In Warehouse</option><option>Part Sent</option>
           <option>Prepping</option><option>Boxed</option><option>Sent to Amazon</option>
           <option>Issue</option><option>Not Arrived</option><option>Returned</option>
         </select>
@@ -929,27 +932,28 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
 
 <div class="toasts" id="toasts"></div>
 
-<script src="js/core.js?v=b605"></script>
-<script src="js/rules.js?v=b605"></script>
-<script src="js/prep.js?v=b605"></script>
-<script src="js/claims.js?v=b605"></script>
-<script src="js/sarah-admin.js?v=b605"></script>
-<script src="js/closeoff.js?v=b605"></script>
-<script src="js/recovery.js?v=b605"></script>
-<script src="js/jack-admin.js?v=b605"></script>
-<script src="js/admin-queue.js?v=b605"></script>
-<script src="js/dashboard.js?v=b605"></script>
-<script src="js/lavarion-bridge.js?v=b605"></script>
-<script src="js/insights.js?v=b605"></script>
-<script src="js/audit-ean.js?v=b605"></script>
-<script src="js/ui.js?v=b605"></script>
-<script src="js/stock-moves.js?v=b605"></script>
-<script src="js/shipments.js?v=b605"></script>
-<script src="js/sheet-sync.js?v=b605"></script>
-<script src="js/db.js?v=b605"></script>
-<script src="js/issues.js?v=b605"></script>
-<script src="js/returns.js?v=b605"></script>
-<script src="js/boot.js?v=b605"></script>
+<script src="js/core.js?v=b609"></script>
+<script src="js/rules.js?v=b609"></script>
+<script src="js/prep.js?v=b609"></script>
+<script src="js/claims.js?v=b609"></script>
+<script src="js/sarah-admin.js?v=b609"></script>
+<script src="js/closeoff.js?v=b609"></script>
+<script src="js/recovery.js?v=b609"></script>
+<script src="js/jack-admin.js?v=b609"></script>
+<script src="js/admin-queue.js?v=b609"></script>
+<script src="js/dashboard.js?v=b609"></script>
+<script src="js/lavarion-bridge.js?v=b609"></script>
+<script src="js/insights.js?v=b609"></script>
+<script src="js/audit-ean.js?v=b609"></script>
+<script src="js/usage.js?v=b609"></script>
+<script src="js/ui.js?v=b609"></script>
+<script src="js/stock-moves.js?v=b609"></script>
+<script src="js/shipments.js?v=b609"></script>
+<script src="js/sheet-sync.js?v=b609"></script>
+<script src="js/db.js?v=b609"></script>
+<script src="js/issues.js?v=b609"></script>
+<script src="js/returns.js?v=b609"></script>
+<script src="js/boot.js?v=b609"></script>
 <!-- SHIPMENT ID MODAL -->
 <div class="overlay" id="shipIdModal">
   <div class="modal" style="max-width:420px;">
@@ -1175,6 +1179,13 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
 </div>
 
 <!-- EDIT LAVARION LINE MODAL -->
+<div class="overlay" id="usageModal">
+  <div class="modal" style="max-width:1040px;width:94vw;">
+    <div class="mh"><div class="mh-title">What gets used</div><button class="mh-close" onclick="cm('usageModal')">✕</button></div>
+    <div class="mb" id="usageBody" style="max-height:72vh;overflow:auto;"></div>
+    <div class="mf"><button class="btn-cancel" onclick="cm('usageModal')">Close</button></div>
+  </div>
+</div>
 <div class="overlay" id="jkStoryModal">
   <div class="modal" style="max-width:1040px;width:94vw;">
     <div class="mh"><div class="mh-title" id="jkStoryTitle">Full story</div><button class="mh-close" onclick="cm('jkStoryModal')">✕</button></div>
@@ -1477,12 +1488,12 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
 <div class="overlay lav3" id="lav3Ov2" style="align-items:center;justify-content:center;"><div class="mod" id="lav3Mod2"></div></div>
 <div class="lav3"><div id="lav3Toast"></div></div>
 
-<script src="js/lavarion.js?v=b605"></script>
+<script src="js/lavarion.js?v=b609"></script>
 
 </div><!-- /#appShell -->
 
-<link rel="stylesheet" href="css/unify.css?v=b605" id="modern-unify">
-<link rel="stylesheet" href="css/lavarion-overrides.css?v=b605" id="lv2-hard-overrides">
+<link rel="stylesheet" href="css/unify.css?v=b609" id="modern-unify">
+<link rel="stylesheet" href="css/lavarion-overrides.css?v=b609" id="lv2-hard-overrides">
 
 </body>
 </html>
