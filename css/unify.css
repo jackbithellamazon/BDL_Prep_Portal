@@ -1077,3 +1077,67 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 @media(max-width:900px){.sfSec .sfLine{grid-template-columns:1fr;}.sfBtns{justify-content:flex-start;}}
 .srtSkuWarn{margin-top:8px;padding:9px 11px;border-radius:8px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.4);font-size:12px;color:var(--text2);}
 .srtSkuWarn #srtSkuWhy{margin-top:7px;width:100%;}
+/* ── 23 Oct 2026: Sarah's triage as cards (Jack: "yes love it") ───────────── */
+.tfu.cards thead tr{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:4px 2px 8px;}
+.tfu.cards thead th{display:none;}
+.tfu.cards thead th.tfuSortable{display:inline-flex;align-items:center;gap:4px;position:static;width:auto!important;
+  padding:4px 10px!important;border:1px solid var(--border2)!important;border-radius:999px;background:var(--bg3)!important;
+  font-size:10.5px;letter-spacing:.04em;cursor:pointer;}
+.tfu.cards thead th.tfuSortable.on{border-color:var(--accent)!important;color:#fcd34d;}
+.tfu.cards thead tr::before{content:"Sort";font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:2px;}
+.tfu tbody tr.tcRow td{padding:0!important;border:none!important;background:transparent!important;}
+.tfu tbody tr.tcRow:hover td{background:transparent!important;}
+.tcard{display:grid;grid-template-columns:minmax(0,1fr) 300px;background:var(--bg2);border:1px solid var(--border);
+  border-left:4px solid var(--c,#94a3b8);border-radius:12px;overflow:hidden;text-align:left;}
+.tcard.dim{opacity:.6;}
+.tcMain{padding:12px 16px 14px;min-width:0;}
+.tcTop{display:grid;grid-template-columns:28px minmax(0,1.5fr) minmax(0,1fr) auto;gap:14px;align-items:start;}
+.tcNum{width:26px;height:26px;border-radius:999px;display:flex;align-items:center;justify-content:center;
+  font:900 12.5px var(--mono);color:#12100a;background:var(--c,#94a3b8);cursor:help;}
+.tcProd .tfuProd2{font-size:14px;font-weight:800;color:var(--text);line-height:1.35;white-space:normal;}
+.tcProd .s-sku{margin-top:4px!important;}
+.tcProd>div[style*="margin-top:7px"]{margin-top:3px!important;}
+.tcSup{text-align:left;}
+.tcSup .tfuOid,.tcSup .tfuSup{text-align:left!important;}
+.tcSup>div[style*="justify-content:center"]{justify-content:flex-start!important;}
+.tcUnits{text-align:right;min-width:110px;}
+.tcWhy{margin-top:10px;padding:8px 11px;background:var(--bg3);border:1px solid var(--border2);border-radius:9px;text-align:left;}
+.tcWhy .tfuWhy{white-space:normal;}
+.tcSteps{margin-top:10px;display:grid;gap:7px;}
+.tcSt{display:grid;grid-template-columns:24px minmax(0,1fr);gap:9px;align-items:start;}
+.tcIc{width:22px;height:22px;border-radius:999px;display:flex;align-items:center;justify-content:center;font:900 11.5px var(--mono);
+  border:2px solid var(--sc);color:var(--sc);background:color-mix(in srgb,var(--sc) 12%,transparent);}
+.tcSt.done{--sc:#4ade80;}.tcSt.found{--sc:#fbbf24;}.tcSt.todo{--sc:#94a3b8;opacity:.7;}.tcSt.skip{--sc:#94a3b8;opacity:.5;}
+.tcSt.now{--sc:#60a5fa;}.tcSt.now .tcIc{background:var(--sc);color:#12100a;}
+.tcQ{font-size:12.5px;font-weight:800;color:var(--text);}
+.tcSt.done .tcQ{color:var(--text2);}
+.tcA{font-size:12px;color:var(--text2);margin-top:1px;}
+.tcA b{color:var(--text);}
+.tcWho{font-size:10.5px;color:var(--text3);margin-top:1px;}
+.tcSf{display:inline-block;font:800 9px var(--sans);letter-spacing:.06em;color:#c4b5fd;border:1px solid rgba(196,181,253,.45);
+  background:rgba(167,139,250,.1);border-radius:999px;padding:0 6px;margin-left:5px;vertical-align:1px;}
+.tcOk{color:#86efac!important;}.tcWarn{color:#fcd34d!important;}
+.tcSt a{color:#93c5fd;}
+.tcSide{background:rgba(255,255,255,.02);border-left:1px solid var(--border);padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0;}
+.tcCap{font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);}
+.tcTri .csNow{text-align:left;}
+.tcTri .csActs{display:flex;flex-direction:column;gap:6px;}
+.tcTri .csAct{width:100%;text-align:center;}
+.tcTri .csAct.tcBig{font-size:13.5px!important;font-weight:900!important;padding:11px 12px!important;order:-1;}
+.tcBtnWhy{font-size:11px;color:var(--text3);margin:-2px 0 2px;}
+.tcWhere{font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:6px;}
+.tcWhere>summary{cursor:pointer;font-weight:700;list-style:none;}
+.tcWhere>summary::before{content:"▸ ";}
+.tcWhere[open]>summary::before{content:"▾ ";}
+.tcActs .tfuBtn,.tcActs button{width:100%;}
+@media(max-width:1000px){.tcard{grid-template-columns:1fr;}.tcSide{border-left:none;border-top:1px solid var(--border);}
+  .tcTop{grid-template-columns:28px minmax(0,1fr);}.tcUnits{text-align:left;}}
+/* 23 Oct — two small tiles where COG In Transit was */
+.statPair{flex:1;display:flex;gap:5px;min-width:200px;}
+.statPair .stat.statSm{flex:1;min-width:0;padding:6px 8px!important;}
+.statSmL{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;line-height:1.15;margin-bottom:2px;}
+.statSmV{font-size:19px;font-weight:900;font-family:var(--num);font-variant-numeric:tabular-nums;line-height:1.05;}
+.statSmS{font-size:10.5px;color:var(--text2);margin-top:2px;line-height:1.25;}
+/* 26 Oct — the stale SellerFuse-check strip, every page */
+#sfStaleBar{margin:0 16px 10px;padding:9px 14px;border-radius:10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.5);color:var(--text2);font-size:12.5px;}
+#sfStaleBar b{color:#fbbf24;}

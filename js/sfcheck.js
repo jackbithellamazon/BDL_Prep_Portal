@@ -1,5 +1,5 @@
 /* BDL PrepHub — js/sfcheck.js — the SellerFuse check (Jack, 23 Oct 2026: "go").
-   Claude runs on Jack's Mac Mon/Wed/Fri 07:30, reads SellerFuse and writes what
+   Claude runs on Jack's Mac Mon + Thu 07:00 (Jack, 23 Oct: twice a week), reads SellerFuse and writes what
    it saw into sf_check_runs — one row per run. The run only CARRIES data; this
    file decides what it means, so the rules can be checked like everything else.
    PREP ONLY: Amazon receiving claims, costs and write-offs belong to the
@@ -9,7 +9,7 @@
    sheet that Amazon shows shipped comes back. Everything else is listed with a
    button — a person presses it. */
 let SFRUN=null;
-const SF_STALE_DAYS=4;
+const SF_STALE_DAYS=5;   /* Thu → Mon is 4 days */
 
 async function sfLoad(){
   try{
@@ -17,7 +17,7 @@ async function sfLoad(){
     if(error)throw error;
     SFRUN=(data&&data[0])?sfNorm(data[0]):null;
   }catch(e){SFRUN=null;}            /* table not made yet, or offline — the app works exactly as before */
-  window.SFRUN=SFRUN;
+  window.SFRUN=SFRUN;try{sfStaleBanner();}catch(e){}
   if(SFRUN){
     try{await sfPutBackExcluded();}catch(e){console.warn('[sf] put back',e);}
     try{if(window.LV3&&LV3.__booted&&LV3.__booted())LV3.sfApplyFromRun(SFRUN);}catch(e){console.warn('[sf] plub',e);}
@@ -127,6 +127,19 @@ function sfPrepIssues(){
 async function sfRecord(itemId){
   const it=sfPrepIssues().find(x=>x.id===itemId);
   if(!it||!it.row){toast('That one has already been dealt with','ok');return;}
+  _sfRecordIt(it);
+}
+/* the same "Record it", from a triage card: the check found units this SKU sent on a
+   shipment PrepHub never recorded (it can be older than the run's window, so it comes
+   from the row's own check rather than the window list) */
+function sfRecordRow(rid){
+  const r=_rowById(rid),v=r&&sfLateFor(r);
+  if(!v||v.state!=='shipped'||!(v.ships||[]).length){toast('Nothing for the check to record on this one','er');return;}
+  const s=v.ships[0];
+  _sfRecordIt({row:r,shipId:s.id,date:s.date||'',miss:Math.max(1,(parseInt(s.units)||0)-(s.ph||0)),
+    more:v.ships.length-1});
+}
+function _sfRecordIt(it){
   const r=it.row,n=it.miss;
   showConfirm('Record it?',
     `<b>${fmt(n)} × ${String(r.prod||r.sku).slice(0,60)}</b> went to Amazon on <b>${it.shipId}</b>${it.date?' ('+_dmy(it.date)+')':''}. SellerFuse shows it; PrepHub had no record.<br><br>`
@@ -146,7 +159,16 @@ async function sfRecord(itemId){
       try{logAudit('Recorded from SellerFuse',`${r.sku||''} — ${fmt(n)} on ${it.shipId}${need?` (${need} booked in)`:''}`);}catch(e){}
       toast(`${fmt(n)} recorded on ${it.shipId}`,'ok');
       try{renderAdmin();renderPrep();renderStats();}catch(e){}
+      if(it.more)toast(`${it.more} more shipment${it.more===1?'':'s'} to record — press Record it again`,'ok');
     },{ok:'Record it',icon:'📦'});
+}
+/* when the next Mon / Thu 07:00 check runs, in words */
+function sfNextCheck(){
+  const d=new Date();const u=_ukParts(d);
+  for(let k=0;k<8;k++){const t=new Date(d.getTime()+k*864e5),p=_ukParts(t);
+    if([1,4].includes(p.wd)&&(k>0||u.h<7))
+      return (k===0?'today':k===1?'tomorrow':['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][p.wd])+' 07:00';}
+  return 'Mon 07:00';
 }
 
 /* ── 4 · an order removed from the sheet that Amazon shows shipped comes back ─ */
@@ -285,6 +307,23 @@ function sfSkuSpare(sku,exceptRow){
 }
 window.sfSkuSpare=sfSkuSpare;
 
-window.sfLoad=sfLoad;window.sfPlubHtml=sfPlubHtml;window.sfAdminHtml=sfAdminHtml;window.sfRecord=sfRecord;
+/* Jack, 26 Oct: "a banner when the 07:00 check hasn't landed — on every page". The check only
+   runs when the Mac is awake; from 10:00 UK on a Monday or Thursday with no count from today,
+   or any day once the last count is over 5 days old, a strip under the top bar says so. */
+function sfStaleBanner(){
+  let el=document.getElementById('sfStaleBar');
+  const uk=new Date(new Date().toLocaleString('en-US',{timeZone:'Europe/London'}));
+  const wd=uk.getDay(),hr=uk.getHours(),today=uk.toISOString().slice(0,10);
+  const at=SFRUN?new Date(SFRUN.at):null;
+  const atDay=at?new Date(at.toLocaleString('en-US',{timeZone:'Europe/London'})).toISOString().slice(0,10):'';
+  const missed=(wd===1||wd===4)&&hr>=10&&atDay!==today;
+  const old=!at||(Date.now()-at.getTime())>SF_STALE_DAYS*864e5;
+  if(!missed&&!old){if(el)el.remove();return;}
+  if(!el){el=document.createElement('div');el.id='sfStaleBar';const tb=document.querySelector('.topbar');if(tb&&tb.parentNode)tb.parentNode.insertBefore(el,tb.nextSibling);else document.body.prepend(el);}
+  el.innerHTML=`<b>Stock count is from ${at?sfWhen():'— no SellerFuse check yet'}.</b> ${missed?"This morning's 07:00 SellerFuse check hasn't run — is the Mac awake?":'No check for over '+SF_STALE_DAYS+' days.'} Next check ${sfNextCheck()}.`;
+}
+try{setInterval(sfStaleBanner,10*60*1000);}catch(e){}
+window.sfStaleBanner=sfStaleBanner;
+window.sfLoad=sfLoad;window.sfPlubHtml=sfPlubHtml;window.sfAdminHtml=sfAdminHtml;window.sfRecordRow=sfRecordRow;window.sfNextCheck=sfNextCheck;window.sfRecord=sfRecord;
 window.sfCheckedToBecki=sfCheckedToBecki;window.sfLateFor=sfLateFor;window.sfFactHtml=sfFactHtml;
 window.sfPrepIssues=sfPrepIssues;window.sfPlubIssues=sfPlubIssues;window._cleanShipId=_cleanShipId;

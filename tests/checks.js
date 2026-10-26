@@ -1605,19 +1605,19 @@ window.PrepChecks=(function(){
      lead (7-day spike, damped); a zero never wipes a real month; a dated figure beats both; Build &
      send has no "no sends" grey-out and Ship opens at the plan; Alibaba is Jack's lane; long-lead
      parts warn 30 days out; the Products page and the Planner draw their new columns and rows. */
-  S['PLUB rebuild: SellerFuse pace, dated figure, ranking, owner lanes, long leads, new Products columns, Planner table']=async()=>{
+  S['PLUB rebuild: SellerFuse pace, dated figure, ranking, money at stake, owner lanes, long leads, new Products columns, Planner table']=async()=>{
     let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
     const D=LV3.__D(),set0=JSON.stringify(D.settings||{}),logN=D.log.length;
     const was=(document.querySelector('.page.active')||{}).id||'';
     try{
       const p=D.products.find(x=>!x.archived&&x.type==='bundle'&&(D.settings.atAmzAt||{})[x.asin]);
       ok(p,'a counted bundle to test with');if(!p)return;
-      D.settings.planSeason={};D.settings.acPause={};D.settings.hubSkip={};
+      D.settings.planSeason={};D.settings.acPause={};D.settings.hubSkip={};D.settings.stockOuts=[];
       const now=new Date().toISOString();D.settings.sfSold=D.settings.sfSold||{};
-      /* C: 24 in 30 days, 13 in the last 7 — 0.7 × 13/7 a day beats 24/30 */
+      /* C (b618, two clocks): 24 in 30 days, 13 in the last 7 — it runs out at the faster 13/7 a day */
       D.settings.sfSold[p.asin]={u30:24,u7:13,at:now};
       let d=LV3.__plRow(p).demand;
-      ok(d&&d.src==='sf'&&Math.abs(d.m-39)<0.2,'a Christmas ramp plans at 0.7 × the 7-day pace (39 a month), labelled as such');
+      ok(d&&d.src==='sf'&&Math.abs(d.m-55.7)<0.2&&/7 days/.test(d.label),'a Christmas ramp runs out on the 7-day pace (55.7 a month), labelled as such');
       D.settings.sfSold[p.asin]={u30:60,u7:10,at:now};d=LV3.__plRow(p).demand;
       ok(d&&Math.abs(d.m-60)<0.01,'a slow week does not drag a steady seller down — the 30-day pace stands');
       /* a stale check steps aside */
@@ -1637,10 +1637,10 @@ window.PrepChecks=(function(){
       D.settings.atAmz[p.asin]=20;D.settings.atAmzAt[p.asin]=new Date(Date.now()-2*864e5).toISOString();
       D.settings.sfSold[p.asin]={u30:30,u7:7,at:now};let rr=LV3.__plRow(p);
       ok(rr.counted===20&&rr.sell===18&&rr.soldSince===2,'sales since the count come off (20 counted, ~18 now)');
-      /* a blip: 30 a month, 14 last week — the faster pace covers 3 weeks, the normal pace the rest */
+      /* a blip: 30 a month, 14 last week — the send covers the cover at the size pace, never under 3 weeks at the fast one */
       D.settings.sfSold[p.asin]={u30:30,u7:14,at:now};rr=LV3.__plRow(p);
       const cov=LV3.coverDaysOf(p);
-      if(cov>21&&rr.trigger)ok(Math.abs(rr.want-Math.round(1.4*21+1*(cov-21)))<=1,'a jump in sales gets 3 weeks at the faster pace, not the whole cover');
+      if(rr.trigger)ok(Math.abs(rr.want-Math.round(Math.max(rr.sizeAds*cov,rr.ads*21)))<=1&&rr.ads===2,'a jump in sales: runs out at the fast pace, sized on the middle, never under 3 weeks at the fast pace');
       /* the buffer: 60 units at 2 a day = 30 days; the send has to land with the 14-day buffer intact */
       const u0=LV3.sendUrgency({p,ads:2,sell:60,inb:0,alloc:10,landIso:rr.landIso});
       ok(u0&&!u0.losing&&u0.slack===Math.floor(30-Math.round((new Date(rr.landIso+'T00:00:00')-new Date(new Date().toISOString().slice(0,10)+'T00:00:00'))/864e5)-u0.saf),'the send-by date keeps the safety buffer');
@@ -1664,12 +1664,12 @@ window.PrepChecks=(function(){
       ok(pg.querySelector('#ac-order')&&pg.querySelector('#ac-orderj'),'two order lanes — Becki and Jack');
       const jRows=[...pg.querySelectorAll('#ac-orderj .acx')].map(r=>r.textContent),bRows=[...pg.querySelectorAll('#ac-order .acx')].map(r=>r.textContent);
       ok(!bRows.some(t=>/Alibaba/i.test(t))&&jRows.every(t=>/Alibaba|nothing on order/i.test(t)),'Alibaba orders are only in Jack’s lane');
-      const ship=[...pg.querySelectorAll('#ac-send .acx .acxBtns .btn.go')].map(b=>b.textContent);
-      ok(ship.every(t=>/^Ship \d/.test(t)),'every Build & send line says how many to ship');
+      const ship=[...pg.querySelectorAll('#ac-send .acx .acxSendN')].map(b=>b.textContent);
+      ok(ship.every(t=>/^Send \d/.test(t))&&!pg.querySelector('#ac-send .acx .acxBtns .btn.go'),'every Build & send line says how many to send — a figure, not a button');
       /* the send list (Jack, 23 Oct): numbered top-down; lines losing sales every day they wait come before ones that can still wait */
       const sl=[...pg.querySelectorAll('#ac-send .acx')];
       ok(sl.every((r,i)=>(r.querySelector('.acxNum')||{}).textContent===String(i+1)),'the send list is numbered from the top');
-      const kinds=sl.map(r=>/LOSING/.test(r.querySelector('.acxChip').textContent)?0:/COVERED/.test(r.querySelector('.acxChip').textContent)?2:1);
+      const kinds=sl.map(r=>/EMPTY AT AMAZON|RUNS OUT BEFORE/.test(r.querySelector('.acxChip').textContent)?0:/COVERED/.test(r.querySelector('.acxChip').textContent)?2:1);
       ok(kinds.every((k,i)=>i===0||k>=kinds[i-1]),'losing-sales lines first, then send-by dates, then the covered ones');
       const fake={p,ads:2,sell:4,inb:0,alloc:10,landIso:LV3.__plRow(p).landIso};
       ok(LV3.sendUrgency(fake).losing,'2 days of stock with a 2-week trip to Amazon is losing sales now');
@@ -1687,6 +1687,16 @@ window.PrepChecks=(function(){
       const heads=[...pg.querySelectorAll('thead th')].map(t=>t.textContent);
       ok(['Days left','Sold 7d','Per day','Last sent'].every(h=>heads.some(x=>x.includes(h))),'the new Products columns are there');
       /* L: Planner */
+      /* audit, 23 Oct: lists rank by the money at stake — empty tomorrow beats empty in a week,
+         a long part lead raises the stake, and a product with stock to spare loses nothing */
+      D.settings.sfProfit=Object.assign({},D.settings.sfProfit,{B0CHKLOSSA:2,B0CHKLOSSB:2});
+      const F=LV3.fbaCalDays(),fk=(asin,sell)=>({p:{asin,name:asin},sell,ads:3,inb:0});
+      const La=LV3.lossOfRows([fk('B0CHKLOSSA',1)]),Lb=LV3.lossOfRows([fk('B0CHKLOSSB',3*(F-1))]),Lc=LV3.lossOfRows([fk('B0CHKLOSSB',3*(F+40))]);
+      ok(La.lost===6&&Lb.lost===6,'both short products lose 3 a day × £2 = £6 a day');
+      ok(La.stake>Lb.stake,'the one empty tomorrow has more at stake than the one that lasts almost to the trip');
+      ok(LV3.lossOfRows([fk('B0CHKLOSSA',1)],30).stake>La.stake,'a 30-day part lead raises the stake');
+      ok(Lc.lost===0&&Lc.stake===0,'a product with stock to spare loses nothing');
+      ok(La.worst&&La.worst.name==='B0CHKLOSSA','the soonest to empty is named');
       LV3.go('planner');await wait(300);
       ok(pg.querySelector('table.plT tbody .plR'),'the Planner is one table of rows');
       ok(pg.querySelectorAll('.plT .plR .plWho').length>0,'every row says whose it is');
@@ -1698,7 +1708,175 @@ window.PrepChecks=(function(){
     }
   };
 
+  /* 85 — Sarah's triage as cards (Jack, 23 Oct: "yes love it"): the double check in order, answered
+     by SellerFuse, and the button that matches the answer first */
+  S['Triage cards: SellerFuse answers the two checks and the matching button leads']=async()=>{
+    const keep=SFRUN;
+    try{
+      const R=mkRow({asin:'B0CHKTC001',sku:'CHK_TC_A',exp:9,rcvd:9,ship:5,status:'Part Sent',
+        shipSegments:[{shipId:'FBA15CHKTC01',units:5,date:'2026-10-16',type:'Standard'}]});
+      SFRUN={id:'chk-tc',at:new Date().toISOString(),shipments:[],stock:[],sold:[],excluded:[],summary:{},
+        late:[{rowId:R.uuid,sku:'CHK_TC_A',kind:'shelf',own:[{id:'FBA15CHKTC01',date:'2026-10-16',units:5}],asinSkus:[]}]};
+      window.SFRUN=SFRUN;
+      eq(sfLateFor(R).state,'clear','sent only what PrepHub has, nothing under another SKU — clear');
+      ok(/Send to Becki/.test(_tcSkuBtns(R.uuid))&&/tcBig/.test(_tcSkuBtns(R.uuid)),'the big button is Send to Becki');
+      SFRUN.late[0].own[0].units=8;
+      eq(sfLateFor(R).state,'shipped','3 more went out under this SKU than PrepHub has — found');
+      ok(/Record it/.test(_tcSkuBtns(R.uuid)),'the big button is Record it');
+      SFRUN.late[0].own[0].units=5;SFRUN.late[0].asinSkus=[{sku:'CHK_TC_B',id:'FBA15CHKTC02',date:'2026-10-17',units:4}];
+      eq(sfLateFor(R).state,'other','4 under a sister SKU PrepHub never recorded — probably that');
+      ok(/went out under CHK_TC_B/.test(_tcSkuBtns(R.uuid)),'the big button names the sister SKU');
+      goPage('admin');await wait(300);
+      ok(document.querySelector('#page-admin .tcard'),'Sarah’s page draws cards');
+    }finally{SFRUN=keep;window.SFRUN=keep;}
+  };
+
   function D_products(){try{return (LV3.allProducts&&LV3.allProducts())||[];}catch(e){return [];}}
+  /* 86 — v55.5 (26 Oct): the SAS stock rule, a same-day send, days empty / lost so far / still
+     to lose, the margin's source, the calmer wording and the stat chips */
+  S['v55.5: SAS stock rule, same-day sends, days empty / lost so far / still to lose, calmer wording']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),set0=JSON.stringify(D.settings||{}),logN=D.log.length,shipN=lavShipments.length;
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    const isoDay=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+    try{
+      const p=D.products.find(x=>!x.archived&&x.asin&&x.type==='bundle');ok(p,'a bundle to test with');if(!p)return;
+      const now=new Date(),at=now.toISOString(),today=isoDay(now);
+      D.settings.sfApplied='';
+      const k=LV3.sfApplyFromRun({id:'chk-555',at,from:'2026-10-20',to:'2026-10-26',shipments:[],late:[],excluded:[],summary:{},
+        stock:[{asin:p.asin,sku:'CHK-A',available:5,inbound:3,transfer:7,processing:1,orders:2,price:10,profit:2,profitSrc:'sf',lastSold:'2026-10-20'},
+               {asin:p.asin,sku:'CHK-B',available:0,inbound:4,transfer:0,processing:0,orders:0,price:9,profit:5,profitSrc:'hist',lastSold:'2026-10-18'}],
+        sold:[{asin:p.asin,units30:30,units7:7}]});
+      ok(k>0,'the run applied');
+      eq(D.settings.atAmz[p.asin],5,'at Amazon = available (processing and customer orders not counted)');
+      eq(D.settings.atAmzIn[p.asin],14,'on the way = inbound + moving between Amazon warehouses, both SKUs added up');
+      eq(D.settings.atAmzMov[p.asin],7,'the moving figure is kept for the line');
+      eq(D.settings.sfProfit[p.asin],2,'the costed SellerFuse margin beats the one from history');
+      eq(D.settings.sfProfitSrc[p.asin],'sf','and is marked as SellerFuse\'s');
+      eq(D.settings.sfLastSold[p.asin],'2026-10-20','the latest last-sold date across the SKUs');
+      /* moving stock is its own tranche, ~3 days out; shipping stock keeps the FBA pipeline */
+      {const r0=LV3.__plRow(p);ok(r0.tranches&&r0.tranches.length===2,'two tranches on the way — got '+JSON.stringify(r0.tranches));
+        const mv=r0.tranches.find(x=>x.mov);ok(mv&&mv.q===7,'the moving tranche is the 7 moving units');
+        ok(mv&&mv.eta<=isoDay(new Date(now.getTime()+4*864e5)),'and it is sellable within about 3 days — got '+(mv&&mv.eta));}
+      /* a part only costs the gap after the units that can be built now have gone */
+      {const fk={p,sell:7,ads:1.9,inb:0,alloc:69,rec:112,tranches:[]};const a=LV3.lossOfRows([fk],6,true),b=LV3.lossOfRows([fk],6);
+        ok(a.lost===0&&a.stake===0,'69 sendable now + 7 at Amazon outlast a 6-day order + the trip: the part costs nothing yet');
+        ok(b.lost>0,'while the plain figure (the product itself) still says it is losing');
+        const fk2={p,sell:0,ads:1.9,inb:0,alloc:0,rec:112,tranches:[]};const c=LV3.lossOfRows([fk2],6,true);ok(c.lost>0&&c.stake>0,'with nothing buildable the part carries the whole gap');}
+      /* a send recorded after the count, on the count's day, is on its way; one from before it is already in the count */
+      const cMs=new Date(D.settings.atAmzAt[p.asin]).getTime();
+      lavShipments.push({_chk:true,asin:p.asin,units:9,date:today,at:new Date(cMs+3600e3).toISOString(),shipId:'FBA-CHK555'});
+      let r=LV3.__plRow(p);eq(r.since,9,'a send recorded after the count counts as on its way');
+      lavShipments[lavShipments.length-1].at=new Date(cMs-3600e3).toISOString();
+      r=LV3.__plRow(p);eq(r.since,0,'a send recorded before the count is already in it');
+      lavShipments.pop();
+      /* the three figures, on an empty line selling 1 a day at £2 */
+      D.settings.planSeason={};D.settings.acPause={};D.settings.hubSkip={};D.settings.stockOuts=[];
+      D.settings.sfSold[p.asin]={u30:30,u7:7,at};D.settings.atAmz[p.asin]=0;D.settings.atAmzIn[p.asin]=0;D.settings.atAmzMov[p.asin]=0;
+      D.settings.sfLastSold[p.asin]=isoDay(new Date(now.getTime()-4*864e5));
+      r=LV3.__plRow(p);const u=LV3.sendUrgency(r),L=LV3.lossLine(r,u);
+      ok(L.empty&&L.emptyDays===4,'empty for 4 days, from the last-sold date — got '+L.emptyDays);
+      ok(Math.abs(L.lostSoFar-4*1*2)<0.01,'lost so far = 4 days × 1 a day × £2 — got '+L.lostSoFar);
+      ok(L.land>=10&&Math.abs(L.toLose-L.land*1*2)<0.01,'still to lose = the days until a send today sells × 1 a day × £2');
+      eq(LV3.profitSrcOf(p),'sf','the margin source is known');
+      delete D.settings.sfProfit[p.asin];eq(LV3.profitSrcOf(p),'typical','with no margin on record the line is marked typical');
+      /* the page: calm chips, stat chips, the jump bar */
+      LV3.go('overview');await wait(500);
+      const all=document.getElementById('lav3View').textContent;
+      ok(!/LOSING SALES|AT RISK|NOTHING ON ORDER|TOO LATE|AMAZON EMPTY/.test(all),'the old wording is gone');
+      ok(document.querySelector('#ac-send .acxStat'),'send lines carry stat chips');
+      ok(document.querySelector('.acJump'),'the jump bar is there');
+    }finally{
+      try{const s0=JSON.parse(set0);Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,s0);}catch(e){}
+      D.log.splice(0,D.log.length-logN);
+      for(let i=lavShipments.length-1;i>=shipN;i--)lavShipments.splice(i,1);
+      try{LV3.render();}catch(e){}
+      if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}
+    }
+  };
+
+  /* 87 — v55.6 (Jack, 26 Oct: "we should never ever run out of stock — but not send or buy way too
+     much"): two clocks, sales over sellable days (n/a when it mostly wasn't), the 10-unit floor and the
+     extra day over 100 a month, part dates that never come after the send they hold up, the stock-out
+     record opening and closing from the counts, the Stock health page, the late-orders snapshot */
+  S['v55.6: two clocks, sellable days, the unit floor, part dates from sends, stock-out record, Stock health']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),set0=JSON.stringify(D.settings||{}),logN=D.log.length,shipN=lavShipments.length;
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    const isoDay=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+    try{
+      const p=D.products.find(x=>!x.archived&&x.asin&&x.type==='bundle');ok(p,'a bundle to test with');if(!p)return;
+      const now=new Date(),at=now.toISOString(),today=isoDay(now),ago=k=>isoDay(new Date(now.getTime()-k*864e5));
+      D.settings.planSeason={};D.settings.acPause={};D.settings.hubSkip={};D.settings.stockOuts=[];D.settings.sfSold=D.settings.sfSold||{};
+      /* an old line (first send 200 days ago), so "new line" sizing stays out of it */
+      lavShipments.push({_chk:true,asin:p.asin,units:1,date:ago(200),at:new Date(now.getTime()-200*864e5).toISOString(),shipId:'FBA-CHK556'});
+      D.settings.atAmz[p.asin]=40;D.settings.atAmzAt[p.asin]=at;
+      /* two clocks: 14 / 21 / 30 over 7 / 14 / 30 days — runs out at 2 a day, sized at 1.5 */
+      D.settings.sfSold[p.asin]={u30:30,u14:21,u7:14,at};
+      let pc=LV3.sfPace(p);
+      ok(pc&&Math.abs(pc.perDay-2)<1e-9&&pc.fastW===7,'it runs out on the fastest clock (7 days, 2 a day)');
+      ok(pc&&Math.abs(pc.size-1.5)<1e-9,'the send is sized on the 14-day pace (1.5 a day)');
+      let r=LV3.__plRow(p);
+      ok(Math.abs(r.ads-2)<0.01&&Math.abs(r.sizeAds-1.5)<0.01,'the planner carries both — run-out pace and size pace');
+      if(r.trigger)ok(Math.abs(r.want-Math.round(Math.max(1.5*LV3.coverDaysOf(p),2*21)))<=1,'the send: the cover at 1.5 a day, never under 3 weeks at 2 a day');
+      /* a slowing line is sized on the slower recent pace and says so */
+      D.settings.sfSold[p.asin]={u30:60,u14:14,u7:4,at};pc=LV3.sfPace(p);
+      ok(pc.slow&&Math.abs(pc.perDay-2)<1e-9&&Math.abs(pc.size-1)<1e-9,'slowing: runs out at the month (2 a day), sized at the 14 days (1 a day)');
+      /* sellable days: 6 sold in a week it was empty 4 days of = 2 a day; empty all week = n/a */
+      D.settings.sfSold[p.asin]={u30:30,u7:6,at};
+      D.settings.stockOuts=[{id:'chk1',asin:p.asin,kind:'out',from:ago(4),to:ago(1),pace:1,pu:2}];
+      pc=LV3.sfPace(p);
+      ok(pc.empty[7]===4&&Math.abs(pc.p7-2)<1e-9,'6 sold in the 3 days it could be bought = 2 a day — got '+(pc&&pc.p7));
+      D.settings.stockOuts=[{id:'chk2',asin:p.asin,kind:'out',from:ago(10),to:null,pace:1,pu:2}];
+      pc=LV3.sfPace(p);
+      ok(pc.p7==null&&pc.p14==null,'a week it could not be bought is n/a, not 0 and not blown up');
+      D.settings.stockOuts=[{id:'chk3',asin:p.asin,kind:'out',from:ago(25),to:null,pace:1,pu:2}];
+      D.settings.sfSold[p.asin]={u30:30,u7:6,p30:45,at};pc=LV3.sfPace(p);
+      ok(pc.p30!=null&&pc.p30<=45/30+1e-9,'a mostly-empty month falls back to the month before, never a blown-up figure');
+      D.settings.stockOuts=[];
+      /* the floor: 14 days and 10 units (half a send for the very slow); +1 day at 100+ a month */
+      const cov=LV3.coverDaysOf(p),sd=LV3.safetyFor;
+      const base=sd(p,2,2);
+      ok(base>=1&&sd(p,4,4)===base+1,'4 a day (120 a month) gets one more day than 2 a day ('+base+' → '+sd(p,4,4)+')');
+      const slowU=Math.min(10,Math.max(1,Math.round(0.5*cov/2)));
+      eq(sd(p,0.5,0.5),Math.max(base,Math.ceil(slowU/0.5)),'0.5 a day lands with at least '+slowU+' units');
+      ok(sd(p,0.05,0.05)<120,'a 1-a-month line is not sent half a year');
+      /* part dates: a part holding up a send is never due after that send needs it */
+      const P=LV3.__plData(),sendL=(P.buys||[]).filter(L=>L.sendDriven);
+      ok(sendL.every(L=>L.ownByDays==null||L.buyByDays<=L.ownByDays),'a part holding up a send takes the earlier of the two dates');
+      ok(sendL.every(L=>L.state!=='upcoming'||L.buyByDays>14),'a part holding up a send shows 14 days ahead');
+      /* the stock-out record: a count at 0 opens it from the day after the last sale; stock back closes it */
+      D.settings.sfSold[p.asin]={u30:30,u7:7,at};delete D.settings.atAmzAt[p.asin];
+      LV3.sfApplyFromRun({id:'chk-so-1',at:new Date(now.getTime()-3600e3).toISOString(),sold:[{asin:p.asin,units30:30,units7:7,units14:14}],
+        stock:[{asin:p.asin,sku:'CHKSO',available:0,inbound:0,transfer:0,pending:0,profit:2,lastSold:ago(3)}]});
+      let rec=(D.settings.stockOuts||[]).find(x=>x.asin===p.asin&&x.kind==='out'&&!x.to);
+      ok(rec&&rec.from===ago(2),'a count at 0 opens a record from the day after the last sale — got '+(rec&&rec.from));
+      ok(rec&&rec.pace>0&&rec.pu>0&&(rec.cause||[]).length&&/^confirmed/.test(rec.conf),'it keeps the pace, the profit, a cause and how sure it is');
+      eq((D.settings.sfSold[p.asin]||{}).u14,14,'the 14-day sales are read from the check');
+      LV3.sfApplyFromRun({id:'chk-so-1',at:new Date(now.getTime()-3600e3).toISOString(),sold:[],stock:[{asin:p.asin,sku:'CHKSO',available:0,inbound:0,pending:0}]});
+      eq((D.settings.stockOuts||[]).filter(x=>x.asin===p.asin&&x.kind==='out'&&!x.to).length,1,'the same run twice opens one record');
+      LV3.sfApplyFromRun({id:'chk-so-2',at,sold:[{asin:p.asin,units30:30,units7:7}],stock:[{asin:p.asin,sku:'CHKSO',available:12,inbound:0,pending:0,profit:2}]});
+      rec=(D.settings.stockOuts||[]).find(x=>x.id===(rec&&rec.id));
+      ok(rec&&rec.to&&rec.to>=rec.from&&rec.to<=today,'stock back closes it — got '+(rec&&rec.to));
+      /* Stock health */
+      goPage('lavarion');LV3.go('health');await wait(300);
+      const pg=document.getElementById('page-lavarion'),tx=pg.textContent;
+      ok(/Running out — every stock-out/.test(tx)&&/In the warehouse now — PLUB/.test(tx)&&/Holding too much — at Amazon/.test(tx),'the Stock health page draws its sections');
+      ok(pg.querySelector('table.shT tbody tr'),'with the record as a table');
+      /* the Action centre keeps a snapshot of late orders for Jack's Dashboard */
+      LV3.go('overview');await wait(300);
+      ok(D.settings.acLateSnap==null||Array.isArray(D.settings.acLateSnap.list),'late orders are kept for the Dashboard');
+      ok(['#ac-order','#ac-orderj'].every(id=>{const ch=[...pg.querySelectorAll(id+' .acx')].map(x=>/CHASE|NOT ON THE SHEET/.test((x.querySelector('.acxChip')||{}).textContent||''));
+        return ch.every((c,i)=>!c||ch.slice(0,i).every(Boolean));}),'chased orders sit at the top of their lane');
+    }finally{
+      try{const s0=JSON.parse(set0);Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,s0);}catch(e){}
+      D.log.splice(0,D.log.length-logN);
+      for(let i=lavShipments.length-1;i>=shipN;i--)lavShipments.splice(i,1);
+      try{LV3.render();}catch(e){}
+      if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}
+    }
+  };
+
   async function run(only){
     R.length=0;const t0=Date.now();
     const _dbwWas=(typeof DBW!=='undefined')?DBW.paused:false;try{DBW.paused=true;}catch(e){}

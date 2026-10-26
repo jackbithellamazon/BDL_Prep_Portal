@@ -585,7 +585,7 @@ function dbToLav(d){
     archived:!!d.archived};
 }
 function dbToLavShip(d){
-  return{uuid:d.id,shipId:d.ship_id||'',asin:d.asin||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:d.sent_date||''};
+  return{uuid:d.id,shipId:d.ship_id||'',asin:d.asin||'',sku:d.sku||'',prod:d.product_name||'',units:d.units||0,cost:d.cost||0,date:d.sent_date||'',at:d.created_at||''};
 }
 
 // ── SAVE HELPERS ──────────────────────────────────────────────────────────────
@@ -902,7 +902,7 @@ async function deleteLavAsin_db(a){
 async function saveLavShipment(s){
   const data={ship_id:s.shipId,asin:s.asin,sku:s.sku,product_name:s.prod,units:s.units,cost:s.cost,sent_date:s.date};
   const res=await sb.from('lavarion_shipments').insert(data).select().single();
-  if(res.data)s.uuid=res.data.id;
+  if(res.data){s.uuid=res.data.id;s.at=res.data.created_at||s.at||new Date().toISOString();}
 }
 
 // ── REAL-TIME SUBSCRIPTIONS ───────────────────────────────────────────────────

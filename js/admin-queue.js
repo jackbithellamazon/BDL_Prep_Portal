@@ -2055,6 +2055,100 @@ document.addEventListener('pointerdown',function(e){
   }catch(err){ console.warn('[now]',err); }
 });
 let _showDone=false;   /* Jack, 5 Sep: the done rows live behind one strip */
+/* ── Sarah's triage card (Jack, 23 Oct: "yes love it") ─────────────────────────
+   One card per order: what it is across the top, what is wrong and the checks down the
+   middle, her next step on the right. The cells are the same ones the row used. */
+/* the wrong-SKU step, led by what the SellerFuse check found (Jack, 23 Oct): found under this
+   SKU → Record it; found under a sister SKU → confirm it; neither → straight to Becki */
+function _tcSfState(rid){const r=_rowById(rid);const v=(r&&typeof sfLateFor==='function')?sfLateFor(r):null;return v||{state:'unchecked'};}
+function _tcFound(rid){const st=_tcSfState(rid).state;return st==='shipped'||st==='other';}
+function _tcSkuCap(rid){const v=_tcSfState(rid);
+  return v.state==='shipped'?'SellerFuse found it — it went out, PrepHub never recorded it'
+    :v.state==='other'?'SellerFuse: probably went out under another SKU'
+    :v.state==='clear'?'SellerFuse: not on any shipment, not under another SKU'
+    :'Has it gone out on the wrong SKU?';}
+function _tcWentBtn(rid,cls,label){const r=_rowById(rid),left=(r&&typeof _leftUnits==='function')?_leftUnits(r):0;
+  return left>0
+    ?`<button class="csAct ${cls}" onclick="wentOutUnder('${rid}')" title="Record which SKU and shipment they went out on — the units are accounted for and the row closes">${label}</button>`
+    :`<button class="csAct ${cls}" onclick="openSorted('${rid}','wrong-sku')" title="It went out on another listing — close it off; the popup asks which SKU">${label}</button>`;}
+function _tcFoundBtns(rid){const v=_tcSfState(rid);
+  if(v.state==='shipped')return `<button class="csAct go tcBig" onclick="sfRecordRow('${rid}')" title="SellerFuse shows them on ${esc(v.ships.map(s=>s.id).join(', '))}. Books in what isn't booked in, stamps the send with SellerFuse's date and closes the row — with your name in the history.">Record it &mdash; ${fmt(v.units)} on ${esc(v.ships[0].id)} &#10003;</button>`;
+  if(v.state==='other')return _tcWentBtn(rid,'go tcBig',`Yes &mdash; went out under ${esc(v.ships[0].sku)} &#10003;`);
+  return '';}
+function _tcSkuBtns(rid){const v=_tcSfState(rid);
+  const mine=`<button class="csAct plain" onclick="skuCheckOpen('${rid}')" title="Check Seller Central and the other SKUs yourself">Check it myself&hellip;</button>`;
+  if(v.state==='shipped')return _tcFoundBtns(rid)+_tcWentBtn(rid,'plain','Went out under another SKU&hellip;')+mine;
+  if(v.state==='other')return _tcFoundBtns(rid)+`<button class="csAct plain" onclick="skuCheckOpen('${rid}')" title="It wasn't that — check, then it goes to Becki">No &mdash; check, then send to Becki&hellip;</button>`;
+  if(v.state==='clear')return `<button class="csAct go tcBig" onclick="sfCheckedToBecki('${rid}')" title="Claude checked SellerFuse: not on any shipment under this SKU, nothing extra under its other SKUs. It goes to Becki with that check on record.">Send to Becki &#10003;</button><div class="tcBtnWhy">Both checks were done by SellerFuse &mdash; nothing to look up.</div>`+_tcWentBtn(rid,'plain','Yes &mdash; went out under another SKU&hellip;')+mine;
+  return _tcWentBtn(rid,'good','Yes &mdash; went out under another SKU&hellip;')
+    +`<button class="csAct go" onclick="skuCheckOpen('${rid}')" title="Check Seller Central and the same product's other SKUs first — only then does it go to Becki, with your check on record.">No &mdash; check, then send to Becki&hellip;</button>`;}
+function _tcCard(i,n,C,o){
+  const r=(i.kind==='transit'&&typeof _rowById==='function')?_rowById(i.rid):null;
+  let steps='';try{steps=r?_tcSteps(i,r,o.sentBack):'';}catch(e){console.warn('[triage] steps',e);}
+  const dim=o.waiting||i.sortedGrace||i.parkedRow;
+  return `<tr class="tcRow"><td colspan="8">
+    <div class="tcard${dim?' dim':''}" style="--c:${o.edgeCol}">
+      <div class="tcMain">
+        <div class="tcTop">
+          <span class="tcNum" title="${esc(o.edgeTitle||'')}">${n+1}</span>
+          <div class="tcProd">${C.prod}</div>
+          <div class="tcSup">${C.sup}</div>
+          <div class="tcUnits">${C.units}</div>
+        </div>
+        <div class="tcWhy">${C.wrong}</div>
+        ${steps}
+      </div>
+      <div class="tcSide">
+        <div class="tcCap">Your next step</div>
+        <div class="tcTri">${C.tri}</div>
+        <details class="tcWhere"><summary>Where it stands</summary>${C.where}</details>
+        <div class="tcActs">${C.acts}</div>
+      </div>
+    </div></td></tr>`;
+}
+/* Jack, 23 Oct: "triage needs to be checking to see if it actually went out but not in
+   PrepHub, and then the SKU — double triage — SF can answer it". The checks in that order,
+   each with its answer and who gave it: Jack, Claude (SellerFuse), or still to do. */
+function _tcSteps(i,r,sentBack){
+  if(!r||i.kind!=='transit')return '';
+  const v=(typeof sfLateFor==='function')?sfLateFor(r):null;
+  const a=String((sentBack&&sentBack.rejectNote)||'');
+  const notComing=!!a&&!(sentBack&&sentBack.restGone)&&/not arrived|nothing coming|cancel/i.test(a);
+  const arrivedYes=!!a&&!notComing&&/arrived\s*[—-]\s*yes|shows it delivered|delivered/i.test(a);
+  const left=i.partShip?((typeof _leftUnits==='function')?_leftUnits(r):0):(i.outstanding||Math.max(0,(i.units||0)-(i.got||0)));
+  const found=v&&(v.state==='shipped'||v.state==='other');
+  if(notComing||!left||!(i.partShip||arrivedYes||found))return '';
+  const isAmz=typeof _amazonRow==='function'&&_amazonRow(r);
+  const sent=typeof _sentOut==='function'?_sentOut(r):0;
+  const when=t=>t?(typeof _logWhen==='function'?_logWhen(t):String(t).slice(0,10)):'';
+  const sfWho=v&&v.at?`checked by Claude in SellerFuse · ${esc(when(v.at))}`:'';
+  const nextChk=(typeof sfNextCheck==='function')?sfNextCheck():'Mon 07:00';
+  const st=(cls,ic,q,ans,who)=>`<div class="tcSt ${cls}"><span class="tcIc">${ic}</span><div><div class="tcQ">${q}</div>${ans?`<div class="tcA">${ans}</div>`:''}${who?`<div class="tcWho">${who}</div>`:''}</div></div>`;
+  const out=[];let k=0;
+  /* 1 · did it arrive */
+  if(arrivedYes)out.push(st('done','✓',`Did ${isAmz?'Amazon':'the supplier'} deliver it?`,`<b>Yes</b> — ${esc(a.length>140?a.slice(0,139)+'…':a)}`,`${esc(sentBack.rejectedBy||'Jack')}${sentBack.at?' · '+esc(when(sentBack.at)):''}`));
+  else if(i.partShip)out.push(st('done','✓','Booked in?',`<b>Yes</b> — ${fmt(i.got||r.rcvd||0)} of ${fmt(i.units||0)} booked in, ${fmt(sent)} sent. <b>${fmt(left)} never went out</b> that PrepHub knows of.`,''));
+  k=out.length;
+  /* 2 · gone out under this SKU, nobody recorded it */
+  const sfTag='<span class="tcSf">SELLERFUSE</span>';
+  if(!v||v.state==='unchecked')out.push(st('todo','○',`Did ${left===1?'it':'they'} go out on a shipment under this SKU, and nobody recorded it? ${sfTag}`,`Not checked yet — the next check is <b>${esc(nextChk)}</b>.`,''));
+  else if(v.state==='shipped')out.push(st('found','!',`Did ${left===1?'it':'they'} go out on a shipment under this SKU, and nobody recorded it? ${sfTag}`,`<b class="tcOk">Yes — ${fmt(v.units)} went out on ${v.ships.map(s=>esc(s.id)).join(', ')}.</b> PrepHub has no record of ${v.units===1?'it':'them'}.`,sfWho));
+  else out.push(st('done','✓',`Did ${left===1?'it':'they'} go out on a shipment under this SKU, and nobody recorded it? ${sfTag}`,`<b>No</b> — only the ${fmt(sent)} PrepHub already has went out under this SKU.`,sfWho));
+  /* 3 · gone out under another SKU of the same product */
+  if(!v||v.state==='unchecked')out.push(st('todo','○',`Did ${left===1?'it':'they'} go out under another SKU of this product? ${sfTag}`,'Not checked yet.',''));
+  else if(v.state==='shipped')out.push(st('skip','–','Another SKU?','Not needed — it’s found.',''));
+  else if(v.state==='other')out.push(st('found','!',`Did ${left===1?'it':'they'} go out under another SKU of this product? ${sfTag}`,`<b class="tcWarn">Probably</b> — ${v.ships.map(s=>`<b>${esc(s.sku)}</b> sent ${fmt(s.units)} on ${esc(s.id)}, PrepHub has ${fmt(s.ph)} for it`).join(' · ')}.`,sfWho));
+  else out.push(st('done','✓',`Did ${left===1?'it':'they'} go out under another SKU of this product? ${sfTag}`,v.sisters?`<b>No</b> — its ${fmt(v.sisters)} other SKU${v.sisters===1?'':'s'} sent only their own.`:'<b>No</b> — no other SKU of this product went out.',sfWho));
+  /* the next step, in words */
+  const prod=esc(String(i.prod||i.sku||'').slice(0,60));
+  const nxt=!v||v.state==='unchecked'?`Wait for the check (${esc(nextChk)}) — or check it yourself: <a href="https://app.sellerfuse.com/shipment-manager?search=${encodeURIComponent(r.asin||r.sku||'')}" target="_blank" rel="noopener">SellerFuse ↗</a>`
+    :v.state==='shipped'?`Record it — book in and stamp the ${fmt(v.units)} on ${esc(v.ships[0].id)}`
+    :v.state==='other'?`Confirm ${left===1?'it':'they'} went out under ${esc(v.ships[0].sku)}`
+    :(isAmz&&!arrivedYes)?`Jack checks the Amazon account first, then Becki checks the shelf`
+    :`Becki checks the shelf for ${fmt(left)} × ${prod}`;
+  out.push(st('now',String(out.length+1),nxt,'',''));
+  return `<div class="tcSteps">${out.join('')}</div>`;
+}
 function renderAdmin(){
   if(document.hidden||!_pageActive('page-admin')){_dirtyR.admin=true;return;}
   _dirtyR.admin=false;
@@ -2218,7 +2312,7 @@ function renderAdmin(){
           .map(([c,t])=>`<span class="admKeyI"><span class="admKeyD" style="background:${c};"></span>${t}</span>`).join('')}
       </div>
       <div class="tfuScroll">
-      <table class="tfu">
+      <table class="tfu cards">
         <thead><tr>
           ${(()=>{const H=(k,label,w,extra,tip)=>{
               const on=_tfuSort===k;
@@ -2235,6 +2329,7 @@ function renderAdmin(){
         </tr></thead>
         <tbody>
         ${(()=>{
+        const _cardMode=true;   /* 23 Oct: Sarah's triage as cards (Jack: "yes love it") */
         const _rowHtml=(i,n)=>{
           const jumpTerm=(i.oid||i.sku||'').replace(/'/g,"\\'");
           const sentBack=i.sentBack, waiting=i.waiting;
@@ -2305,21 +2400,19 @@ function renderAdmin(){
                 </span>
               </div></td></tr>`;
           }
-          return`<tr class="${(waiting||i.sortedGrace||i.parkedRow)?'tfuWaiting':''}"${sentBack?' style="background:rgba(239,68,68,.05);"':''}>
-            <td class="tfuNumCell" style="text-align:center;padding-top:13px;">
-              <span class="tfuStripe" style="background:${edgeCol};" title="${esc(edgeTitle)}"></span>
-              <span style="font:800 12px var(--mono);color:var(--text3);cursor:help;" title="${esc(edgeTitle)}">${n+1}</span>
-            </td>
-            <td>
-              <div class="tfuProd2" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</div>
+          /* 23 Oct 2026 (Jack: "yes love it" — Sarah's triage as cards). The eight cells are built
+             exactly as before and laid out as one card: what it is across the top, what is wrong
+             and the checks down the middle, her next step on the right. Nothing in a cell changed. */
+          const _C={};
+          _C.num=`              <span class="tfuStripe" style="background:${edgeCol};" title="${esc(edgeTitle)}"></span>
+              <span style="font:800 12px var(--mono);color:var(--text3);cursor:help;" title="${esc(edgeTitle)}">${n+1}</span>`;
+          _C.prod=`              <div class="tfuProd2" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</div>
               ${i.sku?`<div class="s-sku" onclick="copyVal('${(i.sku||'').replace(/'/g,"\\'")}',this)" style="font-size:10.5px;font-weight:700;letter-spacing:.03em;white-space:normal;overflow-wrap:anywhere;display:block;text-align:left;margin-top:6px;" title="Click to copy">${i.sku}</div>`:''}
               ${i.asin?`<div style="margin-top:7px;text-align:left;"><span class="s-asin" onclick="copyVal('${i.asin}',this)" style="font-size:10.5px;opacity:.85;">${i.asin}</span></div>`:''}
               ${sentBack?`<div class="tfuBack tfuBackChip${sentBack.jackNote?' req':''}" title="${esc(sentBack.rejectNote||'')}">&#8617; <b>${esc(sentBack.rejectedBy||'Jack')}</b> ${sentBack.jackNote?'needs a check':'answered'}${sentBack.at?' · '+esc(_logWhen(sentBack.at)):''} &mdash; see Triage</div>`:''}
               ${waiting?`<div class="tfuWait">${waiting.state==='asked'?'Asked Jack to check':'Sent to Jack — awaiting decision'}${waiting.at?` · ${noteAgo(waiting.at)}`:''}<span>${esc(waiting.state==='asked'?(waiting.ask||'Amazon order check'):_resText(waiting.what))}</span></div>`:''}
-              ${i.draft?`<div class="tfuDraftChip" title="${esc((i.draft.by||'Someone')+' started closing this off')}">Part done — ${esc(i.draft.by||'someone')} saved it ${esc(noteAgo(i.draft.at))}<span>${esc(_resText(i.draft.what))}</span></div>`:''}
-            </td>
-            <td>
-              <div class="tfuSup">${esc(i.sup||'—')}</div>
+              ${i.draft?`<div class="tfuDraftChip" title="${esc((i.draft.by||'Someone')+' started closing this off')}">Part done — ${esc(i.draft.by||'someone')} saved it ${esc(noteAgo(i.draft.at))}<span>${esc(_resText(i.draft.what))}</span></div>`:''}`;
+          _C.sup=`              <div class="tfuSup">${esc(i.sup||'—')}</div>
               <div class="tfuOid${i.oid?'':' none'}">${i.oid?oidHtml(i.oid,i.sup,i.acct):'no order id'}</div>
               <div style="display:flex;gap:6px;align-items:center;justify-content:center;margin-top:5px;flex-wrap:wrap;">
                 ${i.acct?`<span class="tfuAcct">${esc(i.acct)}</span>`:''}
@@ -2338,10 +2431,8 @@ function renderAdmin(){
                     Where each row came from: the Purchase Sheet feed, a
                     check-in by UK staff, the Lavarion area, or Jack himself. */''}
               ${(()=>{const s=i.src||(i.source==='Sheet'?'Purchase Sheet':(i.kind==='transit'?'Prep Hub':''));
-                return s?`<div class="tfuSrcLine" title="Where this issue came from">${esc(s)}</div>`:'';})()}
-            </td>
-            <td style="text-align:center;">
-              ${/* Jack: "If NOTHING has arrived, why is it showing 0 UNITS?" —
+                return s?`<div class="tfuSrcLine" title="Where this issue came from">${esc(s)}</div>`:'';})()}`;
+          _C.units=`              ${/* Jack: "If NOTHING has arrived, why is it showing 0 UNITS?" —
                    claims and jobs were pushed with units:0 and then given the
                    transit row's "nothing arrived" line. Each type now says what
                    its number actually is. */''}
@@ -2359,10 +2450,8 @@ function renderAdmin(){
                     : `<span style="color:#fca5a5;">none arrived yet</span>`}
                   ${i.cancelled?`<br><span style="color:#fca5a5;">${i.cancelled} cancelled</span>`:''}
                   </div>`;})()}
-              ${i.value?`<div class="tfuVal" title="Money tied up in this line">${fmtGBP2(i.value)}<span style="display:block;font-size:9.5px;font-weight:700;color:var(--text3);letter-spacing:.02em;">at stake</span></div>`:''}
-            </td>
-            <td class="tfuWrong" style="text-align:center;">
-              ${(()=>{const K=_typeOf(i);
+              ${i.value?`<div class="tfuVal" title="Money tied up in this line">${fmtGBP2(i.value)}<span style="display:block;font-size:9.5px;font-weight:700;color:var(--text3);letter-spacing:.02em;">at stake</span></div>`:''}`;
+          _C.wrong=`              ${(()=>{const K=_typeOf(i);
                 return `<span style="font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:3px 8px;border-radius:9px;color:${K[1]};background:${K[1]}1a;border:1px solid ${K[1]}50;white-space:nowrap;cursor:default;margin-right:5px;" title="${K[2]}">${K[0]}</span>`;})()}
               ${i.kind==='claim'||i.kind==='job'?'':`<span class="tfuWhy" style="color:${i.col};background:${i.col}1f;border:1px solid ${i.col}55;cursor:default;" title="Why this row is on the page — worked out by the app from the numbers">${esc(i.reason)}</span>`}
               ${/* The note typed by whoever RAISED it — the context Jack wants
@@ -2374,15 +2463,14 @@ function renderAdmin(){
               ${i.vaNote?`<div class="tfuRaiseNote" style="border-left-color:#60a5fa;color:#93c5fd;" title="The VA note from the Prep Sheet row">VA: ${esc(i.vaNote)}</div>`:''}
               ${i.photos?`<button class="csAct go" style="margin-top:5px;padding:3px 10px;" onclick="window.open('${esc(i.photos)}','_blank')" title="Opens the Discord message with the photos">&#128247; View photos</button>`:''}
               ${(()=>{const L=refundLeft(i.date,i);
-                if(L===null)return'';
+                /* Jack, 23 Oct (D): "claim window shut" is the reimbursement side — off Sarah's card */
+                if(L===null||L<0)return'';
                 const c=L<0?'#f87171':(L<=7?'#fbbf24':'#4ade80');
                 return`<div class="tfuClock" style="color:${c};background:${c}1a;border:1px solid ${c}55;"
                   title="${REFUND_DAYS}-day refund window from the order date">${
                   _claimWords(L)}</div>`;})()}
-
-            </td>
-            <td>
-              ${(()=>{
+`;
+          _C.tri=`              ${(()=>{
                 /* Triage lives ON the row and reads like the OG tracker: the
                    select IS the status — green Yes, red No, amber until it is
                    answered. Answering never opens anything; the popup waits
@@ -2514,14 +2602,8 @@ function renderAdmin(){
                         <button class="csAct ${/cancel/i.test(a)?'plain':'warn'}" onclick="openSorted('${i.rid}','no-refund')" title="Nothing more is coming and there is no refund yet — close it as never arrived so the claim starts">Never arrived &mdash; close it, claim the ${fmt(short)}</button>
                         <button class="csAct good" onclick="openSorted('${i.rid}','refund-done')" title="They have said the refund is coming — that is processed. Close it; Jack watches the bank himself.">Refund being processed &mdash; done</button>
                         <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')" title="The supplier cancelled the rest — the row balances, nothing missing">Supplier cancelled the rest</button>`
-                      :arrivedYes?`<div class="csNowTxt" style="margin:2px 0 4px;color:#fbbf24;">Has it gone out on the wrong SKU?</div>
-                        ${(typeof _leftUnits==='function'&&_leftUnits(_rowById(i.rid))>0)
-                          ?`<button class="csAct good" onclick="wentOutUnder('${i.rid}')" title="Record which SKU and shipment the ${fmt(_leftUnits(_rowById(i.rid)))} went out on — the units are accounted for and the row closes; you confirm it in Seller Central">Yes &mdash; went out under another SKU&hellip;</button>`
-                          :`<button class="csAct good" onclick="openSorted('${i.rid}','wrong-sku')" title="The unit is accounted for — it went out on another listing. Close it off here; the popup asks which SKU if you know it.">Yes &mdash; sort it and close it</button>`}
-                        ${(typeof sfLateFor==='function'&&(sfLateFor(_rowById(i.rid))||{}).state==='clear')
-                          ?`<button class="csAct go" onclick="sfCheckedToBecki('${i.rid}')" title="Claude checked SellerFuse: not on any shipment, nothing extra under its other SKUs. It goes to Becki with that check on record.">SellerFuse checked: not shipped &mdash; send to Becki</button>
-                            <button class="csAct plain" onclick="skuCheckOpen('${i.rid}')" title="Check it yourself anyway">Check it myself&hellip;</button>`
-                          :`<button class="csAct go" onclick="skuCheckOpen('${i.rid}')" title="Check Seller Central and the same product's other SKUs first — only then does it go to Becki, with your check on record.">No &mdash; check, then send to Becki&hellip;</button>`}
+                      :arrivedYes?`<div class="csNowTxt" style="margin:2px 0 4px;color:#fbbf24;">${_tcSkuCap(i.rid)}</div>
+                        ${_tcSkuBtns(i.rid)}
                         ${!_amazonRow(_rowById(i.rid))?`<button class="csAct warn" onclick="queryNoneComing('${i.rid}')" title="Delivered but ${fmt(short)} never reached the warehouse — raise them as Missing">Delivered &mdash; raise ${fmt(short)} missing</button>`:''}`
                       :`<button class="csAct go" onclick="jackAmzDate('${i.rid}',this)">More still coming &mdash; date&hellip;</button>
                         <button class="csAct warn" onclick="queryNoneComing('${i.rid}')">Nothing more &mdash; raise ${fmt(short)} missing</button>
@@ -2539,8 +2621,9 @@ function renderAdmin(){
                   <div class="csNowCap" style="color:#fb923c;">Some went &mdash; the rest never followed</div>
                   <div class="csNowTxt">${fmt(_lf)} booked in but never sent &mdash; what happened to them?</div>
                   <div class="csActs">
-                    ${_amzP?`<button class="csAct go" onclick="amzAskJack('${i.rid}')" title="Amazon order — Jack checks what the account shows (all delivered, or the Purchase Sheet is wrong) and it comes back to you">Send to Jack &mdash; check the Amazon order</button>`:''}
-                    <button class="csAct ${_amzP?'plain':'go'}" onclick="wentOutUnder('${i.rid}')" title="They went out on another SKU's shipment — record it here; you then confirm it in Seller Central">Went out under another SKU&hellip;</button>
+                    ${_tcFoundBtns(i.rid)}
+                    ${_amzP?`<button class="csAct ${_tcFound(i.rid)?'plain':'go'}" onclick="amzAskJack('${i.rid}')" title="Amazon order — Jack checks what the account shows (all delivered, or the Purchase Sheet is wrong) and it comes back to you">Send to Jack &mdash; check the Amazon order</button>`:''}
+                    <button class="csAct ${(_amzP||_tcFound(i.rid))?'plain':'go'}" onclick="wentOutUnder('${i.rid}')" title="They went out on another SKU's shipment — record it here; you then confirm it in Seller Central">Went out under another SKU&hellip;</button>
                     ${_amzP?'':`<button class="csAct plain" onclick="amzToBecki('${i.rid}')" title="Becki checks the shelves. Found: she sends them and it clears. Not there: the count is corrected and it comes back to you.">Ask Becki to check the shelves</button>`}
                     <button class="csAct plain" onclick="openSorted('${i.rid}')" title="The full Close-off popup — every outcome">Close it off another way&hellip;</button>
                   </div>
@@ -2628,10 +2711,8 @@ function renderAdmin(){
                 else if(arrived)h+=`<div class="tfuGuide">Arrived — was it a wrong SKU? Answer above.</div>`;
                 else if(isAmz)h+=`<div class="tfuGuide">Amazon order — can't tell? Send it to Jack.</div>`;
                 else h+=`<div class="tfuGuide">Check emails, order history, tracking.</div>`;
-                return h;})()}
-            </td>
-            <td style="vertical-align:middle;">
-              ${(()=>{
+                return h;})()}`;
+          _C.where=`              ${(()=>{
                 /* Jack's spec, near-verbatim: "Current status · Last action ·
                    Date of last action · Who owns it · What we're waiting for ·
                    Next action · When it's due." Three lines, built from the
@@ -2799,10 +2880,8 @@ function renderAdmin(){
                   ${(note&&i.kind==='transit'&&!waiting&&!_open)?`<div class="csNote" title="${note.replace(/"/g,'&quot;')}">&ldquo;${esc(note)}&rdquo;</div>`:''}
                   ${_more}
                 </div>`;
-              })()}
-            </td>
-            <td class="tfuActs" style="text-align:center;">
-              ${(()=>{
+              })()}`;
+          _C.acts=`              ${(()=>{
                 /* Jack: "MINIMAL CLICKS. SORTED DIRECTLY AVAILABLE. SEND TO
                    JACK ALWAYS EASY TO ACCESS." Every open row gets the same
                    stack: Sorted (amber, closes it), Send to Jack (blue, hands
@@ -2837,8 +2916,17 @@ function renderAdmin(){
                   ? `<button class="tfuWork" onclick="if(confirm('Tick off all ${i.jobList.length}?'))doneVaActions(${JSON.stringify(i.jobList.flatMap(j=>j.ids||[j.id])).replace(/"/g,'&quot;')})" title="All of them are done">All done</button>`
                   : `<button class="tfuWork" onclick="doneVaAction('${i.jobId}')" title="Tell Jack it is done">Mark done</button>`;
                 return `<button class="tfuWork" onclick="openWork('${i.rid}')">Details</button>`;
-              })()}
-            </td>
+              })()}`;
+          if(_cardMode)return _tcCard(i,n,_C,{edgeCol,edgeTitle,sentBack,waiting});
+          return`<tr class="${(waiting||i.sortedGrace||i.parkedRow)?'tfuWaiting':''}"${sentBack?' style="background:rgba(239,68,68,.05);"':''}>
+            <td class="tfuNumCell" style="text-align:center;padding-top:13px;">${_C.num}</td>
+            <td>${_C.prod}</td>
+            <td>${_C.sup}</td>
+            <td style="text-align:center;">${_C.units}</td>
+            <td class="tfuWrong" style="text-align:center;">${_C.wrong}</td>
+            <td>${_C.tri}</td>
+            <td style="vertical-align:middle;">${_C.where}</td>
+            <td class="tfuActs" style="text-align:center;">${_C.acts}</td>
           </tr>`;
         };
         /* Jack, 30 Aug: "stuff she actions should stay in another section for

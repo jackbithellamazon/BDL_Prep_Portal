@@ -227,3 +227,60 @@ Now:
 - **Sticky header ResizeObserver:** re-observes only new nodes and works just after its callback — the old re-observe-every-time could chase itself round (intermittent check 81 failure on the taller Planner).
 - 84/84, three runs in a row.
 
+
+## v55.2 · b612 (23 Oct 2026): Sarah's triage as cards; SellerFuse does the double check (Jack: "yes love it")
+- **Cards (A):** each row on Sarah's page is one card — product / supplier / units across the top, what's wrong, the checks as numbered steps, and "Your next step" on the right with the existing triage buttons (`_C` cells built exactly as before, laid out by `_tcCard`; `_cardMode`). Column headers became sort chips.
+- **The double check (B):** `_tcSteps` shows, in order: did it arrive (Jack's answer, or booked in) → went out under this SKU but not recorded (SellerFuse) → went out under another SKU (SellerFuse) → next step. `_tcSkuBtns` / `_tcFoundBtns` put the matching button first and big: Record it (`sfRecordRow`, new — records from the row's own check, older than the window too), Yes — went out under <sku>, or Send to Becki (`sfCheckedToBecki`).
+- **Booked in but not all sent (C):** the check now covers them (task helper `sfcheck.py` adds `kind:'shelf'` rows to `late`) — Centrum (4 of 9 never sent) was skipped before.
+- **Claim window shut (D)** is off Sarah's card.
+- Task v3 (`~/.claude/scheduled-tasks/prephub-sellerfuse-check/`): one fixed helper (`sfcheck.py prep|ships|plan|post`, pre-approved), the secret in `.secret` (600), a shipment line store on the Mac (`cache/lines.json`, seeded from run 1, 184 shipments) — late/shelf rows answered from it with no SellerFuse calls, only shipments not in the store and not matching PrepHub opened, ranked sales lists, slow sellers refreshed Mondays, no pending-orders call, no helper agents.
+- Schedule (Jack, 23 Oct): twice a week — Mon + Thu 07:00 (cron `0 7 * * 1,4`); `sfNextCheck` follows; stale after 5 days (Thu → Mon is 4).
+- Prep Sheet tiles (Jack, 23 Oct "5 ye"): COG In Transit (its COG is already on the In Transit tile) became two small tiles — "On the shelf, not sent" (units · orders · COG, click = `__onShelf` filter) and "Booked in today" (orders with `rcvdAt` today, UK).
+- "This doesn't match SF" (Jack, 23 Oct): Products "Sold 30d" shows SellerFuse's real 30 days when it has one (a hub month used for planning shows only under Per day, labelled); Per day says month before (ran out) / in-stock days / hub month; a PLUB product with no stock row and no sales in a run is 0 at Amazon as of the run. Task: ASINs missing from the "Lavarion" search are searched one by one only when they sell (Pub Snacks, Decaf).
+- Runs are marked applied as `<id>@552`, so tonight's run (applied by v55.1) is applied once more by v55.2 with the new stamping.
+- Check 85. 85/85.
+
+## v55.3 · b613 (23 Oct 2026): Products table lettering (Jack: "improve font")
+- One number style (Geist, bold, tabular, 16px), product names 14px bold, ASIN/SKU and sub-labels 11–11.5px in the brighter text colour; the "last 7 days" / "last 30 days" repeated under every row are gone (the headings say it). CSS at the end of lavarion.css, scoped to the sticky tables.
+
+## v55.4 · b614 (23 Oct 2026): Action centre + Planner ranked by money at stake (Jack: "audited action centre and planner and improved it with added context")
+- `lossOfRows(rows, lead)` gives two figures for the products an order or part holds up: **lost** = units a day × SellerFuse profit a unit for products already empty or that will run out before a send can land; **stake** = that × the days they sit empty before the fix can arrive (part lead + the trip to Amazon). Lists sort by stake, so "empty tomorrow" beats "empty in 11 days".
+- Action centre order lanes: a red "≈ £X at risk" chip (hover: £ a day and why) and "<product> empties in N days / is empty at Amazon" on the line. Orders with real money at stake go first; the rest keep the days-late order.
+- Planner: money-first sort (rows losing money now on top, then by stake, then by date); the strip leads with "≈ £X/day being lost now"; "NOTHING TO SEND" instead of "waiting"; set-up rows with more than 60 days' cover drop to Later; "1 day" not "1 days".
+- Check 84 gains the money-at-stake assertions. 85/85.
+
+## v55.5 · b615 (26 Oct 2026): the SAS stock rule, same-day sends, the three new figures, calmer wording, stat chips
+- **Stock rule (Jack, 26 Oct, matching SAS):** at Amazon = available; on the way = inbound + units moving between Amazon warehouses (`transfer`). Processing and customer-order units are carried but not counted. Every PLUB listing is carried by the v4 check, empty ones too, with its price and last-sold date. A run an older build applied is applied once more (`@555`).
+- **Same-day sends count.** A send recorded after the count's time on the count's day is on its way (`lavShipments[].at` from `created_at`); the old "after the count's day" rule hid two sends all day.
+- **Three new figures per send line:** days empty (SellerFuse last-sold date; before that the first 0 on the count record, shown as "3+"), lost so far, and still to lose even if sent today (the calendar days until a send today is sellable). `lossLine()`.
+- **Wording pass:** EMPTY AT AMAZON · RUNS OUT BEFORE A SEND LANDS · SEND NOW · LANDS INSIDE THE 14-DAY BUFFER · N DAYS LATE (receive) · LANDS dd/mm · AFTER AMAZON RUNS OUT · N DAYS PAST ORDER-BY · NOT ORDERED YET · "≈ £X lost even if ordered today".
+- **Stat chips** on every send line (a day · ≈ £ a day · at Amazon · +on the way · days empty · lost so far · more even if sent today · days this send lasts · can build · short of …), each with the arithmetic on hover; "selling faster" chip when the 7-day pace runs ahead; "typical margin" marked where no SellerFuse margin exists.
+- **Lanes:** a totals strip on each; a sticky jump bar; the two columns of a row are equal height and scroll inside; lines covered by what is on its way fold away; in-person suppliers (route = collection) read SHOP RUN with "Bought — log it".
+- Autosol Metal Polish → supplier Stax (Jack, 26 Oct), once, logged.
+- The planned send is a figure ("Send 69"), not a button: Jack, 26 Oct — nobody ships from the Action centre; the send is recorded on the Shipments page and the line clears itself.
+
+### b616 (26 Oct, evening) — the Planner audit: where the Planner and the Action centre disagreed
+- **Moving-between-warehouses stock is its own tranche**, sellable in ~3 days (`MOV_DAYS`); shipping stock keeps the FBA pipeline. Protection, the send size, the run-out date and the Planner's timeline use the tranches in order (`plAmazonRow.tranches`, `gapQ/gapEta`). Reindeer Food's 75 moving units are days away, not two weeks.
+- **A part's loss counts only the gap after the units that can be built now have gone** (`lossOfRows(…, afterSend)`): Pedigree with 69 Dog Treats buildable is "ORDER BY 13/11", not "£104 lost". Part lines in the order lanes carry the Planner's order-by date (N DAYS PAST ORDER-BY / ORDER TODAY / ORDER BY dd/mm) and only go red when sales are actually being lost.
+- **One £/day figure**, split: "≈ £86 a day being lost now · £18 fixable by sending today · £68 waiting on parts" — on the Action centre (under Opened today) and on the Planner strip.
+- Planner chips in the Action centre's words (N DAYS PAST ORDER-BY, PARTS LAND dd/mm · AFTER AMAZON RUNS OUT); an overdue order reads "ON ORDER · 16 DAYS LATE", not "covered"; the per-day label says "month before (ran out)" / "in-stock days" / the hub month.
+- A top-up under 5% of the plan (or under 2 units) once something is on its way counts as done — "Send 101" minus a 100 send is not "Send 1".
+
+### b617 (26 Oct, late) — Jack's answers to the audit list
+- **No "Log order" anywhere.** Orders live on the purchase sheet; the Action centre's order lines have one button, "Ordered — it is on the sheet" (or "Bought — it is on the sheet" for a shop run), which ticks the line until the sheet sync brings the purchase in. The Planner shows the quantity and cost as text.
+- **Planner "Ship" buttons are figures** ("Send 69"), like the Action centre: the Shipments page is the only place a send is recorded.
+- **Set-up jobs are Jack's:** unrouted suppliers (one job each, with a one-click "Same as Stax" where a routed supplier's name is the first word of an unrouted one), parts with no supplier, unlinked orders and undated deliveries all sit on his list; the Planner's SET ROUTE / NO SUPPLIER rows are tagged Jack.
+- **Stale-check strip on every page** (`sfStaleBanner`, js/sfcheck.js): from 10:00 UK on a Monday or Thursday with no count from today, or whenever the last count is over 5 days old.
+- "Lost so far" is counted over one 60-day cycle at most ("lost in the last 60 days"), not since January.
+- A and B (done-today trail, Jack's weekly line): no — a recorded send clears its line, as it does.
+
+## v55.6 · b618 (26 Oct 2026, night): "we should never ever run out of stock — but not send or buy way too much"
+- **Two clocks** (`sfPace`): when a product runs out uses the FASTEST of the 7-, 14- and 30-day paces; how much to send uses the 14-day pace (until the check carries it, the middle of 7 and 30), never under 3 weeks at the fastest. New lines (first send < 60 days) and lines that ran out this month are sized on the fastest, unless slowing. The old 0.7 × spike rule is gone.
+- **Sellable days**: every pace is units ÷ days the product could be bought (`emptyDaysIn`, from the stock-out record).
+- **Buffer** (`safetyFor`): land with at least 14 days AND 10 units (half a send for very slow lines); +1 day for anything selling 100+ a month.
+- **Part dates tied to sends** (`partDatesFromSends`): a part that holds up a send is due when the rest of that send must leave, if that is earlier than its own shelf date; it shows 14 days ahead instead of 7.
+- **Escalation**: an order line 3 working days past its date reads CHASE and goes to the top of its lane; an order ticked "on the sheet" that the sheet hasn't brought in after 5 working days comes back. Jack's Dashboard shows "PLUB orders past their date" (from `acLateSnap` in the shared settings).
+- **Stock-out record** (`stockOuts`, `stockLedger`): opens when a count finds 0 on a selling product (from the day after its last sale), closes on the next count with stock; keeps pace, profit a unit, cause, what the app said. October seeded once from the SellerToolKit daily-sales file (confirmed / likely). "Sold nothing for a week with stock on the shelf" is recorded too.
+- **Stock health page** (new tab): stock-outs scored by month and cause, a 12-month strip, every record; sold nothing with stock; overstock at Amazon (> 90 days) and in the warehouse (> 180 days) at cost; slowing lines.
+- **Products**: Sold 7d / 30d say "empty N of 7 days"; Per day says which clock, ↑ / ↓, with every pace on hover.
+- SellerFuse check: carries the 14-day sales (`units14`).

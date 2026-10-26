@@ -9,6 +9,17 @@ const fmtGBP2=n=>'£'+(+n).toLocaleString('en-GB',{minimumFractionDigits:2,maxim
    shared settings — straight from PLUB when it is loaded, otherwise one small read kept for
    10 minutes, so the Dashboard never waits on the stock load. Jack only. */
 let _acSeenCache=null,_acSeenAt=0,_acSeenBusy=false;
+/* Jack, 26 Oct (7): PLUB orders 3 working days past their date, on his Dashboard — read from
+   the Action centre's snapshot in the shared settings, so it shows without opening PLUB */
+let _acLateCache=null;
+function _plubLate(){
+  try{
+    if(!(typeof _isJack==='function'&&_isJack()))return null;
+    let snap=null;
+    if(window.LV3&&LV3.isReady&&LV3.isReady()&&LV3.__D)snap=(LV3.__D().settings||{}).acLateSnap;else snap=_acLateCache;
+    return snap&&snap.list&&snap.list.length?snap:null;
+  }catch(e){return null;}
+}
 function _plubUnopened(){
   try{
     if(!(typeof _isJack==='function'&&_isJack()))return false;
@@ -17,7 +28,7 @@ function _plubUnopened(){
     if(_acSeenCache&&Date.now()-_acSeenAt<6e5)return LV3.acUkMissing(_acSeenCache);
     if(!_acSeenBusy&&typeof sb!=='undefined'){_acSeenBusy=true;
       sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle().then(r=>{
-        try{const v=JSON.parse((r&&r.data&&r.data.value)||'{}');_acSeenCache=v.acSeen||{};}catch(e){_acSeenCache={};}
+        try{const v=JSON.parse((r&&r.data&&r.data.value)||'{}');_acSeenCache=v.acSeen||{};_acLateCache=v.acLateSnap||null;}catch(e){_acSeenCache={};}
         _acSeenAt=Date.now();_acSeenBusy=false;try{renderDashboard();}catch(e){}
       },()=>{_acSeenBusy=false;});}
     return false;
@@ -408,6 +419,10 @@ function renderDashboard(){
     _plubUnopened()?_ban('#f87171','PLUB Action centre — not opened by the UK team today',
       'It is past 12:00 and nobody from the UK team has opened it. Sends and orders are waiting.',
       'Open',"navToPage('lavarion');setTimeout(()=>{try{LV3.go('overview')}catch(e){}},300)"):'',
+    (()=>{const s=_plubLate();if(!s)return '';const tot=s.list.reduce((t,x)=>t+(x.s||0),0);
+      return _ban('#ef4444','PLUB orders past their date — '+s.list.length,
+        s.list.slice(0,6).map(x=>x.t+(x.d?' '+x.d+'d':'')).join(' · ')+(s.list.length>6?' +'+(s.list.length-6):'')+(tot?' · ≈ £'+tot.toLocaleString('en-GB')+' lost even if ordered today':''),
+        'Open',"navToPage('lavarion');setTimeout(()=>{try{LV3.go('overview');LV3.acJump('order')}catch(e){}},300)");})(),
     (()=>{const gated=claims.filter(c=>!c.archived&&c.cst!=='Resolved'&&(c.owner||'VA')==='Jack');
       return gated.length?_ban('#c084fc','Gated — '+gated.length+' waiting on your decision',
         'eBay it, ungate it, hold it or write it off — nobody else can move these',

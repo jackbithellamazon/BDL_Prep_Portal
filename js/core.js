@@ -1112,7 +1112,18 @@ function renderStats(){
        were missing their COG now carry it, because "876 units" without a
        value is half the sentence the other tiles are speaking. */
     mk('In Transit',fmt(inTransitUnits)+' units',`${fmt(inTransitSkus)} SKUs · ${fmt(inTransitAsins)} ASINs · ${fmtGBP2(inTransitValue)} COG${_tExtra}`,'#38bdf8','filter:__toArrive')+
-    mk('COG In Transit',fmtGBP2(inTransitValue),`stock still to arrive${_tExtra}`,'#fbbf24','filter:__toArrive')+
+    /* Jack, 23 Oct: "making COG in transit 2 small KPIs in that space" (the COG is already on
+       the In Transit tile). Stock that is here but not gone yet, and what came in today. */
+    (()=>{const sh=_unitTotals(_onShelf),today=ukDayISO();
+      const bk=rows.filter(r=>!r.archived&&r.rcvdAt&&ukDayISO(new Date(r.rcvdAt))===today&&(parseInt(r.rcvd)||0)>0);
+      const bkU=bk.reduce((t,r)=>t+(parseInt(r.rcvd)||0),0);
+      const sm=(label,val,sub,col,go,tip)=>`<div class="stat statSm${go?' stat-go':''}" style="border-top:3px solid ${col};"${go?` onclick="statFilter('${go}')"`:''} title="${tip}">
+        <div class="statSmL" style="color:${col};">${label}</div>
+        <div class="statSmV" style="color:${col};">${val}</div>
+        <div class="statSmS">${sub}</div></div>`;
+      return `<div class="statPair">${
+        sm('On the shelf, not sent',fmt(sh.units)+' units',`${fmt(sh.skus)} orders · ${fmtGBP2(sh.value)} COG`,'#fbbf24','__onShelf','Booked in here but not on a shipment yet — click to show only those rows')
+        +sm('Booked in today',fmt(bk.length)+' orders',`${fmt(bkU)} units on them`,'#22d3ee','','Orders booked in today (UK time)')}</div>`;})()+
     mk('Sent Today',fmt(sentTodayUnits)+' units',`${shipWord(todayRoll.shipments)} · ${fmt(sentTodaySkus)} SKU lines · ${fmtGBP2(valueToday)} COG`,'#4ade80','today')+
     mk('Sent This Week',fmt(sentWeekUnits)+' units',`${shipWord(weekRoll.shipments)} · ${fmt(sentWeekSkus)} SKU lines · ${fmt(sentWeekAsins)} ASINs · ${fmtGBP2(weekRoll.value)} COG`,'#a78bfa','week')+
     mk('Sent This Month',fmt(totalSentMonth)+' units',`${shipWord(monthRoll.shipments)} · ${fmt(monthRoll.skus)} SKU lines · ${fmt(monthRoll.asins)} ASINs · ${fmtGBP2(monthRoll.value)} COG`,'#34d399','mtd');
