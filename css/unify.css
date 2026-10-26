@@ -1078,13 +1078,13 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 .srtSkuWarn{margin-top:8px;padding:9px 11px;border-radius:8px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.4);font-size:12px;color:var(--text2);}
 .srtSkuWarn #srtSkuWhy{margin-top:7px;width:100%;}
 /* ── 23 Oct 2026: Sarah's triage as cards (Jack: "yes love it") ───────────── */
-.tfu.cards thead tr{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:4px 2px 8px;}
-.tfu.cards thead th{display:none;}
-.tfu.cards thead th.tfuSortable{display:inline-flex;align-items:center;gap:4px;position:static;width:auto!important;
-  padding:4px 10px!important;border:1px solid var(--border2)!important;border-radius:999px;background:var(--bg3)!important;
-  font-size:10.5px;letter-spacing:.04em;cursor:pointer;}
-.tfu.cards thead th.tfuSortable.on{border-color:var(--accent)!important;color:#fcd34d;}
-.tfu.cards thead tr::before{content:"Sort";font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:2px;}
+.tfu.cards{width:100%;}
+.tfu.cards thead th.tcSortBar{text-align:left;padding:6px 6px 8px!important;background:var(--bg2)!important;border-bottom:1px solid var(--border)!important;border-radius:0!important;}
+.tcSortBar .tcSortL{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:8px;}
+.tcSortBar .tfuSortable{display:inline-flex;align-items:center;gap:4px;margin:2px 6px 2px 0;padding:4px 11px;border:1px solid var(--border2);border-radius:999px;
+  background:var(--bg3);font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text2);cursor:pointer;}
+.tcSortBar .tfuSortable:hover{color:var(--text);border-color:var(--text3);}
+.tcSortBar .tfuSortable.on{border-color:var(--accent);color:#fcd34d;}
 .tfu tbody tr.tcRow td{padding:0!important;border:none!important;background:transparent!important;}
 .tfu tbody tr.tcRow:hover td{background:transparent!important;}
 .tcard{display:grid;grid-template-columns:minmax(0,1fr) 300px;background:var(--bg2);border:1px solid var(--border);

@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v55.8 · lav3 · 2026-10-26 · b620';
+const BUILD='v55.9 · lav3 · 2026-10-26 · b621';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -1376,18 +1376,17 @@ let _fbaLC=null,_fbaLK='';
 function fbaLearn(){
   const R=D.settings.sfRecv,today=dayISO(),k=(R&&R.at||'')+'|'+today;
   if(_fbaLC&&_fbaLK===k)return _fbaLC;
-  const done=[],stuck=[];
+  const done=[];
   ((R&&R.list)||[]).forEach(s=>{const c=String(s.created||'').slice(0,10);if(!c)return;
     const sh=+s.shipped||0,rc=+s.received||0,lr=String(s.lastReceived||'').slice(0,10),names=(s.lines||[]).map(l=>{const p=D.products.find(x=>x.asin===String(l.asin||'').toUpperCase());return p?p.name:l.asin;});
     const ageCal=Math.round((new Date(today+'T00:00:00')-new Date(c+'T00:00:00'))/864e5);
     if(sh>0&&rc>=sh*0.95&&lr){if(ageCal<=60)done.push({id:s.id,created:c,received:lr,wd:workDaysBetween(c,lr)+1,names});}
-    else if(sh>0&&rc<sh*0.95&&ageCal>=7&&!/cancel/i.test(s.status||''))stuck.push({id:s.id,created:c,days:ageCal,shipped:sh,received:rc,lastReceived:lr,status:s.status,names,lines:s.lines||[]});});
+});
   done.sort((a,b)=>a.wd-b.wd);
   const n=done.length,mid=n?done[Math.floor((n-1)/2)].wd:null,slow=n?done[n-1]:null;
-  _fbaLK=k;_fbaLC={n,typical:mid,slowest:slow?slow.wd:null,slowShip:slow,stuck:stuck.sort((a,b)=>b.days-a.days)};
+  _fbaLK=k;_fbaLC={n,typical:mid,slowest:slow?slow.wd:null,slowShip:slow};
   return _fbaLC;
 }
-function stuckFor(asin){const A=String(asin||'').toUpperCase();return (fbaLearn().stuck||[]).filter(s=>(s.lines||[]).some(l=>String(l.asin||'').toUpperCase()===A));}
 const _isoOf=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 function addCalDays(iso,n){const d=new Date(String(iso).slice(0,10)+'T00:00:00');d.setDate(d.getDate()+n);return _isoOf(d);}
 /* Jack, 26 Oct: "collections only happen 9–5 weekdays, no bank holidays". England & Wales bank
@@ -3555,7 +3554,6 @@ function vOverview(){
     const shortTxt=r.alloc<r.rec?((r.lim&&p.type==='bundle')?`Can build <b>${fmt(r.alloc)} of ${fmt(r.rec)}</b> — short of <b>${esc(r.lim.name)}</b>. The rest goes once it lands.`
       :`<b>${fmt(r.alloc)} of ${fmt(r.rec)}</b> — that is all the stock here.`):'';
     const warn=[];
-    stuckFor(p.asin).forEach(s=>warn.push(`Amazon has checked in <b>${fmt(s.received)} of ${fmt(s.shipped)}</b> from ${esc(s.id)} (sent ${dshort(s.created)}, ${fmt(s.days)} days ago)${(s.lines||[]).length>1?' — a shared shipment':''}. Worth a look in Seller Central.`));
     const ad=((D.settings.sfAds||{}).by||{})[String(p.asin||'').toUpperCase()],u30=(sfSoldOf(p)||{}).u30;
     const adTxt=ad&&ad.units>0&&u30>0?`ads: ${fmt(ad.units)} of ${fmt(u30)} sales (${fmt(Math.min(100,Math.round(100*ad.units/u30)))}%)`:'';
     const card={asin:p.asin,name:esc(p.name),say,cells,short:shortTxt,warn,
@@ -11642,11 +11640,6 @@ function vHealth(){
   <section class="panel shPanel"><div class="ph"><span class="t">Holding too much — at Amazon</span><span class="sub">over 90 days of cover at the size pace, counting what is on its way · "over 60 days" = units beyond two months of sales, at cost — Amazon's storage fees rise on stock held over 6 months</span></div>
     <div class="shScroll"><table class="shT"><thead><tr><th>Product</th><th class="n">At Amazon + on the way</th><th class="n">A day</th><th class="n">Days of cover</th><th class="n">Over 60 days</th><th class="n">≈ £ at cost</th></tr></thead><tbody>
     ${over.map(x=>`<tr><td><b>${esc(x.r.p.name)}</b><small>${esc(paceShort(x.r.demand))}</small></td><td class="n">${fmt(x.r.sell||0)} + ${fmt(x.r.inb||0)}</td><td class="n">${x.r.sizeAds.toFixed(2)}</td><td class="n"><b style="color:#fbbf24">${fmt(Math.round(x.cov))}</b></td><td class="n">${fmt(x.extra)}</td><td class="n">${money(x.cost)}</td></tr>`).join('')||'<tr><td colspan="6" class="shNone">Nothing over 90 days.</td></tr>'}</tbody></table></div></section>
-  ${(()=>{const F=fbaLearn(),st=F.stuck||[];return `<section class="panel shPanel"><div class="ph"><span class="t">Stuck at Amazon — sent, not checked in</span><span class="sub">PLUB shipments over 7 days old with under 95% received (SellerFuse, Mon/Thu) · they count as on the way, so a stuck one hides a coming stock-out${F.n?` · your sends usually take ${fmt(F.typical)} working days, the slowest ${fmt(F.slowest)}`:''}</span></div>
-    ${st.length?`<div class="shScroll"><table class="shT"><thead><tr><th>Shipment</th><th>Sent</th><th class="n">Days</th><th class="n">Received</th><th class="n">Not in yet</th><th>PLUB products in it</th></tr></thead><tbody>
-    ${st.map(s=>`<tr><td><b>${esc(s.id)}</b><small>${esc(s.status||'')}</small></td><td>${dshort(s.created)}</td><td class="n"><b style="color:${s.days>=14?'#f87171':'#fbbf24'}">${fmt(s.days)}</b></td><td class="n">${fmt(s.received)} of ${fmt(s.shipped)}</td><td class="n"><b>${fmt(s.shipped-s.received)}</b></td><td>${(s.names||[]).map(esc).join(', ')}${(s.lines||[]).length>1?' <small>shared shipment — the count is for the whole shipment</small>':''}</td></tr>`).join('')}</tbody></table></div>`
-      :`<div class="shNone">${F.n||((D.settings.sfRecv||{}).list||[]).length?'Nothing stuck — every PLUB shipment over a week old is checked in.':'Fills in from the next Mon/Thu SellerFuse check.'}</div>`}
-  </section>`;})()}
   <section class="panel shPanel"><div class="ph"><span class="t">In the warehouse now — PLUB</span><span class="sub">every part on the shelf, at what it cost (FIFO layers) · on order = bought, not arrived yet</span></div>
     <div class="shWh">
       <div><b>${fmt(Math.round(W.u))}</b><span>units on the shelf</span></div>
@@ -11747,7 +11740,7 @@ function vSettings(){
     <div style="padding:6px 16px 12px;">
       ${_eng('primeDays',primeSet(),'working days','From pressing send to SELLABLE at Amazon — courier + check-in. Everything late/early is judged against this.')}
       ${(()=>{const F=fbaLearn();if(!F.n)return `<div class="engLearn">Measured from SellerFuse: not yet — it fills in from the Mon/Thu check.</div>`;
-        return `<div class="engLearn">Measured from your last <b>${fmt(F.n)}</b> PLUB send${F.n===1?'':'s'}: usually <b>${fmt(F.typical)}</b> working days to sellable, slowest <b>${fmt(F.slowest)}</b>${F.slowShip?` (${esc((F.slowShip.names||[])[0]||F.slowShip.id)}, sent ${dshort(F.slowShip.created)})`:''}. The plan uses <b>${fmt(primeDays())}</b> — your figure or the slowest send, whichever is longer. It goes up on its own if Amazon gets slower; it never comes down by itself.${(F.stuck||[]).length?` · <b style="color:#fbbf24">${fmt(F.stuck.length)} shipment${F.stuck.length===1?'':'s'} stuck in receiving</b> — see Stock health`:''}</div>`;})()}
+        return `<div class="engLearn">Measured from your last <b>${fmt(F.n)}</b> PLUB send${F.n===1?'':'s'}: usually <b>${fmt(F.typical)}</b> working days to sellable, slowest <b>${fmt(F.slowest)}</b>${F.slowShip?` (${esc((F.slowShip.names||[])[0]||F.slowShip.id)}, sent ${dshort(F.slowShip.created)})`:''}. The plan uses <b>${fmt(primeDays())}</b> — your figure or the slowest send, whichever is longer. It goes up on its own if Amazon gets slower; it never comes down by itself.</div>`;})()}
       ${_eng('safetyDays',safetyDays(),'days','The panic buffer. Stock must never be planned to land with less than this to spare.')}
       ${_eng('targetDays',D.settings.targetDays||60,'days of cover','How much Amazon stock a send should leave behind when it lands. Bigger = fewer sends, more Amazon storage.')}
       ${_eng('cycleDays',cycleDaysN(),'days of cover','How much a PURCHASE should cover when it arrives. Bigger = fewer orders, more cash in stock.')}
@@ -12507,7 +12500,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,refreshShared,reloadData,rtChange,checkStockSafety,__save:()=>save(),__remRpc:()=>_remRpc,__setRemRpc:v=>{_remRpc=v;},settleIssue,sheetSays,relinkOrphans,openSheetDiff,mergeIntoSheetLine,dropDiffLine,cancelDiffLine,ackDiffLine,sheetDiffItems,__persist:()=>persist(),__pushNow:()=>pushNow(),__PURCH:()=>PURCH,__prefsMerge:_prefsMerge,__savePrefs:()=>savePrefs(),__saveState:()=>saveState(),__prefsBase:()=>_prefsBase,__setPrefsBase:v=>{_prefsBase=v;},__ack:()=>ACK,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
-  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,lossOfRows,lossLine,profitSrcOf,fbaCalDays,priceOf,acCopySend,acJump,sfPace,safetyFor,emptyDaysIn,stockLedger,vHealth,coverDaysOf,isWorkDay,workDaysAfter,fbaLearn,primeDays,primeSet,stuckFor,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
+  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,lossOfRows,lossLine,profitSrcOf,fbaCalDays,priceOf,acCopySend,acJump,sfPace,safetyFor,emptyDaysIn,stockLedger,vHealth,coverDaysOf,isWorkDay,workDaysAfter,fbaLearn,primeDays,primeSet,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},

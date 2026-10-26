@@ -297,3 +297,7 @@ Now:
 - Weekly from the check: ads share (send-card footer). (Buy Box was built and taken out — Jack: not needed for PLUB listings.)
 - Dashboard (Jack, Mondays and Tuesdays): last week's PLUB stock-outs in one line — how many, empty days, ≈ £ profit lost, and why (sends too late / parts not in time / sales jumped), biggest cost first.
 - Working days skip England & Wales bank holidays as well as weekends (collections are 9–5 weekdays only) — UK_BH in lavarion.js, 2026–2028.
+
+## v55.9 · b621 (26 Oct 2026, late)
+- Sarah's Admin: the sort bar above the cards had collapsed into a 166px column stacked over the first card (a flex header row inside a table gets squeezed into the first column). Now one full-width header cell with the pills, column widths kept in a colgroup so the compact rows below don't move.
+- Stuck-shipment flag REMOVED (Jack: only a closed shipment's shortfall matters, and that is the reimbursement side; units still in transit or being checked in keep counting as on the way). Receipts now only feed the measured send time.

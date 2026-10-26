@@ -1888,7 +1888,7 @@ window.PrepChecks=(function(){
   /* 88 — v55.8 (Jack, 26 Oct): the send-to-sellable time only ever goes UP from his figure ("much rather
      overestimate"), stuck shipments are found, the Prep Sheet tile row is back to COG In Transit,
      the Dashboard knows what is empty at Amazon */
-  S['v55.8: measured send time never lowers the plan, stuck shipments, COG In Transit back, empty-at-Amazon line']=async()=>{
+  S['v55.8: measured send time never lowers the plan, COG In Transit back, empty-at-Amazon line, Monday review, bank holidays']=async()=>{
     let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
     const D=LV3.__D(),set0=JSON.stringify(D.settings||{});
     const was=(document.querySelector('.page.active')||{}).id||'';
@@ -1906,12 +1906,6 @@ window.PrepChecks=(function(){
       D.settings.sfRecv={at:'chk-2',list:D.settings.sfRecv.list.concat([{id:'FBACHKSLOW',created:ago(40),lastReceived:ago(40-Math.ceil((set+6)*1.5)),shipped:10,received:10,status:'CLOSED',lines:[{asin:p.asin,sku:'X',units:10}]}])};
       F=LV3.fbaLearn();
       ok(F.slowest>set&&LV3.primeDays()===Math.min(60,F.slowest),'a slower send raises the plan to the slowest ('+F.slowest+' working days)');
-      /* stuck: 9 days, 2 of 31 in */
-      D.settings.sfRecv={at:'chk-3',list:[{id:'FBACHKSTUCK',created:ago(9),lastReceived:ago(3),shipped:31,received:2,status:'RECEIVING',lines:[{asin:p.asin,sku:'X',units:31}]}]};
-      F=LV3.fbaLearn();
-      ok(F.stuck.length===1&&F.stuck[0].days===9&&LV3.stuckFor(p.asin).length===1,'a shipment 9 days old with 2 of 31 in is stuck, and its product knows');
-      goPage('lavarion');LV3.go('health');await wait(300);
-      ok(/Stuck at Amazon/.test(document.getElementById('page-lavarion').textContent)&&/FBACHKSTUCK/.test(document.getElementById('page-lavarion').textContent),'Stock health lists the stuck shipment');
       /* the Prep Sheet tile row */
       goPage('prep');await wait(300);try{renderStats();}catch(e){}
       const ps=document.getElementById('prepStats');

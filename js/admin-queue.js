@@ -2313,20 +2313,16 @@ function renderAdmin(){
       </div>
       <div class="tfuScroll">
       <table class="tfu cards">
-        <thead><tr>
-          ${(()=>{const H=(k,label,w,extra,tip)=>{
-              const on=_tfuSort===k;
-              return`<th style="width:${w};${extra||''}" ${k?`class="tfuSortable${on?' on':''}" onclick="tfuSort('${k}')" title="${tip||('Sort by '+label.toLowerCase())}"`:(tip?`title="${tip}"`:'')}>${label}${
-                on?`<span class="tfuArrow">${_tfuDir===1?'▲':'▼'}</span>`:''}</th>`;};
-            return H('priority','#','2%','text-align:center;','Priority order — 1 is the most important thing on the page')
-              +H('product','Product','19%')
-              +H('supplier','Supplier / order','10%')
-              +H('units','Units','6%','text-align:center;')
-              +H('kind','What\'s wrong','11%','text-align:center;','The issue type and what put this row on the page, worked out by the app from the numbers — plus the note written by whoever raised it, and the refund-window clock. Click to sort by type.')
-              +H('','Triage','15%','text-align:center;','Work the first questions and steps right here on the row — the popup is only for detail.')
-              +H('','Where it stands','28%','','The current state of the issue: the last thing anyone recorded, who did it, when, and what is being waited on. Written automatically as the row is worked.')
-              +H('','Actions','9%','text-align:center;');})()}
-        </tr></thead>
+        ${/* Jack, 26 Oct: "bug on Sarah's page" — the sort pills sat in a flex header row inside a table,
+             which the browser squeezed into the first column (166px) and stacked over the first card.
+             Now: the column widths in a colgroup, the pills in one header cell across the table. */''}
+        <colgroup>${['2%','19%','10%','6%','11%','15%','28%','9%'].map(w=>`<col style="width:${w}">`).join('')}</colgroup>
+        <thead><tr><th colspan="8" class="tcSortBar"><span class="tcSortL">Sort</span>${
+          [['priority','#','Priority order — 1 is the most important thing on the page'],['product','Product'],['supplier','Supplier / order'],['units','Units'],
+           ['kind','What\'s wrong','The issue type and what put this row on the page — click to sort by type']]
+          .map(([k,label,tip])=>{const on=_tfuSort===k;
+            return `<span class="tfuSortable${on?' on':''}" onclick="tfuSort('${k}')" title="${tip||('Sort by '+label.toLowerCase())}">${label}${on?`<span class="tfuArrow">${_tfuDir===1?'▲':'▼'}</span>`:''}</span>`;}).join('')
+        }</th></tr></thead>
         <tbody>
         ${(()=>{
         const _cardMode=true;   /* 23 Oct: Sarah's triage as cards (Jack: "yes love it") */
