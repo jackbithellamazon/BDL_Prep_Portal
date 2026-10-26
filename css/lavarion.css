@@ -2202,3 +2202,33 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .shMore[open] summary{border-bottom:1px solid var(--border);}
 #page-lavarion .shT td{text-align:left;}
 @media(max-width:700px){#page-lavarion .shWh{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
+/* 26 Oct 2026 (v55.7) — the Build & send line as a card: Jack, "too messy — can barely see the title and ASIN" */
+#page-lavarion .acx.acxS{display:block;padding:14px 16px 10px;}
+#page-lavarion .acxS .sHead{display:flex;align-items:flex-start;gap:10px;}
+#page-lavarion .acxS .sHead .acxNum{margin-top:2px;flex:0 0 auto;}
+#page-lavarion .acxS .sName{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+#page-lavarion .acxS .sName b{font:800 15.5px var(--sans);color:#fff;letter-spacing:-.01em;line-height:1.25;}
+#page-lavarion .acxS .sAsin{align-self:flex-start;font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text2);letter-spacing:.04em;padding:1px 7px;border:1px solid var(--border2);border-radius:6px;cursor:copy;}
+#page-lavarion .acxS .sAsin:hover{color:#fff;border-color:var(--text3);}
+#page-lavarion .acxS .sSend{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px;}
+#page-lavarion .acxS .sSend .acxSendN{min-width:104px;font-size:14px;padding:9px 16px;}
+#page-lavarion .acxS .sSend small{font-size:10.5px;color:var(--text3);white-space:nowrap;}
+#page-lavarion .acxS .sSay{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:9px 0 10px;font-size:12.5px;color:var(--text2);line-height:1.4;}
+#page-lavarion .acxS .sSay b{color:var(--text);}
+#page-lavarion .acxS .sGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+#page-lavarion .acxS .sCell{background:var(--bg2);padding:7px 10px 8px;display:flex;flex-direction:column;gap:2px;min-width:0;cursor:default;}
+#page-lavarion .acxS .sCell i{font:800 9.5px var(--sans);font-style:normal;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
+#page-lavarion .acxS .sCell b{font:800 17px var(--num);font-variant-numeric:tabular-nums;color:var(--text);letter-spacing:-.01em;white-space:nowrap;}
+#page-lavarion .acxS .sCell small{font-size:10.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .acxS .sShort{margin-top:8px;padding:6px 10px;border-radius:8px;font-size:12px;color:#fde68a;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.28);}
+#page-lavarion .acxS .sShort b{color:#fbbf24;}
+#page-lavarion .acxS .sFoot{display:flex;align-items:center;gap:10px;margin-top:8px;}
+#page-lavarion .acxS .sSrc{flex:1;min-width:0;font-size:11px;color:var(--text3);}
+#page-lavarion .acxS .sActs{display:flex;gap:4px;flex:0 0 auto;}
+#page-lavarion .acxS .sLink{background:none;border:0;padding:3px 7px;border-radius:6px;font:600 11px var(--sans);color:var(--text3);cursor:pointer;}
+#page-lavarion .acxS .sLink:hover{color:var(--text);background:rgba(255,255,255,.06);}
+#page-lavarion .acxS .sWarn{color:#bfdbfe;background:rgba(96,165,250,.07);border-color:rgba(96,165,250,.3);}
+#page-lavarion .acxS .sWarn b{color:#93c5fd;}
+#page-lavarion .engLearn{font-size:11.5px;color:var(--text2);padding:6px 0 10px 76px;border-bottom:1px solid var(--border);line-height:1.5;}
+#page-lavarion .engLearn b{color:var(--text);}

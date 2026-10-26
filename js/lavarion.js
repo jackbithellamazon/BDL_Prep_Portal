@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v55.6 · lav3 · 2026-10-26 · b618';
+const BUILD='v55.8 · lav3 · 2026-10-26 · b620';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -1366,14 +1366,41 @@ function atAmzAge(p){const at=(D.settings.atAmzAt||{})[p.asin];return at?daysSin
    is a Friday two weekends earlier, and the stock would have missed by four
    days without anything on screen looking wrong. */
 const PRIME_MAX=60;
-function primeDays(){const n=parseInt(D.settings.primeDays);return (n>0&&n<=PRIME_MAX)?n:10;}
+function primeSet(){const n=parseInt(D.settings.primeDays);return (n>0&&n<=PRIME_MAX)?n:10;}
+/* Jack, 26 Oct: "much rather overestimate than underestimate and be out of stock". The time from a
+   send to sellable is measured from SellerFuse's receipts (shipment created → last units received,
+   +1 working day to go on sale). The plan uses the SLOWER of your figure and the slowest recent
+   send — so Amazon getting slower raises it on its own; Amazon being quicker never lowers it. */
+function primeDays(){const L=fbaLearn();return Math.min(PRIME_MAX,Math.max(primeSet(),L&&L.n>=3?L.slowest:0));}
+let _fbaLC=null,_fbaLK='';
+function fbaLearn(){
+  const R=D.settings.sfRecv,today=dayISO(),k=(R&&R.at||'')+'|'+today;
+  if(_fbaLC&&_fbaLK===k)return _fbaLC;
+  const done=[],stuck=[];
+  ((R&&R.list)||[]).forEach(s=>{const c=String(s.created||'').slice(0,10);if(!c)return;
+    const sh=+s.shipped||0,rc=+s.received||0,lr=String(s.lastReceived||'').slice(0,10),names=(s.lines||[]).map(l=>{const p=D.products.find(x=>x.asin===String(l.asin||'').toUpperCase());return p?p.name:l.asin;});
+    const ageCal=Math.round((new Date(today+'T00:00:00')-new Date(c+'T00:00:00'))/864e5);
+    if(sh>0&&rc>=sh*0.95&&lr){if(ageCal<=60)done.push({id:s.id,created:c,received:lr,wd:workDaysBetween(c,lr)+1,names});}
+    else if(sh>0&&rc<sh*0.95&&ageCal>=7&&!/cancel/i.test(s.status||''))stuck.push({id:s.id,created:c,days:ageCal,shipped:sh,received:rc,lastReceived:lr,status:s.status,names,lines:s.lines||[]});});
+  done.sort((a,b)=>a.wd-b.wd);
+  const n=done.length,mid=n?done[Math.floor((n-1)/2)].wd:null,slow=n?done[n-1]:null;
+  _fbaLK=k;_fbaLC={n,typical:mid,slowest:slow?slow.wd:null,slowShip:slow,stuck:stuck.sort((a,b)=>b.days-a.days)};
+  return _fbaLC;
+}
+function stuckFor(asin){const A=String(asin||'').toUpperCase();return (fbaLearn().stuck||[]).filter(s=>(s.lines||[]).some(l=>String(l.asin||'').toUpperCase()===A));}
 const _isoOf=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 function addCalDays(iso,n){const d=new Date(String(iso).slice(0,10)+'T00:00:00');d.setDate(d.getDate()+n);return _isoOf(d);}
+/* Jack, 26 Oct: "collections only happen 9–5 weekdays, no bank holidays". England & Wales bank
+   holidays are not working days — add the next year's when it is published (gov.uk/bank-holidays). */
+const UK_BH=new Set(['2026-01-01','2026-04-03','2026-04-06','2026-05-04','2026-05-25','2026-08-31','2026-12-25','2026-12-28',
+  '2027-01-01','2027-03-26','2027-03-29','2027-05-03','2027-05-31','2027-08-30','2027-12-27','2027-12-28',
+  '2028-01-03','2028-04-14','2028-04-17','2028-05-01','2028-05-29','2028-08-28','2028-12-25','2028-12-26']);
+const isWorkDay=d=>{const w=d.getDay();return w>=1&&w<=5&&!UK_BH.has(_isoOf(d));};
 function workDaysBefore(iso,n){
   const d=new Date(String(iso).slice(0,10)+'T00:00:00');
   let left=n,guard=0;
   while(left>0&&guard<600){d.setDate(d.getDate()-1);guard++;
-    const w=d.getDay();if(w>=1&&w<=5)left--;}
+    if(isWorkDay(d))left--;}
   return _isoOf(d);
 }
 /* Working days from a to b. Negative when b is already behind us — which is
@@ -1386,7 +1413,7 @@ function workDaysBetween(a,b){
   const from=new Date((sign>0?a:b)+'T00:00:00'),to=new Date((sign>0?b:a)+'T00:00:00');
   let n=0,guard=0;
   while(from<to&&guard<3000){from.setDate(from.getDate()+1);guard++;
-    const w=from.getDay();if(w>=1&&w<=5)n++;}
+    if(isWorkDay(from))n++;}
   return n*sign;
 }
 /* Null means "we genuinely do not know", never a guessed date. No count at
@@ -2161,7 +2188,7 @@ function workDaysAfter(iso,n){
   const d=new Date(String(iso).slice(0,10)+'T00:00:00');
   let left=n,guard=0;
   while(left>0&&guard<600){d.setDate(d.getDate()+1);guard++;
-    const w=d.getDay();if(w>=1&&w<=5)left--;}
+    if(isWorkDay(d))left--;}
   return _isoOf(d);
 }
 /* the FBA pipeline in calendar days, honestly derived from the working-day
@@ -3503,6 +3530,37 @@ function vOverview(){
     st.push({v:can==null?'—':fmt(can),l:'can build',t:'from the parts on the shelf here'});
     if(r.alloc<r.rec){const self=r.lim&&p.type!=='bundle';
       st.push({v:`${fmt(r.alloc)} of ${fmt(r.rec)}`,l:self||!r.lim?'that is all the stock':'short of '+esc(r.lim.name),c:'#fbbf24',t:'a little is better than nothing — the rest goes once the part lands'});}
+    /* the card (b619) — name + ASIN, one sentence, one row of figures */
+    const runOut=addCalDays(today,Math.max(0,Math.floor(u.end||0))),sellsFrom=addCalDays(today,L.land);
+    const firstEta=((r.tranches||[]).slice().sort((a,b)=>String(a.eta).localeCompare(String(b.eta)))[0]||{}).eta;
+    const say=covered?`Covered by what is on its way${firstEta?` — sellable from ~${dshort(firstEta)}`:''}. A little more keeps it going.`
+      :losing?(oos?`Empty at Amazon${L.emptySince&&!L.approx?` since ${dshort(L.emptySince)}`:(sfSoldOf(p)&&!(parseInt(sfSoldOf(p).u30)>0))?' — no sale in the last 30 days':''}. A send today sells from ~${dshort(sellsFrom)}.`
+        :`Runs out ~${dshort(runOut)}. A send today sells from ~${dshort(sellsFrom)} — <b>send it today</b>.`)
+      :u.slack<0?`Send now — it lands with only ${fmt(Math.max(0,Math.floor(u.end-fbaCalDays())))} of the ${u.saf} buffer days left. Runs out ~${dshort(runOut)}.`
+      :u.slack===0?`Send today to land with the ${u.saf}-day buffer. Runs out ~${dshort(runOut)}.`
+      :`Send by ${dshort(u.by)} to land with the ${u.saf}-day buffer. Runs out ~${dshort(runOut)}.`;
+    const cells=[];
+    cells.push({l:'Sells a day',v:dayTxt+(spike?' ↑':pc.slow?' ↓':''),s:pc.empty&&pc.empty[7]>0?`empty ${fmt(pc.empty[7])} of 7 days`:spike?'selling faster':pc.slow?'slowing':paceShort(d)||'',
+      c:spike?'#c4b5fd':pc.slow?'#fbbf24':null,sc:pc.empty&&pc.empty[7]>0?'#f87171':null,t:paceTip(pc)||esc(d.label||'')});
+    cells.push({l:'At Amazon',v:oos?'0':(r.soldSince?'~':'')+fmt(r.sell||0),c:oos?'#f87171':null,s:r.inb?`+${fmt(r.inb)} on the way`:'none on the way',sc:r.inb?'#93c5fd':null,
+      t:(r.soldSince?`${fmt(r.counted)} counted, ~${fmt(r.soldSince)} sold since at the planned pace`:`${fmt(r.counted||0)} on the shelf at the last count`)+((r.tranches||[]).length?' · '+(r.tranches||[]).map(x=>`${fmt(x.q)} sellable ~${dshort(x.eta)}`).join(' · '):'')});
+    if(L.empty){const _sf=sfSoldOf(p),noSale=_sf&&!(parseInt(_sf.u30)>0);
+      cells.push({l:'Empty for',v:L.emptyDays!=null&&!(L.approx&&L.emptyDays<1)?(L.approx?fmt(L.emptyDays)+'+':fmt(L.emptyDays))+(L.emptyDays===1?' day':' days'):noSale?'30+ days':'?',c:'#f87171',
+        s:L.emptySince?'since '+dshort(L.emptySince):'',t:L.emptySince?`no sales since ${dshort(L.emptySince)} (SellerFuse)`:'how long comes with the next SellerFuse check'});}
+    else cells.push({l:'Stock lasts',v:'~'+fmt(Math.max(0,Math.floor(u.end||0)))+' days',c:losing?'#fdba74':null,s:'runs out ~'+dshort(runOut),t:`a send today is sellable in ${L.land} days`});
+    if(u.profit!=null)cells.push({l:'Profit a day',v:'≈ '+money(u.profit),c:losing?'#f87171':null,s:typical?'typical margin':'£'+L.pu.toFixed(2)+' a unit',
+      t:`${day.toFixed(2)} a day × £${L.pu.toFixed(2)} a unit${typical?' — no SellerFuse margin for this one yet, so the middle of your PLUB range':''}${u.sales!=null?` · sales ≈ ${money(u.sales)} a day`:''}`});
+    if(L.lostSoFar>0)cells.push({l:L.capped?'Lost (60 days)':'Lost so far',v:'≈ '+money(L.lostSoFar),c:'#f87171',s:'while empty',t:`${fmt(Math.min(L.emptyDays,60))} days × ${day.toFixed(2)} a day × £${L.pu.toFixed(2)}`});
+    if(L.toLose>0)cells.push({l:'Still to lose',v:'≈ '+money(L.toLose),c:'#fdba74',s:'even if sent today',t:`${fmt(L.gapDays)} empty day${L.gapDays===1?'':'s'} before a send today sells × ${day.toFixed(2)} × £${L.pu.toFixed(2)}`});
+    const shortTxt=r.alloc<r.rec?((r.lim&&p.type==='bundle')?`Can build <b>${fmt(r.alloc)} of ${fmt(r.rec)}</b> — short of <b>${esc(r.lim.name)}</b>. The rest goes once it lands.`
+      :`<b>${fmt(r.alloc)} of ${fmt(r.rec)}</b> — that is all the stock here.`):'';
+    const warn=[];
+    stuckFor(p.asin).forEach(s=>warn.push(`Amazon has checked in <b>${fmt(s.received)} of ${fmt(s.shipped)}</b> from ${esc(s.id)} (sent ${dshort(s.created)}, ${fmt(s.days)} days ago)${(s.lines||[]).length>1?' — a shared shipment':''}. Worth a look in Seller Central.`));
+    const ad=((D.settings.sfAds||{}).by||{})[String(p.asin||'').toUpperCase()],u30=(sfSoldOf(p)||{}).u30;
+    const adTxt=ad&&ad.units>0&&u30>0?`ads: ${fmt(ad.units)} of ${fmt(u30)} sales (${fmt(Math.min(100,Math.round(100*ad.units/u30)))}%)`:'';
+    const card={asin:p.asin,name:esc(p.name),say,cells,short:shortTxt,warn,
+      lasts:u.lasts!=null&&r.alloc>0?`lasts ~${fmt(Math.max(1,Math.round(u.lasts)))} days`:'',
+      foot:[`<span title="${esc(paceTip(pc))}">${esc(d.label||'')}</span>`,pc.sizeWhy?`sized on the fastest pace — ${esc(pc.sizeWhy)}`:'',adTxt?`<span title="Sponsored Products units over 30 days (SellerFuse, weekly)${ad.tacos!=null?' · TACOS '+ad.tacos+'%':''}">${adTxt}</span>`:''].filter(Boolean).join(' · ')};
     const sendBy=!losing&&!covered?(u.slack<0?`<b style="color:#fdba74">lands with ${fmt(Math.max(0,Math.floor(u.end-fbaCalDays())))} of the ${u.saf} buffer days left</b>`:u.slack===0?'<b>send today</b>':`send by <b>${dshort(u.by)}</b>`):'';
     put('send',{k:'send_'+p.id,urg:losing?0:covered?2:1,
       val:losing?(u.profit!=null?u.profit:day):(-(u.slack||0)*1000+(u.profit||0)),lostDay:lossOfRows([r]).lost,
@@ -3510,7 +3568,7 @@ function vOverview(){
         :covered?['COVERED · ON ITS WAY','#60a5fa']
         :[u.slack<0?`SEND NOW · LANDS INSIDE THE ${u.saf}-DAY BUFFER`:u.slack===0?'SEND TODAY':`SEND BY ${dshort(u.by).toUpperCase()}`,u.slack<=3?'#fb923c':'#fbbf24'],
       chip2:losing&&u.profit!=null?[`≈ ${money(u.profit)} a day${oos?'':' until it lands'}`,'#f87171',`${day.toFixed(2)} a day × £${L.pu.toFixed(2)} profit a unit`]:null,
-      title:esc(p.name),stats:st,
+      title:esc(p.name),stats:st,card,
       facts:[sendBy,`<span class="acxSrc" title="${esc(paceTip(pc))}">${esc(d.label||'')}</span>`,pc.sizeWhy?`<span class="acxSrc">sized on the fastest pace — ${esc(pc.sizeWhy)}</span>`:''].filter(Boolean).join(' · '),
       copy:`${p.name} — ${fmt(r.alloc)}${L.empty&&L.emptyDays!=null?` (empty ${fmt(L.emptyDays)} days)`:losing?` (runs out in ~${fmt(Math.max(0,Math.floor(u.end)))} days)`:''}`,units:r.alloc,
       big:[`Send ${fmt(r.alloc)}`,`the planned send — record it on the Shipments page as usual; this line clears itself once it is saved`],
@@ -3541,10 +3599,10 @@ function vOverview(){
     put(_ownLane(g.sup),{k,urg:chase?-1:HL.lost>=0.5?0:d<0?1:d===0?2:d<=3?3:4,val:HL.stake,chase,pastDays:d<0?-d:0,
       why:g.lines.some(Ln=>Ln.sendDriven)?`the date comes from the send it holds up — ${esc([...new Set([].concat(...g.lines.filter(Ln=>Ln.sendDriven).map(Ln=>Ln.sendFor||[])))].slice(0,2).join(', '))}`:'',
       chip2:HL.lost>=0.5?[`≈ £${fmt(Math.round(HL.stake))} lost even if ${shop?'bought':'ordered'} today`,'#f87171',`≈ £${HL.lost.toFixed(2)} a day, for the days it sits empty before this ${shop?'shop run':'order'} can land and be sent on`]:null,cost:g.cost||0,stake:HL.stake||0,
-      chip:shop?(d<0?[`${chase?'CHASE · ':''}SHOP RUN · ${fmt(-d)} DAY${-d===1?'':'S'} PAST`,'#ef4444']:d===0?['SHOP RUN TODAY','#fb923c']:[`SHOP RUN BY ${dshort(addCalDays(today,d))}`,'#fbbf24'])
-        :(d<0?[`${chase?'CHASE · ':''}${fmt(-d)} DAY${-d===1?'':'S'} PAST ORDER-BY`,'#ef4444']:d===0?['ORDER TODAY','#fb923c']:[`ORDER BY ${dshort(addCalDays(today,d))}`,'#fbbf24']),
+      chip:shop?(d<0?[chase?`SHOP RUN NOW · ${fmt(-d)} DAY${-d===1?'':'S'} LATE`:`SHOP RUN · ${fmt(-d)} DAY${-d===1?'':'S'} PAST`,'#ef4444']:d===0?['SHOP RUN TODAY','#fb923c']:[`SHOP RUN BY ${dshort(addCalDays(today,d))}`,'#fbbf24'])
+        :(d<0?[chase?`ORDER NOW · ${fmt(-d)} DAY${-d===1?'':'S'} LATE`:`${fmt(-d)} DAY${-d===1?'':'S'} PAST ORDER-BY`,'#ef4444']:d===0?['ORDER TODAY','#fb923c']:[`ORDER BY ${dshort(addCalDays(today,d))}`,'#fbbf24']),
       title:`<b>${esc(g.sup)}</b> — ${lines.slice(0,4).map(Ln=>fmt(Ln.buyQty)+' × '+esc(Ln.o.name)+(Ln.topUp?` <span class="acxSrc">(top-up — ${fmt(Ln.pendQty)} already on order)</span>`:'')).join(', ')}${lines.length>4?' +'+(lines.length-4)+' more':''}`,
-      facts:`${chase?'<b style="color:#fca5a5">chase — '+fmt(wdPast)+' working days past its date</b> · ':''}${fmt(lines.length)} part${lines.length===1?'':'s'}${g.cost?' · about '+gbp(g.cost):''}${holds.length?' · holds up '+esc([...new Set(holds)].slice(0,3).join(', ')):''}${HL.worst&&HL.worst.left<30?` · <b style="color:#fca5a5">${esc(HL.worst.name)} ${HL.worst.left<1?'is empty at Amazon':'empties in '+fmt(Math.max(1,Math.floor(HL.worst.left)))+' day'+(Math.floor(HL.worst.left)===1?'':'s')}</b>`:''}`,
+      facts:`${chase?'<b style="color:#fca5a5">'+fmt(wdPast)+' working days past its date — '+(shop?'do the shop run now':'order it now')+'</b> · ':''}${fmt(lines.length)} part${lines.length===1?'':'s'}${g.cost?' · about '+gbp(g.cost):''}${holds.length?' · holds up '+esc([...new Set(holds)].slice(0,3).join(', ')):''}${HL.worst&&HL.worst.left<30?` · <b style="color:#fca5a5">${esc(HL.worst.name)} ${HL.worst.left<1?'is empty at Amazon':'empties in '+fmt(Math.max(1,Math.floor(HL.worst.left)))+' day'+(Math.floor(HL.worst.left)===1?'':'s')}</b>`:''}`,
       btns:[[shop?'Bought — it is on the sheet':'Ordered — it is on the sheet','pri',`acDone('${k}')`]]});});
   M.parts.forEach(g=>{if(!g.part||inBuy.has(String(g.part.id)))return;const g2=g.gap||{kind:'none'};
     if(g2.kind==='intime'||g2.kind==='noeta')return;   /* in time = nothing to do; no date shows under Receive */
@@ -3558,7 +3616,7 @@ function vOverview(){
     put(_ownLane(compSupplier(g.part)),{k:'part_'+g.part.id,urg:pchase?-1:hot?0:bd==null?1:bd<0?1:bd===0?2:bd<=3?3:4,val:PL0.stake,stake:PL0.stake||0,chase:pchase,pastDays:bd!=null&&bd<0?-bd:0,
       chip:hot?[g.oos?'NOT ORDERED · EMPTY AT AMAZON':'NOT ORDERED · RUNNING OUT','#ef4444']
         :bd==null?[pshop?'SHOP RUN NEEDED':'NOT ORDERED YET','#fb923c']
-        :bd<0?[`${pchase?'CHASE · ':''}${fmt(-bd)} DAY${-bd===1?'':'S'} PAST ${pshop?'SHOP-RUN DATE':'ORDER-BY'}`,'#ef4444']:bd===0?[pshop?'SHOP RUN TODAY':'ORDER TODAY','#fb923c']:[`${pshop?'SHOP RUN':'ORDER'} BY ${dshort(addCalDays(today,bd))}`,'#fbbf24'],
+        :bd<0?[pchase?`${pshop?'SHOP RUN NOW':'ORDER NOW'} · ${fmt(-bd)} DAY${-bd===1?'':'S'} LATE`:`${fmt(-bd)} DAY${-bd===1?'':'S'} PAST ${pshop?'SHOP-RUN DATE':'ORDER-BY'}`,'#ef4444']:bd===0?[pshop?'SHOP RUN TODAY':'ORDER TODAY','#fb923c']:[`${pshop?'SHOP RUN':'ORDER'} BY ${dshort(addCalDays(today,bd))}`,'#fbbf24'],
       chip2:PL0.lost>=0.5?[`≈ £${fmt(Math.round(PL0.stake))} lost even if ${pshop?'bought':'ordered'} today`,'#f87171',`≈ £${PL0.lost.toFixed(2)} a day, for the days it sits empty before this part can land and be sent on`]:null,
       title:`<b>${esc(g.part.name)}</b> — ${pshop?'not bought yet':'not ordered yet'}`,facts:`holds up ${list}${g.missing?` · ${fmt(g.missing)} units waiting`:''}${pshop?' · in person':''}`,
       btns:[[pshop?'Bought — it is on the sheet':'Ordered — it is on the sheet','pri',`acDone('part_${g.part.id}')`]]});});
@@ -3603,6 +3661,20 @@ function vOverview(){
   const _only=_acOnly;
   const rowHtml=(x,num)=>{const s0=st(x.k),z=snz[x.k],dn=ack[x.k];
     const chip=s0==='snz'?[`SNOOZED TILL ${dshort(z.until)}`,'#94a3b8']:s0==='done'?['DONE','#4ade80']:x.chip;
+    if(x.card&&s0==='todo'){const C=x.card;
+      const age=x.age>0?`<span class="acxAge${x.age>=2?' late':''}" title="On this list since ${dshort((D.settings.acFirst[x.k]||{}).f)}">on the list ${fmt(x.age)} working day${x.age===1?'':'s'}${x.age>=2?' ▲':''}</span>`:'';
+      return `<div class="acx acxS" style="--c:${chip[1]};">
+        <div class="sHead">${num?`<span class="acxNum">${num}</span>`:''}
+          <div class="sName"><b>${C.name}</b><span class="sAsin" title="Click to copy the ASIN" onclick="event.stopPropagation();navigator.clipboard&&navigator.clipboard.writeText('${C.asin}');try{toast('Copied ${C.asin}','ok')}catch(e){}">${C.asin}</span></div>
+          ${x.big?`<div class="sSend"><span class="acxSendN" title="${esc(x.big[1])}">${esc(x.big[0])}</span>${C.lasts?`<small>${C.lasts}</small>`:''}</div>`:''}
+        </div>
+        <div class="sSay"><span class="acxChip">${chip[0]}</span><span>${C.say}</span></div>
+        <div class="sGrid">${C.cells.map(c=>`<div class="sCell"${c.t?` title="${esc(c.t)}"`:''}><i>${c.l}</i><b${c.c?` style="color:${c.c}"`:''}>${c.v}</b>${c.s?`<small${c.sc?` style="color:${c.sc}"`:''}>${c.s}</small>`:''}</div>`).join('')}</div>
+        ${C.short?`<div class="sShort">${C.short}</div>`:''}
+        ${(C.warn||[]).map(w=>`<div class="sShort sWarn">${w}</div>`).join('')}
+        <div class="sFoot"><span class="sSrc">${C.foot}${age?' · ':''}${age}</span>
+          <span class="sActs">${x.btns.map(b=>`<button class="sLink" onclick="LV3.${b[2]}">${esc(b[0])}</button>`).join('')}<button class="sLink" onclick="LV3.acSnoozeMenu('${x.k}',this)">Snooze &#9662;</button></span></div>
+      </div>`;}
     return `<div class="acx${s0==='todo'?'':' dim'}" style="--c:${chip[1]};">
       <div class="acxMain">
         <div class="acxTop">${num?`<span class="acxNum">${num}</span>`:''}<span class="acxChip">${chip[0]}</span>${s0==='todo'&&x.chip2?`<span class="acxChip2" style="--c2:${x.chip2[1]}"${x.chip2[2]?` title="${esc(x.chip2[2])}"`:''}>${x.chip2[0]}</span>`:''}<span class="acxTitle">${x.title}</span>${s0==='todo'&&x.age>0?`<span class="acxAge${x.age>=2?' late':''}" title="On this list since ${dshort((D.settings.acFirst[x.k]||{}).f)}">on the list ${fmt(x.age)} working day${x.age===1?'':'s'}${x.age>=2?' ▲':''}</span>`:''}</div>
@@ -11570,6 +11642,11 @@ function vHealth(){
   <section class="panel shPanel"><div class="ph"><span class="t">Holding too much — at Amazon</span><span class="sub">over 90 days of cover at the size pace, counting what is on its way · "over 60 days" = units beyond two months of sales, at cost — Amazon's storage fees rise on stock held over 6 months</span></div>
     <div class="shScroll"><table class="shT"><thead><tr><th>Product</th><th class="n">At Amazon + on the way</th><th class="n">A day</th><th class="n">Days of cover</th><th class="n">Over 60 days</th><th class="n">≈ £ at cost</th></tr></thead><tbody>
     ${over.map(x=>`<tr><td><b>${esc(x.r.p.name)}</b><small>${esc(paceShort(x.r.demand))}</small></td><td class="n">${fmt(x.r.sell||0)} + ${fmt(x.r.inb||0)}</td><td class="n">${x.r.sizeAds.toFixed(2)}</td><td class="n"><b style="color:#fbbf24">${fmt(Math.round(x.cov))}</b></td><td class="n">${fmt(x.extra)}</td><td class="n">${money(x.cost)}</td></tr>`).join('')||'<tr><td colspan="6" class="shNone">Nothing over 90 days.</td></tr>'}</tbody></table></div></section>
+  ${(()=>{const F=fbaLearn(),st=F.stuck||[];return `<section class="panel shPanel"><div class="ph"><span class="t">Stuck at Amazon — sent, not checked in</span><span class="sub">PLUB shipments over 7 days old with under 95% received (SellerFuse, Mon/Thu) · they count as on the way, so a stuck one hides a coming stock-out${F.n?` · your sends usually take ${fmt(F.typical)} working days, the slowest ${fmt(F.slowest)}`:''}</span></div>
+    ${st.length?`<div class="shScroll"><table class="shT"><thead><tr><th>Shipment</th><th>Sent</th><th class="n">Days</th><th class="n">Received</th><th class="n">Not in yet</th><th>PLUB products in it</th></tr></thead><tbody>
+    ${st.map(s=>`<tr><td><b>${esc(s.id)}</b><small>${esc(s.status||'')}</small></td><td>${dshort(s.created)}</td><td class="n"><b style="color:${s.days>=14?'#f87171':'#fbbf24'}">${fmt(s.days)}</b></td><td class="n">${fmt(s.received)} of ${fmt(s.shipped)}</td><td class="n"><b>${fmt(s.shipped-s.received)}</b></td><td>${(s.names||[]).map(esc).join(', ')}${(s.lines||[]).length>1?' <small>shared shipment — the count is for the whole shipment</small>':''}</td></tr>`).join('')}</tbody></table></div>`
+      :`<div class="shNone">${F.n||((D.settings.sfRecv||{}).list||[]).length?'Nothing stuck — every PLUB shipment over a week old is checked in.':'Fills in from the next Mon/Thu SellerFuse check.'}</div>`}
+  </section>`;})()}
   <section class="panel shPanel"><div class="ph"><span class="t">In the warehouse now — PLUB</span><span class="sub">every part on the shelf, at what it cost (FIFO layers) · on order = bought, not arrived yet</span></div>
     <div class="shWh">
       <div><b>${fmt(Math.round(W.u))}</b><span>units on the shelf</span></div>
@@ -11668,7 +11745,9 @@ function vSettings(){
     <div class="ph"><span class="t">The engine numbers</span>
       <span class="sub">every Planner recommendation is built from these five — check them once, they rarely change</span></div>
     <div style="padding:6px 16px 12px;">
-      ${_eng('primeDays',primeDays(),'working days','From pressing send to SELLABLE at Amazon — courier + check-in. Everything late/early is judged against this.')}
+      ${_eng('primeDays',primeSet(),'working days','From pressing send to SELLABLE at Amazon — courier + check-in. Everything late/early is judged against this.')}
+      ${(()=>{const F=fbaLearn();if(!F.n)return `<div class="engLearn">Measured from SellerFuse: not yet — it fills in from the Mon/Thu check.</div>`;
+        return `<div class="engLearn">Measured from your last <b>${fmt(F.n)}</b> PLUB send${F.n===1?'':'s'}: usually <b>${fmt(F.typical)}</b> working days to sellable, slowest <b>${fmt(F.slowest)}</b>${F.slowShip?` (${esc((F.slowShip.names||[])[0]||F.slowShip.id)}, sent ${dshort(F.slowShip.created)})`:''}. The plan uses <b>${fmt(primeDays())}</b> — your figure or the slowest send, whichever is longer. It goes up on its own if Amazon gets slower; it never comes down by itself.${(F.stuck||[]).length?` · <b style="color:#fbbf24">${fmt(F.stuck.length)} shipment${F.stuck.length===1?'':'s'} stuck in receiving</b> — see Stock health`:''}</div>`;})()}
       ${_eng('safetyDays',safetyDays(),'days','The panic buffer. Stock must never be planned to land with less than this to spare.')}
       ${_eng('targetDays',D.settings.targetDays||60,'days of cover','How much Amazon stock a send should leave behind when it lands. Bigger = fewer sends, more Amazon storage.')}
       ${_eng('cycleDays',cycleDaysN(),'days of cover','How much a PURCHASE should cover when it arrives. Bigger = fewer orders, more cash in stock.')}
@@ -12175,11 +12254,14 @@ let _ledgerWait=null;   /* a run applied before the products loaded — recorded
 function stockLedger(run,when){
   if(!D.products.length){_ledgerWait={run,when};return;}
   try{seedJack556();}catch(e){}
-  const S=D.settings;S.stockOuts=S.stockOuts||[];const Lg=S.stockOuts;
+  const S=D.settings;S.stockOuts=S.stockOuts||[];
+  {const seen={};S.stockOuts=S.stockOuts.filter(r=>{const k=r.id||(r.asin+'|'+r.kind+'|'+r.from);if(seen[k])return false;seen[k]=1;return true;});}
+  const Lg=S.stockOuts;
   const runDay=_ukDayOf(run.at||new Date().toISOString());
   D.products.filter(p=>!p.archived&&p.asin).forEach(p=>{
     const a=p.asin,q=(S.atAmz||{})[a];if(q==null||String((S.atAmzAt||{})[a]||'')!==String(when))return;
-    const open=Lg.find(r=>r.asin===a&&r.kind==='out'&&!r.to);
+    /* a long-empty line's 'before' record is open too — or every run added another (b620 fix) */
+    const open=Lg.find(r=>r.asin===a&&(r.kind==='out'||r.kind==='before')&&!r.to);
     const d=planDemandOf(p),pc=d&&d.pace,sf=sfSoldOf(p)||{};
     const ls=(S.sfLastSold||{})[a]||null;
     if(q===0){
@@ -12240,7 +12322,8 @@ function sfApplyFromRun(run){
   /* "@555": v55.5 reads the SAS rule (on the way = inbound + moving between Amazon
      warehouses), so a run an older build already applied is applied once more — newer hand
      counts still win */
-  const _ak=run.id+'@556';
+  /* "@557" (b620): re-read the latest run once — the check's receipts and ads ride in its summary */
+  const _ak=run.id+'@557';
   if(D.settings.sfApplied===_ak)return 0;
   const when=ukStamp(ukDT(new Date(run.at)));
   const runMs=new Date(run.at).getTime();
@@ -12296,6 +12379,10 @@ function sfApplyFromRun(run){
     const v={u30:Math.max(0,parseInt(x.units30)||0),u7:x.units7==null?null:Math.max(0,parseInt(x.units7)||0),u14:x.units14==null?null:Math.max(0,parseInt(x.units14)||0),
       p30:x.unitsPrev30==null?null:Math.max(0,parseInt(x.unitsPrev30)||0),at:run.at};
     D.settings.sfSold[p.asin]=v;ns++;});
+  {const sm=run.summary||{};
+    if(Array.isArray(sm.receipts))D.settings.sfRecv={at:run.at,list:sm.receipts};
+    if(sm.ads&&sm.ads.by)D.settings.sfAds={at:sm.ads.at||run.at,by:sm.ads.by};
+  }
   D.settings.sfApplied=_ak;
   try{_plCache=null;stockLedger(run,when);}catch(e){console.warn('stock ledger',e);}
   savePrefs();save();
@@ -12420,7 +12507,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,refreshShared,reloadData,rtChange,checkStockSafety,__save:()=>save(),__remRpc:()=>_remRpc,__setRemRpc:v=>{_remRpc=v;},settleIssue,sheetSays,relinkOrphans,openSheetDiff,mergeIntoSheetLine,dropDiffLine,cancelDiffLine,ackDiffLine,sheetDiffItems,__persist:()=>persist(),__pushNow:()=>pushNow(),__PURCH:()=>PURCH,__prefsMerge:_prefsMerge,__savePrefs:()=>savePrefs(),__saveState:()=>saveState(),__prefsBase:()=>_prefsBase,__setPrefsBase:v=>{_prefsBase=v;},__ack:()=>ACK,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
-  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,lossOfRows,lossLine,profitSrcOf,fbaCalDays,priceOf,acCopySend,acJump,sfPace,safetyFor,emptyDaysIn,stockLedger,vHealth,coverDaysOf,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
+  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,lossOfRows,lossLine,profitSrcOf,fbaCalDays,priceOf,acCopySend,acJump,sfPace,safetyFor,emptyDaysIn,stockLedger,vHealth,coverDaysOf,isWorkDay,workDaysAfter,fbaLearn,primeDays,primeSet,stuckFor,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},

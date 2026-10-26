@@ -1784,7 +1784,7 @@ window.PrepChecks=(function(){
       LV3.go('overview');await wait(500);
       const all=document.getElementById('lav3View').textContent;
       ok(!/LOSING SALES|AT RISK|NOTHING ON ORDER|TOO LATE|AMAZON EMPTY/.test(all),'the old wording is gone');
-      ok(document.querySelector('#ac-send .acxStat'),'send lines carry stat chips');
+      ok(document.querySelector('#ac-send .acxS .sGrid .sCell')&&document.querySelector('#ac-send .acxS .sAsin'),'send lines are cards — name, ASIN, a row of figures');
       ok(document.querySelector('.acJump'),'the jump bar is there');
     }finally{
       try{const s0=JSON.parse(set0);Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,s0);}catch(e){}
@@ -1858,6 +1858,13 @@ window.PrepChecks=(function(){
       LV3.sfApplyFromRun({id:'chk-so-2',at,sold:[{asin:p.asin,units30:30,units7:7}],stock:[{asin:p.asin,sku:'CHKSO',available:12,inbound:0,pending:0,profit:2}]});
       rec=(D.settings.stockOuts||[]).find(x=>x.id===(rec&&rec.id));
       ok(rec&&rec.to&&rec.to>=rec.from&&rec.to<=today,'stock back closes it — got '+(rec&&rec.to));
+      /* a line empty since before tracking keeps ONE record however many runs read it */
+      D.settings.stockOuts.push({id:'so_'+p.asin+'_old',asin:p.asin,kind:'before',from:ago(80),to:null,name:p.name});
+      D.settings.stockOuts=D.settings.stockOuts.filter(x=>!(x.asin===p.asin&&x.kind==='out'));
+      D.settings.sfLastSold[p.asin]=ago(81);D.settings.planSeason[p.asin]={m:9,until:'2099-01-01',by:'CHECK'};   /* still planned to sell, like the Dove lines */
+      LV3.sfApplyFromRun({id:'chk-so-b1',at,sold:[{asin:p.asin,units30:0,units7:0}],stock:[{asin:p.asin,sku:'CHKSO',available:0,inbound:0,pending:0}]});
+      LV3.sfApplyFromRun({id:'chk-so-b2',at,sold:[{asin:p.asin,units30:0,units7:0}],stock:[{asin:p.asin,sku:'CHKSO',available:0,inbound:0,pending:0}]});
+      eq((D.settings.stockOuts||[]).filter(x=>x.asin===p.asin&&!x.to).length,1,'a long-empty line keeps one open record across runs');
       /* Stock health */
       goPage('lavarion');LV3.go('health');await wait(300);
       const pg=document.getElementById('page-lavarion'),tx=pg.textContent;
@@ -1866,12 +1873,58 @@ window.PrepChecks=(function(){
       /* the Action centre keeps a snapshot of late orders for Jack's Dashboard */
       LV3.go('overview');await wait(300);
       ok(D.settings.acLateSnap==null||Array.isArray(D.settings.acLateSnap.list),'late orders are kept for the Dashboard');
-      ok(['#ac-order','#ac-orderj'].every(id=>{const ch=[...pg.querySelectorAll(id+' .acx')].map(x=>/CHASE|NOT ON THE SHEET/.test((x.querySelector('.acxChip')||{}).textContent||''));
-        return ch.every((c,i)=>!c||ch.slice(0,i).every(Boolean));}),'chased orders sit at the top of their lane');
+      ok(['#ac-order','#ac-orderj'].every(id=>{const ch=[...pg.querySelectorAll(id+' .acx')].map(x=>/ORDER NOW|SHOP RUN NOW|NOT ON THE SHEET/.test((x.querySelector('.acxChip')||{}).textContent||''));
+        return ch.every((c,i)=>!c||ch.slice(0,i).every(Boolean));}),'late orders sit at the top of their lane');
+      ok(![...pg.querySelectorAll('#ac-order .acxChip,#ac-orderj .acxChip')].some(x=>/CHASE/.test(x.textContent)),'no CHASE on order lines — ORDER NOW instead');
     }finally{
       try{const s0=JSON.parse(set0);Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,s0);}catch(e){}
       D.log.splice(0,D.log.length-logN);
       for(let i=lavShipments.length-1;i>=shipN;i--)lavShipments.splice(i,1);
+      try{LV3.render();}catch(e){}
+      if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}
+    }
+  };
+
+  /* 88 — v55.8 (Jack, 26 Oct): the send-to-sellable time only ever goes UP from his figure ("much rather
+     overestimate"), stuck shipments are found, the Prep Sheet tile row is back to COG In Transit,
+     the Dashboard knows what is empty at Amazon */
+  S['v55.8: measured send time never lowers the plan, stuck shipments, COG In Transit back, empty-at-Amazon line']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),set0=JSON.stringify(D.settings||{});
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    const isoDay=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+    try{
+      const now=new Date(),ago=k=>isoDay(new Date(now.getTime()-k*864e5));
+      const p=D.products.find(x=>!x.archived&&x.asin);ok(p,'a product to test with');if(!p)return;
+      const set=LV3.primeSet();
+      /* quick sends (2–4 working days) never pull the plan below Jack's figure */
+      D.settings.sfRecv={at:'chk-1',list:[1,2,3,4].map(i=>({id:'FBACHK'+i,created:ago(20+i),lastReceived:ago(17+i),shipped:10,received:10,status:'RECEIVING',lines:[{asin:p.asin,sku:'X',units:10}]}))};
+      let F=LV3.fbaLearn();
+      ok(F.n===4&&F.slowest<set,'four quick sends measured ('+F.typical+' typical, '+F.slowest+' slowest)');
+      eq(LV3.primeDays(),set,'quick sends never lower the plan — it stays on your figure');
+      /* one slow send above Jack's figure raises it */
+      D.settings.sfRecv={at:'chk-2',list:D.settings.sfRecv.list.concat([{id:'FBACHKSLOW',created:ago(40),lastReceived:ago(40-Math.ceil((set+6)*1.5)),shipped:10,received:10,status:'CLOSED',lines:[{asin:p.asin,sku:'X',units:10}]}])};
+      F=LV3.fbaLearn();
+      ok(F.slowest>set&&LV3.primeDays()===Math.min(60,F.slowest),'a slower send raises the plan to the slowest ('+F.slowest+' working days)');
+      /* stuck: 9 days, 2 of 31 in */
+      D.settings.sfRecv={at:'chk-3',list:[{id:'FBACHKSTUCK',created:ago(9),lastReceived:ago(3),shipped:31,received:2,status:'RECEIVING',lines:[{asin:p.asin,sku:'X',units:31}]}]};
+      F=LV3.fbaLearn();
+      ok(F.stuck.length===1&&F.stuck[0].days===9&&LV3.stuckFor(p.asin).length===1,'a shipment 9 days old with 2 of 31 in is stuck, and its product knows');
+      goPage('lavarion');LV3.go('health');await wait(300);
+      ok(/Stuck at Amazon/.test(document.getElementById('page-lavarion').textContent)&&/FBACHKSTUCK/.test(document.getElementById('page-lavarion').textContent),'Stock health lists the stuck shipment');
+      /* the Prep Sheet tile row */
+      goPage('prep');await wait(300);try{renderStats();}catch(e){}
+      const ps=document.getElementById('prepStats');
+      ok(ps&&/COG In Transit/i.test(ps.textContent)&&!/Booked in today/i.test(ps.textContent)&&!ps.querySelector('.statPair'),'the Prep Sheet has COG In Transit back, not the two small tiles');
+      /* the Dashboard line */
+      D.settings.stockOuts=[{id:'chk-so',asin:p.asin,name:p.name,kind:'out',from:ago(2),to:null,pace:1,pu:2}];
+      ok(typeof _plubEmpty!=='function'||!_isJack()||(_plubEmpty()||[]).length===1,'the Dashboard sees the product empty at Amazon');
+      /* the Monday review: Monday 26 Oct looks back at 19–25 Oct */
+      const W=_plubWeek([{kind:'out',name:'A',from:'2026-10-21',to:'2026-10-25',pace:2,pu:2,cause:['send late']},{kind:'out',name:'B',from:'2026-10-13',to:'2026-10-20',pace:1,pu:3,cause:['part not ordered — X']},{kind:'out',name:'C',from:'2026-10-01',to:'2026-10-05',pace:9,pu:9,cause:['send late']}],'2026-10-26');
+      ok(!LV3.isWorkDay(new Date('2026-12-25T00:00:00'))&&!LV3.isWorkDay(new Date('2026-12-28T00:00:00'))&&LV3.isWorkDay(new Date('2026-12-29T00:00:00'))&&LV3.workDaysAfter('2026-12-24',1)==='2026-12-29','bank holidays are not working days (Christmas Day, the Boxing Day substitute)');
+      ok(W&&W.mon==='2026-10-19'&&W.sun==='2026-10-25'&&W.n===2&&W.days===7&&Math.abs(W.lost-26)<0.01&&W.groups.send&&W.groups.part,'Monday review: last week only, 2 products, 7 empty days, £26, by cause');
+    }finally{
+      try{const s0=JSON.parse(set0);Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,s0);}catch(e){}
       try{LV3.render();}catch(e){}
       if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}
     }

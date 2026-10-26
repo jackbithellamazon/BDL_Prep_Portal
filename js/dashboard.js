@@ -20,6 +20,38 @@ function _plubLate(){
     return snap&&snap.list&&snap.list.length?snap:null;
   }catch(e){return null;}
 }
+/* Jack, 26 Oct (4): a line on his Dashboard while a PLUB product is empty at Amazon — from the
+   stock-out record PLUB keeps in the shared settings */
+let _soCache=null;
+function _plubEmpty(){
+  try{
+    if(!(typeof _isJack==='function'&&_isJack()))return null;
+    const so=(window.LV3&&LV3.isReady&&LV3.isReady()&&LV3.__D)?((LV3.__D().settings||{}).stockOuts||[]):(_soCache||[]);
+    const open=so.filter(r=>r.kind==='out'&&!r.to);
+    return open.length?open:null;
+  }catch(e){return null;}
+}
+/* Jack, 26 Oct: the Monday review — last week's PLUB stock-outs in one line on Mondays and Tuesdays:
+   how many, how many empty days, the profit lost, and why, so the cause that cost most is obvious */
+function _plubWeek(soIn,todayIn){
+  try{
+    if(!soIn&&!(typeof _isJack==='function'&&_isJack()))return null;
+    const today=todayIn||ukDayISO(),t=new Date(today+'T12:00:00'),wd=t.getDay();
+    if(!todayIn&&!(wd===1||wd===2))return null;
+    const add=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
+    const mon=add(today,-((wd+6)%7)-7),sun=add(mon,6);
+    const so=soIn||((window.LV3&&LV3.isReady&&LV3.isReady()&&LV3.__D)?((LV3.__D().settings||{}).stockOuts||[]):(_soCache||[]));
+    const rows=[];
+    so.forEach(r=>{if(r.kind!=='out'||!r.from)return;
+      const f=r.from>mon?r.from:mon,e=(r.to||today)<sun?(r.to||today):sun;if(f>e)return;
+      const days=Math.round((new Date(e+'T12:00:00')-new Date(f+'T12:00:00'))/864e5)+1;
+      const c=String((r.cause||[])[0]||'');
+      rows.push({name:r.name,days,lost:days*(r.pace||0)*(r.pu||0),why:/^send/i.test(c)?'send':/part/i.test(c)?'part':/jump/i.test(c)?'jump':'other'});});
+    if(!rows.length)return {mon,sun,n:0,days:0,lost:0,groups:{}};
+    const groups={};rows.forEach(x=>{(groups[x.why]=groups[x.why]||[]).push(x);});
+    return {mon,sun,n:new Set(rows.map(x=>x.name)).size,days:rows.reduce((t,x)=>t+x.days,0),lost:rows.reduce((t,x)=>t+x.lost,0),groups};
+  }catch(e){return null;}
+}
 function _plubUnopened(){
   try{
     if(!(typeof _isJack==='function'&&_isJack()))return false;
@@ -28,7 +60,7 @@ function _plubUnopened(){
     if(_acSeenCache&&Date.now()-_acSeenAt<6e5)return LV3.acUkMissing(_acSeenCache);
     if(!_acSeenBusy&&typeof sb!=='undefined'){_acSeenBusy=true;
       sb.from('app_settings').select('value').eq('key','lavarion_prefs').maybeSingle().then(r=>{
-        try{const v=JSON.parse((r&&r.data&&r.data.value)||'{}');_acSeenCache=v.acSeen||{};_acLateCache=v.acLateSnap||null;}catch(e){_acSeenCache={};}
+        try{const v=JSON.parse((r&&r.data&&r.data.value)||'{}');_acSeenCache=v.acSeen||{};_acLateCache=v.acLateSnap||null;_soCache=v.stockOuts||null;}catch(e){_acSeenCache={};}
         _acSeenAt=Date.now();_acSeenBusy=false;try{renderDashboard();}catch(e){}
       },()=>{_acSeenBusy=false;});}
     return false;
@@ -419,6 +451,19 @@ function renderDashboard(){
     _plubUnopened()?_ban('#f87171','PLUB Action centre — not opened by the UK team today',
       'It is past 12:00 and nobody from the UK team has opened it. Sends and orders are waiting.',
       'Open',"navToPage('lavarion');setTimeout(()=>{try{LV3.go('overview')}catch(e){}},300)"):'',
+    (()=>{const w=_plubWeek();if(!w)return '';
+      const ds=d=>{const p=String(d).split('-');return p[2]+'/'+p[1];};
+      if(!w.n)return _ban('#22c55e','Last week ('+ds(w.mon)+'–'+ds(w.sun)+'): no PLUB product ran out at Amazon','Nothing went empty — the stock-out record is clear for the week.','Open',"navToPage('lavarion');setTimeout(()=>{try{LV3.go('health')}catch(e){}},300)");
+      const lab={send:['send','sends went too late'],part:['part','parts not in time'],jump:['jump','sales jumped'],other:['other','other']};
+      const why=Object.keys(w.groups).sort((a,b)=>w.groups[b].reduce((t,x)=>t+x.lost,0)-w.groups[a].reduce((t,x)=>t+x.lost,0))
+        .map(k=>{const g=w.groups[k].slice().sort((x,y)=>y.lost-x.lost),names=[...new Set(g.map(x=>x.name))];return names.length+' '+(names.length===1?lab[k][1].replace('sends went','send went').replace('parts not','part not'):lab[k][1])+' ('+names.slice(0,4).join(', ')+(names.length>4?' +'+(names.length-4):'')+')';});
+      return _ban('#f59e0b','Last week ('+ds(w.mon)+'–'+ds(w.sun)+'): '+w.n+' PLUB product'+(w.n===1?'':'s')+' ran out · '+w.days+' empty days · ≈ £'+Math.round(w.lost).toLocaleString('en-GB')+' profit lost',
+        'Why: '+why.join(' · '),'Open',"navToPage('lavarion');setTimeout(()=>{try{LV3.go('health')}catch(e){}},300)");})(),
+    (()=>{const o=_plubEmpty();if(!o)return '';const day=o.reduce((t,r)=>t+(r.pace||0)*(r.pu||0),0);
+      const ds=d=>{const p=String(d||'').split('-');return p.length===3?p[2]+'/'+p[1]:'';};
+      return _ban('#ef4444','Empty at Amazon — '+o.length+' PLUB product'+(o.length===1?'':'s'),
+        o.slice().sort((a,b)=>String(b.from).localeCompare(String(a.from))).slice(0,5).map(r=>r.name+(r.from?' since '+ds(r.from):'')).join(' · ')+(o.length>5?' +'+(o.length-5):'')+(day>=0.5?' · ≈ £'+Math.round(day).toLocaleString('en-GB')+' a day':''),
+        'Open',"navToPage('lavarion');setTimeout(()=>{try{LV3.go('health')}catch(e){}},300)");})(),
     (()=>{const s=_plubLate();if(!s)return '';const tot=s.list.reduce((t,x)=>t+(x.s||0),0);
       return _ban('#ef4444','PLUB orders past their date — '+s.list.length,
         s.list.slice(0,6).map(x=>x.t+(x.d?' '+x.d+'d':'')).join(' · ')+(s.list.length>6?' +'+(s.list.length-6):'')+(tot?' · ≈ £'+tot.toLocaleString('en-GB')+' lost even if ordered today':''),

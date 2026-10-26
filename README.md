@@ -284,3 +284,16 @@ Now:
 - **Stock health page** (new tab): stock-outs scored by month and cause, a 12-month strip, every record; sold nothing with stock; overstock at Amazon (> 90 days) and in the warehouse (> 180 days) at cost; slowing lines.
 - **Products**: Sold 7d / 30d say "empty N of 7 days"; Per day says which clock, ↑ / ↓, with every pace on hover.
 - SellerFuse check: carries the 14-day sales (`units14`).
+
+## v55.7 · b619 (26 Oct 2026, late): the Build & send line as a card
+- Jack: "too messy — can barely see the title and ASIN". Each send line: product name (bold) and ASIN (click to copy) first, the send figure on the right with how long it lasts; one plain sentence (runs out ~date · a send today sells from ~date); one aligned row of figures (sells a day, at Amazon + on the way, stock lasts / empty for, profit a day, lost so far, still to lose); a parts shortage on its own amber line; pause / snooze as small links in the footer. Snoozed and done lines keep the compact row.
+
+## v55.8 · b620 (26 Oct 2026, night)
+- Prep Sheet: "On the shelf, not sent" + "Booked in today" removed — the COG In Transit tile is back (Jack: "go back").
+- Order lanes: a line 3 working days past its date says ORDER NOW / SHOP RUN NOW · N DAYS LATE (CHASE was wrong — nothing to chase on a line nobody ordered).
+- Send-to-sellable time measured from the SellerFuse check's receipts (created → last received, +1 working day). The plan uses the SLOWER of Jack's figure and the slowest recent send — it only ever goes up ("much rather overestimate"). Shown under the figure in Settings.
+- Stuck at Amazon: PLUB shipments over 7 days with under 95% received — on Stock health and on the send card.
+- Dashboard (Jack): "Empty at Amazon — N PLUB products" from the stock-out record.
+- Weekly from the check: ads share (send-card footer). (Buy Box was built and taken out — Jack: not needed for PLUB listings.)
+- Dashboard (Jack, Mondays and Tuesdays): last week's PLUB stock-outs in one line — how many, empty days, ≈ £ profit lost, and why (sends too late / parts not in time / sales jumped), biggest cost first.
+- Working days skip England & Wales bank holidays as well as weekends (collections are 9–5 weekdays only) — UK_BH in lavarion.js, 2026–2028.
