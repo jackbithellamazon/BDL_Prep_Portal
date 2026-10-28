@@ -2006,8 +2006,8 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .rsLast b,.lav3 .rsLast b{color:var(--text);}
 
 /* ── Action centre by job (23 Oct 2026) ── */
-#page-lavarion .acKpis{grid-template-columns:repeat(6,minmax(0,1fr));}
-@media(max-width:1100px){#page-lavarion .acKpis{grid-template-columns:repeat(3,minmax(0,1fr));}}
+#page-lavarion .acKpis{grid-template-columns:repeat(7,minmax(0,1fr));}
+@media(max-width:1100px){#page-lavarion .acKpis{grid-template-columns:repeat(4,minmax(0,1fr));}}
 #page-lavarion .acKpis .kpi{box-shadow:inset 0 3px 0 var(--rail);}
 #page-lavarion .acSeen{font-size:11.5px;color:var(--text3);margin:-2px 2px 10px;}
 #page-lavarion .acSeen b{color:var(--text2);}
@@ -2232,3 +2232,63 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .acxS .sWarn b{color:#93c5fd;}
 #page-lavarion .engLearn{font-size:11.5px;color:var(--text2);padding:6px 0 10px 76px;border-bottom:1px solid var(--border);line-height:1.5;}
 #page-lavarion .engLearn b{color:var(--text);}
+
+/* 26 Oct 2026 (b621) — the send card, visual pass: deliberate colour, tiles, the plan on the Send box */
+#page-lavarion .acx.acxS{padding:16px 18px 12px;}
+#page-lavarion .acxS .sName{gap:7px;}
+#page-lavarion .acxS .sName b{font:800 16px var(--sans);letter-spacing:-.01em;}
+#page-lavarion .acxS .sTags{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#page-lavarion .acxS .sTags .acxChip{font:800 10px var(--sans);letter-spacing:.06em;padding:4px 9px;border-radius:6px;
+  color:color-mix(in srgb,var(--c) 62%,#fff);background:color-mix(in srgb,var(--c) 15%,transparent);border:1px solid color-mix(in srgb,var(--c) 48%,transparent);}
+#page-lavarion .acxS .sAsin{display:inline-flex;align-items:center;gap:6px;align-self:auto;padding:3px 8px 3px 9px;border-radius:6px;cursor:pointer;
+  font:700 12px var(--num);font-variant-numeric:tabular-nums;letter-spacing:.05em;color:#93c5fd;
+  background:rgba(96,165,250,.10);border:1px solid rgba(96,165,250,.34);transition:background .15s,border-color .15s,color .15s;}
+#page-lavarion .acxS .sAsin .sAsinT{user-select:all;-webkit-user-select:all;}
+#page-lavarion .acxS .sAsin svg{opacity:.75;flex:0 0 auto;}
+#page-lavarion .acxS .sAsin:hover{background:rgba(96,165,250,.18);border-color:rgba(96,165,250,.6);color:#bfdbfe;}
+#page-lavarion .acxS .sAsin:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+#page-lavarion .acxS .sAsin.ok{color:#86efac;background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.45);}
+#page-lavarion .acxS .sSend{gap:5px;min-width:120px;}
+#page-lavarion .acxS .sSend .acxSendN{min-width:120px;font:900 15px var(--num);padding:10px 18px;border-radius:10px;background:#86efac;color:#0b1f12;
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.12);}
+#page-lavarion .acxS .sPlan{width:120px;height:5px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;}
+#page-lavarion .acxS .sPlan i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#fbbf24,#fcd34d);}
+#page-lavarion .acxS .sSend small{font-size:11px;color:var(--text2);}
+#page-lavarion .acxS .sSend small b{color:#fcd34d;font-weight:800;}
+#page-lavarion .acxS .sSend small.sFull{color:#86efac;font-weight:700;}
+#page-lavarion .acxS .sSay{display:block;margin:10px 0 12px;font-size:13px;color:var(--text2);line-height:1.45;}
+#page-lavarion .acxS .sGrid{gap:8px;background:none;border:0;border-radius:0;overflow:visible;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));}
+#page-lavarion .acxS .sCell{background:var(--bg3);border:1px solid var(--border);border-top:2px solid var(--tc);border-radius:10px;padding:9px 11px 10px;gap:3px;}
+#page-lavarion .acxS .sCell i{font:800 9.5px var(--sans);color:#b6c2d4;}
+#page-lavarion .acxS .sCell b{font:800 19px var(--num);}
+#page-lavarion .acxS .sCell small{font-size:11px;color:var(--text2);}
+#page-lavarion .acxS .sShort{display:flex;align-items:flex-start;gap:9px;margin-top:10px;padding:9px 12px;border-radius:9px;font-size:12.5px;line-height:1.45;
+  color:var(--text2);background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.36);}
+#page-lavarion .acxS .sShort .sIc{color:#fbbf24;flex:0 0 auto;margin-top:1px;display:inline-flex;}
+#page-lavarion .acxS .sShort b{color:#fcd34d;}
+#page-lavarion .acxS .sShort .sWhen{display:inline-block;margin-left:2px;font:800 10.5px var(--sans);letter-spacing:.04em;text-transform:uppercase;color:#fcd34d;
+  padding:1px 7px;border-radius:5px;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.45);}
+#page-lavarion .acxS .sFoot{margin-top:10px;gap:12px;}
+#page-lavarion .acxS .sSrc{font-size:11px;color:var(--text3);line-height:1.6;}
+#page-lavarion .acxS .sAd{display:inline-block;font:800 10px var(--sans);letter-spacing:.04em;color:#d8b4fe;padding:1px 7px;border-radius:5px;
+  background:rgba(192,132,252,.12);border:1px solid rgba(192,132,252,.4);margin-left:4px;cursor:help;}
+#page-lavarion .acxS .sDot{color:var(--text3);}
+#page-lavarion .acxS .sActs{gap:6px;}
+#page-lavarion .acxS .sBtn{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font:700 11px var(--sans);
+  color:var(--text2);background:var(--bg3);border:1px solid var(--border2);cursor:pointer;transition:background .15s,border-color .15s,color .15s;}
+#page-lavarion .acxS .sBtn:hover{background:var(--bg4);border-color:var(--accent);color:var(--text);}
+#page-lavarion .acxS .sBtn svg{opacity:.8;}
+#page-lavarion .acxS .sLimit{display:flex;align-items:center;gap:12px;margin-top:10px;padding:10px 14px;border-radius:10px;
+  background:linear-gradient(90deg,rgba(251,191,36,.10),rgba(251,191,36,.04));border:1px solid rgba(251,191,36,.38);}
+#page-lavarion .acxS .sLimit .sIc{color:#fbbf24;display:inline-flex;flex:0 0 auto;width:30px;height:30px;align-items:center;justify-content:center;
+  border-radius:8px;background:rgba(251,191,36,.14);}
+#page-lavarion .acxS .sLimT{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+#page-lavarion .acxS .sLimH{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+#page-lavarion .acxS .sLimH i{font:800 9.5px var(--sans);font-style:normal;letter-spacing:.08em;text-transform:uppercase;color:#fcd34d;}
+#page-lavarion .acxS .sLimH b{font:800 14px var(--sans);color:var(--text);}
+#page-lavarion .acxS .sLimS{font-size:12.5px;color:var(--text2);}
+#page-lavarion .acxS .sLimS b{color:var(--text);font-weight:800;font-variant-numeric:tabular-nums;}
+#page-lavarion .acxS .sLimS b.w{color:#fcd34d;}
+#page-lavarion .acxS .sLimSt{flex:0 0 auto;font:800 10.5px var(--sans);letter-spacing:.05em;padding:5px 10px;border-radius:7px;white-space:nowrap;cursor:help;
+  color:color-mix(in srgb,var(--h) 60%,#fff);background:color-mix(in srgb,var(--h) 15%,transparent);border:1px solid color-mix(in srgb,var(--h) 50%,transparent);}
+@media(max-width:700px){#page-lavarion .acxS .sLimit{flex-wrap:wrap;}}

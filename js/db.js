@@ -26,6 +26,11 @@ let _historyReady=false;
    While the archive is streaming the strip keeps the last complete picture. */
 let _histStreaming=false;
 let _pendingRt=[];       // realtime events for rows not yet merged
+/* 27 Oct 2026 (b622) — Sarah's answers "came back again": they had saved, but her tab was showing an old copy.
+   A refresh was skipped while the archive load was running, and that load had no time limit, so one hung
+   request left the tab skipping every refresh (wake, reconnect, every 15 min, even Sync) until a full reload. */
+let _histGen=0,_histStartAt=0,_lastFresh=0,_resyncAt=0;
+function _withTimeout(p,ms){return Promise.race([p,new Promise(res=>setTimeout(()=>res({data:null,error:{message:'timed out after '+Math.round(ms/1000)+'s'}}),ms))]);}
 let _pendingEan=[];      // EAN lookups deferred until history lands (no Keepa waste)
 let _syncQueued=false;   // a sync requested mid-gap fires at finalize
 let _totalRowCount=0;    // server head-count taken at boot
@@ -105,7 +110,8 @@ async function dbLoad(){
     }
     _totalRowCount=(countRes&&countRes.count)||0;
     rows=(rowsRes.data||[]).map(dbToRow);
-    if(!LEGACY){_histStreaming=true;_historyReady=false;}   /* archive streaming again — realtime for archived rows waits for it (13 Oct 2026) */
+    if(!LEGACY){_histStreaming=true;_historyReady=false;_histGen++;_histStartAt=Date.now();}
+    _lastFresh=Date.now();   /* archive streaming again — realtime for archived rows waits for it (13 Oct 2026) */
     {
       const dbMax=parseInt(maxIdRes&&maxIdRes.data&&maxIdRes.data[0]&&maxIdRes.data[0].local_id)||0;
       const memMax=rows.reduce((m,r)=>{const n=parseInt(r.id);return(Number.isFinite(n)&&n>m)?n:m;},0);
@@ -144,7 +150,8 @@ async function dbLoad(){
       bootSheetSync();
     }else{
       bootSheetSyncPrep();   // row-independent setup only; syncing starts at finalize
-      setTimeout(()=>{_loadHistory().then(ok=>{if(ok)return _finalizeHistory();}).catch(e=>{console.error('[boot] history phase:',e);_histFail();});},0);
+      const _g=_histGen;   /* a later refresh starts a new generation; this one then stands down */
+      setTimeout(()=>{_loadHistory(_g).then(ok=>{if(ok&&_g===_histGen)return _finalizeHistory(_g);}).catch(e=>{console.error('[boot] history phase:',e);if(_g===_histGen)_histFail();});},0);
     }
   }catch(err){
     _histStreaming=false;
@@ -199,7 +206,7 @@ function histGate(){
   return false;
 }
 /* ── PHASE B: stream the archive in behind the painted page ── */
-async function _loadHistory(){
+async function _loadHistory(gen){
   const STEP=1000;
   const estPages=Math.max(1,Math.ceil(Math.max(0,_totalRowCount-rows.length)/STEP));
   let cur=null,page=0,attempt=0;
@@ -208,12 +215,14 @@ async function _loadHistory(){
     return (sp&&sp.classList.contains('active'))||_showArchived;
   }catch(e){return false;}};
   for(;;){
+    if(gen!==undefined&&gen!==_histGen)return false;   /* a newer refresh took over */
     page++;
     _histPill('Loading history \u2014 page '+page+' of ~'+estPages);
     let q=sb.from('prep_rows').select('*').eq('archived',true)
       .order('created_at',{ascending:true}).order('id',{ascending:true}).limit(STEP);
     if(cur)q=q.or(`created_at.gt.${cur.ca},and(created_at.eq.${cur.ca},id.gt.${cur.id})`);
-    const r=await q;
+    const r=await _withTimeout(q,20000);   /* a request that never answers counts as a failed attempt */
+    if(gen!==undefined&&gen!==_histGen)return false;
     if(r.error){
       attempt++;
       if(attempt>=5){_histFail();return false;}
@@ -261,7 +270,8 @@ function _bundleFixOnce(){
   }
 }
 /* ── FINALIZE: runs once, after the last archive page ── */
-async function _finalizeHistory(){
+async function _finalizeHistory(gen){
+  if(gen!==undefined&&gen!==_histGen)return;
   /* (a) canonical order — the legacy boot delivered created_at asc. Stable
      sort; locally-created pre-echo rows (no _ca) sort last on purpose.
      Order is explicitly OUT of contract — every paint re-sorts anyway. */
@@ -300,16 +310,16 @@ async function _finalizeHistory(){
      rows. Never a silent shrug, never a full refetch. */
   try{
     const memCount=()=>rows.filter(x=>x.uuid).length;
-    let c2=await sb.from('prep_rows').select('id',{count:'exact',head:true});
+    let c2=await _withTimeout(sb.from('prep_rows').select('id',{count:'exact',head:true}),20000);
     if(!c2.error&&c2.count!==memCount()){
       await _sleep(2000);
-      c2=await sb.from('prep_rows').select('id',{count:'exact',head:true});
+      c2=await _withTimeout(sb.from('prep_rows').select('id',{count:'exact',head:true}),20000);
       if(!c2.error&&c2.count!==memCount()){
         const srv=new Set();let cur=null;
         for(;;){
           let q=sb.from('prep_rows').select('id,created_at').order('created_at',{ascending:true}).order('id',{ascending:true}).limit(1000);
           if(cur)q=q.or(`created_at.gt.${cur.ca},and(created_at.eq.${cur.ca},id.gt.${cur.id})`);
-          const r=await q;if(r.error)break;
+          const r=await _withTimeout(q,20000);if(r.error)break;
           (r.data||[]).forEach(d=>srv.add(d.id));
           if((r.data||[]).length<1000)break;
           const last=r.data[r.data.length-1];cur={ca:last.created_at,id:last.id};
@@ -319,7 +329,7 @@ async function _finalizeHistory(){
         const extras=[...have].filter(id=>!srv.has(id));
         if(extras.length)console.warn('[boot] finalize: '+extras.length+' in-memory row(s) no longer on the server (deleted remotely):',extras.slice(0,5));
         for(let o=0;o<missing.length;o+=100){
-          const r=await sb.from('prep_rows').select('*').in('id',missing.slice(o,o+100));
+          const r=await _withTimeout(sb.from('prep_rows').select('*').in('id',missing.slice(o,o+100)),20000);
           if(!r.error)(r.data||[]).forEach(d=>{if(!rows.some(x=>x.uuid===d.id))rows.push(dbToRow(d));});
         }
         if(missing.length){console.warn('[boot] finalize: fetched '+missing.length+' missed row(s)');try{logAudit('Boot self-heal',missing.length+' row(s) fetched at finalize');}catch(e){}}
@@ -327,6 +337,7 @@ async function _finalizeHistory(){
     }
   }catch(e){console.warn('[boot] integrity check:',e);}
   /* (f) open the gates */
+  if(gen!==undefined&&gen!==_histGen)return;
   _historyReady=true;
   _histStreaming=false;
   _histPill(null);
@@ -986,19 +997,27 @@ const resyncUI={
 };
 let _aliveTick=Date.now(),_resyncBusy=false,_resyncQueued=false;
 async function resyncNow(why,quiet){
-  if(_resyncBusy)return;
-  if(_histStreaming)return;                 /* the last reload's archive is still streaming in — one at a time */
-  /* mid-edit is a bad moment to swap the data out from under a modal — wait */
-  if(document.querySelector('.overlay.open')){
-    if(!quiet&&!_resyncQueued){_resyncQueued=true;
-      setTimeout(()=>{_resyncQueued=false;resyncNow(why);},60000);}
-    return;
+  const _later=ms=>{if(!_resyncQueued){_resyncQueued=true;setTimeout(()=>{_resyncQueued=false;resyncNow(why,quiet);},ms);}};
+  /* b622: a refresh or archive load stuck for 2 minutes is restarted, not waited on for ever */
+  if(_resyncBusy){
+    if(Date.now()-_resyncAt<120000)return;
+    console.warn('[resync] the last refresh never finished — starting again');_resyncBusy=false;
   }
-  _resyncBusy=true;
+  if(_histStreaming){
+    if(Date.now()-_histStartAt<120000){_later(30000);return;}   /* one at a time — try again shortly, never just drop it */
+    console.warn('[resync] the archive load is stuck — starting again');
+    try{logAudit('Archive load stuck','restarted after '+Math.round((Date.now()-_histStartAt)/60000)+' min');}catch(e){}
+    _histStreaming=false;_histGen++;try{_histPill(null);}catch(e){}
+  }
+  /* mid-edit is a bad moment to swap the data out from under a modal — wait, and come back (quiet ones too) */
+  if(document.querySelector('.overlay.open')){_later(60000);return;}
+  _resyncBusy=true;_resyncAt=Date.now();
   try{
     if(!quiet)resyncUI.show(why);
     if(!quiet)resyncUI.step(18,'Saving anything you typed that had not gone up yet');
     try{flushPending();}catch(e){}
+    /* a laptop that slept comes back with dead websockets — rebuild them before reading */
+    if(/asleep|background|connection|refreshed since/i.test(String(why||''))){try{await reviveRealtime();}catch(e){}}
     if(!quiet)resyncUI.step(38,'Downloading the latest of everything');
     await dbLoad();
     if(!quiet)resyncUI.step(82,'Redrawing every page');
@@ -1050,6 +1069,21 @@ function watchForSleep(){
      that never fires — a full quiet re-pull every 15 minutes caps how stale
      any screen can possibly be at 15 minutes, instead of a whole morning */
   setInterval(()=>{if(!document.hidden)resyncNow('routine check',true);},15*60*1000);
+  /* b622: never sit on an old copy in silence — after 30 minutes without a fresh read, say so and try again */
+  setInterval(()=>{
+    if(document.hidden||!_lastFresh)return;
+    const age=Date.now()-_lastFresh,bar=document.getElementById('staleBar');
+    if(age<30*60*1000){if(bar)bar.remove();return;}
+    if(!bar){
+      const t=new Date(_lastFresh).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/London'});
+      const el=document.createElement('div');el.id='staleBar';
+      el.style.cssText='position:fixed;top:46px;left:50%;transform:translateX(-50%);z-index:9996;background:#2a1d05;border:1px solid #f59e0b;color:#fde68a;font:600 12px var(--sans,system-ui);padding:8px 12px;border-radius:9px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.4);';
+      el.innerHTML='&#9888; This page last read the database at <b style="color:#fff">'+t+'</b> — what you see may be out of date. <button onclick="location.reload()" style="background:#f59e0b;border:0;color:#1a1400;border-radius:6px;padding:4px 10px;font-weight:800;cursor:pointer">Reload</button>';
+      document.body.appendChild(el);
+      try{logAudit('Page went stale','no fresh read for '+Math.round(age/60000)+' min');}catch(e){}
+    }
+    resyncNow('not refreshed since '+new Date(_lastFresh).toISOString().slice(11,16),true);
+  },60*1000);
 }
 
 /* setupRealtime runs ONCE at boot. A laptop that sleeps for hours can come

@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v55.9 · lav3 · 2026-10-26 · b621';
+const BUILD='v56.0 · lav3 · 2026-10-27 · b622';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -3551,14 +3551,30 @@ function vOverview(){
       t:`${day.toFixed(2)} a day × £${L.pu.toFixed(2)} a unit${typical?' — no SellerFuse margin for this one yet, so the middle of your PLUB range':''}${u.sales!=null?` · sales ≈ ${money(u.sales)} a day`:''}`});
     if(L.lostSoFar>0)cells.push({l:L.capped?'Lost (60 days)':'Lost so far',v:'≈ '+money(L.lostSoFar),c:'#f87171',s:'while empty',t:`${fmt(Math.min(L.emptyDays,60))} days × ${day.toFixed(2)} a day × £${L.pu.toFixed(2)}`});
     if(L.toLose>0)cells.push({l:'Still to lose',v:'≈ '+money(L.toLose),c:'#fdba74',s:'even if sent today',t:`${fmt(L.gapDays)} empty day${L.gapDays===1?'':'s'} before a send today sells × ${day.toFixed(2)} × £${L.pu.toFixed(2)}`});
-    const shortTxt=r.alloc<r.rec?((r.lim&&p.type==='bundle')?`Can build <b>${fmt(r.alloc)} of ${fmt(r.rec)}</b> — short of <b>${esc(r.lim.name)}</b>. The rest goes once it lands.`
-      :`<b>${fmt(r.alloc)} of ${fmt(r.rec)}</b> — that is all the stock here.`):'';
+    /* Jack, 26 Oct: "we ideally should be sending what the planner wants us to cover" — Send IS the plan;
+       it only drops when a part is short, so say what the plan is and when the rest can go */
+    /* Jack, 26 Oct: "say it's limited in this bit — this could look and read so much better" — what limits the
+       send, how many it costs, and where that part stands, as its own block */
+    let limit=null;
+    if(r.alloc<r.rec){const part=(r.lim&&p.type==='bundle')?r.lim:p,_Lp=(plData().byComp||{})[part.id]||null;
+      const shop=((D.settings.supplierModes||{})[String(compSupplier(part)||'').toLowerCase().trim()])==='collect';
+      const eta=(part.layers||[]).filter(l=>!l.arr&&!l.writtenOff).map(l=>String(l.eta2||l.eta1||'').slice(0,10)).filter(Boolean).sort()[0];
+      let st=null;
+      if(_Lp){
+        if(_Lp.state==='noroute')st=['NO SUPPLIER ROUTE','#f87171','set the supplier lead time on your page and the order date appears'];
+        else if(_Lp.state==='nosup')st=['NO SUPPLIER SET','#f87171','give this part a supplier on your page'];
+        else if((_Lp.pendQty||0)>0)st=[`ON ORDER · ${fmt(_Lp.pendQty)}${eta?' · DUE '+dshort(eta):''}`,'#60a5fa','already ordered — it arrives on the Receive list'];
+        else if(_Lp.buyByDays!=null&&_Lp.buyByDays<0)st=[`${shop?'SHOP RUN':'ORDER'} NOW · ${fmt(-_Lp.buyByDays)} DAY${_Lp.buyByDays===-1?'':'S'} LATE`,'#f87171','on the order list now'];
+        else if(_Lp.buyByDays===0)st=[shop?'SHOP RUN TODAY':'ORDER TODAY','#fb923c','on the order list now'];
+        else if(_Lp.buyBy)st=[`${shop?'SHOP RUN':'ORDER'} BY ${dshort(_Lp.buyBy)}`,'#fbbf24','in time — the send that can go now covers until then'];}
+      limit={name:esc(part.name),self:part===p,have:r.alloc,plan:r.rec,wait:r.rec-r.alloc,st};}
     const warn=[];
     const ad=((D.settings.sfAds||{}).by||{})[String(p.asin||'').toUpperCase()],u30=(sfSoldOf(p)||{}).u30;
     const adTxt=ad&&ad.units>0&&u30>0?`ads: ${fmt(ad.units)} of ${fmt(u30)} sales (${fmt(Math.min(100,Math.round(100*ad.units/u30)))}%)`:'';
-    const card={asin:p.asin,name:esc(p.name),say,cells,short:shortTxt,warn,
+    const card={asin:p.asin,name:esc(p.name),say,cells,limit,warn,plan:{alloc:r.alloc,rec:r.rec},
+      ad:ad&&ad.units>0&&u30>0?{pct:Math.min(100,Math.round(100*ad.units/u30)),units:ad.units,u30,tacos:ad.tacos}:null,
       lasts:u.lasts!=null&&r.alloc>0?`lasts ~${fmt(Math.max(1,Math.round(u.lasts)))} days`:'',
-      foot:[`<span title="${esc(paceTip(pc))}">${esc(d.label||'')}</span>`,pc.sizeWhy?`sized on the fastest pace — ${esc(pc.sizeWhy)}`:'',adTxt?`<span title="Sponsored Products units over 30 days (SellerFuse, weekly)${ad.tacos!=null?' · TACOS '+ad.tacos+'%':''}">${adTxt}</span>`:''].filter(Boolean).join(' · ')};
+      foot:[`<span title="${esc(paceTip(pc))}">${esc(d.label||'')}</span>`,pc.sizeWhy?`sized on the fastest pace — ${esc(pc.sizeWhy)}`:''].filter(Boolean).join(' · ')};
     const sendBy=!losing&&!covered?(u.slack<0?`<b style="color:#fdba74">lands with ${fmt(Math.max(0,Math.floor(u.end-fbaCalDays())))} of the ${u.saf} buffer days left</b>`:u.slack===0?'<b>send today</b>':`send by <b>${dshort(u.by)}</b>`):'';
     put('send',{k:'send_'+p.id,urg:losing?0:covered?2:1,
       val:losing?(u.profit!=null?u.profit:day):(-(u.slack||0)*1000+(u.profit||0)),lostDay:lossOfRows([r]).lost,
@@ -3661,17 +3677,30 @@ function vOverview(){
     const chip=s0==='snz'?[`SNOOZED TILL ${dshort(z.until)}`,'#94a3b8']:s0==='done'?['DONE','#4ade80']:x.chip;
     if(x.card&&s0==='todo'){const C=x.card;
       const age=x.age>0?`<span class="acxAge${x.age>=2?' late':''}" title="On this list since ${dshort((D.settings.acFirst[x.k]||{}).f)}">on the list ${fmt(x.age)} working day${x.age===1?'':'s'}${x.age>=2?' ▲':''}</span>`:'';
+      const IC={copy:'<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="1.8"/><path d="M10.5 5V3.6A1.6 1.6 0 0 0 8.9 2H3.6A1.6 1.6 0 0 0 2 3.6v5.3a1.6 1.6 0 0 0 1.6 1.6H5"/></svg>',
+        pause:'<svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor" aria-hidden="true"><rect x="4" y="3" width="2.6" height="10" rx=".8"/><rect x="9.4" y="3" width="2.6" height="10" rx=".8"/></svg>',
+        clock:'<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.8V8l2.2 1.6"/></svg>',
+        box:'<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2.5 5 8 2.2 13.5 5v6L8 13.8 2.5 11z"/><path d="M2.5 5 8 7.8 13.5 5M8 7.8v6"/></svg>'};
+      const P=C.plan||{},short=P.rec>0&&P.alloc<P.rec,pct=P.rec?Math.max(4,Math.round(100*P.alloc/P.rec)):100;
       return `<div class="acx acxS" style="--c:${chip[1]};">
         <div class="sHead">${num?`<span class="acxNum">${num}</span>`:''}
-          <div class="sName"><b>${C.name}</b><span class="sAsin" title="Click to copy the ASIN" onclick="event.stopPropagation();navigator.clipboard&&navigator.clipboard.writeText('${C.asin}');try{toast('Copied ${C.asin}','ok')}catch(e){}">${C.asin}</span></div>
-          ${x.big?`<div class="sSend"><span class="acxSendN" title="${esc(x.big[1])}">${esc(x.big[0])}</span>${C.lasts?`<small>${C.lasts}</small>`:''}</div>`:''}
+          <div class="sName"><b>${C.name}</b>
+            <div class="sTags"><span class="acxChip">${chip[0]}</span>
+              <span class="sAsin" role="button" tabindex="0" title="Copy the ASIN" onclick="event.stopPropagation();LV3.copyAsin(this,'${C.asin}')" onkeydown="if(event.key==='Enter')LV3.copyAsin(this,'${C.asin}')"><span class="sAsinT">${C.asin}</span>${IC.copy}</span></div>
+          </div>
+          ${x.big?`<div class="sSend"><span class="acxSendN" title="${esc(x.big[1])}">${esc(x.big[0])}</span>
+            ${short?`<div class="sPlan" title="${fmt(P.alloc)} can be built now — the plan is ${fmt(P.rec)}"><i style="width:${pct}%"></i></div><small><b>${fmt(P.alloc)}</b> of ${fmt(P.rec)} planned</small>`:`<small class="sFull">the full plan</small>`}
+            ${C.lasts?`<small>${C.lasts}</small>`:''}</div>`:''}
         </div>
-        <div class="sSay"><span class="acxChip">${chip[0]}</span><span>${C.say}</span></div>
-        <div class="sGrid">${C.cells.map(c=>`<div class="sCell"${c.t?` title="${esc(c.t)}"`:''}><i>${c.l}</i><b${c.c?` style="color:${c.c}"`:''}>${c.v}</b>${c.s?`<small${c.sc?` style="color:${c.sc}"`:''}>${c.s}</small>`:''}</div>`).join('')}</div>
-        ${C.short?`<div class="sShort">${C.short}</div>`:''}
+        <div class="sSay">${C.say}</div>
+        <div class="sGrid">${C.cells.map(c=>`<div class="sCell" style="--tc:${c.c||'rgba(255,255,255,.10)'}"${c.t?` title="${esc(c.t)}"`:''}><i>${c.l}</i><b${c.c?` style="color:${c.c}"`:''}>${c.v}</b>${c.s?`<small${c.sc?` style="color:${c.sc}"`:''}>${c.s}</small>`:''}</div>`).join('')}</div>
+        ${C.limit?`<div class="sLimit"><span class="sIc">${IC.box}</span>
+          <div class="sLimT"><div class="sLimH"><i>${C.limit.self?'Limited by stock here':'Limited by'}</i>${C.limit.self?'':`<b>${C.limit.name}</b>`}</div>
+            <div class="sLimS">Enough for <b>${fmt(C.limit.have)}</b> of the <b>${fmt(C.limit.plan)}</b> planned · <b class="w">${fmt(C.limit.wait)}</b> wait for ${C.limit.self?'more stock':'it'}</div></div>
+          ${C.limit.st?`<span class="sLimSt" style="--h:${C.limit.st[1]}" title="${esc(C.limit.st[2])}">${C.limit.st[0]}</span>`:''}</div>`:''}
         ${(C.warn||[]).map(w=>`<div class="sShort sWarn">${w}</div>`).join('')}
-        <div class="sFoot"><span class="sSrc">${C.foot}${age?' · ':''}${age}</span>
-          <span class="sActs">${x.btns.map(b=>`<button class="sLink" onclick="LV3.${b[2]}">${esc(b[0])}</button>`).join('')}<button class="sLink" onclick="LV3.acSnoozeMenu('${x.k}',this)">Snooze &#9662;</button></span></div>
+        <div class="sFoot"><span class="sSrc">${C.foot}${C.ad?` <span class="sAd" title="${fmt(C.ad.units)} of ${fmt(C.ad.u30)} sales in 30 days came through a Sponsored Products ad (SellerFuse, weekly)${C.ad.tacos!=null?' · TACOS '+C.ad.tacos+'%':''}">${C.ad.pct}% from ads</span>`:''}${age?` <span class="sDot">·</span> ${age}`:''}</span>
+          <span class="sActs">${x.btns.map(b=>`<button class="sBtn" onclick="LV3.${b[2]}">${/pause/i.test(b[0])?IC.pause:''}${esc(b[0])}</button>`).join('')}<button class="sBtn" onclick="LV3.acSnoozeMenu('${x.k}',this)">${IC.clock}Snooze</button></span></div>
       </div>`;}
     return `<div class="acx${s0==='todo'?'':' dim'}" style="--c:${chip[1]};">
       <div class="acxMain">
@@ -3734,6 +3763,7 @@ function vOverview(){
     ${kpi2('orderj','Jack to order',nTodo('orderj'),'#a78bfa','Alibaba')}
     ${kpi2('snz','Snoozed',snzAll.length,'#94a3b8','they come back on their day')}
     ${kpi2('done','Today',doneToday.length,'#4ade80','sent · received · ordered · snoozed · moved')}
+    ${(()=>{const W=whNow();return `<div class="kpi clk" style="--rail:#fbbf24" title="PLUB parts on the shelf, not sent yet, at what they cost${W.noCost?` — ${fmt(W.noCost)} units have no cost yet, so it is a little more`:''} · click for the biggest by £" onclick="LV3.go('health');setTimeout(()=>{const e=[...document.querySelectorAll('.shPanel .ph .t')].find(x=>/In the warehouse now/.test(x.textContent));if(e)e.scrollIntoView({block:'start'});},250)"><div class="k">Warehouse stock</div><div class="v" style="color:#fbbf24">£${fmt(Math.round(W.v))}</div><div class="s">${fmt(Math.round(W.u))} units at cost · £${fmt(Math.round(W.ordV))} on order</div></div>`;})()}
   </div>
   <div class="acSeen">${seenTxt.length?'Opened today: <b>'+seenTxt.join('</b> · <b>')+'</b>':'<b style="color:#fbbf24">Not opened by anyone today yet</b>'}</div>
   ${(()=>{const az=(M.PE&&M.PE.az)||{rows:[]};const rows=(az.rows||[]).filter(r=>!['waiting','safe','paused','nodata','nocount'].includes(r.state));
@@ -11568,6 +11598,18 @@ function unitCostOf(p){
 }
 function soDays(r){if(!r.from)return null;const t=r.to||dayISO();return Math.max(1,Math.round((new Date(t+'T00:00:00')-new Date(r.from+'T00:00:00'))/864e5)+1);}
 function soLost(r){const n=soDays(r);return (n&&r.pace&&r.pu)?Math.min(n,60)*r.pace*r.pu:0;}
+/* Jack, 26 Oct: "how much COG is in the warehouse / backstock of bundles, not shipped — PLUB only".
+   PLUB builds bundles at send time, so the shelf is parts: arrived FIFO layers at what they cost. */
+function whNow(){
+  const W={u:0,v:0,n:0,noCost:0,ordU:0,ordV:0,rows:[]};
+  D.components.filter(c=>!c.archived&&!c.untracked).forEach(c=>{
+    const L=(c.layers||[]).filter(l=>!l.writtenOff);let u=0,v=0;
+    L.forEach(l=>{const q=+l.rem||0;if(l.arr){u+=q;v+=q*(+l.cost||0);if(q>0&&!(+l.cost>0))W.noCost+=q;}
+      else{const oq=+l.rem||+l.qty||0;W.ordU+=oq;W.ordV+=oq*(+l.cost||0);}});
+    if(u>0){W.n++;W.u+=u;W.v+=v;W.rows.push({c,u,v});}});
+  W.rows.sort((a,b)=>b.v-a.v);
+  return W;
+}
 function vHealth(){
   try{seedJack556();}catch(e){console.warn('stock-out seed',e);}
   const S=D.settings,all=(S.stockOuts||[]).slice();
@@ -11610,14 +11652,7 @@ function vHealth(){
       const season=usedBy(Lp.o.id).some(x=>planSeasonOf(x));
       return{Lp,cov,extra,season,cost:extra*(avgCost(Lp.o)||0)};}).filter(x=>x.cov>180).sort((a,b)=>(a.season?1:0)-(b.season?1:0)||b.cost-a.cost);
   const slowing=(P.az.rows||[]).filter(r=>r.demand&&r.demand.pace&&r.demand.pace.slow);
-  /* what is on the PLUB shelves now, at what it cost — arrived layers, nothing written off */
-  const W={u:0,v:0,n:0,noCost:0,ordU:0,ordV:0,rows:[]};
-  D.components.filter(c=>!c.archived&&!c.untracked).forEach(c=>{
-    const L=(c.layers||[]).filter(l=>!l.writtenOff);let u=0,v=0;
-    L.forEach(l=>{const q=+l.rem||0;if(l.arr){u+=q;v+=q*(+l.cost||0);if(q>0&&!(+l.cost>0))W.noCost+=q;}
-      else{const oq=+l.rem||+l.qty||0;W.ordU+=oq;W.ordV+=oq*(+l.cost||0);}});
-    if(u>0){W.n++;W.u+=u;W.v+=v;W.rows.push({c,u,v});}});
-  W.rows.sort((a,b)=>b.v-a.v);
+  const W=whNow();
   const overAmz=over.reduce((t,x)=>t+x.cost,0),overWh=wh.filter(x=>!x.season).reduce((t,x)=>t+x.cost,0),overWhS=wh.filter(x=>x.season).reduce((t,x)=>t+x.cost,0);
   $('lav3View').innerHTML=`
   <div class="kpis shKpis">
@@ -12244,6 +12279,13 @@ function soSaid(p){
   return R.state||'';
 }
 let _ledgerWait=null;   /* a run applied before the products loaded — recorded on the next paint */
+/* the ASIN chip on a send card: copy it, and say so on the chip for a moment */
+function copyAsin(el,a){
+  try{navigator.clipboard&&navigator.clipboard.writeText(a);}catch(e){}
+  const t=el&&el.querySelector('.sAsinT');if(!t)return;
+  el.classList.add('ok');t.textContent='Copied';
+  setTimeout(()=>{t.textContent=a;el.classList.remove('ok');},1100);
+}
 function stockLedger(run,when){
   if(!D.products.length){_ledgerWait={run,when};return;}
   try{seedJack556();}catch(e){}
@@ -12500,7 +12542,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,refreshShared,reloadData,rtChange,checkStockSafety,__save:()=>save(),__remRpc:()=>_remRpc,__setRemRpc:v=>{_remRpc=v;},settleIssue,sheetSays,relinkOrphans,openSheetDiff,mergeIntoSheetLine,dropDiffLine,cancelDiffLine,ackDiffLine,sheetDiffItems,__persist:()=>persist(),__pushNow:()=>pushNow(),__PURCH:()=>PURCH,__prefsMerge:_prefsMerge,__savePrefs:()=>savePrefs(),__saveState:()=>saveState(),__prefsBase:()=>_prefsBase,__setPrefsBase:v=>{_prefsBase=v;},__ack:()=>ACK,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
-  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,lossOfRows,lossLine,profitSrcOf,fbaCalDays,priceOf,acCopySend,acJump,sfPace,safetyFor,emptyDaysIn,stockLedger,vHealth,coverDaysOf,isWorkDay,workDaysAfter,fbaLearn,primeDays,primeSet,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
+  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,lossOfRows,lossLine,profitSrcOf,fbaCalDays,priceOf,acCopySend,acJump,sfPace,safetyFor,emptyDaysIn,stockLedger,vHealth,coverDaysOf,isWorkDay,workDaysAfter,fbaLearn,primeDays,primeSet,copyAsin,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},

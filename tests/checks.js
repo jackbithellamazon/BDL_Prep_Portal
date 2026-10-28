@@ -1773,7 +1773,7 @@ window.PrepChecks=(function(){
       /* the three figures, on an empty line selling 1 a day at £2 */
       D.settings.planSeason={};D.settings.acPause={};D.settings.hubSkip={};D.settings.stockOuts=[];
       D.settings.sfSold[p.asin]={u30:30,u7:7,at};D.settings.atAmz[p.asin]=0;D.settings.atAmzIn[p.asin]=0;D.settings.atAmzMov[p.asin]=0;
-      D.settings.sfLastSold[p.asin]=isoDay(new Date(now.getTime()-4*864e5));
+      D.settings.sfLastSold[p.asin]=(()=>{const x=new Date(now);x.setDate(x.getDate()-4);return isoDay(x);})();   /* calendar days, not 4×24h (clocks change) */
       r=LV3.__plRow(p);const u=LV3.sendUrgency(r),L=LV3.lossLine(r,u);
       ok(L.empty&&L.emptyDays===4,'empty for 4 days, from the last-sold date — got '+L.emptyDays);
       ok(Math.abs(L.lostSoFar-4*1*2)<0.01,'lost so far = 4 days × 1 a day × £2 — got '+L.lostSoFar);
@@ -1806,7 +1806,7 @@ window.PrepChecks=(function(){
     const isoDay=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
     try{
       const p=D.products.find(x=>!x.archived&&x.asin&&x.type==='bundle');ok(p,'a bundle to test with');if(!p)return;
-      const now=new Date(),at=now.toISOString(),today=isoDay(now),ago=k=>isoDay(new Date(now.getTime()-k*864e5));
+      const now=new Date(),at=now.toISOString(),today=isoDay(now),ago=k=>{const x=new Date(now);x.setDate(x.getDate()-k);return isoDay(x);};
       D.settings.planSeason={};D.settings.acPause={};D.settings.hubSkip={};D.settings.stockOuts=[];D.settings.sfSold=D.settings.sfSold||{};
       /* an old line (first send 200 days ago), so "new line" sizing stays out of it */
       lavShipments.push({_chk:true,asin:p.asin,units:1,date:ago(200),at:new Date(now.getTime()-200*864e5).toISOString(),shipId:'FBA-CHK556'});
@@ -1894,7 +1894,7 @@ window.PrepChecks=(function(){
     const was=(document.querySelector('.page.active')||{}).id||'';
     const isoDay=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
     try{
-      const now=new Date(),ago=k=>isoDay(new Date(now.getTime()-k*864e5));
+      const now=new Date(),ago=k=>{const x=new Date(now);x.setDate(x.getDate()-k);return isoDay(x);};
       const p=D.products.find(x=>!x.archived&&x.asin);ok(p,'a product to test with');if(!p)return;
       const set=LV3.primeSet();
       /* quick sends (2–4 working days) never pull the plan below Jack's figure */
@@ -1922,6 +1922,34 @@ window.PrepChecks=(function(){
       try{LV3.render();}catch(e){}
       if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}
     }
+  };
+
+  /* 89 — b622 (27 Oct): Sarah's answers "came back again" — they had saved; her tab sat on an old copy because
+     every refresh was skipped while a hung archive load said "still loading". A tab must heal itself. */
+  S['v56.0: a stuck tab heals itself — time limits, skipped refreshes come back, stuck loads restart']=async()=>{
+    const st=window.setTimeout;let caught=0;
+    const noLater=async f=>{window.setTimeout=(fn,ms)=>{if(ms>=30000){caught++;return 0;}return st(fn,ms);};try{await f();}finally{window.setTimeout=st;}};
+    try{
+      const t=await _withTimeout(new Promise(()=>{}),200);
+      ok(t&&t.error&&/timed out/.test(t.error.message),'a request that never answers gives up instead of hanging');
+      const ov=document.createElement('div');ov.className='overlay open';document.body.appendChild(ov);
+      _resyncQueued=false;caught=0;await noLater(()=>resyncNow('routine check',true));ov.remove();
+      ok(caught===1,'the 15-minute refresh skipped for an open popup is tried again, not dropped');_resyncQueued=false;
+      _histStreaming=true;_histStartAt=Date.now();caught=0;await noLater(()=>resyncNow('routine check',true));
+      ok(caught===1,'a refresh asked for while the archive is loading is tried again shortly');_resyncQueued=false;
+      /* the archive load that hung 3 minutes ago: the next refresh restarts it and reads the database again */
+      const pick=await sb.from('prep_rows').select('id').eq('archived',false).order('created_at',{ascending:true}).limit(1);   /* a row that is really in the database — not a test row from an earlier check */
+      const r=rows.find(x=>x.uuid===((pick.data||[])[0]||{}).id);ok(r,'a live row to test with');if(!r)return;
+      r.delivered='__stale__';
+      _histStreaming=true;_histStartAt=Date.now()-180000;const g0=_histGen,f0=_lastFresh;
+      await resyncNow('routine check',true);
+      let n=0;while(_histStreaming&&n++<60)await wait(250);
+      const r2=rows.find(x=>x.uuid===r.uuid);
+      ok(_histGen>g0&&_lastFresh>f0,'a load stuck for 3 minutes is restarted and the database is read again');
+      const db=await sb.from('prep_rows').select('delivered,status').eq('id',r.uuid).single();
+      ok(r2&&r2.delivered!=='__stale__'&&db&&db.data&&(r2.delivered||'')===(db.data.delivered||'')&&r2.status===db.data.status,'the stale copy on screen is replaced by what the database holds');
+      ok(!_histStreaming&&_historyReady,'the archive finishes loading afterwards');
+    }finally{window.setTimeout=st;_resyncQueued=false;_resyncBusy=false;}
   };
 
   async function run(only){
