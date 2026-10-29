@@ -310,45 +310,20 @@ function renderDashboard(){
   loadPrepFees();
 
   // ── PREP COST (MTD) ───────────────────────────────────────────────────────
+  /* b628 (Jack, 29 Oct): ONE engine prices every prep £ on this page. Every unit
+     counts in the month it went — Part Sent included, the THIS MONTH card's rule —
+     and every tile uses the month's band: max(3-month average, the month so far).
+     The card said 6,004 units against the tile's 6,541, priced Today/Week at 35p
+     while the month was at 30p, and divided the month by this week's days. */
   const{s:ms,e:me}=getMonthRange();
   function localISOm(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
   const mss=localISOm(ms),mes=localISOm(me);
-  const mtdSentRows=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&r.sentDate>=mss&&r.sentDate<=mes);
-  const mtdSentLav=lavShipments.filter(s=>s.date&&s.date>=mss&&s.date<=mes);
-  const mtdShipIds=new Set([...mtdSentRows.filter(r=>r.shipId).map(r=>r.shipId),...mtdSentLav.filter(s=>s.shipId).map(s=>s.shipId)]);
-  const mtdBoxMap=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>mtdShipIds.has(sid)));
-  _smartExpCache=null;
-  const prepCost=calcImpliedPrepCost(mtdSentRows,mtdSentLav,mtdBoxMap,smartExpectedUnits());
-
-  // Per-shipment costs this week
-  function calcShipmentPrepCost(shipId){
-    const sRows=rows.filter(r=>r.sent==='Yes'&&r.shipId===shipId);
-    const sLav=lavShipments.filter(s=>s.shipId===shipId);
-    const sBoxMap=shipBoxes[shipId]?{[shipId]:shipBoxes[shipId]}:{};
-    return calcImpliedPrepCost(sRows,sLav,sBoxMap,smartExpectedUnits());
-  }
-
-  // Per-day costs this week
-  const dayPrepCosts={};
-  weekDays.filter(d=>!d.isFuture&&d.units>0).forEach(d=>{
-    const dRows=rows.filter(r=>r.sent==='Yes'&&r.sentDate===d.ds);
-    const dLav=lavShipments.filter(s=>s.date===d.ds);
-    const dShipIds=new Set([...dRows.filter(r=>r.shipId).map(r=>r.shipId),...dLav.filter(s=>s.shipId).map(s=>s.shipId)]);
-    const dBoxMap=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>dShipIds.has(sid)));
-    dayPrepCosts[d.ds]=calcImpliedPrepCost(dRows,dLav,dBoxMap,smartExpectedUnits());
-  });
-
-  // Per-tile prep costs
-  const mkTilePC=(sentDate,yd)=>{
-    const r=rows.filter(x=>x.sent==='Yes'&&x.sentDate===sentDate);
-    const l=lavShipments.filter(x=>x.date===sentDate);
-    const ids=new Set([...r.filter(x=>x.shipId).map(x=>x.shipId),...l.filter(x=>x.shipId).map(x=>x.shipId)]);
-    return calcImpliedPrepCost(r,l,Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>ids.has(sid))),smartExpectedUnits());
-  };
-  const todayPC=mkTilePC(todayStr);
-  const ydPC=mkTilePC(yesterdayStr);
-  const weekShipIdSet=new Set([...rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we&&r.shipId).map(r=>r.shipId),...lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we&&s.shipId).map(s=>s.shipId)]);
-  const weekPC=calcImpliedPrepCost(rows.filter(r=>r.sent==='Yes'&&r.sentDate&&new Date(r.sentDate)>=ws&&new Date(r.sentDate)<=we),lavShipments.filter(s=>s.date&&new Date(s.date)>=ws&&new Date(s.date)<=we),Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>weekShipIdSet.has(sid))),smartExpectedUnits());
+  const PE=prepEngine();
+  const prepCost=PE.priceRange(mss,mes);
+  const prepRate=PE.rate(mss.slice(0,7));
+  const todayPC=PE.priceRange(todayStr,todayStr);
+  const ydPC=PE.priceRange(yesterdayStr,yesterdayStr);
+  const weekPC=PE.priceRange(localISOm(ws),localISOm(we));
 
   // MTD totals — use the canonical sentRollup so the dashboard tile matches the
   // Shipments page (source of truth) and Prep Sheet exactly. The old logic used
@@ -838,32 +813,38 @@ function renderDashboard(){
 
       <!-- Col 3: what went out and what it cost — Prep Cost + Sent Mix + Pipeline + Stock -->
       <div style="display:flex;flex-direction:column;gap:8px;">
-        <!-- Implied Prep Cost MTD -->
+        <!-- Implied Prep Cost MTD — b628: the prep cost engine (returns.js) -->
         <div style="background:var(--bg2);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(0,0,0,.3);">
           <div onclick="openPrepHistory()" title="Click for the month-by-month prep cost history" style="cursor:pointer;font-size:10.5px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.11em;margin-bottom:10px;display:flex;justify-content:space-between;gap:8px;">
-            <span>Implied Prep Cost — MTD</span><span style="color:var(--accent);font-weight:800;text-transform:none;letter-spacing:0;">history &#9656;</span></div>
+            <span>Implied Prep Cost — MTD${prepRate.basis==='estimate'?' <span style="color:#fbbf24;border:1px solid rgba(251,191,36,.55);border-radius:4px;padding:0 5px;margin-left:4px;">estimate</span>':''}</span><span style="color:var(--accent);font-weight:800;text-transform:none;letter-spacing:0;">history &#9656;</span></div>
           <div style="font-size:28px;font-weight:900;color:${GOLD};font-family:var(--num);font-variant-numeric:tabular-nums;line-height:1;">${fmtGBP2(prepCost.withVat)}</div>
-          <div style="font-size:11px;color:#cbd5e1;margin-bottom:10px;">inc. VAT · ${fmtGBP2(prepCost.subtotal)} ex. VAT</div>
+          <div style="font-size:11px;color:#cbd5e1;margin-bottom:10px;">inc. VAT · ${fmtGBP2(prepCost.subtotal)} ex. VAT${prepRate.basis==='estimate'?' · <b style="color:#fbbf24;">estimate</b> — the month has not earned its band yet':''}</div>
 
           <!-- Volume rate breakdown -->
           <div style="font-size:10px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Unit rate (volume-based, ex. VAT)</div>
           ${(()=>{
-            const rateStr=prepCost.unitRate<1?(prepCost.unitRate*100).toFixed(0)+'p':fmtGBP2(prepCost.unitRate);
-            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
-                <span style="font-size:11px;color:#cbd5e1;">${fmt(prepCost.tieredUnits)} units so far × ${rateStr}/unit</span>
-              <div style="font-size:10px;color:#aeb9c9;margin-top:3px;line-height:1.5;">${rateStr}/unit comes from pricing the month at <b style="color:#aeb9c9;">${fmt(smartExpectedUnits())}/mo</b> (${prepCost.unitRateBand} band) — ${smartExpectedInfo().src}. Even one unit on the 1st is priced at the volume you actually run; if the month overtakes it, the real figure wins.</div>
+            const rateStr=_peP(prepRate.rate);
+            /* where every unit on the This Month card went — so 6,541 and the units priced here can be read side by side */
+            const parts=[fmt(prepCost.tieredUnits)+' standard',fmt(prepCost.osUnits)+' oversize'];
+            if(prepCost.bundleUnits)parts.push(fmt(prepCost.bundleUnits)+' bundled');
+            if(prepCost.retUnits)parts.push(fmt(prepCost.retUnits)+' returns (no prep charge)');
+            const counted=prepCost.totalUnits+prepCost.retUnits;
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;">
+                <span style="font-size:11px;color:#cbd5e1;" title="${PREP_STD_LABEL}">${fmt(prepCost.tieredUnits)} standard units so far × ${rateStr}/unit</span>
                 <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(prepCost.baseCost)}</span>
-              </div>`;
+              </div>
+              <div style="font-size:10px;color:#aeb9c9;line-height:1.5;padding-bottom:4px;">${prepRateWhy(prepRate)}</div>
+              <div style="font-size:10px;color:#8b96a6;line-height:1.5;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.05);">${PREP_STD_LABEL}. Sent this month: ${parts.join(' + ')} = ${fmt(counted)}${counted!==mtdUnits?` (the This Month card counts ${fmt(mtdUnits)})`:''}.</div>`;
           })()}
 
           <!-- Extras -->
-          ${(prepCost.osCost>0||prepCost.bundleCost>0||prepCost.boxCostTotal>0||prepCost.dgExtra>0)?`
+          ${(prepCost.osCost>0||prepCost.bundleCost>0||prepCost.boxCostTotal>0)?`
           <div style="font-size:10px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px;">Extras (ex. VAT)</div>`:''}
           ${[
-            ...(prepCost.osCost>0?[[prepCost.osUnits+' OS units × £'+prepFees.osCostPerUnit+'/unit',fmtGBP2(prepCost.osCost),'#fb923c']]:[]),
-            ...(prepCost.bundleCost>0?[[prepCost.bundleUnits+' bundle units × £'+prepFees.bundleCostPerUnit+'/unit',fmtGBP2(prepCost.bundleCost),'#34d399']]:[]),
-            [prepCost.stdBoxes+' std boxes × £'+prepFees.boxCost+'/box',fmtGBP2(prepCost.boxCostTotal),'#60a5fa'],
-            ...(prepCost.dgExtra>0?[[prepCost.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox+'/box (DG rate)',fmtGBP2(prepCost.dgExtra),'#f87171']]:[]),
+            ...(prepCost.osCost>0?[[fmt(prepCost.osUnits)+' oversize units × '+fmtGBP2(prepFees.osCostPerUnit)+'/unit',fmtGBP2(prepCost.osCost),'#fb923c']]:[]),
+            ...(prepCost.bundleCost>0?[[fmt(prepCost.bundleUnits)+' bundle units × '+fmtGBP2(prepFees.bundleCostPerUnit)+'/unit',fmtGBP2(prepCost.bundleCost),'#34d399']]:[]),
+            [fmt(prepCost.stdBoxes)+' standard boxes × '+fmtGBP2(prepFees.boxCost)+'/box',fmtGBP2(prepCost.stdBoxCost),'#60a5fa'],
+            ...(prepCost.dgBoxes>0?[[fmt(prepCost.dgBoxes)+' DG boxes × '+fmtGBP2(prepFees.dgExtraPerBox)+'/box',fmtGBP2(prepCost.dgExtra),'#f87171']]:[]),
           ].map(([l,v,col])=>`
             <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);">
               <span style="font-size:11px;color:#cbd5e1;">${l}</span>
@@ -877,7 +858,7 @@ function renderDashboard(){
               <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#b6c2d4;">${fmtGBP2(prepCost.subtotal)}</span>
             </div>
             <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.08);">
-              <span style="font-size:11px;color:#b6c2d4;">VAT 20%</span>
+              <span style="font-size:11px;color:#b6c2d4;">VAT ${Math.round(((prepFees.vatRate||1.2)-1)*100)}%</span>
               <span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#b6c2d4;">${fmtGBP2((prepCost.withVat-prepCost.subtotal))}</span>
             </div>
             <div style="display:flex;justify-content:space-between;padding:4px 0;margin-top:2px;">
@@ -887,12 +868,11 @@ function renderDashboard(){
           </div>
 
           ${(()=>{
-            const activeDays=Object.keys(dayPrepCosts).length;
-            const todayCost=dayPrepCosts[todayStr];
-            if(!activeDays)return'';
+            /* b628: the MONTH's prep days — it divided the month by this week's active days (£2,921 ÷ 3 = £973.68) */
+            if(!mtdPrepDays||!(prepCost.withVat>0))return'';
             return`<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);">
-              ${todayCost&&todayCost.totalUnits>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:10px;color:#cbd5e1;">Today's cost inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(todayCost.withVat)}</span></div>`:''}
-              <div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:10px;color:#cbd5e1;">Cost per prep day inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2((prepCost.withVat/activeDays))}</span></div>
+              ${todayPC.totalUnits>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:10px;color:#cbd5e1;">Today's cost inc. VAT</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(todayPC.withVat)}</span></div>`:''}
+              <div style="display:flex;justify-content:space-between;padding:2px 0;" title="The month so far ÷ the ${fmt(mtdPrepDays)} days something went out this month"><span style="font-size:10px;color:#cbd5e1;">Cost per prep day inc. VAT · ${fmt(mtdPrepDays)} day${mtdPrepDays===1?'':'s'}</span><span style="font-size:11px;font-weight:800;font-family:var(--mono);color:#fbbf24;">${fmtGBP2((prepCost.withVat/mtdPrepDays))}</span></div>
             </div>`;
           })()}
         </div>

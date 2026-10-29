@@ -134,14 +134,9 @@ function renderInsights(){
   rows.filter(r=>r.sent==='Yes'||r.status==='Part Sent').forEach(r=>{const cogs=parseSKU(r.sku).cogs;normaliseSegments(r).forEach(sg=>{const d=sg.date||r.sentDate;if(d)addMonth(d,sg.units||0,cogs*(sg.units||0));});});
   lavShipments.forEach(s=>{if(s.date)addMonth(s.date,s.units||0,(s.cost||0)*(s.units||0));});
   returnShipments.forEach(s=>{if(s.date)addMonth(s.date,s.units||0,(s.cost||0)*(s.units||0));});
-  // Prep cost per month
-  Object.keys(monthMap).forEach(k=>{
-    const mRows=rows.filter(r=>(r.sent==='Yes'||r.status==='Part Sent')&&normaliseSegments(r).some(sg=>(sg.date||r.sentDate||'').slice(0,7)===k)).map(r=>{const segU=normaliseSegments(r).filter(sg=>(sg.date||r.sentDate||'').slice(0,7)===k).reduce((a,sg)=>a+(sg.units||0),0);return{...r,_segUnits:segU};});
-    const mLav=lavShipments.filter(s=>(s.date||'').slice(0,7)===k);
-    const mIds=new Set([...mRows.filter(r=>r.shipId).map(r=>r.shipId),...mLav.filter(s=>s.shipId).map(s=>s.shipId)]);
-    const mBoxes=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>mIds.has(sid)));
-    monthMap[k].prep=calcImpliedPrepCost(mRows,mLav,mBoxes).withVat;
-  });
+  // Prep cost per month — b628: the shared engine, each month at its own band
+  const _PE=prepEngine();
+  Object.keys(monthMap).forEach(k=>{monthMap[k].prep=_PE.priceMonth(k).withVat;});
   const monthEntries=Object.entries(monthMap).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,12);
 
   // ── MONTH-OVER-MONTH ANALYSIS (for the trends/insights strip) ──────────────
@@ -156,8 +151,9 @@ function renderInsights(){
   const oaForPrep=(()=>{const map={};oaLines.forEach(l=>{const key=l.sku+'|'+l.shipId;if(!map[key])map[key]={sku:l.sku,shipType:l.type,shipId:l.shipId,inBundle:'No',_segUnits:0,ship:0};map[key]._segUnits+=l.units;});
     // attach inBundle from source rows
     return Object.values(map).map(o=>{const src=rows.find(r=>r.sku===o.sku);return{...o,inBundle:src?src.inBundle:'No'};});})();
-  const prepBoxes=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>stockShipIds.has(sid)||lavShipIds.has(sid)));
-  const pc=calcImpliedPrepCost(oaForPrep,lavLines.map(l=>({...l,cost:l.units?l.value/l.units:0})),prepBoxes);
+  /* b628: priced month by month at each month's band — a 90-day range was one giant "month" at 30p,
+     and This Week was priced on its own few hundred units */
+  const pc=_PE.priceRange(rs,re);
   const prepDays=new Set(lines.map(l=>l.date)).size;
   const prepShips=allShipIds.size;
   const prepTotal=pc.withVat;
@@ -178,7 +174,7 @@ function renderInsights(){
   const _mm=buildMonthMap(null);
   const _recent=Object.keys(_mm).sort().slice(-6);
   const _series={units:[],cog:[],ships:[],prep:[]};
-  _recent.forEach(k=>{const md=_mm[k];const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));const mm=calcInsMetrics(md.rows,md.lavRows,bm);_series.units.push(mm.totalUnits||0);_series.cog.push(mm.cog||0);_series.ships.push(mm.ships||0);_series.prep.push(mm.withVat||0);});
+  _recent.forEach(k=>{const md=_mm[k];const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));const mm=calcInsMetrics(md.rows,md.lavRows,bm);_series.units.push(mm.totalUnits||0);_series.cog.push(mm.cog||0);_series.ships.push(mm.ships||0);_series.prep.push(_PE.priceMonth(k).withVat||0);});
   const spark=(vals,color)=>{
     if(!vals||vals.length<2||!vals.some(v=>v>0))return'';
     const max=Math.max(...vals),min=Math.min(...vals,0),rng=(max-min)||1,W=120,H=24;
@@ -353,11 +349,11 @@ function renderInsights(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>
           <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Cost breakdown</div>
-          ${[[fmt(pc.tieredUnits)+' units × '+(pc.unitRate<1?(pc.unitRate*100).toFixed(0)+'p':fmtGBP2(pc.unitRate))+' (band '+pc.unitRateBand+')',fmtGBP2(pc.baseCost),'#fbbf24'],...(pc.osCost>0?[[pc.osUnits+' OS × £'+prepFees.osCostPerUnit,fmtGBP2(pc.osCost),'#fb923c']]:[]),...(pc.bundleCost>0?[[pc.bundleUnits+' bundle × £'+prepFees.bundleCostPerUnit,fmtGBP2(pc.bundleCost),'#34d399']]:[]),[pc.totalBoxes+' boxes × £'+prepFees.boxCost,fmtGBP2(pc.boxCostTotal),'#60a5fa'],...(pc.dgExtra>0?[[pc.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox,fmtGBP2(pc.dgExtra),'#f87171']]:[]),['VAT 20%','£'+(pc.withVat-pc.subtotal).toFixed(2),'#94a3b8'],['Total inc. VAT',fmtGBP2(pc.withVat),'#fbbf24']].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${l}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
+          ${[...pc.months.filter(m=>m.tieredUnits>0).map(m=>[(pc.months.length>1?_peMon(m.ym)+': ':'')+fmt(m.tieredUnits)+' standard × '+_peP(m.rate)+' (band '+m.band+(m.basis==='estimate'?', estimate':'')+')',fmtGBP2(m.baseCost),'#fbbf24']),...(pc.osCost>0?[[pc.osUnits+' OS × £'+prepFees.osCostPerUnit,fmtGBP2(pc.osCost),'#fb923c']]:[]),...(pc.bundleCost>0?[[pc.bundleUnits+' bundle × £'+prepFees.bundleCostPerUnit,fmtGBP2(pc.bundleCost),'#34d399']]:[]),[pc.stdBoxes+' std boxes × £'+prepFees.boxCost,fmtGBP2(pc.stdBoxCost),'#60a5fa'],...(pc.dgBoxes>0?[[pc.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox,fmtGBP2(pc.dgExtra),'#f87171']]:[]),['VAT 20%','£'+(pc.withVat-pc.subtotal).toFixed(2),'#94a3b8'],['Total inc. VAT',fmtGBP2(pc.withVat),'#fbbf24']].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${l}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
         </div>
         <div>
           <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Cost by prep day (recent)</div>
-          ${[...new Set(lines.map(l=>l.date))].filter(Boolean).sort().reverse().slice(0,8).map(ds=>{const dR=oaForPrep.filter(o=>oaLines.some(l=>l.date===ds&&l.sku===o.sku&&l.shipId===o.shipId));const dRb=oaLines.filter(l=>l.date===ds).reduce((m,l)=>{const key=l.sku+'|'+l.shipId;if(!m[key])m[key]={sku:l.sku,shipType:l.type,shipId:l.shipId,inBundle:(rows.find(r=>r.sku===l.sku)||{}).inBundle||'No',_segUnits:0};m[key]._segUnits+=l.units;return m;},{});const dRows=Object.values(dRb);const dL=lavLines.filter(l=>l.date===ds).map(l=>({...l,cost:l.units?l.value/l.units:0}));const dIds=new Set([...dRows.filter(r=>r.shipId).map(r=>r.shipId),...dL.filter(s=>s.shipId).map(s=>s.shipId)]);const dB=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>dIds.has(sid)));const dc=calcImpliedPrepCost(dRows,dL,dB);return`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${ds}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(dc.withVat)}</span></div>`;}).join('')}
+          ${[...new Set(_PE.lines.filter(l=>l.day>=rs&&l.day<=re&&l.kind!=='return').map(l=>l.day))].sort().reverse().slice(0,8).map(ds=>{const dR=oaForPrep.filter(o=>oaLines.some(l=>l.date===ds&&l.sku===o.sku&&l.shipId===o.shipId));const dRb=oaLines.filter(l=>l.date===ds).reduce((m,l)=>{const key=l.sku+'|'+l.shipId;if(!m[key])m[key]={sku:l.sku,shipType:l.type,shipId:l.shipId,inBundle:(rows.find(r=>r.sku===l.sku)||{}).inBundle||'No',_segUnits:0};m[key]._segUnits+=l.units;return m;},{});const dRows=Object.values(dRb);const dL=lavLines.filter(l=>l.date===ds).map(l=>({...l,cost:l.units?l.value/l.units:0}));const dIds=new Set([...dRows.filter(r=>r.shipId).map(r=>r.shipId),...dL.filter(s=>s.shipId).map(s=>s.shipId)]);const dB=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>dIds.has(sid)));const dc=_PE.priceRange(ds,ds);return`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${ds}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:#fbbf24;">${fmtGBP2(dc.withVat)}</span></div>`;}).join('')}
         </div>
       </div>
     </div>
@@ -453,8 +449,12 @@ function buildMonthMap(filterFn){
   return map;
 }
 
-function calcInsMetrics(sentRowsArr,lavArr,boxMap,rateUnits){
-  const pc=calcImpliedPrepCost(sentRowsArr,lavArr,boxMap||{},rateUnits);
+function calcInsMetrics(sentRowsArr,lavArr,boxMap,range,PE){
+  /* b628: given a range ({s,e} ISO dates, or a 'YYYY-MM' month), every figure comes from the
+     prep cost engine — units in the month they went, each month at its own band. Without
+     one, the old row-based sums (the charts' units and COG still use them). */
+  if(range){PE=PE||prepEngine();return typeof range==='string'?PE.priceMonth(range):PE.priceRange(range.s,range.e);}
+  const pc=calcImpliedPrepCost(sentRowsArr,lavArr,boxMap||{});
   const skus=new Set(sentRowsArr.map(r=>r.sku)).size;
   const asins=new Set(sentRowsArr.map(r=>r.asin).filter(Boolean)).size;
   const cog=sentRowsArr.reduce((a,r)=>a+(parseSKU(r.sku).cogs*(r.ship||0)),0);
@@ -510,7 +510,7 @@ function renderInsightsTab(tab){
     const allLav=Object.values(map).flatMap(m=>m.lavRows);
     const allShipIds=new Set(Object.values(map).flatMap(m=>[...m.shipIds]));
     const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>allShipIds.has(sid)));
-    renderInsPanel(body,allRows,allLav,bm,'Last Month',false);
+    renderInsPanel(body,allRows,allLav,bm,'Last Month',false,{s:`${lastMYStr}-${lastMStr}-01`,e:`${lastMYStr}-${lastMStr}-31`});
     return;
   }
 
@@ -534,7 +534,7 @@ function renderInsightsTab(tab){
   const allShipIds=new Set(Object.values(map).flatMap(m=>[...m.shipIds]));
   const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>allShipIds.has(sid)));
   const showChart=tab==='all'||tab==='ytd'||tab==='90d'||tab==='custom';
-  renderInsPanel(body,allRows,allLav,bm,label,showChart);
+  renderInsPanel(body,allRows,allLav,bm,label,showChart,{s:rs,e:re});
 }
 
 // Month-by-month PREP COST comparison. Powers the "Month by Month" tab in the
@@ -568,17 +568,13 @@ function openPrepHistory(){
 let _pcmOpen=null;
 function pcmToggle(key){_pcmOpen=(_pcmOpen===key)?null:key;const b=document.getElementById('prepHistBody');if(b)renderInsMonthly(b);}
 function _pcmShipments(md,key){
-  /* the shipments inside one month — rows may be split across shipments, so
-     each segment is placed under its own ID with only its own units */
+  /* the shipments inside one month, from the prep cost engine's lines — each line under
+     its own shipment, in the month the shipment went (b628) */
   const S={};
   const put=(sid,date,type)=>{if(!S[sid])S[sid]={id:sid,date:date||'',type:type||'Standard',units:0,lav:0,boxes:(typeof shipBoxes!=='undefined'&&shipBoxes[sid])||0,skus:new Set()};return S[sid];};
-  md.rows.forEach(r=>{
-    const segs=normaliseSegments(r);
-    if(segs.length){segs.forEach(seg=>{if(!seg.shipId)return;const d=String(seg.date||r.sentDate||'');if(d.slice(0,7)!==key)return;
-      const x=put(seg.shipId,d,_shipTypeCache[seg.shipId]||seg.type||r.shipType);x.units+=seg.units||0;if(r.sku)x.skus.add(r.sku);});}
-    else if(r.shipId){const x=put(r.shipId,r.sentDate,_shipTypeCache[r.shipId]||r.shipType);x.units+=r.ship||0;if(r.sku)x.skus.add(r.sku);}
-  });
-  md.lavRows.forEach(l=>{if(!l.shipId)return;const x=put(l.shipId,l.date,_shipTypeCache[l.shipId]);x.lav+=l.units||0;});
+  md.PE.linesMonth(key).forEach(l=>{if(!l.shipId||l.kind==='return')return;
+    const x=put(l.shipId,l.day,_shipTypeCache[l.shipId]||l.type);
+    if(l.kind==='lav')x.lav+=l.units||0;else{x.units+=l.units||0;if(l.sku)x.skus.add(l.sku);}});
   return Object.values(S).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
 /* Jack, 8 Sep: "information on the popup is great, the UI/UX design is a bit
@@ -614,12 +610,14 @@ function _pcmChart(months,avg){
   </div>`;
 }
 function renderInsMonthly(body){
-  const map=buildMonthMap(null);
-  const entries=Object.entries(map).sort(([a],[b])=>b.localeCompare(a)); // newest first
+  /* b628: months by the day units went (the prep cost engine), each priced at its own band —
+     it filed a row's every unit under its LAST send date, which put August in the 45p band */
+  const PE=prepEngine();
+  const entries=PE.months().filter(k=>PE.linesMonth(k).some(l=>l.kind!=='return')).sort((a,b)=>b.localeCompare(a)) // newest first
+    .map(k=>[k,{PE,label:new Date(+k.slice(0,4),+k.slice(5,7)-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'})}]);
   if(!entries.length){body.innerHTML='<div style="color:var(--text3);text-align:center;padding:40px;">No shipment history yet.</div>';return;}
   const months=entries.map(([key,md])=>{
-    const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));
-    const m=calcInsMetrics(md.rows,md.lavRows,bm);
+    const m=PE.priceMonth(key);
     const[y,mm]=key.split('-');
     return{key,md,m,label:md.label,
       shortLabel:new Date(+y,+mm-1,1).toLocaleString('en-GB',{month:'short'})+" '"+y.slice(2),
@@ -651,10 +649,10 @@ function renderInsMonthly(body){
     const vat=(M.withVat||0)-(M.subtotal||0);
     const line=(lab,sub,val,col)=>`<div class="pcmLine"><div><b>${lab}</b>${sub?`<span>${sub}</span>`:''}</div><div class="pcmVal" style="${col?'color:'+col:''}">${val}</div></div>`;
     const bill=`<div class="pcmCol"><div class="pcmColH">The bill — how it is worked out</div>
-      ${line('Volume-rate units',`${fmt(M.tieredUnits||0)} × ${rateStr(M.unitRate)} · ${esc(M.unitRateBand||'')} band · standard ${fmt(M.stdUnits||0)}, DG ${fmt(M.dgUnits||0)}, PLUB ${fmt(M.lavUnits||0)}`,money(M.baseCost))}
+      ${line('Standard units',`${fmt(M.tieredUnits||0)} × ${rateStr(M.unitRate)} · ${esc(M.unitRateBand||'')} band${M.basis==='estimate'?' · <b style="color:#fbbf24">estimate</b>':''} · standard ${fmt(M.stdUnits||0)}, DG ${fmt(M.dgUnits||0)}, PLUB ${fmt(M.lavUnits||0)}${M.info?' — '+esc(prepRateWhy(M.info)):''}`,money(M.baseCost))}
       ${M.osUnits?line('Oversize',`${fmt(M.osUnits)} × £${(prepFees.osCostPerUnit||0).toFixed(2)}`,money(M.osCost)):''}
       ${M.bundleUnits?line('Bundled units',`${fmt(M.bundleUnits)} × £${(prepFees.bundleCostPerUnit||0).toFixed(2)}`,money(M.bundleCost)):''}
-      ${line('Boxes',`${fmt(M.totalBoxes||0)} × £${(prepFees.boxCost||0).toFixed(2)}${M.dgBoxes?` · ${fmt(M.dgBoxes)} of them DG`:''}`,money(M.boxCostTotal))}
+      ${line('Boxes',`${fmt(M.stdBoxes||0)} × £${(prepFees.boxCost||0).toFixed(2)}${M.dgBoxes?` + ${fmt(M.dgBoxes)} DG × £${(prepFees.dgExtraPerBox||0).toFixed(2)}`:''}`,money(M.boxCostTotal))}
       ${line('Subtotal','ex. VAT',money(M.subtotal),'var(--text)')}
       ${line('VAT',vatPct+'%',money(vat))}
       <div class="pcmLine pcmTot"><div><b>Total inc. VAT</b></div><div class="pcmVal" style="color:#fbbf24">${money(M.withVat)}</div></div>
@@ -730,13 +728,10 @@ function prepExpRange(key){
   return{s:new Date(y,m-1,1),e:new Date(y,m,0,23,59,59),label:new Date(y,m-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'})};
 }
 // Prep metrics for a date range.
-function prepExpMetrics(s,e){
-  const inR=d=>{if(!d)return false;const x=new Date(d);return x>=s&&x<=e;};
-  const sr=rows.filter(r=>r.sent==='Yes'&&inR(r.sentDate));
-  const lv=lavShipments.filter(x=>inR(x.date));
-  const ids=new Set([...sr.filter(r=>r.shipId).map(r=>r.shipId),...lv.filter(x=>x.shipId).map(x=>x.shipId)]);
-  const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>ids.has(sid)));
-  return calcInsMetrics(sr,lv,bm);
+function prepExpMetrics(s,e,PE){
+  /* b628: the prep cost engine — every unit in the month it went, each month at its own band */
+  const d=x=>x instanceof Date?`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`:String(x||'').slice(0,10);
+  return (PE||prepEngine()).priceRange(d(s),d(e));
 }
 // The detailed cost rows for a metrics object.
 function prepBreakdownRows(m){
@@ -747,10 +742,10 @@ function prepBreakdownRows(m){
     <div style="font-family:var(--mono);font-size:12px;font-weight:700;color:${col||'var(--text)'};">${val}</div>
   </div>`;
   return `
-    ${row('Volume base rate',fmtGBP2(m.baseCost||0),`${fmt(m.tieredUnits||0)} units (Standard + DG + PLUB) × ${rateStr} (volume band ${m.unitRateBand||'—'})`,'#fbbf24')}
+    ${row('Volume base rate',fmtGBP2(m.baseCost||0),`${fmt(m.tieredUnits||0)} standard units (incl. PLUB and DG) × ${rateStr} (volume band ${m.unitRateBand||'—'})${m.basis==='estimate'?' — estimate':''}`,'#fbbf24')}
     ${(m.osCost>0)?row('Oversize surcharge',fmtGBP2(m.osCost),`${fmt(m.osUnits||0)} oversize units`,'#fb923c'):''}
     ${(m.bundleCost>0)?row('Bundle handling',fmtGBP2(m.bundleCost),`${fmt(m.bundleUnits||0)} bundled units`,'#34d399'):''}
-    ${(m.boxCostTotal>0)?row('Boxes',fmtGBP2(m.boxCostTotal),`${fmt(m.stdBoxes||0)} standard + ${fmt(m.dgBoxes||0)} DG`,'#60a5fa'):''}
+    ${(m.boxCostTotal>0)?row('Boxes',fmtGBP2(m.boxCostTotal),`${fmt(m.stdBoxes||0)} standard × £${(+prepFees.boxCost||0).toFixed(2)} + ${fmt(m.dgBoxes||0)} DG × £${(+prepFees.dgExtraPerBox||0).toFixed(2)}`,'#60a5fa'):''}
     ${row('Subtotal (ex. VAT)',fmtGBP2(m.subtotal||0),'','var(--text)')}
     ${row('VAT',fmtGBP2(vatAmt),'','#94a3b8')}
     <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 2px;border-top:2px solid var(--accent);margin-top:4px;">
@@ -764,11 +759,11 @@ function openPrepExplorer(key){
   const box=document.getElementById('insPrepBreakdownBody');
   if(!box)return;
   const{s,e,label}=prepExpRange(_prepExpPeriod);
-  const m=prepExpMetrics(s,e);
+  const PE=prepEngine();
+  const m=prepExpMetrics(s,e,PE);
 
   // Build the list of selectable periods: This Month, Last Month, then recent months.
-  const monthMap=buildMonthMap(null);
-  const monthKeys=Object.keys(monthMap).sort((a,b)=>b.localeCompare(a)).slice(0,8);
+  const monthKeys=PE.months().filter(k=>PE.priceMonth(k).totalUnits>0).sort((a,b)=>b.localeCompare(a)).slice(0,8);
   const now=new Date();
   const thisKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   const lastD=new Date(now.getFullYear(),now.getMonth()-1,1);
@@ -781,8 +776,7 @@ function openPrepExplorer(key){
 
   // Month-by-month prep trend (clickable bars), oldest→newest.
   const trend=monthKeys.slice().reverse().map(k=>{
-    const md=monthMap[k];const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));
-    const mm=calcInsMetrics(md.rows,md.lavRows,bm);
+    const mm=PE.priceMonth(k);
     const[y,mo]=k.split('-');
     return{key:k,short:new Date(+y,+mo-1,1).toLocaleString('en-GB',{month:'short'}),prep:mm.withVat||0};
   });
@@ -815,7 +809,7 @@ function openPrepExplorer(key){
     const base=_prepExpPeriod==='mtd'?new Date(now.getFullYear(),now.getMonth(),1):new Date(now.getFullYear(),now.getMonth()-1,1);
     const p=new Date(base.getFullYear(),base.getMonth()-1,1);py=p.getFullYear();pmo=p.getMonth();
   }else{const[yy,mm]=_prepExpPeriod.split('-').map(Number);const p=new Date(yy,mm-2,1);py=p.getFullYear();pmo=p.getMonth();}
-  const prevM=prepExpMetrics(new Date(py,pmo,1),new Date(py,pmo+1,0,23,59,59));
+  const prevM=prepExpMetrics(new Date(py,pmo,1),new Date(py,pmo+1,0,23,59,59),PE);
   const prevLbl=new Date(py,pmo,1).toLocaleString('en-GB',{month:'short'});
   const ppuCur=m.totalUnits?m.withVat/m.totalUnits:0, ppuPrev=prevM.totalUnits?prevM.withVat/prevM.totalUnits:0;
   const ratioCur=m.withVat?(m.cog/m.withVat):0;
@@ -826,7 +820,11 @@ function openPrepExplorer(key){
   const tu=m.tieredUnits||0;
   const bands=[{max:prepFees.tier1Units,rate:prepFees.tier1p,label:'1–'+fmt(prepFees.tier1Units)},{max:prepFees.tier2Units,rate:prepFees.tier2p,label:fmt(prepFees.tier1Units+1)+'–'+fmt(prepFees.tier2Units)},{max:prepFees.tier3Units,rate:prepFees.tier3p,label:fmt(prepFees.tier2Units+1)+'–'+fmt(prepFees.tier3Units)},{max:Infinity,rate:prepFees.tier4p,label:fmt(prepFees.tier3Units+1)+'+'}];
   const ci=Math.max(0,bands.findIndex(b=>tu<=b.max));const cur=bands[ci],nb=bands[ci+1];
-  const bandInsight=tu<=0?'':(nb?`You're in the <b style="color:#fbbf24;">${cur.label}</b> band at <b>${rateStr(cur.rate)}/unit</b>. <b style="color:#4ade80;">${fmt((cur.max+1)-tu)} more units</b> this period would reach the <b>${nb.label}</b> band at <b>${rateStr(nb.rate)}/unit</b> — that lower rate applies to <i>every</i> unit, not just the new ones.`:`You're in the top <b style="color:#4ade80;">${cur.label}</b> band at <b>${rateStr(cur.rate)}/unit</b> — best available rate.`);
+  /* b628: a running month says where its rate came from, and how far its OWN units are from the next band */
+  const _run=m.info&&m.info.running?m.info:null;
+  const bandInsight=_run?(prepRateWhy(_run)+(()=>{const ui=Math.max(0,bands.findIndex(b=>_run.used<=b.max)),nx=bands[ui+1];
+      return nx?` <b style="color:#4ade80;">${fmt(Math.max(0,(bands[ui].max+1)-_run.units))} more standard units</b> this month would reach the <b>${nx.label}</b> band at <b>${rateStr(nx.rate)}/unit</b> — on every unit.`:'';})())
+    :tu<=0?'':(nb?`You're in the <b style="color:#fbbf24;">${cur.label}</b> band at <b>${rateStr(cur.rate)}/unit</b>. <b style="color:#4ade80;">${fmt((cur.max+1)-tu)} more units</b> this period would reach the <b>${nb.label}</b> band at <b>${rateStr(nb.rate)}/unit</b> — that lower rate applies to <i>every</i> unit, not just the new ones.`:`You're in the top <b style="color:#4ade80;">${cur.label}</b> band at <b>${rateStr(cur.rate)}/unit</b> — best available rate.`);
 
   // Cost composition (% of ex-VAT subtotal).
   const sub=m.subtotal||1;
@@ -869,7 +867,7 @@ function openPrepExplorer(key){
 
     <div style="font-size:9.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Line-by-line</div>
     ${prepBreakdownRows(m)}`}
-    <div style="font-size:11px;color:var(--text3);margin-top:12px;line-height:1.4;">Each month is priced at its own actual volume (volume-based flat rate). Rates configurable in Settings → Prep Fees.</div>`;
+    <div style="font-size:11px;color:var(--text3);margin-top:12px;line-height:1.4;">Every unit counts in the month it went. A finished month is priced at its own actual volume; the running month at the band of the higher of your 3-month average and the month so far (an estimate while the average is what earns it). Standard units (incl. PLUB and DG; oversize priced separately). Rates in Settings → Dashboard &amp; Insights.</div>`;
   om('insPrepModal');
 }
 
@@ -879,21 +877,20 @@ function showInsPrepBreakdown(){openPrepExplorer('mtd');}
 // ── Insights detail popups (Units / COG / Account / Prep efficiency) ──────────
 const _MONA=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function _insMonthSeries(){
-  const mm=buildMonthMap(null);
+  const mm=buildMonthMap(null),_PEs=prepEngine();
   return Object.keys(mm).sort().slice(-10).map(k=>{
     const md=mm[k];const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));
-    const _curKey=new Date().toISOString().slice(0,7);
-    const m=calcInsMetrics(md.rows,md.lavRows,bm,k===_curKey?smartExpectedUnits():null);const[y,mo]=k.split('-');
+    const m=calcInsMetrics(md.rows,md.lavRows,bm);const P=_PEs.priceMonth(k);const[y,mo]=k.split('-');   /* b628: prep from the engine */
     // per-month sent mix: OA rows bucketed by shipType, all Lavarion its own bucket
     const _u=r=>(r.ship||r.shi||0);let _std=0,_dg=0,_os=0;
     md.rows.forEach(r=>{const t=(r.shipType||(typeof _shipTypeCache!=='undefined'&&_shipTypeCache[r.shipId])||'Standard');if(t==='DG')_dg+=_u(r);else if(t==='Oversize')_os+=_u(r);else _std+=_u(r);});
     const _lav=md.lavRows.reduce((a,s)=>a+(s.units||0),0);
-    return{key:k,short:_MONA[+mo]+" '"+y.slice(2),units:m.totalUnits||0,cog:m.cog||0,prep:m.withVat||0,
+    return{key:k,short:_MONA[+mo]+" '"+y.slice(2),units:m.totalUnits||0,cog:m.cog||0,prep:P.withVat||0,
       lav:m.lavUnits||0,stock:(m.totalUnits||0)-(m.lavUnits||0),
       skus:m.skus||0,asins:m.asins||0,ships:m.ships||0,boxes:m.totalBoxes||0,
       mixStd:_std,mixDG:_dg,mixOS:_os,mixLav:_lav,
       cogPerUnit:m.totalUnits?(m.cog/m.totalUnits):0,
-      ppu:m.totalUnits?(m.withVat/m.totalUnits):0,ratio:m.withVat?(m.cog/m.withVat):0};
+      ppu:P.totalUnits?(P.withVat/P.totalUnits):0,ratio:P.withVat?(m.cog/P.withVat):0};
   });
 }
 function _insBars(series,key,color,fmtFn,onClickMonth){
@@ -968,13 +965,14 @@ function openAccountModal(acct){
 function openInsCompare(){
   const box=document.getElementById('insCompareBody');if(!box)return;
   const now=new Date();
-  const tm=prepExpMetrics(new Date(now.getFullYear(),now.getMonth(),1),now);
-  const lm=prepExpMetrics(new Date(now.getFullYear(),now.getMonth()-1,1),new Date(now.getFullYear(),now.getMonth(),0,23,59,59));
+  const PE=prepEngine();
+  const tm=prepExpMetrics(new Date(now.getFullYear(),now.getMonth(),1),now,PE);
+  const lm=prepExpMetrics(new Date(now.getFullYear(),now.getMonth()-1,1),new Date(now.getFullYear(),now.getMonth(),0,23,59,59),PE);
   const dayNo=now.getDate();
   // 6-month series per metric for the mini trend.
-  const mm=buildMonthMap(null);const keys=Object.keys(mm).sort().slice(-6);
+  const keys=PE.months().filter(k=>k<=todayISO().slice(0,7)&&PE.priceMonth(k).totalUnits>0).slice(-6);
   const ser={units:[],cog:[],ships:[],prep:[]};
-  keys.forEach(k=>{const md=mm[k];const bm=Object.fromEntries(Object.entries(shipBoxes).filter(([sid])=>md.shipIds.has(sid)));const x=calcInsMetrics(md.rows,md.lavRows,bm);ser.units.push(x.totalUnits||0);ser.cog.push(x.cog||0);ser.ships.push(x.ships||0);ser.prep.push(x.withVat||0);});
+  keys.forEach(k=>{const x=PE.priceMonth(k);ser.units.push(x.totalUnits||0);ser.cog.push(x.cog||0);ser.ships.push(x.ships||0);ser.prep.push(x.withVat||0);});
   const miniTrend=(vals,color)=>{
     if(!vals.length)return'';const max=Math.max(...vals,1);
     return `<div style="display:flex;align-items:flex-end;gap:3px;height:34px;">${vals.map((v,i)=>`<div title="${keys[i]}: ${v}" style="flex:1;height:${Math.max(3,Math.round((v/max)*34))}px;background:${i===vals.length-1?color:color+'66'};border-radius:2px 2px 0 0;"></div>`).join('')}</div>`;
@@ -1008,12 +1006,12 @@ function openInsCompare(){
   om('insCompareModal');
 }
 
-function renderInsPanel(body,allRows,allLav,boxMap,label,showChart){
+function renderInsPanel(body,allRows,allLav,boxMap,label,showChart,range){
   if(!allRows.length&&!allLav.length){
     body.innerHTML=`<div style="color:var(--text3);text-align:center;padding:40px;">No data for ${label.toLowerCase()}.</div>`;
     return;
   }
-  const met=calcInsMetrics(allRows,allLav,boxMap);
+  const met=calcInsMetrics(allRows,allLav,boxMap,range);   /* b628: the engine, month by month */
   _lastInsMet=met;_lastInsLabel=label;
   const cogPerUnit=met.totalUnits>0?(met.cog/met.totalUnits):0;
   const prepPct=met.cog>0?((met.withVat/met.cog)*100):0;

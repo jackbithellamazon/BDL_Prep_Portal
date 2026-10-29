@@ -1141,3 +1141,32 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 /* 26 Oct — the stale SellerFuse-check strip, every page */
 #sfStaleBar{margin:0 16px 10px;padding:9px 14px;border-radius:10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.5);color:var(--text2);font-size:12.5px;}
 #sfStaleBar b{color:#fbbf24;}
+.tcSt.tcBal{padding:8px 10px;margin:-2px 0 2px;border-radius:9px;background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.22);}
+.tcSt.tcBal .tcA+.tcA{margin-top:3px;}
+.tcSt.tcBal .tcOld{color:var(--text3);font-size:11px;}
+/* b624 · Jack's ASIN tick, the duplicate step, spare units in the SKU list */
+.asinChk{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:3px 9px;border-radius:999px;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.45);color:#86efac;font-weight:700;font-size:11px;line-height:1.35;}
+.asinChk.sm{margin-top:4px;padding:2px 7px;font-size:10.5px;}
+.asinChk[onclick]{cursor:pointer;}
+.asinChkNew{color:#fcd34d;}
+.asinChkBtn{display:inline-block;margin-top:6px;padding:3px 9px;border-radius:999px;background:transparent;border:1px dashed rgba(74,222,128,.6);color:#86efac;font-weight:700;font-size:11px;line-height:1.35;cursor:pointer;}
+.asinChkBtn:hover{background:rgba(74,222,128,.1);}
+.tcSt.tcDup{padding:8px 10px;margin:-2px 0 2px;border-radius:9px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.3);}
+.tcSt.tcDup .tcA+.tcA{margin-top:3px;}
+.srtComboSpare{font-size:10.5px;font-weight:800;}
+.srtComboSpare.y{color:#4ade80;}
+.srtComboSpare.n{color:var(--text3);}
+.srtDupHint{margin-top:8px;padding-top:8px;border-top:1px solid rgba(251,191,36,.25);}
+/* b625 · SellerFuse fixes on Jack's page, Sarah's "doesn't add up", the suggested PLUB button */
+.sfFixAll{display:flex;justify-content:flex-end;padding:0 14px 8px;}
+.sfLookNote{padding:8px 14px;color:#fcd34d;}
+.sfMatch{padding:4px 14px 10px;color:var(--text2);font-size:11.5px;}
+.sfMatch summary{cursor:pointer;font-weight:700;color:var(--text2);}
+.sfMatch .sfDet{margin-top:4px;}
+.jkSug{color:#86efac;}
+.jkSugTag{display:inline-block;margin-right:4px;padding:1px 6px;border-radius:999px;background:rgba(74,222,128,.18);border:1px solid rgba(74,222,128,.5);color:#86efac;font-size:10px;font-weight:800;letter-spacing:.02em;}
+/* b625e · move lines to another shipment */
+.shipMoveList{max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:6px;padding:4px 6px;background:var(--bg);}
+.shipMoveRow{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:11px;color:var(--text2);cursor:pointer;}
+.shipMoveRow span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.shipMoveRow b{font-family:var(--mono);color:var(--text);}

@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v56.0 · lav3 · 2026-10-27 · b622';
+const BUILD='v56.1 · lav3 · 2026-10-29 · b625';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -2196,11 +2196,142 @@ const MOV_DAYS=3;   /* units moving between Amazon warehouses are sellable again
 /* Jack, 26 Oct: a send has to land with at least 14 days AND at least 10 units left (half a
    send for the very slow lines, so a 2-a-month product isn't sent half a year), and anything
    selling 100 or more a month gets an extra day */
-function safetyFor(p,ads,sizeAds){
+/* ═══ Q4 GIFT UPLIFT — Jack, 29 Oct 2026 ═══════════════════════════════════════════════
+   "Add a 10% increase to anything with gift or hamper in the name, October to December. From
+   January it's gone … the Planner needs to make sure we aren't overstocked at all. Sales end 23rd
+   December, so the 10% goes off then." PLUB products only (D.products — never an OA / Prep Sheet
+   row), whose name holds one of the words (any case; spaces and dashes ignored, so "gift set",
+   "Giftset" and "Gift Hamper" all count). For them every FORECAST day dated from → to (default
+   1 Oct – 23 Dec, every year) sells at the measured pace × (1 + pct); every day after is the plain
+   measured pace, so a send or an order that covers January is not sized up for January. The
+   measured 7/14/30-day paces never change: this only turns a pace into units and units into days,
+   day by day across the calendar. Only a MEASURED pace takes it (SellerFuse, the hub, typed-in
+   sales) — a planning figure somebody typed is used as typed. Settings → "Christmas uplift",
+   D.settings.q4Uplift = {pct, words, from:'MM-DD', to:'MM-DD'}. */
+/* Jack, 29 Oct: "maybe 5% — if we're always tracking it why would we need the extra uplift — but from Jan expect
+   them all to go down 10%, back to Q1–Q3 levels". So +5% to 23 Dec, then −10% to 31 Jan, then plain. */
+const UP_DEF={pct:5,words:'gift, hamper, Gluten Free Snack Bundle, Gluten Free Biscuit Bundle',from:'10-01',to:'12-23',drop:10,dropTo:'01-31'};
+const _UP_ML=[31,29,31,30,31,30,31,31,30,31,30,31];
+const _upMD=v=>{const m=/^(\d{1,2})-(\d{1,2})$/.exec(String(v==null?'':v).trim());if(!m)return null;
+  const mo=+m[1],d=+m[2];if(!(mo>=1&&mo<=12&&d>=1&&d<=_UP_ML[mo-1]))return null;
+  return String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');};
+const _upSq=s=>String(s==null?'':s).toLowerCase().replace(/[^a-z0-9]/g,'');
+const upDayTxt=md=>{const q=String(md||'').split('-');return (+q[1])+' '+(MONTHNM[(+q[0])-1]||'');};
+function upliftCfg(){
+  const s=(D.settings&&D.settings.q4Uplift&&typeof D.settings.q4Uplift==='object')?D.settings.q4Uplift:{};
+  const n=parseFloat(s.pct),pct=(Number.isFinite(n)&&n>=0&&n<=100)?n:UP_DEF.pct;
+  const words=String(s.words!=null&&_upSq(s.words)?s.words:UP_DEF.words).split(/[,;\n]+/).map(w=>w.trim()).filter(w=>_upSq(w));
+  const from=_upMD(s.from)||UP_DEF.from,to=_upMD(s.to)||UP_DEF.to;
+  const dn=parseFloat(s.drop),drop=(Number.isFinite(dn)&&dn>=0&&dn<=90)?dn:UP_DEF.drop,dropTo=_upMD(s.dropTo)||UP_DEF.dropTo;
+  /* the after-Christmas dip starts the day after the uplift ends */
+  const nx=(()=>{const q=to.split('-').map(Number),d=new Date(Date.UTC(2001,q[0]-1,q[1]+1));return (d.getUTCMonth()+1)*100+d.getUTCDate();})();
+  return{pct,f:1+pct/100,words,wtxt:words.join(', '),from,to,fromN:+from.replace('-',''),toN:+to.replace('-',''),
+    drop,df:1-drop/100,dropTo,postFromN:nx,postToN:+dropTo.replace('-',''),on:(pct>0||drop>0)&&words.length>0};
+}
+/* the uplift a product carries — null for anything that is not one of the PLUB products */
+function upliftOf(p){
+  if(!p||typeof p!=='object'||!Array.isArray(D.products)||D.products.indexOf(p)<0)return null;
+  const C=upliftCfg();if(!C.on)return null;
+  const nm=_upSq(p.name);if(!nm)return null;
+  const w=C.words.find(x=>nm.includes(_upSq(x)));
+  return w?Object.assign({word:w.toLowerCase()},C):null;
+}
+/* a MEASURED pace takes the uplift; a planning figure somebody typed does not */
+const _upMeasured=d=>!!d&&(d.src==='sf'||d.src==='hub'||d.src==='typed');
+const _upIn=(u,md)=>u.pct>0&&(u.fromN<=u.toN?(md>=u.fromN&&md<=u.toN):(md>=u.fromN||md<=u.toN));
+const _upPost=(u,md)=>u.drop>0&&(u.postFromN<=u.postToN?(md>=u.postFromN&&md<=u.postToN):(md>=u.postFromN||md<=u.postToN));
+const _upT0=iso=>{const q=String(iso||dayISO()).slice(0,10).split('-').map(Number);return Date.UTC(q[0],q[1]-1,q[2]);};
+const _upMix=(p,perDay)=>(Array.isArray(p)?p:[{p,r:perDay}]).map(x=>({r:+x.r||0,up:upliftOf(x.p)}));
+function _upRate(M,t0,i){
+  const dt=new Date(t0+i*864e5),md=(dt.getUTCMonth()+1)*100+dt.getUTCDate();
+  let s=0;M.forEach(x=>{s+=x.r*(!x.up?1:_upIn(x.up,md)?x.up.f:_upPost(x.up,md)?x.up.df:1);});return s;
+}
+/* does any day from index i0 to i1 (days after t0, inclusive) fall in the uplift of a line in M? */
+function _upTouch(M,t0,i0,i1){
+  const U=M.filter(x=>x.up&&x.r>0);if(!U.length)return false;
+  if(i1-i0>=366)return true;
+  for(let i=Math.max(0,i0);i<=i1;i++){const dt=new Date(t0+i*864e5),md=(dt.getUTCMonth()+1)*100+dt.getUTCDate();
+    if(U.some(x=>_upIn(x.up,md)||_upPost(x.up,md)))return true;}
+  return false;
+}
+/* units sold over `days` forecast days starting at fromISO (+ `off` days), at perDay, the uplift applied
+   day by day. p = a product, or a list of {p, r} (a part several products use; perDay = their total).
+   With no uplift — or no uplift day in the span — it is exactly perDay × days, as before. */
+function demandBetween(p,perDay,fromISO,days,off){
+  const M=_upMix(p,perDay),tot=perDay!=null?perDay:M.reduce((t,x)=>t+x.r,0);
+  if(!(days>0)||!M.some(x=>x.up&&x.r>0))return tot*days;
+  const t0=_upT0(fromISO),a=off>0?off:0,b=a+days;let u=0,pos=a,g=0;
+  if(!_upTouch(M,t0,Math.floor(a),Math.ceil(b)-1))return tot*days;
+  while(pos<b&&g++<4000){const i=Math.floor(pos),e=Math.min(i+1,b);u+=_upRate(M,t0,i)*(e-pos);pos=e;}
+  return pos<b?u+tot*(b-pos):u;
+}
+/* how many days `units` last from fromISO (+ `off` days) — the inverse. With no uplift — or none in the
+   days the stock lasts at the plain pace (the uplift only shortens it) — exactly units ÷ perDay, as before. */
+function daysCovered(p,perDay,units,fromISO,off){
+  const M=_upMix(p,perDay),tot=perDay!=null?perDay:M.reduce((t,x)=>t+x.r,0);
+  if(!(units>0)||!M.some(x=>x.up&&x.r>0))return units/tot;
+  const t0=_upT0(fromISO),a=off>0?off:0,plain=units/tot;let left=units,pos=a,g=0;
+  if(!(plain<4000)||!_upTouch(M,t0,Math.floor(a),Math.ceil(a+plain)-1))return plain;
+  while(g++<4000){const i=Math.floor(pos),rt=_upRate(M,t0,i),room=i+1-pos;
+    if(rt>0&&rt*room>=left)return pos+left/rt-a;
+    left-=rt*room;pos=i+1;}
+  return pos-a+left/tot;
+}
+/* the note for a row whose forecast [fromISO, +days) reaches the uplift — "+10% Q4 (gift) until 23 Dec" */
+function upliftNote(p,fromISO,days){
+  const U=(Array.isArray(p)?p.map(x=>x.p):[p]).map(upliftOf).filter(Boolean);if(!U.length)return null;
+  const u=U[0],t0=_upT0(fromISO),n=Math.min(Math.ceil(days||0),800);let hit=-1,post=-1;
+  for(let i=0;i<n&&(hit<0||post<0);i++){const dt=new Date(t0+i*864e5),md=(dt.getUTCMonth()+1)*100+dt.getUTCDate();
+    if(hit<0&&_upIn(u,md))hit=i;if(post<0&&_upPost(u,md))post=i;}
+  if(hit<0&&post<0)return null;
+  const words=[...new Set(U.map(x=>x.word))].join(', ');
+  const dTo=upDayTxt(u.dropTo);
+  const lbl=hit>=0?`Q4 (${words}) ${hit===0?'until':'from '+upDayTxt(u.from)+' to'} ${upDayTxt(u.to)}`+(post>=0?`, then −${fmt(u.drop)}% to ${dTo}`:''):`after Christmas (${words}) until ${dTo}`;
+  return{pct:u.pct,words,lbl,txt:hit>=0?`+${fmt(u.pct)}% ${lbl}`:`−${fmt(u.drop)}% ${lbl}`};
+}
+function upliftPanel(){
+  const C=upliftCfg(),hit=D.products.filter(p=>!p.archived&&upliftOf(p)),s=D.settings.q4Uplift||{};
+  const F=C.from.split('-').map(Number),T=C.to.split('-').map(Number);
+  const mSel=(k,m)=>`<select class="in" style="width:76px" onchange="LV3.setUplift('${k}M',this.value)">${MONTHNM.map((x,i)=>`<option value="${i+1}"${i+1===m?' selected':''}>${x}</option>`).join('')}</select>`;
+  const dIn=(k,d)=>`<input class="in" style="width:54px;text-align:center;font-weight:800;" type="number" min="1" max="31" value="${d}" onchange="LV3.setUplift('${k}D',this.value)">`;
+  const row=(ctl,unit,what)=>`<div style="display:flex;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">${ctl}
+      <span style="flex:0 0 92px;font-size:11px;color:var(--text3);font-weight:700;">${unit}</span>
+      <span style="flex:1;min-width:220px;font-size:12px;color:var(--text);">${what}</span></div>`;
+  return `<div class="panel" style="border-left:3px solid #c4b5fd;margin-bottom:12px;">
+    <div class="ph"><span class="t">Christmas uplift — gift &amp; hamper lines</span>
+      <span class="sub">${C.on?`<b>+${fmt(C.pct)}%</b> on forecast days ${esc(upDayTxt(C.from))} – ${esc(upDayTxt(C.to))}, every year · ${fmt(hit.length)} PLUB product${hit.length===1?'':'s'} match`:'off — the uplift is 0%'}</span></div>
+    <div style="padding:6px 16px 12px;">
+      ${row(`<input class="in" style="width:64px;text-align:center;font-weight:800;" type="number" min="0" max="100" step="1" value="${C.pct}" onchange="LV3.setUplift('pct',this.value)">`,'% more','How much more a matching product is expected to sell on each day in the window. 0 switches it off.')}
+      ${row(`<input class="in" style="width:190px" value="${esc(C.wtxt)}" onchange="LV3.setUplift('words',this.value)">`,'name words','A PLUB product whose name holds any of these — commas between, any case, spaces ignored (gift set, Giftset and Gift Hamper all count). Never an OA / Prep Sheet product.')}
+      ${row(`<input class="in" style="width:64px;text-align:center;font-weight:800;" type="number" min="0" max="90" step="1" value="${C.drop}" onchange="LV3.setUplift('drop',this.value)">`,'% less after','From the day after the uplift ends, how much less a matching product is expected to sell — back to Q1–Q3 levels (Jack: "from Jan expect them all to go down 10%"). 0 = no dip.')}
+      ${row(`<span style="display:flex;gap:5px;align-items:center">${dIn('dropTo',(C.dropTo.split('-').map(Number))[1])}${mSel('dropTo',(C.dropTo.split('-').map(Number))[0])}</span>`,'dip until','The last forecast day of the after-Christmas dip — plain pace from the day after.')}
+      ${row(`<span style="display:flex;gap:5px;align-items:center">${dIn('from',F[1])}${mSel('from',F[0])}<span class="pmeta" style="margin:0">to</span>${dIn('to',T[1])}${mSel('to',T[0])}</span>`,'every year','The first and the last forecast day sold at the higher pace. From the day after it is the plain measured pace, so a send or an order that covers January is not sized up for January.')}
+      <div class="pmeta" style="margin-top:8px;">The measured 7/14/30-day paces never change — only the forecast does, day by day. A planning figure somebody typed is used as typed.${hit.length?` Matching now: ${hit.slice(0,8).map(p=>esc(p.name)).join(', ')}${hit.length>8?` +${fmt(hit.length-8)} more`:''}.`:''}${s.by?` Last changed by ${esc(s.by)}${s.at?' on '+esc(dshort(String(s.at).slice(0,10))):''}.`:''}</div>
+    </div></div>`;
+}
+function setUplift(k,v){
+  const C=upliftCfg(),s={pct:C.pct,words:C.wtxt,from:C.from,to:C.to,drop:C.drop,dropTo:C.dropTo};
+  if(k==='pct'){const n=parseFloat(v);if(!(Number.isFinite(n)&&n>=0&&n<=100)){toast('The uplift is a % from 0 to 100','er');render();return;}s.pct=n;}
+  else if(k==='words'){const w=String(v==null?'':v).split(/[,;\n]+/).map(x=>x.trim()).filter(x=>_upSq(x));s.words=w.length?w.join(', '):UP_DEF.words;}
+  else if(k==='drop'){const n=parseFloat(v);if(!(Number.isFinite(n)&&n>=0&&n<=90)){toast('The dip is a % from 0 to 90','er');render();return;}s.drop=n;}
+  else{const m=/^(from|to|dropTo)([MD])$/.exec(String(k));if(!m)return;
+    const q=s[m[1]].split('-').map(Number);let mo=q[0],dd=q[1];
+    if(m[2]==='M')mo=parseInt(v)||mo;else dd=parseInt(v)||dd;
+    mo=Math.min(12,Math.max(1,mo));dd=Math.min(_UP_ML[mo-1],Math.max(1,dd));
+    s[m[1]]=_upMD(mo+'-'+dd)||s[m[1]];}
+  s.by=window.currentUserName||'someone';s.at=new Date().toISOString();
+  D.settings.q4Uplift=s;
+  try{logIt('edit',`Christmas uplift: +${fmt(s.pct)}% on PLUB names with ${s.words}, ${upDayTxt(s.from)} to ${upDayTxt(s.to)}, then −${fmt(s.drop)}% to ${upDayTxt(s.dropTo)} (${s.by})`);}catch(e){}
+  savePrefs();render();
+}
+function safetyFor(p,ads,sizeAds,fromISO){
   const base=safetyDays()+((ads||0)*30>=100?1:0);
   if(!(ads>0))return base;
-  const cyc=(sizeAds||ads)*coverDaysOf(p),floorU=Math.min(10,Math.max(1,Math.round(cyc/2)));
-  return Math.max(base,Math.ceil(floorU/ads));
+  /* Q4 uplift: plAmazonRow passes the day a send lands (for a measured pace on a PLUB product) —
+     the half-send and the 10 units are counted from then, day by day. No date = as before. */
+  const u=fromISO?p:null;
+  const cyc=u?demandBetween(u,sizeAds||ads,fromISO,coverDaysOf(p)):(sizeAds||ads)*coverDaysOf(p),floorU=Math.min(10,Math.max(1,Math.round(cyc/2)));
+  return Math.max(base,Math.ceil(u?daysCovered(u,ads,floorU,fromISO):floorU/ads));
 }
 function fbaCalDays(){
   const t=dayISO(),p=workDaysAfter(t,primeDays());
@@ -2358,6 +2489,9 @@ function plSuppliers(){
 /* ═══ A. AMAZON REPLENISHMENT (spec §13-14) — build & send? when? how many? */
 function plAmazonRow(p){
   const d=planDemandOf(p);
+  /* Q4 uplift (Jack, 29 Oct): a gift / hamper line on a measured pace — every units ↔ days sum below
+     goes day by day; for every other product pu is null and the sums are exactly as before */
+  const pu=(_upMeasured(d)&&upliftOf(p))?p:null;
   /* 23 Oct 2026: sends recorded after Sarah's last Amazon count were invisible — Becki sent
      226 Gluten Free Biscuit on 21–22 Oct and it still read "Amazon is empty — build & send".
      Anything sent after the count's day is on its way. */
@@ -2377,7 +2511,7 @@ function plAmazonRow(p){
   {const at=(D.settings.atAmzAt||{})[p.asin];
     if(counted!=null&&counted>0&&at&&d&&d.m>0){const t=new Date(hasZone(String(at))?at:ukStamp(String(at).length>10?String(at).slice(0,16):String(at).slice(0,10)+'T12:00'));
       const days=(Date.now()-t.getTime())/864e5;
-      if(days>0.25){soldSince=Math.min(counted,Math.round(d.m/30*days));sell=counted-soldSince;}}}
+      if(days>0.25){soldSince=Math.min(counted,Math.round(demandBetween(pu,d.m/30,ukDayISO(t),days)));sell=counted-soldSince;}}}
   /* 26 Oct (SAS rule): on the way = shipping + moving between Amazon warehouses. The moving
      part is sellable in about MOV_DAYS; the shipping part takes the FBA pipeline. */
   const movQ=Math.min(amzIn(p)||0,(D.settings.atAmzMov||{})[p.asin]||0),shipQ=Math.max(0,(amzIn(p)||0)-movQ)+since;
@@ -2397,7 +2531,7 @@ function plAmazonRow(p){
     out.why='Amazon stock has never been counted for this one, so there is no starting point to plan from.';return out;}
   const ads=d.m/30;out.ads=ads;
   const sizeAds=(d.mSize!=null?d.mSize:d.m)/30;out.sizeAds=sizeAds;
-  const fba=fbaCalDays(),saf=safetyFor(p,ads,sizeAds);out.saf=saf;
+  const fba=fbaCalDays(),saf=safetyFor(p,ads,sizeAds,pu?workDaysAfter(dayISO(),primeDays()):null);out.saf=saf;out.upP=pu;
   /* when does the inbound become sellable? Worked from the latest real
      shipment date (spec §32) plus the FBA pipeline — never taken on faith
      as already-sellable, never discounted either (spec §9.2). */
@@ -2417,12 +2551,12 @@ function plAmazonRow(p){
   out.tranches=tranches;
   /* each tranche that lands before the shelf (plus the earlier tranches) dries out counts as
      protection; the first that lands after is the gap the Planner draws */
-  const sellDry=addCalDays(dayISO(),Math.floor(sell/ads));
+  const sellDry=addCalDays(dayISO(),Math.floor(daysCovered(pu,ads,sell,dayISO())));
   let protUnits=sell,dry=sellDry,inbInTime=false,gapQ=0,gapEta=null,gapRest=0,gapRestEta=null;
-  tranches.forEach(t=>{if(t.eta<=dry){protUnits+=t.q;inbInTime=true;dry=addCalDays(dayISO(),Math.floor(protUnits/ads));}
+  tranches.forEach(t=>{if(t.eta<=dry){protUnits+=t.q;inbInTime=true;dry=addCalDays(dayISO(),Math.floor(daysCovered(pu,ads,protUnits,dayISO())));}
     else if(!gapEta){gapQ=t.q;gapEta=t.eta;}else{gapRest+=t.q;if(!gapRestEta)gapRestEta=t.eta;}});
   const inbEta=tranches.length?tranches[0].eta:null;
-  out.protDays=protUnits/ads;out.gapQ=gapQ;out.gapEta=gapEta;out.gapRest=gapRest;out.gapRestEta=gapRestEta;out.inbInTimeQ=protUnits-sell;
+  out.protDays=daysCovered(pu,ads,protUnits,dayISO());out.gapQ=gapQ;out.gapEta=gapEta;out.gapRest=gapRest;out.gapRestEta=gapRestEta;out.inbInTimeQ=protUnits-sell;
   out.inbEta=inbEta;out.inbInTime=inbInTime;out.sellDry=sellDry;
   out.stockout=addCalDays(dayISO(),Math.floor(out.protDays));
   /* Jack, 23 Oct: "we should always have a buffer in Amazon but shouldn't be leaving it to the
@@ -2434,18 +2568,20 @@ function plAmazonRow(p){
   const landIso=workDaysAfter(dayISO(),primeDays());
   const landDays=Math.round((new Date(landIso+'T00:00:00')-new Date(dayISO()+'T00:00:00'))/864e5);
   const inbByLand=tranches.reduce((t,x)=>t+(x.eta<=landIso?x.q:0),0);
-  const projAtLand=Math.max(0,sell-ads*landDays)+inbByLand;
+  const projAtLand=Math.max(0,sell-demandBetween(pu,ads,dayISO(),landDays))+inbByLand;
   /* Jack, 23 Oct: "we might need to send in a bunch one week if sales increase, but it might be
      a blip so don't wanna do it too much". A jump gets the faster pace for the next 3 weeks only;
      the rest of the cover is planned at the normal pace. If it lasts, the next check tops it up. */
   /* the send: the cover at the size pace, never under 3 weeks at the run-out pace */
   const _cov=coverDaysOf(p);
-  const want=Math.max(sizeAds*_cov,ads*21);
+  /* Q4 uplift: the cover is counted from the day the send lands — days to 23 Dec at the higher pace, after it the plain one */
+  const want=Math.max(demandBetween(pu,sizeAds,landIso,_cov),demandBetween(pu,ads,landIso,21));
   out.rec=out.trigger?Math.max(0,Math.ceil(want-projAtLand)):0;
   /* Jack, 26 Oct: "if it said send 101 and I sent 100, what would it say?" — not "Send 1". A
      remainder under 5% of the plan (or under 2 units) is noise once something is on its way. */
   if(out.rec>0&&projAtLand>0&&out.rec<=Math.max(1,Math.round(want*0.05)))out.rec=0;
   out.landIso=landIso;out.projAtLand=Math.round(projAtLand);out.want=Math.round(want);
+  out.up=pu?upliftNote(pu,dayISO(),Math.max(landDays+Math.max(_cov,21),out.protDays||0)):null;
   if(!out.trigger){
     out.state=(inb>0&&!inbInTime)?'watch':'safe';
     out.why=(out.state==='watch')
@@ -2523,7 +2659,7 @@ function plGapInfo(r){
 /* ═══ B. COMPONENT PURCHASING (spec §15-22) — buy? by when? how much? ═══ */
 function planComponents(){
   const live=D.products.filter(x=>!x.archived);
-  const cd={},drv={},selfLines=[];
+  const cd={},drv={},selfLines=[],mix={};
   /* Jack, 24 Sep: a short-dated product holds less stock — and on a food
      bundle it is the PARTS that carry the date. A product set to hold 30 days
      buys 30 days of its share of each part; the rest keep the buy cycle. */
@@ -2531,20 +2667,24 @@ function planComponents(){
   live.forEach(p=>{
     const d=planDemandOf(p);if(!d||!d.m)return;
     const ads=(d.mSize!=null?d.mSize:d.m)/30;
-    if(p.type!=='bundle'){selfLines.push({o:p,isProd:true,daily:ads,drivers:[p.name],cycDays:coverOverride(p)||null});return;}
+    const pu=(_upMeasured(d)&&upliftOf(p))?p:null;   /* Q4 uplift — only the gift / hamper share of a part */
+    if(p.type!=='bundle'){selfLines.push({o:p,isProd:true,daily:ads,drivers:[p.name],cycDays:coverOverride(p)||null,mix:[{p:pu,r:ads,cov:coverOverride(p)||cycleDaysN()}]});return;}
     (p.recipe||[]).forEach(rc=>{const c=comp(rc.c);if(!c||c.untracked)return;
       cd[c.id]=(cd[c.id]||0)+ads*rc.q;
       cyc[c.id]=(cyc[c.id]||0)+ads*rc.q*(coverOverride(p)||cycleDaysN());
-      (drv[c.id]=drv[c.id]||[]).push(p.name+(rc.q>1?' ×'+rc.q:''));});
+      (drv[c.id]=drv[c.id]||[]).push(p.name+(rc.q>1?' ×'+rc.q:''));
+      (mix[c.id]=mix[c.id]||[]).push({p:pu,r:ads*rc.q,cov:coverOverride(p)||cycleDaysN()});});
   });
   const lines=selfLines.concat(Object.keys(cd)
-    .map(id=>({o:comp(id),isProd:false,daily:cd[id],drivers:drv[id],cycUnits:anyCover?cyc[id]:null}))
+    .map(id=>({o:comp(id),isProd:false,daily:cd[id],drivers:drv[id],cycUnits:anyCover?cyc[id]:null,mix:mix[id]}))
     .filter(x=>x.o&&!x.o.archived));
   const today=dayISO();
   lines.forEach(L=>{
     const o=L.o,dly=L.daily;
     L.hand=onHand(o);
-    L.cover=dly?L.hand/dly:null;
+    /* Q4 uplift: a gift / hamper product drives this — its share goes day by day; null = as before */
+    const _upL=(L.mix||[]).some(x=>x.p)?L.mix:null;
+    L.cover=dly?daysCovered(_upL,dly,L.hand,today):null;
     L.sup=compSupplier(o);
     const route=routeDaysFor(L.sup);
     const pt=L.isProd?null:prodTimeOf(o);
@@ -2565,10 +2705,12 @@ function planComponents(){
     L.inTime=inTime;
     /* buy enough that AFTER it lands we hold cycle + safety of cover, from
        the projected position — never a flat top-up to a target (spec §18) */
-    const projAtArrival=Math.max(0,L.hand-dly*L.lead)+inTime;
+    const projAtArrival=Math.max(0,L.hand-demandBetween(_upL,dly,today,L.lead))+inTime;
     /* with nobody on a shorter cover this is exactly dly × (cycle + safety), as before */
-    const want=(L.cycUnits!=null?L.cycUnits:dly*(L.cycDays||cycleDaysN()))+dly*safetyDays();
+    const want=_upL?_upL.reduce((t,x)=>t+demandBetween(x.p,x.r,arriveIso,x.cov+safetyDays()),0)   /* each product's cycle + safety from arrival */
+      :(L.cycUnits!=null?L.cycUnits:dly*(L.cycDays||cycleDaysN()))+dly*safetyDays();
     L.want=Math.ceil(want);L.projAtArrival=Math.round(projAtArrival);
+    L.up=_upL?upliftNote(_upL,today,L.lead+(L.cycDays||cycleDaysN())+safetyDays()):null;
     const need=Math.max(0,want-projAtArrival);
     L.needRaw=Math.ceil(need);
     const cq=(!L.isProd&&o.caseQty>0)?o.caseQty:null;
@@ -2576,7 +2718,7 @@ function planComponents(){
     L.cases=(cq&&need>0)?Math.ceil(need/cq):null;
     L.buyQty=need>0?(cq?L.cases*cq:Math.ceil(need)):0;
     L.cost=L.buyQty>0?L.buyQty*(avgCost(o)||0):0;
-    const runoutDays=dly?(L.hand+inTime)/dly:Infinity;
+    const runoutDays=dly?daysCovered(_upL,dly,L.hand+inTime,today):Infinity;L.runDays=runoutDays;
     L.buyByDays=Math.floor(runoutDays-(L.lead+safetyDays()));
     L.buyBy=addCalDays(today,Math.max(0,L.buyByDays));
     if(L.buyQty<=0)L.state=(L.pendQty>0)?'waiting':'safe';
@@ -2613,7 +2755,7 @@ function partDatesFromSends(az,byComp){
     const Lp=byComp[r.lim.id];if(!Lp||Lp.lead==null)return;
     const u=sendUrgency(r);if(!u)return;
     const land=r.landIso?Math.round((new Date(r.landIso+'T00:00:00')-new Date(today+'T00:00:00'))/864e5):fbaCalDays();
-    const endAfter=r.alloc>0?Math.max(u.end,land)+r.alloc/r.ads:u.end;
+    const endAfter=r.alloc>0?Math.max(u.end,land)+daysCovered(r.upP||null,r.ads,r.alloc,today,Math.max(u.end,land)):u.end;
     const saf=r.saf!=null?r.saf:safetyDays();
     const need=Math.floor(endAfter-saf-land-prep-Lp.lead);
     const q=((r.p.recipe||[]).find(rc=>rc.c===r.lim.id)||{}).q||1;
@@ -2704,6 +2846,7 @@ function plDebugPre(r){
   const d=r.demand||{};
   const rows=[
     ['Demand',d.m!=null?fmt(d.m)+'/month ('+d.label+') = '+(r.ads?r.ads.toFixed(2):'—')+'/day':'—'],
+    ...(r.up?[['Q4 uplift',esc(r.up.txt)+' — forecast days in the window at ×'+(1+r.up.pct/100).toFixed(2)+', the plain pace after; the demand above is as measured']]:[]),
     ['Amazon sellable',r.sell==null?'never counted':fmt(r.sell)],
     ['Amazon inbound',fmt(r.inb||0)+(r.inbEta?' · expected sellable ~'+dshort(r.inbEta)+(r.inbInTime?' (in time)':' (after the shelf empties)'):'')],
     ['Buildable now',r.buildCap!=null?fmt(r.buildCap):fmt((avail(r.p)||{}).n||0)],
@@ -2768,10 +2911,10 @@ function _plannerTable(az,buys,gaps,fba,saf,setBox){
     const own=r.protDays!=null?r.protDays:r.sell/r.ads,gapQ=r.gapQ||0,gapD=r.gapEta?Math.max(0,dTo(r.gapEta)):null;
     const inT=r.inbInTimeQ||0;
     const segs=[],marks=[];let end,cap;
-    if(gapQ>0&&gapD!=null&&gapD>own){segs.push(['ok',0,own],['out',own,gapD],['ok',gapD,gapD+(gapQ+(r.gapRest||0))/r.ads]);end=gapD+(gapQ+(r.gapRest||0))/r.ads;
+    if(gapQ>0&&gapD!=null&&gapD>own){const _gl=daysCovered(r.upP||null,r.ads,gapQ+(r.gapRest||0),today,gapD);segs.push(['ok',0,own],['out',own,gapD],['ok',gapD,gapD+_gl]);end=gapD+_gl;
       {const gd=Math.max(1,gapD-Math.floor(own));cap=(own>=1?`${nDays(Math.floor(own))} at Amazon${inT?` (incl. ${fmt(inT)} on the way)`:''}, then`:'Empty now,')+` <b class="plRed">~${nDays(gd)} empty</b> until the ${fmt(gapQ)} on the way land ~${dshort(r.gapEta)}${r.gapRest?` (and ${fmt(r.gapRest)} more ~${dshort(r.gapRestEta)})`:''}`;}
       if(r.state==='waiting')cap+=' · a send now would land after them, so nothing to send';}
-    else{end=own+gapQ/r.ads;segs.push(['ok',0,end]);
+    else{end=own+daysCovered(r.upP||null,r.ads,gapQ,today,own);segs.push(['ok',0,end]);
       cap=r.sell<=0&&!(r.inb>0)?'<b class="plRed">Empty at Amazon now</b>':`${nDays(Math.floor(end))} at Amazon${r.inb>0?` (incl. ${fmt(r.inb)} on the way${r.mov?`, ${fmt(r.mov)} of them moving between Amazon warehouses`:''})`:''} — runs out ~${dshort(r.stockout)}`;}
     if(end<HZ)segs.push(['out',end,HZ]);
     (r.tranches||[]).forEach(x=>marks.push(['inb',Math.max(0,dTo(x.eta)),`${fmt(x.q)} ${x.mov?'moving between Amazon warehouses — sellable':'on the way — land'} ~${dshort(x.eta)}`]));
@@ -2790,7 +2933,7 @@ function _plannerTable(az,buys,gaps,fba,saf,setBox){
       :dl===0?'<b class="plToday">today</b><small>last day it can leave</small>':dlTxt(dl);
     return `<tr class="plR${r.state==='safe'?' safe':''}" style="--c:${sc[1]}">
       <td class="plWhat"><a href="javascript:void(0)" onclick="LV3.openPlanRow('${p.id}')">${esc(p.name)}</a>${coverOverride(p)?`<b class="covChip" title="Holds ${coverDaysOf(p)} days of stock">${coverDaysOf(p)}d</b>`:''}
-        <small>at Amazon <b>${r.sell==null?'—':fmt(r.sell)}</b> · on the way <b>${fmt(r.inb||0)}</b> · can build <b>${fmt(r.buildCap!=null?r.buildCap:((avail(p)||{}).n||0))}</b></small></td>
+        <small>at Amazon <b>${r.sell==null?'—':fmt(r.sell)}</b> · on the way <b>${fmt(r.inb||0)}</b> · can build <b>${fmt(r.buildCap!=null?r.buildCap:((avail(p)||{}).n||0))}</b></small>${r.up?`<small style="color:#c4b5fd" title="Jack, 29 Oct: gift and hamper lines are expected to sell more before Christmas. Forecast days in the window use the measured pace plus this; from the day after, the plain pace. The per-day figure is as measured. Settings, Christmas uplift.">${esc(r.up.txt)}</small>`:''}</td>
       <td class="plN">${r.ads?n1(r.ads):'—'}<small>${esc(srcTxt(d))}</small></td>
       <td>${chip(sc[0],sc[1])}</td>
       <td class="plDl">${when}</td>
@@ -2823,7 +2966,7 @@ function _plannerTable(az,buys,gaps,fba,saf,setBox){
         <td class="plDl"><b class="plToday">set up</b></td>
         <td class="plBar">${bar(cov!=null?[['ok',0,cov],['out',cov,HZ]]:[],[],`${fmt(L.hand)} left${cov!=null?` ≈ ${nDays(cov)}`:''} · can't work out when to order without ${nosup?'a supplier':'a route'}`)}</td>
         <td>${whoChip(setupOwner)}</td><td class="plBtns">${sel}</td></tr>`;}
-    const run=L.daily?(L.hand+(L.inTime||0))/L.daily:null,landD=L.lead||null;
+    const run=L.daily?(L.runDays!=null?L.runDays:(L.hand+(L.inTime||0))/L.daily):null,landD=L.lead||null;
     const segs=run!=null?[['ok',0,run],['out',run,HZ]]:[],marks=[];
     (o.layers||[]).filter(l=>!l.arr&&!l.writtenOff&&(l.eta2||l.eta1)).forEach(l=>marks.push(['inb',dTo(l.eta2||l.eta1),`${fmt(l.qty)} due ${dshort(l.eta2||l.eta1)}`]));
     if(landD!=null)marks.push(['ship',landD,`Ordered today, it lands ~${dshort(addCalDays(today,landD))}`]);
@@ -2836,7 +2979,7 @@ function _plannerTable(az,buys,gaps,fba,saf,setBox){
       :L.state==='soon'?['ORDER BY '+dshort(L.buyBy),'#fbbf24']:L.state==='upcoming'?['BY '+dshort(L.buyBy),'#94a3b8']:L.chase?['ON ORDER · '+fmt(L.overdueDays||1)+' DAY'+(L.overdueDays===1?'':'S')+' LATE','#fb923c']:['ON ORDER · COVERED','#60a5fa'];
     const qty=L.buyQty>0?`${fmt(L.buyQty)}${L.cases&&L.caseQty>1?` (${fmt(L.cases)}×${fmt(L.caseQty)})`:''}`:'';
     return `<tr class="plR${dl>7?' safe':''}" style="--c:${sc[1]}${L.skip?';opacity:.6':''}">
-      <td class="plWhat"><span class="plPart">PART</span>${esc(o.name)}<small>${esc(sup||'—')} · used by ${esc(used)}</small></td>
+      <td class="plWhat"><span class="plPart">PART</span>${esc(o.name)}<small>${esc(sup||'—')} · used by ${esc(used)}</small>${L.up?`<small style="color:#c4b5fd" title="Jack, 29 Oct: gift and hamper lines are expected to sell more before Christmas. Forecast days in the window use the measured pace plus this; from the day after, the plain pace. The per-day figure is as measured. Settings, Christmas uplift.">${esc(L.up.txt)}</small>`:''}</td>
       <td class="plN">${L.daily?n1(L.daily):'—'}</td>
       <td>${chip(sc[0],sc[1])}${L.topUp||(L.pendQty>0&&L.buyQty>0)?'<small class="plTop">top-up</small>':''}</td>
       <td class="plDl">${L.buyQty>0?dlTxt(dl):'<span class="ovDim">covered</span>'}</td>
@@ -2855,12 +2998,13 @@ function _plannerTable(az,buys,gaps,fba,saf,setBox){
         <td class="plN">—</td><td>${chip('SET ROUTE','#f87171')}</td><td class="plDl"><b class="plToday">set up</b></td>
         <td class="plBar"><div class="plTl none"></div><div class="plCap">No shipping route for ${esc(sup)}, so none of these can be dated — one answer covers all ${fmt(g.lines.length)}</div></td>
         <td>${whoChip(setupOwner)}</td><td class="plBtns">${sel}</td></tr>`;}
-    const run=L0.daily?(L0.hand+(L0.inTime||0))/L0.daily:null,landD=L0.lead||null;
+    const run=L0.daily?(L0.runDays!=null?L0.runDays:(L0.hand+(L0.inTime||0))/L0.daily):null,landD=L0.lead||null;
     const segs=run!=null?[['ok',0,run],['out',run,HZ]]:[],marks=[];
     if(landD!=null)marks.push(['ship',landD,`Ordered today, it lands ~${dshort(addCalDays(today,landD))}`]);
     if(L0.buyByDays!=null)marks.push(['dl',Math.max(0,L0.buyByDays),'Order by this day']);
     const short=(run!=null&&landD!=null&&run<landD)?Math.round(landD-run):0;
-    let cap=`First to run out: <b>${esc(L0.o.name)}</b> — ${fmt(L0.hand)} left${run!=null?` ≈ ${nDays(Math.floor(run))}`:''} · ${esc(L0.route?L0.route.label:'')} ${fmt(L0.lead)}d → ordered today, lands ~${dshort(addCalDays(today,L0.lead))}`;
+    const _gu=g.lines.find(x=>x.up);
+    let cap=(_gu?`<span style="color:#c4b5fd">${esc(_gu.up.txt)}</span> · `:'')+`First to run out: <b>${esc(L0.o.name)}</b> — ${fmt(L0.hand)} left${run!=null?` ≈ ${nDays(Math.floor(run))}`:''} · ${esc(L0.route?L0.route.label:'')} ${fmt(L0.lead)}d → ordered today, lands ~${dshort(addCalDays(today,L0.lead))}`;
     if(short)cap+=` · <b class="plRed">~${nDays(short)} short</b>`;
     const sc=L0.state==='buy'?[L0.buyByDays<0?fmt(-L0.buyByDays)+' DAY'+(-L0.buyByDays===1?'':'S')+' PAST ORDER-BY':'ORDER TODAY','#ef4444']
       :L0.state==='soon'?['ORDER BY '+dshort(L0.buyBy),'#fbbf24']:L0.state==='upcoming'?['BY '+dshort(L0.buyBy),'#94a3b8']:L0.chase?['ON ORDER · '+fmt(L0.overdueDays||1)+' DAY'+(L0.overdueDays===1?'':'S')+' LATE','#fb923c']:['ON ORDER · COVERED','#60a5fa'];
@@ -2992,6 +3136,342 @@ function vPlanner(){
   $('lav3View').innerHTML=_plannerTable(az,buys,gaps,fba,saf,setBox);
 }
 
+/* ═══ Q4 PREPPING — a TEMPORARY tab (Jack, 29 Oct 2026). It comes off in January, when he asks. ═══
+   "How far through the Christmas build are we?" — per product and in total.
+     DONE   = units on an Amazon shipment (one with a shipment ID) dated 1 Oct onwards.
+     TARGET = Jack's own number for a bundle (Settings ▾ on the page; D.settings.q4Targets by
+              product id). Where there is one, 100% = the target. Pre-filled from his Q4 plan by
+              exact product name until the first target is saved.
+     MAX    = for a bundle with no target: done + what the COMPONENTS on the shelf and on order
+              (bought, not arrived) still make — the same as "the shelf on 1 Oct + everything
+              bought since", because every send takes its parts off. Buying more raises the max.
+     %      = done ÷ target (or ÷ max). "Of which arrived" = what the shelf alone makes.
+   Jack, 29 Oct: "ignore the boxes — we're on about components always". Packaging (kind
+   'packaging', or a name that is plainly a box / packaging) never limits and is never counted;
+   nor are untracked parts. Shared components are handed out in the Action centre's order — the
+   product closest to running out at Amazon first (planAmazon's protection days; no figure goes
+   last) — from one pool, so no part is ever counted twice. Jack, 29 Oct: "prioritise those
+   bundles — roughly within 5% of my plan, then the extras can be allocated elsewhere": bundles
+   WITH a target go first (Action-centre order among themselves) and stop at target + 5% (the %
+   is a setting, D.settings.q4Over); then everything else shares what is left. A line that gets none because the
+   shared part all went to a bundle ahead says so, in amber: it is not finished.
+   q4Calc only reads and returns numbers; vQ4 draws them. The page writes nothing except a target
+   Jack types (q4SetTarget -> savePrefs, the normal PLUB settings save, three-way merged).
+   LV3.q4Calc() runs it on the live data; pass {products,components,purchases,shipments,targets,over,
+   protDays,owed,onHand,onOrder,linkState,from} to run it on anything else. */
+const Q4_FROM='2026-10-01';
+/* Jack's rough Q4 plan — pre-fill only, matched on the exact product name, skipped when absent */
+const Q4_PLAN=[['Gluten Free Snack Bundle',1500],['Gluten Free Biscuit Bundle',800],['Hot Chocolate Gift Hamper',1500],
+  ['Tea & Biscuits Hamper',1600],['Pub Snacks Hamper',400]];
+const q4Pct=(done,max)=>!(max>0)?null:done>=max?100:Math.floor(100*done/max);   /* 99.9% never shows as 100% */
+const q4IsPack=c=>!!c&&(c.kind==='packaging'||/(^|[^a-z])(box|boxes|packaging|packing)([^a-z]|$)/i.test(String(c.name||'')));
+function q4PlanFill(products){
+  const m={};
+  Q4_PLAN.forEach(([n,t])=>{const p=(products||[]).find(x=>x&&!x.archived&&x.type==='bundle'&&String(x.name||'').trim()===n);
+    if(p&&m[String(p.id)]===undefined)m[String(p.id)]=t;});
+  return m;
+}
+/* the targets in force: what is saved, or — until the first one is saved — the plan */
+function q4TargetMap(){
+  const s=D.settings&&D.settings.q4Targets;
+  if(s&&typeof s==='object'&&!Array.isArray(s))return{map:s,saved:true};
+  return{map:q4PlanFill(D.products),saved:false};
+}
+function q4ProtDays(){
+  const by={};
+  try{(planAmazon().rows||[]).forEach(r=>{if(r&&r.p&&r.protDays!=null&&isFinite(r.protDays))by[r.p.id]=r.protDays;});}
+  catch(e){console.warn('[q4] Action centre order',e);}
+  return p=>(by[p.id]!==undefined?by[p.id]:null);
+}
+function q4Calc(o){
+  o=o||{};
+  const from=String(o.from||Q4_FROM).slice(0,10);
+  const P=o.products||D.products,C=o.components||D.components,U=o.purchases||D.purchases;
+  const S=o.shipments||(typeof lavShipments!=='undefined'?lavShipments:[]);
+  const hand=o.onHand||onHand,coming=o.onOrder||onOrder;
+  const linkK=o.linkState||(x=>allocState(x).k);
+  const prot=o.protDays||q4ProtDays();
+  const TG=o.targets||q4TargetMap().map;
+  const owedBy=o.owed||(()=>{const m={};Object.keys((D.settings||{}).overSent||{}).forEach(a=>{const n=overSentFor(a);if(n>0)m[a]=n;});return m;})();
+  const K=a=>String(a||'').trim().toUpperCase();
+  const num=v=>Math.max(0,+v||0);
+  /* DONE — sent on a shipment that has an ID, dated on or after the start */
+  const sent={};
+  (S||[]).forEach(x=>{if(!x||!String(x.shipId||'').trim())return;
+    const d=String(x.date||'').slice(0,10);if(!d||d<from)return;
+    const a=K(x.asin);if(a)sent[a]=(sent[a]||0)+(parseInt(x.units)||0);});
+  /* every live product; an archived one only when it sent something (its sends still count) */
+  const live=(P||[]).filter(p=>p&&(!p.archived||(sent[K(p.asin)]||0)>0));
+  const took={},doneM=new Map();   /* one ASIN on two rows: the first carries the sends, never both */
+  live.forEach(p=>{const a=K(p.asin);let d=0;if(a&&!took[a]){took[a]=1;d=Math.max(0,sent[a]||0);}doneM.set(p,d);});
+  const owedOf=p=>Math.max(0,parseInt(owedBy[p.asin])||0);
+  const tgtOf=p=>{const v=Math.round(+((TG||{})[String(p.id)]));return v>0?v:null;};
+  /* how far past its target a priority bundle may go before the rest get a look-in (Settings ▾, default 5) */
+  const OVER=q4OverOf(o.over!=null?o.over:(D.settings||{}).q4Over);
+  /* BUNDLES — one pool per component (shelf + on order, and the shelf alone), handed out in queue order */
+  const cBy={};(C||[]).forEach(c=>{if(c)cBy[String(c.id)]=c;});
+  const T0={},A0={},packs={};
+  const key=c=>{const k=String(c.id);if(T0[k]===undefined){T0[k]=num(hand(c))+num(coming(c));A0[k]=num(hand(c));}return k;};
+  /* pass 1 = the bundles with a target, pass 2 = the rest — each in the Action centre's order */
+  const queue=live.filter(p=>p.type==='bundle').map((p,i)=>{const v=prot(p);return{p,i,pd:(v==null||!isFinite(v))?null:+v,pri:(!p.archived&&tgtOf(p))?0:1};})
+    .sort((a,b)=>(a.pri-b.pri)||((a.pd==null?1e12:a.pd)-(b.pd==null?1e12:b.pd))||(a.i-b.i));
+  const Q=queue.map(({p,pd,pri},ix)=>{
+    const done=doneM.get(p)||0,target=p.archived?null:tgtOf(p);
+    const allowTo=target?Math.ceil(target*(100+OVER)/100-1e-9):null;   /* target + 5%: where pass 1 stops */
+    const r={id:String(p.id),asin:p.asin||'',name:p.name||p.asin||'',type:'bundle',archived:!!p.archived,
+      order:ix+1,protDays:pd,done,left:0,arrived:0,target,formulaMax:done,max:done,pct:null,need:null,cover:null,
+      starved:false,owed:owedOf(p),why:'ok',lim:null,priority:pri===0,over:OVER,allowTo,allow:target?Math.max(0,allowTo-done):null};
+    const rec=p.recipe||[],need={};let missing=0;
+    rec.forEach(rc=>{const c=cBy[String(rc.c)];if(!c){missing++;return;}if(c.untracked)return;
+      if(q4IsPack(c)){packs[String(c.id)]=c.name||'';return;}       /* components only — never the box */
+      const k=key(c);(need[k]=need[k]||{k,c,q:0}).q+=Math.max(1,parseInt(rc.q)||1);});
+    if(p.archived)r.why='archived';
+    else if(!rec.length)r.why='norecipe';
+    else if(missing)r.why='broken';            /* the build list names a part that is gone — it cannot be sent (avail) */
+    else if(!Object.keys(need).length)r.why='untracked';   /* only packaging / untracked parts */
+    return{r,parts:r.why==='ok'?Object.values(need):[]};
+  });
+  /* THE allocation, as one function, so any "buy more" can be tested by running the whole queue
+     again with the extra parts added — the sentence on the page is always what really happens */
+  const run=extra=>{const pool={},caps=[];let total=0;
+    const get=k=>pool[k]!==undefined?pool[k]:(pool[k]=T0[k]+((extra&&extra[k])||0));
+    Q.forEach(l=>{if(!l.parts.length){caps.push(0);return;}
+      let cap=Infinity;l.parts.forEach(x=>{const n=Math.floor(get(x.k)/x.q);if(n<cap)cap=n;});
+      if(l.r.allow!=null&&l.r.allow<cap)cap=l.r.allow;              /* pass 1 takes no more than target + 5% */
+      l.parts.forEach(x=>{pool[x.k]=get(x.k)-x.q*cap;});caps.push(cap);total+=cap;});
+    return{caps,total,pool};};
+  const base=run(null);
+  const fin=k=>base.pool[k]!==undefined?base.pool[k]:T0[k];     /* what is left once every bundle has had its share */
+  /* the same pass again, with the detail the page shows: who took what, and the shelf-only figure */
+  const poolT={},poolA={},takers={},shortOf={};
+  Q.forEach((l,ix)=>{const r=l.r,parts=l.parts;if(!parts.length)return;
+    parts.forEach(x=>{if(poolT[x.k]===undefined){poolT[x.k]=T0[x.k];poolA[x.k]=A0[x.k];}x.pool=poolT[x.k];x.can=Math.floor(x.pool/x.q);});
+    const cap=base.caps[ix],covered=r.allow!=null&&cap>=r.allow,limP=covered?[]:parts.filter(x=>x.can===cap);
+    r.left=cap;
+    parts.forEach(x=>{poolT[x.k]-=x.q*cap;if(cap>0)(takers[x.k]=takers[x.k]||[]).push({id:r.id,name:r.name,qty:x.q*cap});});
+    r.arrived=Math.max(0,Math.min(cap,...parts.map(x=>Math.floor(poolA[x.k]/x.q))));
+    parts.forEach(x=>{poolA[x.k]-=x.q*r.arrived;});
+    if(covered)return;                       /* got its whole target + 5% — nothing limits it */
+    /* what caps it, and the bundles ahead in the queue that were given some of it first */
+    r.lim={parts:limP.map(x=>({id:x.k,name:x.c.name||'',q:x.q,pool:x.pool,total:T0[x.k],took:(takers[x.k]||[]).filter(t=>t.id!==r.id)})),
+      ahead:[...new Set([].concat(...limP.map(x=>shortOf[x.k]||[])))],say:null};
+    /* none left for it, though there was enough for one before the bundles ahead took theirs */
+    r.starved=cap===0&&r.lim.parts.some(x=>x.pool<x.q&&x.total>=x.q&&x.took.length>0);
+    limP.forEach(x=>{(shortOf[x.k]=shortOf[x.k]||[]).push(r.name);});
+  });
+  /* "buying N more makes M more" — sized on what the OTHER components have left after the whole
+     queue (so the extra builds take nothing from a bundle further down), then checked by running
+     the queue again. If bundles ahead take the extra first it says so, and what it would take here. */
+  const sim=(ix,e)=>{const s=run(e),to=[],lo=[];s.caps.forEach((c,j)=>{if(j===ix)return;if(c>base.caps[j])to.push(Q[j].r.name);
+      else if(c<base.caps[j])lo.push({name:Q[j].r.name,n:base.caps[j]-c});});
+    return{gl:s.caps[ix]-base.caps[ix],gp:s.total-base.total,to,lo};};
+  Q.forEach((l,ix)=>{const r=l.r;if(!r.lim)return;
+    const limK=new Set(r.lim.parts.map(x=>x.id)),lp=l.parts.filter(x=>limK.has(x.k)),op=l.parts.filter(x=>!limK.has(x.k));
+    /* a bundle with a target is sized on what is left of its other components straight after its turn (it has
+       priority over the rest); the others on what is left once the whole queue has run */
+    const avail=x=>r.priority?Math.max(0,x.pool-x.q*r.left):fin(x.k);
+    let m0=Infinity,nx=null;op.forEach(x=>{const m=Math.floor(avail(x)/x.q);if(m<m0){m0=m;nx=x;}});
+    const room=r.allow!=null?r.allow-r.left:Infinity,capped=room!==Infinity&&room<=m0;
+    if(capped){m0=room;nx=null;}
+    const next=nx?{id:nx.k,name:nx.c.name||''}:null;
+    const buyFor=n=>{const e={};lp.forEach(x=>{e[x.k]=Math.max(1,n*x.q-fin(x.k));});return e;};
+    const list=e=>lp.map(x=>({id:x.k,name:x.c.name||'',qty:e[x.k]}));
+    if(m0===0){
+      /* the next component is all used by bundles further down: more of this one only moves it from them.
+         Checked too — let it take all of the next one there was at its turn, and run the queue again. */
+      const after=[];Q.forEach((o,j)=>{if(j>ix&&base.caps[j]>0&&o.parts.some(x=>x.k===nx.k))after.push(o.r.name);});
+      const e=buyFor(Math.max(1,Math.floor(nx.pool/nx.q)-r.left)),g=sim(ix,e);
+      /* the re-run decides: a plain gain (the part it takes would have gone spare), a move, or nothing */
+      const k=g.gl>0&&g.gp>=g.gl?'ok':g.gp>0?'steal':'none';
+      r.lim.say={kind:k,buy:list(e),gl:g.gl,gp:g.gp,to:g.to,lo:g.lo,next:k==='ok'?null:next,after,open:false,q:null,here:null,capped:false};return;}
+    const goal=m0===Infinity?1:m0;
+    const e=buyFor(goal),g=sim(ix,e);
+    const say={kind:g.gl>=goal?(g.gp<g.gl?'steal':'ok'):'ahead',goal,buy:list(e),gl:g.gl,gp:g.gp,to:g.to,lo:g.lo,next,
+      open:m0===Infinity,q:lp.length===1?lp[0].q:null,here:null,capped,coverTo:capped?r.allowTo:null};
+    if(say.kind==='ahead'){
+      /* what it takes to make `goal` more HERE: double until it does, then halve back — every figure a re-run */
+      let top={n:goal,s:g},hi=goal;
+      for(let t=0;t<40;t++){hi*=2;const s=sim(ix,buyFor(hi));if(s.gl>top.s.gl)top={n:hi,s};if(s.gl>=goal)break;}
+      const want=Math.min(goal,top.s.gl);     /* the goal, or the most this one can ever get from it */
+      if(want>Math.max(0,g.gl)){let a=goal,b=top.n,sb=top.s;
+        while(b-a>1){const m=Math.floor((a+b)/2),s=sim(ix,buyFor(m));if(s.gl>=want){b=m;sb=s;}else a=m;}
+        say.here={buy:list(buyFor(b)),gl:sb.gl,gp:sb.gp,to:sb.to};}
+    }
+    r.lim.say=say;
+  });
+  const bundles=Q.map(({r})=>{
+    r.formulaMax=r.done+r.left;
+    if(r.target){
+      /* the target is 100%; sending past it reads 100% of what went, so one line over its target
+         can never hide another one short of its own in the page total */
+      r.max=Math.max(r.target,r.done);r.need=Math.max(0,r.target-r.done);r.cover=r.left-r.need;
+    }else r.max=r.formulaMax;
+    r.pct=q4Pct(r.done,r.max);
+    return r;
+  });
+  /* SINGLES / PRIVATE LABEL — their own stock, no build, no target */
+  const singles=live.filter(p=>p.type!=='bundle').map(p=>{
+    const done=doneM.get(p)||0,h=p.archived?0:num(hand(p)),c=p.archived?0:num(coming(p));
+    return{id:String(p.id),asin:p.asin||'',name:p.name||p.asin||'',type:p.type||'pl',archived:!!p.archived,
+      done,hand:h,onOrder:c,left:h+c,arrived:h,target:null,formulaMax:done+h+c,max:done+h+c,pct:q4Pct(done,done+h+c),owed:owedOf(p)};
+  });
+  const tot=a=>{const t={done:0,max:0,left:0,arrived:0,owed:0,targeted:0,lines:a.length};
+    a.forEach(r=>{t.done+=r.done;t.max+=r.max;t.left+=r.left;t.arrived+=r.arrived;t.owed+=r.owed;if(r.target)t.targeted++;});
+    t.toGo=t.max-t.done;t.pct=q4Pct(t.done,t.max);return t;};
+  const totals=tot(bundles.concat(singles));totals.bundles=tot(bundles);totals.singles=tot(singles);
+  /* purchase lines since the start that are not linked — they count for nothing until they are */
+  const since=(U||[]).filter(x=>x&&String(x.date||'').slice(0,10)>=from).map(x=>({x,k:linkK(x)}));
+  const unl=since.filter(y=>y.k==='none'||y.k==='broken'),part=since.filter(y=>y.k==='part');
+  return{from,over:OVER,bundles,singles,totals,
+    packaging:Object.keys(packs).map(id=>({id,name:packs[id]})).sort((a,b)=>String(a.name).localeCompare(String(b.name))),
+    unlinked:{n:unl.length,part:part.length,units:unl.reduce((t,y)=>t+(parseInt(y.x.qty)||0),0),
+      lines:unl.map(y=>({id:y.x.id,date:String(y.x.date||'').slice(0,10),name:y.x.name||'',qty:parseInt(y.x.qty)||0,sup:y.x.sup||'',k:y.k}))}};
+}
+/* 100% is green only when it is real; a line starved of a shared component is amber */
+const q4Tone=r=>r.starved?'warn':(r.pct===100?'ok':'');
+function q4LimHtml(r){
+  if(r.why==='archived')return '<span class="q4Dim">Archived — its sends still count</span>';
+  if(r.why==='norecipe')return '<span class="q4Dim">No build list yet</span>';
+  if(r.why==='broken')return '<span class="q4Bad">Its build list names a part that no longer exists — fix it on Products</span>';
+  if(r.why==='untracked')return '<span class="q4Dim">No components to count — packaging and untracked parts never limit here</span>';
+  const L=r.lim;if(!L||!L.parts.length)return '';
+  const ps=L.parts,Y=L.say||{};
+  const who=a=>a.map(n=>`<b>${esc(n)}</b>`).join(', ');
+  const isAre=a=>a.length===1?'is':'are';
+  const buyTxt=b=>b.length===1?`${fmt(b[0].qty)} more`:b.every(x=>x.qty===b[0].qty)?`${fmt(b[0].qty)} more of each`:b.map(x=>`${fmt(x.qty)} ${esc(x.name)}`).join(' + ');
+  const gain=n=>n>0?`${fmt(n)} more`:n<0?`${fmt(-n)} fewer`:'none';
+  const inAll=(gl,gp)=>gp!==gl?` (${gp>0?fmt(gp)+' more':gp<0?fmt(-gp)+' fewer':'none'} in all)`:'';
+  /* every figure below is the queue run again with the extra parts in it */
+  let how='';
+  if(Y.kind==='none')
+    how=Y.gp<0?`buying more of it makes ${gain(Y.gp)} in all — <b>${esc(Y.next.name)}</b> runs out too, and this one would take it from ${Y.after.length?who(Y.after):'the bundles further down'}`
+      :`buying more of it makes none on its own — <b>${esc(Y.next.name)}</b> runs out too${Y.after.length?` (the rest of it goes to ${who(Y.after)})`:''}`;
+  else if(Y.kind==='ok')
+    how=Y.open?(Y.buy.length===1?(Y.q===1?'each one bought makes one more':`every ${fmt(Y.q)} bought make one more`):'one more of each makes one more')+inAll(Y.gl,Y.gp)
+      :`buying ${buyTxt(Y.buy)} makes ${fmt(Y.gl)} more${inAll(Y.gl,Y.gp)}${Y.capped?` — covered to ${fmt(Y.coverTo)} (target +${fmt(r.over)}%)`:Y.next?`, then ${esc(Y.next.name)} runs out`:''}`;
+  else if(Y.kind==='steal')
+    how=`buying ${buyTxt(Y.buy)} makes ${gain(Y.gl)} here but ${gain(Y.gp)} in all — `
+      +((Y.lo||[]).length?(Y.lo||[]).map(x=>`<b>${esc(x.name)}</b> ${fmt(x.n)} fewer`).join(', ')
+        :`it takes ${Y.next&&Y.after&&Y.after.length?`<b>${esc(Y.next.name)}</b> from ${who(Y.after)}`:'parts from bundles further down'}`);
+  else if(Y.kind==='ahead')
+    how=`buying ${buyTxt(Y.buy)} makes ${gain(Y.gl)} here${Y.to.length?` — ${who(Y.to)} ${isAre(Y.to)} ahead in the queue and take${Y.to.length===1?'s':''} it first`:''}${Y.gp!==Y.gl?` (${gain(Y.gp)} in all)`:''}`
+      +(Y.here?`; ${buyTxt(Y.here.buy)} makes ${fmt(Y.here.gl)} more here${inAll(Y.here.gl,Y.here.gp)}`:Y.gl>0?'':`; more of ${Y.buy.length>1?'them':'it'} alone never makes any here`);
+  const tone=Y.kind==='ok'?'':' class="w"';
+  if(r.starved){
+    const x=ps.find(y=>y.pool<y.q&&y.took.length)||ps[0];
+    return `<div class="q4Lim q4Warn">No <b>${esc(x.name)}</b> left for it — all allocated to ${who(x.took.map(t=>t.name))}</div>${how?`<small${tone}>${how}</small>`:''}`;
+  }
+  const names=ps.map(x=>`<b>${esc(x.name)}</b>`).join(' and ');
+  const shared=[...new Set([].concat(...ps.map(x=>x.took.map(t=>t.name))))];
+  return `<div class="q4Lim">Limited by ${names}${r.left===0?' — none here or on order':''}</div>${how?`<small${tone}>${how}</small>`:''}`
+    +(Y.kind==='ok'&&shared.length?`<small class="q4Dim">shared — ${esc(shared.join(', '))} ${isAre(shared)} ahead in the queue for it</small>`:'');
+}
+/* a bundle with a target: how far its share of the parts takes it — to target + 5%, to the target, or short */
+function q4CoverHtml(r){
+  if(!r.target)return '';
+  const to=r.done+r.left,plus=`target +${fmt(r.over)}%`;
+  if(r.allow===0)return `<div class="q4Cov ok">${r.done>=r.allowTo?`Sent ${fmt(r.done)} — past ${plus}`:'Target reached'} &#10003;</div>`;
+  if(r.left>=r.allow)return `<div class="q4Cov ok">Covered to <b>${fmt(r.allowTo)}</b> (${plus}) &#10003;</div>`;
+  if(r.left>=r.need)return `<div class="q4Cov ok">Covered to <b>${fmt(to)}</b> — target &#10003; <span>· ${fmt(r.allow-r.left)} short of ${plus}</span></div>`;
+  return `<div class="q4Cov warn">Covered to <b>${fmt(to)}</b> of ${fmt(r.target)} — <b>short by ${fmt(r.need-r.left)}</b></div>`;
+}
+let _q4SetOpen=false;
+function q4SetOpen(v){_q4SetOpen=!!v;}
+/* Jack's target for one bundle. Blank or 0 takes it off (the line goes back to what the parts
+   make). The first change saves the whole set, the pre-filled plan included. */
+/* redraw after the change event, so a Tab to the next box keeps its place */
+function q4Redraw(){
+  setTimeout(()=>{const a=document.activeElement,id=a&&a.id;render();
+    if(id&&/^q4t-/.test(id)){const e=document.getElementById(id);if(e)try{e.focus();if(e.select)e.select();}catch(x){}}},0);
+}
+const q4OverOf=x=>{const n=+x;return Number.isFinite(n)&&n>=0?n:5;};
+/* how far past its target a priority bundle may go (Settings ▾; blank = the default 5%) */
+function q4SetOver(v){
+  const t=String(v==null?'':v).trim(),n=parseFloat(t.replace(/[%, ]/g,'')),had=D.settings.q4Over,was=q4OverOf(had);
+  if(t===''||!Number.isFinite(n)||n<0)delete D.settings.q4Over;else D.settings.q4Over=Math.round(n*10)/10;
+  if(_same(had,D.settings.q4Over))return Promise.resolve(true);
+  try{logIt('edit',`Q4: bundles with a target go first, up to target +${fmt(q4OverOf(D.settings.q4Over))}% (was ${fmt(was)}%)`);}catch(e){}
+  q4Redraw();
+  return savePrefs();
+}
+function q4SetTarget(pid,v){
+  if(pid==='%over')return q4SetOver(v);     /* the +5% box rides on this call — the API line is left alone */
+  const cur=q4TargetMap(),m=Object.assign({},cur.map),k=String(pid),was=m[k];
+  const n=Math.round(parseFloat(String(v==null?'':v).replace(/[, ]/g,'')));
+  if(Number.isFinite(n)&&n>0)m[k]=n;else delete m[k];
+  if(_same(m,cur.map))return Promise.resolve(true);
+  D.settings.q4Targets=m;
+  const p=prod(k);
+  try{logIt('edit',`Q4 target: ${p?p.name:k} — ${was?fmt(was):'none'} → ${m[k]?fmt(m[k]):'none'}`);}catch(e){}
+  q4Redraw();
+  return savePrefs();
+}
+function vQ4(){
+  let R;
+  try{R=q4Calc();}
+  catch(e){console.warn('[q4]',e);
+    $('lav3View').innerHTML=`<div class="panel"><div class="empty" style="padding:22px">Q4 prepping could not be worked out just now — ${esc(e&&e.message||e)}</div></div>`;return;}
+  const T=R.totals,B=T.bundles,G=T.singles,TM=q4TargetMap();
+  const day=(()=>{try{return new Date(R.from+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});}catch(e){return dshort(R.from);}})();
+  const pc=v=>v==null?'—':v+'%';
+  const bar=(v,tone)=>`<span class="q4Bar${tone?' '+tone:''}"><i style="width:${v==null?0:Math.min(100,Math.max(v>0?2:0,v))}%"></i></span>`;
+  const byMax=(a,b)=>(b.max-a.max)||(b.done-a.done)||String(a.name).localeCompare(String(b.name));
+  const nameTd=r=>`<td><b>${esc(r.name)}</b>${r.priority?`<span class="q4PriChip" title="Has a target — handed shared components before the bundles without one, up to target +${fmt(R.over)}%">priority</span>`:''}<small>${esc(r.asin)}${r.archived?' · archived':''}</small></td>`;
+  const doneTd=r=>`<td class="n"><b class="q4Sent">${fmt(r.done)}</b></td>`;
+  const leftTd=r=>`<td class="n"><b>${fmt(r.left)}</b>${r.left?`<small>of which arrived ${fmt(r.arrived)}</small>`:''}</td>`;
+  const pctTd=r=>r.max?`<td class="q4C ${q4Tone(r)}"><div class="q4Pc"><b>${pc(r.pct)}</b><span>of ${fmt(r.max)}${r.target?' target':''}</span></div>${bar(r.pct,q4Tone(r))}</td>`
+    :'<td class="q4C"><span class="q4Dim">—</span></td>';
+  const owedTxt=r=>r.owed?`<small class="w">${fmt(r.owed)} sent over stock, not settled — this may read up to ${fmt(r.owed)} high</small>`:'';
+  const cols='<colgroup><col style="width:26%"><col style="width:10%"><col style="width:12%"><col style="width:19%"><col style="width:33%"></colgroup>';
+  const bRows=R.bundles.slice().sort(byMax).map(r=>`<tr class="${r.max?'':'q4Zero'}">${nameTd(r)}${doneTd(r)}${leftTd(r)}${pctTd(r)}<td class="q4L">${q4CoverHtml(r)}${q4LimHtml(r)}${owedTxt(r)}</td></tr>`).join('');
+  const sAll=R.singles.slice().sort(byMax),sOn=sAll.filter(r=>r.max>0),s0=sAll.filter(r=>!r.max);
+  const typ=r=>r.type==='bundle'?'Bundle':r.type==='pl'?'Private label':'Single';
+  const sRows=sOn.map(r=>`<tr>${nameTd(r)}${doneTd(r)}${leftTd(r)}${pctTd(r)}<td class="q4L"><span class="q4Dim">${typ(r)} · own stock${r.onOrder?` · ${fmt(r.onOrder)} on order`:''}</span>${owedTxt(r)}</td></tr>`).join('')
+    +(s0.length?`<tr class="q4Zero"><td colspan="5"><small>${fmt(s0.length)} more with nothing sent since ${day} and none here or on order: ${s0.map(r=>esc(r.name)).join(', ')}</small></td></tr>`:'');
+  const head=(first,mid,last)=>`<thead><tr><th>${first}</th><th class="n">Sent since ${day}</th><th class="n">${mid}</th><th>Complete</th><th>${last}</th></tr></thead>`;
+  const U=R.unlinked;
+  const notes=(U.n?`<div class="q4Note"><span class="q4Dot"></span><span class="q4NoteT"><b>${fmt(U.n)} purchase line${U.n===1?'':'s'} since ${day} not linked — max may be low</b>${U.part?` <span>· ${fmt(U.part)} more only part-linked</span>`:''}</span><button class="btn sm" onclick="LV3.showReview()">Link them on Purchases</button></div>`:'')
+    +(T.owed?`<div class="q4Note"><span class="q4Dot"></span><span class="q4NoteT"><b>${fmt(T.owed)} unit${T.owed===1?'':'s'} sent over stock and not settled — max may read up to ${fmt(T.owed)} high</b></span><button class="btn sm" onclick="LV3.openOverSent()">Settle</button></div>`:'');
+  const sum=t=>`<div class="r q4Sum">${fmt(t.done)} of ${fmt(t.max)} <b class="${t.pct===100?'ok':''}">${pc(t.pct)}</b></div>`;
+  /* Settings ▾ — a target per bundle */
+  const live=D.products.filter(p=>p&&!p.archived&&p.type==='bundle').slice().sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  const rowOf={};R.bundles.forEach(r=>{rowOf[r.id]=r;});
+  const nT=live.filter(p=>+TM.map[String(p.id)]>0).length;
+  const plan=Q4_PLAN.filter(([n])=>live.some(p=>String(p.name||'').trim()===n));
+  const setHtml=`<details class="panel q4Set"${_q4SetOpen?' open':''} ontoggle="LV3.q4SetOpen(this.open)">
+    <summary><span class="q4SetT">Settings ▾</span><span class="q4SetS">targets on <b>${fmt(nT)}</b> of ${fmt(live.length)} bundle${live.length===1?'':'s'} — they go first, up to +${fmt(R.over)}% · the rest count up to what the parts make${TM.saved?'':' · pre-filled from your Q4 plan'}</span></summary>
+    <div class="q4SetB">
+      <div class="q4SetOver"><label for="q4t-over">Bundles with a target go first, up to target +</label>
+        <input class="in q4TIn q4OverIn" id="q4t-over" type="number" min="0" step="1" inputmode="decimal" value="${R.over}" onchange="LV3.q4SetTarget('%over',this.value)"><span>% — then everything else shares what is left.</span></div>
+      <div class="q4SetHelp">A target is the most you mean to send this Q4 — 100% = the target. It also moves the bundle up the queue for shared components: bundles with a target are handed them first (closest to running out first among them), up to their target +${fmt(R.over)}%. Leave a box empty for no target: that bundle waits its turn and counts up to what its parts make.${!TM.saved&&plan.length?` Filled in from your plan by name (${plan.map(([n,t])=>`${esc(n)} ${fmt(t)}`).join(' · ')}) — check it is the right Hot Chocolate and Tea &amp; Biscuits, there are GF and Mini versions too. Nothing is saved until you change a box.`:''}</div>
+      <div class="q4SetGrid">${live.map(p=>{const k=String(p.id),r=rowOf[k]||{done:0,formulaMax:0},v=+TM.map[k]>0?Math.round(+TM.map[k]):'';
+        return `<label class="q4SetRow"><span class="nm"><b>${esc(p.name)}</b><small>sent ${fmt(r.done)} · parts make ${fmt(r.formulaMax)} in all</small></span>
+          <input class="in q4TIn" id="q4t-${esc(k)}" type="number" min="0" step="1" inputmode="numeric" placeholder="no target" value="${v}" onchange="LV3.q4SetTarget('${esc(k)}',this.value)"></label>`;}).join('')||'<div class="q4Dim">No bundles yet.</div>'}</div>
+    </div></details>`;
+  const kTarget=B.targeted?'Target — 100%':'Max — 100%';
+  const sTarget=B.targeted?`your target on ${fmt(B.targeted)} bundle${B.targeted===1?'':'s'}, what the parts make for the rest · ${fmt(T.toGo)} to go`
+    :`${fmt(T.toGo)} still to build or send · of which arrived ${fmt(T.arrived)}`;
+  $('lav3View').innerHTML=`
+  <div class="q4">
+  <div class="q4Intro">How far through the Christmas build we are — what has gone to Amazon since ${day}, against your targets, or the most the components here and on order can make.</div>
+  ${notes}
+  <div class="kpis q4Kpis">
+    <div class="kpi" style="--rail:${T.pct===100?'#4ade80':'#38bdf8'}"><div class="k">Complete</div><div class="v" style="color:${T.pct===100?'#4ade80':'var(--text)'}">${pc(T.pct)}</div><div class="s">${fmt(T.done)} of ${fmt(T.max)}</div>${bar(T.pct,T.pct===100?'ok':'')}</div>
+    <div class="kpi" style="--rail:#38bdf8"><div class="k">Sent since ${day}</div><div class="v" style="color:#7dd3fc">${fmt(T.done)}</div><div class="s">bundles ${fmt(B.done)} · singles &amp; private label ${fmt(G.done)}</div></div>
+    <div class="kpi" style="--rail:#a78bfa"><div class="k">${kTarget}</div><div class="v" style="color:#c4b5fd">${fmt(T.max)}</div><div class="s">${sTarget}</div></div>
+  </div>
+  ${setHtml}
+  <section class="panel shPanel q4Panel"><div class="ph"><span class="t">Bundles</span><span class="sub">built here from components</span>${B.targeted?`<span class="q4PriNote" title="Bundles with a target are handed shared components first, up to their target +${fmt(R.over)}%, in the Action centre's order. Everything else then shares what is left, in the same order.">Priority: targets first, up to +${fmt(R.over)}%</span>`:''}${sum(B)}</div>
+    <div class="q4Scroll"><table class="shT q4T">${cols}${head('Bundle','Can still build','Target · what limits it')}<tbody>${bRows||'<tr><td colspan="5" class="q4None">No bundles yet.</td></tr>'}</tbody></table></div>
+    <div class="q4Foot"><b>Sent</b> = units on an Amazon shipment with a shipment ID, dated ${day} onwards. <b>Can still build</b> = what the components on the shelf and on order make; <b>of which arrived</b> = from the shelf alone. <b>100%</b> = your target where you set one (Settings ▾), otherwise sent + can still build — so buying more raises it and the % drops. A component two bundles share goes first to the bundles with a target, up to their target +${fmt(R.over)}%, then to the rest — each group in the Action centre's order (closest to running out at Amazon first) — so nothing is counted twice. Packaging and untracked parts never limit${R.packaging.length?` (left out as packaging: ${R.packaging.map(x=>esc(x.name)).join(', ')})`:''}.</div>
+  </section>
+  <section class="panel shPanel q4Panel"><div class="ph"><span class="t">Singles &amp; private label</span><span class="sub">their own stock, no build</span>${sum(G)}</div>
+    <div class="q4Scroll"><table class="shT q4T">${cols}${head('Product','Can still send','What it is')}<tbody>${sRows||'<tr><td colspan="5" class="q4None">No singles or private label.</td></tr>'}</tbody></table></div>
+    <div class="q4Foot"><b>Max</b> = sent since ${day} + on the shelf + on order. <b>Of which arrived</b> = on the shelf.</div>
+  </section>
+  </div>`;
+}
+
 /* ═══════════════ TABS + ROUTER ═══════════════ */
 function render(){
   /* one engine run per render pass — and a fresh one for every pass. The 800ms cache alone
@@ -3005,13 +3485,14 @@ function render(){
            ['components','Components',D.components.length],
            ['restocks','Restocks',''],
            ['planner','Planner',''],
+           ['q4','Q4 prepping',''],   // TEMPORARY (Jack, 29 Oct 2026) — comes off in January
            ['health','Stock health',(()=>{const n=(D.settings.stockOuts||[]).filter(r=>r.kind==='out'&&!r.to).length;return n?String(n):'';})()],
            ['purchases','Purchases',(()=>{const n=D.purchases.filter(x=>allocState(x).k==='none').length;return n?'· '+n+' to link':'';})()],
            ['history','History',''],   // the count was noise — nobody acts on "301"
 
            ['settings','Settings','']];   // How it works retired — the pages explain themselves now
   $('lav3Tabs').innerHTML=t.map(([k,l,c])=>`<button class="${TAB===k?'on':''}" onclick="LV3.go('${k}')">${l}${c!==''?`<span class="cnt">${c}</span>`:''}</button>`).join('');
-  ({overview:vOverview,products:vProducts,components:vComponents,restocks:vRestocks,planner:vPlanner,health:vHealth,purchases:vPurchases,history:vHistory,settings:vSettings,guide:vGuide})[TAB]();
+  ({overview:vOverview,products:vProducts,components:vComponents,restocks:vRestocks,planner:vPlanner,q4:vQ4,health:vHealth,purchases:vPurchases,history:vHistory,settings:vSettings,guide:vGuide})[TAB]();
   try{paintHealth();}catch(e){console.warn('health paint',e);}
   stickWatch();          // after layout, not mid-render
   save();
@@ -3331,7 +3812,7 @@ function wlUntick(k){
 function sendUrgency(r){
   const ads=r&&r.ads;if(!ads||r.sell==null)return null;
   const fba=r.landIso?Math.round((new Date(r.landIso+'T00:00:00')-new Date(dayISO()+'T00:00:00'))/864e5):fbaCalDays();
-  const sell=r.sell||0,inb=r.inb||0,own=sell/ads;
+  const sell=r.sell||0,inb=r.inb||0,_up=r.upP||null,_t=dayISO(),own=daysCovered(_up,ads,sell,_t);   /* Q4 uplift: day by day for a gift / hamper line */
   const inbD=r.inbEta?Math.max(0,Math.round((new Date(String(r.inbEta).slice(0,10)+'T00:00:00')-new Date(dayISO()+'T00:00:00'))/864e5)):null;
   let end=own;
   /* each tranche in turn (moving stock first, ~3 days; shipping after): one that lands before the
@@ -3339,14 +3820,14 @@ function sendUrgency(r){
      from its landing day — the gap in between is lost either way */
   const trs=r.tranches||(inb>0&&inbD!=null?[{q:inb,d:inbD}]:[]);
   trs.forEach(t=>{const d=t.d!=null?t.d:Math.max(0,Math.round((new Date(String(t.eta).slice(0,10)+'T00:00:00')-new Date(dayISO()+'T00:00:00'))/864e5));
-    if(d<=end)end+=t.q/ads;
-    else if(d<=fba)end=d+t.q/ads;});
+    if(d<=end)end+=daysCovered(_up,ads,t.q,_t,end);
+    else if(d<=fba)end=d+daysCovered(_up,ads,t.q,_t,d);});
   /* Jack, 23 Oct: "make sure we don't run out of stock and have a small buffer like we coded" —
      the send has to land with the safety reserve (Planner → Assumptions, 14 days) still in
      hand, so the last day it can leave is fbaCalDays() + safetyDays() before the stock is gone */
   const saf=r.saf!=null?r.saf:safetyDays(),slack=Math.floor(end-fba-saf),pu=profitOf(r.p),pr=priceOf(r.p);
   return{end,slack,saf,losing:end<fba,buffer:end>=fba&&end<fba+saf,by:addCalDays(dayISO(),Math.max(0,slack)),
-    units:ads,profit:pu!=null?ads*pu:null,sales:pr!=null?ads*pr:null,lasts:r.alloc>0?r.alloc/ads:null};
+    units:ads,profit:pu!=null?ads*pu:null,sales:pr!=null?ads*pr:null,lasts:r.alloc>0?daysCovered(_up,ads,r.alloc,_t,Math.max(end,fba)):null};
 }
 /* Jack, 23 Oct audit: rank orders and Planner rows by the money the products behind them are
    losing a day — an order blocking Always Size 2 (empty tomorrow) outranks a later Temu order
@@ -3384,10 +3865,10 @@ function lossOfRows(rows,lead,afterSend){
   let lost=0,stake=0,worst=null;const fba=fbaCalDays(),fix=(parseInt(lead)||0)+fba;
   (rows||[]).forEach(r=>{if(!r||!r.ads)return;const u=sendUrgency(r);if(!u)return;
     const empty=(r.sell||0)<=0,pu=profitOf(r.p)||0;
-    if(afterSend){const end2=(r.alloc>0)?Math.max(u.end,fba)+r.alloc/r.ads:u.end;const gap=Math.max(0,fix-end2);
+    if(afterSend){const end2=(r.alloc>0)?Math.max(u.end,fba)+daysCovered(r.upP||null,r.ads,r.alloc,dayISO(),Math.max(u.end,fba)):u.end;const gap=Math.max(0,fix-end2);
       if(gap>0){lost+=r.ads*pu;stake+=r.ads*pu*gap;}}
     else if(empty||u.losing){lost+=r.ads*pu;stake+=r.ads*pu*Math.max(1,fix-Math.max(0,u.end));}
-    const left=r.ads?(r.sell||0)/r.ads:null;
+    const left=r.ads?daysCovered(r.upP||null,r.ads,r.sell||0,dayISO()):null;
     if(left!=null&&(!worst||left<worst.left))worst={name:r.p.name,left};});
   return{lost,stake,worst};
 }
@@ -3574,7 +4055,7 @@ function vOverview(){
     const card={asin:p.asin,name:esc(p.name),say,cells,limit,warn,plan:{alloc:r.alloc,rec:r.rec},
       ad:ad&&ad.units>0&&u30>0?{pct:Math.min(100,Math.round(100*ad.units/u30)),units:ad.units,u30,tacos:ad.tacos}:null,
       lasts:u.lasts!=null&&r.alloc>0?`lasts ~${fmt(Math.max(1,Math.round(u.lasts)))} days`:'',
-      foot:[`<span title="${esc(paceTip(pc))}">${esc(d.label||'')}</span>`,pc.sizeWhy?`sized on the fastest pace — ${esc(pc.sizeWhy)}`:''].filter(Boolean).join(' · ')};
+      foot:[`<span title="${esc(paceTip(pc))}">${esc(d.label||'')}</span>`,pc.sizeWhy?`sized on the fastest pace — ${esc(pc.sizeWhy)}`:'',r.up?`<span style="color:#c4b5fd" title="Jack, 29 Oct: gift and hamper lines are expected to sell more before Christmas. Forecast days in the window use the measured pace plus this; from the day after, the plain pace. The per-day figure is as measured. Settings, Christmas uplift.">${esc(r.up.txt)}</span>`:''].filter(Boolean).join(' · ')};
     const sendBy=!losing&&!covered?(u.slack<0?`<b style="color:#fdba74">lands with ${fmt(Math.max(0,Math.floor(u.end-fbaCalDays())))} of the ${u.saf} buffer days left</b>`:u.slack===0?'<b>send today</b>':`send by <b>${dshort(u.by)}</b>`):'';
     put('send',{k:'send_'+p.id,urg:losing?0:covered?2:1,
       val:losing?(u.profit!=null?u.profit:day):(-(u.slack||0)*1000+(u.profit||0)),lostDay:lossOfRows([r]).lost,
@@ -3972,7 +4453,7 @@ function vProducts(){
            squeezed, and the dead space was never this column being too wide —
            it was the name DIV inside it capped at 290px while the cell stretched. */''}
       <th class="l" style="min-width:240px">${sortTh('p','name','Product')}</th>
-      <th style="width:82px" title="Sellable at Amazon now — from the SellerFuse check (Mon + Thu) or a hand count, whichever is newer.">${sortTh('p','atamz','At Amazon',D.products.filter(x=>!x.archived).every(x=>atAmz(x)==null)?'never counted':'')}</th>
+      <th style="width:82px" title="Sellable at Amazon now — from the SellerFuse check (Sun, Tue + Thu evenings) or a hand count, whichever is newer.">${sortTh('p','atamz','At Amazon',D.products.filter(x=>!x.archived).every(x=>atAmz(x)==null)?'never counted':'')}</th>
       ${COL('pInb')?`<th style="width:88px" title="Sent and on its way to Amazon, with when it should be sellable.">${sortTh('p','inb','On the way')}</th>`:''}
       ${COL('pLeft')?`<th style="width:92px" title="Days until Amazon is empty at the planned pace, counting what is on its way if it lands in time. If it lands after, it says how long the shelf sits empty in between.">${sortTh('p','left','Days left')}</th>`:''}
       <th style="width:84px" title="What you hold here — buildable from parts, or on the shelf for a private-label product.">${sortTh('p','avail','Can build')}</th>
@@ -11774,7 +12255,7 @@ function vSettings(){
       <span class="sub">every Planner recommendation is built from these five — check them once, they rarely change</span></div>
     <div style="padding:6px 16px 12px;">
       ${_eng('primeDays',primeSet(),'working days','From pressing send to SELLABLE at Amazon — courier + check-in. Everything late/early is judged against this.')}
-      ${(()=>{const F=fbaLearn();if(!F.n)return `<div class="engLearn">Measured from SellerFuse: not yet — it fills in from the Mon/Thu check.</div>`;
+      ${(()=>{const F=fbaLearn();if(!F.n)return `<div class="engLearn">Measured from SellerFuse: not yet — it fills in from the Sun/Tue/Thu check.</div>`;
         return `<div class="engLearn">Measured from your last <b>${fmt(F.n)}</b> PLUB send${F.n===1?'':'s'}: usually <b>${fmt(F.typical)}</b> working days to sellable, slowest <b>${fmt(F.slowest)}</b>${F.slowShip?` (${esc((F.slowShip.names||[])[0]||F.slowShip.id)}, sent ${dshort(F.slowShip.created)})`:''}. The plan uses <b>${fmt(primeDays())}</b> — your figure or the slowest send, whichever is longer. It goes up on its own if Amazon gets slower; it never comes down by itself.</div>`;})()}
       ${_eng('safetyDays',safetyDays(),'days','The panic buffer. Stock must never be planned to land with less than this to spare.')}
       ${_eng('targetDays',D.settings.targetDays||60,'days of cover','How much Amazon stock a send should leave behind when it lands. Bigger = fewer sends, more Amazon storage.')}
@@ -11783,6 +12264,7 @@ function vSettings(){
       <div class="pmeta" style="margin-top:8px;">Change one and every date and quantity on the Planner, Purchases and Overview recalculates instantly.</div>
     </div>
   </div>
+  ${upliftPanel()}
   <div class="cols2">
       <div class="panel">
         <div class="ph"><span class="t">Purchase sheet</span><span class="sub">the same Lavarion tabs spend.dash reads</span>
@@ -12529,7 +13011,7 @@ function paint(){
 }
 
 /* everything the page's inline handlers need */
-const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH,
+const API={go,render:paint,boot,dupConfirm,q4Calc,q4SetTarget,q4SetOpen,q4PlanFill,q4LimHtml,__layers:()=>LAYERS,__purch:()=>PURCH,
   openProduct,editProduct,setType,setSold30,rowMenu,closeRowMenu,dupeAsins,setSort,saveProductForce,addRecipeRow,rcChange,rcSearch,rcPick,rcMake,recipePreview,copyRecipe,saveProduct,delProduct,togRow,setArchived,
   openShip,drawShip,doShip,copyCog,shipSetQty,shipOverride,shipQty,shipFba,setQ,selOne,selAll,selClear,selType,selVat,
   openComp,editComp,saveComp,delComp,pickKind,openAddBatch,abPreview,doAddBatch,selArchive,selDelete,cselOne,cselAll,cselClear,cselKind,cselTrack,cselArchive,cselDelete,markArrived,openAdjust,doAdjust,
@@ -12543,6 +13025,7 @@ const API={go,render:paint,boot,dupConfirm,__layers:()=>LAYERS,__purch:()=>PURCH
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,lossOfRows,lossLine,profitSrcOf,fbaCalDays,priceOf,acCopySend,acJump,sfPace,safetyFor,emptyDaysIn,stockLedger,vHealth,coverDaysOf,isWorkDay,workDaysAfter,fbaLearn,primeDays,primeSet,copyAsin,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
+  setUplift,upliftCfg,upliftOf,upliftNote,demandBetween,daysCovered,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),
   setFilter:(k,v)=>{if(k==='p'){pFilter=v;SEL.clear();}if(k==='c')cFilter=v;if(k==='u')uFilter=v;render();},

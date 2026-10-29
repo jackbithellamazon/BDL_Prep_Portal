@@ -73,7 +73,7 @@ async function escalateMoney(rid){
   keep.step='waiting';keep.due='';
   keep.log=(keep.log||[]).concat([{at:new Date().toISOString(),by:_who(),
     what:'Refund was promised but never arrived — sent back to escalate'}]);
-  r.resolution={state:'rejected',kind:'check',what:'jack-check',chase:keep,
+  r.resolution={notDup:(r.resolution&&r.resolution.notDup)||undefined,state:'rejected',kind:'check',what:'jack-check',chase:keep,
     rejectedBy:_who(),rejectNote:'The refund never landed — chase them again and escalate it.',
     at:new Date().toISOString()};
   r._dirty=true;
@@ -218,16 +218,20 @@ function renderJack(){
     const _ask=tj.ask||'';
     const _askLine=g.toJack?(_ask?`<b>${esc(tj.by||'Sarah')} is asking:</b> ${esc(_ask)}`:`<b>${esc(tj.by||'Sarah')} sent it without saying what she needs</b> — the newer Send to Jack asks her.`):'';
     const _sheetLine=_sh.length?`<b>On the Purchase Sheet:</b> ${_sh.map(x=>esc((x.arrived?x.arrived+' — ':'')+(x.notes?'“'+x.notes+'”':''))).join(' · ')}`:'';
-    const _refund=_sh.some(x=>/refund/i.test(x.notes||''));
+    /* Jack, 29 Oct (Simply Chocolate Duster): "if the Purchase Sheet says this, it should suggest the right button" */
+    const _sug=g.short?_lavSheetSuggest(_sh,g.short):null;
+    const _refund=!!(_sug&&_sug.kind==='auto'&&_sug.match!==false);
+    const _sugLine=_sug?`<b class="jkSug">Suggested: ${_sug.kind==='auto'?'Auto refunded — close it':'Write it off'}</b> — the Purchase Sheet says “${esc(_sug.txt)}”`
+      +(_sug.match===true?` · matches the ${fmt(g.short)} short`:_sug.match===false?` · <b class="tcWarn">the sheet says ${fmt(_sug.num)}, ${fmt(g.short)} are short — check before closing</b>`:''):'';
     items.push({kind:'lav',id:g.key,prod:g.lines.map(x=>x.name).join(', '),sup:g.sup,oid:g.ref,acct:'',sku:'',
       by:tj.by||'Check-in',at:tj.at||(g.on?g.on+'T12:00:00Z':''),wait:days(tj.at||(g.on?g.on+'T12:00:00Z':'')),
       type:['SHORTAGE','#38bdf8','Short or damaged at a PLUB check-in — yours first. Send Sarah a job with your note, or clear it.'],
       why:esc([g.short?g.short+' short':'',g.dmg?g.dmg+' damaged':''].filter(Boolean).join(' · ')+(g.sup?' · '+g.sup:'')),
-      whyHtml:[_askLine,_sheetLine,g.note?`<b>Becki at check-in:</b> “${esc(g.note)}”`:''].filter(Boolean).join('<br>'),
+      whyHtml:[_sugLine,_askLine,_sheetLine,g.note?`<b>Becki at check-in:</b> “${esc(g.note)}”`:''].filter(Boolean).join('<br>'),
       note:(_ask||_sh.length||g.note)?'':(g.log&&g.log.length?g.log[g.log.length-1].msg:''),value:g.val||0,left:null,
-      acts:(g.toJack?`<button class="csAct good" onclick="lavBackFromJack('${esc1(g.key)}')" title="Sarah sent this back to you — your answer goes on it and it returns to her">Answer &amp; hand back</button>`:'')
-        +(g.short?`<button class="csAct ${_refund?'good':'plain'}" onclick="jackLavSettle('${esc1(g.key)}','auto')" title="The supplier refunded the missing units on their own — closes it for everyone. Nothing is lost.">Auto refunded &mdash; close it</button>`:'')
-        +`<button class="csAct plain" style="border-color:rgba(248,113,113,.55);color:#fca5a5;" onclick="jackLavSettle('${esc1(g.key)}','writeoff')" title="Nothing is coming and nothing will be recovered — take the loss. It stops counting as incoming and stays in the history.">Write it off${g.val?' &mdash; '+fmtGBP2(g.val):''}</button>
+      acts:(g.toJack?`<button class="csAct ${_sug?'plain':'good'}" onclick="lavBackFromJack('${esc1(g.key)}')" title="Sarah sent this back to you — your answer goes on it and it returns to her">Answer &amp; hand back</button>`:'')
+        +(g.short?`<button class="csAct ${_refund?'good':'plain'}" onclick="jackLavSettle('${esc1(g.key)}','auto')" title="The supplier refunded the missing units on their own — closes it for everyone. Nothing is lost.">${_refund?'<span class="jkSugTag">Suggested</span> ':''}Auto refunded &mdash; close it</button>`:'')
+        +`<button class="csAct plain" style="border-color:rgba(248,113,113,.55);color:#fca5a5;" onclick="jackLavSettle('${esc1(g.key)}','writeoff')" title="Nothing is coming and nothing will be recovered — take the loss. It stops counting as incoming and stays in the history.">${_sug&&_sug.kind==='writeoff'?'<span class="jkSugTag">Suggested</span> ':''}Write it off${g.val?' &mdash; '+fmtGBP2(g.val):''}</button>
           <button class="csAct go" onclick="lavIssueSarahBox('${esc1(g.key)}',this)" title="Something for Sarah to do — chase the supplier, get a credit, ring them. It lands on her Admin with your note.">Send Sarah a job&hellip;</button>
           <button class="csAct plain" onclick="clearOldLav('${esc1(g.key)}')" title="Dealt with — off every list. Undo from the toast.">Sorted &mdash; clear it</button>
           <button class="csAct plain" onclick="openLavIssue('${esc1(g.key)}')" title="Photos, the conversation so far, every line">Open it</button>`});});
@@ -478,6 +482,7 @@ function renderJack(){
           _mrow('Its own clock','sits longer by nature','var(--text3)','Gated can stay unresolved far longer than normal admin — watched here, never counted as stuck')])}
       </div></details>
     </div>
+    ${(()=>{try{return typeof sfAdminHtml==='function'?sfAdminHtml():'';}catch(e){return '';}})()}
     ${items.length?`
     <div class="admBar" style="padding:0 2px 10px;">
       <div class="admSearch">
@@ -724,7 +729,7 @@ async function askSend(){
   const _riding=_caseOf(r);
   if(_riding)_riding.log=(_riding.log||[]).concat([{at:new Date().toISOString(),by:_who(),
     what:'Sent to Jack — '+why}]);
-  r.resolution={state:'asked',kind:'check',what:'jack-check',ask:why,note,
+  r.resolution={notDup:(r.resolution&&r.resolution.notDup)||undefined,state:'asked',kind:'check',what:'jack-check',ask:why,note,
     chase:_riding||undefined,query:(r.resolution&&r.resolution.query)||undefined,
     by:_who(),at:new Date().toISOString()};
   /* Jack, 8 Sep: this line used to land in PACKING NOTES — Becki's column —
@@ -880,11 +885,19 @@ function _jkCheckActs(r,_id){
     B.push(`<button class="csAct good" onclick="jackAnswered('${_id}','Arrived — YES, the account shows it delivered.')" title="The account shows all ${fmt(exp)} delivered. Back to Sarah: wrong SKU? If not, Becki checks the shelves.">All ${fmt(exp)} were delivered</button>`);
     B.push(`<button class="csAct plain" style="border-color:rgba(251,191,36,.5);color:#fcd34d;" onclick="openQtyFix('${_id}',{to:${sent},why:'Jack checked the account — only ${sent} ordered'})" title="The account shows only ${fmt(sent)} ordered — the sheet says ${fmt(exp)} and ${fmt(got)} were booked in. Corrects both; it closes and Sarah fixes the Purchase Sheet.">Only ${fmt(sent)} ${sent===1?'was':'were'} ordered &mdash; the sheet is wrong</button>`);
     B.push(`<button class="csAct plain" style="border-color:rgba(96,165,250,.5);color:#93c5fd;" onclick="openQtyFix('${_id}')" title="Nothing is missing — the Purchase Sheet quantity itself is wrong. Correct it here.">The sheet quantity is wrong&hellip;</button>`);
+    B.push(asinChkTile(r,'jack'));
     B.push(`<button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`);
     return B.join('\n        ');
   }
-  B.push(`<div class="jkWhere"><b class="jkQ">${got>0?`${fmt(got)} of ${fmt(exp)} booked in &mdash; what happened to the other ${fmt(owe)}?`:`Nothing booked in &mdash; what happened to all ${fmt(exp)}?`}</b><span class="jkQsub">None of these close the row &mdash; your answer goes back to Sarah.</span></div>`);
-  B.push(`<button class="csAct good" onclick="jackAnswered('${_id}','Arrived — YES, the account shows it delivered.')" title="The account shows the full order delivered, so the missing ${fmt(owe)} are somewhere. Sarah checks the wrong SKU next, then Becki the shelves.">All ${fmt(exp)} were delivered</button>`);
+  /* Jack, 28 Oct — the C920: the same order number and product on another line that arrived in full. Only
+     the account tells a copy from a lost parcel, so the question is "2 or 4?" (_dupLineOf, js/prep.js) */
+  const _dup=(typeof _dupLineOf==='function')?_dupLineOf(r):null;
+  if(_dup){
+    B.push(`<div class="jkWhere"><b class="jkQ">Is order ${esc(r.oid)} ${fmt(_dup.got)} unit${_dup.got===1?'':'s'} or ${fmt(_dup.total)}?</b><span class="jkQsub">It is on the Purchase Sheet twice: ${_dup.sibs.map(x=>esc(x.sku)).join(', ')} arrived ${fmt(_dup.got)} of ${fmt(_dup.got)}; this line is ${fmt(_dup.mine)} more and nothing of it arrived. ${fmt(_dup.got)} on the account means this line is a copy.</span></div>`);
+    B.push(`<button class="csAct good" onclick="jackDupAnswer('${_id}')" title="The Amazon order is ${fmt(_dup.got)} and they all arrived under ${esc(_dup.sku)}. Back to Sarah with one press: close it as Duplicate record — no shelf check, no claim.">${fmt(_dup.got)} &mdash; this line is a duplicate</button>`);
+  }
+  if(!_dup)B.push(`<div class="jkWhere"><b class="jkQ">${got>0?`${fmt(got)} of ${fmt(exp)} booked in &mdash; what happened to the other ${fmt(owe)}?`:`Nothing booked in &mdash; what happened to all ${fmt(exp)}?`}</b><span class="jkQsub">None of these close the row &mdash; your answer goes back to Sarah.</span></div>`);
+  B.push(`<button class="csAct good" onclick="jackAnswered('${_id}','Arrived — YES, the account shows it delivered.'${_dup?',{notDup:true}':''})" title="The account shows the full order delivered, so the missing ${fmt(owe)} are somewhere. Sarah checks the wrong SKU next, then Becki the shelves.">${_dup?`It was ${fmt(_dup.total)} &mdash; all ${fmt(_dup.total)} were delivered`:`All ${fmt(exp)} were delivered`}</button>`);
   if(got>0){
     B.push(`<button class="csAct warn" onclick="jackRestGoneSend('${_id}','cancelled')" title="${who} cancelled or refunded them — the money is back by itself. Sarah gets one button: note the sheet and close it.">The other ${fmt(owe)} ${owe===1?'was':'were'} cancelled or refunded</button>`);
     B.push(`<button class="csAct plain" style="border-color:rgba(251,191,36,.5);color:#fcd34d;" onclick="openQtyFixAnswered('${_id}')" title="The Purchase Sheet says ${fmt(exp)} but only ${fmt(got)} were actually ordered — a sheet correction, not a cancellation. The popup opens filled in with ${fmt(got)}; Enter saves it and Sarah gets the Purchase Sheet job.">Only ${fmt(got)} ${got===1?'was':'were'} ordered &mdash; the sheet is wrong</button>`);
@@ -905,7 +918,8 @@ function _jkCheckActs(r,_id){
      as we are taking the loss on this now anyway". Nothing on this card said
      that — the only write-off sat behind Becki's Not-here → Sorted with Amazon. */
   if(owe>0)B.push(`<button class="csAct plain" style="border-color:rgba(248,113,113,.55);color:#fca5a5;" onclick="jackWriteOff('${_id}')" title="Nothing more is coming and nothing will be claimed — the ${fmt(owe)} ${owe===1?'unit is':'units are'} taken as a loss. The row closes for you, Sarah and Becki, and the loss stays on the row's story and in the Audit Log.">Write ${got>0?'the other '+fmt(owe):'all '+fmt(owe)} off &mdash; taking the loss</button>`);
-  B.push(`<button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`);
+  B.push(asinChkTile(r,'jack'));
+    B.push(`<button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Answer with a note</button>`);
   return B.join('\n        ');
 }
 /* All arrived, some never sent (see the BioEars note above): a warehouse
@@ -1074,6 +1088,22 @@ async function jackStillComing(rid,vGiven){
   toast('✓ Parked until '+nice+' — on the Prep Sheet, back with Sarah the moment it slips');
   renderJack();try{renderAdmin();renderPrep();renderDashboard();paintJackBadge();}catch(e){}
 }
+/* the C920 answer: the Amazon order was N, this line is the same order typed twice (see _dupLineOf) */
+/* what the Purchase Sheet's own words say happened — only plain words count, anything else suggests nothing */
+function _lavSheetSuggest(sh,short){
+  const txt=(sh||[]).map(x=>[x.arrived,x.notes].filter(Boolean).join(' — ')).filter(Boolean).join(' · ');
+  if(!txt)return null;
+  const kind=/refund/i.test(txt)?'auto':/write.?off|take the loss/i.test(txt)?'writeoff':'';
+  if(!kind)return null;
+  const m=txt.match(/(\d+)\s*(?:units?|pcs|items?)\b/i),num=m?parseInt(m[1]):null;
+  return{kind,txt,num,match:num==null?null:num===(parseInt(short)||0)};
+}
+async function jackDupAnswer(rid){
+  const r=_rowById(rid),d=r&&typeof _dupLineOf==='function'?_dupLineOf(r):null;
+  if(!d){toast('That no longer looks like a duplicate — answer it another way','er');return;}
+  await jackAnswered(rid,`Duplicate line — order ${r.oid} was ${d.got} unit${d.got===1?'':'s'}, all booked in under ${d.sku}. This line is the same order typed twice.`,
+    {dupOf:{sku:d.sku,got:d.got,total:d.total}});
+}
 async function jackAnswered(rid,answer,extra){
   const r=_rowById(rid);if(!r||!r.resolution)return;
   const asked=r.resolution;
@@ -1088,6 +1118,10 @@ async function jackAnswered(rid,answer,extra){
        resolution so Sarah's page can offer the one press that follows from it;
        a plain answer clears any earlier one */
     restGone:(extra&&extra.restGone)||undefined,
+    /* "it was 2 — this line is a copy" (jackDupAnswer): Sarah gets one press, Duplicate record. "It was 4"
+       (notDup) puts the duplicate question away for good, so it is kept through later answers */
+    dupOf:(extra&&extra.dupOf)||undefined,
+    notDup:(extra&&extra.notDup)||asked.notDup||undefined,
     /* typed by him rather than pressed — a request for her, not a finding */
     jackNote:!!(extra&&extra.fromNote)||undefined,
     rejectedBy:_who(),rejectNote:answer,at:new Date().toISOString()});

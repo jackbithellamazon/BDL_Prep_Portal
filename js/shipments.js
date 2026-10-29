@@ -167,17 +167,13 @@ function renderShipments(){
     ...shipments.flatMap(s=>s.lavSkus.map(l=>l.asin)),
     ...shipments.flatMap(s=>(s.retSkus||[]).map(r=>r.asin))
   ].filter(Boolean)).size;
-  const sumPrep=shipments.reduce((a,s)=>{
-    /* Jack, 19 Aug: "it should be what on average we are hitting — if we are
-       always in the 40p band it should be calculated at 40 + vat".
-       Called with no band volume, this priced each shipment on ITS OWN units;
-       a shipment is almost never over 1,000, so every unit fell in the dearest
-       band no matter what the month actually did. The Dashboard has always
-       passed the Typical monthly volume from Settings — this page never did,
-       which is also why the two disagreed. Same argument now, same answer. */
-    const pc=calcImpliedPrepCost(s.skus,s.lavSkus,shipBoxes[s.id]?{[s.id]:shipBoxes[s.id]}:{},smartExpectedUnits());
-    return a+pc.withVat;
-  },0);
+  /* b628 — ONE engine prices every shipment: its units at its MONTH's rate (the band
+     of max(3-month average, the month so far); a finished month at its actual band),
+     so these tiles and each shipment's own line agree with the Dashboard. Before,
+     the tiles used the old floor (35p in October while the month was at 30p) and
+     each shipment's line the 2,000 setting (45p). Built once; shipments look up. */
+  const _PE=prepEngine();
+  const sumPrep=shipments.reduce((a,s)=>a+_PE.priceShip(s.id).withVat,0);
 
   /* ── THE BAR ───────────────────────────────────────────────────────────────
      Jack, 19 Aug: "i mainly look at them at a glance and see how the week, day
@@ -208,8 +204,7 @@ function renderShipments(){
     boxes:list.reduce((a,x)=>a+_mBox(x),0),
     skus:list.reduce((a,x)=>a+_mSku(x),0),
     asins:new Set(list.flatMap(_mAsin)).size,
-    prep:list.reduce((a,x)=>{try{return a+calcImpliedPrepCost(x.skus,x.lavSkus,
-      shipBoxes[x.id]?{[x.id]:shipBoxes[x.id]}:{},smartExpectedUnits()).withVat;}catch(e){return a;}},0),
+    prep:list.reduce((a,x)=>{try{return a+_PE.priceShip(x.id).withVat;}catch(e){return a;}},0),
   });
   const _isoOf=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const _inRange=(x,a,b)=>{const d=x.date||x.minDate||'';return d&&d>=a&&d<=b;};
@@ -420,12 +415,7 @@ function renderShipments(){
       </div>
       <div class="hbody">
         ${(()=>{
-          const sc=calcImpliedPrepCost(
-            s.skus,
-            lavShipments.filter(ls=>ls.shipId===s.id),
-            shipBoxes[s.id]?{[s.id]:shipBoxes[s.id]}:{},
-            prepFees.expectedMonthlyUnits
-          );
+          const sc=_PE.priceShip(s.id);   /* b628: at its month's rate, not the 2,000 setting */
           if(!sc.totalUnits)return'';
           return`<div style="display:flex;gap:12px;align-items:center;padding:6px 10px;background:rgba(251,191,36,.06);border-bottom:1px solid rgba(251,191,36,.15);flex-wrap:wrap;">
             <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;">Implied Prep Cost</div>
@@ -434,11 +424,10 @@ function renderShipments(){
             <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;">
               ${[
                 [sc.totalUnits+' units','#94a3b8'],
-                ['Base £'+sc.baseCost.toFixed(2),'#fbbf24'],
+                ['Base £'+sc.baseCost.toFixed(2)+' ('+fmt(sc.tieredUnits)+' std × '+_peP(sc.unitRate)+(sc.basis==='estimate'?', estimate':'')+')','#fbbf24'],
                 ...(sc.osCost>0?[['OS +£'+sc.osCost.toFixed(2),'#fb923c']]:[]),
                 ...(sc.bundleCost>0?[['Bundle +£'+sc.bundleCost.toFixed(2),'#34d399']]:[]),
-                ...(sc.boxCostTotal>0?[['Boxes £'+sc.boxCostTotal.toFixed(2),'#60a5fa']]:[]),
-                ...(sc.dgExtra>0?[['DG +£'+sc.dgExtra.toFixed(2),'#f87171']]:[]),
+                ...(sc.boxCostTotal>0?[['Boxes £'+sc.boxCostTotal.toFixed(2)+(sc.dgBoxes?' (incl. '+sc.dgBoxes+' DG at £'+(+prepFees.dgExtraPerBox).toFixed(2)+')':''),'#60a5fa']]:[]),
               ].map(([l,c])=>`<span style="font-size:11px;color:${c};font-weight:600;">${l}</span>`).join('')}
             </div>
           </div>`;

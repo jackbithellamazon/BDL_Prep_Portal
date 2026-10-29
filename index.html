@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BDL PrepHub v56.0</title>
+<title>BDL PrepHub v56.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/base.css?v=b622">
-<link rel="stylesheet" href="css/prep.css?v=b622">
-<link rel="stylesheet" href="css/modals.css?v=b622">
-<link rel="stylesheet" href="css/closeoff.css?v=b622">
-<link rel="stylesheet" href="css/pages.css?v=b622">
-<link rel="stylesheet" href="css/lavarion.css?v=b622">
-<link rel="stylesheet" href="css/followup.css?v=b622">
+<link rel="stylesheet" href="css/base.css?v=b625">
+<link rel="stylesheet" href="css/prep.css?v=b625">
+<link rel="stylesheet" href="css/modals.css?v=b625">
+<link rel="stylesheet" href="css/closeoff.css?v=b625">
+<link rel="stylesheet" href="css/pages.css?v=b625">
+<link rel="stylesheet" href="css/lavarion.css?v=b625">
+<link rel="stylesheet" href="css/followup.css?v=b625">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -22,11 +22,11 @@
      this is what actually protects the data: the public anon key in this
      file is useless without a valid login.
      ════════════════════════════════════════════════════════════════════ -->
-<link rel="stylesheet" href="css/auth.css?v=b622">
+<link rel="stylesheet" href="css/auth.css?v=b625">
 <div id="authGate">
   <div class="ag-card">
     <div class="ag-logo">BDL <em>PrepHub</em></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v56.0</div>
+    <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:10px">v56.1</div>
     <div class="ag-sub">Sign in to continue</div>
     <label for="agEmail">Email</label>
     <input id="agEmail" type="email" autocomplete="username" placeholder="you@example.com"
@@ -60,7 +60,7 @@
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-head">
-    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v56.0</span></div>
+    <div class="sb-logo">BDL <em>PrepHub</em><span class="ver">v56.1</span></div>
     <button class="sb-tog" onclick="toggleSb()">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="3" x2="13" y2="3"/><line x1="1" y1="7" x2="13" y2="7"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
     </button>
@@ -223,6 +223,7 @@
         <!-- Quick actions -->
         <button onclick="doBulkAllArrived()" style="padding:4px 10px;background:var(--btn-blue-bg);border:1px solid var(--btn-blue-border);color:var(--btn-blue-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">✈ All Arrived</button>
         <button onclick="doBulkAllShipped()" style="padding:4px 10px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">✓ All Shipped</button>
+        <button onclick="doBulkMoveShip()" title="They went on a different shipment ID — move them there, units and history intact" style="padding:4px 10px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">⇄ Move to shipment…</button>
         <button onclick="doBulkArchive()" style="padding:4px 10px;background:var(--btn-red-bg);border:1px solid var(--btn-red-border);color:var(--btn-red-text);border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap;">🗑 Archive Sent</button>
         <div style="width:1px;height:18px;background:var(--border2);"></div>
         <!-- Stamp FBA ID group -->
@@ -380,7 +381,7 @@
     <div id="settingsCols" data-tab="timings">
       <div class="setHead">
         <div><div class="setTitle">Settings</div><div class="setSub">Every number the app runs on, in plain English</div></div>
-        <div class="setBuild" title="What this browser is running">Build <b>v56.0</b></div>
+        <div class="setBuild" title="What this browser is running">Build <b>v56.1</b></div>
       </div>
       <div class="setBody">
         <nav class="setNav" id="setTabs">
@@ -480,16 +481,17 @@
             <h2>Dashboard &amp; Insights</h2><p class="setLead">The rates the warehouse charges, so Insights can put a value on what was sent. All prices ex. VAT — VAT is added at 20%.</p>
             <div class="setCard acc"><h3>Implied prep fee rates</h3>
               <div class="setGrid2">
-                <label>Tier 1 rate / unit<input type="number" step="0.01" id="pf-tier1p" class="fi-in"></label>
-                <label>Tier 2 rate / unit<input type="number" step="0.01" id="pf-tier2p" class="fi-in"></label>
-                <label>Tier 3 rate / unit<input type="number" step="0.01" id="pf-tier3p" class="fi-in"></label>
-                <label>Tier 4 rate / unit<input type="number" step="0.01" id="pf-tier4p" class="fi-in"></label>
+                <label>1–1,000 units — rate / unit<input type="number" step="0.01" id="pf-tier1p" class="fi-in"></label>
+                <label>1,001–3,000 units — rate / unit<input type="number" step="0.01" id="pf-tier2p" class="fi-in"></label>
+                <label>3,001–5,000 units — rate / unit<input type="number" step="0.01" id="pf-tier3p" class="fi-in"></label>
+                <label>5,001+ units — rate / unit<input type="number" step="0.01" id="pf-tier4p" class="fi-in"></label>
                 <label>Box cost (£)<input type="number" step="0.01" id="pf-boxCost" class="fi-in"></label>
                 <label>DG box cost (£)<input type="number" step="0.01" id="pf-dgExtraPerBox" class="fi-in"></label>
                 <label>Oversize rate / unit (£)<input type="number" step="0.01" id="pf-osCostPerUnit" class="fi-in"></label>
                 <label>Bundle rate / unit (£)<input type="number" step="0.01" id="pf-bundleCostPerUnit" class="fi-in"></label>
-                <label>Typical monthly volume<input type="number" step="100" id="pf-expectedMonthlyUnits" class="fi-in"></label>
+                <label>Typical monthly volume (only until there are finished months to average)<input type="number" step="100" id="pf-expectedMonthlyUnits" class="fi-in"></label>
               </div>
+              <p class="setWhy">Standard units (incl. PLUB and DG; oversize priced separately) set the band, and every unit in the month is charged the one rate. A running month uses the band of the higher of the average of the last 3 finished months and the month so far — an <b>estimate</b> while the average is what earns it. A finished month is priced at its actual volume. Every unit counts in the month its shipment went, Part Sent included.</p>
               <div class="setSave"><button class="setBtn" onclick="resetPrepFees()">Reset to defaults</button><button class="setBtn pri" onclick="saveSettingsPrepFees()">Save rates</button><span id="prepFeeSaved" class="setSaved" style="display:none;">✓ Saved</span></div>
             </div>
           </section>
@@ -932,29 +934,29 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
 
 <div class="toasts" id="toasts"></div>
 
-<script src="js/core.js?v=b622"></script>
-<script src="js/rules.js?v=b622"></script>
-<script src="js/prep.js?v=b622"></script>
-<script src="js/claims.js?v=b622"></script>
-<script src="js/sarah-admin.js?v=b622"></script>
-<script src="js/closeoff.js?v=b622"></script>
-<script src="js/recovery.js?v=b622"></script>
-<script src="js/jack-admin.js?v=b622"></script>
-<script src="js/admin-queue.js?v=b622"></script>
-<script src="js/dashboard.js?v=b622"></script>
-<script src="js/lavarion-bridge.js?v=b622"></script>
-<script src="js/insights.js?v=b622"></script>
-<script src="js/audit-ean.js?v=b622"></script>
-<script src="js/usage.js?v=b622"></script>
-<script src="js/sfcheck.js?v=b622"></script>
-<script src="js/ui.js?v=b622"></script>
-<script src="js/stock-moves.js?v=b622"></script>
-<script src="js/shipments.js?v=b622"></script>
-<script src="js/sheet-sync.js?v=b622"></script>
-<script src="js/db.js?v=b622"></script>
-<script src="js/issues.js?v=b622"></script>
-<script src="js/returns.js?v=b622"></script>
-<script src="js/boot.js?v=b622"></script>
+<script src="js/core.js?v=b625"></script>
+<script src="js/rules.js?v=b625"></script>
+<script src="js/prep.js?v=b625"></script>
+<script src="js/claims.js?v=b625"></script>
+<script src="js/sarah-admin.js?v=b625"></script>
+<script src="js/closeoff.js?v=b625"></script>
+<script src="js/recovery.js?v=b625"></script>
+<script src="js/jack-admin.js?v=b625"></script>
+<script src="js/admin-queue.js?v=b625"></script>
+<script src="js/dashboard.js?v=b625"></script>
+<script src="js/lavarion-bridge.js?v=b625"></script>
+<script src="js/insights.js?v=b625"></script>
+<script src="js/audit-ean.js?v=b625"></script>
+<script src="js/usage.js?v=b625"></script>
+<script src="js/sfcheck.js?v=b625"></script>
+<script src="js/ui.js?v=b625"></script>
+<script src="js/stock-moves.js?v=b625"></script>
+<script src="js/shipments.js?v=b625"></script>
+<script src="js/sheet-sync.js?v=b625"></script>
+<script src="js/db.js?v=b625"></script>
+<script src="js/issues.js?v=b625"></script>
+<script src="js/returns.js?v=b625"></script>
+<script src="js/boot.js?v=b625"></script>
 <!-- SHIPMENT ID MODAL -->
 <div class="overlay" id="shipIdModal">
   <div class="modal" style="max-width:420px;">
@@ -1405,6 +1407,7 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
         <button onclick="saveShipmentRename()" style="padding:7px 14px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Rename</button>
       </div>
 
+      <div id="editShipMoveBox"></div>
       <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:18px;">
         <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Change Shipment Date</div>
         <div style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.5;">Updates the sent date across all SKUs in this shipment. Use if the wrong date was recorded.</div>
@@ -1489,12 +1492,12 @@ CREATE POLICY "app_settings_all" ON app_settings FOR ALL USING (true) WITH CHECK
 <div class="overlay lav3" id="lav3Ov2" style="align-items:center;justify-content:center;"><div class="mod" id="lav3Mod2"></div></div>
 <div class="lav3"><div id="lav3Toast"></div></div>
 
-<script src="js/lavarion.js?v=b622"></script>
+<script src="js/lavarion.js?v=b625"></script>
 
 </div><!-- /#appShell -->
 
-<link rel="stylesheet" href="css/unify.css?v=b622" id="modern-unify">
-<link rel="stylesheet" href="css/lavarion-overrides.css?v=b622" id="lv2-hard-overrides">
+<link rel="stylesheet" href="css/unify.css?v=b625" id="modern-unify">
+<link rel="stylesheet" href="css/lavarion-overrides.css?v=b625" id="lv2-hard-overrides">
 
 </body>
 </html>

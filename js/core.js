@@ -953,6 +953,18 @@ function allSentRows(){
 function unitsSentInRange(s,e){
   return allSentRows().filter(r=>{const d=r.isoDate?new Date(r.isoDate):null;return d&&d>=s&&d<=e;}).reduce((a,r)=>a+(r.units||0),0);
 }
+/* Which date a shipment WENT on: its earliest authoritative line (OA segment with a
+   date, PLUB); a bare row date or a return only when it has nothing better. Pulled
+   out of sentRollup (b628) so the prep cost engine dates lines by the same rule. */
+function _shipFirstDates(all){
+  const firstSent={},_fallback={};
+  all.forEach(r=>{if(!r.shipId||!r.isoDate)return;
+    const auth=r._dAuth!==false;
+    const bag=auth?firstSent:_fallback;
+    if(!bag[r.shipId]||r.isoDate<bag[r.shipId])bag[r.shipId]=r.isoDate;});
+  Object.keys(_fallback).forEach(id=>{if(!firstSent[id])firstSent[id]=_fallback[id];});
+  return firstSent;
+}
 // Canonical "what was sent" rollup for a date range (inclusive). Includes OA
 // stock, completed rows, Lavarion AND Returns added via the Shipments page, so
 // the prep sheet, dashboard and shipments page all agree. Accepts Date objects
@@ -985,12 +997,7 @@ function sentRollup(start,end){
      Segment dates, Lavarion and Returns are authoritative; a bare `sentDate`
      is only used when a shipment has nothing better. Same inputs as the
      Shipments page, so the two now answer the question the same way. */
-  const firstSent={},_fallback={};
-  all.forEach(r=>{if(!r.shipId||!r.isoDate)return;
-    const auth=r._dAuth!==false;
-    const bag=auth?firstSent:_fallback;
-    if(!bag[r.shipId]||r.isoDate<bag[r.shipId])bag[r.shipId]=r.isoDate;});
-  Object.keys(_fallback).forEach(id=>{if(!firstSent[id])firstSent[id]=_fallback[id];});
+  const firstSent=_shipFirstDates(all);
   const inWindow=iso=>{const d=iso?new Date(iso+'T00:00:00.000Z'):null;return d&&d>=s&&d<=e;};
   const inRange=all.filter(r=>(r.shipId&&firstSent[r.shipId])
     ? inWindow(firstSent[r.shipId])          // follows its shipment

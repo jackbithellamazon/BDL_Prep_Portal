@@ -24,6 +24,13 @@ function rowRules(r,ctx){
     const out=(typeof _sentOut==='function')?_sentOut(r):(parseInt(r.ship)||0);
     if(out>0&&(parseInt(r.rcvd)||0)<out){notes.push(`received raised ${parseInt(r.rcvd)||0} → ${out} to match what shipped`);r.rcvd=out;}
   }catch(e){}
+  /* R7 · shipped = what its shipments hold (29 Oct, FBA15MSC66QL: 12 rows read 0 against 120 units). Rows with
+     no shipment record keep their number. */
+  try{
+    const segs=Array.isArray(r.shipSegments)?r.shipSegments.filter(s=>s&&s.shipId&&(parseInt(s.units)||0)>0):[];
+    if(segs.length){const t=segs.reduce((a,s)=>a+(parseInt(s.units)||0),0),was=parseInt(r.ship)||0;
+      if(t!==was){r.ship=t;notes.push(`shipped ${was} → ${t} to match its shipments`);}}
+  }catch(e){}
   /* R6 · the row's story is closed → a stale issue flag goes with it (Jack,
      21 Sep: the GoPro still showed "Missing · 1" after the refund landed).
      Outside the nothing-owed gate — a closed row keeps no flag either way. */

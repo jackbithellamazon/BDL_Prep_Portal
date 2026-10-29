@@ -235,7 +235,7 @@ function renderPrepRows(data){
           const _aq=_rs.query;
           if(_aq&&_aq.answer==='more-coming'&&r.expectedDelivery&&String(r.expectedDelivery).slice(0,10)>=todayISO())return `<div class="qryTag ok" title="${esc(_aq.answeredBy||'')} answered ${_qryWhen(_aq.answeredAt)}: more is still coming${_aq.reply?' — “'+esc(_aq.reply)+'”':''}. See the VA Note.">&#10003; Due ${new Date(r.expectedDelivery).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}</div>`;
           if(_qryOwed(r)>0&&!['Delivered','In Warehouse','Returned'].includes(r.status)&&!/missing|not arrived/i.test(String(r.issueType||'')))return `<button class="qryAsk" onclick="openQuery('${r.uuid||r.id}')" title="Not an issue — a question for Sarah: is more of this still on the way?">? ask</button>`;
-          return '';})()}
+          return '';})()}${asinChkTile(r,'sheet')}
       </td>
       <td><input class="ci ci-num" type="number" value="${r.ship}" onchange="uf('${r.uuid||r.id}','ship',+this.value);debounce('stats',renderStats);" tabindex="-1"></td>
       <td style="padding:4px;">
@@ -338,8 +338,21 @@ function deferClearNav(){}
    figure has raised the received count since 4 Sep, but rows that were
    already wrong stayed wrong. Every load and every sync now brings received
    up to what has gone out, and says so in the audit log. */
+/* the 12 FBA15MSC66QL rows (and anything like them) put right on load — logged, once per row */
+function healShipFromSegments(why){
+  let n=0;
+  (rows||[]).forEach(r=>{if(!r)return;
+    const segs=Array.isArray(r.shipSegments)?r.shipSegments.filter(s=>s&&s.shipId&&(parseInt(s.units)||0)>0):[];if(!segs.length)return;
+    const t=segs.reduce((a,s)=>a+(parseInt(s.units)||0),0),was=parseInt(r.ship)||0;if(t===was)return;
+    r.ship=t;r._dirty=true;n++;debounce('healship_'+(r.uuid||r.id),()=>saveRow(r),1500);
+    try{logAudit('Shipped corrected to match its shipments',`${r.sku||r.asin||''} — was ${was}, now ${t} (${segs.map(s=>s.shipId).join(', ')}) (${why||'auto'})`);}catch(e){}
+  });
+  if(n)console.log('[heal] shipped set from shipments on '+n+' row(s) — '+(why||''));
+  return n;
+}
 function healSentBelowReceived(why){
   let n=0;
+  try{n+=healShipFromSegments(why);}catch(e){}
   (rows||[]).forEach(r=>{
     if(!r||r.archived)return;
     const out=_sentOut(r),inn=parseInt(r.rcvd)||0;
@@ -379,6 +392,109 @@ function _amzFoundBySave(r){
 function _leftUnits(r){return (_owedUnits(r)>0)?0:((typeof remainingToShip==='function')?remainingToShip(r):Math.max(0,(parseInt(r.rcvd)||0)-(parseInt(r.ship)||0)));}
 function _isAmzDel(r){const a=r&&r.resolution&&r.resolution.amzDelivered;if(!a||a.done)return false;return a.kind==='leftover'?_leftUnits(r)>0:_owedUnits(r)>0;}
 function _amzDelRows(){return rows.filter(r=>!r.archived&&_isAmzDel(r));}
+/* ── Jack, 28 Oct: "a mini tile saying Jack confirmed all orders of the ASIN arrived in the past 60 days" ──
+   He checks every order of a product on the accounts; one press stamps the product with the orders he
+   looked at. The tick shows on each of those orders, for everyone; an order placed after his check is not
+   covered, and the tick says how many are newer. app_settings 'asin_checks', keyed by ASIN. */
+let ASIN_CHECKS={};
+const _asinKey=a=>String(a||'').trim().toUpperCase();
+function _asinOrders60(asin){
+  const A=_asinKey(asin);if(!A)return [];
+  const since=ukAddDays(todayISO(),-60),by={};
+  rows.forEach(x=>{if(_asinKey(x.asin)!==A)return;
+    const od=(typeof _sfOrderISO==='function')?_sfOrderISO(x):'';if(!od||od<since)return;
+    const oid=String(x.oid||'').trim(),k=oid||('row:'+(x.uuid||x.id));
+    const o=by[k]=by[k]||{oid,key:k,acct:x.acct||'',sup:x.sup||'',od,units:0};
+    o.units+=Math.max(0,(parseInt(x.exp)||0)-(parseInt(x.cancelledQty)||0));if(od<o.od)o.od=od;});
+  return Object.values(by).sort((a,b)=>a.od<b.od?-1:a.od>b.od?1:0);
+}
+function asinCheckFor(r){
+  const A=_asinKey(r&&r.asin),c=A&&ASIN_CHECKS[A];if(!c||!c.at)return null;
+  const done=new Set((c.orders||[]).map(o=>o.key||o.oid).filter(Boolean));
+  const mine=String(r.oid||'').trim()||('row:'+(r.uuid||r.id));
+  return{c,covered:done.has(mine),n:(c.orders||[]).length,
+    newer:_asinOrders60(A).filter(o=>!done.has(o.key||o.oid)).length};
+}
+function asinChkTile(r,where){
+  if(!r||!r.asin)return '';
+  const k=asinCheckFor(r),jack=typeof _isJack==='function'&&_isJack(),id=esc(String(r.uuid||r.id));
+  if(k&&k.covered){
+    const day=new Date(k.c.at).toLocaleDateString('en-GB',{timeZone:'Europe/London',day:'numeric',month:'short'});
+    const tip=`${k.c.by||'Jack'} checked every order of this product on the accounts, ${day} — all delivered:\n`
+      +(k.c.orders||[]).map(o=>`${o.oid} · ${o.acct||''} · ${o.units}`).join('\n')+(jack?'\n\nClick to take the tick off.':'');
+    return `<div class="asinChk${where==='sheet'?' sm':''}"${jack?` onclick="asinChkUndoAsk('${id}')"`:''} title="${esc(tip)}">&#10003; Jack checked all ${fmt(k.n)} order${k.n===1?'':'s'} of this ASIN &middot; ${day} &middot; all delivered${k.newer?` <span class="asinChkNew">&middot; ${fmt(k.newer)} newer not checked</span>`:''}</div>`;
+  }
+  if(!jack)return '';
+  if(!((typeof _owedUnits==='function'&&_owedUnits(r)>0)||(typeof _leftUnits==='function'&&_leftUnits(r)>0)))return '';
+  if(where==='sheet'&&!(typeof _isAmzDel==='function'&&_isAmzDel(r)))return '';
+  {const od=typeof _sfOrderISO==='function'?_sfOrderISO(r):'';if(!od||od<ukAddDays(todayISO(),-60))return '';}   /* the tick covers the last 60 days */
+  return `<button class="asinChkBtn" onclick="asinChkConfirm('${id}')" title="You have checked every order of this product from the last 60 days on the accounts and they all arrived — stamp it so Sarah and Becki can see.">&#10003; All orders of this ASIN checked</button>`;
+}
+function asinChkConfirm(rid){
+  const r=_rowById(rid);if(!r||!r.asin)return;
+  if(!(typeof _isJack==='function'&&_isJack())){toast('Only Jack can stamp this','er');return;}
+  const A=_asinKey(r.asin),orders=_asinOrders60(A);
+  if(!orders.length){toast('No orders of this ASIN in the last 60 days','er');return;}
+  const list=orders.map(o=>`${esc(o.oid||'(no order number)')} · ${esc(o.acct||o.sup||'')} · ${fmt(o.units)} unit${o.units===1?'':'s'} · ${o.od.slice(8)}/${o.od.slice(5,7)}`).join('<br>');
+  showConfirm('Every order of this ASIN arrived?',
+    `<b>${esc(String(r.prod||r.asin).slice(0,70))}</b> · ${esc(A)}<br><br>You have checked each of these on the accounts and they were all delivered:<br>${list}<br><br>Sarah, Becki and you see a green tick on each one. An order placed after today is not covered.`,
+    async()=>{
+      const prev=ASIN_CHECKS[A]||null;
+      const stamp={at:new Date().toISOString(),by:_who(),orders:orders.map(o=>({oid:o.oid,key:o.key,acct:o.acct,units:o.units,od:o.od}))};
+      if(!(await _saveAsinChecks(A,stamp)))return;
+      try{logAudit('Jack checked every order of an ASIN',`${A} — ${orders.length} order${orders.length===1?'':'s'}, all delivered`);}catch(e){}
+      _asinChkRepaint();
+      toastUndo(`✓ ${orders.length} order${orders.length===1?'':'s'} of this ASIN marked as checked`,()=>{_saveAsinChecks(A,prev).then(_asinChkRepaint);});
+    },{ok:'Yes — all arrived',icon:'✓'});
+}
+function asinChkUndoAsk(rid){
+  const r=_rowById(rid);if(!r||!(typeof _isJack==='function'&&_isJack()))return;
+  const A=_asinKey(r.asin);if(!ASIN_CHECKS[A])return;
+  showConfirm('Take the tick off?',`<b>${esc(A)}</b> — the green tick comes off every order of this product.`,async()=>{
+    const prev=ASIN_CHECKS[A];
+    if(!(await _saveAsinChecks(A,null)))return;
+    try{logAudit('ASIN tick taken off',A);}catch(e){}
+    _asinChkRepaint();
+    toastUndo('Tick taken off',()=>{_saveAsinChecks(A,prev).then(_asinChkRepaint);});
+  },{ok:'Take it off',icon:'✓'});
+}
+/* read-merge-write: two laptops ticking different products must not wipe each other */
+async function _saveAsinChecks(A,val){
+  let remote={};
+  try{const q=await sb.from('app_settings').select('value').eq('key','asin_checks').maybeSingle();
+    if(q&&q.error)throw q.error;remote=JSON.parse((q.data&&q.data.value)||'{}')||{};}
+  catch(e){toast('Couldn’t read the ticks — nothing changed','er');return false;}
+  if(!remote||typeof remote!=='object'||Array.isArray(remote))remote={};
+  if(val)remote[A]=val;else delete remote[A];
+  const ok=await _putSetting('asin_checks',remote);
+  if(ok)ASIN_CHECKS=remote;
+  return ok;
+}
+function _asinChkRepaint(){try{renderPrep();}catch(e){}try{renderAdmin();}catch(e){}try{renderJack();}catch(e){}}
+/* ── Jack, 28 Oct — the C920: one Amazon order of 2 was typed onto the Purchase Sheet twice (VAS_02 + VAS1_02).
+   The copy never arrives, so it walked the whole late chain — Sarah, Jack's account check, Becki's shelves —
+   and nearly became a refund claim for units that never existed. The pattern: another line with the SAME
+   order number and the SAME product arrived in full, and nothing of this one has. It is only a suspicion — an
+   order of 4 whose second parcel is lost looks exactly the same — so only the account settles it, and the
+   question goes to Jack as "2 or 4?". His "it was 4" (notDup) puts the suspicion away for good. */
+function _dupLineOf(r){
+  if(!r||r.archived||!r.asin||(r.resolution&&r.resolution.notDup))return null;
+  /* a placeholder ("N/A", "-", "Amazon UK") is not an order number — it would match unrelated lines */
+  const oid=String(r.oid||'').trim().toUpperCase();if(!/\d{5,}/.test(oid))return null;
+  if((parseInt(r.rcvd)||0)>0||!(_owedUnits(r)>0))return null;
+  const A=_asinKey(r.asin),me=String(r.uuid||r.id),n=x=>parseInt(x)||0,want=x=>Math.max(0,n(x.exp)-n(x.cancelledQty));
+  /* a line cancelled to nothing is not part of the question */
+  const sib=rows.filter(x=>String(x.uuid||x.id)!==me&&_asinKey(x.asin)===A&&String(x.oid||'').trim().toUpperCase()===oid&&want(x)>0);
+  if(!sib.length)return null;
+  /* the tester, 29 Oct: an order typed THREE times (3/0, 3/0, 3/3) was never flagged — the other empty copy read
+     as "a split order still short". Only a line that has PART arrived means a split order still landing. */
+  const full=sib.filter(x=>n(x.rcvd)>=want(x)),empty=sib.filter(x=>n(x.rcvd)===0);
+  if(!full.length||full.length+empty.length<sib.length)return null;
+  /* SellerFuse shows these units going out — then they existed */
+  try{const v=typeof sfLateFor==='function'?sfLateFor(r):null;if(v&&(v.state==='shipped'||v.state==='other'))return null;}catch(e){}
+  const got=full.reduce((t,x)=>t+n(x.rcvd),0),mine=want(r),others=empty.reduce((t,x)=>t+want(x),0);
+  return{sibs:full,got,mine,total:got+mine+others,sku:full[0].sku,copies:empty.length};
+}
 let _amzFilterActive=false;
 function toggleAmzFilter(){_amzFilterActive=!_amzFilterActive;renderPrep();}
 function renderAmzBanner(){

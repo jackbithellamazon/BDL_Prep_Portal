@@ -263,6 +263,11 @@ async function _ebayToRecovery(cl,qty){
     notes:`Set aside to sell on eBay by ${_who()}`+(cl.sup?' — '+cl.sup:'')+(cl.oid?' · '+cl.oid:'')});
   if(it==='nosetup')toast('Recovery Stock needs its one-time setup before it can hold this — tell Jack','er');
   else if(it&&it.qty)toast(`${fmt(it.qty)} unit${it.qty===1?'':'s'} on Recovery Stock to sell on eBay`,'ok');
+  /* Jack, 29 Oct: "eBay stock needs to go off the Prep Sheet". It did — but only when an Admin list next rebuilt
+     (Starbucks: set aside 10:15, filed 10:18). File it the moment it goes to Recovery; only when Recovery took
+     everything that was on the shelf (_recoveryFiled decides). */
+  try{const r=typeof _rowById==='function'?_rowById(cl.prepRowId):null;
+    if(r&&typeof _recoveryFiled==='function'&&_recoveryFiled(r)){await saveRow(r);try{renderPrep();renderStats();}catch(e){}}}catch(e){}
 }
 /* one issue line → one claim record. Used by the Raise Issue popup and by the
    answer to a warehouse question ("nothing more is coming" = Missing). */
@@ -339,6 +344,9 @@ function editShipIdInline(id,el){
       r.shipSegments=segs;
       r.allShipIds=[...new Set(segs.map(s=>s.shipId))];
     }
+    /* the record moves to the new ID — the number has to stay with it, and the change belongs in the log */
+    try{const t=segmentsSentTotal(r);if(t>0)r.ship=t;}catch(e){}
+    if(val!==current)try{logAudit('Shipment ID changed on the Prep Sheet',`${r.sku||r.asin||''} — ${current||'none'} → ${val||'none'}`);}catch(e){}
     uf(id,'shipId',val);
     saveRow(r);
     renderPrep(); // refresh the segment breakdown line + shipments grouping

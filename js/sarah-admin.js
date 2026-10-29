@@ -799,13 +799,14 @@ function _who(){return window.currentUserName||'someone';}
 async function loadVaState(){
   try{recLoad().catch(()=>{});}catch(e){}   /* Recovery Stock pre-loads so its page opens instantly */
   try{
-    const r=await sb.from('app_settings').select('key,value').in('key',['webhook_cfg','admin_checkin','va_actions','resolution_types','follow_up_types','jack_suppliers','srt_drafts','row_seen','lav_cleared','sheet_sync_at','timings']);
+    const r=await sb.from('app_settings').select('key,value').in('key',['webhook_cfg','admin_checkin','va_actions','resolution_types','follow_up_types','jack_suppliers','srt_drafts','row_seen','lav_cleared','sheet_sync_at','timings','asin_checks']);
     (r.data||[]).forEach(row=>{
       let v=null;try{v=JSON.parse(row.value||'null');}catch(e){return;}
       if(row.key==='srt_drafts'&&v&&typeof v==='object')SRT_DRAFTS=v;
       if(row.key==='timings'&&v&&typeof v==='object')_tmApply(v);
       if(row.key==='row_seen'&&v&&typeof v==='object'&&!Array.isArray(v))ROW_SEEN=v;
       if(row.key==='lav_cleared'&&v&&typeof v==='object'&&!Array.isArray(v))LAV_CLEARED=v;
+      if(row.key==='asin_checks'&&v&&typeof v==='object'&&!Array.isArray(v))ASIN_CHECKS=v;
       if(row.key==='sheet_sync_at'&&v&&typeof v==='object'){window._sheetSyncAt=v;setTimeout(paintSyncAge,500);}
       if(row.key==='webhook_cfg'&&v)WEBHOOK_CFG=Object.assign(WEBHOOK_CFG,v);
       if(row.key==='admin_checkin'&&v)ADMIN_CHECK=Object.assign(ADMIN_CHECK,v);

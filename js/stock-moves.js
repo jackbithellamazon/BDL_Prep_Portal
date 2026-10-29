@@ -249,10 +249,95 @@ function shipDateFor(shipId){
   (lavShipments||[]).forEach(x=>{if(x.shipId===shipId&&x.date)auth.push(x.date);});
   (returnShipments||[]).forEach(x=>{if(x.shipId===shipId&&x.date)fallback.push(x.date);});
   if(auth.length)return auth.sort()[0];
+  /* Jack, 29 Oct: a shipment SellerFuse knows has Amazon's date — not the day someone typed the ID in */
+  try{const s=(typeof SF_DATES_TRUSTED!=='undefined'&&SF_DATES_TRUSTED)&&window.SFRUN&&(SFRUN.shipments||[]).find(x=>typeof _sfSameShip==='function'?_sfSameShip(x.id,shipId):x.id===shipId);
+    const d=s&&!/cancel/i.test(s.status||'')&&String(s.created||'').slice(0,10);if(d&&/^\d{4}-\d\d-\d\d$/.test(d))return d;}catch(e){}
   if(fallback.length)return fallback.sort()[0];
   return todayISO();
 }
 
+/* ── MOVE TO ANOTHER SHIPMENT ───────────────────────────────────────────────
+   Jack, 29 Oct: Becki put a batch on FBA15MS5FS83 that went on FBA15MSC66QL. There was no way to move rows
+   between shipments (Rename moves the WHOLE shipment), so she set them back to In Warehouse, shipped them
+   again and retyped every ID — and 12 rows lost their shipped number. One action now: the units, numbers and
+   history move with them, the date follows the shipment they land on, and Undo puts it all back.
+   items: [{kind:'oa',row,from}|{kind:'lav'|'ret',line,from}] (from defaults to fromId). */
+async function moveShipLines(items,fromId,toId,opts){
+  opts=opts||{};
+  const same=(a,b)=>typeof _sfSameShip==='function'?_sfSameShip(a,b):a===b;
+  toId=(typeof _cleanShipId==='function')?_cleanShipId(toId).id:String(toId||'').trim().toUpperCase();
+  if(!toId){toast('Type the shipment ID they really went on','er');return 0;}
+  const sdate=shipDateFor(toId),done=[];let units=0;
+  for(const it of (items||[])){
+    const from=it.from||fromId;if(!from||same(from,toId))continue;
+    if(it.kind==='oa'){
+      const r=it.row;if(!r)continue;
+      const snap=JSON.parse(JSON.stringify(r));
+      const segs=normaliseSegments(r).map(s=>Object.assign({},s));let moved=0;
+      segs.forEach(s=>{if(same(s.shipId,from)){s.shipId=toId;s.date=sdate;moved+=parseInt(s.units)||0;}});
+      if(!moved)continue;
+      const merged=[];
+      segs.forEach(s=>{const m=merged.find(x=>x.shipId===s.shipId&&(x.date||'')===(s.date||''));if(m)m.units=(parseInt(m.units)||0)+(parseInt(s.units)||0);else merged.push(s);});
+      r.shipSegments=merged;r.allShipIds=[...new Set(merged.map(s=>s.shipId))];
+      if(!r.shipId||same(r.shipId,from))r.shipId=toId;
+      r.ship=segmentsSentTotal(r);
+      {const ds=merged.map(s=>s.date).filter(Boolean).sort();if(ds.length)r.sentDate=ds[0];}
+      r._dirty=true;
+      try{await saveRow(r);}catch(e){Object.assign(r,snap);continue;}
+      done.push({kind:'oa',row:r,snap});units+=moved;
+      try{logAudit('Moved to another shipment',`${r.sku||r.asin||''} — ${moved} unit${moved===1?'':'s'} ${from} → ${toId}`);}catch(e){}
+    }else if(it.kind==='lav'||it.kind==='ret'){
+      const ls=it.line;if(!ls||!same(ls.shipId,from))continue;
+      const tbl=it.kind==='lav'?'lavarion_shipments':'returns_shipments';
+      ls.shipId=toId;
+      if(ls.uuid){try{const w=await sb.from(tbl).update({ship_id:toId}).eq('id',ls.uuid);if(w&&w.error)throw w.error;}
+        catch(e){ls.shipId=from;toast('One line didn’t save — '+(e&&e.message||e),'er');continue;}}
+      done.push({kind:it.kind,line:ls,from,tbl});units+=parseInt(ls.units||ls.qty)||0;
+      try{logAudit('Moved to another shipment',`${it.kind==='lav'?'PLUB':'Return'} ${ls.sku||ls.asin||''} — ${ls.units||ls.qty||0} ${from} → ${toId}`);}catch(e){}
+    }
+  }
+  if(!done.length){toast('Nothing moved — none of those lines is on that shipment','er');return 0;}
+  const paint=()=>{try{renderShipments();}catch(e){}try{renderPrep();}catch(e){}try{renderDashboard();}catch(e){}};
+  paint();
+  if(!opts.noUndo)toastUndo(`✓ ${done.length} line${done.length===1?'':'s'} · ${fmt(units)} unit${units===1?'':'s'} moved to ${toId}`,async()=>{
+    for(const d of done.slice().reverse()){
+      if(d.kind==='oa'){Object.keys(d.row).forEach(k=>{if(!(k in d.snap))delete d.row[k];});Object.assign(d.row,d.snap);d.row._dirty=true;try{await saveRow(d.row);}catch(e){}}
+      else{d.line.shipId=d.from;if(d.line.uuid)try{await sb.from(d.tbl).update({ship_id:d.from}).eq('id',d.line.uuid);}catch(e){}}
+    }
+    try{logAudit('Undone — move to another shipment',`${done.length} line(s) back from ${toId}`);}catch(e){}
+    paint();});
+  return done.length;
+}
+/* Prep Sheet bulk bar: the selected rows, each from the one shipment it is on */
+function doBulkMoveShip(){
+  const sel=getSelectedRows().map(id=>rows.find(x=>x.uuid===String(id)||String(x.id)===String(id))).filter(Boolean);
+  if(!sel.length){toast('No rows selected','er');return;}
+  const go=[],skip=[];
+  sel.forEach(r=>{const ids=[...new Set(normaliseSegments(r).map(s=>s.shipId).filter(Boolean))];if(ids.length===1)go.push({kind:'oa',row:r,from:ids[0]});else skip.push(r.sku||r.asin||'');});
+  if(!go.length){toast('None of these is on exactly one shipment — move them from the Shipments page (Edit)','er');return;}
+  const froms=[...new Set(go.map(x=>x.from))];
+  showShipIdModal(`Move ${go.length} row${go.length===1?'':'s'} to another shipment`,
+    `They are on ${froms.join(', ')}. Type the shipment ID they really went on — units, numbers and history move with them.`+(skip.length?` ${skip.length} not on exactly one shipment are left out: ${skip.slice(0,3).join(', ')}${skip.length>3?'…':''}.`:''),
+    'Standard',async(toId)=>{await moveShipLines(go,null,toId);try{clearBulkSelect();}catch(e){}});
+}
+/* bulk "In Warehouse" on rows that are on a shipment: the road Becki took by mistake — ask first */
+function _bulkUnsendAsk(n,ids,go){
+  let el=document.getElementById('bulkUnsendAsk');
+  if(!el){el=document.createElement('div');el.id='bulkUnsendAsk';el.className='overlay';el.style.zIndex='140';document.body.appendChild(el);
+    el.addEventListener('click',e=>{if(e.target===el)el.style.display='none';});}
+  el.innerHTML=`<div class="modal srtCfm">
+    <div class="srtCfmTtl">${n} of these ${n===1?'is':'are'} on a shipment</div>
+    <div class="srtCfmSub">${esc(ids.join(', '))}</div>
+    <div class="srtHint" style="margin:8px 0 12px;">Did they go on the wrong shipment ID? Move them — the units, numbers and history go with them. Only set them back to In Warehouse if they really came back off the shipment.</div>
+    <div class="srtCfmFoot">
+      <button class="srtGhost" onclick="document.getElementById('bulkUnsendAsk').style.display='none'">Cancel</button>
+      <button class="srtGhost" id="bulkUnsendYes">They really came back off it</button>
+      <button class="srtGo" id="bulkUnsendMove">Move them to another shipment&hellip;</button>
+    </div></div>`;
+  el.style.display='flex';
+  document.getElementById('bulkUnsendMove').onclick=()=>{el.style.display='none';doBulkMoveShip();};
+  document.getElementById('bulkUnsendYes').onclick=()=>{el.style.display='none';go();};
+}
 function addSegment(r,shipId,units,type){
   if(shipId&&typeof _cleanShipId==='function'){const _cs=_cleanShipId(shipId);if(_cs.ok)shipId=_cs.id;}
   if(!shipId||!(units>0))return;
@@ -435,7 +520,7 @@ function unsendConfirm(){
   _unsendCtx=null;cm('unsendModal');
   if(!r)return;
   const gone=(r.shipSegments||[]).map(s=>s.shipId).filter(Boolean).join(', ')||r.shipId||'none';
-  const units=r.ship||0;
+  const units=(typeof _sentOut==='function'?_sentOut(r):0)||r.ship||0;   /* r.ship read 0 on the FBA15MSC66QL rows */
   r._dirty=true;
   r.status=val;r.sent='No';r.sentDate='';r.ship=0;r.shipId='';r.allShipIds=[];r.shipSegments=[];
   // Reverting to a "not here / not counted" state clears the received count
@@ -693,6 +778,13 @@ function doBulkAction(){
     document.getElementById('bulkActionDropdown').value='';
     return;
   }
+  /* Jack, 29 Oct: on rows that are on a shipment, "In Warehouse" is nearly always "they went on the wrong
+     shipment" — offer the move first */
+  if(action==='In Warehouse'&&!window.__bulkUnsendOk){
+    const _on=getSelectedRows().map(id=>rows.find(x=>x.uuid===String(id)||String(x.id)===String(id))).filter(r=>r&&(r.sent==='Yes'||_sentOut(r)>0));
+    if(_on.length){const _ids=[...new Set(_on.flatMap(r=>normaliseSegments(r).map(s=>s.shipId)).filter(Boolean))];
+      _bulkUnsendAsk(_on.length,_ids,()=>{window.__bulkUnsendOk=true;try{doBulkAction();}finally{window.__bulkUnsendOk=false;}});return;}
+  }
   const selected=getSelectedRows();
   selected.forEach(id=>{
     const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
@@ -702,8 +794,12 @@ function doBulkAction(){
         if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
       }
       // Reverting to In Warehouse from Sent to Amazon — clear shipment data
+      /* 29 Oct (FBA15MSC66QL): this cleared the number but left the shipment record, so the next bulk ship
+         added nothing and 12 rows read "0 shipped" against 120 units. Clear both, like the single-row undo. */
       if(action==='In Warehouse'&&r.sent==='Yes'){
-        r.sent='No';r.sentDate='';r.ship=0;r.shipId='';
+        const _gone=normaliseSegments(r).map(s=>s.shipId).filter(Boolean).join(', ')||r.shipId||'none',_units=_sentOut(r);
+        r.sent='No';r.sentDate='';r.ship=0;r.shipId='';r.allShipIds=[];r.shipSegments=[];
+        try{logAudit('Shipment record erased — status reverted to In Warehouse',`${r.sku||r.asin||''} · ${_units} units · was on ${_gone} (bulk)`);}catch(e){}
       }
       r._dirty=true;saveRow(r);logAudit('Bulk Status Update',r.sku);
     }
@@ -930,9 +1026,13 @@ function doBulkAllShipped(){
     `Enter one Shipment ID to stamp across all ${selected.length} selected row${selected.length!==1?'s':''}.`,
     'Standard',
     (shipId,type)=>{
+      const _skipped=[];
       selected.forEach(id=>{
         const r=rows.find(x=>x.uuid===String(id)||String(x.id)===String(id));
         if(r){
+          /* nothing left to send and not on this shipment: it is on another one — stamping it here only
+             wrote "→ <ID>" into the log and moved its sent date (29 Oct) */
+          if(remainingToShip(r)<=0&&_sentOut(r)>0&&!normaliseSegments(r).some(s=>s.shipId===shipId)){_skipped.push(r.sku||r.asin||'');return;}
           if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
           const remain=remainingToShip(r);
           if(remain>0)addSegment(r,shipId,remain,type);
@@ -940,6 +1040,7 @@ function doBulkAllShipped(){
           r._dirty=true;saveRow(r);logAudit('Bulk All Shipped',`${r.sku} → ${shipId} (${type})`);
         }
       });
+      if(_skipped.length)toast(`${_skipped.length} row${_skipped.length===1?' is':'s are'} already on another shipment — left as ${_skipped.length===1?'it was':'they were'}: ${_skipped.slice(0,4).join(', ')}${_skipped.length>4?'…':''}`,'er');
       if(shipBoxes)shipBoxes[shipId]=shipBoxes[shipId]||0;
       clearBulkSelect();renderPrep();
       toast(`✓ ${selected.length} row${selected.length!==1?'s':''} shipped → ${shipId}`);

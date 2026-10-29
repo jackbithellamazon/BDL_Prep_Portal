@@ -258,7 +258,7 @@ async function raiseQuery(){
     res.query=q;if(res.chase)res.chase.log=(res.chase.log||[]).concat([line]);
   }else{
     const keep=res&&res.chase?Object.assign({},res.chase,{step:'',due:'',log:(res.chase.log||[]).concat([line])}):undefined;
-    r.resolution={state:'working',kind:'query',what:'uk-query',ask,by:who,at,query:q,chase:keep};
+    r.resolution={notDup:(res&&res.notDup)||undefined,state:'working',kind:'query',what:'uk-query',ask,by:who,at,query:q,chase:keep};
   }
   r._dirty=true;
   try{await _mustSave(r);}catch(e){toast('Didn\'t save — check the connection and try again','er');return;}
@@ -2072,7 +2072,11 @@ function _tcWentBtn(rid,cls,label){const r=_rowById(rid),left=(r&&typeof _leftUn
     ?`<button class="csAct ${cls}" onclick="wentOutUnder('${rid}')" title="Record which SKU and shipment they went out on — the units are accounted for and the row closes">${label}</button>`
     :`<button class="csAct ${cls}" onclick="openSorted('${rid}','wrong-sku')" title="It went out on another listing — close it off; the popup asks which SKU">${label}</button>`;}
 function _tcFoundBtns(rid){const v=_tcSfState(rid);
-  if(v.state==='shipped')return `<button class="csAct go tcBig" onclick="sfRecordRow('${rid}')" title="SellerFuse shows them on ${esc(v.ships.map(s=>s.id).join(', '))}. Books in what isn't booked in, stamps the send with SellerFuse's date and closes the row — with your name in the history.">Record it &mdash; ${fmt(v.units)} on ${esc(v.ships[0].id)} &#10003;</button>`;
+  if(v.state==='shipped'){
+    /* never more than the order can take — the rest is a question for Jack (Jack, 29 Oct) */
+    if(v.fits===false)return (v.room>0?`<button class="csAct go" onclick="sfRecordRow('${rid}')" title="Books in and stamps only what this order is still owed. Undo for 7 seconds.">Book in the ${fmt(v.room)} this order is owed</button>`:'')
+      +`<div class="tcBtnWhy">SellerFuse shows ${fmt(v.units)} went out under this SKU &mdash; ${fmt(v.units-v.room)} more than this order has. Ask Jack about the extra.</div>`;
+    return `<button class="csAct go tcBig" onclick="sfRecordRow('${rid}')" title="SellerFuse shows them on ${esc(v.ships.map(s=>s.id).join(', '))}. Books in what isn't booked in, stamps the send with Amazon's date and closes the row — Undo for 7 seconds.">Fix it &mdash; ${fmt(v.ships[0].x||v.units)} on ${esc(v.ships[0].id)}${v.ships.length>1?` (+${v.ships.length-1} more)`:''} &#10003;</button>`;}
   if(v.state==='other')return _tcWentBtn(rid,'go tcBig',`Yes &mdash; went out under ${esc(v.ships[0].sku)} &#10003;`);
   return '';}
 function _tcSkuBtns(rid){const v=_tcSfState(rid);
@@ -2082,6 +2086,13 @@ function _tcSkuBtns(rid){const v=_tcSfState(rid);
   if(v.state==='clear')return `<button class="csAct go tcBig" onclick="sfCheckedToBecki('${rid}')" title="Claude checked SellerFuse: not on any shipment under this SKU, nothing extra under its other SKUs. It goes to Becki with that check on record.">Send to Becki &#10003;</button><div class="tcBtnWhy">Both checks were done by SellerFuse &mdash; nothing to look up.</div>`+_tcWentBtn(rid,'plain','Yes &mdash; went out under another SKU&hellip;')+mine;
   return _tcWentBtn(rid,'good','Yes &mdash; went out under another SKU&hellip;')
     +`<button class="csAct go" onclick="skuCheckOpen('${rid}')" title="Check Seller Central and the same product's other SKUs first — only then does it go to Becki, with your check on record.">No &mdash; check, then send to Becki&hellip;</button>`;}
+/* Jack answered "delivered" before the duplicate question existed: ask him the right one (_dupLineOf) */
+function _tcDupBtn(rid){
+  const r=_rowById(rid),d=r&&typeof _dupLineOf==='function'?_dupLineOf(r):null;if(!d)return '';
+  return _amazonRow(r)
+    ?`<div class="csNowTxt" style="margin:2px 0 4px;color:#fbbf24;">Possibly on the sheet twice &mdash; was the order ${fmt(d.got)} or ${fmt(d.total)}?</div><button class="csAct go tcBig" onclick="amzAskJack('${rid}')" title="Order ${esc(r.oid)} is also on ${esc(d.sku)}, which arrived ${fmt(d.got)} of ${fmt(d.got)}. Jack checks the account: ${fmt(d.got)} means this line is a copy; ${fmt(d.total)} means a parcel is missing.">Ask Jack: ${fmt(d.got)} units or ${fmt(d.total)}?</button>`
+    :`<button class="csAct good" onclick="openSorted('${rid}','duplicate')" title="Order ${esc(r.oid)} is also on ${esc(d.sku)}, which arrived in full. If the order was ${fmt(d.got)}, this line is a copy.">It was ${fmt(d.got)} &mdash; close as Duplicate record</button>`;
+}
 function _tcCard(i,n,C,o){
   const r=(i.kind==='transit'&&typeof _rowById==='function')?_rowById(i.rid):null;
   let steps='';try{steps=r?_tcSteps(i,r,o.sentBack):'';}catch(e){console.warn('[triage] steps',e);}
@@ -2096,7 +2107,7 @@ function _tcCard(i,n,C,o){
           <div class="tcUnits">${C.units}</div>
         </div>
         <div class="tcWhy">${C.wrong}</div>
-        ${steps}
+        ${steps}${r?asinChkTile(r,'card'):''}
       </div>
       <div class="tcSide">
         <div class="tcCap">Your next step</div>
@@ -2109,6 +2120,28 @@ function _tcCard(i,n,C,o){
 /* Jack, 23 Oct: "triage needs to be checking to see if it actually went out but not in
    PrepHub, and then the SKU — double triage — SF can answer it". The checks in that order,
    each with its answer and who gave it: Jack, Claude (SellerFuse), or still to do. */
+/* the product's 60-day balance as a triage line (sfAsinBalance, js/sfcheck.js) */
+function _tcBalance(b,r,left){
+  const d=x=>{const p=String(x||'').split('-');return p.length===3?p[2]+'/'+p[1]:'';};
+  const label=o=>{const x=o.x;return x===r?'<b>this order</b> '+o.left:`${esc(String(x.sup||'').replace(/^Amazon\s*/i,'Amazon '))}${x.acct?' '+esc(x.acct):''} ${d(_sfOrderISO(x))} — ${o.left}`;};
+  const others=b.notIn.filter(o=>o.x!==r);
+  /* only a shipment made on or after this order can be carrying it — 28 Oct: Philips OneBlade had 2 unrecorded
+     units on a 2 Sep shipment, a month before the missing 7 Oct order; that is an older mismatch, not this order */
+  const od=_sfOrderISO(r),ex=b.extra.filter(e=>!od||!e.date||e.date>=od),unrec=ex.reduce((t,e)=>t+e.units,0);
+  const older=b.extra.filter(e=>!ex.includes(e)),olderN=older.reduce((t,e)=>t+e.units,0);
+  const nums=`Ordered <b>${fmt(b.ordered)}</b> across ${fmt(b.orders)} order${b.orders===1?'':'s'} · booked in <b>${fmt(b.booked)}</b> · sent to Amazon <b>${fmt(b.sent)}</b>`
+    +(b.notIn.length?` · <b>${fmt(b.notIn.reduce((t,o)=>t+o.left,0))} not booked in</b>: ${b.notIn.map(label).join(' · ')}`:'');
+  let cls,ic,verdict;
+  if(unrec>=left){cls='found';ic='!';
+    verdict=`<b class="tcOk">Amazon got ${fmt(unrec)} more than PrepHub recorded since this order</b> — ${ex.map(e=>`${fmt(e.units)} × ${esc(e.sku)} on ${esc(e.id)} (${d(e.date)})`).join(' · ')}. These ${fmt(left)} most likely went out without being booked in — nothing to claim.`;}
+  else if(unrec>0){cls='found';ic='!';
+    verdict=`<b class="tcWarn">Amazon got ${fmt(unrec)} more than PrepHub recorded since this order</b> — ${ex.map(e=>`${fmt(e.units)} × ${esc(e.sku)} on ${esc(e.id)} (${d(e.date)})`).join(' · ')}. Up to ${fmt(unrec)} of these ${fmt(left)} may have gone out; ${fmt(left-unrec)} still unaccounted for.`;}
+  else{cls='done';ic='✓';
+    verdict=`<b>Nothing extra went to Amazon since this order</b> — these ${fmt(left)} aren’t hidden in another shipment.`+(others.length?` <b class="tcWarn">${fmt(others.length)} other order${others.length===1?'':'s'} of this product ${others.length===1?'is':'are'} missing too</b> — worth checking together.`:'');}
+  if(olderN)verdict+=` <span class="tcOld">(${fmt(olderN)} unrecorded on ${older.map(e=>esc(e.id)+' '+d(e.date)).join(', ')} — before this order, so not these.)</span>`;
+  const who=`SellerFuse shipments since ${d(b.since)} · ${fmt(b.sfSent)} unit${b.sfSent===1?'':'s'} of this product · checked by Claude ${esc((typeof sfWhen==='function')?sfWhen():'')}`;
+  return `<div class="tcSt ${cls} tcBal"><span class="tcIc">${ic}</span><div><div class="tcQ">Does this product add up? <span class="tcSf">LAST 60 DAYS</span></div><div class="tcA">${nums}</div><div class="tcA">${verdict}</div><div class="tcWho">${who}</div></div></div>`;
+}
 function _tcSteps(i,r,sentBack){
   if(!r||i.kind!=='transit')return '';
   const v=(typeof sfLateFor==='function')?sfLateFor(r):null;
@@ -2117,14 +2150,28 @@ function _tcSteps(i,r,sentBack){
   const arrivedYes=!!a&&!notComing&&/arrived\s*[—-]\s*yes|shows it delivered|delivered/i.test(a);
   const left=i.partShip?((typeof _leftUnits==='function')?_leftUnits(r):0):(i.outstanding||Math.max(0,(i.units||0)-(i.got||0)));
   const found=v&&(v.state==='shipped'||v.state==='other');
-  if(notComing||!left||!(i.partShip||arrivedYes||found))return '';
+  /* Jack, 28 Oct: does this product add up over the last 60 days? Shown on every late order with units
+     outstanding — before it goes to Jack — and it steers the next step */
+  const bal=left>0&&!notComing&&typeof sfAsinBalance==='function'?sfAsinBalance(r):null;
+  const balHtml=bal?_tcBalance(bal,r,left):'';
+  const _od=_sfOrderISO(r),balEx=bal?bal.extra.filter(e=>!_od||!e.date||e.date>=_od):[],balUn=balEx.reduce((t,e)=>t+e.units,0);
+  /* Jack, 28 Oct — the C920: is this order on the Purchase Sheet twice? (_dupLineOf, js/prep.js) */
+  const dup=left>0&&!notComing&&!(sentBack&&sentBack.dupOf)&&typeof _dupLineOf==='function'?_dupLineOf(r):null;
+  const _dAmz=typeof _amazonRow==='function'&&_amazonRow(r);
+  const dupHtml=dup?`<div class="tcSt found tcDup"><span class="tcIc">!</span><div><div class="tcQ">Is this order on the sheet twice?</div>
+    <div class="tcA"><b class="tcWarn">Possibly.</b> Order ${esc(r.oid)} is also on <b>${dup.sibs.map(x=>esc(x.sku)).join(', ')}</b>, which arrived ${fmt(dup.got)} of ${fmt(dup.got)} &mdash; and nothing of this line has arrived. Either the same order was typed twice (it was ${fmt(dup.got)} unit${dup.got===1?'':'s'}), or it was ${fmt(dup.total)} and a parcel is missing.</div>
+    <div class="tcA">${_dAmz?`Only the Amazon account can tell &mdash; Jack is asked <b>${fmt(dup.got)} or ${fmt(dup.total)}?</b>`:`Check the order: if it was ${fmt(dup.got)}, close this line as <b>Duplicate record</b>. <button class="csAct good" onclick="openSorted('${r.uuid||r.id}','duplicate')">It was ${fmt(dup.got)} &mdash; close as Duplicate record</button>`}</div>
+    <div class="tcWho">From the Purchase Sheet lines in PrepHub</div></div></div>`:'';
+  if(notComing||!left||!(i.partShip||arrivedYes||found||balUn>0))return (dupHtml||balHtml)?`<div class="tcSteps">${dupHtml}${balHtml}</div>`:'';
   const isAmz=typeof _amazonRow==='function'&&_amazonRow(r);
   const sent=typeof _sentOut==='function'?_sentOut(r):0;
   const when=t=>t?(typeof _logWhen==='function'?_logWhen(t):String(t).slice(0,10)):'';
   const sfWho=v&&v.at?`checked by Claude in SellerFuse · ${esc(when(v.at))}`:'';
-  const nextChk=(typeof sfNextCheck==='function')?sfNextCheck():'Mon 07:00';
+  const nextChk=(typeof sfNextCheck==='function')?sfNextCheck():'Sun 20:00';
   const st=(cls,ic,q,ans,who)=>`<div class="tcSt ${cls}"><span class="tcIc">${ic}</span><div><div class="tcQ">${q}</div>${ans?`<div class="tcA">${ans}</div>`:''}${who?`<div class="tcWho">${who}</div>`:''}</div></div>`;
   const out=[];let k=0;
+  if(dupHtml)out.push(dupHtml);
+  if(balHtml)out.push(balHtml);
   /* 1 · did it arrive */
   if(arrivedYes)out.push(st('done','✓',`Did ${isAmz?'Amazon':'the supplier'} deliver it?`,`<b>Yes</b> — ${esc(a.length>140?a.slice(0,139)+'…':a)}`,`${esc(sentBack.rejectedBy||'Jack')}${sentBack.at?' · '+esc(when(sentBack.at)):''}`));
   else if(i.partShip)out.push(st('done','✓','Booked in?',`<b>Yes</b> — ${fmt(i.got||r.rcvd||0)} of ${fmt(i.units||0)} booked in, ${fmt(sent)} sent. <b>${fmt(left)} never went out</b> that PrepHub knows of.`,''));
@@ -2141,8 +2188,12 @@ function _tcSteps(i,r,sentBack){
   else out.push(st('done','✓',`Did ${left===1?'it':'they'} go out under another SKU of this product? ${sfTag}`,v.sisters?`<b>No</b> — its ${fmt(v.sisters)} other SKU${v.sisters===1?'':'s'} sent only their own.`:'<b>No</b> — no other SKU of this product went out.',sfWho));
   /* the next step, in words */
   const prod=esc(String(i.prod||i.sku||'').slice(0,60));
-  const nxt=!v||v.state==='unchecked'?`Wait for the check (${esc(nextChk)}) — or check it yourself: <a href="https://app.sellerfuse.com/shipment-manager?search=${encodeURIComponent(r.asin||r.sku||'')}" target="_blank" rel="noopener">SellerFuse ↗</a>`
-    :v.state==='shipped'?`Record it — book in and stamp the ${fmt(v.units)} on ${esc(v.ships[0].id)}`
+  const _be=balUn>=left?balEx.slice().sort((a,b)=>b.units-a.units)[0]:null;
+  const nxt=dup?(isAmz?`Ask Jack: was order ${esc(r.oid)} ${fmt(dup.got)} units or ${fmt(dup.total)}? ${fmt(dup.got)} means it is a duplicate line`
+      :`Check the order &mdash; ${fmt(dup.got)} units means close this line as Duplicate record`)
+    :_be&&!(v&&(v.state==='shipped'||v.state==='other'))?`Find it on <b>${esc(_be.id)}</b> (${esc(_be.sku)}) in SellerFuse, then book in and stamp the ${fmt(left)} — nothing to claim`
+    :!v||v.state==='unchecked'?`Wait for the check (${esc(nextChk)}) — or check it yourself: <a href="https://app.sellerfuse.com/shipment-manager?search=${encodeURIComponent(r.asin||r.sku||'')}" target="_blank" rel="noopener">SellerFuse ↗</a>`
+    :v.state==='shipped'?(v.fits===false?`Book in the ${fmt(v.room)} this order is owed, and ask Jack about the ${fmt(v.units-v.room)} extra`:`Fix it — book in and stamp the ${fmt(v.units)} on ${esc(v.ships[0].id)}`)
     :v.state==='other'?`Confirm ${left===1?'it':'they'} went out under ${esc(v.ships[0].sku)}`
     :(isAmz&&!arrivedYes)?`Jack checks the Amazon account first, then Becki checks the shelf`
     :`Becki checks the shelf for ${fmt(left)} × ${prod}`;
@@ -2548,6 +2599,18 @@ function renderAdmin(){
                   const arrivedYes=!notComing&&/arrived\s*[—-]\s*yes|shows it delivered|delivered/i.test(a);
                   const short=i.outstanding||Math.max(0,(i.units||0)-(i.got||0));
                   const _amzR=_amazonRow(_rowById(i.rid));
+                  /* Jack, 28 Oct — the C920: his answer "it was 2, this line is a copy" leaves one press */
+                  if(sentBack.dupOf){
+                    const _d=sentBack.dupOf;
+                    return `<div class="csNow">
+                      <div class="csNowCap" style="color:#86efac;">Jack checked the account &mdash; it&rsquo;s a duplicate line</div>
+                      <div class="csNowTxt" title="${esc(a)}">${esc(a)}</div>
+                      <div class="csActs">
+                        <button class="csAct good" onclick="openSorted('${i.rid}','duplicate')" title="Nothing is missing — the order was ${fmt(_d.got||0)} and they all arrived under ${esc(_d.sku||'')}. It comes off the Prep Sheet; the one job is taking this line off the Purchase Sheet.">Close as Duplicate record</button>
+                      </div>
+                      <div class="tfuGuide">No shelf check, no claim &mdash; these units never existed.</div>
+                    </div>`;
+                  }
                   /* Jack, 10 Sep: he typed "please double-check this… then
                      send the evidence back to me" and her page called it an
                      ANSWER with a green close button. A typed note is a job. */
@@ -2598,7 +2661,7 @@ function renderAdmin(){
                         <button class="csAct ${/cancel/i.test(a)?'plain':'warn'}" onclick="openSorted('${i.rid}','no-refund')" title="Nothing more is coming and there is no refund yet — close it as never arrived so the claim starts">Never arrived &mdash; close it, claim the ${fmt(short)}</button>
                         <button class="csAct good" onclick="openSorted('${i.rid}','refund-done')" title="They have said the refund is coming — that is processed. Close it; Jack watches the bank himself.">Refund being processed &mdash; done</button>
                         <button class="csAct plain" onclick="queryBalance('${i.rid}','cancelled')" title="The supplier cancelled the rest — the row balances, nothing missing">Supplier cancelled the rest</button>`
-                      :arrivedYes?`<div class="csNowTxt" style="margin:2px 0 4px;color:#fbbf24;">${_tcSkuCap(i.rid)}</div>
+                      :arrivedYes?`${_tcDupBtn(i.rid)}<div class="csNowTxt" style="margin:2px 0 4px;color:#fbbf24;">${_tcSkuCap(i.rid)}</div>
                         ${_tcSkuBtns(i.rid)}
                         ${!_amazonRow(_rowById(i.rid))?`<button class="csAct warn" onclick="queryNoneComing('${i.rid}')" title="Delivered but ${fmt(short)} never reached the warehouse — raise them as Missing">Delivered &mdash; raise ${fmt(short)} missing</button>`:''}`
                       :`<button class="csAct go" onclick="jackAmzDate('${i.rid}',this)">More still coming &mdash; date&hellip;</button>
@@ -2732,7 +2795,7 @@ function renderAdmin(){
                     const _ay=!_nc&&/arrived\s*[—-]\s*yes|shows it delivered|delivered/i.test(_a);
                     state=_jn?'JACK NEEDS A CHECK':'JACK ANSWERED';scol=_jn?'#fbbf24':'#f87171';
                     last=(_jn?'Asked':'Answered')+(sentBack.at?' · '+lw(sentBack.at):'')+(_jn?' — what he needs is in Triage':' — his answer is in Triage');
-                    next=_jn?'Do the check, then send what you found to Jack (left)':_rg?'Note the sheet and close it — one press (left)':isAmz
+                    next=sentBack.dupOf?'Close it as Duplicate record — one press (left)':_jn?'Do the check, then send what you found to Jack (left)':_rg?'Note the sheet and close it — one press (left)':isAmz
                       ?(_nc?'Amazon refund it themselves — note the sheet and close it (left)':_ay?'Answer “wrong SKU?” on the left':'Record his answer and close it off (left)')
                       :(_nc?'Close it as cancelled or never arrived (left)':_ay?'Answer “wrong SKU?” on the left':'Pick the move that follows from his answer (left)');
                   }
@@ -3094,7 +3157,8 @@ function renderAdmin(){
   </div>`;
 
   /* the SellerFuse check sits on top — Jack, 23 Oct: "on Sarah's page" */
-  try{if(typeof sfAdminHtml==='function')html=sfAdminHtml()+html;}catch(e){}
+  /* Jack, 29 Oct: the sure fixes are his (his page); what doesn't add up for certain is hers to look at */
+  try{if(typeof sfSarahHtml==='function')html=sfSarahHtml()+html;}catch(e){}
   wrap.innerHTML=html;
   _restoreScroll();
   /* fires the reminder if this page has gone unchecked past the deadline */

@@ -295,7 +295,7 @@ function openSorted(rid,preset){
         <label class="srtLab">Which FBA shipment did it go on?</label>
         <input id="srtShipId" class="srtSel" autocomplete="off" placeholder="FBA15ABCDEFG"
           style="text-transform:uppercase;font-family:var(--mono);letter-spacing:.04em;"
-          oninput="this.value=this.value.toUpperCase()">
+          oninput="this.value=this.value.toUpperCase();srtSync()">
         <div class="srtHint">The row is stamped as <b>Sent to Amazon</b> and joins that shipment on the Shipments page, exactly as if it had been stamped there.</div>
       </div>
 
@@ -462,6 +462,11 @@ function srtSkuSearch(){
   if(!inp||!box)return;
   const r=_rowById(_srtRid)||{};
   const {list,scoped}=_srtSkuRows(inp.value);
+  /* Jack, 29 Oct: Sarah picked Repl_02 and was refused. Each SKU of this product shows what it has spare
+     (sfSkuSpare, counted from this order's date), the ones with spare first, so she picks one that fits. */
+  const _sp={};
+  if(typeof sfSkuSpare==='function')list.forEach(x=>{if(x.asin&&r.asin&&x.asin===r.asin){const v=sfSkuSpare(x.sku,r);if(v!==null)_sp[x.sku]=v;}});
+  if(scoped)list.sort((a,b)=>((_sp[b.sku]||0)>0)-((_sp[a.sku]||0)>0));
   const n=list.length;
   const head=scoped
     ? (n?`${n} SKU${n===1?'':'s'} on this ASIN — type to search every SKU`
@@ -472,6 +477,7 @@ function srtSkuSearch(){
         onmousedown="event.preventDefault();srtSkuTake(this.dataset.sku)">
         <span class="srtComboSku">${esc(x.sku)}</span>
         <span class="srtComboProd">${(x.asin&&r.asin&&x.asin===r.asin)?'<b>same ASIN</b> · ':''}${esc((x.prod||'').slice(0,60))}</span>
+        ${_sp[x.sku]!=null?`<span class="srtComboSpare ${_sp[x.sku]>0?'y':'n'}">${_sp[x.sku]>0?fmt(_sp[x.sku])+' spare — Amazon got more than its own orders':'0 spare — sent only its own orders'}</span>`:''}
       </button>`).join('')
     : `<div class="srtComboNone">Nothing matches — you can still type it in free-hand.</div>`);
   box.style.display='block';
@@ -729,7 +735,8 @@ function _srtLeft(){
   const what=(document.getElementById('srtWhat')||{}).value||'';
   if(!what)return[];
   /* a step that says there is nothing to do is already done */
-  return _srtStepList(what,_resTodo(what)).filter(s=>!_srtTicks[s.k]&&!/^nothing (to do|else)/i.test(String(s.text||'')));
+  return _srtStepList(what,_resTodo(what)).filter(s=>!_srtTicks[s.k]&&!/^nothing (to do|else)/i.test(String(s.text||''))
+    &&!/the app does (that|it|this)/i.test(String(s.text||'')));   /* the tester, 29 Oct: Duplicate record asked her to tick 'the app does that' */
 }
 function closeSorted(){
   const el=document.getElementById('sortedModal');
@@ -847,7 +854,10 @@ function srtSync(){
   window._srtSkuCheck={sku:wentAs,spare:_spare,need:_need,why:_skuWhy,short:_skuShort};
   {const w=document.getElementById('srtSkuWarn'),wt=document.getElementById('srtSkuWarnTxt');
     if(w)w.style.display=_skuShort?'block':'none';
-    if(wt&&_skuShort)wt.innerHTML=`<b>${esc(wentAs)}</b> only sent what its own order${_spare===0?'':'s'} had${_spare?` (${fmt(_spare)} spare, ${fmt(_need)} needed)`:''} — these can’t have gone out as it. Pick another SKU, or override with a reason.`;}
+    /* the C920: no SKU of the product had anything spare because the units never existed — say so */
+    const _dupSk=_skuShort&&typeof _dupLineOf==='function'?_dupLineOf(_rSku):null;
+    if(wt&&_skuShort)wt.innerHTML=`<b>${esc(wentAs)}</b> only sent what its own order${_spare===0?'':'s'} had${_spare?` (${fmt(_spare)} spare, ${fmt(_need)} needed)`:''} — these can’t have gone out as it. Pick another SKU, or override with a reason.`
+      +(_dupSk?`<div class="srtDupHint">Order ${esc(_rSku.oid)} is also on <b>${esc(_dupSk.sku)}</b>, which arrived ${fmt(_dupSk.got)} of ${fmt(_dupSk.got)}. If the order was ${fmt(_dupSk.got)}, this line is a copy. <button type="button" class="srtSwap" onclick="srtPick('duplicate')">Use “Duplicate record” →</button></div>`:'');}
   const arrived=(document.getElementById('srtArrived')||{}).value||'';
   const due=(document.getElementById('srtDate')||{}).value||'';
   try{if(what)_srtPaintSteps(what,_resTodo(what));}catch(e){}
@@ -865,8 +875,11 @@ function srtSync(){
   /* Jack, 10 Sep: "'wrong SKU' is not enough information by itself — we need
      the missing SKU AND the SKU Sarah confirmed it went out under, or when I
      ask later what she found, you don't know." So it is no longer optional. */
+  /* the tester, 29 Oct: "paid — then refunded?" asked a dropdown that is always hidden (Jack, 3 Sep: not her
+     job), so a non-Amazon cancellation paid with a card could never close. It no longer asks. */
+  const _shipIdV=((document.getElementById('srtShipId')||{}).value||'').trim();
   const missingAsk=(ask.includes('paid')&&!paid)
-    ||(ask.includes('paid')&&paid==='yes'&&!refunded)
+    ||(ask.includes('shipid')&&!_shipIdV)
     ||(ask.includes('arrived')&&!arrived)||(kind==='date'&&!due)
     ||(ask.includes('sku')&&!wentAs)
     ||(_skuShort&&!_skuWhy);
@@ -887,7 +900,7 @@ function srtSync(){
   const ok=!!what&&left>=0&&(!needFix||!!fix)&&!missingAsk&&!mism&&!todoLeft.length;
   /* Jack, 8 Sep (Sarah stuck on a grey button): the button always works —
      press it and it says exactly what still needs doing, then lets her close. */
-  window._srtGate={ok,what,left,mism,missingAsk,needFix:!!(needFix&&!fix),todoLeft,paid,ask};
+  window._srtGate={ok,what,left,mism,missingAsk,needFix:!!(needFix&&!fix),todoLeft,paid,ask,refunded,arrived,due,kind,wentAs,skuShort:_skuShort,skuWhy:!!_skuWhy,shipid:_shipIdV};
   if(go){
     go.disabled=!what;go.style.opacity=what?'1':'.45';go.style.cursor=what?'pointer':'not-allowed';
     /* nothing reaches Jack before the investigation is written down */
@@ -944,11 +957,17 @@ function srtAskClose(override){
     if(G.left<0)need.push('The units don\u2019t add up — arrived plus cancelled is more than ordered.');
     if(G.mism==='full')need.push('Some units did arrive — pick “Part arrived, the rest cancelled” instead.');
     if(G.mism==='part')need.push('Nothing arrived at all — pick “Cancelled — the whole order” instead.');
+    /* Jack, 29 Oct (the C920): it said "Set the date" on a close-off with no date. It took the first question
+       on the form, not the one actually unanswered — each is checked for real now, and the SKU ones are named. */
     if(G.missingAsk){
-      if((G.ask||[]).includes('paid')&&!G.paid){need.push('Answer “Had the money already left the account?” — the dropdown on the left.');focusId=focusId||'srtPaid';}
-      else if((G.ask||[]).includes('paid')&&G.paid==='yes'){need.push('Say whether it has been refunded — the dropdown under the money question.');focusId=focusId||'srtRefund';}
-      else if((G.ask||[]).includes('arrived')){need.push('Say whether the stock arrived — the question on the left.');focusId=focusId||'srtArrived';}
-      else need.push('Set the date.');
+      const A=G.ask||[],n0=need.length;
+      if(A.includes('paid')&&!G.paid){need.push('Answer “Had the money already left the account?” — the dropdown on the left.');focusId=focusId||'srtPaid';}
+      if(A.includes('shipid')&&!G.shipid){need.push('Type the FBA shipment ID it went on — the box on the left.');focusId=focusId||'srtShipId';}
+      if(A.includes('arrived')&&!G.arrived){need.push('Say whether the stock arrived — the question on the left.');focusId=focusId||'srtArrived';}
+      if(G.kind==='date'&&!G.due){need.push('Set the date.');focusId=focusId||'srtDate';}
+      if(A.includes('sku')&&!G.wentAs){need.push('Say which SKU it went out under — pick it from the list.');focusId=focusId||'srtSku';}
+      else if(G.skuShort&&!G.skuWhy){need.push(`${G.wentAs} only sent what its own order had, so these can’t have gone out under it — pick another SKU, or type why it’s still right in the override box.`);focusId=focusId||'srtSkuWhy';}
+      if(need.length===n0)need.push('Answer the question on the left.');
     }
     if(G.needFix){need.push('Say what you suggest we do — the box on the right.');focusId=focusId||'srtFix';}
     /* a step that says there is nothing to do is not a job — it never blocks */
@@ -1111,7 +1130,7 @@ async function submitSorted(){
     r.status='Sent to Amazon';r.sent='Yes';r.sentDate=shipDateFor(sid);r.sentAt=getNowUK();
     try{logAudit('Shipment ID added from Admin',`${r.sku||''} → ${sid}`);}catch(e){}
   }
-  r.resolution={state:kind==='ops'?'approved':'proposed',kind,what,note,fix,followUps:follow,
+  r.resolution={notDup:(r.resolution&&r.resolution.notDup)||undefined,state:kind==='ops'?'approved':'proposed',kind,what,note,fix,followUps:follow,
     paid,refunded,arrived,wentAs,by:_who(),at:new Date().toISOString(),claim:_resClaim(what),
     /* the SKU check behind a wrong-SKU close, and the reason if someone overrode it */
     wentAsCheck:(wentAs&&window._srtSkuCheck&&window._srtSkuCheck.sku===wentAs)?{spare:window._srtSkuCheck.spare,need:window._srtSkuCheck.need,override:window._srtSkuCheck.short?window._srtSkuCheck.why:'',by:_who(),at:new Date().toISOString()}:null,

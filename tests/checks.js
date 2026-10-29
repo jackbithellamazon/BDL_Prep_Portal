@@ -1722,7 +1722,7 @@ window.PrepChecks=(function(){
       ok(/Send to Becki/.test(_tcSkuBtns(R.uuid))&&/tcBig/.test(_tcSkuBtns(R.uuid)),'the big button is Send to Becki');
       SFRUN.late[0].own[0].units=8;
       eq(sfLateFor(R).state,'shipped','3 more went out under this SKU than PrepHub has — found');
-      ok(/Record it/.test(_tcSkuBtns(R.uuid)),'the big button is Record it');
+      ok(/Fix it/.test(_tcSkuBtns(R.uuid)),'the big button is Fix it');
       SFRUN.late[0].own[0].units=5;SFRUN.late[0].asinSkus=[{sku:'CHK_TC_B',id:'FBA15CHKTC02',date:'2026-10-17',units:4}];
       eq(sfLateFor(R).state,'other','4 under a sister SKU PrepHub never recorded — probably that');
       ok(/went out under CHK_TC_B/.test(_tcSkuBtns(R.uuid)),'the big button names the sister SKU');
@@ -1950,6 +1950,636 @@ window.PrepChecks=(function(){
       ok(r2&&r2.delivered!=='__stale__'&&db&&db.data&&(r2.delivered||'')===(db.data.delivered||'')&&r2.status===db.data.status,'the stale copy on screen is replaced by what the database holds');
       ok(!_histStreaming&&_historyReady,'the archive finishes loading afterwards');
     }finally{window.setTimeout=st;_resyncQueued=false;_resyncBusy=false;}
+  };
+
+  /* 90 · Jack's tick: one press stamps every order of the ASIN; everyone sees it; a newer order is not covered */
+  S['v56.1 b624: Jack’s “all orders of this ASIN checked” tick']=async()=>{
+    const keepSave=window._saveAsinChecks,keepC=window.showConfirm,keepA=ASIN_CHECKS;let saved=null,pend=null;
+    try{
+      window._saveAsinChecks=async(A,v)=>{const n=Object.assign({},ASIN_CHECKS);if(v)n[A]=v;else delete n[A];ASIN_CHECKS=n;saved={A,v};return true;};
+      window.showConfirm=(t,x,cb)=>{pend=cb&&cb();};
+      const td=todayDDMM();
+      const a=mkRow({asin:'B0CHKTICK1',date:td,oid:'202-CHK-T1',exp:2,rcvd:0});
+      const b=mkRow({asin:'B0CHKTICK1',date:td,oid:'202-CHK-T2',exp:3,rcvd:3,ship:3});
+      who('Sarah');ok(!/asinChkBtn/.test(asinChkTile(a,'card')),'Sarah gets no stamp button');
+      who('Jack');ok(/asinChkBtn/.test(asinChkTile(a,'card')),'Jack gets the button on an order with units owed');
+      asinChkConfirm(a.uuid);await pend;
+      ok(saved&&saved.A==='B0CHKTICK1'&&saved.v&&saved.v.orders.length===2,'both orders of the ASIN are stamped');
+      who('Sarah');
+      ok(/Jack checked all 2 orders/.test(asinChkTile(a,'card'))&&/Jack checked all 2 orders/.test(asinChkTile(b,'sheet')),'the tick shows on both orders, for Sarah too');
+      const c=mkRow({asin:'B0CHKTICK1',date:td,oid:'202-CHK-T3',exp:1});
+      ok(/1 newer not checked/.test(asinChkTile(a,'card')),'an order placed after the check counts as newer');
+      eq(asinChkTile(c,'card'),'','the newer order itself carries no tick');
+      who('Jack');ok(/asinChkBtn/.test(asinChkTile(c,'card')),'Jack can stamp again to cover it');
+    }finally{window._saveAsinChecks=keepSave;window.showConfirm=keepC;ASIN_CHECKS=keepA;}
+  };
+  /* 91 · the C920: a line typed twice → Jack asked "2 or 4?" → Sarah one press; the close-off says the real reason */
+  S['v56.1 b624: a line typed twice is spotted, Jack asked “2 or 4?”, Sarah closes it in one press']=async()=>{
+    who('Sarah');
+    const full=mkRow({asin:'B0CHKDUP01',oid:'202-5081951-0344342',sku:'Amuk_37.99_06106_55_VAS1_CHK',exp:2,rcvd:2,ship:2});
+    const copy=mkRow({asin:'B0CHKDUP01',oid:'202-5081951-0344342',sku:'Amuk_37.99_06106_55_VAS_CHK',exp:2,rcvd:0,
+      resolution:asked({ask:'Has Amazon delivered it?'})});
+    const d=_dupLineOf(copy);
+    ok(d&&d.got===2&&d.total===4&&d.sku===full.sku,'the copy is spotted: same order, same product, the other line arrived in full');
+    ok(!_dupLineOf(full),'the line that arrived is not a suspect');
+    mkRow({asin:'B0CHKDUP02',oid:'202-2650950-0406746',exp:2,rcvd:2,ship:2});mkRow({asin:'B0CHKDUP02',oid:'202-2650950-0406746',exp:2,rcvd:1});
+    const s3=mkRow({asin:'B0CHKDUP02',oid:'202-2650950-0406746',exp:1,rcvd:0});
+    ok(!_dupLineOf(s3),'another line of the order still short — a split order, not a copy');
+    who('Jack');
+    const card=_jkCheckActs(copy,copy.uuid);
+    ok(/Is order 202-5081951-0344342 2 units or 4/.test(card)&&/jackDupAnswer/.test(card)&&/It was 4/.test(card),'Jack’s card asks 2 or 4, one press either way');
+    await jackDupAnswer(copy.uuid);
+    eq(copy.resolution.state,'rejected','back with Sarah');ok(copy.resolution.dupOf&&copy.resolution.dupOf.got===2,'his answer carries the duplicate');
+    ok(copy.delivered!=='Yes','not recorded as delivered — those units never existed');
+    who('Sarah');goPage('admin');renderAdmin();await wait(200);
+    const btn=[...document.querySelectorAll('#page-admin button')].find(b=>{const o=b.getAttribute('onclick')||'';return o.includes(copy.uuid)&&o.includes("'duplicate'");});
+    ok(btn&&/Close as Duplicate record/.test(btn.textContent),'Sarah gets one press: Close as Duplicate record');
+    /* "it was 4" puts the question away for good */
+    const copy2=mkRow({asin:'B0CHKDUP03',oid:'202-9925389-0399521',exp:2,rcvd:0,resolution:asked({ask:'Has Amazon delivered it?'})});
+    mkRow({asin:'B0CHKDUP03',oid:'202-9925389-0399521',exp:2,rcvd:2,ship:2});
+    who('Jack');await jackAnswered(copy2.uuid,'Arrived — YES, the account shows it delivered.',{notDup:true});
+    ok(!_dupLineOf(copy2),'after "it was 4" it is no longer a suspect');
+    /* the close-off: a sister SKU with nothing spare — the real reason, not "Set the date", and Duplicate offered */
+    who('Sarah');openSorted(copy.uuid,'wrong-sku');await wait(50);
+    setVal('srtSku',full.sku);srtSkuShut();srtSync();srtAskClose();
+    const m=(document.getElementById('srtMsg')||{}).textContent||'';
+    ok(!/Set the date/.test(m),'never "Set the date" on a close-off that has no date — got: '+m.slice(0,140));
+    ok(/only sent what its own order had/.test(m),'it names the real reason');
+    ok(/Duplicate record/.test((document.getElementById('srtSkuWarnTxt')||{}).innerHTML||''),'it offers Duplicate record');
+    try{closeSorted();}catch(e){}
+  };
+  /* 92 · dated spare units + the new schedule */
+  S['v56.1 b624: spare units count only after the order; check runs Sun/Tue/Thu 20:00; 04:00 shift']=async()=>{
+    const keepRun=SFRUN;
+    try{
+      const o=mkRow({asin:'B0CHKSPR01',sku:'Amuk_1_01096_0_CHK_SPR',date:'01/09',exp:5,rcvd:5,ship:5});
+      const late=mkRow({asin:'B0CHKSPR01',date:todayDDMM(),exp:1,rcvd:0}),older=mkRow({asin:'B0CHKSPR01',date:'01/09',exp:1,rcvd:0});
+      SFRUN=Object.assign({late:[],stock:[],sold:[],excluded:[],summary:{}},keepRun||{},
+        {shipments:[{id:o.shipSegments[0].shipId,created:'2026-09-02',status:'CLOSED',lines:[{sku:o.sku,asin:o.asin,units:6}]}]});
+      eq(sfSkuSpare(o.sku,late),0,'1 extra on 2 Sep does not count for an order placed today');
+      eq(sfSkuSpare(o.sku,older),1,'it does count for an order placed before that shipment');
+    }finally{SFRUN=keepRun;window.SFRUN=keepRun;}
+    eq(SHIFT_START_HOUR,4,'Sarah’s shift starts 04:00 UK');
+    const at=(iso,h)=>{const p=iso.split('-').map(Number);return _ukDayStart(p[0],p[1],p[2])+h*36e5;};
+    eq(ukWeekdayOf('2026-10-29'),4,'29 Oct 2026 is a Thursday');
+    eq(_sfLastSlot(at('2026-10-29',21)),at('2026-10-29',20),'Thu 21:00 → tonight’s 20:00');
+    eq(_sfLastSlot(at('2026-11-02',4)),at('2026-11-01',20),'Mon 04:00 → Sunday 20:00');
+    eq(_sfLastSlot(at('2026-11-03',19)),at('2026-11-01',20),'Tue 19:00 → still Sunday’s');
+    eq(sfNextCheck(at('2026-10-29',19)),'today 20:00','Thu 19:00 → today 20:00');
+    eq(sfNextCheck(at('2026-10-29',21)),'Sun 20:00','after Thursday’s the next is Sunday');
+    eq(sfNextCheck(at('2026-10-31',10)),'tomorrow 20:00','Saturday → tomorrow');
+    eq(_sfMissed(at('2026-10-29',21),at('2026-10-27',20)+6e5),false,'21:00 — not missed yet, it has until 22:00');
+    eq(_sfMissed(at('2026-10-29',22)+6e4,at('2026-10-27',20)+6e5),true,'22:01 with only Tuesday’s count → missed');
+    eq(_sfMissed(at('2026-10-29',22)+6e4,at('2026-10-29',20)+6e5),false,'tonight’s count landed → fine');
+    eq(_sfMissed(at('2026-10-30',4),at('2026-10-29',20)+6e5),false,'Sarah at 04:00 Friday with Thursday’s count');
+    eq(_sfMissed(at('2026-11-02',4),at('2026-10-29',20)+6e5),true,'Monday 04:00 with only Thursday’s → Sunday’s was missed');
+  };
+
+  /* 93 · the 29 Oct audit's five real cases as fixtures: only the sure ones get one press */
+  S['v56.1 b625: SellerFuse fixes — sure ones one press + Undo, the rest for Sarah, never more than the order']=async()=>{
+    const keepRun=SFRUN,keepU=window.toastUndo;let undo=null;window.toastUndo=(m,f)=>{undo=f;};
+    const seg=(id,u,d)=>({shipSegments:[{shipId:id,units:u,date:d,type:'Standard'}],allShipIds:[id],shipId:id,ship:u});
+    try{
+      who('Jack');
+      const A=mkRow({asin:'B0CHKSFA01',sku:'Amuk_3_26106_0_CHK_SFA',exp:10,rcvd:10,status:'In Warehouse'});        // on the shelf, never stamped
+      const B=mkRow({asin:'B0CHKSFB01',sku:'Amuk_99_06106_0_CHK_SFB',exp:2,rcvd:0});                                // late, went out
+      const C1=mkRow(Object.assign({asin:'B0CHKSFC01',sku:'Amuk_16_25096_0_CHK_SFC1',exp:10,rcvd:10,status:'Sent to Amazon',sent:'Yes'},seg('FBA15CHKC001',10,'2026-10-28')));
+      const C2=mkRow(Object.assign({asin:'B0CHKSFC01',sku:'Amuk_15_17096_0_CHK_SFC2',exp:10,rcvd:10,status:'Sent to Amazon',sent:'Yes'},seg('FBA15CHKC002',10,'2026-10-27')));
+      const D=mkRow(Object.assign({asin:'B0CHKSFD01',sku:'Amuk_109_06106_0_CHK_SFD',exp:2,rcvd:1,status:'Part Sent'},seg('FBA15CHKD001',1,'2026-10-28')));
+      const E=mkRow({asin:'B0CHKSFE01',sku:'Amuk_5_01106_0_CHK_SFE',exp:10,rcvd:0});                                // partial send
+      const L=(id,c,lines)=>({id,created:c,status:'IN_TRANSIT',lines:lines.map(([r,u])=>({sku:r.sku,asin:r.asin,units:u}))});
+      SFRUN=Object.assign({late:[],stock:[],sold:[],excluded:[],summary:{}},keepRun||{},{shipments:[
+        L('FBA15CHKA001','2026-10-26',[[A,10]]),L('FBA15CHKB001','2026-10-28',[[B,2]]),
+        L('FBA15CHKC001','2026-10-28',[[C1,10]]),L('FBA15CHKC002','2026-10-27',[[C1,10]]),     // Amazon has C2's 10 under C1's SKU
+        L('FBA15CHKD001','2026-10-28',[[D,1]]),L('FBA15CHKD002','2026-10-28',[[D,2]]),          // 3 under an order of 2
+        L('FBA15CHKE001','2026-10-28',[[E,4]])]});
+      const mine=new Set([A,B,C1,C2,D,E].map(r=>r.sku));
+      const its=()=>sfPrepIssues().filter(i=>mine.has(i.sku));
+      const k=sku=>its().filter(i=>i.sku===sku).map(i=>i.kind).join(',');
+      eq(k(A.sku),'send','on the shelf, never stamped → one press');
+      eq(k(B.sku),'late','late order that went out → one press');
+      eq(k(C1.sku),'matched','recorded under the other order’s SKU on the same shipment → nothing missing');
+      eq(k(D.sku),'look','3 went under an order of 2 → Sarah looks');
+      eq(k(E.sku),'late','part of a late order went → one press');
+      /* Fix it, then Undo */
+      await sfRecord(its().find(i=>i.sku===A.sku).id);
+      eq(A.status,'Sent to Amazon','fixed: Sent to Amazon');eq(_sentOut(A),10,'10 stamped');
+      ok(typeof undo==='function','an Undo is offered');await undo();
+      eq(_sentOut(A),0,'Undo puts it back');eq(A.status,'In Warehouse','status back too');
+      /* the look one is never booked in by Fix it */
+      await sfRecord(its().find(i=>i.sku===D.sku).id);eq(D.rcvd,1,'Fix it refuses the one that doesn’t add up');
+      await sfBookOwed(its().find(i=>i.sku===D.sku).id);
+      eq(D.rcvd,2,'Sarah’s “book in the 1 owed” fills the order');eq(_sentOut(D),2,'…and no more than the order: 2 sent, not 3');
+      /* partial: Part Sent, not In-Transit */
+      await sfRecord(its().find(i=>i.sku===E.sku).id);
+      eq(E.rcvd,4,'4 booked in');eq(E.status,'Part Sent','6 still owed → Part Sent');eq(E.sent,'No','…and not marked sent');
+      /* Fix all only touches the sure ones; C stays as it was */
+      await sfFixAll();
+      eq(_sentOut(B),2,'Fix all fixed the late one');eq(C1.rcvd,10,'never 20 received on an order of 10');eq(_sentOut(C1),10,'C untouched');
+      /* pages: the panel on Jack's, Sarah sees only the one to look at */
+      SFRUN.shipments=SFRUN.shipments.concat([L('FBA15CHKD003','2026-10-29',[[D,1]])]);   // a fresh extra on D
+      goPage('jack');renderJack();await wait(80);
+      ok(/SellerFuse check/.test((document.getElementById('jackWrap')||{}).textContent||''),'the SellerFuse panel is on Jack’s page');
+      who('Sarah');goPage('admin');renderAdmin();await wait(120);
+      const sar=document.getElementById('adminWrap')||document.body;
+      ok(![...sar.querySelectorAll('button')].some(b=>/sfRecord\(/.test(b.getAttribute('onclick')||'')),'no one-press Fix it on Sarah’s page');
+      ok(/SellerFuse doesn’t add up/.test(sar.textContent||''),'Sarah gets the ones to look at');
+    }finally{SFRUN=keepRun;window.SFRUN=keepRun;window.toastUndo=keepU;}
+  };
+  /* 94 · Amazon's date for a send, and wrong dates corrected */
+  S['v56.1 b625: a send takes the day Amazon made the shipment; wrong dates are corrected']=async()=>{
+    const keepRun=SFRUN,keepT=SF_DATES_TRUSTED;SF_DATES_TRUSTED=true;
+    try{
+      SFRUN=Object.assign({late:[],stock:[],sold:[],excluded:[],summary:{}},keepRun||{},{shipments:[{id:'FBA15CHKDT01',created:'2026-10-28',status:'IN_TRANSIT',lines:[]},{id:'FBA15CHKDT02',created:'2026-10-27',status:'IN_TRANSIT',lines:[]}]});
+      eq(shipDateFor('FBA15CHKDT01'),'2026-10-28','a shipment nobody has recorded yet takes Amazon’s date, not today');
+      const r=mkRow({exp:2,rcvd:2,shipSegments:[{shipId:'FBA15CHKDT02',units:2,date:'2026-10-29',type:'Standard'}],allShipIds:['FBA15CHKDT02'],ship:2,sentDate:'2026-10-29',status:'Sent to Amazon',sent:'Yes'});
+      const n=await sfFixShipDates();
+      ok(n>=1,'the wrong date is corrected');eq(r.shipSegments[0].date,'2026-10-27','the send now reads Amazon’s 27 Oct');eq(r.sentDate,'2026-10-27','and so does the sent date');
+      eq(await sfFixShipDates(),0,'a second pass changes nothing');
+      SF_DATES_TRUSTED=false;eq(await sfFixShipDates(),0,'with the switch off nothing moves');
+    }finally{SFRUN=keepRun;window.SFRUN=keepRun;SF_DATES_TRUSTED=keepT;}
+  };
+  /* 95 · the Purchase Sheet's words suggest the button */
+  S['v56.1 b625: PLUB shortage — the Purchase Sheet’s words suggest the button']=async()=>{
+    const a=_lavSheetSuggest([{arrived:'Issue',notes:'OOS - auto refund on 58 units'}],58);
+    ok(a&&a.kind==='auto'&&a.match===true,'“auto refund on 58 units” with 58 short → Auto refunded, numbers match');
+    const b=_lavSheetSuggest([{arrived:'Issue',notes:'OOS - auto refund on 50 units'}],58);
+    ok(b&&b.kind==='auto'&&b.match===false,'50 on the sheet, 58 short → suggested but flagged to check');
+    const c=_lavSheetSuggest([{arrived:'',notes:'write off, not worth chasing'}],3);ok(c&&c.kind==='writeoff','write off → Write it off');
+    eq(_lavSheetSuggest([{arrived:'Arrived',notes:'box a bit dented'}],2),null,'anything else suggests nothing');
+  };
+  /* 96 · eBay stock leaves the Prep Sheet the moment it goes to Recovery */
+  S['v56.1 b625: eBay stock leaves the Prep Sheet at once; part of a shelf stays']=async()=>{
+    const keep={rc:window.recFromClaim,sc:window.saveClaim};
+    window.recFromClaim=async(cl,o)=>({qty:cl.dif});window.saveClaim=async()=>true;
+    try{
+      const r=mkRow({exp:10,rcvd:10,status:'In Warehouse'});
+      const cl=mkClaim({prepRowId:r.uuid,issT:'eBay stock',dif:10,cst:'Needs Attention',log:[]});
+      await _ebayToRecovery(cl,10);
+      ok(r.archived,'all 10 to eBay → off the Prep Sheet straight away');
+      const r2=mkRow({exp:10,rcvd:10,status:'In Warehouse'});
+      const cl2=mkClaim({prepRowId:r2.uuid,issT:'eBay stock',dif:3,cst:'Needs Attention',log:[]});
+      await _ebayToRecovery(cl2,3);
+      ok(!r2.archived,'3 of 10 to eBay → stays, 7 still to send');
+    }finally{window.recFromClaim=keep.rc;window.saveClaim=keep.sc;}
+  };
+
+  /* 97 · the tester's b624 findings */
+  S['v56.1 b625: tester fixes — 3 copies, notDup kept, placeholder orders, tick by row, clock-change Sundays, close-off asks']=async()=>{
+    who('Sarah');
+    const f=mkRow({asin:'B0CHKTRI01',oid:'203-0271581-CHK1',exp:3,rcvd:3,ship:3});
+    const c1=mkRow({asin:'B0CHKTRI01',oid:'203-0271581-CHK1',exp:3,rcvd:0}),c2=mkRow({asin:'B0CHKTRI01',oid:'203-0271581-CHK1',exp:3,rcvd:0});
+    const d=_dupLineOf(c1);ok(d&&d.got===3&&d.total===9,'an order typed three times is flagged: 3 units or 9?');ok(_dupLineOf(c2),'…both copies');
+    mkRow({asin:'B0CHKTRI02',oid:'N/A',exp:2,rcvd:2,ship:2});const na=mkRow({asin:'B0CHKTRI02',oid:'N/A',exp:2,rcvd:0});
+    ok(!_dupLineOf(na),'"N/A" is not an order number — never matched');
+    /* "It was 9" survives Sarah sending it to Jack again */
+    c1.resolution=asked({ask:'Has Amazon delivered it?'});
+    who('Jack');await jackAnswered(c1.uuid,'Arrived — YES, the account shows it delivered.',{notDup:true});
+    who('Sarah');askJackAsk(c1.uuid,'free');setVal('askNote','one more question');await askSend();
+    ok(c1.resolution.notDup,'his "it was 9" is kept when she sends it back');ok(!_dupLineOf(c1),'…so he is not asked again');
+    /* the tick on a row with no order number */
+    const keepSave=window._saveAsinChecks,keepC=window.showConfirm,keepA=ASIN_CHECKS;let pend=null;
+    try{window._saveAsinChecks=async(A,v)=>{const n=Object.assign({},ASIN_CHECKS);if(v)n[A]=v;else delete n[A];ASIN_CHECKS=n;return true;};
+      window.showConfirm=(t,x,cb)=>{pend=cb&&cb();};
+      who('Jack');const b=mkRow({asin:'B0CHKTRI03',oid:'',date:todayDDMM(),exp:2});asinChkConfirm(b.uuid);await pend;
+      ok(/Jack checked all 1 order/.test(asinChkTile(b,'card')),'a row with no order number gets its tick');
+      const old=mkRow({asin:'B0CHKTRI04',oid:'202-CHK-OLD1',date:(()=>{const x=ukAddDays(todayISO(),-70);return x.slice(8)+'/'+x.slice(5,7);})(),exp:2});
+      eq(asinChkTile(old,'card'),'','no button on an order older than the 60 days it covers');
+    }finally{window._saveAsinChecks=keepSave;window.showConfirm=keepC;ASIN_CHECKS=keepA;}
+    /* clock-change Sundays: 20:00 and 04:00 are UK clock times */
+    const uk=ms=>{const p=_ukParts(ms);return p.h+':'+String(p.mi).padStart(2,'0');};
+    eq(uk(_sfLastSlot(Date.UTC(2026,9,25,23))),'20:00','25 Oct 2026 (clocks back): the slot is 20:00 UK');
+    eq(uk(_sfLastSlot(Date.UTC(2027,2,28,22))),'20:00','28 Mar 2027 (clocks forward): the slot is 20:00 UK');
+    /* close-off: no hidden refunded question; "Already sent" needs the shipment ID */
+    const nz=mkRow({sup:'Argos',acct:'',exp:2,rcvd:0});
+    openSorted(nz.uuid,'cancelled');await wait(40);setVal('srtPaid','yes');srtSync();
+    ok(!(window._srtGate||{}).missingAsk,'paid "yes" on a cancellation no longer waits on a hidden question');
+    try{closeSorted();}catch(e){}
+    const st=mkRow({exp:2,rcvd:2});openSorted(st.uuid,'sent-not-stamped');await wait(40);srtSync();srtAskClose();
+    ok(/shipment ID/i.test((document.getElementById('srtMsg')||{}).textContent||''),'"Already sent" with no ID says to type the shipment ID');
+    try{closeSorted();}catch(e){}
+    /* Duplicate record: the app's own step is not hers to tick */
+    const dp=mkRow({exp:2,rcvd:0});openSorted(dp.uuid,'duplicate');await wait(40);srtSync();
+    ok(!_srtLeft().some(s=>/the app does/i.test(s.text||'')),'"the app does that" is not a step to tick');
+    try{closeSorted();}catch(e){}
+  };
+
+  /* Q4 prepping (a temporary tab — Jack, 29 Oct 2026): q4Calc on made-up parts and products. A part two bundles
+     share is counted once (the one closest to running out at Amazon gets it first); parts on order count in the max
+     but not in "of which arrived"; a single's own stock; sends before 1 Oct or with no shipment ID are ignored; an
+     unlinked purchase line since 1 Oct is flagged. Then the tab draws, and working it out on the live data changes nothing. */
+  S['Q4 prepping: max, a shared part counted once, of which arrived, singles, unlinked lines — the tab draws and changes nothing']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const L=(id,qty,rem,arr)=>({id,date:'2026-09-20',qty,rem,cost:1,arr:arr?1:0});
+    const comps=[{id:'chkq4-tin',name:'CHECK Tin',layers:[L('t1',100,100,1),L('t2',60,0,0)]},    /* 100 here + 60 on order */
+      {id:'chkq4-box',name:'CHECK Box',layers:[L('b1',500,500,1)]},
+      {id:'chkq4-tea',name:'CHECK Tea',layers:[L('e1',50,50,1)]},
+      {id:'chkq4-rib',name:'CHECK Ribbon',untracked:true,layers:[]}];
+    const prods=[
+      {id:'chkq4-a',asin:'B0CHKQ4A',name:'CHECK Hamper A',type:'bundle',recipe:[{c:'chkq4-tin',q:1},{c:'chkq4-box',q:1},{c:'chkq4-rib',q:1}],layers:[]},
+      {id:'chkq4-b',asin:'B0CHKQ4B',name:'CHECK Hamper B',type:'bundle',recipe:[{c:'chkq4-tin',q:2},{c:'chkq4-tea',q:1}],layers:[]},
+      {id:'chkq4-s',asin:'B0CHKQ4S',name:'CHECK Single',type:'pl',recipe:[],layers:[L('s1',30,30,1),L('s2',20,0,0)]}];
+    const ships=[{shipId:'FBA15CHKQ4A1',asin:'B0CHKQ4A',units:25,date:'2026-10-05'},{shipId:'FBA15CHKQ4A0',asin:'B0CHKQ4A',units:99,date:'2026-09-30'},
+      {shipId:'',asin:'B0CHKQ4A',units:7,date:'2026-10-06'},{shipId:'FBA15CHKQ4S1',asin:'B0CHKQ4S',units:10,date:'2026-10-02'}];
+    const purch=[{id:'chkq4-u1',date:'2026-10-03',name:'CHECK unlinked',qty:5,alloc:[]},{id:'chkq4-u2',date:'2026-09-03',name:'CHECK old',qty:5,alloc:[]}];
+    const R=LV3.q4Calc({products:prods,components:comps,purchases:purch,shipments:ships,owed:{},protDays:p=>({'chkq4-b':3,'chkq4-a':9})[p.id]});
+    const A=R.bundles.find(r=>r.id==='chkq4-a'),B=R.bundles.find(r=>r.id==='chkq4-b'),G=R.singles.find(r=>r.id==='chkq4-s');
+    ok(A&&B&&G,'every product is on the page');
+    eq(R.bundles[0].id,'chkq4-b','the bundle closest to running out is first in the queue for the shared part');
+    eq(B.left,50,'B can build 50 — limited by its tea');eq(B.lim.parts[0].id,'chkq4-tea','B is limited by the tea');
+    eq(B.lim.say.kind,'none','B: more tea makes none on its own — B would take the tins Hamper A uses');eq(B.lim.say.next.id,'chkq4-tin','B: the tins are the real limit');
+    eq(A.left,60,'A gets the 60 tins B left — never the same tin twice');eq(A.lim.parts[0].id,'chkq4-tin','A is limited by the tins');
+    eq(B.arrived,50,'B’s 50 are all from parts on the shelf');eq(A.arrived,0,'B used the tins on the shelf, so A’s 60 wait on the order');
+    eq(A.done,25,'A: only the send with a shipment ID dated 1 Oct onwards counts');eq(A.max,85,'A: max = 25 sent + 60 still to build');
+    eq(A.pct,29,'A: 25 of 85 = 29%');
+    eq(G.done,10,'single: 10 sent');eq(G.max,60,'single: 10 sent + 30 on the shelf + 20 on order');eq(G.arrived,30,'single: 30 of it arrived');
+    eq(R.totals.max,85+50+60,'the page total adds the lines up');eq(R.totals.done,35,'the page total of sends');
+    eq(R.unlinked.n,1,'one purchase line since 1 Oct not linked — the September one does not count');
+    /* the live data: working it out writes nothing, and the tab draws */
+    const D=LV3.__D();
+    const sig=()=>JSON.stringify({c:D.components.map(c=>[c.id,(c.layers||[]).map(l=>[l.qty,l.rem,l.arr])]),
+      p:D.products.map(p=>[p.id,p.archived,(p.layers||[]).map(l=>[l.qty,l.rem,l.arr])]),u:D.purchases.map(x=>[x.id,JSON.stringify(x.alloc||[])]),s:JSON.stringify(D.settings||{})});
+    const s0=sig(),live=LV3.q4Calc();
+    ok(live&&Array.isArray(live.bundles)&&Array.isArray(live.singles),'it runs on the live data');
+    ok([...live.bundles,...live.singles].every(r=>r.max>=r.done&&r.arrived<=r.left),'live: max never below sent, arrived never above what is left');
+    eq(sig(),s0,'working it out on the live data changed nothing');
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      goPage('lavarion');LV3.go('q4');await wait(150);
+      const pg=document.getElementById('page-lavarion');
+      ok([...pg.querySelectorAll('#lav3Tabs button')].some(b=>/Q4 prepping/.test(b.textContent)),'the Q4 prepping tab is on the bar');
+      ok(pg.querySelector('.q4Kpis')&&pg.querySelectorAll('table.q4T').length===2,'the page draws its totals and both tables');
+      ok(!/undefined|NaN/.test(pg.querySelector('.q4').textContent),'no undefined or NaN on the page');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 99 · Becki's 28 Oct sequence: wrong shipment → bulk In Warehouse → bulk ship again → shipped must be right */
+  S['v56.1 b625: bulk undo clears the shipment record; shipped always matches its shipments']=async()=>{
+    const keep={sel:window.getSelectedRows,modal:window.showShipIdModal};
+    try{
+      who('Becki');
+      const r=mkRow({exp:10,rcvd:10,status:'In Warehouse'});
+      window.getSelectedRows=()=>[r.uuid];
+      window.showShipIdModal=(t,x,ty,cb)=>cb('FBA15CHKWRG1','Standard');doBulkAllShipped();
+      eq(_sentOut(r),10,'bulk shipped to the wrong one');
+      const dd=document.getElementById('bulkActionDropdown');ok(dd,'the bulk status dropdown is on the page');
+      dd.value='In Warehouse';window.__bulkUnsendOk=true;try{doBulkAction();}finally{window.__bulkUnsendOk=false;}
+      eq((r.shipSegments||[]).length,0,'bulk In Warehouse clears the shipment record');eq(parseInt(r.ship)||0,0,'…and the number');
+      window.showShipIdModal=(t,x,ty,cb)=>cb('FBA15CHKRGT1','Standard');doBulkAllShipped();
+      eq(_sentOut(r),10,'bulk ship again puts all 10 on the right one');eq(parseInt(r.ship)||0,10,'shipped reads 10, not 0');
+      ok((r.shipSegments||[]).every(s=>s.shipId==='FBA15CHKRGT1'),'and only on the right shipment');
+      /* a row fully on another shipment is skipped, not re-stamped */
+      const done=mkRow({exp:4,rcvd:4,ship:4,status:'Sent to Amazon',sent:'Yes',sentDate:'2026-10-20'});
+      window.getSelectedRows=()=>[done.uuid];window.showShipIdModal=(t,x,ty,cb)=>cb('FBA15CHKRGT2','Standard');doBulkAllShipped();
+      eq(done.sentDate,'2026-10-20','a row already on another shipment keeps its date');ok(!(done.shipSegments||[]).some(s=>s.shipId==='FBA15CHKRGT2'),'…and isn’t put on the new one');
+      /* R7 and the heal */
+      const m=mkRow({exp:8,rcvd:8,status:'Sent to Amazon',sent:'Yes',shipSegments:[{shipId:'FBA15CHKMSC1',units:8,date:'2026-10-28',type:'Standard'}],allShipIds:['FBA15CHKMSC1'],ship:0});
+      const notes=rowRules(m);eq(parseInt(m.ship),8,'save rule: shipped = what its shipments hold');ok(notes.some(n=>/shipped 0 → 8/.test(n)),'…noted for the audit');
+      m.ship=0;eq(healShipFromSegments('check')>=1,true,'the heal finds it');eq(parseInt(m.ship),8,'…and puts it right');
+    }finally{window.getSelectedRows=keep.sel;window.showShipIdModal=keep.modal;}
+  };
+
+  /* 100 · the second tester's b625 findings */
+  S['v56.1 b625: Fix all never overfills, one gap two SKUs → Sarah, Undo newest first']=async()=>{
+    const keepRun=SFRUN,keepU=window.toastUndo;const undos=[];window.toastUndo=(m,f)=>{undos.push(f);};
+    const L=(id,lines)=>({id,created:'2026-10-28',status:'IN_TRANSIT',lines:lines.map(([r,u])=>({sku:r.sku,asin:r.asin,units:u}))});
+    try{
+      who('Jack');
+      const X=mkRow({asin:'B0CHKFA001',sku:'Amuk_4_01106_0_CHK_FA',exp:4,rcvd:0});
+      const A=mkRow({asin:'B0CHKFB001',sku:'Amuk_5_01106_0_CHK_FBA',exp:2,rcvd:0}),B=mkRow({asin:'B0CHKFB001',sku:'Amuk_5_01106_0_CHK_FBB',exp:2,rcvd:0});
+      const C=mkRow({asin:'B0CHKFB001',sku:'Amuk_5_01106_0_CHK_FBC',exp:2,rcvd:2,ship:2,status:'Sent to Amazon',sent:'Yes',shipSegments:[{shipId:'FBA15CHKFB01',units:2,date:'2026-10-28',type:'Standard'}],allShipIds:['FBA15CHKFB01']});
+      SFRUN=Object.assign({late:[],stock:[],sold:[],excluded:[],summary:{}},keepRun||{},{shipments:[L('FBA15CHKFA01',[[X,3]]),L('FBA15CHKFA02',[[X,3]]),L('FBA15CHKFB01',[[A,2],[B,2]])]});
+      const mine=new Set([X,A,B,C].map(r=>r.sku));
+      const kinds=()=>sfPrepIssues().filter(i=>mine.has(i.sku)).map(i=>i.sku.slice(-7)+':'+i.kind).sort().join(' ');
+      ok(/CHK_FA:late.*CHK_FA:late/.test(kinds()),'two shipments on one order of 4 both look sure at first');
+      ok(/CHK_FBA:look/.test(kinds())&&/CHK_FBB:look/.test(kinds()),'two SKUs sharing one product gap → Sarah decides, not one press');
+      await sfFixAll();
+      eq(parseInt(X.rcvd),3,'Fix all does the first shipment — 3 booked, not 6');eq(_sentOut(X),3,'…3 sent');
+      ok(sfPrepIssues().some(i=>i.sku===X.sku&&i.shipId==='FBA15CHKFA02'&&i.kind==='look'),'the second shipment is now for Sarah: the order can only take 1');
+      eq(parseInt(A.rcvd)||0,0,'the shared-gap SKUs are not booked by Fix all');
+      /* undo newest first: two single fixes on one row */
+      const Y=mkRow({asin:'B0CHKFC001',sku:'Amuk_6_01106_0_CHK_FC',exp:6,rcvd:0});
+      SFRUN.shipments=[L('FBA15CHKFC01',[[Y,3]]),L('FBA15CHKFC02',[[Y,3]])];
+      undos.length=0;
+      await sfRecord(sfPrepIssues().find(i=>i.sku===Y.sku&&i.shipId==='FBA15CHKFC01').id);
+      await sfRecord(sfPrepIssues().find(i=>i.sku===Y.sku&&i.shipId==='FBA15CHKFC02').id);
+      eq(_sentOut(Y),6,'two fixes, 6 sent');
+      await undos[0]();eq(_sentOut(Y),6,'undoing the OLDER one first is refused');
+      await undos[1]();eq(_sentOut(Y),3,'undo the newer one → 3');await undos[0]();eq(_sentOut(Y),0,'…then the older one → 0');
+    }finally{SFRUN=keepRun;window.SFRUN=keepRun;window.toastUndo=keepU;}
+  };
+
+  /* Q4 prepping, round 2 (Jack, 29 Oct 2026): "ignore the boxes — components always"; a target is 100% and the parts
+     are checked against it; a hamper left with none of a shared component is amber, not finished; every "buying N more
+     makes M more" is what running the whole queue again really gives; the plan pre-fills by exact name; a target saves
+     through the normal PLUB settings (database faked here). */
+  S['Q4 prepping round 2: boxes never limit, targets, starved lines amber, honest “buying N more”, pre-fill, a target saves']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const L=q=>[{id:'l'+q,date:'2026-09-20',qty:q,rem:q,cost:1,arr:1}];
+    const comps=[{id:'q2-box',name:'CHECK Hamper Box',kind:'component',layers:L(5)},{id:'q2-wrap',name:'CHECK wrap',kind:'packaging',layers:[]},
+      {id:'q2-crisp',name:'CHECK Crisps',layers:L(300)},{id:'q2-bisc',name:'CHECK Biscuits',layers:L(100)},{id:'q2-tea',name:'CHECK Tea',layers:L(40)},
+      {id:'q2-mug',name:'CHECK Mug',layers:L(70)},{id:'q2-jam',name:'CHECK Jam',layers:L(50)},{id:'q2-scone',name:'CHECK Scone',layers:L(30)}];
+    const B=(id,name,rec)=>({id,asin:'B0Q2'+id.slice(3).toUpperCase(),name,type:'bundle',recipe:rec.map(([c,q])=>({c,q})),layers:[]});
+    const prods=[B('q2-s1','CHECK Snack',[['q2-box',1],['q2-wrap',1],['q2-crisp',3]]),B('q2-s2','CHECK Biscuit',[['q2-bisc',1],['q2-tea',1],['q2-mug',1]]),
+      B('q2-s3','CHECK Tea Gift',[['q2-tea',1],['q2-bisc',1]]),B('q2-s4','CHECK Cream Tea',[['q2-jam',1],['q2-scone',1]]),B('q2-s5','CHECK Jam Pot',[['q2-jam',1]])];
+    const ships=[['S1',20],['S3',5],['S5',12]].map(([a,u])=>({shipId:'FBA15CHKQ2'+a,asin:'B0Q2'+a,units:u,date:'2026-10-08'}));
+    const R=LV3.q4Calc({products:prods,components:comps,purchases:[],shipments:ships,owed:{},
+      targets:{'q2-s1':150,'q2-s4':25,'q2-s5':10},protDays:p=>+p.id.slice(-1)});
+    const by=id=>R.bundles.find(r=>r.id===id),s1=by('q2-s1'),s2=by('q2-s2'),s3=by('q2-s3'),s4=by('q2-s4'),s5=by('q2-s5');
+    /* 1 · the box (by name) and the wrap (by kind) never limit */
+    eq(s1.left,100,'the 5 hamper boxes do not cap it — 300 crisps ÷ 3 = 100');eq(s1.lim.parts[0].id,'q2-crisp','limited by the crisps, not the box');
+    eq(R.packaging.map(x=>x.name).join(', '),'CHECK Hamper Box, CHECK wrap','both are listed as left out');
+    /* 2 · targets */
+    eq(JSON.stringify([s1.max,s1.pct,s1.need,s1.cover]),JSON.stringify([150,13,130,-30]),'target 150: 20 sent = 13%, needs 130, parts for 100 — short by 30');
+    eq(JSON.stringify([s4.max,s4.pct,s4.cover,s4.left]),JSON.stringify([25,0,2,27]),'target 25: the parts make 30, it takes 27 (target +5%) — covered');
+    eq(JSON.stringify([s5.max,s5.pct,s5.need]),JSON.stringify([12,100,0]),'12 sent against a target of 10: reached, 100%');
+    eq(JSON.stringify([s2.target,s2.max]),JSON.stringify([null,40]),'no target: sent + what the parts make');
+    eq(JSON.stringify([R.totals.max,R.totals.done,R.totals.pct]),JSON.stringify([232,37,15]),'the page: targets + the rest’s max');
+    /* 3 · starved of a shared component: amber, not a finished 100% */
+    ok(s3.starved&&s3.pct===100,'Tea Gift: 5 sent, no tea left after the Biscuit bundle — 100% of its max, but starved');
+    ok(/No <b>CHECK Tea<\/b> left for it — all allocated to <b>CHECK Biscuit<\/b>/.test(LV3.q4LimHtml(s3)),'it says where the tea went');
+    /* 4 · every "buying N more" is a re-run of the queue */
+    eq(JSON.stringify([s2.lim.say.kind,s2.lim.say.buy[0].qty,s2.lim.say.gl,s2.lim.say.gp,s2.lim.say.next.name]),JSON.stringify(['ok',30,30,30,'CHECK Mug']),'Biscuit: 30 more tea makes 30 more, then the mugs run out');
+    eq(JSON.stringify([s3.lim.say.kind,s3.lim.say.buy[0].qty,s3.lim.say.gl,s3.lim.say.gp,s3.lim.say.to.join()]),JSON.stringify(['ahead',60,30,60,'CHECK Biscuit']),'Tea Gift: 60 more tea makes 30 here — the Biscuit bundle takes the first 30');
+    eq(s4.lim,null,'Cream Tea: covered to target +5% — nothing limits it');
+    eq(JSON.stringify([s5.left,s5.lim]),JSON.stringify([0,null]),'Jam Pot: 12 sent is already past its target +5% — it takes no more jam');
+    eq(JSON.stringify([s1.lim.say.kind,s1.lim.say.buy[0].qty,s1.lim.say.gl,s1.lim.say.coverTo]),JSON.stringify(['ok',114,38,158]),'Snack: 114 more crisps make 38 more — covered to 158 (target +5%)');
+    /* 5 · the plan pre-fills by exact name only */
+    const pf=LV3.q4PlanFill([{id:'a',name:'Gluten Free Snack Bundle',type:'bundle'},{id:'b',name:'Hot Chocolate Gift Hamper',type:'bundle'},
+      {id:'c',name:'GF Hot Chocolate Gift Set',type:'bundle'},{id:'d',name:'Tea & Biscuits Hamper',type:'pl'},{id:'e',name:'Pub Snacks Hamper',type:'bundle',archived:true}]);
+    eq(JSON.stringify(pf),JSON.stringify({a:1500,b:1500}),'pre-fill: exact names, live bundles only');
+    /* 6 · a target saves through the PLUB settings save, and comes off again */
+    const D=LV3.__D(),p=D.products.find(x=>!x.archived&&x.type==='bundle');
+    if(p){
+      const keepS=JSON.stringify(D.settings),keepB=LV3.__prefsBase(),logN=D.log.length;
+      const own=Object.prototype.hasOwnProperty.call(sb,'from'),orig=sb.from;let wrote=null;
+      sb.from=t=>{const q={select:()=>q,eq:()=>q,in:()=>q,maybeSingle:()=>Promise.resolve({data:{value:keepS},error:null}),
+        upsert:v=>{wrote=JSON.parse(v.value);return Promise.resolve({error:null});}};return q;};
+      try{
+        LV3.__setPrefsBase(JSON.parse(keepS));
+        ok(await LV3.q4SetTarget(p.id,'1,234'),'the save reports it landed');
+        ok(wrote&&wrote.q4Targets&&wrote.q4Targets[p.id]===1234,'lavarion_prefs gets q4Targets['+p.id+'] = 1234');
+        eq(LV3.q4Calc().bundles.find(r=>r.id===String(p.id)).max,Math.max(1234,LV3.q4Calc().bundles.find(r=>r.id===String(p.id)).done),'the line now counts to its target');
+        await LV3.q4SetTarget(p.id,'');
+        ok(wrote&&wrote.q4Targets&&!(p.id in wrote.q4Targets),'cleared: the target comes off');
+      }finally{if(own)sb.from=orig;else delete sb.from;Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,JSON.parse(keepS));
+        LV3.__setPrefsBase(keepB);D.log.splice(0,D.log.length-logN);}
+    }
+    /* 7 · the page draws the Settings dropdown with a box per bundle */
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      goPage('lavarion');LV3.go('q4');await wait(150);
+      const pg=document.getElementById('page-lavarion'),set=pg.querySelector('details.q4Set');
+      ok(set&&/Settings/.test(set.querySelector('summary').textContent),'Settings ▾ is on the page');
+      eq(set.querySelectorAll('input.q4TIn:not(.q4OverIn)').length,D.products.filter(x=>!x.archived&&x.type==='bundle').length,'one target box per bundle');
+      ok(!/undefined|NaN/.test(pg.querySelector('.q4').textContent),'no undefined or NaN on the page');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 101 · moving lines to another shipment */
+  S['v56.1 b625: move lines to another shipment — Shipments page, bulk, the In Warehouse ask, SellerFuse spots a wrong ID']=async()=>{
+    const keep={sel:window.getSelectedRows,modal:window.showShipIdModal,u:window.toastUndo};let undo=null;window.toastUndo=(m,f)=>{undo=f;};
+    const keepRun=SFRUN;
+    const seg=(id,u)=>({shipSegments:[{shipId:id,units:u,date:'2026-10-28',type:'Standard'}],allShipIds:[id],shipId:id,ship:u,sent:'Yes',status:'Sent to Amazon'});
+    try{
+      who('Becki');
+      const a=mkRow(Object.assign({exp:10,rcvd:10},seg('FBA15CHKMVA1',10))),b=mkRow(Object.assign({exp:4,rcvd:4},seg('FBA15CHKMVA1',4)));
+      openEditShipment('FBA15CHKMVA1');await wait(40);
+      const box=document.getElementById('editShipMoveBox');ok(box&&box.querySelectorAll('input[type=checkbox]').length>=2,'the shipment popup lists its lines to move');
+      const i=_shipMoveItems.findIndex(x=>x.row===a);box.querySelector(`input[data-i="${i}"]`).checked=true;document.getElementById('shipMoveTo').value='FBA15CHKMVB1';
+      await shipMoveGo();
+      ok(a.shipSegments.every(s=>s.shipId==='FBA15CHKMVB1'),'the ticked line moved to the right shipment');eq(parseInt(a.ship),10,'…with its 10 units');
+      ok(b.shipSegments.every(s=>s.shipId==='FBA15CHKMVA1'),'the line not ticked stayed');
+      ok(typeof undo==='function','an Undo is offered');await undo();ok(a.shipSegments.every(s=>s.shipId==='FBA15CHKMVA1'),'Undo puts it back');
+      window.getSelectedRows=()=>[a.uuid,b.uuid];window.showShipIdModal=(t,x,ty,cb)=>cb('FBA15CHKMVC1','Standard');
+      doBulkMoveShip();await wait(400);
+      ok([a,b].every(r=>r.shipSegments.every(s=>s.shipId==='FBA15CHKMVC1')),'Prep Sheet bulk: both rows moved');eq((parseInt(a.ship)||0)+(parseInt(b.ship)||0),14,'…numbers intact');
+      const dd=document.getElementById('bulkActionDropdown');dd.value='In Warehouse';doBulkAction();
+      const ask=document.getElementById('bulkUnsendAsk');ok(ask&&ask.style.display!=='none','bulk In Warehouse on rows on a shipment asks first');
+      eq(a.shipSegments.length,1,'…and changes nothing until she answers');ask.style.display='none';
+      const c=mkRow(Object.assign({asin:'B0CHKMVD01',sku:'Amuk_7_28106_0_CHK_MVD',exp:6,rcvd:6},seg('FBA15CHKMVD1',6)));
+      SFRUN=Object.assign({late:[],stock:[],sold:[],excluded:[],summary:{}},keepRun||{},{shipments:[
+        {id:'FBA15CHKMVD1',created:'2026-10-28',status:'IN_TRANSIT',lines:[{sku:'Amuk_x_CHK_OTHER',asin:'B0CHKOTHER',units:5}]},
+        {id:'FBA15CHKMVD2',created:'2026-10-28',status:'IN_TRANSIT',lines:[{sku:c.sku,asin:c.asin,units:6}]}]});
+      const it=sfPrepIssues().find(x=>x.sku===c.sku);
+      ok(it&&it.kind==='moved'&&it.fromId==='FBA15CHKMVD1','SellerFuse: Amazon has none of it on D1 and all 6 on D2 → wrong shipment ID');
+      await sfMoveIt(it.id);ok(c.shipSegments.every(s=>s.shipId==='FBA15CHKMVD2'),'one press moves it');eq(parseInt(c.ship),6,'…6 units');
+    }finally{window.getSelectedRows=keep.sel;window.showShipIdModal=keep.modal;window.toastUndo=keep.u;SFRUN=keepRun;window.SFRUN=keepRun;try{cm('editShipModal');}catch(e){}}
+  };
+
+  /* 98 · b628 prep cost engine (Jack, 29 Oct): every unit in the month it went, Part Sent included; the running month
+     at the band of max(3-month average, the month so far); a finished month at its actual band; DG boxes at £2.50;
+     the Dashboard, the Shipments page and the history popup all read the one engine */
+  S['b628: prep cost — one engine, send-day months, 3-month average, finished months drop, DG boxes']=async()=>{
+    const keepB=Object.assign({},shipBoxes),keepT=Object.assign({},_shipTypeCache);
+    const seg=(sid,units,date)=>({shipId:sid,units,date,type:'Standard'});
+    try{
+      /* history: Jul 2,821 · Aug 3,109 · Sep 3,908 + 9 below = 3,917 → average 3,282 (35p) */
+      mkRow({sent:'Yes',status:'Sent to Amazon',exp:2821,rcvd:2821,ship:2821,sentDate:'2026-07-10',shipType:'Standard',shipSegments:[seg('FBA-CHK628J',2821,'2026-07-10')]});
+      mkRow({sent:'Yes',status:'Sent to Amazon',exp:3109,rcvd:3109,ship:3109,sentDate:'2026-08-10',shipType:'Standard',shipSegments:[seg('FBA-CHK628A',3109,'2026-08-10')]});
+      mkRow({sent:'Yes',status:'Sent to Amazon',exp:3908,rcvd:3908,ship:3908,sentDate:'2026-09-10',shipType:'Standard',shipSegments:[seg('FBA-CHK628S',3908,'2026-09-10')]});
+      /* a Part Sent row (it used to be left out of the prep) */
+      mkRow({sent:'No',status:'Part Sent',exp:10,rcvd:10,ship:5,sentDate:'2026-10-16',shipType:'Standard',shipSegments:[seg('FBA-CHK628O',5,'2026-10-16')]});
+      /* split across two months: 9 on 30 Sep, 11 on 2 Oct — its sent date is the LAST send */
+      mkRow({sent:'Yes',status:'Sent to Amazon',exp:20,rcvd:20,ship:20,sentDate:'2026-10-02',shipType:'Standard',shipSegments:[seg('FBA-CHK628S',9,'2026-09-30'),seg('FBA-CHK628O',11,'2026-10-02')]});
+      /* DG on its own shipment, oversize on the October one */
+      mkRow({sent:'Yes',status:'Sent to Amazon',exp:26,rcvd:26,ship:26,sentDate:'2026-10-05',shipType:'DG',shipSegments:[seg('FBA-CHK628D',26,'2026-10-05')]});
+      mkRow({sent:'Yes',status:'Sent to Amazon',exp:7,rcvd:7,ship:7,sentDate:'2026-10-02',shipType:'Oversize',shipSegments:[seg('FBA-CHK628O',7,'2026-10-02')]});
+      lavShipments.push({_chk:true,shipId:'FBA-CHK628O',sku:'',asin:'',units:40,cost:1,date:'2026-10-02'});
+      shipBoxes['FBA-CHK628O']=3;shipBoxes['FBA-CHK628D']=2;_shipTypeCache['FBA-CHK628D']='DG';
+      const mine=allSentRows().filter(l=>/^FBA-CHK628/.test(l.shipId||''));
+      const P=at=>prepEngineFrom(prepLinesFrom(mine,_shipFirstDates(mine)),{fees:prepFees,today:at,boxes:shipBoxes,shipTypes:_shipTypeCache});
+      const E=P('2026-10-29');
+      eq(E.vols['2026-09'],3917,'September: 3,908 + the 9 that went on 30 Sep');
+      eq(E.vols['2026-10'],82,'October: 5 Part Sent + 11 + 26 DG + 40 PLUB — oversize apart');
+      const R=E.rate('2026-10');ok(Math.abs(R.avg-(2821+3109+3917)/3)<1e-9,'the average of Jul, Aug, Sep');
+      const O=E.priceMonth('2026-10');
+      eq(O.unitRate,prepFees.tier3p,'82 units ride on the 3,282 average → the 3,001–5,000 rate');eq(O.basis,'estimate','…as an estimate');
+      ok(/^ESTIMATE/.test(prepRateWhy(O.info)),'and says so');
+      eq(O.osUnits,7,'7 oversize');eq(O.stdBoxes,3,'3 standard boxes');eq(O.dgBoxes,2,'2 DG boxes');
+      ok(Math.abs(O.boxCostTotal-(3*prepFees.boxCost+2*prepFees.dgExtraPerBox))<1e-9,'DG boxes at the DG box cost');
+      eq(E.priceShip('FBA-CHK628O').unitRate,O.unitRate,'one shipment is priced at its month’s rate');
+      const F=P('2026-11-02').priceMonth('2026-10');
+      eq(F.unitRate,prepFees.tier1p,'October finished on 82 → its actual band');eq(F.basis,'actual','not an estimate any more');
+      /* the live engine sees exactly what the This Month card counts, and the pages agree */
+      const PE=prepEngine(),ym=todayISO().slice(0,7),{s,e}=getMonthRange();
+      eq(PE.linesMonth(ym).reduce((a,l)=>a+l.units,0),sentRollup(s,e).units,'prep counts every unit the This Month card counts');
+      const shipped=PE.linesMonth(ym).filter(l=>l.shipId),ids=[...new Set(shipped.map(l=>l.shipId))];
+      ok(Math.abs(ids.reduce((a,id)=>a+PE.priceShip(id).withVat,0)-PE.price(shipped).withVat)<0.01,'Shipments page shipments add up to the month');
+      const d0=`${ym}-01`;
+      ok(Math.abs(prepExpMetrics(new Date(+ym.slice(0,4),+ym.slice(5,7)-1,1),new Date(),PE).withVat-PE.priceRange(d0,todayISO()).withVat)<0.01,'Prep Fee Explorer = the engine');
+      ok(Math.abs(calcInsMetrics([],[],{},ym,PE).withVat-PE.priceMonth(ym).withVat)<0.01,'Insights month = the engine');
+      eq(unitRateBand(2000),'1,001–3,000','the 45p band label has its comma');
+    }finally{
+      for(let i=lavShipments.length-1;i>=0;i--)if(lavShipments[i]&&lavShipments[i]._chk&&/^FBA-CHK628/.test(lavShipments[i].shipId||''))lavShipments.splice(i,1);
+      Object.keys(shipBoxes).forEach(k=>{if(!(k in keepB))delete shipBoxes[k];});Object.assign(shipBoxes,keepB);
+      Object.keys(_shipTypeCache).forEach(k=>{if(!(k in keepT))delete _shipTypeCache[k];});Object.assign(_shipTypeCache,keepT);
+    }
+  };
+
+  /* Q4 prepping, round 3 (Jack, 29 Oct 2026: "those 4 are priority … roughly within 5% of my plan, then the extras can be
+     allocated elsewhere"): bundles with a target are handed shared components first, in the Action centre's order among
+     themselves, and stop at target +5%; then everything else shares what is left. The live case in miniature: GF Biscuit
+     (target) sat behind the GF Tea & Biscuits set (no target) for the Nairn, and Tea & Biscuits behind it for the Earl Grey. */
+  S['Q4 prepping round 3: targets first up to target +5%, then the rest — priority marked, the % saves']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    /* q4 round 3 fixture */
+    const L=q=>[{id:'l'+q,date:'2026-09-20',qty:q,rem:q,cost:1,arr:1}];
+    const comps=[{id:'q3-nairn',name:'CHECK Nairn Multipack',layers:L(400)},{id:'q3-earl',name:'CHECK Earl Grey',layers:L(500)},
+      {id:'q3-crisp',name:'CHECK Crisps',layers:L(50)},{id:'q3-oat',name:'CHECK Oatcakes',layers:L(900)},{id:'q3-mug',name:'CHECK Mug',layers:L(900)}];
+    const B=(id,name,rec)=>({id,asin:'B0Q3'+id.slice(3).toUpperCase(),name,type:'bundle',recipe:rec.map(([c,q])=>({c,q})),layers:[]});
+    const prods=[B('q3-snk','CHECK GF Snack',[['q3-nairn',4],['q3-crisp',1]]),B('q3-gftb','CHECK GF T&B Set',[['q3-nairn',4],['q3-earl',5]]),
+      B('q3-tb','CHECK T&B Hamper',[['q3-earl',5],['q3-mug',1]]),B('q3-gfb','CHECK GF Biscuit',[['q3-nairn',4],['q3-oat',1]])];
+    const pd={'q3-snk':13,'q3-gftb':26,'q3-tb':29,'q3-gfb':33};
+    const calc=(t,over)=>LV3.q4Calc({products:prods,components:comps,purchases:[],shipments:[],owed:{},targets:t,over,protDays:p=>pd[p.id]});
+    const left=R=>JSON.stringify(R.bundles.map(r=>[r.id,r.left]));
+    const T={'q3-snk':100,'q3-tb':60,'q3-gfb':40};
+    const R0=calc({},5),R1=calc(T,5),R2=calc(T,0);
+    eq(left(R0),JSON.stringify([['q3-snk',50],['q3-gftb',50],['q3-tb',50],['q3-gfb',0]]),'no targets: the Action centre order — GF Biscuit gets no Nairn');
+    eq(left(R1),JSON.stringify([['q3-snk',50],['q3-tb',63],['q3-gfb',42],['q3-gftb',8]]),'targets first, each stopping at target +5% (63, 42); the set gets what is left');
+    eq(left(R2),JSON.stringify([['q3-snk',50],['q3-tb',60],['q3-gfb',40],['q3-gftb',10]]),'at +0% they stop at the target and the set gets 2 more');
+    eq(JSON.stringify(R1.bundles.map(r=>r.priority)),JSON.stringify([true,true,true,false]),'the three with a target are marked priority');
+    const by=id=>R1.bundles.find(r=>r.id===id),tb=by('q3-tb'),gfb=by('q3-gfb'),snk=by('q3-snk');
+    eq(JSON.stringify([tb.allowTo,tb.lim,gfb.allowTo,gfb.lim]),JSON.stringify([63,null,42,null]),'covered to target +5% — nothing limits them');
+    eq(JSON.stringify([tb.left,tb.allow]),JSON.stringify([63,63]),'Tea & Biscuits: covered to 63 (target +5%)');
+    eq(JSON.stringify([snk.left,snk.need,snk.allow]),JSON.stringify([50,100,105]),'GF Snack: 50 of 100 — short by 50 (the crisps)');
+    eq(JSON.stringify([snk.lim.parts[0].id,snk.lim.say.kind,snk.lim.say.gl,snk.lim.say.gp]),JSON.stringify(['q3-crisp','steal',50,0]),
+      'GF Snack: 50 more crisps make 50 more there, but it takes the Nairn GF Biscuit and the set were getting — none in all');
+    eq(R1.totals.max,100+60+40+8,'the page total: the three targets + the set’s max (sent + 8)');
+    /* q4 round 3 page */
+    const D=LV3.__D(),was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      goPage('lavarion');LV3.go('q4');await wait(150);
+      const pg=document.getElementById('page-lavarion'),live=LV3.q4Calc(),nP=live.bundles.filter(r=>r.priority).length;
+      ok(live.bundles.every((r,i,a)=>i===0||!(r.priority&&!a[i-1].priority)),'live: every bundle with a target comes before every one without');
+      eq(pg.querySelectorAll('.q4T .q4PriChip').length,nP,'every priority line is marked, and only those');
+      eq(!!pg.querySelector('.q4PriNote'),nP>0,'"Priority: targets first" shows when any bundle has a target');
+      ok(/moves the bundle up the queue/.test((pg.querySelector('.q4SetHelp')||{}).textContent||''),'Settings says a target also moves it up the queue');
+      ok(pg.querySelector('#q4t-over'),'the +% box is in Settings');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+    /* the % saves with the targets (database faked) */
+    const keepS=JSON.stringify(D.settings),keepB=LV3.__prefsBase(),logN=D.log.length;
+    const own=Object.prototype.hasOwnProperty.call(sb,'from'),orig=sb.from;let wrote=null;
+    sb.from=t=>{const q={select:()=>q,eq:()=>q,in:()=>q,maybeSingle:()=>Promise.resolve({data:{value:keepS},error:null}),
+      upsert:v=>{wrote=JSON.parse(v.value);return Promise.resolve({error:null});}};return q;};
+    try{
+      LV3.__setPrefsBase(JSON.parse(keepS));
+      ok(await LV3.q4SetTarget('%over','8'),'the save reports it landed');
+      eq(wrote&&wrote.q4Over,8,'lavarion_prefs gets q4Over = 8');
+      eq(LV3.q4Calc().over,8,'the page now works to target +8%');
+    }finally{if(own)sb.from=orig;else delete sb.from;Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,JSON.parse(keepS));
+      LV3.__setPrefsBase(keepB);D.log.splice(0,D.log.length-logN);}
+  };
+
+  /* edit629 — Jack, 29 Oct 2026: "Add a 10% increase to anything with gift or hamper in the name, October to
+     December. From January it's gone … sales end 23rd December". PLUB only — never an OA / Prep Sheet row. */
+  S['PLUB Christmas uplift: gift & hamper lines +10% to 23 Dec, plain after, nothing else changes']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),set0=JSON.stringify(D.settings||{}),prodN=D.products.length,compN=D.components.length,logN=D.log.length;
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    const near=(a,b,m)=>ok(Math.abs(a-b)<1e-6,m+' — got '+a+', expected '+b);
+    const isoDay=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+    try{
+      D.settings.q4Uplift={pct:10,words:'gift, hamper',from:'10-01',to:'12-23',drop:0};   /* this check's numbers: 10%, no dip */
+      const cfg=LV3.upliftCfg();eq(cfg.pct,10,'10% as set');eq(cfg.from+'|'+cfg.to,'10-01|12-23','1 Oct to 23 Dec by default');
+      const lay=q=>[{id:'chkup-l'+(++n),date:'2026-09-20',qty:q,rem:q,cost:1,arr:1}];
+      const mk=(id,name,type,extra)=>{const p=Object.assign({id:'chk-up-'+id,uuid:'chk-up-'+id,name,asin:'B0CHKUP'+id,sku:'CHKUP'+id,type,recipe:[],layers:type==='pl'?lay(500):[],archived:false},extra||{});D.products.push(p);return p;};
+      const g=mk(1,'CHECK Hot Chocolate Gift Set','pl'),h=mk(2,'CHECK Tea & Biscuits HAMPER','pl'),gs=mk(3,'CHECK Giftset Deluxe','pl'),pl=mk(4,'CHECK Gluten Free Snack Bundle','pl');
+      ok(LV3.upliftOf(g)&&LV3.upliftOf(g).word==='gift','"Gift Set" is a gift line');
+      ok(LV3.upliftOf(h)&&LV3.upliftOf(h).word==='hamper','"HAMPER" counts, any case');
+      ok(LV3.upliftOf(gs),'"Giftset" counts');
+      eq(LV3.upliftOf(pl),null,'a bundle with neither word has no uplift');
+      /* the helpers, on fixed dates */
+      near(LV3.demandBetween(g,2,'2026-12-01',30),23*2.2+7*2,'gift set, 1 Dec, 30 days: 23 days × 2.2 + 7 × 2');
+      near(LV3.daysCovered(g,2,23*2.2+7*2,'2026-12-01'),30,'and that stock lasts exactly 30 days');
+      near(LV3.demandBetween(g,2,'2026-12-26',30),60,'from 26 Dec: no uplift');
+      near(LV3.daysCovered(g,2,60,'2026-12-26'),30,'from 26 Dec: 60 last 30 days');
+      near(LV3.demandBetween(g,2,'2026-09-21',20),10*2+10*2.2,'21 Sep for 20 days: 10 plain, 10 from 1 Oct at ×1.1');
+      near(LV3.demandBetween(h,1,'2026-12-20',10),4*1.1+6,'hamper: 20–23 Dec at ×1.1, 24–29 Dec plain');
+      eq(LV3.demandBetween(pl,2,'2026-12-01',30),2*30,'a plain bundle: exactly pace × days, as before');
+      eq(LV3.daysCovered(pl,2,64.6,'2026-12-01'),64.6/2,'and stock ÷ pace, as before');
+      /* not PLUB: an OA / Prep Sheet row named "… Gift Set" is never touched */
+      const oa=mkRow({prod:'CHECK ROW Hot Chocolate Gift Set',name:'CHECK ROW Hot Chocolate Gift Set'});
+      eq(LV3.upliftOf(oa),null,'an OA prep row named "… Gift Set" is not a PLUB product — no uplift');
+      eq(LV3.demandBetween(oa,2,'2026-12-01',30),60,'its demand is plain pace × days');
+      eq(LV3.daysCovered(oa,2,60,'2026-12-01'),30,'its days are plain stock ÷ pace');
+      eq(LV3.upliftOf(Object.assign({},g)),null,'a copy of a PLUB product outside the PLUB list gets none either');
+      /* the engine — the window set to start today so this runs any day of the year */
+      const now=new Date(),at=now.toISOString(),today=isoDay(now),md=k=>{const x=new Date(now);x.setDate(x.getDate()+k);return isoDay(x).slice(5);};
+      D.settings.atAmz=D.settings.atAmz||{};D.settings.atAmzAt=D.settings.atAmzAt||{};D.settings.sold30=D.settings.sold30||{};
+      [g,pl].forEach(p=>{D.settings.sold30[p.asin]=60;D.settings.atAmz[p.asin]=40;D.settings.atAmzAt[p.asin]=at;});
+      D.settings.q4Uplift={pct:10,words:'gift, hamper',from:md(0),to:md(6),drop:0};   /* today + 6 days */
+      let rp=LV3.__plRow(pl),rg=LV3.__plRow(g);
+      eq(rp.demand.src,'typed','the fixtures run on typed-in sales');
+      near(rp.protDays,40/2,'plain twin: 40 at 2 a day = 20 days, as before');
+      eq(rp.want,Math.round(Math.max(rp.sizeAds*LV3.coverDaysOf(pl),rp.ads*21)),'plain twin: the send is sized exactly as before');
+      eq(rp.up,null,'plain twin: no note');
+      near(rg.protDays,7+(40-7*2.2)/2,'gift twin: 7 days at 2.2, then the rest at 2 — runs out sooner');
+      near(rg.ads,rp.ads,'the measured pace is the same for both');
+      eq(rg.want,rp.want,'a send that lands after the uplift ends is NOT sized up');
+      ok(rg.up&&/^\+10% Q4 \(gift\) until /.test(rg.up.txt),'gift twin: "+10% Q4 (gift) until …" — got '+(rg.up&&rg.up.txt));
+      D.settings.q4Uplift={pct:10,words:'gift, hamper',from:md(0),to:md(300),drop:0};
+      rg=LV3.__plRow(g);rp=LV3.__plRow(pl);
+      eq(rg.want,Math.round(Math.max(LV3.demandBetween(g,rg.sizeAds,rg.landIso,LV3.coverDaysOf(g)),LV3.demandBetween(g,rg.ads,rg.landIso,21))),'inside the window the send covers the higher pace');
+      near(rg.want,Math.round(2.2*LV3.coverDaysOf(g)),'= 2.2 a day × the cover');
+      ok(rg.want>rp.want,'more than its plain twin');
+      /* a shared part: only the gift share goes up */
+      const sup='CHECK Uplift Supplier';D.settings.supplierModes=Object.assign({},D.settings.supplierModes||{},{[sup.toLowerCase()]:LV3.shipModes()[0].k});
+      const part={id:'chkup-part',name:'CHECK Uplift Tin',supplier:sup,layers:lay(300)};D.components.push(part);
+      const bg=mk(5,'CHECK Choc Gift Hamper','bundle',{recipe:[{c:part.id,q:1}]}),bp=mk(6,'CHECK Choc Bundle','bundle',{recipe:[{c:part.id,q:1}]});
+      D.settings.sold30[bg.asin]=60;D.settings.sold30[bp.asin]=30;
+      const Lp=(LV3.__planComponents()||[]).find(x=>x.o&&x.o.id===part.id);ok(Lp,'the shared part is planned');
+      near(Lp.daily,3,'its pace is the measured 2 + 1 a day');
+      near(Lp.cover,300/3.2,'300 tins at 2 × 1.1 + 1 a day');
+      /* the pages still draw */
+      goPage('lavarion');LV3.go('planner');await wait(300);
+      const pg=document.getElementById('page-lavarion');
+      ok(/\+10% Q4 \(gift\)/.test(pg.textContent),'the Planner row carries the note');
+      LV3.go('overview');await wait(300);ok(pg.textContent.length>200,'the Action centre draws');
+      ok(LV3.q4Calc&&Array.isArray(LV3.q4Calc().bundles),'Q4 prepping still works out');
+      LV3.go('settings');await wait(300);ok(/Christmas uplift/.test(pg.textContent),'Settings has the Christmas uplift panel');
+      delete D.settings.q4Uplift;LV3.setUplift('pct','15');eq(D.settings.q4Uplift.pct,15,'the % saves into D.settings.q4Uplift');
+      eq(D.settings.q4Uplift.to,'12-23','the rest keep their defaults');
+      LV3.setUplift('toD','31');eq(D.settings.q4Uplift.to,'12-31','the end day saves as month-day');
+      LV3.setUplift('toM','2');eq(D.settings.q4Uplift.to,'02-29','a day past the month end is pulled back (31 Feb → 29 Feb)');
+      LV3.setUplift('words','');eq(D.settings.q4Uplift.words,'gift, hamper, Gluten Free Snack Bundle, Gluten Free Biscuit Bundle','blank words go back to the defaults');
+      ok(D.log.length>logN&&/Christmas uplift/.test(D.log[0].txt),'each change goes in the History');
+      /* it saves the way every PLUB setting does: savePrefs, three-way merged into lavarion_prefs (database faked) */
+      if(LV3.__setPrefsBase&&LV3.__savePrefs&&LV3.__prefsBase){
+        const keepB=LV3.__prefsBase(),base=JSON.stringify(D.settings),own=Object.prototype.hasOwnProperty.call(sb,'from'),orig=sb.from;let wrote=null;
+        sb.from=t=>{const q={select:()=>q,eq:()=>q,in:()=>q,maybeSingle:()=>Promise.resolve({data:{value:base},error:null}),
+          upsert:v=>{wrote=JSON.parse(v.value);return Promise.resolve({error:null});}};return q;};
+        try{LV3.__setPrefsBase(JSON.parse(base));LV3.setUplift('pct','12');ok(await LV3.__savePrefs(),'the save reports it landed');
+          eq(wrote&&wrote.q4Uplift&&wrote.q4Uplift.pct,12,'lavarion_prefs gets q4Uplift.pct = 12');
+          eq(wrote&&wrote.q4Uplift&&wrote.q4Uplift.from,'10-01','with the start as month-day');}
+        finally{if(own)sb.from=orig;else delete sb.from;LV3.__setPrefsBase(keepB);}
+      }
+    }finally{
+      try{const s0=JSON.parse(set0);Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,s0);}catch(e){}
+      D.products.splice(prodN);D.components.splice(compN);D.log.splice(0,D.log.length-logN);
+      cleanup();
+      try{LV3.render();}catch(e){}
+      if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}
+    }
+  };
+
+  /* 102 · Jack's 29 Oct numbers: +5% to 23 Dec, −10% to 31 Jan, the two GF bundles included */
+  S['PLUB uplift defaults: +5% to 23 Dec, then −10% to 31 Jan, GF Snack + Biscuit bundles included']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),keep=D.settings.q4Uplift,prodN=D.products.length;
+    const near=(a,b,m)=>ok(Math.abs(a-b)<1e-6,m+' — got '+a+', expected '+b);
+    try{
+      delete D.settings.q4Uplift;
+      const c=LV3.upliftCfg();eq(c.pct,5,'+5% by default');eq(c.drop,10,'−10% after by default');eq(c.dropTo,'01-31','…until 31 Jan');
+      const mk=(id,name)=>{const p={id:'chk-up2-'+id,uuid:'chk-up2-'+id,name,asin:'B0CHKUQ'+id,sku:'CHKUQ'+id,type:'pl',recipe:[],layers:[],archived:false};D.products.push(p);return p;};
+      const s=mk(1,'Gluten Free Snack Bundle CHECK'),b=mk(2,'CHECK Gluten Free Biscuit Bundle'),g=mk(3,'CHECK Hot Chocolate Gift Set'),x=mk(4,'CHECK Polyfilla Bundle');
+      ok(LV3.upliftOf(s)&&LV3.upliftOf(b)&&LV3.upliftOf(g),'GF Snack Bundle, GF Biscuit Bundle and a gift set all take it');ok(!LV3.upliftOf(x),'another bundle does not');
+      near(LV3.demandBetween(g,2,'2026-12-20',4),4*2*1.05,'20–23 Dec at +5%');
+      near(LV3.demandBetween(g,2,'2026-12-24',8),8*2*0.9,'24–31 Dec at −10%');
+      near(LV3.demandBetween(g,2,'2027-01-25',10),7*2*0.9+3*2,'25–31 Jan at −10%, then plain from 1 Feb');
+      near(LV3.demandBetween(x,2,'2026-12-24',8),16,'a non-matching product is plain');
+      near(LV3.daysCovered(g,2,7.2,'2026-12-24'),4,'7.2 units last 4 days at 1.8 a day after Christmas');
+    }finally{if(keep===undefined)delete D.settings.q4Uplift;else D.settings.q4Uplift=keep;D.products.splice(prodN);}
   };
 
   async function run(only){

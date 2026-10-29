@@ -1879,12 +1879,12 @@ function getNextSyncStr(){
    Auto-sync only ticks inside an OPEN tab. Nobody open overnight means nothing
    came in overnight — and the app used to say nothing about it, so the early
    shift could work off yesterday's sheet without knowing. Jack's VA starts at
-   05:00 UK, so a last-sync older than that means nobody has been on.
+   04:00 UK (Jack, 29 Oct — was 05:00), so a last-sync older than that means nobody has been on.
    It does NOT hand out a chore: opening the app already fires a catch-up within
    ~2 seconds, so the banner reports what is happening. */
-const SHIFT_START_HOUR=5;
+const SHIFT_START_HOUR=4;
 function _shiftStart(){
-  const at=iso=>{const p=iso.split('-').map(Number);return new Date(_ukDayStart(p[0],p[1],p[2])+SHIFT_START_HOUR*36e5);};
+  const at=iso=>{const p=iso.split('-').map(Number),g=Date.UTC(p[0],p[1]-1,p[2],SHIFT_START_HOUR);return new Date(g-_ukOffMin(g)*6e4);};   /* right on clock-change Sundays too */
   let d=at(todayISO());
   if(Date.now()<d.getTime())d=at(yesterdayISO());        // before 5am UK, yesterday's shift
   return d;

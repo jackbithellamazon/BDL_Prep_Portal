@@ -732,61 +732,175 @@ function savePrepFees(){
     .then(r=>{if(r&&r.error)console.warn('prep fees save',r.error);});}catch(e){}
   lsSet('prepFees',JSON.stringify(prepFees));
 }
+/* ══ PREP COST ENGINE (b628, 29 Oct 2026) ═════════════════════════════════════
+   Jack, 29 Oct: "it's all internal" — there is no warehouse invoice; this is his
+   own costing. Every prep £ in the app comes from here, so the Dashboard, the
+   Shipments page, the history popup, the Prep Fee Explorer and Insights agree.
+   THE RULES
+   · A month is priced at ONE per-unit rate for ALL its standard units, set by the
+     volume band (Settings: 50p 1–1,000 · 45p 1,001–3,000 · 35p 3,001–5,000 · 30p 5,001+).
+   · Standard units = Standard + PLUB + DG (DG is standard-size) — prepBandUnits,
+     the one definition. Oversize is priced on its own (£1.50), bundled units on
+     their own (60p). Returns sent back out carry no prep charge (as before b628).
+   · Every unit counts in the month it WENT — its shipment's date, the rule the
+     THIS MONTH card uses (sentRollup / allSentRows), Part Sent rows included.
+   · A RUNNING month is priced at the band of max(the AVERAGE of the last 3 finished
+     months, this month so far). While the average is what earns the cheaper band
+     the figure is an ESTIMATE. A FINISHED month is priced at its ACTUAL volume —
+     "yes it goes down" — even if that is lower than where it started. Months with
+     nothing sent are left out of the average; with no history at all, Settings →
+     Typical monthly volume stands in.
+   · Boxes: standard boxes × box cost + DG boxes × DG box cost. VAT on the lot.
+   From PREP ENGINE START to PREP ENGINE END is pure — no app globals — so the
+   Deno test (prep628_test.js in the harness) can load this block on its own. */
+/* PREP ENGINE START */
+const PREP_STD_LABEL='Standard units (incl. PLUB and DG; oversize priced separately)';
+const _peN=x=>Math.round(+x||0).toLocaleString('en-GB');
+const _peP=r=>r==null?'—':(r<1?Math.round(r*100)+'p':'£'+(+r).toFixed(2));
+const _peMon=ym=>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][(+String(ym).slice(5,7)||1)-1];
+function _pfRate(units,f){
+  if(units<=f.tier1Units)return f.tier1p;
+  if(units<=f.tier2Units)return f.tier2p;
+  if(units<=f.tier3Units)return f.tier3p;
+  return f.tier4p;
+}
+function _pfBand(units,f){
+  if(units<=f.tier1Units)return '1–'+_peN(f.tier1Units);
+  if(units<=f.tier2Units)return _peN(f.tier1Units+1)+'–'+_peN(f.tier2Units);
+  if(units<=f.tier3Units)return _peN(f.tier2Units+1)+'–'+_peN(f.tier3Units);
+  return _peN(f.tier3Units+1)+'+';
+}
+/* the first unit of the band `units` sits in — "finishes below 3,001" */
+function _pfFloor(units,f){
+  if(units<=f.tier1Units)return 1;
+  if(units<=f.tier2Units)return f.tier1Units+1;
+  if(units<=f.tier3Units)return f.tier2Units+1;
+  return f.tier3Units+1;
+}
+function _peYmAdd(ym,d){const t=(+ym.slice(0,4))*12+(+ym.slice(5,7)-1)+d;return Math.floor(t/12)+'-'+String(t%12+1).padStart(2,'0');}
+/* One line per allSentRows() entry, dated by its SHIPMENT (firstDates — the map
+   sentRollup builds with _shipFirstDates) or, with no shipment, by its own date. */
+function prepLinesFrom(all,firstDates){
+  const fs=firstDates||{},out=[];
+  (all||[]).forEach(r=>{
+    const day=String((r.shipId&&fs[r.shipId])||r.isoDate||'').slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return;
+    const kind=r.kind||'oa',stock=kind!=='lav'&&kind!=='return';
+    out.push({day,ym:day.slice(0,7),units:+r.units||0,kind,type:stock?String(r.shipType||''):'',
+      bundle:stock&&r.inBundle==='Yes',shipId:r.shipId||'',cog:+r.cogValue||0,sku:r.sku||'',asin:r.asin||''});
+  });
+  return out;
+}
+/* which bucket a line's units go in — the same split calcImpliedPrepCost always made */
+function _peBucket(ls){
+  const b={std:0,os:0,dg:0,bundle:0,lav:0,ret:0,ships:new Set(),cog:0,skus:new Set(),asins:new Set()};
+  (ls||[]).forEach(l=>{const u=+l.units||0;
+    if(l.kind==='return'){b.ret+=u;return;}               // no prep charge, no box charge
+    if(l.kind==='lav')b.lav+=u;
+    else{const t=l.type||'Standard';
+      if(t==='Standard'&&!l.bundle)b.std+=u;
+      if(t==='Oversize')b.os+=u;
+      if(t==='DG')b.dg+=u;
+      if(l.bundle)b.bundle+=u;}
+    if(l.shipId)b.ships.add(l.shipId);
+    b.cog+=+l.cog||0;if(l.sku)b.skus.add(l.sku);if(l.asin)b.asins.add(l.asin);});
+  return b;
+}
+/* THE units that set the band — Standard + PLUB + DG. Oversize and bundles are priced on their own. */
+const prepBandUnits=b=>b.std+b.dg+b.lav;
+/* The rate for month `ym`. vols = standard units per month; todayYM = the running month. */
+function prepMonthRate(ym,vols,todayYM,f){
+  const units=+(vols||{})[ym]||0;
+  if(ym<todayYM)return{ym,units,used:units,rate:_pfRate(units,f),band:_pfBand(units,f),basis:'actual',running:false};
+  const have=[1,2,3].map(k=>_peYmAdd(ym,-k)).filter(k=>k<todayYM&&(+vols[k]||0)>0);
+  const avg=have.length?have.reduce((a,k)=>a+(+vols[k]),0)/have.length:(+f.expectedMonthlyUnits||0);
+  const used=Math.max(units,avg),ownRate=_pfRate(units,f),avgRate=_pfRate(avg,f);
+  return{ym,units,avg,avgMonths:have.slice().reverse().map(k=>({ym:k,units:+vols[k]})),avgSrc:have.length?'average':'setting',
+    used,rate:_pfRate(used,f),band:_pfBand(used,f),basis:avgRate<ownRate?'estimate':'month',running:true,
+    ownRate,ownBand:_pfBand(units,f),avgRate,avgBand:_pfBand(avg,f),avgFloor:_pfFloor(avg,f)};
+}
+/* Plain words for where the rate came from — which figure won. */
+function prepRateWhy(R){
+  if(!R)return '';
+  const p=_peP(R.rate);
+  if(!R.running)return `${p}/unit — a finished month, priced at its actual ${_peN(R.units)} standard units (${R.band} band).`;
+  const src=R.avgSrc==='setting'
+    ?`Settings → Typical monthly volume (${_peN(R.avg)}) — there are no finished months to average yet`
+    :`your ${R.avgMonths.length}-month average of ${_peN(R.avg)} (${R.avgMonths.map(m=>_peMon(m.ym)+' '+_peN(m.units)).join(' · ')})`;
+  if(R.basis==='estimate')return `ESTIMATE — ${p}/unit comes from ${src}, the ${R.avgBand} band. This month has sent ${_peN(R.units)} standard units so far (${_peP(R.ownRate)} on its own); if it finishes below ${_peN(R.avgFloor)} it is repriced at its real band.`;
+  if(R.ownRate<R.avgRate)return `${p}/unit — this month has already sent ${_peN(R.units)} standard units (${R.ownBand} band), more than ${src} (${R.avgBand} band), so every unit this month is at ${p}.`;
+  return `${p}/unit — this month's ${_peN(R.units)} standard units are in the ${R.ownBand} band, the same as ${src}.`;
+}
+/* Price a set of lines: split by calendar month, each month at its own rate. */
+function prepPriceLines(ls,rateOf,f,boxes,shipTypes){
+  const byM={};(ls||[]).forEach(l=>{(byM[l.ym]=byM[l.ym]||[]).push(l);});
+  const K=['stdUnits','osUnits','dgUnits','bundleUnits','lavUnits','retUnits','tieredUnits','baseCost','osCost','bundleCost','stdBoxes','dgBoxes','stdBoxCost','dgExtra'];
+  const T={months:[]};K.forEach(k=>T[k]=0);
+  const ships=new Set(),skus=new Set(),asins=new Set();let cog=0;
+  Object.keys(byM).sort().forEach(ym=>{
+    const b=_peBucket(byM[ym]),R=rateOf(ym),tiered=prepBandUnits(b);
+    let sb=0,db=0;
+    b.ships.forEach(s=>{const n=+((boxes||{})[s])||0;if(((shipTypes||{})[s]||'Standard')==='DG')db+=n;else sb+=n;ships.add(s);});
+    const M={ym,rate:R.rate,band:R.band,basis:R.basis,info:R,tieredUnits:tiered,stdUnits:b.std,osUnits:b.os,dgUnits:b.dg,
+      bundleUnits:b.bundle,lavUnits:b.lav,retUnits:b.ret,baseCost:tiered*R.rate,osCost:b.os*f.osCostPerUnit,
+      bundleCost:b.bundle*f.bundleCostPerUnit,stdBoxes:sb,dgBoxes:db,stdBoxCost:sb*f.boxCost,dgExtra:db*f.dgExtraPerBox};
+    M.totalUnits=M.stdUnits+M.osUnits+M.dgUnits+M.bundleUnits+M.lavUnits;M.totalBoxes=sb+db;
+    M.boxCostTotal=M.stdBoxCost+M.dgExtra;M.subtotal=M.baseCost+M.osCost+M.bundleCost+M.boxCostTotal;M.withVat=M.subtotal*f.vatRate;
+    T.months.push(M);K.forEach(k=>T[k]+=M[k]);
+    cog+=b.cog;b.skus.forEach(x=>skus.add(x));b.asins.forEach(x=>asins.add(x));
+  });
+  T.totalUnits=T.stdUnits+T.osUnits+T.dgUnits+T.bundleUnits+T.lavUnits;
+  T.totalBoxes=T.stdBoxes+T.dgBoxes;T.boxCostTotal=T.stdBoxCost+T.dgExtra;
+  T.subtotal=T.baseCost+T.osCost+T.bundleCost+T.boxCostTotal;T.withVat=T.subtotal*f.vatRate;
+  const priced=T.months.filter(m=>m.tieredUnits>0),rates=[...new Set(priced.map(m=>m.rate))];
+  const one=T.months.length===1?T.months[0]:(rates.length===1?priced[0]:null);
+  T.mixed=rates.length>1;                       // a range across months at different rates
+  T.unitRate=one?one.rate:null;T.unitRateBand=one?one.band:(T.months.length?'by month':'');
+  T.info=T.months.length===1?T.months[0].info:null;
+  T.basis=T.months.some(m=>m.basis==='estimate')?'estimate':(T.months.some(m=>m.info.running)?'month':'actual');
+  T.ships=ships.size;T.skus=skus.size;T.asins=asins.size;T.cog=cog;
+  return T;
+}
+/* The engine over a set of lines. o = {fees, today:'YYYY-MM-DD', boxes:{shipId:n}, shipTypes:{shipId:type}} */
+function prepEngineFrom(lines,o){
+  const f=o.fees,todayYM=String(o.today||'').slice(0,7),boxes=o.boxes||{},types=o.shipTypes||{};
+  const byYm={},bySh={};
+  (lines||[]).forEach(l=>{(byYm[l.ym]=byYm[l.ym]||[]).push(l);if(l.shipId)(bySh[l.shipId]=bySh[l.shipId]||[]).push(l);});
+  const vols={};Object.keys(byYm).forEach(ym=>{vols[ym]=prepBandUnits(_peBucket(byYm[ym]));});
+  const memo={},rate=ym=>memo[ym]||(memo[ym]=prepMonthRate(ym,vols,todayYM,f));
+  const price=ls=>prepPriceLines(ls,rate,f,boxes,types);
+  return{lines,vols,todayYM,rate,price,
+    months:()=>Object.keys(byYm).sort(),
+    linesMonth:ym=>byYm[ym]||[],
+    priceMonth:ym=>price(byYm[ym]||[]),
+    priceRange:(s,e)=>price((lines||[]).filter(l=>l.day>=s&&l.day<=e)),
+    priceShip:sid=>price(bySh[sid]||[])};
+}
+/* PREP ENGINE END */
+/* The live engine — every sent line the app knows (allSentRows: OA incl. Part
+   Sent, PLUB, returns), dated the way sentRollup dates them, at the shared rates.
+   It reads everything, so build it ONCE per page draw and reuse it. */
+function prepEngine(){
+  const all=allSentRows();
+  return prepEngineFrom(prepLinesFrom(all,_shipFirstDates(all)),
+    {fees:prepFees,today:todayISO(),boxes:(typeof shipBoxes!=='undefined'&&shipBoxes)||{},shipTypes:_shipTypeCache});
+}
 // Prep is billed as a VOLUME flat-rate, not progressive brackets: the total
 // number of units in the period decides ONE per-unit rate, and EVERY unit is
 // charged at that rate. e.g. 1,183 units → falls in the 1,001–3,000 band → all
 // 1,183 units × the tier-2 rate (not 1,000 @ tier1 + 183 @ tier2).
-function pickUnitRate(units){
-  if(units<=prepFees.tier1Units)return prepFees.tier1p;
-  if(units<=prepFees.tier2Units)return prepFees.tier2p;
-  if(units<=prepFees.tier3Units)return prepFees.tier3p;
-  return prepFees.tier4p;
-}
+function pickUnitRate(units){return _pfRate(units,prepFees);}
 // Human-readable band label for the volume the units fall into.
-function unitRateBand(units){
-  if(units<=prepFees.tier1Units)return '1–'+fmt(prepFees.tier1Units);
-  if(units<=prepFees.tier2Units)return (prepFees.tier1Units+1)+'–'+fmt(prepFees.tier2Units);
-  if(units<=prepFees.tier3Units)return (prepFees.tier2Units+1)+'–'+fmt(prepFees.tier3Units);
-  return fmt(prepFees.tier3Units+1)+'+';
-}
+function unitRateBand(units){return _pfBand(units,prepFees);}
 function calcTieredRate(units){
   return units*pickUnitRate(units);
 }
-/* SMART PREP BAND, 30 Aug (Jack): "over the past 2 months I've hit 3,000 —
-   from the 1st it should know it'll do the 3,000 band again." The band floor
-   is no longer the hand-typed expected volume: it is the AVERAGE of the last
-   three completed months' actual tiered units (Standard+DG+Lavarion — the same
-   pool the band prices). One unit prepped on the 1st is priced at the volume
-   this operation genuinely runs. The manual setting survives as a minimum for
-   brand-new months with no history. */
-let _smartExpCache=null;
+/* b628: the old "best of the last 2 months" floor is gone (Jack: the AVERAGE of the
+   last 3, and a finished month at its actual band). Kept for anything that still
+   asks: the running month's starting level. */
 function smartExpectedInfo(){
-  if(_smartExpCache)return _smartExpCache;
-  const manual=prepFees.expectedMonthlyUnits||0;
-  let out={v:manual,src:'your setting',months:0};
-  try{
-    const now=new Date();
-    const vals=[];
-    for(let k=1;k<=2;k++){
-      const d=new Date(now.getFullYear(),now.getMonth()-k,1);
-      const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      const seg=r=>(r._segUnits!=null)?r._segUnits:(r.ship||0);
-      const rs=rows.filter(r=>r.sent==='Yes'&&r.sentDate&&r.sentDate.slice(0,7)===ym
-        &&(!r.shipType||r.shipType==='Standard'||r.shipType==='DG')&&r.inBundle!=='Yes')
-        .reduce((a,r)=>a+seg(r),0);
-      const lv=lavShipments.filter(s=>s.date&&String(s.date).slice(0,7)===ym)
-        .reduce((a,s)=>a+(s.units||0),0);
-      const t=rs+lv;if(t>0)vals.push(t);
-    }
-    if(vals.length){
-      /* the BEST recent month, not the average — a ramp-up month must not
-         drag the assumed volume below what this operation now runs at */
-      const best=Math.max.apply(null,vals);
-      if(best>manual)out={v:best,src:'your best of the last '+vals.length+' month'+(vals.length===1?'':'s'),months:vals.length};
-      else out={v:manual,src:'your setting (recent months ran lower)',months:vals.length};
-    }
-  }catch(e){}
-  _smartExpCache=out;return out;
+  const R=prepEngine().rate(todayISO().slice(0,7));
+  return{v:R.avg,src:R.avgSrc==='setting'?'your setting':'your '+R.avgMonths.length+'-month average',months:R.avgMonths.length};
 }
 const smartExpectedUnits=()=>smartExpectedInfo().v;
 function calcImpliedPrepCost(sentRows,sentLavRows,boxMap,rateUnits){
@@ -818,12 +932,14 @@ function calcImpliedPrepCost(sentRows,sentLavRows,boxMap,rateUnits){
   const bundleCost=bundleUnits*prepFees.bundleCostPerUnit;
   const dgBoxes=Object.entries(boxMap).filter(([sid])=>(_shipTypeCache[sid]||'Standard')==='DG').reduce((a,[,b])=>a+(b||0),0);
   const stdBoxes=Object.values(boxMap).reduce((a,b)=>a+(b||0),0)-dgBoxes;
-  const boxCostTotal=(stdBoxes+dgBoxes)*prepFees.boxCost;
+  /* b628: DG boxes at the DG box cost — the comment above always said so, the sum never did */
+  const stdBoxCost=stdBoxes*prepFees.boxCost,dgExtra=dgBoxes*prepFees.dgExtraPerBox;
+  const boxCostTotal=stdBoxCost+dgExtra;
   const totalBoxes=stdBoxes+dgBoxes;
   const totalUnits=stdUnits+osUnits+dgUnits+bundleUnits+lavUnits;
   const subtotal=baseCost+osCost+bundleCost+boxCostTotal;
   return{totalUnits,stdUnits,osUnits,dgUnits,bundleUnits,lavUnits,tieredUnits,
-    baseCost,osCost,bundleCost,boxCostTotal,dgBoxes,stdBoxes,totalBoxes,
+    baseCost,osCost,bundleCost,boxCostTotal,stdBoxCost,dgExtra,dgBoxes,stdBoxes,totalBoxes,
     unitRate:pickUnitRate(_rateVol),unitRateBand:unitRateBand(_rateVol),
     subtotal,withVat:subtotal*prepFees.vatRate};
 }
@@ -884,7 +1000,37 @@ function openEditShipment(shipId){
     ].filter(Boolean).join(' · ')||'nothing.';
   document.getElementById('editShipDeleteDesc').innerHTML=
     `Sent SKUs go back to the prep sheet as <b>In Warehouse</b> (their Sent status &amp; Shipment ID are cleared — nothing is deleted, so you can re-send them). Any PLUB lines and Returns on this shipment are detached. Use this only if the whole shipment was created by mistake.`;
+  try{_shipMovePaint(shipId);}catch(e){console.warn('[ship move]',e);}
   om('editShipModal');
+}
+/* the popup's "move some lines" list: tick what went on another shipment */
+let _shipMoveItems=[];
+function _shipMovePaint(shipId){
+  const box=document.getElementById('editShipMoveBox');if(!box)return;
+  const c=shipmentContents(shipId);
+  _shipMoveItems=[].concat(
+    c.oaRows.map(r=>({kind:'oa',row:r,from:shipId,label:(r.sku||'')+' · '+String(r.prod||'').slice(0,44),units:normaliseSegments(r).filter(s=>s.shipId===shipId).reduce((t,s)=>t+(parseInt(s.units)||0),0)})),
+    c.lav.map(l=>({kind:'lav',line:l,from:shipId,label:'PLUB · '+String(l.name||l.asin||l.sku||'').slice(0,50),units:parseInt(l.units)||0})),
+    c.ret.map(l=>({kind:'ret',line:l,from:shipId,label:'Return · '+String(l.sku||l.name||'').slice(0,50),units:parseInt(l.units||l.qty)||0})));
+  if(!_shipMoveItems.length){box.innerHTML='';return;}
+  box.innerHTML=`<div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:18px;">
+    <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Move some lines to another shipment</div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.5;">Some of these went on a different shipment? Tick them and type where they really went — the units, numbers and history move with them. Everything else stays here.</div>
+    <div class="shipMoveList">${_shipMoveItems.map((it,i)=>`<label class="shipMoveRow"><input type="checkbox" data-i="${i}"><span>${esc(it.label)}</span><b>${fmt(it.units)}</b></label>`).join('')}</div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <input id="shipMoveTo" type="text" placeholder="FBA15… they really went on" oninput="this.value=this.value.toUpperCase()" style="flex:1;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:12px;font-family:var(--mono);">
+      <button onclick="shipMoveGo()" style="padding:7px 14px;background:var(--btn-green-bg);border:1px solid var(--btn-green-border);color:var(--btn-green-text);border-radius:5px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;">Move ticked lines</button>
+    </div></div>`;
+}
+async function shipMoveGo(){
+  if(typeof histGate==='function'&&histGate())return;
+  const box=document.getElementById('editShipMoveBox');if(!box)return;
+  const picks=[...box.querySelectorAll('input[type=checkbox]:checked')].map(c=>_shipMoveItems[+c.dataset.i]).filter(Boolean);
+  const to=((document.getElementById('shipMoveTo')||{}).value||'').trim().toUpperCase();
+  if(!picks.length){toast('Tick the lines that went on the other shipment','er');return;}
+  if(!to){toast('Type the shipment ID they really went on','er');return;}
+  const n=await moveShipLines(picks,_editShipId,to);
+  if(n)cm('editShipModal');
 }
 
 async function saveShipmentDate(){
