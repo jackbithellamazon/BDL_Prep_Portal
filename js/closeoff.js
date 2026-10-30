@@ -246,6 +246,7 @@ function openSorted(rid,preset){
       <div id="srtRest" style="display:none;">
       <div id="srtColL">
       <div id="srtKind" class="srtWarn" style="display:none;background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.4);color:#93c5fd;"></div>
+      <div id="srtAmzGate" class="srtWarn" style="display:none;margin-top:14px;background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.45);color:#93c5fd;"></div>
       <div id="srtClaimWarn" class="srtWarn" style="display:none;">
         Stock is genuinely gone. Jack sees this flagged so the refund gets claimed.
       </div>
@@ -279,7 +280,7 @@ function openSorted(rid,preset){
       <div id="srtAskSku" style="display:none;margin-top:14px;">
         <label class="srtLab">Which SKU did it go out under? <span style="color:#f87171;">required</span></label>
         <div class="srtCombo">
-          <input id="srtSku" class="srtSel" autocomplete="off" placeholder="Pick the SKU from the list, or type it"
+          <input id="srtSku" class="srtSel" autocomplete="off" placeholder="Pick this product’s SKU from the list"
             oninput="srtSkuSearch()" onfocus="srtSkuSearch()" onkeydown="srtSkuKey(event)"
             onblur="setTimeout(srtSkuShut,130)">
           <div class="srtComboList" id="srtSkuList" style="display:none;"></div>
@@ -318,13 +319,14 @@ function openSorted(rid,preset){
       <div id="srtUnitsWrap">
       <label class="srtLab" style="margin-top:16px;" id="srtUnitsLab">The units</label>
       <div class="srtQty" id="srtUnitsBox">
-        <div><span>Ordered</span><input type="number" id="srtOrd" value="${units}" onchange="srtSync()"></div>
-        <div><span>Arrived</span><input type="number" id="srtGot" value="${got}" onchange="srtSync()"></div>
+        <div><span>Ordered</span><input type="number" id="srtOrd" value="${units}" readonly tabindex="-1" title="What the Purchase Sheet says was ordered. Wrong? Use “The sheet quantity is wrong…” — it records old → new and tells Jack." style="opacity:.75;cursor:not-allowed;"><a href="#" onclick="event.preventDefault();openQtyFix(_srtRid)" style="display:block;margin-top:3px;font-size:10.5px;font-weight:700;color:#93c5fd;">Sheet quantity wrong?</a></div>
+        <div title="Becki’s count, booked in on the Prep Sheet — the close-off can’t change it"><span>Arrived</span><input type="number" id="srtGot" value="${got}" readonly tabindex="-1" style="cursor:not-allowed;color:var(--text2);"></div>
         <div><span>Cancelled</span><input type="number" id="srtCx" value="${cx}" onchange="srtSync()"></div>
         <div class="srtOut"><span>Still outstanding</span><b id="srtLeft">0</b></div>
         <div id="srtSettleNote" class="srtSettleNote" style="display:none;"></div>
       </div>
       <div class="srtHint" id="srtQtyHint"></div>
+      <div class="srtHint" id="srtGotAsk" style="display:none;"></div>
       </div>
       </div>
 
@@ -436,8 +438,9 @@ function srtPick(v){
    that when something ships on the wrong SKU it is nearly always the SAME ASIN,
    so that is the only thing it offers until you type. Typing widens it to
    everything and matches SKU, product name or ASIN, same-ASIN rows still first.
-   Free text is still accepted — the field is optional and the answer might be a
-   SKU that isn't in the app at all. */
+   Jack, 29 Oct (the OneBlade): the answer has to be a SKU of THIS product. Anything
+   else — another product's SKU, a SKU the app doesn't have — needs a reason in the
+   override box, and a shipment ID is refused (_srtSkuJudge). */
 let _srtSkuIx=-1;
 function _srtSkuRows(q){
   const r=_rowById(_srtRid)||{};
@@ -702,7 +705,7 @@ function _srtApplyDraft(d){
   _srtTicks={};(d.ticks||[]).forEach(k=>{_srtTicks[k]=1;});
   set('srtPaid',d.paid);set('srtRefund',d.refunded);set('srtArrived',d.arrived);
   set('srtDate',d.due);set('srtSku',d.wentAs);
-  set('srtOrd',d.ord);set('srtGot',d.got);set('srtCx',d.cx);
+  set('srtCx',d.cx);   /* Ordered is the sheet's — never a saved draft's (b627) */   /* Arrived is Becki's live count, never a saved draft's (Jack, 29 Oct) */
   set('srtNote',d.note);set('srtFix',d.fix);
   if(d.what)srtPick(d.what);
   /* AFTER srtPick — it resets the follow-up boxes to the outcome's defaults,
@@ -746,48 +749,68 @@ function closeSorted(){
   _srtRid=null;
 }
 function srtSync(){
+  const _rG=_rowById(_srtRid);
   const ord=parseInt((document.getElementById('srtOrd')||{}).value)||0;
-  const got=parseInt((document.getElementById('srtGot')||{}).value)||0;
+  /* Jack, 29 Oct (the C920 — 2 typed into Arrived became 2 webcams that never existed): Arrived is Becki's count,
+     read from the row. The box only shows it; nothing typed in this popup ever reaches r.rcvd. */
+  const _gEl=document.getElementById('srtGot');
+  const got=_rG?(parseInt(_rG.rcvd)||0):(parseInt((_gEl||{}).value)||0);
+  if(_gEl&&String(_gEl.value)!==String(got))_gEl.value=got;
   const cx =parseInt((document.getElementById('srtCx') ||{}).value)||0;
   const left=ord-got-cx;
   const L=document.getElementById('srtLeft');
   const _pk=(document.getElementById('srtWhat')||{}).value||'';
-  const _settles=left>0&&['arrived-ok','wrong-sku','cancel-wrong-sku','cancelled','duplicate'].includes(_pk);
-  if(L){L.textContent=left;L.style.color=left===0||_settles?'var(--green)':(left<0?'#f87171':'#fbbf24');L.title='';}
+  /* Jack, 29 Oct (the OneBlade): "that should be escalated to me" — an Amazon order's "it's here" outcomes wait
+     for his account check (_srtAmzGate). Until then nothing settles, so nothing below says it will. */
+  const _gate=_srtAmzGate(_pk,_rG);
+  const _settles=!_gate&&left>0&&['arrived-ok','wrong-sku','cancel-wrong-sku','cancelled','duplicate'].includes(_pk);
+  /* _settleClosedUnits (js/prep.js): "arrived and correct" traces nothing, so units still out go to Becki */
+  const _toBecki=_settles&&_pk==='arrived-ok';
+  if(L){L.textContent=left;L.style.color=_toBecki?'#22d3ee':(left===0||_settles?'var(--green)':(left<0?'#f87171':'#fbbf24'));L.title='';}
   /* Jack, 9 Sep: a closure used to leave the outstanding units exactly as they
      were, which is how five rows ended up closed on one page and open on the
      Prep Sheet. Now closing settles them — so the popup says so out loud
      rather than hiding it in a tooltip. */
+  /* Jack, 29 Oct (the Canon SELPHY): it said "Closing books the 5 still out in as arrived" while the code sent
+     them to Becki's shelf check. Each line now says what _settleClosedUnits actually does. */
   {const _sn=document.getElementById('srtSettleNote');
    if(_sn){
      const _sku=((document.getElementById('srtSku')||{}).value||'').trim();
+     const _sj=_srtSkuJudge(_sku,_rG);
+     const _skuW=_sj.kind==='same'?('<b>'+esc(_sj.sku)+'</b>'):'the other SKU';
+     /* _statusFollowsStock files a row nothing ever landed on or left from; Remove from Prep Sheet archives the rest */
+     const _off=['cancelled','duplicate'].includes(_pk)||(got===0&&!!_rG&&(parseInt(_rG.ship)||0)===0);
      _sn.style.display=_settles?'block':'none';
+     _sn.style.color=_toBecki?'#67e8f9':'';_sn.style.background=_toBecki?'rgba(34,211,238,.08)':'';_sn.style.borderColor=_toBecki?'rgba(34,211,238,.4)':'';
      _sn.innerHTML=!_settles?'':(
-       _pk==='arrived-ok'?`Closing books the <b>${fmt(left)}</b> still out in as arrived &mdash; nothing stays outstanding.`
-       :(_pk==='wrong-sku'||_pk==='cancel-wrong-sku')?`Closing accounts for the <b>${fmt(left)}</b> still out on ${_sku?('<b>'+esc(_sku)+'</b>'):'the other SKU'} &mdash; the row comes off the Prep Sheet.`
+       _pk==='arrived-ok'?`Closing does <b>not</b> book the <b>${fmt(left)}</b> still out in. They go to <b>Becki to check the shelves</b> &mdash; if she finds them she books them in and it clears; if not, it goes to Jack.`
+       :(_pk==='wrong-sku'||_pk==='cancel-wrong-sku')?`Closing counts the <b>${fmt(left)}</b> still out as gone out under ${_skuW} &mdash; nothing stays owed on this row${_off?' and it comes off the Prep Sheet':''}.`
        :`Closing records the <b>${fmt(left)}</b> still out as cancelled &mdash; the row comes off the Prep Sheet.`);
    }}
   const hint=document.getElementById('srtQtyHint');
   if(hint){
     hint.textContent = left<0 ? 'That adds up to more than were ordered — check the numbers.'
       : left===0 ? 'Nothing outstanding — this stops showing as late anywhere in the app.'
+      : _settles ? ''
       : left+' unit'+(left===1?'':'s')+' would still be treated as on the way.';
     hint.style.color = left<0?'#f87171':(left===0?'var(--green)':'#fbbf24');
   }
   const what=(document.getElementById('srtWhat')||{}).value||'';
   const warn=document.getElementById('srtClaimWarn');
   if(warn)warn.style.display=_resClaim(what)?'block':'none';
-  const _r0=_rowById(_srtRid);
+  const _r0=_rG;
   const kind=_resKind(what,_r0);
   const kEl=document.getElementById('srtKind');
   if(kEl&&what){
     kEl.style.display='block';
-    kEl.textContent=(kind==='biz'&&_r0&&_jackSupplier(_r0.sup)&&_resClaim(what))
+    kEl.textContent=_gate?'Amazon order — Jack checks the account first'
+      :(kind==='biz'&&_r0&&_jackSupplier(_r0.sup)&&_resClaim(what))
       ? 'Amazon claim — Jack raises this, not you'
       : _kindWord(kind);
-    kEl.style.color=kind==='ops'?'#86efac':'#93c5fd';
-    kEl.style.background=kind==='ops'?'rgba(74,222,128,.1)':'rgba(96,165,250,.1)';
-    kEl.style.borderColor=kind==='ops'?'rgba(74,222,128,.4)':'rgba(96,165,250,.4)';
+    const _blue=!!_gate||kind!=='ops';
+    kEl.style.color=_blue?'#93c5fd':'#86efac';
+    kEl.style.background=_blue?'rgba(96,165,250,.1)':'rgba(74,222,128,.1)';
+    kEl.style.borderColor=_blue?'rgba(96,165,250,.4)':'rgba(74,222,128,.4)';
   }else if(kEl)kEl.style.display='none';
   /* Only ask what this outcome actually needs. Asking "did it arrive?" about a
      cancelled order is noise, and noise is why nobody fills these in. */
@@ -812,6 +835,23 @@ function srtSync(){
   const uWrap=document.getElementById('srtUnitsWrap');
   const wantUnits=what&&kind!=='date'&&what!=='duplicate';
   if(uWrap)uWrap.style.display=wantUnits?'block':'none';
+  /* the Amazon gate, said out loud */
+  {const gb=document.getElementById('srtAmzGate');
+   if(gb){gb.style.display=_gate?'block':'none';
+     gb.innerHTML=!_gate?'':_gate.why==='not-arrived'
+       ?`<b>Jack checked the account: it did not arrive.</b>${_gate.check&&_gate.check.note?` &ldquo;${esc(_gate.check.note)}&rdquo;`:''} &ldquo;${esc(_resText(what))}&rdquo; says it did, so it goes back to him with what you found. Nothing closes and no units move until he answers.`
+       :`<b>Amazon order &mdash; Jack hasn&rsquo;t checked the account yet.</b> Only he can see whether it was delivered, so &ldquo;${esc(_resText(what))}&rdquo; goes to him first, with your note. Nothing closes and no units move until he answers &mdash; then it comes back to you to close.`;}}
+  /* more arrived than Becki booked in? That is a shelf question, one press — never a number typed here */
+  {const ga=document.getElementById('srtGotAsk');
+   if(ga){const r0=_rG||{},owe=_owedUnits(r0),withB=!!(r0.resolution&&r0.resolution.amzDelivered&&!r0.resolution.amzDelivered.done);
+     const on=!!what&&!!wantUnits&&owe>0;
+     ga.style.display=on?'block':'none';
+     if(on){const _amz=_amazonRow(r0),_ck=_amzJackCheck(r0),_jf=_amz&&!(typeof _isJack==='function'&&_isJack())&&!(_ck&&!_ck.no);
+       ga.style.color='var(--text2)';
+       ga.innerHTML=`Arrived is Becki&rsquo;s count &mdash; <b>${fmt(got)}</b> booked in. It can&rsquo;t be typed over here. `
+         +(withB?'She is already checking the shelves for this one.'
+           :_jf?`Think more arrived? It&rsquo;s an Amazon order, so Jack checks the account first. <button type="button" class="srtSwap" onclick="srtJackFirst()">Send to Jack &mdash; check the Amazon order first &rarr;</button>`
+           :`Think more arrived? <button type="button" class="srtSwap" onclick="srtToBecki()">Ask Becki to check the shelves &rarr;</button>`);}}}
 
   const paid=(document.getElementById('srtPaid')||{}).value||'';
   /* Only worth asking once we know money left. "Cancelled" and "refunded" are
@@ -830,33 +870,49 @@ function srtSync(){
     rh.style.color=refunded==='no'?'#fbbf24':'var(--text2)';
   }
   const wentAs=((document.getElementById('srtSku')||{}).value||'').trim();
+  /* Jack, 29 Oct (the OneBlade: "FBA15M8T8MRG and FBA15MB9ZJ4L same SKU was sent" was accepted as a SKU):
+     "went out under" is a SKU of THIS product, picked from the list (_srtSkuJudge). A shipment ID is refused
+     outright; another product's SKU, this line's own SKU, or anything PrepHub doesn't know needs the override box
+     with a reason — it goes in the history. */
+  const _sj=ask.includes('sku')?_srtSkuJudge(wentAs,_rG):{kind:'na',sku:wentAs};
   const sh=document.getElementById('srtSkuHint');
   if(sh){
-    const r0=_rowById(_srtRid)||{};
-    const hit=wentAs?rows.find(x=>(x.sku||'').toLowerCase()===wentAs.toLowerCase()):null;
+    const r0=_rG||{};
     const same=rows.filter(x=>!x.archived&&x.asin&&x.asin===r0.asin&&x.sku!==r0.sku).length;
     sh.textContent=!wentAs
       ? (same?`Goes on the Purchase Sheet note so it can be traced. ${same} other row${same===1?'':'s'} share this ASIN.`
              :'Goes on the Purchase Sheet note so it can be traced.')
-      : hit?('Matched — '+(hit.prod||hit.sku||'').slice(0,50))
-      : 'Not a row in the app — still recorded on the note.';
-    sh.style.color=!wentAs?'var(--text2)':(hit?'var(--green)':'#fbbf24');
+      : _sj.kind==='same'?('Matched — a SKU of this product · '+String((_sj.row&&_sj.row.prod)||_sj.sku||'').slice(0,50))
+      : _sj.kind==='shipid'?'That’s a shipment ID, not a SKU.'
+      : _sj.kind==='other'?('A SKU of another product — '+String((_sj.row&&_sj.row.prod)||'').slice(0,50))
+      : _sj.kind==='own'?'That is this line’s own SKU.'
+      : 'Not a SKU PrepHub knows.';
+    sh.style.color=!wentAs?'var(--text2)':(_sj.kind==='same'?'var(--green)':'#fbbf24');
   }
   /* Jack, 23 Oct — the Bosch: closed as "went out under Amg_12.44", but 12.44 was
      its own order of 5 and sent exactly 5. The answer could not have been right.
      Now the SKU named has to have sent MORE than its own orders (PrepHub, or
      SellerFuse via the latest check) — or someone overrides it with a reason. */
-  const _rSku=_rowById(_srtRid)||{};
+  const _rSku=_rG||{};
   const _need=Math.max(1,_owedUnits(_rSku)||0,(typeof _leftUnits==='function'?_leftUnits(_rSku):0)||0);
-  const _spare=(wentAs&&typeof sfSkuSpare==='function')?sfSkuSpare(wentAs,_rSku):null;
-  const _skuShort=!!wentAs&&ask.includes('sku')&&_spare!==null&&_spare<_need;
+  const _spare=(_sj.kind==='same'&&typeof sfSkuSpare==='function')?sfSkuSpare(_sj.sku,_rSku):null;
+  const _skuShort=_sj.kind==='same'&&_spare!==null&&_spare<_need;
+  const _skuOther=['other','own','unknown'].includes(_sj.kind)?_sj.kind:'';
+  const _skuShip=_sj.kind==='shipid';
   const _skuWhy=((document.getElementById('srtSkuWhy')||{}).value||'').trim();
-  window._srtSkuCheck={sku:wentAs,spare:_spare,need:_need,why:_skuWhy,short:_skuShort};
-  {const w=document.getElementById('srtSkuWarn'),wt=document.getElementById('srtSkuWarnTxt');
-    if(w)w.style.display=_skuShort?'block':'none';
+  window._srtSkuCheck={sku:_sj.sku||wentAs,spare:_spare,need:_need,why:_skuWhy,short:_skuShort,other:_skuOther,shipid:_skuShip};
+  {const w=document.getElementById('srtSkuWarn'),wt=document.getElementById('srtSkuWarnTxt'),wy=document.getElementById('srtSkuWhy');
+    const _on=_skuShort||!!_skuOther||_skuShip;
+    if(w)w.style.display=_on?'block':'none';
+    if(wy)wy.style.display=_skuShip?'none':'';
     /* the C920: no SKU of the product had anything spare because the units never existed — say so */
     const _dupSk=_skuShort&&typeof _dupLineOf==='function'?_dupLineOf(_rSku):null;
-    if(wt&&_skuShort)wt.innerHTML=`<b>${esc(wentAs)}</b> only sent what its own order${_spare===0?'':'s'} had${_spare?` (${fmt(_spare)} spare, ${fmt(_need)} needed)`:''} — these can’t have gone out as it. Pick another SKU, or override with a reason.`
+    if(wt&&_on)wt.innerHTML=(_skuShip
+        ?`<b>That's a shipment ID — pick the SKU it went out under.</b> ${(_sj.ids||[]).length>1?esc(_sj.ids.join(' and '))+' are shipments':'A shipment'} the units rode on, not the listing they went out as &mdash; the list shows this product&rsquo;s SKUs.`
+        :_skuOther==='other'?`<b>${esc(_sj.sku)}</b> is a SKU of another product (${esc(String((_sj.row&&_sj.row.prod)||'').slice(0,60))}) &mdash; it can&rsquo;t be where this product went. Pick one of this product&rsquo;s SKUs from the list, or override with a reason.`
+        :_skuOther==='own'?`<b>${esc(_sj.sku)}</b> is this line&rsquo;s own SKU, not another one. Pick the SKU it went out under, or override with a reason.`
+        :_skuOther?`<b>${esc(wentAs)}</b> isn&rsquo;t a SKU PrepHub knows. Pick one of this product&rsquo;s SKUs from the list, or override with a reason.`
+        :`<b>${esc(_sj.sku)}</b> only sent what its own order${_spare===0?'':'s'} had${_spare?` (${fmt(_spare)} spare, ${fmt(_need)} needed)`:''} — these can’t have gone out as it. Pick another SKU, or override with a reason.`)
       +(_dupSk?`<div class="srtDupHint">Order ${esc(_rSku.oid)} is also on <b>${esc(_dupSk.sku)}</b>, which arrived ${fmt(_dupSk.got)} of ${fmt(_dupSk.got)}. If the order was ${fmt(_dupSk.got)}, this line is a copy. <button type="button" class="srtSwap" onclick="srtPick('duplicate')">Use “Duplicate record” →</button></div>`:'');}
   const arrived=(document.getElementById('srtArrived')||{}).value||'';
   const due=(document.getElementById('srtDate')||{}).value||'';
@@ -865,7 +921,10 @@ function srtSync(){
   if(ph)ph.textContent=paid==='no'?'It never completed — the line comes off the Purchase Sheet.'
     :paid==='yes'?'The purchase stays on the sheet with the refund recorded against it.':'';
   const ah=document.getElementById('srtArrHint');
-  if(ah)ah.textContent=arrived==='yes'?'Booked in as received, so it stops showing as late. The gated decision goes to Jack.'
+  /* Jack, 29 Oct: "yes, it's here" on a gated row no longer books anything in — Becki's count does */
+  if(ah)ah.textContent=arrived==='yes'?(_rG&&_owedUnits(_rG)>0
+      ?`The close-off doesn’t book anything in — ${fmt(got)} booked in by Becki. If more is here she counts it (the button under the units). The gated decision goes to Jack.`
+      :'Already booked in. The gated decision goes to Jack.')
     :arrived==='no'?'Stays outstanding. Jack decides what happens next.':'';
 
   const cause=((document.getElementById('srtNote')||{}).value||'').trim();
@@ -882,7 +941,8 @@ function srtSync(){
     ||(ask.includes('shipid')&&!_shipIdV)
     ||(ask.includes('arrived')&&!arrived)||(kind==='date'&&!due)
     ||(ask.includes('sku')&&!wentAs)
-    ||(_skuShort&&!_skuWhy);
+    ||_skuShip
+    ||((_skuShort||!!_skuOther)&&!_skuWhy);
   const ticked=FOLLOW_UPS.some((f,i)=>{const c=document.getElementById('srtF'+i);return c&&c.checked;});
   /* Sarah only has to write a recommendation when Jack is the one deciding, or
      when she has not ticked anything to say what happens next. Demanding it on
@@ -900,11 +960,12 @@ function srtSync(){
   const ok=!!what&&left>=0&&(!needFix||!!fix)&&!missingAsk&&!mism&&!todoLeft.length;
   /* Jack, 8 Sep (Sarah stuck on a grey button): the button always works —
      press it and it says exactly what still needs doing, then lets her close. */
-  window._srtGate={ok,what,left,mism,missingAsk,needFix:!!(needFix&&!fix),todoLeft,paid,ask,refunded,arrived,due,kind,wentAs,skuShort:_skuShort,skuWhy:!!_skuWhy,shipid:_shipIdV};
+  window._srtGate={ok,what,left,mism,missingAsk,needFix:!!(needFix&&!fix),todoLeft,paid,ask,refunded,arrived,due,kind,wentAs,skuShort:_skuShort,skuWhy:!!_skuWhy,shipid:_shipIdV,
+    skuShip:_skuShip,skuOther:_skuOther,amzGate:_gate?_gate.why:''};
   if(go){
     go.disabled=!what;go.style.opacity=what?'1':'.45';go.style.cursor=what?'pointer':'not-allowed';
     /* nothing reaches Jack before the investigation is written down */
-    go.textContent=kind==='date'?'Set the date':(kind==='ops'?'Close it off':'Send to Jack');
+    go.textContent=_gate?'Send to Jack — check the Amazon order first':kind==='date'?'Set the date':(kind==='ops'?'Close it off':'Send to Jack');
   }
   const sv=document.getElementById('srtSaveBtn');
   if(sv)sv.style.display=what?'inline-block':'none';
@@ -913,10 +974,14 @@ function srtSync(){
   if(fx)fx.style.display=needFix?'block':'none';
   if(msg){
     const plain=!what?'Pick what happened first.'
+      :_gate?(_gate.why==='not-arrived'?'Jack’s check says it did not arrive — it goes back to him with your note.'
+        :'Amazon order — Jack checks the account first. Your note goes with it.')
       :left<0?'The units don\'t add up.'
       :mism==='full'?`${got} unit${got===1?'':'s'} did arrive — that is a part cancellation, not the whole order.`
       :mism==='part'?'Nothing arrived at all — that is the whole order cancelled.'
       :missingAsk?(ask.includes('sku')&&!wentAs?'Say which SKU it went out under — pick it from the list.'
+        :_skuShip?"That's a shipment ID — pick the SKU it went out under."
+        :(_skuOther&&!_skuWhy)?'That isn’t a SKU of this product — pick one from the list, or give a reason to override.'
         :(_skuShort&&!_skuWhy)?'That SKU has no spare units — pick another, or give a reason to override.':'Answer the question above.')
       :(needFix&&!fix)?'Say what you suggest we do.'
       :todoLeft.length?`${todoLeft.length} step${todoLeft.length===1?'':'s'} still to tick off.`
@@ -926,12 +991,12 @@ function srtSync(){
       :'Jack gets your findings and makes the call.';
     /* Offer the switch rather than just refusing — she knows what happened, the
        app is the one that picked the wrong word for it. */
-    const swap=mism==='full'?`<button type="button" class="srtSwap" onclick="srtPick('part-cancelled')">Use “Part arrived, the rest cancelled” →</button>`
+    const swap=_gate?'':mism==='full'?`<button type="button" class="srtSwap" onclick="srtPick('part-cancelled')">Use “Part arrived, the rest cancelled” →</button>`
               :mism==='part'?`<button type="button" class="srtSwap" onclick="srtPick('cancelled')">Use “Cancelled — the whole order” →</button>`:'';
     /* Jack, 08 Aug: a step that genuinely cannot be done yet must not trap the
        row open forever. The override is always available, always recorded, and
        every unticked step becomes a real job in the Action Centre. */
-    const over=(!mism&&todoLeft.length&&!missingAsk&&left>=0&&(!needFix||!!fix))
+    const over=(!_gate&&!mism&&todoLeft.length&&!missingAsk&&left>=0&&(!needFix||!!fix))
       ?`<button type="button" class="srtSwap" onclick="srtAskClose(true)">Can’t do one of these? Close anyway →</button>`:'';
     msg.innerHTML=esc(plain)+swap+over;
   }
@@ -949,6 +1014,8 @@ function srtAskClose(override){
   const r=_rowById(_srtRid);if(!r)return;
   const what=(document.getElementById('srtWhat')||{}).value||'';
   if(!what)return;
+  /* Jack, 29 Oct (the OneBlade): an Amazon "it's here" he hasn't checked goes to him first, with her note */
+  if(_srtAmzGate(what,r))return srtJackFirst();
   const kind=_resKind(what,r);
   /* Say what is in the way, in her words, on the button she just pressed. */
   const G=window._srtGate||{};
@@ -966,6 +1033,8 @@ function srtAskClose(override){
       if(A.includes('arrived')&&!G.arrived){need.push('Say whether the stock arrived — the question on the left.');focusId=focusId||'srtArrived';}
       if(G.kind==='date'&&!G.due){need.push('Set the date.');focusId=focusId||'srtDate';}
       if(A.includes('sku')&&!G.wentAs){need.push('Say which SKU it went out under — pick it from the list.');focusId=focusId||'srtSku';}
+      else if(G.skuShip){need.push("That's a shipment ID — pick the SKU it went out under.");focusId=focusId||'srtSku';}
+      else if(G.skuOther&&!G.skuWhy){need.push(`${G.wentAs} isn’t a SKU of this product — pick one of its SKUs from the list, or type why it’s still right in the override box.`);focusId=focusId||'srtSkuWhy';}
       else if(G.skuShort&&!G.skuWhy){need.push(`${G.wentAs} only sent what its own order had, so these can’t have gone out under it — pick another SKU, or type why it’s still right in the override box.`);focusId=focusId||'srtSkuWhy';}
       if(need.length===n0)need.push('Answer the question on the left.');
     }
@@ -1073,9 +1142,11 @@ async function submitSorted(){
   const what=(document.getElementById('srtWhat')||{}).value||'';
   if(!what){_unlatch();return;}
   const ord=parseInt((document.getElementById('srtOrd')||{}).value)||0;
-  const got=parseInt((document.getElementById('srtGot')||{}).value)||0;
+  const got=parseInt(r.rcvd)||0;   /* Becki's count, never a box (Jack, 29 Oct — the C920) */
   const cx =parseInt((document.getElementById('srtCx') ||{}).value)||0;
   if(ord-got-cx<0){_unlatch();return;}
+  /* an Amazon "it's here" Jack hasn't checked never closes — the button sends it to him (srtJackFirst) */
+  if(_srtAmzGate(what,r)){_unlatch();toast('Amazon order — Jack checks the account first: press “Send to Jack”','er');return;}
   const follow=FOLLOW_UPS.filter((f,n)=>{const c=document.getElementById('srtF'+n);return c&&c.checked;});
   const note=((document.getElementById('srtNote')||{}).value||'').trim();
   const fix=((document.getElementById('srtFix')||{}).value||'').trim();
@@ -1083,7 +1154,18 @@ async function submitSorted(){
   const paid=(document.getElementById('srtPaid')||{}).value||'';
   const arrived=(document.getElementById('srtArrived')||{}).value||'';
   const due=(document.getElementById('srtDate')||{}).value||'';
-  const wentAs=((document.getElementById('srtSku')||{}).value||'').trim();
+  let wentAs=((document.getElementById('srtSku')||{}).value||'').trim();
+  /* Jack, 29 Oct (the OneBlade): "went out under" is a SKU of this product — checked again here, on the press */
+  const _sjS=_resAsk(what).includes('sku')&&wentAs?_srtSkuJudge(wentAs,r):null;
+  const _whyS=((document.getElementById('srtSkuWhy')||{}).value||'').trim();
+  if(_sjS&&_sjS.kind==='shipid'){_unlatch();toast("That's a shipment ID — pick the SKU it went out under.",'er');return;}
+  const _otherS=!!_sjS&&['other','own','unknown'].includes(_sjS.kind);
+  if(_otherS&&!_whyS){_unlatch();toast('That isn’t a SKU of this product — pick one from the list, or give a reason to override','er');return;}
+  if(_sjS&&_sjS.kind==='same')wentAs=_sjS.sku;
+  const _needS=Math.max(1,_owedUnits(r)||0,(typeof _leftUnits==='function'?_leftUnits(r):0)||0);
+  const _spS=(_sjS&&_sjS.kind==='same'&&typeof sfSkuSpare==='function')?sfSkuSpare(wentAs,r):null;
+  const _shortS=_spS!==null&&_spS<_needS;
+  if(_shortS&&!_whyS){_unlatch();toast(`${wentAs} only sent what its own order had — pick another SKU, or give a reason to override`,'er');return;}
   const refunded=(document.getElementById('srtRefund')||{}).value||'';
   /* Snapshot the ticks BEFORE anything calls closeSorted — that clears them,
      and the whole record of what was actually done would go with it. */
@@ -1092,6 +1174,10 @@ async function submitSorted(){
   const stepsDone=stepsAll.filter(s=>ticks[s.k]).map(s=>s.text);
   const stepsOpen=stepsAll.filter(s=>!ticks[s.k]).map(s=>s.text);
   const override=_srtOverride,overrideWhy=_srtOverrideWhy;
+  /* b627: looks wrong → Jack. A SKU check overridden ("only sent what its own order had", or not this product's SKU)
+     never closes — it goes to Jack as a decision with her reason. Jack's own close is his call. */
+  const _looksWrong=(_shortS||_otherS)&&!(typeof _isJack==='function'&&_isJack())
+    ?{why:_otherS?`“went out under ${wentAs}” — not a SKU of this product`:`“went out under ${wentAs}” — that SKU only sent what its own order${_spS===0?'':'s'} had (${fmt(_spS||0)} spare, ${fmt(_needS)} needed)`,her:_whyS,by:_who(),at:new Date().toISOString()}:null;
 
   /* "Still in transit" is not a closure at all — it just dates the row. */
   if(kind==='date'){
@@ -1102,13 +1188,14 @@ async function submitSorted(){
     _unlatch();
     return;
   }
-  /* Gated stock that HAS turned up must be booked in, or it keeps showing as
-     missing while the real question (what do we do with it?) goes unanswered. */
-  if(kind==='gated'&&arrived==='yes'){
-    const units=ord||r.exp||0;
-    if((parseInt(r.rcvd)||0)<units)r.rcvd=units;
-    r.delivered='Yes';
-  }
+  /* Jack, 29 Oct: Undo puts the units back — what the row held before this close, taken before anything moves */
+  const _snapB=_snapTake(r,_SNAP_COUNT.concat(_SNAP_LABEL)),_snapP=_snapPrevRes(r);
+  /* whose account check stands behind an Amazon close (the gate let it through, so there is one) */
+  const _jcS=(typeof _amazonRow==='function'&&_amazonRow(r))?((typeof _isJack==='function'&&_isJack())?{how:'closed-by-jack',by:_who(),at:new Date().toISOString()}:_amzJackCheck(r)):null;
+  /* Gated stock that has turned up: the close-off never books it in (Jack, 29 Oct — Becki's count does). Her
+     "yes, it's here" rides on the resolution (arrived) and marks the row delivered only where it can't be a
+     guess: a supplier order she checks herself, or one already booked in in full. */
+  if(kind==='gated'&&arrived==='yes'&&(!_amazonRow(r)||_owedUnits(r)===0))r.delivered='Yes';
   /* Admin closes on the spot. A business decision or a gated product goes to
      Jack — but only WITH the investigation and a recommendation attached. */
   /* The chase that got here is history, and history is never dropped — the
@@ -1123,17 +1210,23 @@ async function submitSorted(){
     const sid=_cs.id;
     if(!sid){toast('Enter the FBA shipment ID','er');_unlatch();return;}
     if(!_cs.ok){toast('That isn\u2019t an FBA shipment ID — it looks like FBA15 and 7 letters/numbers','er');_unlatch();return;}
-    if(!r.rcvd||r.rcvd===0)r.rcvd=r.exp||0;
+    /* Jack, 29 Oct: "SF would say if it has — only we say it hasn't until we're told otherwise" */
+    if(!_sfShowsOnShip(r,sid)){_unlatch();
+      toast(`SellerFuse doesn’t show ${String(r.prod||r.sku||'this product').slice(0,40)} on ${sid} — it stays late. If it went, it shows on Jack’s Fix-it list after the next check.`,'er');return;}
+    /* no typed booking-in (Jack, 29 Oct): the shipment it names is what books the units in — addSegment raises
+       Qty Received to what went out, with its own audit line, as on the Prep Sheet */
     const remain=remainingToShip(r);
     if(remain>0)addSegment(r,sid,remain,r.shipType||'Standard');
     else{const ids=r.allShipIds||[];if(!ids.includes(sid))ids.push(sid);r.allShipIds=ids;r.shipId=sid;}
     r.status='Sent to Amazon';r.sent='Yes';r.sentDate=shipDateFor(sid);r.sentAt=getNowUK();
     try{logAudit('Shipment ID added from Admin',`${r.sku||''} → ${sid}`);}catch(e){}
   }
-  r.resolution={notDup:(r.resolution&&r.resolution.notDup)||undefined,state:kind==='ops'?'approved':'proposed',kind,what,note,fix,followUps:follow,
+  r.resolution={notDup:(r.resolution&&r.resolution.notDup)||undefined,state:(kind==='ops'&&!_looksWrong)?'approved':'proposed',looksWrong:_looksWrong||undefined,kind,what,note,fix,followUps:follow,
     paid,refunded,arrived,wentAs,by:_who(),at:new Date().toISOString(),claim:_resClaim(what),
     /* the SKU check behind a wrong-SKU close, and the reason if someone overrode it */
-    wentAsCheck:(wentAs&&window._srtSkuCheck&&window._srtSkuCheck.sku===wentAs)?{spare:window._srtSkuCheck.spare,need:window._srtSkuCheck.need,override:window._srtSkuCheck.short?window._srtSkuCheck.why:'',by:_who(),at:new Date().toISOString()}:null,
+    wentAsCheck:(_sjS&&wentAs)?{spare:_spS,need:_needS,override:(_shortS||_otherS)?_whyS:'',notThisProduct:_otherS?_sjS.kind:undefined,by:_who(),at:new Date().toISOString()}:null,
+    /* the account check behind an Amazon close: Jack's answer, his tick, or Jack closing it himself */
+    jackCheck:_jcS||undefined,
     chase:_priorCase||undefined,
     /* What she actually did, not just what she was told to do. stepsOpen is the
        honest bit — the jobs that went out of this popup unfinished, and why. */
@@ -1196,16 +1289,17 @@ async function submitSorted(){
     await addVaActions(r,jobs,[overrideWhy?('Left open: '+overrideWhy):'',sheetNote,fix].filter(Boolean).join(' — ')||_resText(what));
   }
   r.cancelledQty=cx;
-  /* The close-off popup wrote its "Arrived" figure straight onto the row with
-     no floor, so closing a part-sent row as "nothing arrived" erased the
-     received count out from under a live shipment. */
-  if(got!==(parseInt(r.rcvd)||0)&&!_blockRcvdBelowSent(r,got))r.rcvd=got;
+  /* Jack, 29 Oct (the C920): the close-off never writes Qty Received. It copied its "Arrived" box onto the row,
+     so 2 typed in became 2 webcams PrepHub believed were on the shelf. Becki's count is the only source; "more
+     arrived" is her shelf check (srtToBecki). The only booking-in a close does is _settleClosedUnits' own. */
   if(ord!==(r.exp||0))r.exp=ord;
   /* an ops close is final the moment it is pressed — settle the row now */
-  if(kind==='ops'){const _st=_settleClosedUnits(r,what);
+  if(kind==='ops'&&!_looksWrong){const _st=_settleClosedUnits(r,what);
     if(_st.toBecki){await _sendToBeckiShelves(r,`${fmt(_owedUnits(r))} unaccounted for after "${_resText(what)}"`);
       try{logAudit('Sent to the warehouse to check',`${r.sku||r.asin||''} — ${_st.note}`);}catch(e){}}
     else if(_st.changed&&_st.note){try{logAudit('Row settled on close',`${r.sku||r.asin||''} — ${_st.note}`);}catch(e){}}}
+  /* the snapshot Undo reads: the row before, the counted fields after, and the resolution this one replaced */
+  if(r.resolution)r.resolution.closeSnap={v:1,at:new Date().toISOString(),by:_who(),before:_snapB,after:_snapTake(r,_SNAP_COUNT),prev:_snapP};
   r._dirty=true;
   closeSorted();
   /* the row leaves the list straight away — the save carries on behind it
@@ -1220,7 +1314,7 @@ async function submitSorted(){
     showUndoBar(kind==='ops'?'Closed off — Jack has been told':'Sent to Jack with your findings',
       ()=>reopenResolution(rid,true));
     logAudit(kind==='ops'?'Closed by VA':'Decision sent to Jack',
-      [`${r.sku||r.asin||''} — ${_resText(what)}${wentAs?' · went out under '+wentAs:''}`,fix,
+      [`${r.sku||r.asin||''} — ${_resText(what)}${wentAs?' · went out under '+wentAs:''}${(_shortS||_otherS)&&_whyS?' · override'+(_otherS?' (not a SKU of this product)':'')+': '+_whyS:''}`,fix,
        stepsDone.length?`${stepsDone.length} step${stepsDone.length===1?'':'s'} done`:'',
        override?`CLOSED WITH ${stepsOpen.length} OUTSTANDING: ${overrideWhy}`:''
       ].filter(Boolean).join(' · '));
@@ -1236,17 +1330,33 @@ async function submitSorted(){
 }
 
 // ── JACK APPROVING ────────────────────────────────────────────────────────────
+/* b627: does SellerFuse show this product (any of its SKUs) on that shipment? — the run's shipments, the 60-day
+   product lines, and the late-order lines all count. No sighting = not sent. */
+function _sfShowsOnShip(r,sid){
+  const S=(typeof SFRUN!=='undefined'&&SFRUN)?SFRUN:window.SFRUN;if(!S||!r)return false;   /* the app's own binding — window.SFRUN can lag a reassignment */
+  const same=(a,b)=>typeof _sfSameShip==='function'?_sfSameShip(a,b):a===b;
+  const A=String(r.asin||'').toUpperCase(),hit=l=>(l.sku&&l.sku===r.sku)||(A&&String(l.asin||'').toUpperCase()===A);
+  if((S.shipments||[]).some(s=>same(s.id,sid)&&!/cancel/i.test(s.status||'')&&(s.lines||[]).some(l=>hit(l)&&(parseInt(l.units)||0)>0)))return true;
+  const B=(S.summary||{}).asinBal;if(B&&B.by&&A&&(B.by[A]||[]).some(l=>same(l.id,sid)&&(parseInt(l.units)||0)>0))return true;
+  const rid=r.uuid||String(r.id),e=(S.late||[]).find(x=>x.rowId===rid);
+  if(e&&[].concat(e.own||[],e.asinSkus||[]).some(l=>same(l.id,sid)&&(parseInt(l.units)||0)>0))return true;
+  return false;
+}
 async function approveResolution(rid){
   const r=_rowById(rid);if(!r||!r.resolution)return;
   r.resolution.state='approved';
   r.resolution.approvedBy=_who();
   r.resolution.approvedAt=new Date().toISOString();
+  /* Undo's snapshot: anything that moved since her proposal is the new starting point (never undo Becki's count) */
+  const _sn=r.resolution.closeSnap&&r.resolution.closeSnap.after?r.resolution.closeSnap:null;
+  if(_sn)_snapRebase(_sn,r);
   /* Now it is genuinely closed, honour the follow-up she ticked. */
   if((r.resolution.followUps||[]).includes('Remove from Prep Sheet'))r.archived=true;
   {const _st=_settleClosedUnits(r,r.resolution.what);
    if(_st.toBecki){await _sendToBeckiShelves(r,`${fmt(_owedUnits(r))} unaccounted for after "${_resText(r.resolution.what)}"`);
      try{logAudit('Sent to the warehouse to check',`${r.sku||r.asin||''} — ${_st.note}`);}catch(e){}}
    else if(_st.changed&&_st.note){try{logAudit('Row settled on approval',`${r.sku||r.asin||''} — ${_st.note}`);}catch(e){}}}
+  if(_sn)_sn.after=_snapTake(r,_SNAP_COUNT);
   r._dirty=true;
   await addVaActions(r,r.resolution.followUps||[],_resText(r.resolution.what));
   try{await _mustSave(r);}catch(e){toast('Didn\'t save — nothing was recorded. Check the connection and try again.','er');return;}
@@ -1293,6 +1403,140 @@ async function _rejectGo(rid,why){
   renderAdmin();renderJack();
   try{renderDashboard();paintJackBadge();}catch(e){}
 }
+/* ── THE CLOSE-OFF GUARDS (Jack, 29 Oct 2026: a guess can never become a fact) ─────────────────────────────
+   Two close-offs went wrong on the older build. The C920 (202-5081951-0344342, a line typed twice) was closed
+   "Arrived and correct" by typing 2 into Arrived — PrepHub then held 2 webcams that never existed. The Philips
+   OneBlade (Amf_57.56_07106_90_Repl_02, Amazon France) was closed "went out under another SKU" with two
+   shipment IDs typed into the SKU box, and Jack had never checked the account: "that should be escalated to
+   me." So: Arrived is Becki's count, read-only; "went out under" is a SKU of this product; an Amazon order's
+   "it's here" outcomes wait for Jack's account check; Undo puts the units back. Jack's triage order is
+   unchanged — Sarah → (Amazon) Jack checks the account → Sarah → wrong SKU → Becki's shelf. */
+const _AMZ_NO=/not arrived|never arrived|nothing (?:is )?coming|cancelled or refunded|still coming/i;
+const _isJackName=s=>/^jack/i.test(String(s||'').trim());
+/* the latest thing Jack said about the order in its case log (it survives a re-send rebuilding the resolution) */
+function _jackLogHit(log){
+  const e=(log||[]).slice().reverse().find(x=>x&&(/^Jack answered/i.test(String(x.what||''))||(_isJackName(x.by)&&/checked the account/i.test(String(x.what||'')))));
+  return e?{how:'case-log',by:e.by||'Jack',at:e.at||'',note:String(e.what||'').slice(0,160),no:_AMZ_NO.test(String(e.what||''))}:null;
+}
+/* Has Jack checked this Amazon order on the account? His answer on the row (anything he sent back — Arrived YES,
+   "it was 2 — a duplicate", a typed note, "not my call"), his answer in the case log, "it was 4" (notDup), his
+   tick on every order of the ASIN, or Arrived = Yes while nothing is booked in (only his YES sets it then — once
+   units are booked in, Becki's count-in sets it too, so on its own it says nothing about the account).
+   {no:true} = he checked and it did NOT arrive (or is still coming). null = no check on record. */
+function _amzJackCheck(r){
+  if(!r)return null;
+  const res=r.resolution||{};
+  /* b630: his ticked meaning (delivered / cancelled / note) wins over the words */
+  if(res.state==='rejected'&&(_isJackName(res.rejectedBy)||res.what==='jack-check')&&(res.rejectNote||res.dupOf))
+    return{how:'answer',by:res.rejectedBy||'Jack',at:res.at||'',note:String(res.rejectNote||'').slice(0,160),
+      no:res.meant?res.meant==='cancelled':_AMZ_NO.test(String(res.rejectNote||''))};
+  const h=_jackLogHit(res.chase&&res.chase.log);if(h)return h;
+  if(res.notDup)return{how:'answer',by:'Jack',at:res.at||'',note:'the order was the full amount — all delivered'};
+  try{const k=typeof asinCheckFor==='function'?asinCheckFor(r):null;if(k&&k.covered)return{how:'asin-tick',by:k.c.by||'Jack',at:k.c.at||''};}catch(e){}
+  if(r.delivered==='Yes'&&!(parseInt(r.rcvd)||0))return{how:'delivered',by:'Jack',at:''};
+  return null;
+}
+/* The outcomes that say the stock is here, or went out as another SKU — gated only while they would account for
+   units nobody has counted: "arrived and correct" / "Already sent" while units are still owed (what Becki booked
+   in was counted), "went out under another SKU" while units are owed or booked in and never sent (Jack's leftover
+   question). Cancelled / refunded / duplicate are left as they are: Jack's own answers route those. */
+const _SRT_HERE=['arrived-ok','wrong-sku','cancel-wrong-sku','sent-not-stamped'];
+function _srtAmzGate(what,r){
+  if(!what||!r||!_SRT_HERE.includes(what))return null;
+  if(!(typeof _amazonRow==='function'&&_amazonRow(r)))return null;
+  const _ow=_owedUnits(r),_lf=(typeof _leftUnits==='function')?_leftUnits(r):0;
+  if((what==='arrived-ok'||what==='sent-not-stamped')?!(_ow>0):!(_ow>0||_lf>0))return null;
+  if(typeof _isJack==='function'&&_isJack())return null;            /* he IS the account check */
+  /* b627: "Already sent" with SellerFuse showing this product on the shipment typed in — Amazon has them, so the
+     account check has nothing to add (Jack, 29 Oct: "SF would say if it has") */
+  if(what==='sent-not-stamped'){const _sid=(typeof _cleanShipId==='function')?_cleanShipId(((document.getElementById('srtShipId')||{}).value)||'').id:'';
+    if(_sid&&typeof _sfShowsOnShip==='function'&&_sfShowsOnShip(r,_sid))return null;}
+  const c=_amzJackCheck(r);
+  if(c&&!c.no)return null;
+  return{why:c?'not-arrived':'unchecked',check:c};
+}
+/* "Went out under" is a SKU of THIS product — the same ASIN, picked from the list. kind: same (fine) · shipid
+   (refused: "FBA15" + 7) · own (this line's own SKU) · other (another product's SKU) · unknown (not a SKU
+   PrepHub has) — the last three need a reason in the override box. */
+const _SHIPID_RX=/FBA15[A-Z0-9]{7}/g;
+function _srtSkuJudge(txt,r){
+  const t=String(txt||'').trim();if(!t)return{kind:'empty',sku:''};
+  const lc=t.toLowerCase(),me=String((r&&r.sku)||'').trim().toLowerCase(),A=String((r&&r.asin)||'').trim().toUpperCase();
+  const hits=(rows||[]).filter(x=>x&&x.sku&&String(x.sku).trim().toLowerCase()===lc);
+  const same=A?hits.find(x=>String(x.asin||'').trim().toUpperCase()===A&&String(x.sku).trim().toLowerCase()!==me):null;
+  if(same)return{kind:'same',sku:same.sku,row:same};
+  const ids=t.toUpperCase().replace(/\s+/g,'').match(_SHIPID_RX);
+  if(ids)return{kind:'shipid',sku:t,ids:[...new Set(ids)]};
+  if(me&&lc===me)return{kind:'own',sku:(r&&r.sku)||t};
+  if(hits.length)return{kind:'other',sku:hits[0].sku,row:hits[0]};
+  return{kind:'unknown',sku:t};
+}
+/* the close-off button on a gated outcome: to Jack (amzAskJack) with what she wanted and what she wrote */
+async function srtJackFirst(){
+  const rid=_srtRid,r=_rowById(rid);if(!r)return;
+  const g=id=>String((document.getElementById(id)||{}).value||'').trim();
+  const what=g('srtWhat'),sku=g('srtSku'),ta=document.getElementById('srtNote');
+  /* only what she wrote — the box opens filled in with the case's own history */
+  const mine=ta&&String(ta.value||'').trim()!==String(ta.defaultValue||'').trim()?String(ta.value||'').trim():'';
+  const note=[what?`${_who()} wanted to close it as “${_resText(what)}”`:'',sku?`went out under: ${sku}`:'',mine].filter(Boolean).join(' — ');
+  closeSorted();
+  await amzAskJack(rid,note);
+}
+/* "more arrived than Becki booked in" — her shelf check, never a number typed into the close-off. Amazon rows
+   use the same hand-over as Sarah's card (amzToBecki); other suppliers the close-off's own (_sendToBeckiShelves). */
+async function srtToBecki(){
+  const rid=_srtRid,r=_rowById(rid);if(!r)return;
+  const got=parseInt(r.rcvd)||0,owe=_owedUnits(r);
+  closeSorted();
+  if(typeof _amazonRow==='function'&&_amazonRow(r)){await amzToBecki(rid);return;}
+  await _sendToBeckiShelves(r,`${_who()} thinks more arrived than the ${fmt(got)} booked in (${fmt(owe)} still out)`);
+  try{await _mustSave(r);}catch(e){toast('Didn’t save — nothing was recorded','er');return;}
+  try{logAudit('Sent to the warehouse to check',`${r.sku||r.asin||''} — ${fmt(got)} booked in, ${fmt(owe)} still out (from the close-off)`);}catch(e){}
+  toast('Sent to Becki — it is flagged on the Prep Sheet for her to check the shelves','ok');
+  renderAdmin();try{renderPrep();}catch(e){}
+}
+
+/* ── UNDO PUTS THE UNITS BACK (Jack, 29 Oct) ──────────────────────────────────────────────────────────────────
+   Undo used to restore only the resolution: the counts the close changed stayed changed (cancelled, archived,
+   wentAsQty, a shipment stamped by "Already sent"…). Every close now carries resolution.closeSnap:
+     before — the counted fields and their labels as they were, taken before anything moved
+     after  — the counted fields as the close left them
+     prev   — the resolution it replaced (its chase rides on the new one, so it is not stored twice)
+   Undo puts back each counted field that still holds what the close left in it. One that has moved since
+   (Becki booked in, a shipment went) is left alone and named in the audit line — a count made after the close is
+   never undone. The labels (status, Late, issue flag…) go back only when no count has moved. */
+const _SNAP_COUNT=['rcvd','exp','cancelledQty','archived','shipSegments','allShipIds','shipId'];
+const _SNAP_LABEL=['ship','status','sent','sentDate','sentAt','shipType','transitAction','rcvdAt','issueType','issueQty','wrongSku','delivered'];
+const _SNAP_NUM=['rcvd','exp','cancelledQty','ship','issueQty'];
+const _SNAP_WORD={rcvd:'Qty Received',exp:'Ordered',cancelledQty:'Cancelled'};
+const _snapNorm=(k,v)=>_SNAP_NUM.includes(k)?(parseInt(v)||0):k==='archived'?!!v
+  :(v===undefined||v===null||v===''||(Array.isArray(v)&&!v.length))?null:v;
+const _snapSame=(k,a,b)=>JSON.stringify(_snapNorm(k,a))===JSON.stringify(_snapNorm(k,b));
+function _snapTake(r,keys){const o={};keys.forEach(k=>{const v=_snapNorm(k,r[k]);o[k]=v===null?null:JSON.parse(JSON.stringify(v));});return o;}
+function _snapBack(k,v){
+  if(v!==null&&v!==undefined)return JSON.parse(JSON.stringify(v));
+  return ['shipSegments','allShipIds'].includes(k)?[]:_SNAP_NUM.includes(k)?0:k==='archived'?false:'';
+}
+function _snapPrevRes(r){
+  if(!r||!r.resolution)return null;
+  const p=JSON.parse(JSON.stringify(r.resolution));delete p.closeSnap;
+  if(typeof _caseOf==='function'&&_caseOf(r)){delete p.chase;p._chaseRides=1;}
+  return p;
+}
+/* Jack approving a proposal: whatever moved since she proposed it becomes the new starting point */
+function _snapRebase(sn,r){
+  if(!sn||!sn.before||!sn.after)return;
+  const moved=_SNAP_COUNT.filter(k=>!_snapSame(k,r[k],sn.after[k]));
+  moved.forEach(k=>{sn.before[k]=_snapTake(r,[k])[k];});
+  if(moved.length)Object.assign(sn.before,_snapTake(r,_SNAP_LABEL));
+}
+function _snapSay(k,from,to){
+  if(_SNAP_WORD[k])return `${_SNAP_WORD[k]} ${fmt(parseInt(from)||0)} → ${fmt(parseInt(to)||0)}`;
+  if(k==='archived')return to?'off the Prep Sheet again':'back on the Prep Sheet';
+  if(k==='shipSegments'){const ids=a=>(a||[]).map(s=>s&&s.shipId).filter(Boolean),gone=ids(from).filter(x=>!ids(to).includes(x));
+    return gone.length?`taken off ${gone.join(', ')}`:'';}
+  return '';
+}
 async function reopenResolution(rid,skipConfirm){
   const r=_rowById(rid);if(!r)return;
   if(!skipConfirm&&!confirm('Put this back on the follow-up queue?'))return;
@@ -1300,15 +1544,160 @@ async function reopenResolution(rid,skipConfirm){
      with it — weeks of "who was contacted, when, what they said" gone behind a
      button that only promised to move the row. The closure is undone; the
      history it was built on is kept and the case simply becomes hers again. */
-  const _keep=(r.resolution&&r.resolution.chase)||null;
-  r.resolution=_keep?{state:'working',chase:Object.assign({},_keep,{
-    log:(_keep.log||[]).concat([{at:new Date().toISOString(),by:_who(),
-      what:'Closure undone — back on the queue'}])})}:null;
+  const res=r.resolution||null,sn=res&&res.closeSnap&&res.closeSnap.before&&res.closeSnap.after?res.closeSnap:null;
+  const now=new Date().toISOString(),put=[],kept=[];let check='';
+  if(sn){
+    const moved=_SNAP_COUNT.filter(k=>!_snapSame(k,r[k],sn.after[k]));
+    _SNAP_COUNT.forEach(k=>{
+      if(moved.includes(k)){if(_SNAP_WORD[k]||k==='shipSegments')kept.push(_SNAP_WORD[k]||'shipments');return;}
+      if(_snapSame(k,r[k],sn.before[k]))return;
+      const s=_snapSay(k,r[k],sn.before[k]);if(s)put.push(s);
+      r[k]=_snapBack(k,sn.before[k]);});
+    if(!moved.length)_SNAP_LABEL.forEach(k=>{if(!_snapSame(k,r[k],sn.before[k]))r[k]=_snapBack(k,sn.before[k]);});
+  }else if(res){
+    /* a close-off from before 29 Oct has no snapshot. What it recorded exactly is put back — the units it
+       counted as gone out under another SKU (wentAsQty, held in Cancelled). A count it typed is not guessed
+       at: it is named, for Jack to correct. */
+    const wa=parseInt(res.wentAsQty)||0,cx=parseInt(r.cancelledQty)||0;
+    if(wa>0&&cx>0){const to=Math.max(0,cx-wa);put.push(`Cancelled ${fmt(cx)} → ${fmt(to)} (the ${fmt(cx-to)} it said went out as ${res.wentAs||'another SKU'})`);r.cancelledQty=to;}
+    const bi=_closeBookedIn(r);if(bi)check=`check Qty Received: the close-off booked in ${fmt(bi.n)}`;
+  }
+  const line={at:now,by:_who(),what:'Closure undone — back on the queue'+(put.length?' · units put back: '+put.join(', '):'')
+    +(kept.length?' · changed since the close, left as they are: '+kept.join(', '):'')+(check?' · '+check:'')};
+  const wasBecki=!!(res&&res.amzDelivered&&!res.amzDelivered.done);
+  if(sn&&('prev' in sn)){
+    /* back exactly where it was — with Jack's answer on it, or on his page if he was the one asked */
+    const p=sn.prev?JSON.parse(JSON.stringify(sn.prev)):null;
+    const ch=(p&&p._chaseRides)?((res&&res.chase)||null):((p&&p.chase)||null);
+    if(p){delete p._chaseRides;if(ch)p.chase=Object.assign({},ch,{log:(ch.log||[]).concat([line])});else delete p.chase;}
+    r.resolution=p;
+  }else{
+    const _keep=(res&&res.chase)||null;
+    r.resolution=_keep?{state:'working',chase:Object.assign({},_keep,{log:(_keep.log||[]).concat([line])})}:null;
+  }
+  /* the close had sent units to Becki's shelf check — that flag went with it, so her note says so */
+  if(wasBecki&&!(r.resolution&&r.resolution.amzDelivered&&!r.resolution.amzDelivered.done)){
+    r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${_ddUK(new Date())}: close-off undone — no need to check the shelves`;
+    r.vaNoteBy=_who();r.vaNoteAt=now;}
   r._dirty=true;
   try{await saveRow(r);}catch(e){}
-  toast('Back on the queue');
-  logAudit('Closure reopened',r.sku||r.asin||'');
-  renderAdmin();try{renderDashboard();}catch(e){}
+  toast(check?`Reopened — ${check}`:put.length?'Back on the queue — the units it changed are put back':'Back on the queue');
+  logAudit('Closure reopened',`${r.sku||r.asin||''} — ${put.length?'units put back: '+put.join(', '):'no units to put back'}`
+    +(kept.length?` · changed since the close, left as they are: ${kept.join(', ')}`:'')+(check?` · ${check}`:''));
+  renderAdmin();try{renderDashboard();}catch(e){}try{renderJack();}catch(e){}
+}
+
+/* ── CLOSE-OFFS THAT LOOK WRONG (Jack, 29 Oct: "make sure any mistakes are back on Jack's sheet so I can
+   reopen them") — every close-off of the last 30 days, read against the rules the guards above now enforce:
+     a · "went out under" isn't a SKU of this product, or is a shipment ID (the OneBlade)
+     b · an Amazon order closed as here / gone out under another SKU, with units traced or booked in by it,
+         and no account check by Jack on record (_closedJackChecked)
+     c · a close that booked in units nobody counted (the C920 — _closeBookedIn)
+   Each line: Reopen (reopenResolution, the units put back) or Looks right (stamped, never listed again).
+   Jack only. closeMistakesHtml() is the panel for his page. */
+const _CM_DAYS=30;
+const _CM_ARRIVED=['arrived-ok','wrong-sku','cancel-wrong-sku','part-cancelled','gated'];
+/* (c) How a count typed into the old close-off is recognised. It wrote r.rcvd straight in, with no stamp of its
+   own; rule R5 (js/rules.js) then stamped rcvdAt in that same save, because the row now had units and no stamp.
+   Every real booking path (count-in, the Received cell, the issue popup, SellerFuse) stamps rcvdAt when the count
+   moves. So: the row holds units, NONE have gone out (units on a shipment existed), and rcvdAt sits 0–2 minutes
+   after the close → the close-off put them there and nobody has counted since. Becki's own find on the row
+   (her "found it" note, a count-in line of hers in the case log) clears it.
+   Not caught: a close that raised a count already stamped earlier (4 counted Monday, 6 typed Tuesday) — the
+   stamp doesn't move. Possible false alarm: a row booked in before R5 (mid-Sep) and never saved again until its
+   close-off — on an order from before 16 Sep the line says "Possibly". Close-offs from this build carry a
+   snapshot and are read from it exactly (and can no longer book anything in). */
+function _closeBookedIn(r){
+  const res=r&&r.resolution;if(!res||res.state!=='approved')return null;
+  const n=x=>parseInt(x)||0,got=n(r.rcvd);
+  if(got<=0||_sentOut(r)>0)return null;
+  const sn=res.closeSnap;
+  if(sn&&sn.before&&sn.after){const up=n(sn.after.rcvd)-n(sn.before.rcvd);return up>0?{n:up,sure:true,how:'snapshot'}:null;}
+  if(!_CM_ARRIVED.includes(res.what))return null;
+  const t0=Date.parse(res.at||''),t1=Date.parse(r.rcvdAt||'');if(!t0||!t1)return null;
+  const d=t1-t0;if(d<-5e3||d>120e3)return null;
+  const lg=(res.chase&&res.chase.log)||[];
+  if(lg.some(e=>/^beck/i.test(String(e.by||''))&&/count|book|found/i.test(String(e.what||''))))return null;
+  if(/found it/i.test(String(r.vaNote||'')))return null;
+  const od=typeof _sfOrderISO==='function'?_sfOrderISO(r):'';
+  return{n:got,sure:!!od&&od>='2026-09-16',how:'stamp'};
+}
+/* (b) Jack's account check, read off a close that is already done. A close from this build records it
+   (resolution.jackCheck). An older one threw his answer away when it rebuilt the resolution, so what is left is
+   used: Jack closing it himself, "it was 4" (notDup), his answer in the case log, his ASIN tick, or Arrived = Yes
+   (his YES or Becki's count — either way not a guess). */
+function _closedJackChecked(r){
+  const res=(r&&r.resolution)||{};
+  if(res.jackCheck)return !res.jackCheck.no;
+  if(_isJackName(res.by)||_isJackName(res.approvedBy))return true;
+  if(res.notDup)return true;
+  const h=_jackLogHit(res.chase&&res.chase.log);if(h)return !h.no;
+  if(r.delivered==='Yes')return true;
+  try{const k=typeof asinCheckFor==='function'?asinCheckFor(r):null;if(k&&k.covered)return true;}catch(e){}
+  return false;
+}
+function closeMistakes(){
+  const since=Date.now()-_CM_DAYS*864e5,out=[],n=x=>parseInt(x)||0;
+  (rows||[]).forEach(r=>{
+    const res=r&&r.resolution;if(!res||res.state!=='approved'||res.closeOk)return;
+    const t=Date.parse(res.approvedAt||res.at||'');if(!(t>=since))return;
+    const why=[];
+    /* a */
+    if(res.wentAs){
+      const j=_srtSkuJudge(res.wentAs,r),ov=res.wentAsCheck&&res.wentAsCheck.notThisProduct&&res.wentAsCheck.override;
+      if(j.kind==='shipid')why.push({k:'a',t:`“Went out under” says “${res.wentAs}” — ${j.ids.length>1?fmt(j.ids.length)+' shipment IDs':'a shipment ID'}, not a SKU`});
+      else if(j.kind!=='same'&&!ov)why.push({k:'a',t:j.kind==='other'?`Went out under ${j.sku} — a SKU of another product (${String((j.row&&j.row.prod)||'').slice(0,50)})`
+        :j.kind==='own'?`Went out under ${j.sku} — this line’s own SKU`:`Went out under “${res.wentAs}” — not a SKU PrepHub knows`});
+    }
+    const bi=_closeBookedIn(r),traced=n(res.wentAsQty)+n(res.elsewhereShipped);
+    /* b — only where the close made something a fact: units traced to another SKU, or booked in */
+    if(typeof _amazonRow==='function'&&_amazonRow(r)&&['arrived-ok','wrong-sku','cancel-wrong-sku'].includes(res.what)&&(traced>0||bi)&&!_closedJackChecked(r))
+      why.push({k:'b',t:`Amazon order closed as “${_resText(res.what)}” — Jack never checked the account`});
+    /* c */
+    if(bi)why.push({k:'c',n:bi.n,t:`${bi.sure?'':'Possibly: '}the close-off booked in ${fmt(bi.n)} that nobody counted — nothing has been sent`});
+    if(why.length)out.push({r,rid:String(r.uuid||r.id),what:res.what,by:res.by||'',at:res.approvedAt||res.at,why,kinds:why.map(w=>w.k),
+      ord:n(r.exp),got:n(r.rcvd),sent:_sentOut(r),cx:_cxParts(r),away:n(res.elsewhereShipped),snap:!!(res.closeSnap&&res.closeSnap.before),bookedIn:bi?bi.n:0});
+  });
+  return out.sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+}
+function closeMistakesHtml(){
+  if(!(typeof _isJack==='function'&&_isJack()))return '';
+  let L=[];try{L=closeMistakes();}catch(e){console.warn('[close-off mistakes]',e);return '';}
+  if(!L.length)return '';
+  const line=m=>{const r=m.r,cx=m.cx,id=esc(m.rid);
+    const nums=[`${fmt(m.ord)} ordered`,`${fmt(m.got)} booked in`,`${fmt(m.sent)} sent`,cx.cancelled?`${fmt(cx.cancelled)} cancelled`:'',
+      cx.wentAs?`${fmt(cx.wentAs)} counted as gone out under ${esc(cx.sku||'another SKU')}`:'',
+      m.away?`${fmt(m.away)} booked in, counted as shipped under ${esc((r.resolution&&r.resolution.wentAs)||'another SKU')}`:''].filter(Boolean).join(' &middot; ');
+    const tip=m.snap?'Back on the queue — the units this close-off changed are put back exactly, and the row goes back to where it was'
+      :m.bookedIn?`Back on the queue. This close-off is older than the units snapshot, so Qty Received stays at ${m.got} — it tells you to check it`
+      :'Back on the queue — what it counted as gone out under another SKU is owed again';
+    return `<div class="jkDoneRow" style="display:block;padding:9px 0;border-top:1px solid var(--border);">
+      <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;">
+        <b style="font-size:12.5px;">${esc(String(r.prod||r.sku||'').slice(0,70))}</b>
+        <span style="font-size:11px;color:var(--text3);">${esc(r.sku||'')}${r.oid?' &middot; '+esc(r.oid):''}${r.sup?' &middot; '+esc(r.sup):''}</span>
+        <span style="font-size:11px;color:var(--text2);">closed as &ldquo;${esc(_resText(m.what))}&rdquo;${m.by?' by '+esc(m.by):''} &middot; ${esc(_logWhen(m.at))}</span></div>
+      <ul style="margin:5px 0 4px 18px;padding:0;font-size:12px;line-height:1.45;color:#fca5a5;">${m.why.map(w=>`<li>${esc(w.t)}</li>`).join('')}</ul>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:6px;">Now: ${nums}</div>
+      <div class="csActs"><button class="csAct warn" onclick="closeMistakeReopen('${id}')" title="${esc(tip)}">Reopen</button>
+        <button class="csAct plain" onclick="closeMistakeOk('${id}')" title="You have checked it — it stays closed and is not listed again">Looks right &mdash; keep it closed</button></div>
+    </div>`;};
+  return `<details class="jkInfo" open style="border-color:rgba(248,113,113,.45);"><summary><span class="jkInfoT">Close-offs that look wrong</span><span class="jkInfoN">${fmt(L.length)}</span><span class="ovDim2">the last ${_CM_DAYS} days, checked against the close-off guards &mdash; Reopen puts it back on the queue with the units it changed put back</span></summary>
+    ${L.map(line).join('')}</details>`;
+}
+async function closeMistakeReopen(rid){
+  if(!(typeof _isJack==='function'&&_isJack())){toast('Only Jack can reopen these here','er');return;}
+  await reopenResolution(rid,true);
+}
+async function closeMistakeOk(rid){
+  if(!(typeof _isJack==='function'&&_isJack())){toast('Only Jack can do this','er');return;}
+  const r=_rowById(rid);if(!r||!r.resolution)return;
+  const was=((closeMistakes().find(m=>m.rid===String(r.uuid||r.id))||{}).why||[]).map(w=>w.t);
+  r.resolution.closeOk={by:_who(),at:new Date().toISOString(),saw:was};
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){delete r.resolution.closeOk;toast('Didn’t save — nothing was recorded','er');return;}
+  try{logAudit('Close-off checked — looks right',`${r.sku||r.asin||''} — ${was.join(' · ')}`);}catch(e){}
+  toast('Kept closed — it won’t be listed again','ok');
+  try{renderJack();}catch(e){}
 }
 
 // ── FIXING A WRONG EXPECTED QUANTITY ──────────────────────────────────────────

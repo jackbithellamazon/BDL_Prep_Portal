@@ -516,16 +516,25 @@ function renderAmzBanner(){
    normal and the flag clears itself. Only Not here needs an answer. */
 /* Jack, 8 Sep: "Sarah flags it → goes to me → I check whether Amazon says it
    has arrived." One press, no popup — the question is always the same one. */
-async function amzAskJack(rid){
-  const r=_rowById(rid);if(!r)return;
+/* b630: the change itself — shared with "Send these N to Jack" (amzAskJackAll). Returns the stamp it wrote. */
+function _amzAskApply(r,note){
   const now=new Date().toISOString();
+  /* from the close-off (Jack, 29 Oct): what she wanted to close it as and what she found ride with the question */
+  note=String(note||'').trim();
   const riding=(typeof _caseOf==='function')?_caseOf(r):null;
-  if(riding)riding.log=(riding.log||[]).concat([{at:now,by:_who(),what:'Sent to Jack — has Amazon delivered it?'}]);
+  if(riding)riding.log=(riding.log||[]).concat([{at:now,by:_who(),what:'Sent to Jack — has Amazon delivered it?'+(note?' — '+note.slice(0,200):'')}]);
   r.resolution=Object.assign({},r.resolution||{},{state:'asked',kind:'check',what:'jack-check',
-    ask:'Has Amazon delivered it?',note:'',by:_who(),at:now,chase:riding||undefined});
+    ask:'Has Amazon delivered it?',note,by:_who(),at:now,chase:riding||undefined});
   r._dirty=true;
+  return now;
+}
+async function amzAskJack(rid,note){
+  const r=_rowById(rid);if(!r)return;
+  _amzAskApply(r,note);
   try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}
-  logAudit('Sent to Jack — Amazon delivery check',`${r.sku||r.asin||''}`);
+  /* what SellerFuse found rides in the record too — his card shows it live (sfJackHtml) */
+  let _sf='';try{_sf=typeof sfJackText==='function'?sfJackText(r):'';}catch(e){}
+  logAudit('Sent to Jack — Amazon delivery check',`${r.sku||r.asin||''}${_sf?' — '+_sf:''}`);
   toast('Sent to Jack — he checks the Amazon account and answers','ok');
   renderAdmin();try{renderJack();renderPrep();}catch(e){}
 }
@@ -742,7 +751,8 @@ function _statusFollowsStock(r){
    on an In-Transit row that every list then ignored because it was approved.
    Six rows sat like that, £2,400 of phantom in-transit stock. A close that
    says nothing more is coming now SETTLES the row:
-     arrived and correct  → whatever was still out is booked in
+     arrived and correct  → traces nothing: anything still out goes to Becki's
+                            shelf check (9 Sep, below) — never booked in
      wrong SKU            → the outstanding units are accounted for on the
                             other SKU's row (recorded as wentAsQty, counted
                             like cancelled so nothing is owed); a row that

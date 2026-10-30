@@ -156,6 +156,7 @@ function renderJack(){
       left:refundLeft(r.date,r),
       owedU:Math.max(0,(r.exp||r.ship||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0))||(typeof _leftUnits==='function'?_leftUnits(r):0),
       age:_ordAge(r),odate:r.date||'',
+      whyHtml:_jkCheckFacts(r),   /* b630: what SellerFuse found — Sarah no longer types it */
       acts:_jkCheckActs(r,_id)});});
   /* Jack, 10 Sep, the Wella: one order number, two rows, 24 units shipped
      against 20 ordered. Not a decision the app can make — a card that puts the
@@ -182,8 +183,10 @@ function renderJack(){
   }catch(e){}})();
   closures.forEach(r=>{const q=r.resolution||{};
     items.push({kind:'dec',id:r.uuid||r.id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,
-      asin:r.asin||'',by:q.by||'someone',at:q.at,wait:days(q.at),type:['DECISION','#c084fc','She investigated — your call'],
+      asin:r.asin||'',by:q.by||'someone',at:q.at,wait:days(q.at),type:q.looksWrong?['LOOKS WRONG','#fbbf24','She wanted to close this, but the check says it can’t be right — your call']:['DECISION','#c084fc','She investigated — your call'],
       why:esc(_resText(q.what))+(q.claim?' · money at risk':''),note:q.note||'',fix:q.fix||'',
+      /* b627: a close-off that looked wrong came here instead of closing */
+      whyHtml:q.looksWrong?`<b style="color:#fcd34d">Looks wrong:</b> ${esc(q.looksWrong.why)}${q.looksWrong.her?` — <b>${esc(q.looksWrong.by||'Sarah')}’s reason:</b> “${esc(q.looksWrong.her)}”`:''}`:undefined,
       clog:(q.chase&&q.chase.log)||[],expDate:r.expectedDelivery||'',
       value:(parseSKU(r.sku).cogs||0)*(r.exp||r.ship||0),left:refundLeft(r.date,r),
       acts:`<button class="csAct good" onclick="approveResolution('${r.uuid||r.id}')">Approve &amp; close</button>
@@ -325,7 +328,7 @@ function renderJack(){
      oldest row, and when she last pressed Checked */
   let _sq=[],_sqVal=0,_sqNew=0,_sqOld=0;
   try{_sq=_adminItems();_sqVal=_sq.reduce((t,x)=>t+(x.value||0),0);
-    _sqNew=_sq.filter(x=>!ROW_SEEN[String(x.rid)]&&!x.waiting&&x.kind!=='job').length;
+    _sqNew=_sq.filter(x=>!ROW_SEEN[String(x.rid)]&&!x.waiting&&!x.withBecki&&x.kind!=='job').length;   /* b630: Becki's rows aren't hers to open */
     _sqOld=Math.max(0,..._sq.map(x=>x.days||0));}catch(e){}
   let _chk='never';try{const ck=ADMIN_CHECK&&ADMIN_CHECK.at;if(ck){const dd=Math.floor((Date.now()-new Date(ck).getTime())/864e5);_chk=dd<=0?'today':dd+'d ago';}}catch(e){}
   if(window._jkFreshVisit){
@@ -483,6 +486,7 @@ function renderJack(){
       </div></details>
     </div>
     ${(()=>{try{return typeof sfAdminHtml==='function'?sfAdminHtml():'';}catch(e){return '';}})()}
+    ${(()=>{try{return typeof closeMistakesHtml==='function'?closeMistakesHtml():'';}catch(e){return '';}})()}
     ${items.length?`
     <div class="admBar" style="padding:0 2px 10px;">
       <div class="admSearch">
@@ -611,6 +615,7 @@ function jackAnswerAsk(rid){
     <div class="srtCfmLab">Or answer in words</div>
     <textarea id="askNote" class="srtNote" rows="3" oninput="jackAnsCheck()"
       placeholder="e.g. Amazon shows it delivered on 12 July, signed for — book it in"></textarea>
+    ${_jkMeantHtml(r)}
     <div class="srtCfmKeep"><b>What happens</b><ul>
       <li>It goes straight back to ${esc(q.by||'someone')} with your answer on the row</li>
       <li>She can act on it and close it off herself</li>
@@ -628,18 +633,84 @@ function askStillComing(){
   if(!v||!saneDate(v)){toast(dateBoxMsg(document.getElementById('askDate'),'Pick the date first'),'er');return;}
   const rid=_askRid;askShut();jackStillComing(rid,v);
 }
+/* b630 (Jack, 29 Oct): two rows went round twice — he typed "not eu 02" and "4 units not 10", and her card had no
+   next move because a typed answer always read as "Jack needs you to check". Now he ticks what it means and her
+   card gets the one press it already has for that answer: Delivered → the wrong-SKU step; Cancelled or refunded →
+   "Note the sheet and close it"; Sheet quantity wrong → the quantity fix opens for him; Wrong account → he picks it,
+   Sarah gets the Purchase Sheet job and the check stays with him; Just a note → "Jack needs you to check", as before. */
+function _jkMeantOpts(r){
+  const got=parseInt(r.rcvd)||0,owe=_owedUnits(r)||0;
+  const left=(owe<=0&&got>0&&typeof _leftUnits==='function')?_leftUnits(r):0;
+  return [
+    ['delivered','Delivered','the account shows it arrived. Sarah checks for a wrong SKU, then Becki the shelf'],
+    left>0?null:['cancelled','Cancelled or refunded',`Sarah notes the Purchase Sheet and closes it — ${fmt(owe)} cancelled, one press`],
+    ['sheet','Sheet quantity wrong','opens the quantity fix for you, with your number filled in'],
+    ['account','Wrong account','pick the account it is on. The check stays with you to answer there; Sarah fixes the Purchase Sheet'],
+    ['note','Just a note for Sarah','she checks and sends you what she found']].filter(Boolean);
+}
+function _jkAccts(r){
+  const s=new Set();rows.forEach(x=>{const a=String(x.acct||'').trim();if(a)s.add(a);});
+  const mine=String((r&&r.acct)||'').trim();s.delete(mine);
+  return [...s].sort();
+}
+function _jkMeantHtml(r){
+  const q=(r&&r.resolution)||{};
+  if(q.what==='amz-missing'||q.what==='amz-claim')return '';   /* his own Amazon claim — a note back, as before */
+  return `<div class="srtCfmLab">What does your answer mean? <span style="color:#f87171;">pick one &mdash; it decides Sarah&rsquo;s next press</span></div>
+    <div class="askOpts jkMeant">${_jkMeantOpts(r).map(([k,t,w])=>`<label class="srtChk"><input type="radio" name="jkMeant" value="${k}" onchange="jackAnsCheck()"><span><b>${esc(t)}</b> &mdash; ${esc(w)}${k==='account'
+      ?` <select id="jkAcct" data-u="Wrong account — which" onchange="const x=document.querySelector('#askModal input[name=jkMeant][value=account]');if(x)x.checked=true;jackAnsCheck()"><option value="">pick the account&hellip;</option>${_jkAccts(r).map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('')}</select>`:''}</span></label>`).join('')}</div>`;
+}
+/* "4 units not 10" → 4: the first whole number in his words that isn't the sheet's own (order numbers ignored) */
+function _jkNumIn(s,r){
+  const exp=parseInt(r&&r.exp)||0;
+  const m=String(s||'').replace(/\d{3}-\d{7}-\d{7}/g,' ').match(/\b\d{1,4}\b/g)||[];
+  for(const x of m){const n=parseInt(x,10);if(n!==exp)return n;}
+  return null;
+}
 function jackAnsCheck(){
   const t=document.getElementById('askNote'),b=document.getElementById('jkAnsGo');
   if(!t||!b)return;
-  const ok=t.value.trim().length>2;
+  const txt=t.value.trim().length>2;
+  const ticks=document.querySelectorAll('#askModal input[name="jkMeant"]').length;
+  const m=(document.querySelector('#askModal input[name="jkMeant"]:checked')||{}).value||'';
+  const acct=(document.getElementById('jkAcct')||{}).value||'';
+  /* no ticks on this card (his own Amazon claim): words, as before */
+  const ok=!ticks?txt:m==='sheet'?true:m==='account'?!!acct:(!!m&&txt);
   b.disabled=!ok;b.style.opacity=ok?'1':'.45';b.style.cursor=ok?'pointer':'not-allowed';
+  b.textContent=m==='sheet'?'Open the quantity fix':m==='account'?(acct?`It’s on ${acct} — I’ll check it there`:'Pick the account'):'Send the answer back';
 }
 function jackAnsSend(){
-  const t=document.getElementById('askNote');
-  if(!t||t.value.trim().length<3)return;
-  const rid=_askRid,ans=t.value.trim();
+  const t=document.getElementById('askNote');if(!t)return;
+  const rid=_askRid,ans=t.value.trim(),r=_rowById(rid);if(!r)return;
+  const ticks=document.querySelectorAll('#askModal input[name="jkMeant"]').length;
+  if(!ticks){if(ans.length<3)return;askShut();jackAnswered(rid,ans,{fromNote:true});return;}
+  const m=(document.querySelector('#askModal input[name="jkMeant"]:checked')||{}).value||'';
+  const acct=(document.getElementById('jkAcct')||{}).value||'';
+  if(m==='sheet'){askShut();openQtyFix(rid,{to:_jkNumIn(ans,r),why:'Jack checked the account'+(ans?' — '+ans:'')});return;}
+  if(m==='account'){if(!acct)return;askShut();jackAcctFix(rid,acct,ans);return;}
+  if(!m||ans.length<3)return;
   askShut();
-  jackAnswered(rid,ans,{fromNote:true});
+  if(m==='delivered')return jackAnswered(rid,ans,{meant:'delivered'});
+  if(m==='cancelled'){const got=parseInt(r.rcvd)||0,owed=_owedUnits(r)||0;
+    return jackAnswered(rid,ans,{meant:'cancelled',restGone:{why:'cancelled',ordered:got,owed,at:new Date().toISOString()}});}
+  return jackAnswered(rid,ans,{fromNote:true,meant:'note'});
+}
+/* Wrong account: recorded on the check (acctFix), a line in its case, the Purchase Sheet job for Sarah — and the
+   check stays with him, so he answers it on the right account with one press. The Account column belongs to the
+   sheet (the sync writes it), so the row shows the new account once Sarah has corrected the sheet. */
+async function jackAcctFix(rid,acct,note){
+  const r=_rowById(rid);if(!r||!r.resolution)return;
+  const from=String(r.acct||'').trim()||'no account',now=new Date().toISOString(),snap=JSON.stringify(r.resolution);
+  const q=r.resolution;
+  q.acctFix={from,to:acct,by:_who(),at:now,note:note||''};
+  if(q.chase)q.chase.log=(q.chase.log||[]).concat([{at:now,by:_who(),what:`Wrong account — the order is on ${acct}, not ${from}${note?' — '+note:''}`}]);
+  r._dirty=true;
+  try{await _mustSave(r);}catch(e){r.resolution=JSON.parse(snap);toast('Didn\'t save — nothing was recorded. Check the connection and try again.','er');renderJack();return;}
+  try{await addVaActions(r,[`Purchase Sheet: change the Account on order ${r.oid||'(no order id)'} to ${acct} (it says ${from})`],
+    `Jack checked the Amazon accounts: order ${r.oid||''} is on ${acct}, not ${from}.${note?' “'+note+'”':''}`);}catch(e){}
+  try{logAudit('Jack — wrong account',`${r.sku||r.asin||''} — ${from} → ${acct}${note?' — '+note:''}`);}catch(e){}
+  toast(`Recorded — it’s on ${acct}. It stays with you to answer; Sarah has the Purchase Sheet job`,'ok');
+  renderJack();try{renderAdmin();}catch(e){}
 }
 
 // ── ASK JACK TO CHECK ─────────────────────────────────────────────────────────
@@ -869,6 +940,14 @@ function _ordAge(r){
     const after=(r.subSave==='Yes')?TM.ssLateDays:TM.lateDays;
     return{days,late:days-after,clock:after};
   }catch(e){return null;}
+}
+/* b630 — on his check card: what SellerFuse found for the order, and an account he corrected */
+function _jkCheckFacts(r){
+  const L=[];
+  try{const s=typeof sfJackHtml==='function'?sfJackHtml(r):'';if(s)L.push(s);}catch(e){}
+  const f=r&&r.resolution&&r.resolution.acctFix;
+  if(f)L.push(`<b>Account:</b> you found order ${esc(r.oid||'')} on <b>${esc(f.to)}</b>, not ${esc(f.from)}${String(r.acct||'').trim()===f.to?' — the sheet says so now too':' — Sarah has the Purchase Sheet job'}.`);
+  return L.join('');
 }
 function _jkCheckActs(r,_id){
   const exp=parseInt(r.exp)||0,got=parseInt(r.rcvd)||0;
@@ -1124,11 +1203,14 @@ async function jackAnswered(rid,answer,extra){
     notDup:(extra&&extra.notDup)||asked.notDup||undefined,
     /* typed by him rather than pressed — a request for her, not a finding */
     jackNote:!!(extra&&extra.fromNote)||undefined,
+    /* b630: what his typed answer means, ticked by him (jackAnsSend) — her card reads this before his words */
+    meant:(extra&&extra.meant)||undefined,
     rejectedBy:_who(),rejectNote:answer,at:new Date().toISOString()});
   /* A YES/NO delivery answer is also a triage FACT — write it to the row so
      Sarah's card moves straight to the next step (wrong SKU?) rather than
      making her re-enter what Jack just said. */
-  if(/arrived — yes/i.test(answer))r.delivered='Yes';
+  if(extra&&extra.meant){if(extra.meant==='delivered')r.delivered='Yes';}   /* his tick, not his words */
+  else if(/arrived — yes/i.test(answer))r.delivered='Yes';
   else if(/not arrived/i.test(answer))r.delivered='No';
   /* Jack, 8 Sep: his answer is a FINDING — Sarah decides what happens next and
      presses "Send to Becki" (amzToBecki). Nothing flags itself from his page. */

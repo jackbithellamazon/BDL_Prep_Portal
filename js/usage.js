@@ -81,9 +81,12 @@ document.addEventListener('change',e=>{
     const id=/\d/.test(el.id||'')?'':(el.id||'');
     /* name it the way Jack reads the screen: a table cell by its column heading,
        a filter by its "All …" option, then the label, then the code name */
-    let what='';
-    const td=el.closest('td'),th=td&&td.closest('table')&&td.closest('table').querySelectorAll('thead th')[td.cellIndex];
-    if(th)what=_usageTidy(th.textContent)+' column';
+    /* b630: a control can name itself (data-u). Sarah's triage dropdown sits in a card that spans the whole table, so
+       its "column heading" was the sort bar: "Sort#▲ProductSupplier / orderUnitsWhat's wrong column = No". A heading
+       spanning several columns names no column. */
+    let what=_usageTidy(el.getAttribute('data-u')||'');
+    const td=what?null:el.closest('td'),th=td&&td.closest('table')&&td.closest('table').querySelectorAll('thead th')[td.cellIndex];
+    if(th&&!(th.colSpan>1))what=_usageTidy(th.textContent)+' column';
     const o0=el.tagName==='SELECT'&&el.options[0]?el.options[0].text.trim():'';
     if(!what&&/^All /i.test(o0))what=o0.replace(/^All /i,'')+' filter';
     if(!what&&/^Sort/i.test(o0))what='Sort';

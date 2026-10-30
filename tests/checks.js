@@ -109,7 +109,10 @@ window.PrepChecks=(function(){
     setVal('srtSkuWhy','test: Becki confirmed the 16 went in FFB1\u2019s carton');srtSync();await wait(50);
     ok(!(window._srtGate&&window._srtGate.missingAsk),'gate opens once the SKU is named and the override has a reason');
     await submitSorted();await wait(400);
-    eq(r1.resolution.wentAs,r2.sku,'went-out-under SKU recorded');eq(r1.resolution.wentAsQty,16,'16 units recorded');
+    /* b627 (Jack, 29 Oct): an overridden SKU check doesn't close — it goes to Jack, and settles when he approves */
+    eq(r1.resolution.state,'proposed','an overridden SKU check goes to Jack, not closed');ok(r1.resolution.looksWrong,'…marked looks wrong');
+    who('Jack');await approveResolution(rid(r1));await wait(200);
+    eq(r1.resolution.wentAs,r2.sku,'went-out-under SKU recorded');eq(r1.resolution.wentAsQty,16,'16 units recorded once Jack approves');
     ok(r1.resolution.wentAsCheck&&/Becki confirmed/.test(r1.resolution.wentAsCheck.override),'the override reason is kept with the close');
     eq(_owedUnits(r1),0,'nothing owed on the missing row');
     eq(JSON.stringify([r2.exp,r2.rcvd,r2.ship,r2.cancelledQty,r2.status,r2.resolution]),snap,'the other SKU’s row is untouched — no merge');
@@ -2208,7 +2211,7 @@ window.PrepChecks=(function(){
       goPage('lavarion');LV3.go('q4');await wait(150);
       const pg=document.getElementById('page-lavarion');
       ok([...pg.querySelectorAll('#lav3Tabs button')].some(b=>/Q4 prepping/.test(b.textContent)),'the Q4 prepping tab is on the bar');
-      ok(pg.querySelector('.q4Kpis')&&pg.querySelectorAll('table.q4T').length===2,'the page draws its totals and both tables');
+      ok(pg.querySelector('.q4Kpis')&&pg.querySelectorAll('table.q4T').length>=2,'the page draws its totals and its tables');
       ok(!/undefined|NaN/.test(pg.querySelector('.q4').textContent),'no undefined or NaN on the page');
     }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
@@ -2331,7 +2334,7 @@ window.PrepChecks=(function(){
       goPage('lavarion');LV3.go('q4');await wait(150);
       const pg=document.getElementById('page-lavarion'),set=pg.querySelector('details.q4Set');
       ok(set&&/Settings/.test(set.querySelector('summary').textContent),'Settings ▾ is on the page');
-      eq(set.querySelectorAll('input.q4TIn:not(.q4OverIn)').length,D.products.filter(x=>!x.archived&&x.type==='bundle').length,'one target box per bundle');
+      eq(set.querySelectorAll('input.q4TIn:not(.q4OverIn)').length,LV3.q4Calc().bundles.filter(r=>!r.archived).length,'one target box per bundle on the page');
       ok(!/undefined|NaN/.test(pg.querySelector('.q4').textContent),'no undefined or NaN on the page');
     }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
@@ -2452,7 +2455,7 @@ window.PrepChecks=(function(){
       goPage('lavarion');LV3.go('q4');await wait(150);
       const pg=document.getElementById('page-lavarion'),live=LV3.q4Calc(),nP=live.bundles.filter(r=>r.priority).length;
       ok(live.bundles.every((r,i,a)=>i===0||!(r.priority&&!a[i-1].priority)),'live: every bundle with a target comes before every one without');
-      eq(pg.querySelectorAll('.q4T .q4PriChip').length,nP,'every priority line is marked, and only those');
+      eq(pg.querySelectorAll('table.q4P tbody tr.q4Row').length,nP,'every priority bundle is a row in the Priority table, and only those');
       eq(!!pg.querySelector('.q4PriNote'),nP>0,'"Priority: targets first" shows when any bundle has a target');
       ok(/moves the bundle up the queue/.test((pg.querySelector('.q4SetHelp')||{}).textContent||''),'Settings says a target also moves it up the queue');
       ok(pg.querySelector('#q4t-over'),'the +% box is in Settings');
@@ -2580,6 +2583,403 @@ window.PrepChecks=(function(){
       near(LV3.demandBetween(x,2,'2026-12-24',8),16,'a non-matching product is plain');
       near(LV3.daysCovered(g,2,7.2,'2026-12-24'),4,'7.2 units last 4 days at 1.8 a day after Christmas');
     }finally{if(keep===undefined)delete D.settings.q4Uplift;else D.settings.q4Uplift=keep;D.products.splice(prodN);}
+  };
+
+  /* Q4 prepping, round 4 (Jack, 29 Oct 2026: "target — buildable — sent — % bar done"): two tables; Build now (shelf) and
+     When orders land (on order) apart; Will reach = sent + all buildable, "+5% cap" when the stop held it back; a short
+     priority bundle gets a shopping list that really reaches its target (re-run here); a bundle out of a part is never a
+     green 100%; Progress ▾ by day or Monday–Sunday week, a week straddling 1 Oct counting from 1 Oct only. */
+  S['Q4 prepping round 4: build now / when orders land, will reach, shopping list, out of a part, Progress by Monday weeks']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    /* q4 round 4 fixture */
+    const L=(h,o)=>[{id:'h',date:'2026-09-20',qty:h,rem:h,cost:1,arr:1}].concat(o?[{id:'o',date:'2026-09-21',qty:o,rem:0,cost:1,arr:0}]:[]);
+    const comps=[{id:'q4-cocoa',name:'CHECK Cocoa sachet',layers:L(100)},{id:'q4-mug',name:'CHECK Mug',layers:L(300,400)},
+      {id:'q4-nairn',name:'CHECK Nairn',layers:L(200,200)},{id:'q4-blk',name:'CHECK Black sachet',layers:[]}];
+    const B=(id,name,rec)=>({id,asin:'B0Q4'+id.slice(3).toUpperCase(),name,type:'bundle',recipe:rec.map(([c,q])=>({c,q})),layers:[]});
+    const prods=[B('q4-hc','CHECK Hot Choc',[['q4-cocoa',2],['q4-mug',1]]),B('q4-gs','CHECK GF Snack',[['q4-nairn',1],['q4-mug',1]]),
+      B('q4-mini','CHECK Mini Choc',[['q4-blk',1],['q4-mug',1]]),B('q4-dove','CHECK Dove',[['q4-nairn',1]])];
+    const sh=(a,u,d)=>({shipId:'FBA15CHKQ4'+a+d.slice(5).replace('-',''),asin:'B0Q4'+a,units:u,date:d});
+    const ships=[sh('HC',30,'2026-09-30'),sh('HC',20,'2026-10-01'),sh('MINI',40,'2026-10-02'),sh('GS',60,'2026-10-04'),sh('GS',40,'2026-10-05'),sh('DOVE',10,'2026-10-06'),sh('HC',30,'2026-10-06')];
+    const calc=cs=>LV3.q4Calc({products:prods,components:cs||comps,purchases:[],shipments:ships,owed:{},over:5,today:'2026-10-07',
+      targets:{'q4-hc':200,'q4-gs':300},protDays:p=>({'q4-hc':5,'q4-gs':9,'q4-mini':2,'q4-dove':3})[p.id]});
+    const R=calc(),by=id=>R.bundles.find(r=>r.id===id),hc=by('q4-hc'),gs=by('q4-gs'),mini=by('q4-mini'),dove=by('q4-dove');
+    eq(JSON.stringify(R.bundles.map(r=>[r.id,r.done,r.left,r.arrived])),JSON.stringify([['q4-hc',50,50,50],['q4-gs',100,215,200],['q4-mini',40,0,0],['q4-dove',10,185,0]]),
+      'priority first; build now (shelf) and when orders land (left − arrived) for every line');
+    eq(JSON.stringify([gs.done+gs.left,!!gs.capHit,hc.done+hc.left,!!hc.capHit]),JSON.stringify([315,true,100,false]),'GF Snack will reach 315 (target +5% cap); Hot Choc only 100 — short 100');
+    eq(JSON.stringify(hc.shop&&hc.shop.buy.map(x=>[x.id,x.qty])),JSON.stringify([['q4-cocoa',200]]),'Hot Choc: to reach 200, buy 200 cocoa sachets');
+    const cs2=comps.map(c=>c.id==='q4-cocoa'?Object.assign({},c,{layers:c.layers.concat([{id:'x',date:'2026-10-07',qty:200,rem:0,cost:1,arr:0}])}):c);
+    const h2=calc(cs2).bundles.find(r=>r.id==='q4-hc');eq(h2.done+h2.left,200,'…and buying them really reaches 200');
+    eq(JSON.stringify([mini.left,mini.lim.parts[0].id,mini.starved]),JSON.stringify([0,'q4-blk',false]),'Mini: 0 more — out of the black sachet, not finished');
+    ok(/none here or on order/.test(LV3.q4LimHtml(mini)),'…and says so');
+    /* Progress: Monday weeks, newest first; 30 Sep is before the start and never counts */
+    const W=R.progress.weeks,Dd=R.progress.days;
+    eq(JSON.stringify(W.map(w=>[w.start,w.end,w.from,w.units,w.now])),JSON.stringify([['2026-10-05','2026-10-11','2026-10-05',80,true],['2026-09-28','2026-10-04','2026-10-01',120,false]]),
+      'weeks start on Monday; the one straddling 1 Oct counts from 1 Oct only; this week is "so far"');
+    ok(W.every(w=>new Date(w.start+'T00:00:00Z').getUTCDay()===1),'every week starts on a Monday');
+    eq(R.progress.best.weeks,'2026-09-28','the best week is the one that moved the % most');
+    eq(JSON.stringify([Dd.length,Dd[0].key,Dd[0].now,Dd[Dd.length-1].key,Dd[Dd.length-1].units]),JSON.stringify([7,'2026-10-07',true,'2026-10-01',20]),'days from 1 Oct to today, newest first');
+    eq(Math.round(W[1].ptsBy['q4-gs']*10)/10,20,'GF Snack: 60 sent ÷ its target of 300 = +20%');
+    ok(Math.abs(W[1].pts-100*120/R.totals.max)<1e-9,'% moved = units ÷ the page’s 100%, as on the KPI tile');
+    /* q4 round 4 page */
+    const was=(document.querySelector('.page.active')||{}).id||'';let keepPref=null;try{keepPref=localStorage.getItem('lv3.q4.progress');}catch(e){}
+    try{
+      goPage('lavarion');LV3.go('q4');await wait(150);
+      const pg=document.getElementById('page-lavarion'),live=LV3.q4Calc(),nP=live.bundles.filter(r=>r.priority).length;
+      eq(pg.querySelectorAll('table.q4P tbody tr.q4Row').length,nP,'every priority bundle is in the top table');
+      eq(pg.querySelectorAll('table.q4O td.q4D.ok').length,0,'a bundle without a target is never a green 100%');
+      ok(/When orders land = parts still on order/.test((pg.querySelector('.q4Legend')||{}).textContent||''),'the legend is above the tables');
+      eq(pg.querySelectorAll('details.q4Prog table.q4G').length,2,'Progress ▾ has its Days and Weeks tables');
+      const p=LV3.q4SetOpen('days','progMode');eq(JSON.stringify([p.mode,pg.querySelector('details.q4Prog').getAttribute('data-mode')]),JSON.stringify(['days','days']),'Days / Weeks switches and is remembered');
+      ok(!/undefined|NaN/.test(pg.querySelector('.q4').textContent),'no undefined or NaN on the page');
+    }finally{try{if(keepPref==null)localStorage.removeItem('lv3.q4.progress');else localStorage.setItem('lv3.q4.progress',keepPref);}catch(e){}
+      try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+
+  /* 98 · b630 — one press to Jack (the audit of Sarah's clicks, 29 Oct) */
+  S['b630: one press to Jack — the card, the case, Send these N, his card shows SellerFuse, Undo']=async()=>{
+    /* test mode refuses every write, so a send would roll back — the saves are faked (as check 57 does) */
+    const keepSF=SFRUN,keepMS=window._mustSave;window._mustSave=async()=>true;
+    try{
+      who('Sarah');_admKind='all';_admQ='';
+      const a=mkRow({exp:3}),b=mkRow({exp:2}),c=mkRow({exp:4});
+      ok(_tcAmzAsk(sarahItem(a)),'an Amazon order nobody has answered is one press to Jack');
+      goPage('admin');renderAdmin();await wait(200);
+      const mine=x=>[...document.querySelectorAll('#page-admin button')].filter(el=>(el.getAttribute('onclick')||'').includes("'"+x.uuid+"'"));
+      ok(mine(a).some(el=>/amzAskJack\(/.test(el.getAttribute('onclick'))&&/has Amazon delivered it/.test(el.textContent)),'the main move is Send to Jack — has Amazon delivered it?');
+      ok(!mine(a).some(el=>/start the refund/.test(el.textContent)),'no orange "Sorted — start the refund"');
+      ok(mine(a).some(el=>/Close it off another way/.test(el.textContent)),'Close it off another way… is still there');
+      ok(![...document.querySelectorAll('#page-admin select.tfuTri')].some(s=>(s.getAttribute('onchange')||'').includes("'"+a.uuid+"'")),'no Yes/No she cannot answer');
+      ok(mine(a).some(el=>/askJackAsk\(/.test(el.getAttribute('onclick'))&&/something else/i.test(el.textContent)),'the popup is for something else');
+      ok(document.querySelector('#page-admin .admBulk button[onclick^="amzAskJackAll"]'),'Send these N to Jack is on the page');
+      /* "No" already picked: the case's first step is the same one press */
+      await setTriage(rid(c),'delivered','No');eq(_caseOf(c).step,'to-jack','an Amazon "No" opens the case on Jack’s step');
+      ok(_tcAmzAsk(sarahItem(c)),'…and it is still one press');
+      renderAdmin();await wait(100);
+      ok(mine(c).some(el=>/amzAskJack\(/.test(el.getAttribute('onclick'))),'the case step sends with amzAskJack, no popup');
+      /* what Jack sees: SellerFuse's finding on his card */
+      SFRUN={id:'chk-630',at:new Date().toISOString(),shipments:[],stock:[],sold:[],excluded:[],summary:{},
+        late:[{rowId:a.uuid,sku:a.sku,kind:'late',own:[],asinSkus:[]}]};window.SFRUN=SFRUN;
+      eq(sfLateFor(a).state,'clear','SellerFuse found nothing for it');
+      /* one press for all of them — only these three, never the real rows on the page */
+      await amzAskJackAll([a.uuid,b.uuid,c.uuid]);
+      for(const x of [a,b,c]){eq(x.resolution.state,'asked',x.prod+' is with Jack');eq(x.resolution.ask,'Has Amazon delivered it?','the one question');
+        ok(onJack(x),'on Jack’s page');ok(!onSarahActive(x),'off her active list');}
+      ok((c.resolution.chase.log||[]).some(L=>/has Amazon delivered it/.test(L.what)),'the case carries the send');
+      ok(/not on any shipment under this SKU/.test(_jkCheckFacts(a)),'his card says what SellerFuse found — she types nothing');
+      who('Jack');goPage('jack');renderJack();await wait(200);
+      ok(/SELLERFUSE/.test(document.getElementById('jackWrap').innerHTML)&&/not on any shipment under this SKU/.test(document.getElementById('jackWrap').innerHTML),'…drawn on the card');
+      /* Undo puts all three back as they were */
+      const u=[...document.querySelectorAll('#toasts button')].reverse().find(el=>/Undo/.test(el.textContent));ok(u,'one Undo for the lot');
+      u.click();await wait(300);
+      eq(a.resolution,null,'a is back as it was');eq(b.resolution,null,'b is back as it was');eq(c.resolution.state,'working','c is back on its case');
+      ok(_tcAmzAsk(sarahItem(a)),'…and one press again');
+    }finally{SFRUN=keepSF;window.SFRUN=keepSF;window._mustSave=keepMS;try{goPage('admin');}catch(e){}}
+  };
+  /* 99 · b630 — the rest of the audit: his ticked answers, her counts, links, the stale line, the SellerFuse box,
+     the click counter's name, the Details date, the card's buttons */
+  S['b630: Jack’s ticks, counts that are hers, links, SellerFuse clear, the doesn’t-add-up box, click names, date Confirm, buttons wrap']=async()=>{
+    const keepSF=SFRUN,keepVA=window.addVaActions,keepMS=window._mustSave;window.addVaActions=async()=>{};window._mustSave=async()=>true;
+    const send=async(r,m,txt,acct)=>{jackAnswerAsk(r.uuid);await wait(30);
+      if(txt!=null)setVal('askNote',txt);
+      const x=document.querySelector(`#askModal input[name="jkMeant"][value="${m}"]`);ok(x,'the tick "'+m+'" is offered');x.checked=true;
+      if(acct)setVal('jkAcct',acct);jackAnsCheck();
+      ok(!document.getElementById('jkAnsGo').disabled,'the send button opens with the tick');jackAnsSend();await wait(300);};
+    try{
+      /* 5 · his ticks */
+      who('Jack');
+      const d=mkRow({exp:4,resolution:asked({ask:'Has Amazon delivered it?'})});
+      await send(d,'delivered','not arrived on EU 02 — it is on Biz 04, delivered 12 Oct');
+      eq(d.resolution.meant,'delivered','the tick is on the answer');eq(d.delivered,'Yes','delivered — his tick, whatever the words say');
+      ok(!d.resolution.jackNote,'not a "Jack needs you to check"');ok(_ansMeans(d.resolution).arrivedYes,'her card reads it as delivered');
+      const cx=mkRow({exp:3,resolution:asked({ask:'Has Amazon delivered it?'})});
+      await send(cx,'cancelled','refunded on 14 Oct');
+      eq(cx.resolution.restGone&&cx.resolution.restGone.why,'cancelled','cancelled → the one-press close she already has');
+      const nt=mkRow({exp:2,resolution:asked({ask:'Has Amazon delivered it?'})});
+      await send(nt,'note','which account is this on?');ok(nt.resolution.jackNote,'a note is still a check for her');
+      mkRow({acct:'Biz 04'});
+      const ac=mkRow({exp:2,acct:'EU 02',resolution:asked({ask:'Has Amazon delivered it?'})});
+      await send(ac,'account','not eu 02','Biz 04');
+      eq(ac.resolution.state,'asked','wrong account: it stays with Jack to answer');eq(ac.resolution.acctFix&&ac.resolution.acctFix.to,'Biz 04','the account he picked is recorded');
+      ok(/Biz 04/.test(_jkCheckFacts(ac)),'his card says which account');
+      const qf=mkRow({exp:10,resolution:asked({ask:'Has Amazon delivered it?'})});
+      await send(qf,'sheet','4 units not 10');
+      eq((document.getElementById('qfNew')||{}).value,'4','sheet quantity wrong opens the quantity fix with his number');
+      closeQtyFix();
+      who('Sarah');goPage('admin');renderAdmin();await wait(200);
+      const btns=x=>[...document.querySelectorAll('#page-admin button')].filter(el=>(el.getAttribute('onclick')||'').includes("'"+x.uuid+"'"));
+      ok(btns(cx).some(el=>/Note the sheet and close it/.test(el.textContent)),'her card: Note the sheet and close it');
+      ok(btns(d).some(el=>/skuCheckOpen|wentOutUnder|wrong-sku|sfCheckedToBecki/.test(el.getAttribute('onclick'))),'her card: the wrong-SKU step');
+      /* 3 · her counts are hers */
+      _admKind='all';_admQ='';
+      const kpi=l=>{const k=[...document.querySelectorAll('#page-admin .jkKpi')].find(x=>(x.querySelector('span')||{}).textContent===l);return k?parseInt(k.querySelector('b').textContent.replace(/\D/g,''))||0:0;};
+      const chip=()=>{const c=[...document.querySelectorAll('#page-admin .admChip')].find(x=>/Jack answered/.test(x.textContent));return c?parseInt(c.querySelector('b').textContent)||0:0;};
+      const bk=mkRow({exp:5,resolution:asked({state:'rejected',rejectNote:'Arrived — YES, the account shows it delivered.',rejectedBy:'Jack',amzDelivered:{by:'Jack',at:iso(),sentBy:'Sarah'}})});
+      ok(sarahItem(bk)&&sarahItem(bk).withBecki,'a row with Becki');ok(!_admHers(sarahItem(bk)),'…is not hers');
+      renderAdmin();await wait(100);
+      const n1={chase:kpi('to chase'),unseen:kpi('not opened yet'),jack:chip(),becki:kpi('with Becki · not yours')};
+      const keepAD=bk.resolution.amzDelivered;delete bk.resolution.amzDelivered;renderAdmin();await wait(100);
+      eq(kpi('to chase'),n1.chase+1,'"to chase" counts only hers');eq(chip(),n1.jack+1,'"Jack answered" counts only hers');
+      eq(kpi('not opened yet'),n1.unseen+1,'"not opened yet" counts only hers');
+      bk.resolution.amzDelivered=keepAD;renderAdmin();await wait(100);
+      ok(n1.becki>=1,'with Becki is counted on its own, as information');
+      /* 4 · SellerFuse clear is the wrong-SKU check on record */
+      SFRUN=null;window.SFRUN=null;ok(_skuCheckMissing(bk),'no check and no SellerFuse — the line shows');
+      SFRUN={id:'chk-630b',at:new Date().toISOString(),shipments:[],stock:[],sold:[],excluded:[],summary:{},late:[{rowId:bk.uuid,sku:bk.sku,kind:'late',own:[],asinSkus:[]}]};window.SFRUN=SFRUN;
+      ok(!_skuCheckMissing(bk),'SellerFuse clear counts as the check');
+      renderAdmin();await wait(100);
+      const bkRow=[...document.querySelectorAll('#page-admin .tfuCompact')].find(x=>x.innerHTML.includes(bk.uuid));
+      ok(bkRow&&!/No wrong-SKU check on record/.test(bkRow.textContent),'the stale "Undo, check, send again" line is gone');
+      /* 2 · the two links on every card */
+      const op=mkRow({exp:2,asin:'B0CHK630LK',sku:'Amuk_5.00_22066_0_CHK_630LK'});renderAdmin();await wait(100);
+      const card=[...document.querySelectorAll('#page-admin .tcard')].find(x=>x.innerHTML.includes(op.uuid));
+      ok(card&&card.querySelector('a.tcLink[href*="shipment-manager?search=B0CHK630LK"]'),'SellerFuse ↗ searches the ASIN');
+      ok(card&&[...card.querySelectorAll('a.tcLink')].some(x=>(x.getAttribute('onclick')||'').includes("tcPrepOpen('Amuk_5.00_22066_0_CHK_630LK')")),'Prep Sheet ↗ searches the SKU');
+      /* the buttons wrap inside the card (td{white-space:nowrap}) — checked at the width the page is drawn at */
+      const side=card.querySelector('.tcSide'),ask=card.querySelector('.tcActs .tfuAsk');
+      eq(getComputedStyle(card).whiteSpace,'normal','the card does not inherit nowrap');
+      ok(ask&&ask.getBoundingClientRect().right<=side.getBoundingClientRect().right+1,'Send to Jack sits inside the card, not off its edge');
+      /* the "doesn't add up" box: only while the row is hers */
+      const lk=mkRow({exp:2,asin:'B0CHK630SF',sku:'CHK_630_SF'});
+      SFRUN.shipments=[{id:'FBA15CHK630X',created:'2026-10-20',status:'CLOSED',lines:[{sku:'CHK_630_SF',asin:'B0CHK630SF',units:3}]}];
+      ok(sfPrepIssues().some(x=>x.kind==='look'&&x.row===lk),'3 went to Amazon on an order of 2 — hers to look at');
+      ok(sfSarahHtml().includes(lk.prod),'listed while it is hers');
+      lk.resolution=asked();ok(!sfSarahHtml().includes(lk.prod),'not while it waits on Jack');
+      lk.resolution={state:'approved',kind:'ops',what:'arrived-ok',at:iso()};ok(!sfSarahHtml().includes(lk.prod),'not once it is closed');
+      lk.resolution=asked({state:'rejected',rejectNote:'Arrived — YES',amzDelivered:{by:'Jack',at:iso(),sentBy:'Sarah'}});ok(!sfSarahHtml().includes(lk.prod),'not while Becki has it');
+      /* the click counter names her dropdown */
+      const was=_usage,cw={id:cu.id,name:cu.name};const box=document.createElement('div');document.querySelector('#page-admin').appendChild(box);
+      try{cu.id=cu.id||'check';cu.name='CheckUser';_usage=null;window.chkTri=()=>{};
+        box.innerHTML='<table><thead><tr><th colspan="8">Sort#▲ProductSupplier / order</th></tr></thead><tbody><tr><td colspan="8"><select data-u="Has it arrived?" onchange="chkTri(this)"><option value=""></option><option>No</option></select></td></tr></tbody></table>';
+        const s=box.querySelector('select');s.value='No';s.dispatchEvent(new Event('change',{bubbles:true}));
+        eq(JSON.stringify(Object.keys(_usage.c)),JSON.stringify([_usagePlace(s)+' › Has it arrived? = No']),'the triage dropdown is counted by its question');
+      }finally{box.remove();_usage=was;cu.id=cw.id;cu.name=cw.name;delete window.chkTri;}
+      /* 6 · the Details date saves on Confirm, not on every change */
+      const dt=mkRow({sup:'Argos',acct:'',oid:'ARG-CHK-630',exp:2});
+      openWork(dt.uuid);await wait(50);
+      const inp=document.getElementById('workDue');ok(inp&&!inp.getAttribute('onchange'),'the box does not save on change');
+      const day=ukAddDays(todayISO(),9);setVal('workDue',day);await wait(50);
+      eq(dt.expectedDelivery||'','','typing a date saves nothing');
+      await workDueConfirm();eq(dt.expectedDelivery,day,'Confirm saves it');
+      closeWork();
+    }finally{SFRUN=keepSF;window.SFRUN=keepSF;window.addVaActions=keepVA;window._mustSave=keepMS;try{askShut();closeQtyFix();closeWork();}catch(e){}}
+  };
+
+  /* 103 · the close-off guards (Jack, 29 Oct — the C920 and the OneBlade): a guess never becomes a fact */
+  S['b631: close-off guards — Arrived is Becki’s count, went-out-under is this product’s SKU, Amazon waits for Jack, Undo puts the units back']=async()=>{
+    who('Sarah');
+    const _la=window.logAudit,LOG=[];window.logAudit=function(a,d){LOG.push({action:a,detail:String(d||'')});return _la.apply(this,arguments);};
+    try{
+    /* a + e · Arrived can't be typed over; "arrived and correct" with units out sends them to Becki — and says so */
+    const sup=mkRow({sup:'Argos',acct:'',oid:'ARG-631-1',exp:3,rcvd:1,status:'In Warehouse'});
+    openSorted(sup.uuid,'arrived-ok');await wait(40);
+    const gotEl=document.getElementById('srtGot');ok(gotEl&&gotEl.readOnly,'the Arrived box is read-only');
+    gotEl.value='3';srtSync();
+    eq(String(document.getElementById('srtGot').value),'1','it shows what Becki booked in, whatever is typed');
+    const sn=(document.getElementById('srtSettleNote')||{}).textContent||'';
+    ok(/Becki to check the shelves/.test(sn)&&!/as arrived/.test(sn),'the text says the 2 go to Becki — got: '+sn.slice(0,140));
+    ok(/Ask Becki to check the shelves/.test((document.getElementById('srtGotAsk')||{}).innerHTML||''),'one press to ask Becki');
+    await submitSorted();await wait(300);
+    eq(parseInt(sup.rcvd),1,'closing never books units in');ok(_isAmzDel(sup),'the 2 still out are on Becki’s shelf check');
+    ok(sup.resolution.closeSnap&&sup.resolution.closeSnap.before,'the close carries its snapshot');
+    await reopenResolution(sup.uuid,true);
+    ok(!_isAmzDel(sup),'Undo takes the shelf check off');eq(sup.resolution,null,'…and the row is back where it was');
+    ok(/close-off undone — no need to check the shelves/.test(sup.vaNote||''),'Becki’s note says so');
+    const sup2=mkRow({sup:'Argos',acct:'',oid:'ARG-631-2',exp:2,rcvd:0});
+    openSorted(sup2.uuid,'arrived-ok');await wait(40);await srtToBecki();
+    ok(_isAmzDel(sup2),'“Ask Becki” puts a supplier row on her shelf check');eq(parseInt(sup2.rcvd)||0,0,'…and books nothing in');
+    /* c · an Amazon order's "it's here" waits for Jack's account check — the button sends it, with her note */
+    const amz=mkRow({exp:2,rcvd:0});
+    openSorted(amz.uuid,'wrong-sku');await wait(40);srtSync();
+    eq((document.getElementById('srtGo')||{}).textContent,'Send to Jack — check the Amazon order first','the button sends it to Jack');
+    setVal('srtSku','FBA15M8T8MRG and FBA15MB9ZJ4L same SKU was sent');srtSkuShut();setVal('srtNote','Seller Central shows it on FBA15M8T8MRG');
+    await srtAskClose();await wait(50);
+    eq(amz.resolution&&amz.resolution.state,'asked','with Jack — nothing closed');eq(amz.resolution.what,'jack-check','an account check');
+    ok(/Seller Central shows it/.test(amz.resolution.note||'')&&/FBA15M8T8MRG and FBA15MB9ZJ4L/.test(amz.resolution.note||''),'her note and what she typed go with it');
+    eq(parseInt(amz.cancelledQty)||0,0,'no units moved');ok(onJack(amz),'on Jack’s page');
+    ok(!_srtAmzGate('cancelled',amz)&&!_srtAmzGate('duplicate',amz),'cancelled / duplicate are left as they are');
+    who('Jack');ok(!_srtAmzGate('wrong-sku',amz),'Jack closing it himself is the account check');
+    await jackAnswered(amz.uuid,'Arrived — YES, the account shows it delivered.');
+    who('Sarah');ok(!_srtAmzGate('wrong-sku',amz),'his YES opens it');
+    const no=mkRow({exp:2,rcvd:0,resolution:asked({state:'rejected',rejectNote:'NOT arrived — cancelled or nothing coming. Chase or claim.',rejectedBy:'Jack'})});
+    eq((_srtAmzGate('arrived-ok',no)||{}).why,'not-arrived','his “not arrived” sends an “it’s here” back to him');
+    /* b · went out under: a SKU of this product — a shipment ID refused, anything else needs a reason */
+    const A='B0CHK631SKU';
+    const sis=mkRow({asin:A,sku:'Amuk_9.99_29106_0_CHK631_B',exp:2,rcvd:4,ship:4});
+    const oth=mkRow({asin:'B0CHK631OTH',sku:'Amuk_9.99_29106_0_CHK631_O',exp:1,rcvd:1,ship:1});
+    const ws=mkRow({asin:A,exp:2,rcvd:0,resolution:asked({state:'rejected',rejectNote:'Arrived — YES, the account shows it delivered.',rejectedBy:'Jack'})});
+    openSorted(ws.uuid,'wrong-sku');await wait(40);
+    setVal('srtSku','FBA15M8T8MRG and FBA15MB9ZJ4L same SKU was sent');srtSkuShut();srtSync();
+    ok(window._srtGate.missingAsk&&window._srtGate.skuShip,'shipment IDs are refused');
+    setVal('srtSkuWhy','test: it really did');srtSync();ok(window._srtGate.missingAsk,'…even with a reason');
+    srtAskClose();
+    ok(/That's a shipment ID — pick the SKU it went out under/.test((document.getElementById('srtMsg')||{}).textContent||''),'it says so in those words');
+    setVal('srtSkuWhy','');setVal('srtSku',oth.sku);srtSkuShut();srtSync();
+    ok(window._srtGate.missingAsk&&window._srtGate.skuOther==='other','another product’s SKU needs a reason');
+    setVal('srtSkuWhy','test: Becki relabelled it');srtSync();ok(!window._srtGate.missingAsk,'…and opens with one');
+    setVal('srtSkuWhy','');setVal('srtSku',sis.sku.toLowerCase());srtSkuShut();srtSync();
+    ok(!window._srtGate.missingAsk,'this product’s SKU from the list needs nothing more');
+    const closeWs=async()=>{document.querySelectorAll('#sortedModal input[data-k]').forEach(c=>{c.checked=true;srtTick(c);});srtSync();await submitSorted();await wait(300);};
+    await closeWs();
+    eq(ws.resolution.wentAs,sis.sku,'recorded as the real SKU');eq(parseInt(ws.cancelledQty),2,'the 2 counted as gone out under it');
+    ok(ws.resolution.jackCheck&&ws.resolution.jackCheck.how==='answer','Jack’s check is kept with the close');
+    /* d · Undo puts the units back and the row where it was — Jack's answer on it; recorded in the audit */
+    await reopenResolution(ws.uuid,true);
+    eq(parseInt(ws.cancelledQty)||0,0,'Undo: the 2 are owed again');eq(ws.resolution&&ws.resolution.state,'rejected','back with Sarah');
+    ok(/Arrived — YES/.test(ws.resolution.rejectNote||''),'Jack’s answer is still on it');
+    ok(LOG.some(e=>e.action==='Closure reopened'&&String(e.detail).includes(ws.sku)&&/Cancelled 2 → 0/.test(e.detail)),'the restore is in the audit log');
+    /* d · a count made after the close is never undone */
+    openSorted(ws.uuid,'wrong-sku');await wait(40);setVal('srtSku',sis.sku);srtSkuShut();srtSync();await closeWs();
+    eq(parseInt(ws.cancelledQty),2,'closed again');
+    ws.rcvd=1;ws.rcvdAt=new Date().toISOString();   /* Becki books one in afterwards */
+    await reopenResolution(ws.uuid,true);
+    eq(parseInt(ws.rcvd),1,'Becki’s count stays');eq(parseInt(ws.cancelledQty)||0,0,'the close’s 2 come back');
+    ok(LOG.some(e=>e.action==='Closure reopened'&&String(e.detail).includes(ws.sku)&&/left as they are: Qty Received/.test(e.detail)),'…and the audit says the count was left alone');
+    try{closeSorted();}catch(e){}
+    }finally{window.logAudit=_la;}
+  };
+  /* 104 · Jack's list of close-offs that look wrong — the rules above, read off the last 30 days */
+  S['b631: close-offs that look wrong are back on Jack’s page — shipment ID, no account check, booked in by the close-off']=async()=>{
+    const at=new Date(Date.now()-3600e3).toISOString(),stamp=new Date(Date.parse(at)+1500).toISOString(),old=new Date(Date.now()-4*864e5).toISOString();
+    const closed=f=>Object.assign({state:'approved',kind:'ops',by:'Sarah',at,approvedBy:'Sarah',approvedAt:at},f);
+    const td=todayDDMM(),B='B0CHK631MB',SIS='Amuk_5_29106_0_CHK631_MB2';
+    mkRow({asin:B,sku:SIS,exp:2,rcvd:4,ship:4});
+    /* a · the OneBlade's words in the SKU box, on a supplier order (so only a applies) */
+    const fa=mkRow({sup:'Argos',acct:'',oid:'ARG-631-A',date:td,exp:2,rcvd:0,cancelledQty:2,
+      resolution:closed({what:'wrong-sku',wentAs:'FBA15M8T8MRG and FBA15MB9ZJ4L same SKU was sent',wentAsQty:2})});
+    /* b · an Amazon order traced to a real sister SKU — Jack never asked */
+    const fb=mkRow({asin:B,date:td,exp:2,rcvd:0,cancelledQty:2,resolution:closed({what:'wrong-sku',wentAs:SIS,wentAsQty:2})});
+    /* c · a supplier order closed "arrived and correct" with 2 typed in: stamped in the close's own save, nothing sent */
+    const fc=mkRow({sup:'Argos',acct:'',oid:'ARG-631-C',date:td,exp:2,rcvd:2,rcvdAt:stamp,status:'In Warehouse',resolution:closed({what:'arrived-ok'})});
+    /* the C920 itself: an Amazon order, 2 typed in, nothing sent — b and c */
+    const c920=mkRow({oid:'202-5081951-0344399',sku:'Amuk_37.99_06106_55_VAS_CHK631',date:td,exp:2,rcvd:2,rcvdAt:stamp,status:'In Warehouse',resolution:closed({what:'arrived-ok'})});
+    /* clean: Jack's check on record with a real sister SKU; a supplier order Becki counted days before its close */
+    const k1=mkRow({asin:B,date:td,exp:2,rcvd:0,cancelledQty:2,resolution:closed({what:'wrong-sku',wentAs:SIS,wentAsQty:2,jackCheck:{how:'answer',by:'Jack',at}})});
+    const k2=mkRow({sup:'Argos',acct:'',oid:'ARG-631-K',date:td,exp:2,rcvd:2,rcvdAt:old,status:'In Warehouse',resolution:closed({what:'arrived-ok'})});
+    const mine=[fa,fb,fc,c920,k1,k2].map(r=>r.uuid);
+    const _la=window.logAudit,LOG=[];window.logAudit=function(a,d){LOG.push({action:a,detail:String(d||'')});return _la.apply(this,arguments);};
+    try{
+    const L=()=>closeMistakes().filter(m=>mine.includes(m.rid));
+    const kinds=r=>JSON.stringify(((L().find(m=>m.rid===r.uuid)||{}).kinds)||[]);
+    eq(kinds(fa),JSON.stringify(['a']),'a · a shipment ID in “went out under”');
+    eq(kinds(fb),JSON.stringify(['b']),'b · an Amazon order closed without Jack’s account check');
+    eq(kinds(fc),JSON.stringify(['c']),'c · booked in by the close-off, nothing sent');
+    eq(kinds(c920),JSON.stringify(['b','c']),'the C920: both');
+    eq(JSON.stringify(L().map(m=>m.rid).filter(id=>id===k1.uuid||id===k2.uuid)),JSON.stringify([]),'the clean close-offs are not listed');
+    ok(/2 shipment IDs, not a SKU/.test(L().find(m=>m.rid===fa.uuid).why[0].t),'it says what looks wrong in plain words');
+    ok(/booked in 2 that nobody counted/.test(L().find(m=>m.rid===fc.uuid).why[0].t),'…with the numbers');
+    who('Sarah');eq(closeMistakesHtml(),'','Jack only');
+    who('Jack');const h=closeMistakesHtml();
+    ok(/Close-offs that look wrong/.test(h)&&h.includes(`closeMistakeReopen('${fc.uuid}')`)&&/Looks right/.test(h),'Jack gets the list, Reopen on each line');
+    /* Reopen an old close-off (no snapshot): what it recorded exactly comes back; a typed count is named */
+    await closeMistakeReopen(fb.uuid);eq(parseInt(fb.cancelledQty)||0,0,'the 2 it traced are owed again');
+    await closeMistakeReopen(fc.uuid);eq(parseInt(fc.rcvd),2,'Qty Received is left for Jack to correct');
+    ok(LOG.some(e=>e.action==='Closure reopened'&&String(e.detail).includes(fc.sku)&&/check Qty Received: the close-off booked in 2/.test(e.detail)),'…and named: check Qty Received, the close-off booked in 2');
+    await closeMistakeOk(fa.uuid);ok(!L().some(m=>m.rid===fa.uuid),'“Looks right” keeps it closed and off the list');
+    eq(JSON.stringify(L().map(m=>m.rid)),JSON.stringify([c920.uuid]),'only the C920 is left');
+    }finally{window.logAudit=_la;}
+  };
+
+  /* 112 · b627: looks wrong → Jack; Already sent needs SellerFuse; Ordered locked */
+  S['b627: a close-off that looks wrong goes to Jack; Already sent needs SellerFuse; Ordered is locked']=async()=>{
+    const keepRun=SFRUN;
+    try{
+      who('Sarah');
+      const own=mkRow({asin:'B0CHK627A1',sku:'Amuk_3_07076_0_CHK_627OLD',date:'07/07',exp:36,rcvd:36,ship:36,status:'Sent to Amazon',sent:'Yes'});
+      const r=mkRow({asin:'B0CHK627A1',sku:'Amuk_3_29096_0_CHK_627NEW',exp:28,rcvd:0,sup:'Mifarma',acct:'BDL Account',date:'29/09'});
+      SFRUN=Object.assign({late:[],stock:[],sold:[],excluded:[],summary:{}},keepRun||{},{shipments:[]});
+      openSorted(r.uuid,'wrong-sku');await wait(40);
+      const o=document.getElementById('srtOrd');ok(o&&o.readOnly,'Ordered is locked');
+      setVal('srtSku',own.sku);try{srtSkuShut();}catch(e){}srtSync();
+      setVal('srtSkuWhy','sure it went');srtSync();
+      document.querySelectorAll('#sortedModal input[data-k], .srtMod input[data-k]').forEach(c=>{c.checked=true;try{srtTick(c);}catch(e){}});srtSync();
+      await submitSorted();await wait(60);
+      eq(r.resolution&&r.resolution.state,'proposed','an overridden SKU check does not close — it goes to Jack');
+      ok(r.resolution.looksWrong&&/only sent what its own order/.test(r.resolution.looksWrong.why),'…marked looks wrong, with the reason');
+      eq(parseInt(r.rcvd)||0,0,'nothing is booked in before Jack decides');
+      who('Jack');ok(jackTodo().closures.some(x=>x===r),'it is on Jack’s page as a decision');
+      /* Already sent: SellerFuse must show it */
+      who('Sarah');const s=mkRow({asin:'B0CHK627B1',sku:'Amuk_5_20106_0_CHK_627S',exp:2,rcvd:0});
+      openSorted(s.uuid,'sent-not-stamped');await wait(40);setVal('srtShipId','FBA15CHK627X');srtSync();
+      document.querySelectorAll('#sortedModal input[data-k], .srtMod input[data-k]').forEach(c=>{c.checked=true;try{srtTick(c);}catch(e){}});srtSync();
+      await submitSorted();await wait(60);
+      eq(_sentOut(s),0,'Already sent with a shipment SellerFuse hasn’t seen this product on → stays late');
+      try{closeSorted();}catch(e){}
+      SFRUN.shipments=[{id:'FBA15CHK627X',created:'2026-10-28',status:'IN_TRANSIT',lines:[{sku:s.sku,asin:s.asin,units:2}]}];
+      openSorted(s.uuid,'sent-not-stamped');await wait(40);setVal('srtShipId','FBA15CHK627X');srtSync();
+      document.querySelectorAll('#sortedModal input[data-k], .srtMod input[data-k]').forEach(c=>{c.checked=true;try{srtTick(c);}catch(e){}});srtSync();
+      await submitSorted();await wait(60);
+      eq(_sentOut(s),2,'…and once SellerFuse shows it on that shipment, it closes');
+    }finally{SFRUN=keepRun;window.SFRUN=keepRun;try{closeSorted();}catch(e){}}
+  };
+
+  /* 113 · b628: Q4 prepping is the Christmas lines only — Jack adds the rest (30 Oct) */
+  S['b628: Q4 prepping is the Christmas lines only — Doves off, add / take off saves, a new Christmas line turns up']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const L=q=>[{id:'l'+q,date:'2026-09-20',qty:q,rem:q,cost:1,arr:1}];
+    const comps=[{id:'q5-tin',name:'CHECK Tin',layers:L(100)},{id:'q5-oat',name:'CHECK Oats',layers:L(40)},
+      {id:'q5-fill',name:'CHECK Filler',layers:L(30)},{id:'q5-key',name:'CHECK Magic Key',layers:L(20)}];
+    const B=(id,name,rec)=>({id,asin:'B0Q5'+id.slice(3).toUpperCase(),name,type:'bundle',recipe:rec.map(([c,q])=>({c,q})),layers:[]});
+    const prods=[B('q5-ham','CHECK Gift Hamper',[['q5-tin',1]]),B('q5-dove','CHECK Dove 75ml',[['q5-tin',1]]),
+      B('q5-rein','CHECK Reindeer Food',[['q5-oat',1]]),B('q5-poly','CHECK Polyfilla Bundle',[['q5-fill',1]]),
+      B('q5-xmas','CHECK Christmas Eve Box',[['q5-key',1]]),B('q5-dec','CHECK Decaf Tea Set',[['q5-oat',1]])];
+    const ships=[{shipId:'FBA15CHKQ5D1',asin:'B0Q5DOVE',units:10,date:'2026-10-05'},{shipId:'FBA15CHKQ5H1',asin:'B0Q5HAM',units:20,date:'2026-10-05'}];
+    const calc=inc=>LV3.q4Calc({products:prods,components:comps,purchases:[],shipments:ships,owed:{},targets:{},over:5,today:'2026-10-07',include:inc,
+      protDays:p=>({'q5-dove':1,'q5-ham':5,'q5-rein':6,'q5-dec':7,'q5-xmas':8,'q5-poly':2})[p.id]});
+    const ids=R=>R.bundles.map(r=>r.id).sort().join(',');
+    const R0=calc({});
+    eq(ids(R0),'q5-dec,q5-ham,q5-rein,q5-xmas','by itself: hamper, reindeer, decaf, Christmas — never the Dove or the Polyfilla');
+    eq(R0.offPage.map(x=>x.id).join(','),'q5-dove,q5-poly','…and those two are in the "+ Add" list');
+    eq(R0.bundles.find(r=>r.id==='q5-ham').left,100,'the Dove is out of the queue, so it never takes the hamper’s tins');
+    eq(JSON.stringify([R0.totals.done,R0.sends.length]),JSON.stringify([20,1]),'its sends are out of the totals and Progress');
+    ok(R0.bundles.some(r=>r.id==='q5-xmas'),'a new Christmas line turns up by itself');
+    const R1=calc({on:['q5-dove']}),dv=R1.bundles.find(r=>r.id==='q5-dove');
+    ok(dv,'Jack adds the Dove — it is on the page');eq(JSON.stringify([dv.left,R1.bundles.find(r=>r.id==='q5-ham').left,R1.totals.done]),JSON.stringify([100,0,30]),
+      '…and shares the parts in the Action centre’s order like any line');
+    const R2=calc({off:['q5-rein']});
+    ok(!R2.bundles.some(r=>r.id==='q5-rein')&&R2.offPage.some(x=>x.id==='q5-rein'),'Jack takes the Reindeer Food off — it goes to the "+ Add" list');
+    eq(calc(undefined).bundles.length,6,'a run on made-up products with no list counts them all (the older checks)');
+    eq(calc('all').bundles.length,6,'…and so does "all"');
+    /* the live data */
+    const D=LV3.__D(),liveR=LV3.q4Calc({include:{}});
+    ok(!liveR.bundles.concat(liveR.singles).some(r=>/\bdove\b|polyfilla/i.test(r.name)),'live: no Dove or Polyfilla on the page by itself');
+    ok(D.products.filter(p=>!p.archived&&/hamper|gift|gluten free|decaf|hot choc|reindeer|fragrance|christmas|santa/i.test(p.name||''))
+      .every(p=>liveR.bundles.concat(liveR.singles).some(r=>r.id===String(p.id))),'live: every hamper, gift, gluten free, decaf, hot chocolate, reindeer, fragrance and Christmas line is on');
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      goPage('lavarion');LV3.go('q4');await wait(150);
+      const pg=document.getElementById('page-lavarion'),set=pg.querySelector('details.q4Set'),cur=LV3.q4Calc();
+      const names=new Set(cur.bundles.concat(cur.singles).map(r=>r.name));
+      ok(set&&set.querySelector('select#q4add'),'Settings ▾ has the "+ Add to Q4 prepping" picker');
+      eq(set.querySelectorAll('select#q4add option').length,cur.offPage.length+1,'…listing everything that is off the page');
+      eq(set.querySelectorAll('.q4SetRow .q4Rm').length,cur.bundles.concat(cur.singles).filter(r=>!r.archived).length,'a × on every line that is on');
+      ok([...pg.querySelectorAll('table.q4T td.q4N b')].every(b=>names.has(b.textContent)),'the tables show only what is on the page');
+      eq([...pg.querySelectorAll('.q4Panel .ph .t')].some(t=>/Singles/.test(t.textContent)),cur.singles.length>0,'Singles shows only when one is on the page');
+      ok(!/undefined|NaN/.test(pg.querySelector('.q4').textContent),'no undefined or NaN on the page');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+    /* add / take off saves (database faked) */
+    const q4Norm=v=>{const c=v&&typeof v==='object'?v:{};return{on:(c.on||[]).map(String).sort(),off:(c.off||[]).map(String).sort()};};
+    const keepS=JSON.stringify(D.settings),keepB=LV3.__prefsBase(),logN=D.log.length,inc0=JSON.stringify(q4Norm(D.settings.q4Include));
+    const own=Object.prototype.hasOwnProperty.call(sb,'from'),orig=sb.from;let wrote=null;
+    sb.from=t=>{const q={select:()=>q,eq:()=>q,in:()=>q,maybeSingle:()=>Promise.resolve({data:{value:keepS},error:null}),
+      upsert:v=>{wrote=JSON.parse(v.value);return Promise.resolve({error:null});}};return q;};
+    try{
+      LV3.__setPrefsBase(JSON.parse(keepS));
+      const add=LV3.q4Calc().offPage[0],has=id=>{const c=LV3.q4Calc();return c.bundles.concat(c.singles).some(r=>r.id===id);};
+      if(add){
+        ok(await LV3.q4Pick(add.id,true),'adding a line reports the save landed');
+        ok(wrote&&has(add.id),'…it is on the page');
+        ok(await LV3.q4Pick(add.id,false),'taking it off again saves');
+        ok(!has(add.id)&&JSON.stringify(q4Norm(wrote.q4Include))===inc0,'…and the list is back as it was');
+      }
+      const s=LV3.q4Calc().bundles.find(r=>!r.archived&&!r.target);
+      if(s){
+        await LV3.q4Pick(s.id,false);ok(wrote&&wrote.q4Include&&wrote.q4Include.off.includes(s.id)&&!has(s.id),'a Christmas line taken off is saved as off — it stays off');
+        await LV3.q4Pick(s.id,true);ok(has(s.id)&&JSON.stringify(q4Norm(wrote.q4Include))===inc0,'…and put back');
+      }
+      ok(D.log.slice(0,D.log.length-logN).some(x=>/Q4 prepping: .+ (added to|taken off) the page/.test(JSON.stringify(x))),'each change is in History');
+    }finally{if(own)sb.from=orig;else delete sb.from;Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,JSON.parse(keepS));
+      LV3.__setPrefsBase(keepB);D.log.splice(0,D.log.length-logN);}
   };
 
   async function run(only){

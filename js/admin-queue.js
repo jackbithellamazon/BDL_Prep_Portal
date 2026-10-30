@@ -1338,8 +1338,9 @@ function paintWork(){
         <button onclick="${_workAnd(`bumpDue('${_workRid}',7)`)}" class="wq">1 wk</button>
         <button onclick="${_workAnd(`bumpDue('${_workRid}',14)`)}" class="wq">2 wks</button>
         <button onclick="${_workAnd(`bumpDue('${_workRid}',30)`)}" class="wq">1 mth</button>
-        <input type="date" value="${esc(r.expectedDelivery||'')}" min="2024-01-01" max="2030-12-31" onchange="${_workAnd(`setDueDate('${_workRid}',this.value)`)}"
+        <input type="date" id="workDue" data-u="Promised date" value="${esc(r.expectedDelivery||'')}" min="2024-01-01" max="2030-12-31" onkeydown="if(event.key==='Enter'){event.preventDefault();workDueConfirm();}"
           style="padding:6px 9px;background:var(--bg);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-size:11px;">
+        <button class="wq" style="border-color:rgba(74,222,128,.5);color:#86efac;" onclick="workDueConfirm()" title="Nothing saves until you press this — type the date, check it, confirm">Confirm &#10003;</button>
       </div>
     </div>`;
     flow=stepA+stepB+stepC;
@@ -1377,6 +1378,16 @@ function paintWork(){
       <button ${waiting?'disabled':''} onclick="closeWork();openSorted('${_workRid}')" style="padding:9px 20px;border-radius:8px;font-size:12.5px;font-weight:800;cursor:pointer;background:var(--accent);border:1px solid var(--accent);color:#1a1400;${waiting?'opacity:.4;':''}">Sorted — close it off</button>
     </div>
   </div>`;
+}
+/* b630: the box saved on every change — three rows saved 3–5 dates inside a minute while she typed. Like the date
+   on the card (caseDate), nothing saves until Confirm (or Enter). */
+async function workDueConfirm(){
+  const el=document.getElementById('workDue'),v=el?el.value:'',rid=_workRid;
+  if(!rid)return;
+  if(!v||!saneDate(v)){toast(dateBoxMsg(el,'Pick the date first, then Confirm'),'er');return;}
+  const r=_rowById(rid);if(r&&r.expectedDelivery===v){toast('That date is already set','ok');return;}
+  await setDueDate(rid,v);
+  if(_workRid===rid)paintWork();
 }
 function workSaveNote(){
   const r=_rowById(_workRid); const box=document.getElementById('workNote');
@@ -2093,6 +2104,92 @@ function _tcDupBtn(rid){
     ?`<div class="csNowTxt" style="margin:2px 0 4px;color:#fbbf24;">Possibly on the sheet twice &mdash; was the order ${fmt(d.got)} or ${fmt(d.total)}?</div><button class="csAct go tcBig" onclick="amzAskJack('${rid}')" title="Order ${esc(r.oid)} is also on ${esc(d.sku)}, which arrived ${fmt(d.got)} of ${fmt(d.got)}. Jack checks the account: ${fmt(d.got)} means this line is a copy; ${fmt(d.total)} means a parcel is missing.">Ask Jack: ${fmt(d.got)} units or ${fmt(d.total)}?</button>`
     :`<button class="csAct good" onclick="openSorted('${rid}','duplicate')" title="Order ${esc(r.oid)} is also on ${esc(d.sku)}, which arrived in full. If the order was ${fmt(d.got)}, this line is a copy.">It was ${fmt(d.got)} &mdash; close as Duplicate record</button>`;
 }
+/* ── b630 (29 Oct 2026): the audit of Sarah's real clicks — Jack: fix all of it ─────────────────────────── */
+/* is this row hers to act on? With Jack (waiting), with Becki, or just sorted/parked is information, not her work —
+   her headline said "25 to chase" when 8 were hers and 17 were Becki's */
+function _admHers(i){return !!i&&!i.waiting&&!i.withBecki&&!i.sortedGrace&&!i.parkedRow;}
+/* what Jack's answer means: his tick (jackAnswerAsk, b630) wins over the words he typed; a pressed answer reads
+   its words as before */
+function _ansMeans(sb){
+  const a=String((sb&&sb.rejectNote)||'');
+  if(!a)return{notComing:false,arrivedYes:false};
+  if(sb.meant==='delivered')return{notComing:false,arrivedYes:true};
+  if(sb.meant)return{notComing:false,arrivedYes:false};
+  const notComing=/not arrived|nothing coming|cancel/i.test(a);
+  return{notComing,arrivedYes:!notComing&&/arrived\s*[—-]\s*yes|shows it delivered|delivered/i.test(a)};
+}
+/* An Amazon order she can do nothing with but ask: nobody has answered it, no live case past Jack's first step.
+   The audit: "Has it arrived? Yes/No" (only Jack can answer it) then the Send-to-Jack popup — ~90 sends a month
+   at 2–5 minutes, the reason she picked wrong 2 times in 3 (Jack answered "delivered" on 32 of 49). Now one press. */
+function _tcAmzAsk(i){
+  if(!i||(i.kind||'transit')!=='transit'||!_admHers(i)||i.sentBack||i.query||i.partOverdue||i.partShip||i.delivered==='Yes')return false;
+  const r=_rowById(i.rid);if(!r||!_amazonRow(r))return false;
+  if(typeof _isAmzDel==='function'&&_isAmzDel(r))return false;
+  const c=i.caseC;if(c&&_caseStep(c)&&c.step!=='to-jack')return false;
+  return true;
+}
+/* "Send these N to Jack" — every one of those on her page, one press, one Undo */
+let _amzAskIds=[];
+async function amzAskJackAll(ids){
+  const want=new Set((ids||_amzAskIds).map(String));
+  const list=_allAdminRows().filter(i=>want.has(String(i.rid))&&_tcAmzAsk(i)).map(i=>_rowById(i.rid)).filter(Boolean);
+  if(!list.length){toast('Nothing to send — they have all moved on','ok');renderAdmin();return;}
+  const done=[];
+  for(const r of list){
+    const snap=JSON.stringify(r.resolution==null?null:r.resolution);
+    const at=_amzAskApply(r);
+    try{await _mustSave(r);done.push([r,snap,at]);}catch(e){r.resolution=JSON.parse(snap);}
+  }
+  renderAdmin();try{renderJack();renderPrep();}catch(e){}
+  if(!done.length){toast('Didn’t save — nothing was sent','er');return;}
+  try{logAudit('Sent to Jack — Amazon delivery check',`${fmt(done.length)} at once: ${done.map(([r])=>r.sku||r.asin||'').join(', ')}`.slice(0,900));}catch(e){}
+  toastUndo(`${fmt(done.length)} sent to Jack — has Amazon delivered ${done.length===1?'it':'them'}?`,async()=>{
+    for(const [r,snap,at] of done){
+      const q=r.resolution||{};if(q.state!=='asked'||q.at!==at)continue;   /* he has answered it since — leave it */
+      r.resolution=JSON.parse(snap);r._dirty=true;try{await _mustSave(r);}catch(e){}
+    }
+    try{logAudit('Undone — sent to Jack',`${fmt(done.length)} rows`);}catch(e){}
+    renderAdmin();try{renderJack();renderPrep();}catch(e){}
+  });
+}
+/* the wrong-SKU check on record: hers (skuCheckedToBecki) or SellerFuse's (sfCheckedToBecki writes the same record).
+   A SellerFuse "clear" IS that check, whichever button sent the row — 8 Becki rows said "No wrong-SKU check on
+   record — Undo, check, send again" when SellerFuse had already checked them */
+function _skuCheckMissing(r){
+  if(!r||(r.resolution||{}).skuCheck)return false;
+  try{const v=typeof sfLateFor==='function'?sfLateFor(r):null;if(v&&v.state==='clear')return false;}catch(e){}
+  return true;
+}
+/* she copied a SKU or ASIN ~50 times a day to look it up — the two places she looks, one press each */
+const _TC_SF_URL='https://app.sellerfuse.com/shipment-manager?search=';
+function _tcLinks(i){
+  const a=String((i&&i.asin)||'').trim(),s=String((i&&i.sku)||'').trim();
+  if(!a&&!s)return '';
+  const q=x=>esc(String(x).replace(/\\/g,'\\\\').replace(/'/g,"\\'"));
+  return `<div class="tcLinks">`
+    +`<a class="tcLink" href="${esc(_TC_SF_URL+encodeURIComponent(a||s))}" target="_blank" rel="noopener" title="SellerFuse shipment manager, searched for ${esc(a||s)} — every shipment it went on">SellerFuse &#8599;</a>`
+    +(s?`<a class="tcLink" href="#" onclick="event.preventDefault();tcPrepOpen('${q(s)}')" title="The Prep Sheet, searched for ${esc(s)}">Prep Sheet &#8599;</a>`:'')
+    +`</div>`;
+}
+/* the Prep Sheet searched for a SKU (gsJump). A filter left on would hide it — those come off first, the same
+   reset as "Show everything", with the search kept */
+function tcPrepOpen(term){
+  term=String(term||'').trim();if(!term)return;
+  try{
+    const t=term.toLowerCase();
+    if(typeof _prepBaseRows==='function'&&!_prepBaseRows().some(r=>_prepMatch(r,t))){
+      if(_showArchived&&rows.some(r=>!r.archived&&_prepMatch(r,t))&&typeof toggleArchivedView==='function')toggleArchivedView();
+      if(typeof _readyFilterActive!=='undefined'&&_readyFilterActive)toggleReadyFilter();
+      if(_issuesFilterActive)toggleIssuesFilter();
+      if(_lateFilterActive)toggleLateFilter();
+      if(_ssFilterActive)toggleSubSaveFilter();
+      if(_amzFilterActive)_amzFilterActive=false;
+      const st=document.getElementById('prepStF');if(st)st.value='';
+      const ac=document.getElementById('prepAcctF');if(ac)ac.value='';
+    }
+  }catch(e){}
+  gsJump('prep',term);
+}
 function _tcCard(i,n,C,o){
   const r=(i.kind==='transit'&&typeof _rowById==='function')?_rowById(i.rid):null;
   let steps='';try{steps=r?_tcSteps(i,r,o.sentBack):'';}catch(e){console.warn('[triage] steps',e);}
@@ -2102,7 +2199,7 @@ function _tcCard(i,n,C,o){
       <div class="tcMain">
         <div class="tcTop">
           <span class="tcNum" title="${esc(o.edgeTitle||'')}">${n+1}</span>
-          <div class="tcProd">${C.prod}</div>
+          <div class="tcProd">${C.prod}${_tcLinks(i)}</div>
           <div class="tcSup">${C.sup}</div>
           <div class="tcUnits">${C.units}</div>
         </div>
@@ -2146,8 +2243,9 @@ function _tcSteps(i,r,sentBack){
   if(!r||i.kind!=='transit')return '';
   const v=(typeof sfLateFor==='function')?sfLateFor(r):null;
   const a=String((sentBack&&sentBack.rejectNote)||'');
-  const notComing=!!a&&!(sentBack&&sentBack.restGone)&&/not arrived|nothing coming|cancel/i.test(a);
-  const arrivedYes=!!a&&!notComing&&/arrived\s*[—-]\s*yes|shows it delivered|delivered/i.test(a);
+  const _m=_ansMeans(sentBack);   /* b630: his tick wins over his words */
+  const notComing=!!a&&!(sentBack&&sentBack.restGone)&&_m.notComing;
+  const arrivedYes=!!a&&!notComing&&_m.arrivedYes;
   const left=i.partShip?((typeof _leftUnits==='function')?_leftUnits(r):0):(i.outstanding||Math.max(0,(i.units||0)-(i.got||0)));
   const found=v&&(v.state==='shipped'||v.state==='other');
   /* Jack, 28 Oct: does this product add up over the last 60 days? Shown on every late order with units
@@ -2240,17 +2338,17 @@ function renderAdmin(){
   _counts.WITHJACK=items.filter(i=>i.waiting).length;
   _counts.WITHBECKI=items.filter(i=>i.withBecki&&!i.waiting).length;
   _counts.AMZCHASE=items.filter(i=>i.waiting&&(i.waiting.what==='amz-claim'||i.waiting.what==='amz-missing')).length;
-  _counts.FROMJACK=items.filter(i=>i.sentBack).length;
+  _counts.FROMJACK=items.filter(i=>i.sentBack&&!i.withBecki).length;   /* b630: "Jack answered 17" was 17 Becki rows */
   if(_aq)items=items.filter(i=>[i.prod,i.sku,i.asin,i.sup,i.oid,i.acct,i.reason,i.notes,i.srcNote,i.src,i.packNote,i.vaNote]
     .filter(Boolean).join(' ').toLowerCase().includes(_aq));
   if(_admKind==='WITHJACK')items=items.filter(i=>i.waiting);
   else if(_admKind==='WITHBECKI')items=items.filter(i=>i.withBecki&&!i.waiting);
   else if(_admKind==='AMZCHASE')items=items.filter(i=>i.waiting&&(i.waiting.what==='amz-claim'||i.waiting.what==='amz-missing'));
-  else if(_admKind==='FROMJACK')items=items.filter(i=>i.sentBack);
+  else if(_admKind==='FROMJACK')items=items.filter(i=>i.sentBack&&!i.withBecki);
   else if(_admKind!=='all')items=items.filter(i=>i.typeL===_admKind);
   const openIssues=claims.filter(c=>c.cst&&c.cst!=='Resolved');
 
-  const cUrgent=items.filter(i=>i.ta==='Urgent — Chase Now').length;
+  const cUrgent=items.filter(i=>i.ta==='Urgent — Chase Now'&&_admHers(i)).length;
   const cLate=items.filter(i=>i.isStuck||i.ta==='Late — Needs Chasing').length;
   const cDelay=items.filter(i=>['Delayed','Chasing Supplier','Awaiting Update'].includes(i.ta)&&!i.isStuck).length;
   const lateValue=items.reduce((a,i)=>a+(i.value||0),0);
@@ -2270,9 +2368,13 @@ function renderAdmin(){
     ${(()=>{
       /* Title first — the page used to open on a banner, so you could not tell
          at a glance whose page it was or how much was waiting. */
-      const toChase=items.filter(x=>!x.waiting&&!x.sortedGrace&&!x.parkedRow).length;
+      /* b630: only what she can act on — "25 to chase" was 8 hers and 17 with Becki, "9 not opened yet" counted
+         Becki rows. With Becki and with Jack are counted apart, as information. */
+      const toChase=items.filter(_admHers).length;
       const withJack=items.filter(x=>x.waiting).length;
-      const unseenN=items.filter(x=>!ROW_SEEN[String(x.rid)]&&!x.waiting&&x.kind!=='job'&&!x.sortedGrace&&!x.parkedRow).length;
+      const withBecki=items.filter(x=>x.withBecki&&!x.waiting).length;
+      const unseenN=items.filter(x=>_admHers(x)&&!ROW_SEEN[String(x.rid)]&&x.kind!=='job').length;
+      const ki=(v,l,k,tip)=>`<div class="jkKpi info" style="flex:1;cursor:pointer;" onclick="_admKind=_admKind==='${k}'?'all':'${k}';renderAdmin();" title="${tip}"><b>${v}</b><span>${l}</span></div>`;
       const doneN=items.filter(x=>x.sortedGrace||x.parkedRow).length;
       const kc=(v,l,cls)=>`<div class="jkKpi ${cls||''}" style="flex:1;"><b>${v}</b><span>${l}</span></div>`;
       return`<div class="jkHero" style="padding:12px 16px 14px;margin-bottom:10px;flex-direction:column;align-items:stretch;gap:10px;">
@@ -2285,7 +2387,8 @@ function renderAdmin(){
         ${cUrgent?kc(fmt(cUrgent),'urgent','bad'):''}
         ${kc(fmt(unseenN),'not opened yet',unseenN>8?'bad':unseenN?'warn':'ok')}
         ${kc(fmtGBP2(lateValue),'tied up','warn')}
-        ${withJack?kc(fmt(withJack),'with Jack','hot'):''}
+        ${withBecki?ki(fmt(withBecki),'with Becki · not yours','WITHBECKI','For information — Becki is checking the shelves. Nothing for you until she answers. Click to see them.'):''}
+        ${withJack?ki(fmt(withJack),'with Jack · not yours','WITHJACK','For information — Jack has these. Nothing for you until he answers. Click to see them.'):''}
         ${doneN?kc(fmt(doneN),'recently actioned',''):''}
       </div>
     </div>`;})()}
@@ -2310,7 +2413,7 @@ function renderAdmin(){
      filter is on, so there is always a way back. */
   const _filtering=!!((_admQ||'').trim())||_admKind!=='all';
   if(items.length||_filtering){
-    const _dLate=items.filter(i=>i.sev>=3).length;
+    const _dLate=items.filter(i=>i.sev>=3&&_admHers(i)).length;   /* b630: "39 red" counted 31 grey rows */
     _transitSec=`<div class="tfuPanel" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;padding:0 6px 6px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(239,68,68,.06);gap:10px;flex-wrap:wrap;">
         <div style="font-size:13.5px;font-weight:800;color:var(--text);">Everything to sort out — ${items.filter(x=>!x.waiting&&!x.withBecki).length} open${(()=>{
@@ -2318,7 +2421,7 @@ function renderAdmin(){
           return w?` <span onclick="_admKind='WITHJACK';renderAdmin();" title="Show only the grey rows that are with Jack" style="font-size:11.5px;font-weight:700;color:#b6c2d4;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">· ${w} with Jack</span>`:'';})()}${(()=>{
           const b=items.filter(x=>x.withBecki&&!x.waiting).length;
           return b?` <span onclick="_admKind='WITHBECKI';renderAdmin();" title="Show only the grey rows Becki is checking" style="font-size:11.5px;font-weight:700;color:#22d3ee;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">· ${b} with Becki</span>`:'';})()}${(()=>{
-          const pa=items.filter(x=>x.partArrived).length;
+          const pa=items.filter(x=>x.partArrived&&_admHers(x)).length;
           return pa?` <span style="font-size:11.5px;font-weight:700;color:#fbbf24;">&middot; ${pa} part arrived</span>`:'';})()}
           <span class="tfuHint" style="font-weight:600;color:var(--text2);margin-left:8px;" title="Jack’s replies first, money about to be lost next, newest & biggest after that, dead claims last">${
             _tfuSort==='priority'
@@ -2332,7 +2435,7 @@ function renderAdmin(){
         <div style="display:flex;align-items:center;gap:9px;">
           <button onclick="exportTransitCsv()" title="Download the whole queue as a CSV — opens straight in Google Sheets or Excel. Nothing is written back to any sheet."
             style="padding:5px 11px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;">&#8595; Export CSV</button>
-          <div style="font-size:11px;font-weight:700;color:#f87171;background:rgba(239,68,68,.12);padding:3px 11px;border-radius:10px;white-space:nowrap;">${_dLate} red</div>
+          <div style="font-size:11px;font-weight:700;color:#f87171;background:rgba(239,68,68,.12);padding:3px 11px;border-radius:10px;white-space:nowrap;" title="Late or urgent and yours to chase — rows with Jack or Becki are not counted">${_dLate} red</div>
         </div>
       </div>
       <div class="admBar">
@@ -2362,6 +2465,10 @@ function renderAdmin(){
            ['#94a3b8','Light grey — with Jack, from Jack, or just sorted']]
           .map(([c,t])=>`<span class="admKeyI"><span class="admKeyD" style="background:${c};"></span>${t}</span>`).join('')}
       </div>
+      ${(()=>{const L=items.filter(_tcAmzAsk);_amzAskIds=L.map(i=>String(i.rid));
+        return L.length>=2?`<div class="admBulk"><span class="admBulkT"><b>${fmt(L.length)} Amazon orders</b> only Jack can answer &mdash; has Amazon delivered them?</span>
+          <span class="admBulkW">One press sends every one, with what SellerFuse found. Each comes back to you with his answer.</span>
+          <button class="csAct go" onclick="amzAskJackAll()" title="Each goes to Jack exactly as its own Send to Jack button would. Undo for 7 seconds.">Send these ${fmt(L.length)} to Jack</button></div>`:'';})()}
       <div class="tfuScroll">
       <table class="tfu cards">
         ${/* Jack, 26 Oct: "bug on Sarah's page" — the sort pills sat in a flex header row inside a table,
@@ -2411,7 +2518,7 @@ function renderAdmin(){
                 <span class="tfuCmpName" title="${esc(i.prod||'')}">${esc(i.prod||i.sku||'')}</span>
                 <span class="tfuCmpMeta">${esc(i.sup||'')}${i.oid?' · '+oidHtml(i.oid,i.sup,i.acct):''}${i.acct?' · '+esc(i.acct):''}</span>
                 <span class="tfuCmpChip" style="background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.5);color:#22d3ee;" title="With Becki — checking the shelves">With Becki &middot; checking the shelves${_bAge!=null?' &middot; '+_bAge+'d':''}</span>
-                <span class="tfuCmpAsk" title="Sent ${esc(i.withBecki.sentBy||'')}${i.withBecki.at?' '+esc(_logWhen(i.withBecki.at)):''}">${(_rowById(i.rid)&&!((_rowById(i.rid).resolution||{}).skuCheck))?'<b style="color:#fbbf24;">No wrong-SKU check on record &mdash; Undo, check, send again.</b> ':''}${i.withBecki.kind==='leftover'?`Booked in but never sent &mdash; Becki is checking the shelves. Found: she sends them and it clears. Not there: the count is corrected and it comes back${_amazonRow(_rowById(i.rid))?' via Jack':' to you'}.`:'Amazon say delivered &mdash; Becki is checking the shelves. Found: it books in and clears. Not there: it goes to Jack for the refund.'}</span>
+                <span class="tfuCmpAsk" title="Sent ${esc(i.withBecki.sentBy||'')}${i.withBecki.at?' '+esc(_logWhen(i.withBecki.at)):''}">${_skuCheckMissing(_rowById(i.rid))?'<b style="color:#fbbf24;">No wrong-SKU check on record &mdash; Undo, check, send again.</b> ':''}${i.withBecki.kind==='leftover'?`Booked in but never sent &mdash; Becki is checking the shelves. Found: she sends them and it clears. Not there: the count is corrected and it comes back${_amazonRow(_rowById(i.rid))?' via Jack':' to you'}.`:'Amazon say delivered &mdash; Becki is checking the shelves. Found: it books in and clears. Not there: it goes to Jack for the refund.'}</span>
                 <span class="tfuCmpVal">${i.value?fmtGBP2(i.value):''}</span>
                 <span class="tfuCmpActs">
                 <button class="tfuAsk" onclick="amzBackToJack('${i.rid}')" title="Nothing for the warehouse to find — the order or the Purchase Sheet is wrong. It goes to Jack to answer and comes off Becki's list.">Back to Jack</button>
@@ -2595,8 +2702,9 @@ function renderAdmin(){
                    whatever state the row was in. */
                 if(sentBack&&sentBack.rejectNote&&(i.query||i.partOverdue||_amazonRow(_rowById(i.rid)))){
                   const a=String(sentBack.rejectNote||'');
-                  const notComing=/not arrived|nothing coming|cancel/i.test(a);
-                  const arrivedYes=!notComing&&/arrived\s*[—-]\s*yes|shows it delivered|delivered/i.test(a);
+                  const _m=_ansMeans(sentBack);   /* b630: his tick wins over his words */
+                  const notComing=_m.notComing;
+                  const arrivedYes=_m.arrivedYes;
                   const short=i.outstanding||Math.max(0,(i.units||0)-(i.got||0));
                   const _amzR=_amazonRow(_rowById(i.rid));
                   /* Jack, 28 Oct — the C920: his answer "it was 2, this line is a copy" leaves one press */
@@ -2749,16 +2857,32 @@ function renderAdmin(){
                       ${!set?`<button class="csAct plain" style="width:100%;" onclick="caseDate('${i.rid}','${dflt}')">Set ${(st.date&&st.date.days)||7} days from today</button>`:''}
                     </div>`:''}
                     ${(!st.date||set)?`<div class="csActs">${(st.acts||[]).map(a=>
-                      `<button class="csAct ${a.tone}" onclick="caseGo('${i.rid}','${a.k}','${i.caseC.step}')"
+                      /* b630: on an Amazon order Jack's check is one press — no popup, SellerFuse's finding goes with it */
+                      (a.k==='_jack'&&i.caseC.step==='to-jack')
+                      ?`<button class="csAct go tcBig" onclick="amzAskJack('${i.rid}')" title="He checks the Amazon account and it comes back to you with his answer. Nothing to type — what SellerFuse found goes with it.">Send to Jack &mdash; has Amazon delivered it?</button>`
+                      :`<button class="csAct ${a.tone}" onclick="caseGo('${i.rid}','${a.k}','${i.caseC.step}')"
                         title="${esc(a.log)}">${esc(a.t)}</button>`).join('')}</div>`:''}
                     ${(i.caseC&&['contact','waiting','check-refund'].includes(i.caseC.step))?`<button class="csAct plain" style="width:100%;margin-top:4px;" onclick="copyChaseMsg('${i.rid}',this)" title="Writes the supplier chase for you — order number, what's missing, what we want. Paste it into the email or case.">&#9998; Copy the chase message</button>`:''}
                   </div>`;}
+                }
+                if(_tcAmzAsk(i)){
+                  const _ar=_rowById(i.rid),_g=parseInt(_ar.rcvd)||0,_d=typeof _dupLineOf==='function'?_dupLineOf(_ar):null;
+                  let _sf='';try{_sf=typeof sfJackText==='function'?sfJackText(_ar):'';}catch(e){}
+                  return `<div class="csNow">
+                    <div class="csNowCap" style="color:#93c5fd;">Amazon order &mdash; only Jack can see the account</div>
+                    <div class="csNowTxt">${_g?`${fmt(_g)} of ${fmt(i.units)} booked in &mdash; has Amazon delivered the rest?`:'Nothing booked in &mdash; has Amazon delivered it?'}</div>
+                    <div class="csActs">
+                      <button class="csAct go tcBig" onclick="amzAskJack('${i.rid}')" title="One press — he checks the account and it comes back to you with his answer.${_sf?' Goes with it: '+esc(_sf):''}">${_d?`Send to Jack &mdash; ${fmt(_d.got)} units or ${fmt(_d.total)}?`:'Send to Jack &mdash; has Amazon delivered it?'}</button>
+                      <button class="csAct plain" onclick="openSorted('${i.rid}')" title="You already know exactly what happened — record it yourself">Close it off another way&hellip;</button>
+                    </div>
+                    <div class="tfuGuide">Nothing to type &mdash; what SellerFuse found goes to Jack with it.</div>
+                  </div>`;
                 }
                 const arrived=i.delivered==='Yes';
                 const cls=v=>v==='Yes'?'yes':v==='No'?'no':'pend';
                 const q=(cap,field,val)=>`<div class="tfuQ">
                   <span class="tfuCap" style="margin:0;">${cap}</span>
-                  <select class="tfuTri ${cls(val)}" onchange="setTriage('${i.rid}','${field}',this.value)"
+                  <select class="tfuTri ${cls(val)}" data-u="${cap}" aria-label="${cap}" onchange="setTriage('${i.rid}','${field}',this.value)"
                     title="${cap} Green = yes, red = no, amber = not answered yet.">
                     ${['','Yes','No'].map(o=>`<option value="${o}" ${val===o?'selected':''}>${o||'—'}</option>`).join('')}
                   </select></div>`;
@@ -2791,8 +2915,9 @@ function renderAdmin(){
                        is the latest line; the next move follows from it. */
                     const _a=String(sentBack.rejectNote||'');
                     const _rg=!!sentBack.restGone,_jn=!!sentBack.jackNote;
-                    const _nc=!_rg&&!_jn&&/not arrived|nothing coming|cancel/i.test(_a);
-                    const _ay=!_nc&&/arrived\s*[—-]\s*yes|shows it delivered|delivered/i.test(_a);
+                    const _mw=_ansMeans(sentBack);
+                    const _nc=!_rg&&!_jn&&_mw.notComing;
+                    const _ay=!_nc&&_mw.arrivedYes;
                     state=_jn?'JACK NEEDS A CHECK':'JACK ANSWERED';scol=_jn?'#fbbf24':'#f87171';
                     last=(_jn?'Asked':'Answered')+(sentBack.at?' · '+lw(sentBack.at):'')+(_jn?' — what he needs is in Triage':' — his answer is in Triage');
                     next=sentBack.dupOf?'Close it as Duplicate record — one press (left)':_jn?'Do the check, then send what you found to Jack (left)':_rg?'Note the sheet and close it — one press (left)':isAmz
@@ -2824,7 +2949,7 @@ function renderAdmin(){
                     next=i.wentAs?'Press Sorted — nothing is lost':'Press Sorted — say which SKU if you know it';}
                   else if(i.delivered==='Yes'&&i.wrongSku==='No'){state='STOCK HUNT';scol='#ef4444';last='Arrived — but not a wrong SKU';next='Dig in, then send it to Jack';}
                   else if(i.delivered==='Yes'){state='ARRIVED \u2713';scol='#4ade80';last='Marked as arrived';next='Answer Wrong SKU? on the row';}
-                  else if(i.delivered==='No'){state='NOT ARRIVED';scol='#f87171';last='Confirmed it never turned up';next='Work the refund steps in Triage';}
+                  else if(i.delivered==='No'){state='NOT ARRIVED';scol='#f87171';last='Confirmed it never turned up';next=_tcAmzAsk(i)?'Amazon order \u2014 send it to Jack, one press (left)':'Work the refund steps in Triage';}
                   else if(i.expDate){const away=Math.round((new Date(i.expDate)-new Date())/864e5);
                     state=away<0?`WAS DUE ${Math.abs(away)}D AGO`:'DATE PROMISED';scol=away<0?'#f87171':'#4ade80';
                     last='Supplier promised '+lw(i.expDate);next=away<0?'It slipped — chase them':'Nothing until the date';}
@@ -2835,12 +2960,12 @@ function renderAdmin(){
                     const loud=(Math.min(i.days||0,_trialD)>=7)||(i.value>=100)||(i.left!==null&&i.left>=0&&i.left<=7);
                     state='NEW — NOT OPENED';scol=loud?'#ef4444':'var(--text3)';
                     last=`Sitting ${i.days||0}d · ${fmtGBP2(i.value||0)} at stake${loud?' — nobody has opened it':''}`;
-                    next='Answer \u201cHas it arrived?\u201d';
+                    next=_tcAmzAsk(i)?'Send it to Jack \u2014 has Amazon delivered it? One press (left)':'Answer \u201cHas it arrived?\u201d';
                   }else{
                     const sn=ROW_SEEN[String(i.rid)];
                     state='SEEN — NOT ANSWERED';scol='#fbbf24';
                     last='Opened by '+(sn.by||'')+' · '+lw(sn.at)+' — no answer recorded';
-                    next='Answer \u201cHas it arrived?\u201d';
+                    next=_tcAmzAsk(i)?'Send it to Jack \u2014 has Amazon delivered it? One press (left)':'Answer \u201cHas it arrived?\u201d';
                   }
                 }else if(i.kind==='claim'){
                   const ch3=i.claimC?_claimChaseInfo(i.claimC):{txt:'',col:'#f87171',days:0};
@@ -2964,7 +3089,7 @@ function renderAdmin(){
                   <button class="tfuMore" onclick="askJackAsk('${i.rid}')" title="Something else for Jack on this one">Ask Jack again</button>
                   ${i.claimId?`<button class="tfuMore" style="border-color:rgba(251,191,36,.5);color:#fcd34d" onclick="openClaimCase('${i.claimId}')" title="The claim on this same order — chase it here">Claim &#163;${(i.claimVal||0).toFixed(2)}</button>`:''}`;
                 if(i.kind==='transit')return `<button class="tfuWork" onclick="openSorted('${i.rid}')" title="Close it off — the popup opens already filled in with everything recorded">Sorted</button>
-                  <button class="tfuAsk" onclick="askJackAsk('${i.rid}')" title="${isAmz?'Amazon order — only Jack can see this account':'Hand it to Jack — the row goes grey until he answers'}">Send to Jack</button>
+                  <button class="tfuAsk" onclick="askJackAsk('${i.rid}')" title="${_tcAmzAsk(i)?'A different question for Jack — the has-it-arrived one is the blue button on the left':isAmz?'Amazon order — only Jack can see this account':'Hand it to Jack — the row goes grey until he answers'}">${_tcAmzAsk(i)?'Ask Jack something else&hellip;':'Send to Jack'}</button>
                   <button class="tfuMore" onclick="openWork('${i.rid}')" title="The full issue — source, notes, dates, history">Details</button>
                   ${i.claimId?`<button class="tfuMore" style="border-color:rgba(251,191,36,.5);color:#fcd34d" onclick="openClaimCase('${i.claimId}')" title="The claim on this same order — chase it here">Claim &#163;${(i.claimVal||0).toFixed(2)}</button>`:''}`;
                 if(i.kind==='claim')return `<button class="tfuWork" onclick="openClaimCase('${i.claimId}')" title="Everything on this claim in one place — how it ends is one press inside">Sorted</button>

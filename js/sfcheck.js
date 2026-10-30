@@ -428,7 +428,7 @@ function _sfLine(chip,col,what,det,nums,btn){
 function sfAdminHtml(){
   if(!SFRUN)return '';
   const all=sfPrepIssues();
-  const sure=all.filter(i=>i.kind==='late'||i.kind==='send'),look=all.filter(i=>i.kind==='look'),
+  const sure=all.filter(i=>i.kind==='late'||i.kind==='send'),look=all.filter(i=>i.kind==='look'&&_sfSarahOwns(i.row)),   /* the same list as her page */
         noord=all.filter(i=>i.kind==='noorder'),match=all.filter(i=>i.kind==='matched'),moved=all.filter(i=>i.kind==='moved');
   const lateRows=(typeof _adminItems==='function'?_adminItems():[]).map(i=>_rowById(i.rid)).filter(Boolean);
   const checked=lateRows.filter(r=>{const v=sfLateFor(r);return v&&v.state!=='unchecked';}).length;
@@ -457,10 +457,48 @@ function sfAdminHtml(){
   const fixAll=sure.length>1?`<div class="sfFixAll"><button class="csAct good" onclick="sfFixAll()" title="Every line with a Fix it button, in one go — one Undo for all of them">Fix all ${fmt(sure.length)}</button></div>`:'';
   return `<div class="vaSec sfSec" style="border-left:4px solid #a78bfa">${_sfHead('SellerFuse check · '+fmt(sure.length+noord.length+moved.length),'#c4b5fd',why)}${fixAll}${lines}${lookHtml}${matchHtml}</div>`;
 }
+/* b630: hers to look at only while it is hers — the Canon SELPHY (Amuk_109_06106_154_Jac_02) was still listed
+   after it was closed and with Becki. Closed, filed, with Becki or waiting on Jack: not on her list. */
+function _sfSarahOwns(r){
+  if(!r||r.archived)return false;
+  const st=(r.resolution||{}).state;
+  if(st==='approved'||st==='asked'||st==='proposed')return false;
+  if(typeof _isAmzDel==='function'&&_isAmzDel(r))return false;
+  try{const o=typeof _rowOwner==='function'?_rowOwner(r):null;if(o&&(o.owner==='jack'||o.owner==='becki'))return false;}catch(e){}
+  return true;
+}
+/* b630 — what SellerFuse found for one order, on Jack's check card, so Sarah never types "No shipment found in SF"
+   into the question. The same facts as her card's steps (sfLateFor, sfAsinBalance). */
+function sfJackFacts(r){
+  if(!SFRUN||!r)return null;
+  const v=sfLateFor(r);if(!v)return null;
+  const owed=_owedUnits(r)||0,left=owed>0?owed:((typeof _leftUnits==='function')?_leftUnits(r):0);
+  let sku;
+  if(v.state==='unchecked')sku=`not checked yet — the next check is ${sfNextCheck()}`;
+  else if(v.state==='clear')sku=`not on any shipment under this SKU${v.sisters?`, nothing extra under its ${fmt(v.sisters)} other SKU${v.sisters===1?'':'s'}`:', and no other SKU of it went out'}`;
+  else if(v.state==='shipped')sku=`${fmt(v.units)} went out under this SKU on ${v.ships.map(s=>s.id).join(', ')} — PrepHub has no record of ${v.units===1?'it':'them'}`;
+  else sku=`possibly under another SKU — ${v.ships.map(s=>`${s.sku} sent ${fmt(s.units)} on ${s.id}, PrepHub has ${fmt(s.ph)}`).join(' · ')}`;
+  let bal='';
+  const b=left>0&&typeof sfAsinBalance==='function'?sfAsinBalance(r):null;
+  if(b){
+    const od=_sfOrderISO(r),ex=b.extra.filter(e=>!od||!e.date||e.date>=od),un=ex.reduce((t,e)=>t+e.units,0);
+    const others=b.notIn.filter(o=>o.x!==r).length;
+    bal=un>0?`Amazon got ${fmt(un)} more of this product than PrepHub recorded since this order (${ex.map(e=>`${fmt(e.units)} × ${e.sku} on ${e.id}`).join(' · ')})`
+      :`nothing extra of this product went to Amazon since this order — ${left===1?'it isn’t':'they aren’t'} hidden in another shipment`;
+    if(others)bal+=` · ${fmt(others)} other order${others===1?'':'s'} of it ${others===1?'is':'are'} missing too`;
+  }
+  return{state:v.state,sku,bal,when:sfWhen()};
+}
+function sfJackText(r){const f=sfJackFacts(r);return f?`SellerFuse: ${f.sku}${f.bal?'; '+f.bal:''} (Claude, ${f.when})`:'';}
+function sfJackHtml(r){
+  const f=sfJackFacts(r);if(!f)return '';
+  const col=f.state==='clear'?'#86efac':f.state==='unchecked'?'var(--text3)':'#fcd34d';
+  return `<div class="jkSf"><span class="tcSf" style="margin-left:0">SELLERFUSE</span> <span style="color:${col}">${esc(f.sku)}</span>${f.bal?`<br><span class="jkSfBal">${esc(f.bal)}</span>`:''} <span class="jkSfWho">· checked by Claude ${esc(f.when)}</span></div>`;
+}
 /* ...and on Sarah's: only the ones that don't add up for certain — she looks and decides */
 function sfSarahHtml(){
   if(!SFRUN)return '';
-  const look=sfPrepIssues().filter(i=>i.kind==='look');
+  const look=sfPrepIssues().filter(i=>i.kind==='look'&&_sfSarahOwns(i.row));
   if(!look.length)return '';
   const sf=s=>`<a class="sfLink" href="https://app.sellerfuse.com/shipment-manager?search=${encodeURIComponent(s)}" target="_blank" rel="noopener">SellerFuse ↗</a>`;
   const lines=look.map(it=>{
@@ -550,3 +588,4 @@ window.sfStaleBanner=sfStaleBanner;window._sfLastSlot=_sfLastSlot;window._sfMiss
 window.sfLoad=sfLoad;window.sfPlubHtml=sfPlubHtml;window.sfAdminHtml=sfAdminHtml;window.sfRecordRow=sfRecordRow;window.sfNextCheck=sfNextCheck;window.sfRecord=sfRecord;
 window.sfCheckedToBecki=sfCheckedToBecki;window.sfFixAll=sfFixAll;window.sfMoveIt=sfMoveIt;window.sfBookOwed=sfBookOwed;window.sfAskJackLook=sfAskJackLook;window.sfSarahHtml=sfSarahHtml;window.sfFixShipDates=sfFixShipDates;window.sfLateFor=sfLateFor;window.sfFactHtml=sfFactHtml;
 window.sfPrepIssues=sfPrepIssues;window.sfPlubIssues=sfPlubIssues;window._cleanShipId=_cleanShipId;
+window.sfJackHtml=sfJackHtml;window.sfJackText=sfJackText;window._sfSarahOwns=_sfSarahOwns;

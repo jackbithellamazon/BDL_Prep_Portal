@@ -1170,3 +1170,25 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 .shipMoveRow{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:11px;color:var(--text2);cursor:pointer;}
 .shipMoveRow span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .shipMoveRow b{font-family:var(--mono);color:var(--text);}
+/* b630 · Sarah's card. prep.css td{white-space:nowrap} reached the card's buttons: the width:100% buttons sat on one
+   line and "Send to Jack" was pushed off the card (~12px showing beside Sorted at 1512px). Inside the card only. */
+.tfu tbody tr.tcRow .tcard{white-space:normal;}
+.tcard .tfuWork,.tcard .tfuAsk,.tcard .tfuMore{white-space:normal;}
+/* Sorted and Send to Jack side by side, Details (and a Claim button) wrap below at full width */
+.tcActs{display:flex;flex-wrap:wrap;gap:6px;}
+.tcActs>button{margin:0!important;width:auto!important;flex:1 1 120px;}
+.tcLinks{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;}
+.tcLink{font-size:11px;font-weight:800;color:#93c5fd;text-decoration:none;border-bottom:1px dotted rgba(147,197,253,.55);line-height:1.3;}
+.tcLink:hover{color:#dbeafe;border-bottom-style:solid;}
+.admBulk{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;margin:8px 8px 4px;padding:9px 14px;border-radius:9px;
+  background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.45);}
+.admBulkT{font-size:12.5px;color:var(--text);}
+.admBulkT b{color:#93c5fd;}
+.admBulkW{font-size:11.5px;color:var(--text2);flex:1;min-width:220px;}
+.admBulk .csAct{flex:none;padding:7px 16px;font-size:12px;font-weight:800;}
+.jkKpi.info{border-top-color:#64748b;opacity:.85;}
+.jkKpi.info b{color:#b6c2d4;}
+.jkSf{margin-top:2px;line-height:1.45;}
+.jkSfBal{color:var(--text2);}
+.jkSfWho{color:var(--text3);font-size:10.5px;}
+.jkMeant select{margin-left:4px;padding:3px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11.5px;font-weight:700;}
