@@ -2448,3 +2448,38 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .q4Rm{flex:0 0 26px;width:26px;height:26px;padding:0;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:15px;line-height:1;cursor:pointer;}
 #page-lavarion .q4Rm:hover{color:#fca5a5;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.08);}
 #page-lavarion .q4NoT{flex:0 0 96px;text-align:right;font-size:11.5px;}
+/* b629: Products — sub-labels wrap instead of being cut off (Jack, 30 Oct: "can't read"); Per day's in-stock sum */
+#page-lavarion .panel.stick tbody .sldSub{white-space:normal;overflow-wrap:break-word;}
+#page-lavarion .sldSub .pdIn{display:block;color:var(--text3);margin-top:1px;}
+#page-lavarion .sldSub .inbT{display:block;}
+/* b629: Products → Next step — when, the verdict, what to send, what stops it (Jack, 30 Oct) */
+#page-lavarion .nsC{display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer;text-align:center;}
+#page-lavarion .nsC .nsTop{font-size:13.5px;white-space:nowrap;}
+#page-lavarion .nsC .nsL{display:block;max-width:100%;font-size:11px;line-height:1.3;color:var(--text2);white-space:normal;overflow-wrap:break-word;}
+#page-lavarion .nsC .nsL b{color:var(--text);font-weight:800;}
+/* b630: Stock at Amazon — SellerFuse fills it in; a hand count only when Jack asks */
+.amzMod .amzSfNote{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 14px;padding:12px 16px;border-radius:10px;
+  background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.35);}
+.amzMod .amzSfNote .t{flex:1;min-width:260px;font-size:13px;line-height:1.5;color:var(--text);}
+.amzMod .amzSfNote .t b{color:#86efac;}
+.amzMod .amzSfNote.warn{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.4);}
+.amzMod .amzSfNote.warn .t b{color:#fcd34d;}
+.amzMod .amzSfNote.open{background:rgba(96,165,250,.07);border-color:rgba(96,165,250,.35);}
+.amzMod.amzLock .mb > :not(.amzSfNote),.amzMod.amzLock .amzSeg{opacity:.38;pointer-events:none;filter:grayscale(.35);}
+/* b630: Q4 page audit — four tiles, one shopping list, parts as chips (Jack, 30 Oct) */
+#page-lavarion .q4Kpis{grid-template-columns:repeat(4,minmax(0,1fr));}
+#page-lavarion .q4Kpis .kpi .s{line-height:1.45;}
+#page-lavarion .q4Kpis .kpi .s b{color:var(--text);font-weight:800;}
+#page-lavarion .q4Kpis .kpi .s b.bad{color:#fca5a5;}
+#page-lavarion .q4Intro span{color:var(--text3);}
+#page-lavarion .q4Buy{margin-bottom:14px;border-color:rgba(251,191,36,.38);box-shadow:inset 3px 0 0 #fbbf24;}
+#page-lavarion .q4Buy .ph{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+#page-lavarion .q4Buy .ph .sub b{color:#fcd34d;}
+#page-lavarion .q4Buy .ph .btn{margin-left:auto;}
+#page-lavarion .q4BuyList{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 14px;}
+#page-lavarion .q4Chip{display:inline-flex;align-items:baseline;gap:5px;padding:2px 9px;margin:2px 4px 2px 0;border-radius:999px;
+  background:rgba(251,191,36,.09);border:1px solid rgba(251,191,36,.28);font-size:12px;color:var(--text2);white-space:nowrap;}
+#page-lavarion .q4Chip b{color:#fcd34d;font-weight:800;font-variant-numeric:tabular-nums;}
+#page-lavarion .q4Chip.big{font-size:13px;padding:5px 12px;margin:0;color:var(--text);}
+@media(max-width:1100px){#page-lavarion .q4Kpis{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:700px){#page-lavarion .q4Kpis{grid-template-columns:1fr;}}

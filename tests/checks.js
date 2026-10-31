@@ -951,6 +951,8 @@ window.PrepChecks=(function(){
       upsert:()=>{if(t==='app_settings')writes++;return Promise.resolve({error:null});}};return q;};
     try{
       LV3.openAtAmz();await wait(300);
+      /* b630: SellerFuse fills this in — a hand count is unlocked first, as when Jack asks for one */
+      if(LV3.amzLocked&&LV3.amzLocked()){LV3.amzUnlock();await wait(150);}
       const box=document.querySelector('#lav3Mod2 .amzQ');ok(box,'the window opened');
       const asin=box.dataset.asin;
       box.value='7';box.dispatchEvent(new Event('input',{bubbles:true}));
@@ -2545,7 +2547,7 @@ window.PrepChecks=(function(){
       eq(D.settings.q4Uplift.to,'12-23','the rest keep their defaults');
       LV3.setUplift('toD','31');eq(D.settings.q4Uplift.to,'12-31','the end day saves as month-day');
       LV3.setUplift('toM','2');eq(D.settings.q4Uplift.to,'02-29','a day past the month end is pulled back (31 Feb → 29 Feb)');
-      LV3.setUplift('words','');eq(D.settings.q4Uplift.words,'gift, hamper, Gluten Free Snack Bundle, Gluten Free Biscuit Bundle','blank words go back to the defaults');
+      LV3.setUplift('words','');eq(D.settings.q4Uplift.words,'gift, hamper, reindeer, decaf, chocolate, christmas, santa, festive, Gluten Free Snack Bundle, Gluten Free Biscuit Bundle','blank words go back to the defaults (b630: reindeer, decaf, chocolate, christmas, santa, festive added)');
       ok(D.log.length>logN&&/Christmas uplift/.test(D.log[0].txt),'each change goes in the History');
       /* it saves the way every PLUB setting does: savePrefs, three-way merged into lavarion_prefs (database faked) */
       if(LV3.__setPrefsBase&&LV3.__savePrefs&&LV3.__prefsBase){
@@ -2627,7 +2629,7 @@ window.PrepChecks=(function(){
       const pg=document.getElementById('page-lavarion'),live=LV3.q4Calc(),nP=live.bundles.filter(r=>r.priority).length;
       eq(pg.querySelectorAll('table.q4P tbody tr.q4Row').length,nP,'every priority bundle is in the top table');
       eq(pg.querySelectorAll('table.q4O td.q4D.ok').length,0,'a bundle without a target is never a green 100%');
-      ok(/When orders land = parts still on order/.test((pg.querySelector('.q4Legend')||{}).textContent||''),'the legend is above the tables');
+      ok(/When orders land = parts still on order|nothing is on order/.test((pg.querySelector('.q4Legend')||{}).textContent||''),'the legend is above the tables');
       eq(pg.querySelectorAll('details.q4Prog table.q4G').length,2,'Progress ▾ has its Days and Weeks tables');
       const p=LV3.q4SetOpen('days','progMode');eq(JSON.stringify([p.mode,pg.querySelector('details.q4Prog').getAttribute('data-mode')]),JSON.stringify(['days','days']),'Days / Weeks switches and is remembered');
       ok(!/undefined|NaN/.test(pg.querySelector('.q4').textContent),'no undefined or NaN on the page');
@@ -2980,6 +2982,177 @@ window.PrepChecks=(function(){
       ok(D.log.slice(0,D.log.length-logN).some(x=>/Q4 prepping: .+ (added to|taken off) the page/.test(JSON.stringify(x))),'each change is in History');
     }finally{if(own)sb.from=orig;else delete sb.from;Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,JSON.parse(keepS));
       LV3.__setPrefsBase(keepB);D.log.splice(0,D.log.length-logN);}
+  };
+
+  /* 114 · b629: Products — the Sold / Per day labels can be read, and Per day says how it leaves empty days out */
+  S['b629: Products labels are never cut off; Per day shows “÷ N days in stock” only when that is the sum']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    /* the sum, on made-up paces */
+    const sf=(pc)=>({src:'sf',pace:pc});
+    eq(LV3.pdInStock(sf({fastW:7,empty:{7:1,14:1,30:7},sell:{7:6,14:13,30:23},u7:30,u14:60,u30:99,perDay:5})),'<span class="pdIn">÷ 6 days in stock</span>',
+      'GF Snack: 30 sold in 7 days, empty 1 → ÷ 6 days in stock (5.0 a day)');
+    eq(LV3.pdInStock(sf({fastW:7,empty:{7:0},sell:{7:7},u7:21,perDay:3})),'','never empty → no sum line');
+    eq(LV3.pdInStock(sf({fastW:30,empty:{30:20},sell:{30:10},u30:5,perDay:4,why:'prev30'})),'','the month-before fallback is not a ÷ in-stock sum → no line');
+    eq(LV3.pdInStock({src:'season',pace:null}),'','a typed or seasonal figure → no line');
+    /* the page */
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      goPage('lavarion');LV3.go('products');await wait(250);
+      const pg=document.getElementById('page-lavarion'),subs=[...pg.querySelectorAll('.panel.stick tbody td .sldSub')].filter(s=>s.offsetParent);
+      ok(subs.length>0,'the Products table draws its sub-labels');
+      const cut=subs.filter(s=>s.scrollWidth>s.clientWidth+1);
+      eq(cut.length,0,'no sub-label is cut off'+(cut.length?' — '+cut.slice(0,3).map(s=>'“'+s.textContent.trim()+'”').join(', '):''));
+      ok(!subs.some(s=>/empty \d+ of (7|30) days/.test(s.textContent)),'the old “empty N of 7 days” wording is gone');
+      ok(!/undefined|NaN/.test(pg.querySelector('.panel.stick').textContent),'no undefined or NaN in the table');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 115 · b629: the ASIN copies again; what is on its way in parts shows every part and the real empty days */
+  S['b629: pressing an ASIN copies it (two copyAsin clashed); on its way in parts — every part, the real empty days, WAIT for what']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const W=LV3.shelfWalk(0,5,[{q:403,eta:'2026-11-13'},{q:9,eta:'2026-11-02'}],'2026-10-30');
+    eq(JSON.stringify([W.gap,Math.floor(W.own),W.legs.length,W.tranches.map(x=>x.q)]),JSON.stringify([12,0,2,[9,403]]),
+      'GF Snack: 9 land ~2 Nov, 403 ~13 Nov → about 12 days empty in two stretches, not 3');
+    const W2=LV3.shelfWalk(100,5,[{q:50,eta:'2026-11-02'}],'2026-10-30');
+    eq(JSON.stringify([W2.gap,W2.total]),JSON.stringify([0,30]),'lands before the shelf empties → no gap, days left counts it');
+    eq(LV3.shelfWalk(2,5,[{q:30,eta:'2026-11-02'}],'2026-10-30').gap,3,'one part: the same answer as before (empty ~3 days)');
+    const cb=navigator.clipboard;ok(cb&&cb.writeText,'the clipboard is there to test');
+    let got=null;const had=Object.prototype.hasOwnProperty.call(cb,'writeText'),keepW=cb.writeText;
+    cb.writeText=t=>{got=t;return Promise.resolve();};
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      goPage('lavarion');LV3.go('products');await wait(250);
+      const b=document.querySelector('#page-lavarion .panel.stick tbody .asinC');ok(b,'an ASIN button on Products');
+      b.click();await wait(30);eq(got,b.textContent.trim(),'pressing the ASIN copies the ASIN');
+      got=null;const el=document.createElement('span');el.innerHTML='<span class="sAsinT">B0CHK629CP</span>';
+      LV3.copyAsinChip(el,'B0CHK629CP');await wait(30);
+      eq(got,'B0CHK629CP','the send-card chip still copies');eq(el.querySelector('.sAsinT').textContent,'Copied','…and says Copied');
+      ok(!/undefined|NaN/.test(document.querySelector('#page-lavarion .panel.stick').textContent),'no undefined or NaN in the table');
+    }finally{if(had)cb.writeText=keepW;else delete cb.writeText;try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 116 · b629: Next step says when, the verdict, what to send and what stops it */
+  S['b629: Products Next step — when to act on top, the verdict, what to send, what stops it, in words']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      goPage('lavarion');LV3.go('products');await wait(250);
+      const cells=[...document.querySelectorAll('#page-lavarion .panel.stick tbody .nsC')];
+      ok(cells.length>0,'Next step cells are drawn');
+      const by=k=>cells.filter(c=>{const s=c.querySelector('span[style*="background"]');return s&&s.textContent.trim()===k;});
+      const top=c=>((c.querySelector('.nsTop')||{}).textContent||'').trim();
+      by('SAFE').forEach(c=>ok(/^~\d\d\/\d\d/.test(top(c)),'SAFE says when the next send is due: '+top(c)));
+      by('SEND NOW').forEach(c=>eq(top(c),'today','SEND NOW says today'));
+      by('SEND').forEach(c=>ok(/^by \d\d\/\d\d/.test(top(c)),'SEND says the last day: '+top(c)));
+      by('WAIT').forEach(c=>ok(/^~\d\d\/\d\d/.test(top(c))&&/on the way/.test(c.textContent),'WAIT says what for'));
+      by('GET PARTS').forEach(c=>ok(/send \d/.test(c.textContent)&&!/none can be built/.test(c.textContent),'GET PARTS says what to send, without repeating that none can be built'));
+      ok(!cells.some(c=>/\d+ now\b/.test(c.textContent)),'the old “· 0 now” is gone');
+      ok(cells.every(c=>/days of stock/.test(c.getAttribute('title')||'')||!c.querySelector('.nsTop')),'the days of stock are in the tooltip');
+      ok(!/undefined|NaN/.test(cells.map(c=>c.textContent+(c.getAttribute('title')||'')).join(' ')),'no undefined or NaN');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 117 · b630: shared parts — some for everyone first, the rest to the fastest seller; uplift words; empty days in SF's window */
+  S['b630: shared parts — one each, then the 3-week minimum, then the fastest seller; Reindeer gets the uplift; empty days in SellerFuse’s window']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const C={w:{id:'w',name:'Wool'},t:{id:'t',name:'Tin'}};
+    const run=(have,rows)=>LV3.shareParts(rows,{have:c=>have[c.id],comp:id=>C[id],floor:r=>r._fl});
+    const mk=(id,rec,ads,pd,fl,rc)=>({p:{id,name:'CHECK '+id,type:'bundle',recipe:rc||[{c:'w',q:1}]},rec,ads,protDays:pd,_fl:fl});
+    let A=mk('fast',200,100/30,10,70),B=mk('slow',3,1/30,5,1);run({w:100,t:1000},[B,A]);
+    eq(JSON.stringify([A.alloc,B.alloc]),JSON.stringify([99,1]),'Jack’s wool: 100 wool, 100 a month vs 1 a month → 99 and 1');
+    eq(JSON.stringify(B.limTakers),JSON.stringify(['CHECK fast']),'the slow one says who else gets the wool');
+    A=mk('fast',200,100/30,10,70);B=mk('slow',3,1/30,5,1);run({w:50,t:1000},[B,A]);
+    ok(A.alloc>0&&B.alloc>0&&A.alloc+B.alloc===50,'not enough for the minimums: both still get some, and never more than there is ('+A.alloc+' + '+B.alloc+')');
+    A=mk('fast',200,100/30,10,70);B=mk('slow',3,1/30,5,1);const X=mk('urgent',20,0.5,0,15);run({w:30,t:1000},[X,B,A]);
+    ok(X.alloc>=15&&B.alloc>=1&&A.alloc>=1&&X.alloc+B.alloc+A.alloc===30,'the minimums go closest-to-empty first ('+[X.alloc,B.alloc,A.alloc].join(', ')+')');
+    A=mk('fast',200,100/30,10,70,[{c:'w',q:1},{c:'t',q:1}]);B=mk('slow',3,1/30,5,1);run({w:100,t:10},[B,A]);
+    eq(JSON.stringify([A.alloc,A.lim&&A.lim.id,B.alloc]),JSON.stringify([10,'t',3]),'a second part still limits — the tin stops the fast one at 10, so the slow one gets all it asked for');
+    /* uplift words — the defaults (nothing saved) */
+    const D=LV3.__D(),keepU=D.settings.q4Uplift;delete D.settings.q4Uplift;
+    try{
+      const rf=D.products.find(p=>!p.archived&&/reindeer/i.test(p.name||''));
+      if(rf)ok(LV3.upliftOf(rf),'Reindeer Food gets the Christmas uplift');
+      D.products.filter(p=>!p.archived&&/decaf|chocolate|hamper|gift/i.test(p.name||'')).forEach(p=>ok(LV3.upliftOf(p),p.name+' gets the uplift'));
+      const dv=D.products.find(p=>!p.archived&&/\bdove\b/i.test(p.name||''));if(dv)ok(!LV3.upliftOf(dv),'a Dove does not');
+    }finally{if(keepU!==undefined)D.settings.q4Uplift=keepU;}
+    /* empty days counted in SellerFuse's window: checked 2 days ago, empty 8–7 days ago = inside its 7 days */
+    const p=D.products.find(x=>!x.archived&&x.asin&&x.type==='bundle'),keepS=JSON.stringify(D.settings.stockOuts||[]),keepF=JSON.stringify((D.settings.sfSold||{})[p.asin]||null);
+    const isoDay=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+    const ago=k=>{const x=new Date();x.setDate(x.getDate()-k);return isoDay(x);};
+    try{
+      D.settings.sfSold=D.settings.sfSold||{};D.settings.sfSold[p.asin]={u30:30,u14:14,u7:10,at:new Date(Date.now()-2*864e5).toISOString()};
+      D.settings.stockOuts=[{id:'chk630',asin:p.asin,kind:'out',from:ago(8),to:ago(7),pace:1,pu:2}];
+      const pc=LV3.sfPace(p);eq(pc&&pc.empty[7],2,'checked 2 days ago: its 7 days run to that day, so 2 empty days 8 and 7 days ago count');
+    }finally{D.settings.stockOuts=JSON.parse(keepS);const f=JSON.parse(keepF);if(f)D.settings.sfSold[p.asin]=f;else delete D.settings.sfSold[p.asin];}
+  };
+
+  /* 118 · b630: Stock at Amazon is SellerFuse's job — locked, one logged unlock; open when SellerFuse is 3+ days behind */
+  S['b630: Stock at Amazon opens locked (SellerFuse fills it), one logged unlock, unlocked when SellerFuse is 3+ days behind']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),logN=D.log.length;
+    D.settings.sfSold=D.settings.sfSold||{};D.settings.sfSold['B0CHK630AM']={u30:0,at:new Date(Date.now()-864e5).toISOString()};   /* a SellerFuse check a day ago */
+    try{
+      LV3.openAtAmz();await wait(60);
+      const M=document.getElementById('lav3Mod2');
+      ok(M.querySelector('.amzSfNote')&&/SellerFuse fills this in now/.test(M.querySelector('.amzSfNote').textContent),'it says SellerFuse fills it in');
+      ok(M.classList.contains('amzLock')&&document.getElementById('amzGo').disabled,'locked: Save counts is off');
+      ok([...M.querySelectorAll('.mb > :not(.amzSfNote)')].every(e=>e.inert),'the boxes cannot be reached, by mouse or keyboard');
+      ok(LV3.amzLocked(),'amzLocked says so');
+      LV3.amzUnlock();await wait(60);
+      ok(!LV3.amzLocked()&&!M.classList.contains('amzLock'),'one press unlocks it');
+      ok(/hand count unlocked by .+ Jack asked/.test(D.log[0].txt),'…and it is in History');
+      try{LV3.cm('lav3Ov2');}catch(e){}
+    }finally{D.log.splice(0,D.log.length-logN);delete D.settings.sfSold['B0CHK630AM'];}
+  };
+
+  /* 119 · b630: the Q4 page audit — one shopping list for every target together, four tiles, no empty column */
+  S['b630: Q4 page — one shopping list takes every priority bundle to its target, a shared part bought once; tiles add up']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const L=q=>[{id:'l'+q,date:'2026-09-20',qty:q,rem:q,cost:1,arr:1}];
+    const comps=[{id:'q6-tea',name:'CHECK Earl Grey',layers:L(100)},{id:'q6-mug',name:'CHECK Mug',layers:L(1000)},{id:'q6-coc',name:'CHECK Cocoa',layers:L(0)}];
+    const B=(id,name,rec)=>({id,asin:'B0Q6'+id.slice(3).toUpperCase(),name,type:'bundle',recipe:rec.map(([c,q])=>({c,q})),layers:[]});
+    const prods=[B('q6-tb','CHECK Tea Hamper',[['q6-tea',2],['q6-mug',1]]),B('q6-gf','CHECK GF Tea Gift',[['q6-tea',1],['q6-mug',1]]),B('q6-hc','CHECK Hot Choc Hamper',[['q6-coc',1],['q6-mug',1]])];
+    const R=LV3.q4Calc({products:prods,components:comps,purchases:[],shipments:[],owed:{},over:0,targets:{'q6-tb':100,'q6-gf':50,'q6-hc':30},
+      protDays:p=>({'q6-tb':1,'q6-gf':2,'q6-hc':3})[p.id],today:'2026-10-07'});
+    const buy=R.shopAll.buy.map(x=>[x.id,x.qty]);
+    eq(JSON.stringify(buy),JSON.stringify([['q6-tea',150],['q6-coc',30]]),'the two tea hampers need 200 + 50 = 250 Earl Grey, 100 here → buy 150 once; and 30 cocoa');
+    ok(R.shopAll.ok&&R.shopAll.lines===3,'it gets all three there');
+    const cs2=comps.map(c=>c.id==='q6-tea'?Object.assign({},c,{layers:L(250)}):c.id==='q6-coc'?Object.assign({},c,{layers:L(30)}):c);
+    const R2=LV3.q4Calc({products:prods,components:cs2,purchases:[],shipments:[],owed:{},over:0,targets:{'q6-tb':100,'q6-gf':50,'q6-hc':30},
+      protDays:p=>({'q6-tb':1,'q6-gf':2,'q6-hc':3})[p.id],today:'2026-10-07'});
+    ok(R2.bundles.every(r=>r.done+r.left>=r.target)&&R2.shopAll.buy.length===0,'…and buying exactly that covers every target, nothing more to buy');
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      goPage('lavarion');LV3.go('q4');await wait(200);
+      const pg=document.getElementById('page-lavarion'),live=LV3.q4Calc();
+      eq(pg.querySelectorAll('.q4Kpis .kpi').length,4,'four tiles');
+      const on=live.bundles.concat(live.singles).some(r=>r.left-r.arrived>0);
+      eq([...pg.querySelectorAll('table.q4P thead th')].some(th=>/When orders land/.test(th.textContent)),on,'"When orders land" only when something is on order');
+      eq(!!pg.querySelector('.q4Buy'),!!(live.shopAll&&live.shopAll.buy.length),'the shopping list shows when something is short');
+      ok(!/undefined|NaN/.test(pg.querySelector('.q4').textContent),'no undefined or NaN on the page');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 120 · b631: a day SellerFuse saw a sale on is never an empty day (Autosol Kit, 30 Oct) */
+  S['b631: a product still selling is not empty — an open stock-out record starts after the last sale']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),p=D.products.find(x=>!x.archived&&x.asin&&x.type==='bundle');ok(p,'a bundle to test with');if(!p)return;
+    const isoDay=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+    const ago=k=>{const x=new Date();x.setDate(x.getDate()-k);return isoDay(x);};
+    const keep={so:JSON.stringify(D.settings.stockOuts||[]),sf:JSON.stringify((D.settings.sfSold||{})[p.asin]||null),ls:(D.settings.sfLastSold||{})[p.asin]};
+    try{
+      D.settings.sfSold=D.settings.sfSold||{};D.settings.sfLastSold=D.settings.sfLastSold||{};
+      D.settings.sfSold[p.asin]={u30:16,u14:12,u7:8,at:new Date().toISOString()};
+      D.settings.stockOuts=[{id:'chk631',asin:p.asin,kind:'out',from:ago(4),to:null,pace:1,pu:2,src:'counts'}];
+      delete D.settings.sfLastSold[p.asin];
+      eq(LV3.sfPace(p).empty[7],5,'no sale since: empty 4 days ago to today = 5 days');
+      D.settings.sfLastSold[p.asin]=ago(0);
+      let pc=LV3.sfPace(p);eq(pc.empty[7],0,'it sold today: none of those days was empty');
+      ok(Math.abs(pc.p7-8/7)<1e-9,'so 8 in 7 days = 1.1 a day, not 8 ÷ 2 = 4 a day');
+      D.settings.sfLastSold[p.asin]=ago(2);eq(LV3.sfPace(p).empty[7],2,'last sale 2 days ago: only the 2 days since count');
+      D.settings.sfLastSold[p.asin]=ago(6);eq(LV3.sfPace(p).empty[7],5,'a sale before the record opened changes nothing');
+    }finally{D.settings.stockOuts=JSON.parse(keep.so);const f=JSON.parse(keep.sf);if(f)D.settings.sfSold[p.asin]=f;else delete D.settings.sfSold[p.asin];
+      if(keep.ls)D.settings.sfLastSold[p.asin]=keep.ls;else delete D.settings.sfLastSold[p.asin];}
   };
 
   async function run(only){

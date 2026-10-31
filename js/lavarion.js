@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v56.3 · lav3 · 2026-10-30 · b628';
+const BUILD='v56.3 · lav3 · 2026-10-30 · b631';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -1030,7 +1030,24 @@ function whenTxt(iso,short){
 const SAS_DEFAULT='https://sas.selleramp.com/sas/lookup?search_term={ASIN}&asin={ASIN}';
 /* every {ASIN}, not just the first — SAS wants it twice */
 const sasUrl=asin=>String(D.settings.sasUrl||SAS_DEFAULT).split('{ASIN}').join(encodeURIComponent(asin||''));
+/* Jack, 30 Oct: SellerFuse fills Stock at Amazon in now (Sun, Tue, Thu evenings), so nobody counts by hand —
+   unless Jack asks: one button unlocks it, and that is logged. If SellerFuse has not filled it in for 3 days, the
+   count opens unlocked so the planner never runs blind. */
+let _amzUnlocked=false;
+function amzSfLast(){
+  /* when SellerFuse CHECKED (the run's own time on every sold figure) — not when this browser applied it */
+  let t=0;Object.values(D.settings.sfSold||{}).forEach(v=>{const ms=v&&v.at?new Date(v.at).getTime():0;if(ms>t)t=ms;});
+  if(!t){const l=(D.log||[]).find(x=>/^Stock at Amazon from SellerFuse/.test(String(x.txt||'')));t=l&&l.t?new Date(l.t).getTime():0;}
+  return t>0?{at:new Date(t).toISOString(),days:(Date.now()-t)/864e5}:null;
+}
+function amzLocked(){const s=amzSfLast();return !_amzUnlocked&&!!s&&s.days<=3;}
+function amzUnlock(){
+  if(_amzUnlocked)return;_amzUnlocked=true;
+  try{logIt('edit',`Stock at Amazon: hand count unlocked by ${window.currentUserName||'someone'} — Jack asked for one (SellerFuse fills it in otherwise)`);}catch(e){}
+  openAtAmz(true);
+}
 function openAtAmz(keepWhen){
+  if(!keepWhen)_amzUnlocked=false;     /* a fresh open is locked again — the unlock was for that one count */
   _amzRows=[];
   if(!keepWhen||!_amzWhen)_amzWhen=ukDT(new Date());
   /* Jack, 3 Sep: "can this popup be sorted from highest sales to lowest." A-Z
@@ -1054,6 +1071,11 @@ function openAtAmz(keepWhen){
       </div>
       <button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
     <div class="mb">
+      ${(()=>{const s=amzSfLast();if(!s)return '';
+        if(amzLocked())return `<div class="amzSfNote"><div class="t"><b>SellerFuse fills this in now</b> — every Sunday, Tuesday and Thursday evening. Last: <b>${esc(whenTxt(s.at))}</b> UK. Nobody needs to count by hand.</div>
+          <button class="btn sm" onclick="LV3.amzUnlock()" title="Only when Jack has asked for a count. It is logged in History.">Jack asked for a hand count — unlock</button></div>`;
+        if(s.days>3)return `<div class="amzSfNote warn"><div class="t"><b>SellerFuse hasn’t filled this in since ${esc(whenTxt(s.at))}</b> UK — count by hand until it does.</div></div>`;
+        return `<div class="amzSfNote open"><div class="t">Unlocked for a hand count — SellerFuse fills it in on Sun, Tue and Thu evenings anyway (last ${esc(whenTxt(s.at))} UK).</div></div>`;})()}
       <div class="amzTop${_amzMode==='grid'?'':' solo'}">
         <div class="amzCard amzWhen">
           <div class="k">Counted at <span class="ukTag">UK time</span></div>
@@ -1125,6 +1147,9 @@ function openAtAmz(keepWhen){
       <div class="sp"><button class="btn" onclick="LV3.cm('lav3Ov2')">Cancel</button>
       <button class="btn pri" id="amzGo" disabled onclick="LV3.amzSave()">Save counts</button></div></div>`;
   om('lav3Ov2');
+  {const M=$('lav3Mod2'),lock=amzLocked();M.classList.toggle('amzLock',lock);
+    M.querySelectorAll('.mb > :not(.amzSfNote), .amzSeg').forEach(e=>{e.inert=lock;});
+    const g=$('amzGo');if(g&&lock)g.disabled=true;}
   /* Tab goes number box to number box: the copy and SAS links stay clickable
      but are skipped, so it is Available → Inbound → next row's Available */
   document.querySelectorAll('#lav3Mod2 .amzRow .asinC,#lav3Mod2 .amzRow .amzSas').forEach(el=>el.setAttribute('tabindex','-1'));
@@ -1233,6 +1258,7 @@ function amzParse(txt){
 let _amzSaving=false;
 async function amzSave(){
   if(_amzSaving)return;
+  if(amzLocked()){toast('SellerFuse fills Stock at Amazon in now — press “Jack asked for a hand count” first','er');return;}
   const ok=_amzRows.filter(r=>r.p);
   if(!ok.length){toast('Nothing to save','er');return;}
   _amzSaving=true;
@@ -1594,11 +1620,15 @@ function sfSoldOf(p){
    Every pace is units ÷ the days the product could be bought: "4 sold in a week it was empty for
    5 days of" is 2 a day, not 0.6 (Reindeer, 21–25 Oct). Empty days come from the stock-out
    record (stockOuts), kept from the Mon/Thu counts and SellerFuse's last-sold date. */
-function emptyDaysIn(p,days){
+function emptyDaysIn(p,days,endISO){
   const a=String(p&&p.asin||'').toUpperCase();if(!a)return 0;
-  const end=dayISO(),start=addCalDays(end,-(days-1)),seen={};let n=0;
+  const end=endISO||dayISO(),start=addCalDays(end,-(days-1)),seen={};let n=0;
+  /* b631: a day SellerFuse saw a sale on is never empty — an open record the product sold through starts after that
+     sale (Autosol Kit, 30 Oct: "empty since 26 Oct", but it sold 4 more by the 29th) */
+  const ls=(D.settings.sfLastSold||{})[p.asin]||null;
   (D.settings.stockOuts||[]).forEach(r=>{if(String(r.asin||'').toUpperCase()!==a||r.kind!=='out'||!r.from)return;
-    let f=r.from>start?r.from:start;const t=(r.to&&r.to<end)?r.to:end;
+    let f=r.from>start?r.from:start;
+    if(!r.to&&ls&&ls>=r.from){const f2=addCalDays(ls,1);if(f2>f)f=f2;}const t=(r.to&&r.to<end)?r.to:end;
     for(let i=0;f<=t&&i<400;i++,f=addCalDays(f,1))if(!seen[f]){seen[f]=1;n++;}});
   return Math.min(n,days);
 }
@@ -1615,7 +1645,11 @@ function sfPace(p){
   const W={7:u7,14:u14,30:u30},pace={},sell={},empty={};
   /* a window it could be bought in for under 40% of the days (or under 3 days) is n/a — "it wasn't
      sellable" — rather than a few days' sales blown up into a pace (at most 2.5 × the plain figure) */
-  [7,14,30].forEach(w=>{if(W[w]==null)return;const e=emptyDaysIn(p,w);empty[w]=e;sell[w]=w-e;
+  /* the empty days in SellerFuse's own window — it ends on the day the check ran, not today (Reindeer, 30 Oct:
+     u7 = 23–29 Oct, so 23 Oct was empty but fell outside a window ending the 30th) */
+  let endD=null;try{if(s.at){const t=new Date(s.at);if(!isNaN(t))endD=ukDayISO(t);}}catch(e){}
+  if(endD&&endD>dayISO())endD=null;
+  [7,14,30].forEach(w=>{if(W[w]==null)return;const e=emptyDaysIn(p,w,endD);empty[w]=e;sell[w]=w-e;
     pace[w]=(sell[w]>=3&&sell[w]>=w*0.4)?W[w]/sell[w]:null;});
   let why='';
   /* empty now, or stopped selling this week, or empty most of the month: the month before counts
@@ -1642,6 +1676,15 @@ function paceLabel(pc){
   if(!pc)return '';
   const w=pc.fastW===7?'last 7 days':pc.fastW===14?'last 14 days':'last 30 days';
   return w+(pc.why==='prev30'&&pc.fastW===30?' (the month before — it ran out)':'')+(pc.empty&&pc.empty[pc.fastW]?' · in-stock days only':'')+' (SellerFuse)';
+}
+/* Jack, 30 Oct: "what about OOS days?" — when empty days were taken out of the pace, the sum: "÷ 6 days in stock"
+   (30 sold in the last 7 days, empty 1 → 5.0 a day). Only when that IS the sum — never for the month-before or
+   plain-month fallbacks. */
+function pdInStock(d){
+  const pc=d&&d.src==='sf'&&d.pace;if(!pc||!pc.empty||!pc.sell)return '';
+  const w=pc.fastW,e=pc.empty[w],s=pc.sell[w],u=pc['u'+w];
+  if(!(e>0)||!(s>0)||u==null||Math.abs(pc.perDay-u/s)>1e-9)return '';
+  return `<span class="pdIn">÷ ${fmt(s)} day${s===1?'':'s'} in stock</span>`;
 }
 function paceShort(d){
   if(!d)return '';
@@ -2210,7 +2253,7 @@ const MOV_DAYS=3;   /* units moving between Amazon warehouses are sellable again
    D.settings.q4Uplift = {pct, words, from:'MM-DD', to:'MM-DD'}. */
 /* Jack, 29 Oct: "maybe 5% — if we're always tracking it why would we need the extra uplift — but from Jan expect
    them all to go down 10%, back to Q1–Q3 levels". So +5% to 23 Dec, then −10% to 31 Jan, then plain. */
-const UP_DEF={pct:5,words:'gift, hamper, Gluten Free Snack Bundle, Gluten Free Biscuit Bundle',from:'10-01',to:'12-23',drop:10,dropTo:'01-31'};
+const UP_DEF={pct:5,words:'gift, hamper, reindeer, decaf, chocolate, christmas, santa, festive, Gluten Free Snack Bundle, Gluten Free Biscuit Bundle',from:'10-01',to:'12-23',drop:10,dropTo:'01-31'};
 const _UP_ML=[31,29,31,30,31,30,31,31,30,31,30,31];
 const _upMD=v=>{const m=/^(\d{1,2})-(\d{1,2})$/.exec(String(v==null?'':v).trim());if(!m)return null;
   const mo=+m[1],d=+m[2];if(!(mo>=1&&mo<=12&&d>=1&&d<=_UP_ML[mo-1]))return null;
@@ -2605,32 +2648,39 @@ function planAmazon(){
     /* Jack, 30 Aug: "it doesn't matter if it's a slow seller — if we're going
        to run out, it needs to go." No sinking; closest to empty leads. */
     .sort((a,b)=>a.protDays-b.protDays);
-  const pool={};
-  const poolGet=o=>{if(pool[o.id]===undefined)pool[o.id]=onHand(o);return pool[o.id];};
-  act.forEach(r=>{
-    const p=r.p;
-    if(p.type!=='bundle'){
-      const have=poolGet(p);
-      r.buildCap=have;r.alloc=Math.min(have,r.rec);
-      if(r.alloc>0)pool[p.id]-=r.alloc;
-      return;
-    }
-    let cap=Infinity,lim=null;
-    (p.recipe||[]).forEach(rc=>{const c=comp(rc.c);if(!c||c.untracked)return;
-      const can=Math.floor(poolGet(c)/rc.q);
-      if(can<cap){cap=can;lim=c;}});
-    cap=(cap===Infinity)?0:cap;
-    r.buildCap=cap;r.lim=lim;r.alloc=Math.min(cap,r.rec);
-    if(r.alloc>0)(p.recipe||[]).forEach(rc=>{const c=comp(rc.c);if(!c||c.untracked)return;
-      pool[c.id]-=rc.q*r.alloc;});
-  });
-  act.forEach(r=>{
-    if(r.alloc>=r.rec||!r.lim)return;
-    r.limTakers=act.filter(x=>x!==r&&x.alloc>0&&x.p.type==='bundle'
-      &&(x.p.recipe||[]).some(rc=>rc.c===r.lim.id)&&x.protDays<=r.protDays)
-      .map(x=>x.p.name);
-  });
+  /* the planner's own floor: 3 weeks of sales at the run-out pace once the send lands, less what will be there */
+  const floorOf=r=>{let m=1;try{m=Math.ceil(demandBetween(r.upP||null,r.ads,r.landIso,21)-(r.projAtLand||0));}catch(e){}
+    return Math.max(1,Math.min(r.rec,m||1));};
+  shareParts(act,{have:onHand,comp,floor:floorOf});
   return{rows,act};
+}
+/* Jack, 30 Oct: "if something shares something — e.g. the wool — it goes to a little of both to start with to make sure
+   they get stock in, but also prioritises: 100 wool, one sells 100 a month and the other 1 → ~98 and 2 (or even 1)".
+   ONE pool of parts, so a part is never promised twice, handed out in three passes (until 30 Oct the closest-to-empty
+   product took all it wanted first, and a slower one sharing the part could get none):
+     1  one each — every product that needs a send, closest to empty first
+     2  its minimum (o.floor — 3 weeks of sales once it lands) — closest to empty first ("if we're going to run out,
+        it needs to go", Jack, 30 Aug)
+     3  the rest of what it asked for — fastest seller first
+   act: rows {p, rec, ads, protDays}, closest to empty first. Sets alloc, buildCap (alloc + what is still buildable),
+   lim (the part that stops more) and limTakers (who else is getting that part). */
+function shareParts(act,o){
+  const pool={},get=x=>{if(pool[x.id]===undefined)pool[x.id]=o.have(x);return pool[x.id];};
+  const parts=r=>r.p.type!=='bundle'?[{c:r.p,q:1}]
+    :(r.p.recipe||[]).map(rc=>({c:o.comp(rc.c),q:+rc.q||1})).filter(x=>x.c&&!x.c.untracked);
+  const capOf=r=>{let cap=Infinity,lim=null;
+    parts(r).forEach(x=>{const can=Math.floor(get(x.c)/x.q);if(can<cap){cap=can;lim=x.c;}});
+    return{cap:cap===Infinity?0:Math.max(0,cap),lim:r.p.type==='bundle'?lim:null};};
+  const take=(r,n)=>{if(!(n>0))return;r.alloc+=n;parts(r).forEach(x=>{get(x.c);pool[x.c.id]-=x.q*n;});};
+  act.forEach(r=>{r.alloc=0;r.limTakers=undefined;});
+  const fastest=act.slice().sort((a,b)=>((b.ads||0)-(a.ads||0))||((a.protDays||0)-(b.protDays||0)));
+  [[act,()=>1],[act,o.floor],[fastest,r=>r.rec]].forEach(([order,goal])=>order.forEach(r=>{
+    const n=Math.min(goal(r),r.rec)-r.alloc;if(n>0)take(r,Math.min(n,capOf(r).cap));}));
+  act.forEach(r=>{const c=capOf(r);r.buildCap=r.alloc+c.cap;r.lim=c.lim;});
+  act.forEach(r=>{if(r.alloc>=r.rec||!r.lim)return;
+    r.limTakers=act.filter(x=>x!==r&&x.alloc>0&&x.p.type==='bundle'
+      &&(x.p.recipe||[]).some(rc=>String(rc.c)===String(r.lim.id))).map(x=>x.p.name);});
+  return act;
 }
 /* when a product cannot be fully built: is the limiting component's incoming
    order going to save it, and in time? (spec §10 — "incoming in time") */
@@ -3334,6 +3384,19 @@ function q4Calc(o){
     r.shop={to:r.target,ok:s.caps[ix]>=need,gets:s.caps[ix],
       buy:l.parts.filter(x=>extra[x.k]>0).map(x=>({id:x.k,name:x.c.name||'',qty:extra[x.k]})).sort((a,b)=>b.qty-a.qty)};
   });
+  /* Jack, 30 Oct (the page audit): ONE list that takes every priority bundle to its target together — the same queue
+     run again with the extra parts until each one is covered, so a part two hampers share is bought once */
+  const shopAll=(()=>{const short=Q.map((l,ix)=>({l,ix})).filter(({l})=>l.r.target&&l.parts.length&&l.r.done+l.r.left<l.r.target);
+    if(!short.length)return{ok:true,lines:0,buy:[]};
+    const extra={};let s=run(null);
+    for(let g=0;g<60;g++){let more=false;
+      short.forEach(({l,ix})=>{const need=l.r.target-l.r.done;if(s.caps[ix]>=need)return;
+        const t=run(extra,ix).turn;
+        l.parts.forEach(x=>{const sh=need*x.q-t[x.k];if(sh>0){extra[x.k]=(extra[x.k]||0)+sh;more=true;}});
+        s=run(extra);});
+      if(!more)break;}
+    return{ok:short.every(({l,ix})=>s.caps[ix]>=l.r.target-l.r.done),lines:short.length,
+      buy:Object.keys(extra).filter(k=>extra[k]>0).map(k=>({id:k,name:(cBy[k]||{}).name||'',qty:extra[k]})).sort((a,b)=>b.qty-a.qty)};})();
   const bundles=Q.map(({r})=>{
     r.formulaMax=r.done+r.left;
     if(r.target){
@@ -3359,7 +3422,7 @@ function q4Calc(o){
   const unl=since.filter(y=>y.k==='none'||y.k==='broken'),part=since.filter(y=>y.k==='part');
   /* the same send lines `done` counts, each with the product that carries it — the Progress panel reads these */
   const sends=lines.filter(x=>owner[x.a]&&onId[owner[x.a]]).map(x=>({date:x.date,units:x.units,id:owner[x.a]}));
-  const out={from,over:OVER,bundles,singles,totals,sends,
+  const out={from,over:OVER,bundles,singles,totals,sends,shopAll,
     /* everything Jack could add (Settings ▾) */
     offPage:live.filter(p=>!p.archived&&!onId[String(p.id)]).map(p=>({id:String(p.id),name:p.name||p.asin||'',type:p.type||'',done:doneM.get(p)||0}))
       .sort((a,b)=>String(a.name).localeCompare(String(b.name))),
@@ -3513,12 +3576,21 @@ function q4Pick(pid,on){
   q4Redraw();
   return savePrefs();
 }
+function q4CopyBuy(){
+  let R;try{R=q4Calc();}catch(e){toast('Could not work the list out','er');return;}
+  const B=(R.shopAll&&R.shopAll.buy)||[];if(!B.length){toast('Nothing to buy — every target is covered','ok');return;}
+  const txt='Q4 — to hit every target, buy:\n'+B.map(x=>`${x.qty} × ${x.name}`).join('\n');
+  try{navigator.clipboard.writeText(txt).then(()=>toast(`${B.length} line${B.length===1?'':'s'} copied — paste it anywhere`,'ok'),()=>toast('Could not reach the clipboard','er'));}
+  catch(e){toast('Could not reach the clipboard','er');}
+}
 function vQ4(){
   let R;
   try{R=q4Calc();}
   catch(e){console.warn('[q4]',e);
     $('lav3View').innerHTML=`<div class="panel"><div class="empty" style="padding:22px">Q4 prepping could not be worked out just now — ${esc(e&&e.message||e)}</div></div>`;return;}
   const T=R.totals,B=T.bundles,G=T.singles,TM=q4TargetMap();
+  /* nothing on order for any line → no "When orders land" column (Jack, 30 Oct: it was dashes all the way down) */
+  const ON=R.bundles.concat(R.singles).some(r=>r.left-r.arrived>0);
   const day=(()=>{try{return new Date(R.from+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});}catch(e){return dshort(R.from);}})();
   const pc=v=>v==null?'—':v+'%';
   const bar=(v,tone)=>`<span class="q4Bar${tone?' '+tone:''}"><i style="width:${v==null?0:Math.min(100,Math.max(v>0?2:0,v))}%"></i></span>`;
@@ -3528,7 +3600,7 @@ function vQ4(){
   const plus=n=>n>0?`+${fmt(n)}`:'<span class="q4Nil">—</span>';
   const tip=h=>esc(q4Plain(h));
   const nameTd=(r,extra)=>`<td class="q4N"><b>${esc(r.name)}</b><small>${esc(r.asin)}${r.archived?' · archived':''}${extra||''}</small></td>`;
-  const nums=r=>`<td class="n q4S"><b>${fmt(r.done)}</b></td><td class="n q4Now"><b>${fmt(r.arrived)}</b></td><td class="n q4On">${plus(r.left-r.arrived)}</td>`;
+  const nums=r=>`<td class="n q4S"><b>${fmt(r.done)}</b></td><td class="n q4Now"><b>${fmt(r.arrived)}</b></td>${ON?`<td class="n q4On">${plus(r.left-r.arrived)}</td>`:''}`;
   const owedTxt=r=>r.owed?`<span class="w">${fmt(r.owed)} sent over stock, not settled — this may read up to ${fmt(r.owed)} high</span>`:'';
   const sumOf=a=>{const t={done:0,max:0};a.forEach(r=>{t.done+=r.done;t.max+=r.max;});t.pct=q4Pct(t.done,t.max);return t;};
   const sum=t=>`<div class="r q4Sum">${fmt(t.done)} of ${fmt(t.max)} <b class="${t.pct===100?'ok':''}">${pc(t.pct)}</b></div>`;
@@ -3536,7 +3608,7 @@ function vQ4(){
   const P=R.bundles.filter(r=>r.priority).slice().sort((a,b)=>((a.pct==null?-1:a.pct)-(b.pct==null?-1:b.pct))||(a.order-b.order));
   const shopTxt=r=>{const S=r.shop;if(!S)return '';
     if(!S.buy.length)return '';
-    return `<span class="q4Shop${S.ok?'':' w'}"${r.lim&&r.lim.say?` title="${tip(q4LimBits(r).how)}"`:''}>To reach ${fmt(S.to)}: buy ${S.buy.map(x=>`<b>${fmt(x.qty)}</b> ${esc(x.name)}`).join(' + ')}${S.ok?'':` — that still only makes ${fmt(r.done+S.gets)}`}</span>`;};
+    return `<span class="q4Shop${S.ok?'':' w'}"${r.lim&&r.lim.say?` title="${tip(q4LimBits(r).how)}"`:''}>To reach ${fmt(S.to)}: buy ${S.buy.map(x=>`<span class="q4Chip"><b>${fmt(x.qty)}</b> ${esc(x.name)}</span>`).join('')}${S.ok?'':` — that still only makes ${fmt(r.done+S.gets)}`}</span>`;};
   const priRow=r=>{
     const reach=r.done+r.left,ok=reach>=r.target,reachPct=Math.floor(100*reach/r.target),b=q4LimBits(r),sub=[];
     if(!ok){
@@ -3550,7 +3622,7 @@ function vQ4(){
     return `<tr class="q4Row${sub.length?' q4Has':''}">${nameTd(r)}<td class="n q4Tg"><b>${fmt(r.target)}</b></td>${nums(r)}
       <td class="n q4W ${ok?'ok':'bad'}"><b>${fmt(reach)}${ok?' &#10003;':''}</b>${ok?(r.capHit?`<small>+${fmt(r.over)}% cap</small>`:''):`<small>short ${fmt(r.target-reach)}</small>`}</td>
       <td class="q4D ${q4Tone(r)}"><div><b>${pc(r.pct)}</b>${wide(r.pct,reachPct,q4Tone(r))}</div></td></tr>`
-      +(sub.length?`<tr class="q4Sub"><td colspan="7">${sub.join('<span class="q4Sep">·</span>')}</td></tr>`:'');
+      +(sub.length?`<tr class="q4Sub"><td colspan="${ON?7:6}">${sub.join('<span class="q4Sep">·</span>')}</td></tr>`:'');
   };
   /* OTHERS — no target: one short "limited by", the long story in the tooltip; nothing more to build is amber, never green */
   const zeroTxt=r=>{const b=q4LimBits(r);
@@ -3567,16 +3639,18 @@ function vQ4(){
       ?`<td class="q4D warn"><span class="q4Zero" title="${tip(b?(b.note||b.head+(b.how?' — '+b.how:'')):'')}">0 more — ${zeroTxt(r)}</span>${b&&b.starved?`<small>allocated to ${esc(b.to.join(', '))}</small>`:''}</td>`
       :`<td class="q4D"><div><b>${pc(r.pct)}</b>${wide(r.pct,null,'')}</div></td>`;
     const note=(b&&b.note&&!zero?b.note:'')+(r.owed?owedTxt(r):'');
-    return `<tr class="q4Row${note?' q4Has':''}">${nameTd(r,lim)}${nums(r)}${done}</tr>`+(note?`<tr class="q4Sub"><td colspan="5">${note}</td></tr>`:'');
+    return `<tr class="q4Row${note?' q4Has':''}">${nameTd(r,lim)}${nums(r)}${done}</tr>`+(note?`<tr class="q4Sub"><td colspan="${ON?5:4}">${note}</td></tr>`:'');
   };
   const O=R.bundles.filter(r=>!r.priority),byMax=(a,b)=>(b.max-a.max)||(b.done-a.done)||String(a.name).localeCompare(String(b.name));
-  const fold=(z,what)=>z.length?`<tr class="q4Fold"><td colspan="5"><small>${fmt(z.length)} more with nothing sent since ${day} and ${what}: ${z.map(r=>esc(r.name)).join(', ')}</small></td></tr>`:'';
+  const fold=(z,what)=>z.length?`<tr class="q4Fold"><td colspan="${ON?5:4}"><small>${fmt(z.length)} more with nothing sent since ${day} and ${what}: ${z.map(r=>esc(r.name)).join(', ')}</small></td></tr>`:'';
   const oOn=O.filter(r=>r.max>0).sort(byMax),o0=O.filter(r=>!r.max);
   const sOn=R.singles.filter(r=>r.max>0).sort(byMax),s0=R.singles.filter(r=>!r.max);
-  const colsP='<colgroup><col style="width:24%"><col style="width:9%"><col style="width:9%"><col style="width:10%"><col style="width:12%"><col style="width:12%"><col style="width:24%"></colgroup>';
-  const colsO='<colgroup><col style="width:36%"><col style="width:12%"><col style="width:12%"><col style="width:14%"><col style="width:26%"></colgroup>';
-  const headP=`<thead><tr><th>Bundle</th><th class="n">Target</th><th class="n">Sent</th><th class="n">Build now</th><th class="n">When orders land</th><th class="n">Will reach</th><th>Done</th></tr></thead>`;
-  const headO=(a,b,c)=>`<thead><tr><th>${a}</th><th class="n">Sent</th><th class="n">${b}</th><th class="n">${c}</th><th>Done</th></tr></thead>`;
+  const colsP=ON?'<colgroup><col style="width:24%"><col style="width:9%"><col style="width:9%"><col style="width:10%"><col style="width:12%"><col style="width:12%"><col style="width:24%"></colgroup>'
+    :'<colgroup><col style="width:27%"><col style="width:10%"><col style="width:10%"><col style="width:11%"><col style="width:13%"><col style="width:29%"></colgroup>';
+  const colsO=ON?'<colgroup><col style="width:36%"><col style="width:12%"><col style="width:12%"><col style="width:14%"><col style="width:26%"></colgroup>'
+    :'<colgroup><col style="width:42%"><col style="width:14%"><col style="width:14%"><col style="width:30%"></colgroup>';
+  const headP=`<thead><tr><th>Bundle</th><th class="n">Target</th><th class="n">Sent</th><th class="n">Build now</th>${ON?'<th class="n">When orders land</th>':''}<th class="n">Will reach</th><th>Done</th></tr></thead>`;
+  const headO=(a,b,c)=>`<thead><tr><th>${a}</th><th class="n">Sent</th><th class="n">${b}</th>${ON?`<th class="n">${c}</th>`:''}<th>Done</th></tr></thead>`;
   const U=R.unlinked;
   const notes=(U.n?`<div class="q4Note"><span class="q4Dot"></span><span class="q4NoteT"><b>${fmt(U.n)} purchase line${U.n===1?'':'s'} since ${day} not linked — max may be low</b>${U.part?` <span>· ${fmt(U.part)} more only part-linked</span>`:''}</span><button class="btn sm" onclick="LV3.showReview()">Link them on Purchases</button></div>`:'')
     +(T.owed?`<div class="q4Note"><span class="q4Dot"></span><span class="q4NoteT"><b>${fmt(T.owed)} unit${T.owed===1?'':'s'} sent over stock and not settled — max may read up to ${fmt(T.owed)} high</b></span><button class="btn sm" onclick="LV3.openOverSent()">Settle</button></div>`:'');
@@ -3601,9 +3675,12 @@ function vQ4(){
         return `<div class="q4SetRow"><span class="nm"><b>${esc(p.name)}</b><small>sent ${fmt(r.done)} · ${p.type==='bundle'?`parts make ${fmt(r.formulaMax)} in all`:`own stock ${fmt(r.left)}`}</small></span>
           ${p.type==='bundle'?`<input class="in q4TIn" id="q4t-${esc(k)}" type="number" min="0" step="1" inputmode="numeric" placeholder="no target" value="${v}" aria-label="Target for ${esc(p.name)}" onchange="LV3.q4SetTarget('${esc(k)}',this.value)">`:'<span class="q4Dim q4NoT">no target</span>'}${rm(k)}</div>`;}).join('')||'<div class="q4Dim">Nothing on the page yet — add a line above.</div>'}</div>
     </div></details>`;
-  const kTarget=B.targeted?'Target — 100%':'Max — 100%';
-  const sTarget=B.targeted?`your target on ${fmt(B.targeted)} bundle${B.targeted===1?'':'s'}, what the parts make for the rest · ${fmt(T.toGo)} to go`
-    :`${fmt(T.toGo)} still to build or send · of which arrived ${fmt(T.arrived)}`;
+  /* Jack, 30 Oct (the page audit): what is left, split into what can go now, what waits on orders, and what is short */
+  const ALL=R.bundles.concat(R.singles).filter(r=>!r.archived),togo=r=>Math.max(0,r.max-r.done);
+  const kNow=ALL.reduce((t,r)=>t+Math.min(r.arrived,togo(r)),0),kCan=ALL.reduce((t,r)=>t+Math.min(r.left,togo(r)),0);
+  const kOrd=kCan-kNow,kShort=ALL.reduce((t,r)=>t+Math.max(0,togo(r)-r.left),0),shortN=ALL.filter(r=>togo(r)>r.left).length;
+  const wk=(R.progress.weeks||[]).find(w=>w.now),SA=R.shopAll||{buy:[]};
+  const hundred=`100% = ${B.targeted?`your targets on ${fmt(B.targeted)} priority bundle${B.targeted===1?'':'s'}, plus what the parts can make for the rest`:'what the parts can make'}`;
   /* Progress ▾ — days or Monday–Sunday weeks, newest first; the choice and open/closed are this viewer's own (localStorage) */
   const PG=R.progress,pp=q4ProgPref();
   const pts=v=>v>0.0001?`+${v.toFixed(1)}%`:v<-0.0001?`${v.toFixed(1)}%`:'<span class="q4Nil">—</span>';
@@ -3627,25 +3704,28 @@ function vQ4(){
     :`<div class="q4Empty">No targets yet — add them in Settings ▾ above. A bundle with a target moves here and is handed shared components first.</div>`;
   $('lav3View').innerHTML=`
   <div class="q4">
-  <div class="q4Intro">How far through the Christmas build we are — the Christmas lines only (add or take one off in Settings ▾): what has gone to Amazon since ${day}, against your targets, or the most the components here and on order can make.</div>
+  <div class="q4Intro">The Christmas lines — what has gone to Amazon since ${day}, against your targets (priority bundles) or what the parts can make (the rest). <span>Settings ▾ adds or takes a line off.</span></div>
   ${notes}
   <div class="kpis q4Kpis">
-    <div class="kpi" style="--rail:${T.pct===100?'#4ade80':'#38bdf8'}"><div class="k">Complete</div><div class="v" style="color:${T.pct===100?'#4ade80':'var(--text)'}">${pc(T.pct)}</div><div class="s">${fmt(T.done)} of ${fmt(T.max)}</div>${bar(T.pct,T.pct===100?'ok':'')}</div>
-    <div class="kpi" style="--rail:#38bdf8"><div class="k">Sent since ${day}</div><div class="v" style="color:#7dd3fc">${fmt(T.done)}</div><div class="s">bundles ${fmt(B.done)} · singles &amp; private label ${fmt(G.done)}</div></div>
-    <div class="kpi" style="--rail:#a78bfa"><div class="k">${kTarget}</div><div class="v" style="color:#c4b5fd">${fmt(T.max)}</div><div class="s">${sTarget}</div></div>
+    <div class="kpi" style="--rail:${T.pct===100?'#4ade80':'#38bdf8'}" title="${esc(hundred)}"><div class="k">Complete</div><div class="v" style="color:${T.pct===100?'#4ade80':'var(--text)'}">${pc(T.pct)}</div><div class="s">${fmt(T.done)} of ${fmt(T.max)}</div>${bar(T.pct,T.pct===100?'ok':'')}</div>
+    <div class="kpi" style="--rail:#38bdf8"><div class="k">Sent since ${day}</div><div class="v" style="color:#7dd3fc">${fmt(T.done)}</div><div class="s">${wk?`this week so far <b>+${fmt(wk.units)}</b>`:'nothing this week yet'}${G.lines?` · singles ${fmt(G.done)}`:''}</div></div>
+    <div class="kpi" style="--rail:#a78bfa"><div class="k">Still to send</div><div class="v" style="color:#c4b5fd">${fmt(T.toGo)}</div><div class="s"><b>${fmt(kNow)}</b> can be built now${kOrd?` · <b>${fmt(kOrd)}</b> when orders land`:''}${kShort?` · <b class="bad">${fmt(kShort)}</b> short of parts`:''}</div></div>
+    <div class="kpi" style="--rail:${kShort?'#f87171':'#4ade80'}"><div class="k">Short of target</div><div class="v" style="color:${kShort?'#fca5a5':'#4ade80'}">${kShort?fmt(kShort):'None'}${kShort?'':' &#10003;'}</div><div class="s">${kShort?`${fmt(shortN)} line${shortN===1?'':'s'} — the list below gets ${shortN===1?'it':'them'} there`:'every target is covered by parts here or on order'}</div></div>
   </div>
+  ${SA.buy.length?`<section class="panel q4Buy"><div class="ph"><span class="t">To hit every target, buy</span><span class="sub">for ${fmt(SA.lines)} priority bundle${SA.lines===1?'':'s'} · a part they share is counted once${SA.ok?'':' · <b>some still fall short — another part limits them</b>'}</span><button class="btn sm" onclick="LV3.q4CopyBuy()">Copy list</button></div>
+    <div class="q4BuyList">${SA.buy.map(x=>`<span class="q4Chip big"><b>${fmt(x.qty)}</b> ${esc(x.name)}</span>`).join('')}</div></section>`:''}
   ${setHtml}
   ${progHtml}
-  <div class="q4Legend"><b>Build now</b> = parts on the shelf · <b>When orders land</b> = parts still on order · <b>Will reach</b> = sent + everything buildable</div>
+  <div class="q4Legend"><b>Build now</b> = parts on the shelf · ${ON?'<b>When orders land</b> = parts still on order':'nothing is on order for these lines right now'} · <b>Will reach</b> = sent + everything buildable</div>
   <section class="panel shPanel q4Panel q4PriPanel"><div class="ph"><span class="t">Priority bundles</span><span class="sub">the ones with a target</span>${P.length?`<span class="q4PriNote" title="Bundles with a target are handed shared components first, up to their target +${fmt(R.over)}%, in the Action centre's order. Everything else then shares what is left, in the same order.">Priority: targets first, up to +${fmt(R.over)}%</span>`:''}${P.length?sum(sumOf(P)):''}</div>
     ${priHtml}
   </section>
   <section class="panel shPanel q4Panel"><div class="ph"><span class="t">Other bundles</span><span class="sub">no target — they share what the priority bundles leave</span>${sum(sumOf(O))}</div>
-    <div class="q4Scroll"><table class="shT q4T q4T2 q4O">${colsO}${headO('Bundle','Build now','When orders land')}<tbody>${oOn.map(othRow).join('')+fold(o0,'nothing to build')||'<tr><td colspan="5" class="q4None">No other bundles.</td></tr>'}</tbody></table></div>
+    <div class="q4Scroll"><table class="shT q4T q4T2 q4O">${colsO}${headO('Bundle','Build now','When orders land')}<tbody>${oOn.map(othRow).join('')+fold(o0,'nothing to build')||'<tr><td colspan="${ON?5:4}" class="q4None">No other bundles.</td></tr>'}</tbody></table></div>
     <div class="q4Foot"><b>Done</b> = sent ÷ (sent + everything buildable) — buying more parts raises it, so the % drops. Hover "limited by" for the detail. Packaging and untracked parts never limit${R.packaging.length?` (left out as packaging: ${R.packaging.map(x=>esc(x.name)).join(', ')})`:''}.</div>
   </section>
   ${R.singles.length?`<section class="panel shPanel q4Panel"><div class="ph"><span class="t">Singles &amp; private label</span><span class="sub">their own stock, no build</span>${sum(G)}</div>
-    <div class="q4Scroll"><table class="shT q4T q4T2 q4O">${colsO}${headO('Product','On the shelf','On order')}<tbody>${sOn.map(othRow).join('')+fold(s0,'none here or on order')||'<tr><td colspan="5" class="q4None">No singles or private label.</td></tr>'}</tbody></table></div>
+    <div class="q4Scroll"><table class="shT q4T q4T2 q4O">${colsO}${headO('Product','On the shelf','On order')}<tbody>${sOn.map(othRow).join('')+fold(s0,'none here or on order')||'<tr><td colspan="${ON?5:4}" class="q4None">No singles or private label.</td></tr>'}</tbody></table></div>
   </section>`:''}
   </div>`;
 }
@@ -4345,7 +4425,7 @@ function vOverview(){
         <div class="sHead">${num?`<span class="acxNum">${num}</span>`:''}
           <div class="sName"><b>${C.name}</b>
             <div class="sTags"><span class="acxChip">${chip[0]}</span>
-              <span class="sAsin" role="button" tabindex="0" title="Copy the ASIN" onclick="event.stopPropagation();LV3.copyAsin(this,'${C.asin}')" onkeydown="if(event.key==='Enter')LV3.copyAsin(this,'${C.asin}')"><span class="sAsinT">${C.asin}</span>${IC.copy}</span></div>
+              <span class="sAsin" role="button" tabindex="0" title="Copy the ASIN" onclick="event.stopPropagation();LV3.copyAsinChip(this,'${C.asin}')" onkeydown="if(event.key==='Enter')LV3.copyAsinChip(this,'${C.asin}')"><span class="sAsinT">${C.asin}</span>${IC.copy}</span></div>
           </div>
           ${x.big?`<div class="sSend"><span class="acxSendN" title="${esc(x.big[1])}">${esc(x.big[0])}</span>
             ${short?`<div class="sPlan" title="${fmt(P.alloc)} can be built now — the plan is ${fmt(P.rec)}"><i style="width:${pct}%"></i></div><small><b>${fmt(P.alloc)}</b> of ${fmt(P.rec)} planned</small>`:`<small class="sFull">the full plan</small>`}
@@ -4497,10 +4577,10 @@ function sortCol(which,k){
 /* the heading itself: a button, with an arrow only on the one in use */
 /* The ASIN is the join key between this app, the BDL hub and Seller Central —
    the titles differ everywhere, the ASIN never does. So it always copies. */
-function copyAsin(a,ev){
+function copyAsin(a,ev,quiet){
   if(ev&&ev.stopPropagation)ev.stopPropagation();
   if(!a){toast('No ASIN on this one','er');return;}
-  const done=()=>toast(a+' copied','ok');
+  const done=()=>{if(!quiet)toast(a+' copied','ok');};
   try{
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(a).then(done,()=>fallback());}
     else fallback();
@@ -4620,7 +4700,7 @@ function vProducts(){
       ${sortPicker('p',pSort,P_SORTS)}
       <div class="r"><button class="btn" onclick="LV3.openBulkRecipe()" title="Set several bundles' build lists in one go">Bulk build lists</button>
         <button class="btn" onclick="LV3.openMatrix()" title="Fill every bundle's build list on one grid">Build list grid</button>
-        <button class="btn" onclick="LV3.openAtAmz()" title="Paste this week's Seller Central count for every ASIN at once">Stock at Amazon</button>
+        <button class="btn" onclick="LV3.openAtAmz()" title="SellerFuse fills this in on Sunday, Tuesday and Thursday evenings — open it to see the last count. A hand count only when Jack asks.">Stock at Amazon</button>
         <button class="btn" onclick="LV3.openBulkProd()">Bulk add</button>
         <button class="btn pri" onclick="LV3.editProduct(null)">+ Add product</button></div>
     </div>
@@ -4633,15 +4713,15 @@ function vProducts(){
       <th class="l" style="min-width:240px">${sortTh('p','name','Product')}</th>
       <th style="width:82px" title="Sellable at Amazon now — from the SellerFuse check (Sun, Tue + Thu evenings) or a hand count, whichever is newer.">${sortTh('p','atamz','At Amazon',D.products.filter(x=>!x.archived).every(x=>atAmz(x)==null)?'never counted':'')}</th>
       ${COL('pInb')?`<th style="width:88px" title="Sent and on its way to Amazon, with when it should be sellable.">${sortTh('p','inb','On the way')}</th>`:''}
-      ${COL('pLeft')?`<th style="width:92px" title="Days until Amazon is empty at the planned pace, counting what is on its way if it lands in time. If it lands after, it says how long the shelf sits empty in between.">${sortTh('p','left','Days left')}</th>`:''}
+      ${COL('pLeft')?`<th style="width:112px" title="Days until Amazon is empty at the planned pace, counting what is on its way if it lands in time. If it lands after, it says how long the shelf sits empty in between.">${sortTh('p','left','Days left')}</th>`:''}
       <th style="width:84px" title="What you hold here — buildable from parts, or on the shelf for a private-label product.">${sortTh('p','avail','Can build')}</th>
       ${COL('pIncoming')?`<th style="width:150px">${sortTh('p','incoming','Parts coming')}</th>`:''}
       ${COL('pOrdered')?'<th style="width:84px">Ordered</th>':''}
-      ${COL('pS7')?`<th style="width:66px" title="Units sold in the last 7 days — SellerFuse">${sortTh('p','s7','Sold 7d')}</th>`:''}
-      ${COL('pSold')?`<th style="width:76px" title="Units sold in the last 30 days — SellerFuse. Falls back to the BDL hub's last month when the check has not run.">${sortTh('p','sold','Sold 30d')}</th>`:''}
-      ${COL('pDay')?`<th style="width:80px" title="The pace the planner uses, units a day. ▲ selling faster this week, ▼ slower.">${sortTh('p','perday','Per day')}</th>`:''}
+      ${COL('pS7')?`<th style="width:90px" title="Units sold in the last 7 days — SellerFuse. Red = days it was empty at Amazon.">${sortTh('p','s7','Sold 7d')}</th>`:''}
+      ${COL('pSold')?`<th style="width:96px" title="Units sold in the last 30 days — SellerFuse. Falls back to the BDL hub's last month when the check has not run.">${sortTh('p','sold','Sold 30d')}</th>`:''}
+      ${COL('pDay')?`<th style="width:112px" title="The pace the planner uses, units a day — sold ÷ the days it was in stock at Amazon, so empty days never drag it down. ▲ selling faster this week, ▼ slower.">${sortTh('p','perday','Per day')}</th>`:''}
       ${COL('pLast')?`<th style="width:72px">${sortTh('p','last','Last sent')}</th>`:''}
-      ${COL('pSendBy')?`<th style="width:124px" title="The Planner's verdict and how many to send.">${sortTh('p','reorder','Next step')}</th>`:''}
+      ${COL('pSendBy')?`<th style="width:140px" title="When to act, the Planner's verdict, how many to send and what stops it. Hover a cell for the days of stock behind it.">${sortTh('p','reorder','Next step')}</th>`:''}
       ${COL('pCog')?`<th style="width:86px">${sortTh('p','cog','COG / unit')}</th>`:''}<th class="acts" style="width:150px"></th>
     </tr></thead><tbody>
     ${rows.length?rows.map(p=>prodRow(p)).join(''):`<tr><td colspan="${4+P_OPT_COLS.filter(COL).length}" class="empty">${D.products.length?'Nothing matches this filter.':
@@ -4834,17 +4914,32 @@ async function delCompNow(id){
 /* Jack, 23 Oct (K): every number a product row shows, worked out once. Days left counts
    what is on its way when it lands before the shelf empties; when it lands after, the row
    says how long the shelf sits empty in between (Hot Choc: 4 days, then ~9 empty). */
+/* Jack, 30 Oct ("wait for what?"): what is on its way often lands in parts — GF Snack's 412 were 9 ~2 Nov and 403
+   ~13 Nov, so "lands ~02/11 · then 3d empty" hid ~9 more empty days. Walk the shelf through every part: how long
+   what is at Amazon lasts (own), the empty days in all before the last part lands (gap), and the days everything
+   lasts when nothing runs dry first (total). */
+function shelfWalk(sell,day,tr,today){
+  const span=(a,b)=>(new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/864e5;
+  const T=(tr||[]).filter(x=>x&&(+x.q)>0&&x.eta).slice().sort((a,b)=>a.eta<b.eta?-1:a.eta>b.eta?1:0);
+  const s0=Math.max(0,+sell||0);let st=s0,at=today,empty=0;const legs=[];
+  T.forEach(x=>{const e=x.eta<at?at:x.eta,d=span(at,e),lasts=st/day,g=d-lasts;
+    if(g>0){empty+=g;legs.push({from:addCalDays(at,Math.floor(lasts)),to:e,days:Math.round(g)});st=0;}
+    else st-=day*d;
+    st+=+x.q;at=e;});
+  const inb=T.reduce((t,x)=>t+(+x.q),0);
+  return{own:s0/day,gap:empty>0?Math.max(1,Math.round(empty)):0,legs,total:(s0+inb)/day,tranches:T};
+}
 function prodLine(p){
   const R=(function(){try{return (plData().azBy||{})[p.id]||null;}catch(e){return null;}})();
   const sf=sfSoldOf(p),d=(R&&R.demand)||planDemandOf(p),day=d&&d.m>0?d.m/30:null;
   const sell=atAmz(p),inb=R&&R.inb!=null?R.inb:(amzIn(p)||0),eta=(R&&R.inbEta)||null;
-  let left=null,gap=0,leftTip='';
+  let left=null,gap=0,leftTip='',trs=(R&&Array.isArray(R.tranches)&&R.tranches.length)?R.tranches:(inb>0&&eta?[{q:inb,eta}]:[]);
   if(day&&sell!=null){
-    const own=sell/day,dry=addCalDays(dayISO(),Math.floor(own));
-    if(inb>0&&eta&&eta>dry){left=own;gap=Math.max(1,Math.round((new Date(eta+'T00:00:00')-new Date(dry+'T00:00:00'))/864e5));
-      leftTip=`${fmt(sell)} at Amazon last ~${Math.floor(own)} days, then empty until the ${fmt(inb)} on the way land ~${dshort(eta)}`;}
-    else if(inb>0){left=(sell+inb)/day;leftTip=`${fmt(sell)} at Amazon + ${fmt(inb)} on the way, at ${day.toFixed(1)} a day`;}
-    else{left=own;leftTip=`${fmt(sell)} at Amazon at ${day.toFixed(1)} a day`;}
+    const W=shelfWalk(sell,day,trs,dayISO());trs=W.tranches;
+    if(inb>0&&W.gap){left=W.own;gap=W.gap;
+      leftTip=`${fmt(sell)} at Amazon last ~${Math.floor(W.own)} days, then about ${fmt(gap)} days empty in all before the last of the ${fmt(inb)} on the way lands (${W.tranches.map(x=>`${fmt(x.q)} ~${dshort(x.eta)}`).join(', ')}) — empty ${W.legs.map(l=>`${dshort(l.from)}–${dshort(l.to)}`).join(' and ')}`;}
+    else if(inb>0){left=W.total;leftTip=`${fmt(sell)} at Amazon + ${fmt(inb)} on the way, at ${day.toFixed(1)} a day`;}
+    else{left=W.own;leftTip=`${fmt(sell)} at Amazon at ${day.toFixed(1)} a day`;}
   }
   const fba=fbaCalDays(),trig=fba+safetyDays();
   const leftCol=left==null?'var(--text3)':(gap||left<=fba)?'var(--red)':left<=trig?'var(--amb)':'var(--grn)';
@@ -4853,7 +4948,14 @@ function prodLine(p){
     if(a30>0||a7>0){const r=a30>0?a7/a30:9;
       if(r>=1.3)trend={k:'up',t:'▲',tip:`Selling faster: ${fmt(sf.u7)} in the last 7 days vs ${fmt(sf.u30)} in 30`};
       else if(r<=0.7)trend=(sell===0)?{k:'out',t:'empty',tip:'Slower this week — it is empty at Amazon'}:{k:'down',t:'▼',tip:`Slower: ${fmt(sf.u7)} in the last 7 days vs ${fmt(sf.u30)} in 30`};}}
-  return{R,sf,d,day,sell,inb,eta,left,gap,leftTip,leftCol,trend};
+  return{R,sf,d,day,sell,inb,eta,trs,left,gap,leftTip,leftCol,trend};
+}
+/* On the way, when: one date — "lands ~02/11"; in parts — a line each, two at most (the first, then the rest) */
+function inbWhen(PL){
+  const g=[];(PL.trs||[]).forEach(x=>{const l=g[g.length-1];if(l&&l.eta===x.eta)l.q+=+x.q;else g.push({q:+x.q,eta:x.eta});});
+  if(g.length<2)return PL.eta?'lands ~'+dshort(PL.eta):'on its way';
+  const two=g.length===2?g:[g[0],{q:g.slice(1).reduce((t,x)=>t+x.q,0),eta:g[g.length-1].eta,more:true}];
+  return two.map(x=>`<span class="inbT">${fmt(x.q)} ~${dshort(x.eta)}${x.more?' …':''}</span>`).join('');
 }
 function prodRow(p){
   const PL=prodLine(p);
@@ -4894,7 +4996,7 @@ function prodRow(p){
           :stale?`<span style="color:var(--amb)">${age}d old</span>`
           :age===0?esc(whenTxt((D.settings.atAmzAt||{})[p.asin],true)||'today')
           :`${age}d ago`}</div>`;})()}</td>
-    ${COL('pInb')?`<td>${PL.inb>0?`<span class="mono b" style="font-size:14px;color:var(--blu)">${fmt(PL.inb)}</span><div class="sldSub">${PL.eta?'lands ~'+dshort(PL.eta):'on its way'}</div>`:'<span class="dim">—</span>'}</td>`:''}
+    ${COL('pInb')?`<td>${PL.inb>0?`<span class="mono b" style="font-size:14px;color:var(--blu)">${fmt(PL.inb)}</span><div class="sldSub">${inbWhen(PL)}</div>`:'<span class="dim">—</span>'}</td>`:''}
     ${COL('pLeft')?`<td title="${esc(PL.leftTip||'')}">${PL.left==null?'<span class="dim">—</span>'
       :`<span class="mono b" style="font-size:14px;color:${PL.leftCol}">${PL.sell===0&&!PL.gap&&!(PL.inb>0)?'empty':fmt(Math.floor(PL.left))+'d'}</span>${PL.gap?`<div class="sldSub" style="color:#f87171;font-weight:800">then ${fmt(PL.gap)}d empty</div>`:PL.inb>0&&PL.left!=null?`<div class="sldSub">incl. on the way</div>`:''}`}</td>`:''}
     <td><span class="num" style="color:${col}">${a.kind==='norecipe'?'—':fmt(a.n)}</span>
@@ -4918,7 +5020,7 @@ function prodRow(p){
         <div class="incS"><span class="incNm" title="${esc(names.join(', '))}">${inc.length===1?esc(names[0]):`${fmt(inc.length)} lines`}</span> · from ${dshort(inc[0].d)}</div>
         ${oo?`<div class="incU">unlocks +${fmt(oo)}</div>`:''}`;})()}</td>`:''}
     ${COL('pOrdered')?`<td>${nn?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(nn.date)}</span><div class="pmeta">${esc(nn.sup.split('—')[0].trim())}</div>`:'<span class="dim">—</span>'}</td>`:''}
-    ${COL('pS7')?`<td>${PL.sf&&PL.sf.u7!=null?`<span class="mono b" style="font-size:14px">${fmt(PL.sf.u7)}</span>${(()=>{const pc=PL.d&&PL.d.pace;return pc&&pc.empty&&pc.empty[7]?`<div class="sldSub" style="color:#f87171">${pc.p7==null?'n/a — ':''}empty ${fmt(pc.empty[7])} of 7 days</div>`:'';})()}`:'<span class="dim">—</span>'}</td>`:''}
+    ${COL('pS7')?`<td>${PL.sf&&PL.sf.u7!=null?`<span class="mono b" style="font-size:14px">${fmt(PL.sf.u7)}</span>${(()=>{const pc=PL.d&&PL.d.pace;return pc&&pc.empty&&pc.empty[7]?`<div class="sldSub" style="color:#f87171" title="Empty at Amazon ${fmt(pc.empty[7])} of the last 7 days — Per day leaves those days out${pc.p7==null?'. In stock too few days to give a 7-day pace.':''}">${fmt(pc.empty[7])} day${pc.empty[7]===1?'':'s'} empty</div>`:'';})()}`:'<span class="dim">—</span>'}</td>`:''}
     ${COL('pSold')?`<td onclick="event.stopPropagation()">${PL.sf
         /* Jack, 23 Oct: "this doesn't match SF" — the column shows SellerFuse's real 30 days;
            a hub month used for planning shows under Per day, not here */
@@ -4928,7 +5030,7 @@ function prodRow(p){
         : `<span class="dim" style="font-size:14px">—</span>`}
       <div class="sldSub">${(()=>{
         /* Blank is not zero. Zero says it did not sell; blank says we do not know. */
-        if(PL.sf){const pc=PL.d&&PL.d.pace;return pc&&pc.empty&&pc.empty[30]?`<span style="color:#f87171">empty ${fmt(pc.empty[30])} of 30 days</span>`:'';}
+        if(PL.sf){const pc=PL.d&&PL.d.pace;return pc&&pc.empty&&pc.empty[30]?`<span style="color:#f87171" title="Empty at Amazon ${fmt(pc.empty[30])} of the last 30 days — Per day leaves those days out">${fmt(pc.empty[30])} day${pc.empty[30]===1?'':'s'} empty</span>`:'';}
         const src=soldSrc(p);
         if(!src)return hubSkipped(p)?`<button class="sldFix" title="Marked as not selling. Click if it is selling again — the planner picks it up on the spot." onclick="event.stopPropagation();LV3.plUnskip('${esc(p.asin)}')">not selling — selling again?</button>`
           :`<button class="sldFix" onclick="event.stopPropagation();LV3.openHubReview()">no figure — check</button>`;
@@ -4937,7 +5039,7 @@ function prodRow(p){
         const age=sold30Age(p);
         return `<span class="est">typed in${age!=null?` ${age}d ago`:''}</span>`;})()}</div></td>`:''}
     ${COL('pDay')?`<td title="${esc(PL.d?'Planned at '+(PL.day!=null?PL.day.toFixed(2):'—')+' a day — '+PL.d.label:'No sales figure')}">${PL.day?`<span class="mono b" style="font-size:14px">${PL.day>=10?fmt(Math.round(PL.day)):PL.day.toFixed(1)}</span>${PL.trend?`<span class="pTrend ${PL.trend.k}" title="${esc(PL.trend.tip)}">${PL.trend.t}</span>`:''}`:'<span class="dim">—</span>'}
-      <div class="sldSub" title="${esc(PL.d&&PL.d.pace?paceTip(PL.d.pace):'')}">${PL.d?esc(paceShort(PL.d))+(PL.d.pace&&PL.d.pace.slow?' <span style="color:#fbbf24">↓</span>':PL.d.pace&&PL.d.pace.spike?' <span style="color:#c4b5fd">↑</span>':''):''}</div></td>`:''}
+      <div class="sldSub" title="${esc(PL.d&&PL.d.pace?paceTip(PL.d.pace):'')}">${PL.d?esc(paceShort(PL.d).replace(/ · in stock$/,''))+(!PL.trend&&PL.d.pace&&PL.d.pace.slow?' <span style="color:#fbbf24">↓</span>':!PL.trend&&PL.d.pace&&PL.d.pace.spike?' <span style="color:#c4b5fd">↑</span>':'')+pdInStock(PL.d):''}</div></td>`:''}
     ${COL('pLast')?`<td>${p.lastSent?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(p.lastSent)}</span><div class="sldSub">${fmt(daysSince(p.lastSent))}d ago</div>`:'<span class="dim">never</span>'}</td>`:''}
     ${COL('pSendBy')?`<td onclick="event.stopPropagation()">${(()=>{
       const R=(plData().azBy||{})[p.id];
@@ -4947,18 +5049,42 @@ function prodRow(p){
       const SHORT={critical:'SEND NOW',act:'SEND',parts:'GET PARTS',gap:'GAP',waiting:'WAIT',watch:'WATCH',safe:'SAFE',paused:'NOT PLANNED',nodata:'NO SALES',nocount:'COUNT IT'};
       const chip='<span style="display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:800;white-space:nowrap;color:#14120f;background:'+plStateCol(k)+'">'+(SHORT[k]||k)+'</span>';
       if(R.protDays==null)return `<div style="display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer" onclick="LV3.openPlanRow('${p.id}')">${chip}${(k==='paused'&&hubSkipped(p))?`<button class="sldFix" title="Marked as not selling. Click if it is selling again — the planner picks it up on the spot." onclick="event.stopPropagation();LV3.plUnskip('${esc(p.asin)}')">selling again?</button>`:''}</div>`;
-      const trig=fbaCalDays()+safetyDays();
-      const col=R.protDays<=fbaCalDays()?'var(--red)':R.protDays<=trig?'var(--amb)':'var(--grn)';
-      /* Becki, 7 Sep: "show the restock number straight off the bat here
-         without having to click into each one." The recommended send, and
-         how much of it the bench can build, under the chip. */
-      const _rec=R.rec||0,_al=R.alloc||0;
-      const _need=_rec>0?`<span class="pmeta" style="margin:0;white-space:nowrap;color:${_al>=_rec?'var(--grn)':_al>0?'var(--amb)':'var(--text3)'}" title="Recommended send: ${fmt(_rec)} units${R.want!=null?' · aim for '+fmt(R.want)+' at Amazon when it lands ('+coverDaysOf(p)+' days\u2019 worth)':''}${_al<_rec?' · only '+fmt(_al)+' buildable now':''}">send <b>${fmt(_rec)}</b>${_al<_rec?` · ${fmt(_al)} now`:''}</span>`:'';
-      return `<div style="display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer"
-        onclick="LV3.openPlanRow('${p.id}')"
-        title="${Math.round(R.protDays)} days of protection against a ${trig}-day trigger. Click for the full working.">
-        <span class="num b" style="font-size:13.5px;color:${col}">${fmt(Math.round(R.protDays))}d</span>
-        ${chip}${_need}</div>`;})()}</td>`:''}
+      /* Jack, 30 Oct: "audit and improve this". The big number was days of protection — a second days figure that
+         never quite matched Days left (Decaf 39 vs 36), and "send 17 · 0 now" said nothing. Now WHEN to act on top,
+         the verdict, then what to send and what stops it, in words. The days stay in the tooltip. */
+      const fba=fbaCalDays(),trig=fba+safetyDays(),pd=R.protDays,today=dayISO();
+      const on=d=>dshort(addCalDays(today,Math.max(0,Math.floor(d))));
+      const _rec=R.rec||0,_al=R.alloc||0,L2=[];
+      let top='',topCol='var(--text)',tip=`${Math.round(pd)} days of stock at Amazon and on its way at the planned pace, against a ${trig}-day trigger (${fba} days for a send to become sellable + ${safetyDays()} safety).`;
+      const line=(h,c,t)=>L2.push(`<span class="nsL"${c?` style="color:${c}"`:''}${t?` title="${esc(t)}"`:''}>${h}</span>`);
+      if(R.state==='critical'||R.state==='act'){
+        if(R.state==='critical'){top='today';topCol='var(--red)';tip+=pd<fba?' A send today lands after it runs out — every day counts.':' Send today.';}
+        else{top='by '+on(pd-fba);topCol='var(--amb)';tip+=` Send by ~${on(pd-fba)} at the latest — after that a send lands after it runs out. Sooner keeps the safety reserve.`;}
+        if(_rec>0){
+          line(`send <b>${fmt(_rec)}</b>`,'',`Recommended send: ${fmt(_rec)}${R.want!=null?' · aim for '+fmt(R.want)+' at Amazon when it lands ('+coverDaysOf(p)+' days’ worth)':''}`);
+          if(_al<_rec){
+            const SL=R.lim||null,tk=R.limTakers||[];
+            /* GET PARTS already says none can be built; the product column already names its limiting part */
+            if(_al>0)line(`${fmt(_al)} can be built now`,'var(--amb)');
+            if(SL&&(tk.length||!(lim&&String(lim.id)===String(SL.id))))line(tk.length?`${esc(SL.name)} shared with ${esc(tk[0])}${tk.length>1?' +'+fmt(tk.length-1):''}`
+                :`short: ${esc(SL.name)}${onOrder(SL)>0?` · ${fmt(onOrder(SL))} on order`:' · none on order'}`,'var(--text3)',
+              tk.length?`A shared part: every product that needs a send gets some first, then its 3-week minimum, then the rest goes to the fastest seller. Also getting it: ${tk.join(', ')}`:`What stops more being built: ${SL.name}`);
+          }
+        }
+      }else if(R.state==='safe'){
+        top='~'+on(pd-trig);topCol='var(--grn)';tip+=` Next send due ~${on(pd-trig)}, when it drops to ${trig} days.`;
+        if(a.n===0&&lim)line('next send · 0 buildable','var(--amb)',`Nothing can be built for the next send — ${lim.name}${onOrder(lim)>0?` (${fmt(onOrder(lim))} on order)`:' (none on order)'}`);
+        else line('next send due','var(--text3)');
+      }else if(R.state==='waiting'){
+        /* Jack, 30 Oct: "wait for what?" — the part a send today would land with */
+        const t=(R.tranches||[]).filter(x=>x&&x.eta&&(!R.landIso||x.eta<=R.landIso)).sort((x,y)=>x.eta<y.eta?-1:1).slice(-1)[0];
+        top=t?'~'+dshort(t.eta):'';topCol='#93c5fd';tip=(R.why?R.why+' ':'')+tip;
+        if(t)line(`for ${fmt(t.q)} on the way`,'#93c5fd');
+      }else{
+        top=fmt(Math.round(pd))+'d';topCol=pd<=fba?'var(--red)':pd<=trig?'var(--amb)':'var(--grn)';if(R.why)tip+=' '+R.why;
+      }
+      return `<div class="nsC" onclick="LV3.openPlanRow('${p.id}')" title="${esc(tip+' Click for the full working.')}">
+        ${top?`<span class="num b nsTop" style="color:${topCol}">${top}</span>`:''}${chip}${L2.join('')}</div>`;})()}</td>`:''}
     ${COL('pCog')?`<td>${cg.short
       ? (cg.noPrice
         ? `<span style="font-size:12px;color:var(--red)">!</span><div class="pmeta" style="text-align:center;color:var(--red);font-weight:700">price missing</div>`
@@ -12939,9 +13065,10 @@ function soSaid(p){
   return R.state||'';
 }
 let _ledgerWait=null;   /* a run applied before the products loaded — recorded on the next paint */
-/* the ASIN chip on a send card: copy it, and say so on the chip for a moment */
-function copyAsin(el,a){
-  try{navigator.clipboard&&navigator.clipboard.writeText(a);}catch(e){}
+/* the ASIN chip on a send card: copy it, and say so on the chip for a moment. b629: this was ALSO called copyAsin
+   and replaced the ASIN button's, so pressing an ASIN on Products copied the click, not the ASIN (Jack, 30 Oct). */
+function copyAsinChip(el,a){
+  copyAsin(a,null,true);
   const t=el&&el.querySelector('.sAsinT');if(!t)return;
   el.classList.add('ok');t.textContent='Copied';
   setTimeout(()=>{t.textContent=a;el.classList.remove('ok');},1100);
@@ -12960,6 +13087,9 @@ function stockLedger(run,when){
     const d=planDemandOf(p),pc=d&&d.pace,sf=sfSoldOf(p)||{};
     const ls=(S.sfLastSold||{})[a]||null;
     if(q===0){
+      /* b631: still selling while the count says 0 — the record moves to the day after the last sale */
+      if(open&&open.kind==='out'&&ls&&ls>=open.from){const was=open.from;open.from=addCalDays(ls,1);open.movedFrom=was;
+        try{logIt('edit',`Still selling at Amazon: ${p.name} — sold on ${dshort(ls)}, so not empty since ${dshort(was)}`);}catch(e){}}
       if(open||!d||!(d.m>0))return;
       if(!ls&&!((parseInt(sf.u30)||0)>0)){   /* no sale on record in 30 days: empty since before tracking */
         if(!Lg.some(r=>r.asin===a&&r.kind==='before'))Lg.push({id:'so_'+a+'_before',asin:a,name:p.name,kind:'before',from:null,to:null,pace:+(d.m/30).toFixed(2),pu:profitOf(p)||null,cause:soCause(p),said:soSaid(p),src:'counts',conf:'empty before tracking started',opened:when});
@@ -13049,7 +13179,7 @@ function sfApplyFromRun(run){
     /* profit a unit, for ranking the Build & send list by money lost a day */
     if(x.profit!=null){D.settings.sfProfit[p.asin]=Math.round(+x.profit*100)/100;D.settings.sfProfitSrc[p.asin]=x.profitSrc;}
     if(x.price!=null&&+x.price>0){D.settings.sfPrice=D.settings.sfPrice||{};D.settings.sfPrice[p.asin]=Math.round(+x.price*100)/100;}
-    if(x.lastSold)D.settings.sfLastSold[p.asin]=x.lastSold;
+    if(x.lastSold&&!(String(D.settings.sfLastSold[p.asin]||'')>String(x.lastSold)))D.settings.sfLastSold[p.asin]=x.lastSold;   /* the latest across its SKUs (b631) */
     const was=D.settings.atAmzAt[p.asin];
     if(was&&new Date(was).getTime()>runMs)return;      /* a newer hand count wins */
     const q=Math.max(0,x.available-x.pending);
@@ -13189,7 +13319,7 @@ function paint(){
 }
 
 /* everything the page's inline handlers need */
-const API={go,render:paint,boot,dupConfirm,q4Calc,q4SetTarget,q4SetOpen,q4Pick,q4PlanFill,q4LimHtml,__layers:()=>LAYERS,__purch:()=>PURCH,
+const API={go,render:paint,boot,dupConfirm,pdInStock,q4Calc,q4SetTarget,q4SetOpen,q4Pick,q4CopyBuy,q4PlanFill,q4LimHtml,__layers:()=>LAYERS,__purch:()=>PURCH,
   openProduct,editProduct,setType,setSold30,rowMenu,closeRowMenu,dupeAsins,setSort,saveProductForce,addRecipeRow,rcChange,rcSearch,rcPick,rcMake,recipePreview,copyRecipe,saveProduct,delProduct,togRow,setArchived,
   openShip,drawShip,doShip,copyCog,shipSetQty,shipOverride,shipQty,shipFba,setQ,selOne,selAll,selClear,selType,selVat,
   openComp,editComp,saveComp,delComp,pickKind,openAddBatch,abPreview,doAddBatch,selArchive,selDelete,cselOne,cselAll,cselClear,cselKind,cselTrack,cselArchive,cselDelete,markArrived,openAdjust,doAdjust,
@@ -13201,7 +13331,7 @@ const API={go,render:paint,boot,dupConfirm,q4Calc,q4SetTarget,q4SetOpen,q4Pick,q
   sendBy,sendState,primeDays,setPrimeDays,workDaysBefore,workDaysBetween,
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,refreshShared,reloadData,rtChange,checkStockSafety,__save:()=>save(),__remRpc:()=>_remRpc,__setRemRpc:v=>{_remRpc=v;},settleIssue,sheetSays,relinkOrphans,openSheetDiff,mergeIntoSheetLine,dropDiffLine,cancelDiffLine,ackDiffLine,sheetDiffItems,__persist:()=>persist(),__pushNow:()=>pushNow(),__PURCH:()=>PURCH,__prefsMerge:_prefsMerge,__savePrefs:()=>savePrefs(),__saveState:()=>saveState(),__prefsBase:()=>_prefsBase,__setPrefsBase:v=>{_prefsBase=v;},__ack:()=>ACK,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
-  sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,copyAsin,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,amzUnlock,amzLocked,amzSfLast,copyAsin,copyAsinChip,shelfWalk,shareParts,upliftOf,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,lossOfRows,lossLine,profitSrcOf,fbaCalDays,priceOf,acCopySend,acJump,sfPace,safetyFor,emptyDaysIn,stockLedger,vHealth,coverDaysOf,isWorkDay,workDaysAfter,fbaLearn,primeDays,primeSet,copyAsin,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
   setUplift,upliftCfg,upliftOf,upliftNote,demandBetween,daysCovered,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
