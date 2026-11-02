@@ -3125,7 +3125,7 @@ window.PrepChecks=(function(){
     try{
       goPage('lavarion');LV3.go('q4');await wait(200);
       const pg=document.getElementById('page-lavarion'),live=LV3.q4Calc();
-      eq(pg.querySelectorAll('.q4Kpis .kpi').length,4,'four tiles');
+      eq(pg.querySelectorAll('.q4Kpis .kpi').length,5,'five tiles — the fifth says when every target is done (b637)');
       const on=live.bundles.concat(live.singles).some(r=>r.left-r.arrived>0);
       eq([...pg.querySelectorAll('table.q4P thead th')].some(th=>/When orders land/.test(th.textContent)),on,'"When orders land" only when something is on order');
       eq(!!pg.querySelector('.q4Buy'),!!(live.shopAll&&live.shopAll.buy.length),'the shopping list shows when something is short');
@@ -3153,6 +3153,198 @@ window.PrepChecks=(function(){
       D.settings.sfLastSold[p.asin]=ago(6);eq(LV3.sfPace(p).empty[7],5,'a sale before the record opened changes nothing');
     }finally{D.settings.stockOuts=JSON.parse(keep.so);const f=JSON.parse(keep.sf);if(f)D.settings.sfSold[p.asin]=f;else delete D.settings.sfSold[p.asin];
       if(keep.ls)D.settings.sfLastSold[p.asin]=keep.ls;else delete D.settings.sfLastSold[p.asin];}
+  };
+
+  /* 121 · b632: a delivery that lands before the send sells too (Dog Treat, 31 Oct) */
+  S['b632: what is there when a send lands — a delivery landing first sells too, never counted whole']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const isoDay=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+    const on=k=>{const x=new Date();x.setDate(x.getDate()+k);return isoDay(x);},t=on(0),near=(a,b)=>Math.abs(a-b)<1e-6;
+    ok(near(LV3.stockAt(null,1.6,4,[{q:37,eta:on(10)}],t,13),37-3*1.6),'Dog Treat: 4 gone by day 3, 37 land day 10, 3 days of sales off them by day 13 = 32.2, not 37');
+    ok(near(LV3.stockAt(null,1,20,[{q:10,eta:on(5)}],t,10),20),'still stocked when it lands: 20 − 10 + 10, as before');
+    ok(near(LV3.stockAt(null,2,5,[],t,10),0)&&near(LV3.stockAt(null,2,30,[],t,10),10),'nothing landing: max(0, stock − sales), as before');
+    ok(near(LV3.stockAt(null,1,0,[{q:5,eta:on(2)},{q:20,eta:on(8)}],t,10),20-2),'two deliveries: the 5 run out before the 20 land, the 20 sell 2 days');
+    ok(near(LV3.stockAt(null,1,10,[{q:50,eta:on(20)}],t,10),0),'a delivery after the send lands does not count');
+    ok(near(LV3.stockAt(null,1,3,[{q:7,eta:on(-4)}],t,5),5),'a delivery already due counts from today');
+    const az=((LV3.__plData()||{}).az||{}).rows||[];
+    ok(!az.some(r=>r.projAtLand!=null&&!(r.projAtLand>=0)),'no planner row has a negative or broken position');
+  };
+
+  /* 122 · b633: click a Q4 line for the days and weeks it went up */
+  S['b633: Q4 — clicking a line opens its sends by week and by day, the bar adding up to what the page says']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'',pref=localStorage.getItem('lv3.q4.progress');
+    try{
+      goPage('lavarion');LV3.go('q4');await wait(250);
+      const rows=[...document.querySelectorAll('#page-lavarion .q4T tr[data-q4r]')];
+      ok(rows.length>0,'Q4 lines open');
+      const R=LV3.q4Calc(),all=R.bundles.concat(R.singles);
+      const r=all.filter(x=>x.done>0).sort((a,b)=>b.done-a.done)[0]||all[0];ok(r,'a line to open');if(!r)return;
+      const tr=document.querySelector(`#page-lavarion .q4T tr[data-q4r="${r.id}"]`);ok(tr,'its row is on the page');
+      const dw=document.querySelector(`#page-lavarion tr[data-q4d="${r.id}"] .q4DW`);ok(dw,'its dropdown has Days & weeks (b636)');
+      dw.click();await wait(80);
+      const M=document.getElementById('lav3Mod2');
+      ok(document.getElementById('lav3Ov2').classList.contains('on')&&M.classList.contains('q4HMod'),'the window opens');
+      ok(M.textContent.includes(r.name),'it is that line');
+      LV3.q4History(r.id,'weeks');await wait(40);
+      const wk=[...M.querySelectorAll('.q4HT tbody tr')];ok(wk.length>0,'weeks are listed');
+      const sumW=wk.reduce((t,x)=>t+(parseInt(x.children[1].textContent.replace(/[^\d]/g,''))||0),0);
+      eq(sumW,r.done,'the weeks add up to what the page says was sent');
+      ok(/so far/.test(wk[0].textContent),'newest first — this week, so far, on top');
+      eq(parseInt((wk[0].children[4].querySelector('small')||{textContent:''}).textContent.replace(/[^\d]/g,''))||0,r.done,'the newest row ends on the full total');
+      LV3.q4History(r.id,'days');await wait(40);
+      const dy=[...M.querySelectorAll('.q4HT tbody tr')];
+      const sumD=dy.reduce((t,x)=>t+(parseInt(x.children[1].textContent.replace(/[^\d]/g,''))||0),0);
+      eq(sumD,r.done,'the days add up too');
+      ok(dy.every(x=>x.children[1].textContent.trim()!=='—'),'days lists only days something went out');
+      if(dy.length)ok(/·/.test(dy[0].querySelector('td').textContent),'a day names its shipment');
+      ok(!/undefined|NaN/.test(M.innerHTML),'no undefined or NaN');
+      LV3.cm('lav3Ov2');
+    }finally{try{if(pref==null)localStorage.removeItem('lv3.q4.progress');else localStorage.setItem('lv3.q4.progress',pref);}catch(e){}
+      try{LV3.cm('lav3Ov2');}catch(e){}try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 123 · b634: Reindeer Food's Q4 target is 1,000 (Jack, 31 Oct) — by name or by ASIN */
+  S['b634: Q4 plan — Reindeer Food 1,000, found by its name or its ASIN']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    eq(LV3.q4PlanFill([{id:'r',name:'Reindeer Food',type:'bundle'}]).r,1000,'by name');
+    eq(LV3.q4PlanFill([{id:'r',name:'Magic Reindeer Food',asin:'B0HLB9BRMR',type:'bundle'}]).r,1000,'renamed: by its ASIN');
+    eq(LV3.q4PlanFill([{id:'r',name:'Reindeer Food',type:'bundle',archived:true}]).r,undefined,'never an archived one');
+    const D=LV3.__D(),p=D.products.find(x=>!x.archived&&String(x.asin||'').toUpperCase()==='B0HLB9BRMR');
+    if(p&&!(D.settings.q4Targets&&typeof D.settings.q4Targets==='object')){
+      const r=LV3.q4Calc().bundles.find(x=>x.id===String(p.id));
+      ok(r&&r.priority&&r.target===1000,'on the page it is a priority bundle with a target of 1,000');}
+  };
+
+  /* 124 · b635: empty before a send could land is never "inside the buffer" (Always Size 2, 1 Nov) */
+  S['b635: a line that is empty, or empties, before a send could land is losing — never "lands inside the buffer"']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),p=D.products.find(x=>!x.archived&&x.asin);ok(p,'a product to test with');if(!p)return;
+    const isoDay=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+    const on=k=>{const x=new Date();x.setDate(x.getDate()+k);return isoDay(x);};
+    const base={p,ads:2.8,sell:0,inb:4,tranches:[{q:4,eta:on(11)}],landIso:on(12),saf:14};
+    let u=LV3.sendUrgency(base);
+    ok(u.losing&&!u.buffer,'0 at Amazon, 4 landing the day before a send could: losing, not the buffer');
+    eq(Math.round(u.gap),11,'11 empty days before those 4 land');eq(u.firstEmpty,0,'empty from today');
+    u=LV3.sendUrgency(Object.assign({},base,{sell:30,inb:0,tranches:[]}));
+    ok(u.losing&&Math.round(u.gap)===1,'runs out on day 10.7, a send lands day 12: losing, 1 day short');
+    u=LV3.sendUrgency(Object.assign({},base,{sell:50,inb:0,tranches:[]}));
+    ok(!u.losing&&u.buffer&&u.gap===0,'stocked until after a send lands: that IS the buffer');
+    u=LV3.sendUrgency(Object.assign({},base,{sell:5,inb:200,tranches:[{q:200,eta:on(5)}]}));
+    ok(!u.losing&&u.gap>0&&!u.buffer,'empty a few days, then covered for weeks: not urgent, and never called the buffer');
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{goPage('lavarion');LV3.go('overview');await wait(300);
+      const bad=[...document.querySelectorAll('#page-lavarion .acxS')].filter(c=>{const ch=(c.querySelector('.acxChip')||{}).textContent||'';
+        const amz=[...c.querySelectorAll('.sCell')].find(x=>/at amazon/i.test((x.querySelector('i')||{}).textContent||''));
+        return /BUFFER/.test(ch)&&amz&&(amz.querySelector('b')||{}).textContent.trim()==='0';});
+      eq(bad.length,0,'no card with 0 at Amazon talks about the buffer');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 125 · b636: Q4 dropdowns, Left to do, By <last send day>, the chart, Complete column, copyable ASINs */
+  S['b636: Q4 — lines open and close, Left to do = target − sent, on track for the last send day, the Complete chart']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),was=(document.querySelector('.page.active')||{}).id||'';let keepOpen=null,keepProg=null;
+    try{keepOpen=localStorage.getItem('lv3.q4.open');keepProg=localStorage.getItem('lv3.q4.progress');}catch(e){}
+    const keepBy=D.settings.q4SendBy;
+    try{
+      delete D.settings.q4SendBy;eq(LV3.q4SendBy(),'2026-12-10','the last send day is 10 Dec until it is changed (Jack, 1 Nov)');
+      /* the pace on made-up sends: 140 in the last 14 days = 70 a week = 14 a working day (10 of them); 29 working days to 10 Dec */
+      const R0={sends:[{id:'a',date:'2026-10-25',units:140},{id:'a',date:'2026-10-01',units:999},{id:'b',date:'2026-10-30',units:20}]};
+      const tr=LV3.q4Track(R0,'2026-11-01');
+      eq(tr.days,39,'1 Nov to 10 Dec = 39 days');eq(tr.wdLeft,29,'…29 of them Mon–Fri working days (b638)');eq(tr.paceWdOf('a'),14,'140 over 10 working days = 14 a working day');eq(tr.paceOf('a'),70,'140 in the last 14 days = 70 a week (1 Oct is too old)');eq(tr.paceOf(null),80,'the whole page: 160 = 80 a week');
+      eq(tr.line({id:'a',target:1000,done:500,left:600}).state,'behind','500 left at 14 a working day (406 by 10 Dec): behind');
+      eq(tr.line({id:'a',target:1000,done:500,left:600}).eta,'2026-12-21','…and all sent by ~21 Dec: 36 working days at 14 (b637/b638)');
+      eq(tr.line({id:'zz',target:100,done:0,left:50}).eta,null,'nothing sent in 2 weeks: no finish date');
+      eq(tr.line({id:'a',target:1000,done:700,left:600}).state,'ok','300 left, 406 at this pace, parts for 600: on track');
+      eq(tr.line({id:'a',target:1000,done:700,left:100}).state,'parts','on pace, but the parts only make 800: needs parts');
+      eq(tr.line({id:'a',target:1000,done:1000,left:50}).state,'done','target hit');
+      goPage('lavarion');LV3.go('q4');await wait(250);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),P=R.bundles.filter(r=>r.priority);
+      P.forEach(r=>{const c=pg.querySelector(`tr[data-q4r="${r.id}"] td.q4Lft`);
+        ok(c&&(c.textContent.trim()===(r.target-r.done>0?String(r.target-r.done).replace(/\B(?=(\d{3})+(?!\d))/g,','):'✓')),r.name+': Left to do = target − sent');});
+      ok([...pg.querySelectorAll('table.q4P thead th')].some(th=>/Done at this pace/.test(th.textContent)),'a Done at this pace column');
+      ok(P.every(r=>/~\d{1,2} [A-Z][a-z]{2}|Done|Not moving/.test((pg.querySelector(`tr[data-q4r="${r.id}"] td.q4By`)||{}).textContent||'')),'every target has a projected finish date');
+      const r=P[0]||R.bundles[0];if(r){
+        const row=pg.querySelector(`tr[data-q4r="${r.id}"]`),drop=pg.querySelector(`tr[data-q4d="${r.id}"]`);
+        const was0=row.classList.contains('open');row.click();await wait(30);
+        eq(row.classList.contains('open'),!was0,'a click opens it (or closes it)');eq(drop.classList.contains('open'),!was0,'…and its dropdown with it');
+        ok(drop.querySelector('.q4Wk')&&drop.querySelector('.q4DW'),'inside: its weeks and Days & weeks');
+        row.click();await wait(30);eq(row.classList.contains('open'),was0,'a second click puts it back');
+        const all=pg.querySelector('.q4PriPanel .q4AllBtn');if(all){all.click();await wait(30);
+          ok([...pg.querySelectorAll('.q4PriPanel tr[data-q4r]')].every(t=>t.classList.contains('open')),'Open all opens every target');
+          all.click();await wait(30);ok([...pg.querySelectorAll('.q4PriPanel tr[data-q4r]')].every(t=>!t.classList.contains('open')),'Close all closes them');}
+        const chip=row.querySelector('.q4Asin');ok(chip&&/B0/.test(chip.textContent),'the ASIN is a copy button');
+        const o=row.classList.contains('open');chip.click();await wait(30);eq(row.classList.contains('open'),o,'copying the ASIN does not open the line');}
+      ok(pg.querySelector('.q4Prog .q4Chart svg polyline.ln'),'Progress ▾ opens with the Complete chart');
+      ok(!/NaN|undefined|Infinity/.test(pg.querySelector('.q4Prog').innerHTML),'no NaN in the chart or tables');
+      const wk=pg.querySelector('.q4GW-weeks tbody tr td.q4Cmp b');
+      eq((wk||{}).textContent,(R.totals.pct==null?'—':R.totals.pct+'%'),'the newest week ends on the Complete tile');
+      ok([...pg.querySelectorAll('.q4Kpis .kpi .k')].some(k=>/All targets done at this pace/.test(k.textContent)),'an All targets done at this pace tile');
+      {const TR1=LV3.q4Track(R),open=P.map(r=>TR1.line(r)).filter(x=>x.state!=='done'),last=open.filter(x=>x.eta).map(x=>x.eta).sort().pop(),stuck=open.some(x=>!x.eta);
+        const tv=([...pg.querySelectorAll('.q4Kpis .kpi')].find(k=>/All targets done/.test(k.textContent))||{}).querySelector('.v');
+        if(last)ok(tv&&tv.textContent.trim()==='~'+LV3.q4DayShort(last),'the tile is the day the LAST target is done: '+last+(stuck?' (and a line not moving is named)':''));}
+    }finally{if(keepBy===undefined)delete D.settings.q4SendBy;else D.settings.q4SendBy=keepBy;
+      try{if(keepOpen==null)localStorage.removeItem('lv3.q4.open');else localStorage.setItem('lv3.q4.open',keepOpen);
+        if(keepProg==null)localStorage.removeItem('lv3.q4.progress');else localStorage.setItem('lv3.q4.progress',keepProg);}catch(e){}
+      try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 126 · b638: Q4 so far — days out of stock since 1 Oct per line, and Sold on Amazon when SellerFuse carries it */
+  S['b638: Q4 so far — days out of stock since 1 Oct per line, sales missed, and Sold on Amazon once SellerFuse carries it']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),was=(document.querySelector('.page.active')||{}).id||'',keepQ=D.settings.sfQ4;
+    try{
+      delete D.settings.sfQ4;goPage('lavarion');LV3.go('q4');await wait(250);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc();
+      const box=pg.querySelector('details.q4Rec');ok(box,'a Q4 so far panel');if(!box)return;
+      ok(![...box.querySelectorAll('thead th')].some(th=>/Sold on Amazon/.test(th.textContent)),'no Sold column until SellerFuse carries it');
+      const days=Math.round((new Date(LV3.dayISO?LV3.dayISO():new Date().toISOString().slice(0,10))-new Date(R.from))/864e5)+1;
+      const rows=[...box.querySelectorAll('tbody tr')];eq(rows.length,R.bundles.concat(R.singles).filter(r=>!r.archived).length,'one row per line on the page');
+      R.bundles.concat(R.singles).filter(r=>!r.archived).slice(0,4).forEach(r=>{const p=D.products.find(x=>String(x.id)===r.id),want=LV3.emptyDaysIn(p,days);
+        const tr=rows.find(t=>t.querySelector('td.q4N b').textContent===r.name);
+        ok(tr&&tr.querySelector('td.q4Od').textContent.trim().startsWith(want?String(want):'—'),r.name+': days out of stock = the stock-out records ('+want+')');});
+      const r0=R.bundles[0],p0=D.products.find(x=>String(x.id)===r0.id);
+      D.settings.sfQ4={at:new Date().toISOString(),from:R.from,to:null,by:{[String(p0.asin).toUpperCase()]:123}};
+      LV3.go('q4');await wait(200);
+      const box2=pg.querySelector('details.q4Rec');
+      ok([...box2.querySelectorAll('thead th')].some(th=>/Sold on Amazon/.test(th.textContent)),'a Sold on Amazon column once it comes');
+      ok(/123/.test([...box2.querySelectorAll('tbody tr')].find(t=>t.querySelector('td.q4N b').textContent===r0.name).textContent),'…with SellerFuse\'s figure on its line');
+      ok(!/NaN|undefined/.test(box2.innerHTML),'no NaN');
+      ok(/a working day/.test((pg.querySelectorAll('.q4Kpis .kpi')[4]||{}).textContent||''),'the tile counts working days');
+      {const all=[...pg.querySelectorAll('.q4 > *')],iRec=all.indexOf(box2),iPri=all.findIndex(e=>e.classList&&e.classList.contains('q4PriPanel'));
+        ok(iRec>iPri&&iRec===all.length-1,'the record is the last thing on the page — under the build tables (prep hub first)');}
+    }finally{if(keepQ===undefined)delete D.settings.sfQ4;else D.settings.sfQ4=keepQ;
+      try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 127 · b639: one supplier spelt two ways is one supplier (Mini Cheddars, 1 Nov) */
+  S['b639: a supplier spelt two ways ("LovePubSnacks" / "Love Pub Snacks") is one supplier, in its usual spelling']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const f=LV3.compSupplierOf||null;ok(f,'compSupplier is reachable');if(!f)return;
+    eq(f({layers:[{sup:'LovePubSnacks'},{sup:'Love Pub Snacks'},{sup:'Tesco'}]}),'Love Pub Snacks','one each of three: the two spellings count together, the spaced one shown');
+    eq(f({layers:[{sup:'CutPriceWholesaler'},{sup:'CutPriceWholesaler'},{sup:'Cut Price Wholesaler'}]}),'CutPriceWholesaler','the most used spelling is the one shown');
+    eq(f({layers:[{sup:'Tesco'},{sup:'Tesco'},{sup:'LovePubSnacks'}]}),'Tesco','a different supplier with more lines still wins');
+    eq(f({supplier:'Pure Gusto',layers:[{sup:'Tesco'}]}),'Pure Gusto','a supplier set on the part always wins');
+    const D=LV3.__D(),c=D.components.find(x=>/Mini Cheddars/i.test(x.name)&&!x.supplier);
+    if(c)eq(f(c),'Love Pub Snacks','Mini Cheddars goes on the Love Pub Snacks order');
+  };
+
+  /* 128 · b640: Progress tables — units per line as shaded cells, quiet runs folded, the sums still add up */
+  S['b640: Progress ▾ — each line\'s units per day/week, blank when none, quiet days folded, rows add up to Sent']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{goPage('lavarion');LV3.go('q4');await wait(250);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc();
+      ['days','weeks'].forEach(m=>{const t=pg.querySelector('.q4GW-'+m+' table.q4G');ok(t,m+' table');if(!t)return;
+        ok(![...t.querySelectorAll('tbody td.q4H0, tbody td.q4H')].some(td=>/—/.test(td.textContent)),m+': no dashes in the line cells');
+        [...t.querySelectorAll('tbody tr:not(.q4Gap)')].forEach(tr=>{const sent=parseInt(tr.querySelector('td.q4Snt b').textContent.replace(/[^\d]/g,''))||0;
+          const parts=[...tr.querySelectorAll('td.q4H b')].reduce((a,b)=>a+(parseInt(b.textContent.replace(/[^\d]/g,''))||0),0);
+          eq(parts,sent,m+' '+tr.querySelector('td b').textContent+': the line cells add up to Sent');});
+        const quiet=(R.progress[m]||[]).filter(r=>!r.units).length,gaps=t.querySelectorAll('tbody tr.q4Gap').length;
+        ok(quiet===0?gaps===0:gaps>0&&gaps<=quiet,m+': days with nothing sent are folded ('+quiet+' → '+gaps+' line'+(gaps===1?'':'s')+')');});
+      ok(!/undefined|NaN/.test(pg.querySelector('.q4Prog').innerHTML),'no NaN');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
 
   async function run(only){
