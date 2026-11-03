@@ -2708,3 +2708,124 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .q4G tr:not(.q4Gap):hover td{background-color:rgba(255,255,255,.02);}
 #page-lavarion .q4G tr.q4Best td:not(.q4H):not(.q4H0){background:rgba(74,222,128,.05);}
 #page-lavarion .q4G tr.q4Best td.q4H0{background:none;}
+/* b642: Finish date / Parts cover in plain words (Jack, 2 Nov: "easier for UK staff to read") */
+#page-lavarion .q4T2 td.q4By small{white-space:normal;font-size:11px;line-height:1.35;margin-top:3px;}
+#page-lavarion .q4T2 td.q4W small{font-size:11px;}
+/* b642: the chart's figures in a key above the plot; hover a day */
+#page-lavarion .q4Chart{position:relative;}
+#page-lavarion .q4ChartK{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px;}
+#page-lavarion .q4ChartK .k{display:flex;align-items:baseline;gap:8px;padding:6px 11px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.02);font-size:11.5px;color:var(--text3);}
+#page-lavarion .q4ChartK .k i{display:inline-block;width:18px;height:0;border-top:2.5px solid #38bdf8;align-self:center;}
+#page-lavarion .q4ChartK .k.p i{border-top:2px dashed #38bdf8;}
+#page-lavarion .q4ChartK .k.n i{border-top:2.5px dotted #fbbf24;}
+#page-lavarion .q4ChartK .k span{color:var(--text2);font-weight:600;}
+#page-lavarion .q4ChartK .k b{font:800 15px var(--num);color:var(--text);font-variant-numeric:tabular-nums;}
+#page-lavarion .q4Chart .hx{stroke:rgba(255,255,255,.35);stroke-width:1;}
+#page-lavarion .q4Chart .ha{fill:#38bdf8;stroke:var(--bg3);stroke-width:2;}
+#page-lavarion .q4Chart .hp{fill:#7dd3fc;stroke:var(--bg3);stroke-width:2;}
+#page-lavarion .q4Chart .hn{fill:#fbbf24;stroke:var(--bg3);stroke-width:2;}
+#page-lavarion .q4Chart .hit{cursor:crosshair;}
+#page-lavarion .q4Tip{position:absolute;z-index:3;pointer-events:none;min-width:150px;padding:8px 11px;border:1px solid var(--border2);border-radius:8px;background:var(--bg2);box-shadow:0 6px 18px rgba(0,0,0,.45);font-size:11.5px;color:var(--text3);display:flex;flex-direction:column;gap:2px;white-space:nowrap;}
+#page-lavarion .q4Tip[hidden]{display:none;}
+#page-lavarion .q4Tip>b{font:800 12px var(--sans);color:var(--text);margin-bottom:2px;}
+#page-lavarion .q4Tip span b{color:var(--text);font-family:var(--num);}
+/* b642: the heads and the Q4-so-far row stay put as the table scrolls (Jack, 2 Nov: "freeze a row of totals") */
+#page-lavarion .q4GScroll{max-height:480px;}
+#page-lavarion .q4G thead tr:first-child th{height:32px;box-sizing:border-box;padding-top:0;padding-bottom:0;vertical-align:middle;z-index:4;}
+#page-lavarion .q4G thead tr.q4Tot th{position:sticky;top:31px;z-index:3;background:#201f1c;text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:600;color:var(--text2);padding:9px 10px;vertical-align:middle;white-space:nowrap;box-shadow:inset 0 1px 0 var(--border),inset 0 -2px 0 var(--border2);}
+#page-lavarion .q4G tr.q4Tot th>b{font:800 13px var(--sans);color:var(--text);}
+#page-lavarion .q4G tr.q4Tot th>small{display:block;margin-top:1px;font:600 10.5px var(--sans);color:var(--text3);}
+#page-lavarion .q4G tr.q4Tot th.n{text-align:right;}
+#page-lavarion .q4G tr.q4Tot th.q4Snt b{font:800 14px var(--num);color:var(--text);font-variant-numeric:tabular-nums;}
+#page-lavarion .q4G tr.q4Tot th.q4Snt small{display:block;margin-top:1px;font:600 10.5px var(--num);color:var(--text3);}
+#page-lavarion .q4G tr.q4Tot th.q4Cmp>div{display:flex;align-items:center;gap:8px;}
+#page-lavarion .q4G tr.q4Tot th.q4Cmp b{font:800 13px var(--num);color:var(--text);min-width:38px;text-align:right;font-variant-numeric:tabular-nums;}
+#page-lavarion .q4G tr.q4Tot th.q4H{padding:9px 12px;text-align:left;}
+#page-lavarion .q4G tr.q4Tot th.q4H b{font:800 13.5px var(--num);color:var(--text);font-variant-numeric:tabular-nums;}
+#page-lavarion .q4G tr.q4Tot th.q4H small{display:inline;font:600 11px var(--num);color:var(--text3);}
+#page-lavarion .q4G tr.q4Tot .q4Hb{height:6px;}
+/* Safari painted the bars of a row scrolling under the frozen heads on top of them — the bars no longer clip */
+#page-lavarion .q4G .q4Hb,#page-lavarion .q4CBar{overflow:visible;}
+#page-lavarion .q4CBar i.s{border-radius:999px 0 0 999px;}
+#page-lavarion .q4CBar i.n{border-radius:0 999px 999px 0;}
+#page-lavarion table.q4G{border-collapse:separate;border-spacing:0;}
+#page-lavarion .q4G thead tr.q4Tot th{top:32px;}
+/* b646: 1% in units under each head; a quiet 0 for the blanks; days grouped by week */
+#page-lavarion .q4G thead tr:first-child th{height:44px;}
+#page-lavarion .q4G thead tr.q4Tot th{top:44px;}
+#page-lavarion .q4G th .q4One{display:block;margin-top:2px;font:600 10.5px var(--num);letter-spacing:0;text-transform:none;color:var(--text3);font-variant-numeric:tabular-nums;}
+#page-lavarion .q4G th.q4Hh .q4One{padding-left:14px;}
+#page-lavarion .q4T2 td.q4Tg small.q4One{display:block;margin-top:2px;font:600 10.5px var(--num);color:var(--text3);font-variant-numeric:tabular-nums;}
+#page-lavarion .q4G td.q4H0{padding:8px 12px;text-align:left;min-width:96px;}
+#page-lavarion .q4G td.q4H0 b{font:600 12.5px var(--num);color:var(--text3);opacity:.4;}
+#page-lavarion .q4G td.q4H0 .q4Hb{background:rgba(255,255,255,.035);}
+#page-lavarion .q4G tr.q4WkD td{padding:12px 12px 6px;background:none;border-bottom:1px solid var(--border2);font-size:11.5px;color:var(--text3);white-space:nowrap;}
+#page-lavarion .q4G tbody tr.q4WkD:first-child td{padding-top:8px;}
+#page-lavarion .q4G .q4WkDl{font:800 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--text2);}
+#page-lavarion .q4G .q4WkDd{margin-left:8px;font-weight:600;color:var(--text2);}
+#page-lavarion .q4G .q4WkDs{margin-left:12px;font:600 11.5px var(--num);}
+#page-lavarion .q4G .q4WkDs b{font:800 12px var(--num);color:var(--text);}
+#page-lavarion .q4G .q4WkDs .q4Nil{display:none;}
+#page-lavarion .q4G tr.q4WkD:hover td{background:none;}
+#page-lavarion .q4G tr.q4Gap td{padding:6px 12px;}
+#page-lavarion .q4G .q4GapT{color:var(--text3);opacity:.85;}
+#page-lavarion .q4ChartK .k small{font-size:11.5px;color:var(--text3);}
+/* b643: This week — each target's share, the biggest job first (Jack, 2 Nov: "we do X a week, done by the Friday") */
+#page-lavarion .q4Week{margin-bottom:14px;}
+#page-lavarion .q4Week>.ph .q4Sum b{color:var(--text);}
+#page-lavarion .q4WeekNote{padding:2px 15px 10px;font-size:12.5px;color:var(--text2);}
+#page-lavarion .q4WeekNote b{color:var(--text);}
+#page-lavarion .q4WeekNote span{color:var(--text3);}
+#page-lavarion .q4WeekGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;padding:0 15px 12px;}
+#page-lavarion .q4WC{position:relative;padding:11px 13px 11px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg3);cursor:pointer;transition:border-color .15s,background .15s;}
+#page-lavarion .q4WC::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--c);}
+#page-lavarion .q4WC:hover,#page-lavarion .q4WC:focus-visible{border-color:var(--border2);background:rgba(255,255,255,.035);outline:none;}
+#page-lavarion .q4WC .h{font:700 12.5px var(--sans);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#page-lavarion .q4WC .v{margin-top:7px;display:flex;align-items:baseline;gap:6px;min-height:24px;}
+#page-lavarion .q4WC .v b{font:800 24px var(--num);color:var(--text);font-variant-numeric:tabular-nums;line-height:1;}
+#page-lavarion .q4WC .v span{font-size:12px;color:var(--text3);font-weight:600;}
+#page-lavarion .q4WC .v.ok{font:800 14px var(--sans);color:#4ade80;align-items:center;}
+#page-lavarion .q4WC .b{display:block;height:5px;margin:8px 0 6px;border-radius:3px;background:rgba(255,255,255,.07);}
+#page-lavarion .q4WC .b i{display:block;height:100%;border-radius:3px;background:var(--c);}
+#page-lavarion .q4WC .s{font-size:11.5px;color:var(--text3);}
+#page-lavarion .q4WC .n{margin-top:4px;font-size:11.5px;color:var(--text3);}
+#page-lavarion .q4WC .n.w{color:#fcd34d;font-weight:700;}
+#page-lavarion .q4WC .n.bad{color:#fca5a5;font-weight:700;}
+#page-lavarion .q4WC.done{opacity:.72;}
+/* b645: how long the stock at Amazon lasts */
+#page-lavarion .q4WC .az{margin-top:3px;font-size:11.5px;color:var(--text3);}
+#page-lavarion .q4WC .az b{color:var(--text2);font-weight:700;font-variant-numeric:tabular-nums;}
+#page-lavarion .q4WC .az.w b{color:#fcd34d;}
+#page-lavarion .q4WC .az.bad{color:#fca5a5;font-weight:700;}
+#page-lavarion .q4WC .az.bad b{color:#fca5a5;}
+#page-lavarion .q4WC.noParts .v b{color:var(--text2);}
+#page-lavarion .q4Week .q4Foot{padding:0 15px 12px;}
+/* b643: This week / Last week in Priority bundles */
+#page-lavarion .q4T2 td.q4TW b{font:800 15px var(--num);color:var(--text);white-space:nowrap;font-variant-numeric:tabular-nums;}
+#page-lavarion .q4T2 td.q4TW b span{font:600 11.5px var(--num);color:var(--text3);}
+#page-lavarion .q4T2 td.q4TW.ok b{color:#4ade80;}
+#page-lavarion .q4T2 td.q4TW .q4TWb{display:block;height:5px;margin:6px 0 4px auto;max-width:150px;border-radius:3px;background:rgba(255,255,255,.07);}
+#page-lavarion .q4T2 td.q4TW .q4TWb i{display:block;height:100%;border-radius:3px;background:#38bdf8;}
+#page-lavarion .q4T2 td.q4TW.ok .q4TWb i{background:#4ade80;}
+#page-lavarion .q4T2 td.q4TW small{display:block;font-size:11px;color:var(--text3);white-space:normal;line-height:1.35;}
+#page-lavarion .q4T2 td.q4TW.late small{color:#fcd34d;}
+#page-lavarion .q4T2 td.q4TW small.w{color:#fcd34d;font-weight:700;}
+#page-lavarion .q4T2 td.q4TW small.bad{color:#fca5a5;font-weight:700;}
+#page-lavarion .q4T2 td.q4LW b{font:800 15px var(--num);color:var(--text2);font-variant-numeric:tabular-nums;}
+#page-lavarion .q4T2 td.q4LW small{display:block;font-size:10.5px;color:var(--text3);margin-top:2px;white-space:nowrap;}
+/* b643: the chart marks where the parts here and on order stop the page */
+#page-lavarion .q4Chart .cl{stroke:#f87171;stroke-width:1.5;stroke-dasharray:3 5;opacity:.7;}
+#page-lavarion .q4Chart .vl.cl{fill:var(--text2);font-size:11px;font-weight:700;}
+#page-lavarion .q4ChartK .k.c i{border-top:2px dashed #f87171;}
+/* b644: parts as information (Jack, 2 Nov: "we buy them when we need them"), the week-by-week strip */
+#page-lavarion .q4T2 td.q4W.bad b{color:var(--text);}
+#page-lavarion .q4T2 td.q4W.bad small{color:var(--text3);font-weight:600;}
+#page-lavarion .q4Chart .cl{stroke:#94a3b8;opacity:.6;}
+#page-lavarion .q4ChartK .k.c i{border-top:2px dashed #94a3b8;}
+#page-lavarion .q4WeekTop{display:flex;gap:18px;align-items:stretch;flex-wrap:wrap;padding:2px 15px 12px;}
+#page-lavarion .q4WeekTrend{flex:0 1 400px;min-width:260px;padding:8px 12px 6px;border:1px solid var(--border);border-radius:10px;background:var(--bg3);}
+#page-lavarion .q4WkT{font:800 10px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
+#page-lavarion .q4WkPage{height:80px;}
+#page-lavarion .q4WkC.out .q4WkB i{background:rgba(148,163,184,.35);}
+#page-lavarion .q4WkC.out b{color:var(--text3);}
+#page-lavarion .q4WeekTop .q4WeekNote{flex:1 1 360px;padding:4px 0 0;display:flex;flex-direction:column;gap:6px;justify-content:center;}

@@ -3263,8 +3263,8 @@ window.PrepChecks=(function(){
       const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),P=R.bundles.filter(r=>r.priority);
       P.forEach(r=>{const c=pg.querySelector(`tr[data-q4r="${r.id}"] td.q4Lft`);
         ok(c&&(c.textContent.trim()===(r.target-r.done>0?String(r.target-r.done).replace(/\B(?=(\d{3})+(?!\d))/g,','):'✓')),r.name+': Left to do = target − sent');});
-      ok([...pg.querySelectorAll('table.q4P thead th')].some(th=>/Done at this pace/.test(th.textContent)),'a Done at this pace column');
-      ok(P.every(r=>/~\d{1,2} [A-Z][a-z]{2}|Done|Not moving/.test((pg.querySelector(`tr[data-q4r="${r.id}"] td.q4By`)||{}).textContent||'')),'every target has a projected finish date');
+      ok([...pg.querySelectorAll('table.q4P thead th')].some(th=>/This week/.test(th.textContent)),'a This week column (b643: was Finish date)');
+      ok(P.every(r=>/ of \d|Target hit/.test((pg.querySelector(`tr[data-q4r="${r.id}"] td.q4TW`)||{}).textContent||'')),'every target shows this week: sent of its share');
       const r=P[0]||R.bundles[0];if(r){
         const row=pg.querySelector(`tr[data-q4r="${r.id}"]`),drop=pg.querySelector(`tr[data-q4d="${r.id}"]`);
         const was0=row.classList.contains('open');row.click();await wait(30);
@@ -3280,10 +3280,10 @@ window.PrepChecks=(function(){
       ok(!/NaN|undefined|Infinity/.test(pg.querySelector('.q4Prog').innerHTML),'no NaN in the chart or tables');
       const wk=pg.querySelector('.q4GW-weeks tbody tr td.q4Cmp b');
       eq((wk||{}).textContent,(R.totals.pct==null?'—':R.totals.pct+'%'),'the newest week ends on the Complete tile');
-      ok([...pg.querySelectorAll('.q4Kpis .kpi .k')].some(k=>/All targets done at this pace/.test(k.textContent)),'an All targets done at this pace tile');
-      {const TR1=LV3.q4Track(R),open=P.map(r=>TR1.line(r)).filter(x=>x.state!=='done'),last=open.filter(x=>x.eta).map(x=>x.eta).sort().pop(),stuck=open.some(x=>!x.eta);
-        const tv=([...pg.querySelectorAll('.q4Kpis .kpi')].find(k=>/All targets done/.test(k.textContent))||{}).querySelector('.v');
-        if(last)ok(tv&&tv.textContent.trim()==='~'+LV3.q4DayShort(last),'the tile is the day the LAST target is done: '+last+(stuck?' (and a line not moving is named)':''));}
+      ok([...pg.querySelectorAll('.q4Kpis .kpi .k')].some(k=>/All done at your weekly average/.test(k.textContent)),'an All done at your weekly average tile (b644)');
+      {const TR1=LV3.q4Track(R),tp=TR1.avg.avg,e=R.totals.toGo===0?null:tp>0?TR1.etaOf(R.totals.toGo,tp/5):null;
+        const tv=([...pg.querySelectorAll('.q4Kpis .kpi')].find(k=>/All done at your weekly average/.test(k.textContent))||{}).querySelector('.v');
+        if(e)ok(tv&&tv.textContent.trim()==='~'+LV3.q4DayY(e),'the tile is the whole page at the weekly average ('+tp+'): '+e);}
     }finally{if(keepBy===undefined)delete D.settings.q4SendBy;else D.settings.q4SendBy=keepBy;
       try{if(keepOpen==null)localStorage.removeItem('lv3.q4.open');else localStorage.setItem('lv3.q4.open',keepOpen);
         if(keepProg==null)localStorage.removeItem('lv3.q4.progress');else localStorage.setItem('lv3.q4.progress',keepProg);}catch(e){}
@@ -3311,7 +3311,7 @@ window.PrepChecks=(function(){
       ok([...box2.querySelectorAll('thead th')].some(th=>/Sold on Amazon/.test(th.textContent)),'a Sold on Amazon column once it comes');
       ok(/123/.test([...box2.querySelectorAll('tbody tr')].find(t=>t.querySelector('td.q4N b').textContent===r0.name).textContent),'…with SellerFuse\'s figure on its line');
       ok(!/NaN|undefined/.test(box2.innerHTML),'no NaN');
-      ok(/a working day/.test((pg.querySelectorAll('.q4Kpis .kpi')[4]||{}).textContent||''),'the tile counts working days');
+      ok(/a week/.test((pg.querySelectorAll('.q4Kpis .kpi')[4]||{}).textContent||''),'the tile counts weeks (b643: was working days)');
       {const all=[...pg.querySelectorAll('.q4 > *')],iRec=all.indexOf(box2),iPri=all.findIndex(e=>e.classList&&e.classList.contains('q4PriPanel'));
         ok(iRec>iPri&&iRec===all.length-1,'the record is the last thing on the page — under the build tables (prep hub first)');}
     }finally{if(keepQ===undefined)delete D.settings.sfQ4;else D.settings.sfQ4=keepQ;
@@ -3338,7 +3338,8 @@ window.PrepChecks=(function(){
       const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc();
       ['days','weeks'].forEach(m=>{const t=pg.querySelector('.q4GW-'+m+' table.q4G');ok(t,m+' table');if(!t)return;
         ok(![...t.querySelectorAll('tbody td.q4H0, tbody td.q4H')].some(td=>/—/.test(td.textContent)),m+': no dashes in the line cells');
-        [...t.querySelectorAll('tbody tr:not(.q4Gap)')].forEach(tr=>{const sent=parseInt(tr.querySelector('td.q4Snt b').textContent.replace(/[^\d]/g,''))||0;
+        ok([...t.querySelectorAll('tbody td.q4H0')].every(td=>td.textContent.trim()==='0'),m+': a line that sent nothing says 0 (b646)');
+        [...t.querySelectorAll('tbody tr:not(.q4Gap):not(.q4WkD)')].forEach(tr=>{const sent=parseInt(tr.querySelector('td.q4Snt b').textContent.replace(/[^\d]/g,''))||0;
           const parts=[...tr.querySelectorAll('td.q4H b')].reduce((a,b)=>a+(parseInt(b.textContent.replace(/[^\d]/g,''))||0),0);
           eq(parts,sent,m+' '+tr.querySelector('td b').textContent+': the line cells add up to Sent');});
         const quiet=(R.progress[m]||[]).filter(r=>!r.units).length,gaps=t.querySelectorAll('tbody tr.q4Gap').length;
@@ -3346,6 +3347,165 @@ window.PrepChecks=(function(){
       ok(!/undefined|NaN/.test(pg.querySelector('.q4Prog').innerHTML),'no NaN');
     }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
+
+  /* 129 · b642: Progress ▾ open by default, a frozen Q4-so-far row, the chart key and hover, finish dates in plain words */
+  S['b642: Progress ▾ open until closed, a frozen Q4-so-far row that adds up, the chart key + hover, plain Finish date wording']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'';let keep=null;try{keep=localStorage.getItem('lv3.q4.progress');}catch(e){}
+    try{
+      localStorage.removeItem('lv3.q4.progress');eq(LV3.q4ProgPref().open,true,'Progress ▾ is open until someone closes it');
+      localStorage.setItem('lv3.q4.progress',JSON.stringify({open:false,mode:'days'}));
+      eq(JSON.stringify(LV3.q4ProgPref()),JSON.stringify({open:true,mode:'days'}),'an old saved "open: false" no longer keeps it shut (the mode is kept)');
+      LV3.q4SetOpen(false,'prog');eq(LV3.q4ProgPref().open,false,'closing it is remembered on this browser');
+      LV3.q4SetOpen('weeks','progMode');eq(LV3.q4ProgPref().open,false,'…and Days / Weeks leaves it closed');
+      LV3.q4SetOpen(true,'prog');eq(LV3.q4ProgPref().open,true,'opening it again is remembered too');
+      localStorage.removeItem('lv3.q4.progress');
+      eq(LV3.q4DayY('2027-08-13','2026-11-02'),'13 Aug 2027','a finish date next year carries the year');
+      eq(LV3.q4DayY('2026-11-25','2026-11-02'),'25 Nov','one this year does not');
+      goPage('lavarion');LV3.go('q4');await wait(250);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),T=R.totals,num=e=>parseInt(((e||{}).textContent||'').replace(/[^\d]/g,''))||0;
+      const box=pg.querySelector('details.q4Prog:not(.q4Rec)');ok(box&&box.open,'it draws open');
+      ['days','weeks'].forEach(m=>{const t=pg.querySelector('.q4GW-'+m+' table.q4G');if(!t)return;
+        const tot=t.querySelector('thead tr.q4Tot');ok(tot,m+': a Q4 so far row under the heads');if(!tot)return;
+        eq(getComputedStyle(tot.querySelector('th')).position,'sticky',m+': it stays put as the table scrolls');
+        eq(num(tot.querySelector('th.q4Snt b')),T.done,m+': its Sent is everything sent since the start ('+T.done+')');
+        const cells=[...tot.querySelectorAll('th.q4H b')];eq(cells.reduce((a,b)=>a+num(b),0),T.done,m+': its lines add up to it');
+        R.progress.pri.forEach((p,i)=>{const r=R.bundles.find(x=>x.id===p.id);eq(num(cells[i]),r.done,m+': '+p.name+' = its Sent in Priority bundles');});
+        eq(t.querySelectorAll('tbody .q4Hb').length?getComputedStyle(t.querySelector('tbody .q4Hb')).overflow:'visible','visible',m+': the bars do not clip (Safari painted them over the frozen heads)');});
+      const ch=box.querySelector('.q4Chart');ok(ch&&ch.querySelectorAll('.q4ChartK .k').length>=2,'the chart figures sit in a key above the plot');
+      ok(!ch.querySelector('svg text.vl.n')&&![...ch.querySelectorAll('svg text')].some(t=>/working day/.test(t.textContent)),'nothing written across the plot');
+      const now=[...ch.querySelectorAll('svg text.vl')].find(t=>/now$/.test(t.textContent));
+      if(now&&now.getBBox().width){const a=now.getBBox();
+        ok(![...ch.querySelectorAll('svg text.vl.sm')].some(t=>{const b=t.getBBox();return b.x<a.x+a.width&&a.x<b.x+b.width&&b.y<a.y+a.height&&a.y<b.y+b.height;}),'"now" sits on no week label');}
+      const M=JSON.parse(ch.getAttribute('data-q4c')),hit=ch.querySelector('svg rect.hit'),hr=hit.getBoundingClientRect(),tip=ch.querySelector('.q4Tip');
+      const at=d=>{const i=M.s.findIndex(s=>s[0]===d);hit.dispatchEvent(new MouseEvent('mousemove',{bubbles:true,clientX:hr.left+hr.width*i/M.span+0.2,clientY:hr.top+hr.height/2}));};
+      if(hr.width){at(M.today);ok(!tip.hidden&&tip.textContent.includes('today')&&tip.textContent.includes(Math.floor(100*T.done/T.max)+'%'),'hover today: '+tip.textContent);
+        if(M.by>M.today&&T.toGo>0){at(M.by);ok(/Needed by then 100%/.test(tip.textContent),'hover the last send day: needed 100% — '+tip.textContent);}
+        hit.dispatchEvent(new MouseEvent('mouseleave'));ok(tip.hidden,'the figures go when the pointer leaves');}
+      const cells=[...pg.querySelectorAll('table.q4P td.q4TW, table.q4P td.q4W')];ok(cells.length>0,'This week and Parts cover cells');
+      ok(!cells.some(td=>/% cap|parts short|\/day|short \d/.test(td.textContent)),'no "+5% cap", "parts short", "/day" or "short 602" left');
+    }finally{try{if(keep==null)localStorage.removeItem('lv3.q4.progress');else localStorage.setItem('lv3.q4.progress',keep);}catch(e){}
+      try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 130 · b643: weeks, not days — each target's share this week, last week, the team's pace, the This week panel */
+  S['b643: Q4 in weeks — this week\'s share of what is left, last week, the team\'s pace, the This week panel, the parts limit']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),was=(document.querySelector('.page.active')||{}).id||'',keepBy=D.settings.q4SendBy;
+    try{
+      delete D.settings.q4SendBy;
+      /* made-up sends on Wed 4 Nov: this week Mon 2 – Sun 8 Nov; 29 working days 2 Nov – 10 Dec, 5 of them this week */
+      const R0={totals:{max:1000,done:540},sends:[{id:'a',date:'2026-10-20',units:40},{id:'a',date:'2026-10-27',units:300},{id:'a',date:'2026-11-03',units:200}]};
+      const tr=LV3.q4Track(R0,'2026-11-04');
+      eq(JSON.stringify([tr.wkStart,tr.wkEnd,tr.wkFri,tr.wdFromMon,tr.wdThisWk]),JSON.stringify(['2026-11-02','2026-11-08','2026-11-06',29,5]),'this week is Mon 2 – Sun 8 Nov: 29 working days to 10 Dec, 5 of them this week');
+      const w=tr.week({id:'a',target:1000,done:540});
+      eq(JSON.stringify([w.sent,w.before,w.leftMon,w.need,w.toGo,w.last,w.prev]),JSON.stringify([200,340,660,114,0,300,40]),'660 left on Monday × 5 ÷ 29 = 114 this week — 200 went, so done; 300 last week, 40 the week before');
+      eq(w.perWk,114,'a full week needs the same');
+      eq(LV3.q4Track(R0,'2026-11-09').week({id:'a',target:1000,done:540}).need,96,'next Monday: 460 left over 24 working days = 96 — the batch lowered next week\'s share');
+      eq(tr.week(null).last,300,'the whole page: last week 300');
+      goPage('lavarion');LV3.go('q4');await wait(250);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),T=R.totals,TR=LV3.q4Track(R),P=R.bundles.filter(r=>r.priority);
+      const box=pg.querySelector('section.q4Week');ok(box,'a This week panel at the top');
+      if(box&&P.length){const cards=[...box.querySelectorAll('.q4WC')];eq(cards.length,P.length,'a card per target');
+        const open=cards.filter(c=>!c.classList.contains('done')&&!c.classList.contains('noParts')).map(c=>parseInt(((c.querySelector('.v b')||{}).textContent||'').replace(/[^\d]/g,''))||0);
+        ok(open.every((v,i,a)=>i===0||a[i-1]>=v),'biggest job first: '+open.join(', '));
+        const order=cards.map(c=>c.classList.contains('done')?2:c.classList.contains('noParts')?1:0);ok(order.every((v,i,a)=>i===0||a[i-1]<=v),'lines with no parts, then done ones, at the end');}
+      P.forEach(r=>{const w=TR.week(r),c=pg.querySelector(`tr[data-q4r="${r.id}"] td.q4TW b`);
+        if(r.target>r.done)ok(c&&c.textContent.replace(/\s+/g,' ').trim()===`${w.sent} of ${w.need}`.replace(/\B(?=(\d{3})+(?!\d))/g,','),r.name+': this week '+w.sent+' of '+w.need);});
+      ok(!/a working day|\/day| a day\b/.test(pg.querySelector('table.q4P').textContent),'no per-day figures left in Priority bundles');
+      ok([...pg.querySelectorAll('.q4Kpis .kpi .k')].some(k=>/weekly average/.test(k.textContent)),'the finish tile runs on the weekly average (b644)');
+      const ch=pg.querySelector('.q4Prog .q4Chart');ok(ch&&/weekly average/.test(ch.querySelector('.q4ChartK').textContent),'the chart key says the weekly average (b644)');
+      const ceil=100*R.bundles.concat(R.singles).reduce((t,r)=>t+Math.min(r.max,r.done+r.left),0)/T.max;
+      if(ceil<100&&ch)ok(ch.querySelector('svg line.cl')&&ch.querySelector('.q4ChartK').textContent.includes(Math.floor(ceil)+'%'),'the chart marks where the parts stop: '+Math.floor(ceil)+'%');
+    }finally{if(keepBy===undefined)delete D.settings.q4SendBy;else D.settings.q4SendBy=keepBy;
+      try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 131 · b644: the weekly average — recent weeks count most, the slow start and a one-off quiet week left out; parts are information */
+  S['b644: Q4 weekly average — recent weeks count most, slow start and a one-off quiet week left out; parts shown as information']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      /* made-up weeks: a part week (1–4 Oct) 264, 5 Oct 0, 12 Oct 199, 19 Oct 619, 26 Oct 942 */
+      const base=[{id:'a',date:'2026-10-02',units:264},{id:'a',date:'2026-10-13',units:199},{id:'a',date:'2026-10-20',units:619},{id:'a',date:'2026-10-27',units:942}];
+      const mk=extra=>({from:'2026-10-01',totals:{max:9000,done:0},sends:base.concat(extra||[])});
+      const a1=LV3.q4Track(mk(),'2026-11-02').avg;
+      eq(JSON.stringify([a1.avg,a1.lead.map(w=>w.start),a1.dropped]),JSON.stringify([809,['2026-10-05','2026-10-12'],null]),'2 Nov: (942 + 619 × 0.7) ÷ 1.7 = 809 — the slow start (5 and 12 Oct) and the part week left out');
+      const a2=LV3.q4Track(mk(),'2026-11-09').avg;
+      eq(JSON.stringify([a2.avg,(a2.dropped||{}).start]),JSON.stringify([809,'2026-11-02']),'a week of nothing after them is a one-off — left out, still 809');
+      eq(LV3.q4Track(mk(),'2026-11-16').avg.avg,368,'two weeks of nothing running is a real slowdown — it counts (368)');
+      eq(LV3.q4Track(mk([{id:'a',date:'2026-11-04',units:700}]),'2026-11-09').avg.avg,759,'a 700 week after: (700 + 942 × 0.7 + 619 × 0.49) ÷ 2.19 = 759');
+      goPage('lavarion');LV3.go('q4');await wait(250);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),TR=LV3.q4Track(R);
+      const box=pg.querySelector('section.q4Week');ok(box,'the This week panel');if(!box)return;
+      eq(box.querySelectorAll('.q4WkPage .q4WkC').length,(R.progress.weeks||[]).length,'a bar for every week since the start');
+      if(TR.avg.avg>0)ok(box.querySelector('.q4WeekNote').textContent.includes('~'+String(TR.avg.avg).replace(/\B(?=(\d{3})+(?!\d))/g,',')),'the panel gives the weekly average (~'+TR.avg.avg+')');
+      ok(!box.querySelector('.q4WC .n.bad, .q4WC .n.w'),'no red or amber parts notes on the cards');
+      ok(!pg.querySelector('table.q4P td.q4TW small.bad, table.q4P td.q4TW small.w'),'none in This week either');
+      ok(![...pg.querySelectorAll('.q4Kpis .kpi .v')].some(v=>/fca5a5|f87171/.test(v.getAttribute('style')||'')),'no tile value in red');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 132 · b645: how long the stock at Amazon lasts, on each This week card — the order stays biggest job first */
+  S['b645: Q4 This week cards — how long the stock at Amazon lasts; order stays biggest job first']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      goPage('lavarion');LV3.go('q4');await wait(250);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),TR=LV3.q4Track(R),AZ=LV3.__plData().azBy||{};
+      const box=pg.querySelector('section.q4Week');ok(box,'the This week panel');if(!box)return;
+      const cards=[...box.querySelectorAll('.q4WC')],idOf=c=>(c.getAttribute('onclick').match(/'([^']+)'/)||[])[1];
+      cards.forEach(c=>{const id=idOf(c),z=AZ[id],az=c.querySelector('.az'),nm=c.querySelector('.h').textContent;
+        if(!z||z.sell==null){ok(!az,nm+': no Amazon line without an Amazon row');return;}
+        const u=LV3.sendUrgency(z);
+        if(!u){ok(!az||/At Amazon: \d/.test(az.textContent),nm+': no sales figure — the count only');return;}
+        ok(az,nm+': an At Amazon line');if(!az)return;
+        if((+z.sell||0)<=0){ok(az.classList.contains('bad')&&/^Out at Amazon/.test(az.textContent),nm+': out at Amazon now — red');return;}
+        const fe=u.firstEmpty!=null?Math.round(u.firstEmpty):null,days=Math.round(u.end),shown=fe!=null&&fe<days?fe:days;
+        ok(az.textContent.includes('~'+shown+' day'),nm+': ~'+shown+' days ('+az.textContent+')');
+        eq(az.classList.contains('bad'),!!u.losing,nm+': red only when a send today lands after it runs out');
+        ok(az.title.includes('at Amazon'),nm+': the hover gives the sum');});
+      /* the order is the b643 one — the biggest job this week first, Amazon stock never moves a card */
+      const toGo=cards.filter(c=>!c.classList.contains('done')&&!c.classList.contains('noParts')).map(c=>TR.week(R.bundles.concat(R.singles).find(r=>r.id===idOf(c))).toGo);
+      ok(toGo.every((v,i)=>i===0||v<=toGo[i-1]),'biggest job this week first ('+toGo.join(', ')+')');
+      /* made-up rows: 56 at Amazon + 27 on the way at 4 a day lasts 20 days — amber (under 14 + 14) */
+      const fake={p:{id:'x'},sell:56,inb:27,ads:4,tranches:[{q:27,d:9}],landIso:null};const fu=LV3.sendUrgency(fake);
+      ok(fu&&Math.round(fu.end)===21&&fu.buffer&&!fu.losing,'56 + 27 at 4 a day: ~21 days, inside the cushion, not yet losing');
+      ok(!box.querySelector('.q4WC .n.bad, .q4WC .n.w'),'parts notes stay neutral');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 133 · b646: 1% of each target in units; the Days table grouped by week, its blanks a quiet 0 */
+  S['b646: Q4 — 1% of each target in units, Days grouped by week, a quiet 0 for the blanks']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      eq(LV3.q4One(1500),'1% = 15','1,500 → 1% = 15');eq(LV3.q4One(400),'1% = 4','400 → 1% = 4');
+      eq(LV3.q4One(7145),'1% ≈ 71','7,145 → 1% ≈ 71');eq(LV3.q4One(450),'1% ≈ 4.5','450 → 1% ≈ 4.5');eq(LV3.q4One(0),'','no target, no 1%');
+      goPage('lavarion');LV3.go('q4');await wait(250);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),PG=R.progress,num=e=>parseInt(((e||{}).textContent||'').replace(/[^\d]/g,''))||0;
+      const t=pg.querySelector('.q4GW-days table.q4G');ok(t,'the Days table');if(!t)return;
+      const heads=[...t.querySelectorAll('thead tr:first-child th.q4Hh')];
+      PG.pri.forEach((p,i)=>{const h=heads[i];ok(h&&h.querySelector('.q4One').textContent===LV3.q4One(p.target),p.name+': '+LV3.q4One(p.target)+' under its head');});
+      eq(t.querySelector('thead tr:first-child th.n .q4One').textContent,LV3.q4One(R.totals.max),'under Sent, the whole page\'s 1%');
+      const pri=[...pg.querySelectorAll('table.q4P tbody tr.q4Row')];
+      pri.forEach(tr=>{const tg=num(tr.querySelector('td.q4Tg b'));eq(tr.querySelector('td.q4Tg .q4One').textContent,LV3.q4One(tg),'Priority bundles: '+LV3.q4One(tg)+' under the '+tg+' target');});
+      /* weeks: one divider per week that has a day on the page, its total = the Weeks table's */
+      const divs=[...t.querySelectorAll('tbody tr.q4WkD')];
+      const wks=new Set(PG.days.map(d=>{const x=new Date(d.start+'T00:00:00Z');x.setUTCDate(x.getUTCDate()-((x.getUTCDay()+6)%7));return x.toISOString().slice(0,10);}));
+      eq(divs.length,wks.size,'a divider for each week ('+wks.size+')');
+      divs.forEach(dv=>{const w=PG.weeks.find(x=>dv.textContent.includes(x.units.toLocaleString('en-GB')+' sent')&&dv.querySelector('.q4WkDd').textContent.startsWith(q4dm(x.from||x.start)));ok(w,'divider "'+dv.textContent.trim().slice(0,40)+'" matches a week');});
+      /* a quiet run never crosses a Monday */
+      [...t.querySelectorAll('tbody tr')].forEach((tr,i,all)=>{if(!tr.classList.contains('q4WkD'))return;const prev=all[i-1];ok(!prev||!prev.classList.contains('q4WkD'),'no empty week block');});
+      const sumDays=[...t.querySelectorAll('tbody tr:not(.q4Gap):not(.q4WkD) td.q4Snt b')].reduce((a,b)=>a+num(b),0);
+      eq(sumDays,R.totals.done,'the days still add up to everything sent');
+      ok(!/undefined|NaN/.test(t.innerHTML),'no NaN');
+      const vt=[...pg.querySelectorAll('.q4GW table.q4G')].find(x=>x.getBoundingClientRect().height>0);   /* the one showing, Days or Weeks */
+      if(vt){const hd=vt.querySelector('thead tr:first-child th'),tot=vt.querySelector('thead tr.q4Tot th');
+        ok(Math.abs(parseFloat(getComputedStyle(tot).top)-hd.getBoundingClientRect().height)<=1.5,'the frozen Q4 so far row sits right under the heads (no gap)');}
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+  const q4dm=iso=>{const d=new Date(iso+'T00:00:00Z');return d.getUTCDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()];};
 
   async function run(only){
     R.length=0;const t0=Date.now();
