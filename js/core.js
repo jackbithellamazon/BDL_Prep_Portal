@@ -654,7 +654,7 @@ function goPage(n,btn){
     try{paintTimings();}catch(e){}
     try{acPaintCard();}catch(e){}
     paintWebhookInputs();
-    ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit','expectedMonthlyUnits'].forEach(k=>{
+    ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit','plubCostPerUnit','expectedMonthlyUnits'].forEach(k=>{
       const el=document.getElementById('pf-'+k);
       if(el)el.value=prepFees[k]||0;
     });

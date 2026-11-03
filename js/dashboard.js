@@ -826,6 +826,7 @@ function renderDashboard(){
             const rateStr=_peP(prepRate.rate);
             /* where every unit on the This Month card went — so 6,541 and the units priced here can be read side by side */
             const parts=[fmt(prepCost.tieredUnits)+' standard',fmt(prepCost.osUnits)+' oversize'];
+            if(prepCost.lavUnits)parts.push(fmt(prepCost.lavUnits)+' PLUB (flat rate)');
             if(prepCost.bundleUnits)parts.push(fmt(prepCost.bundleUnits)+' bundled');
             if(prepCost.retUnits)parts.push(fmt(prepCost.retUnits)+' returns (no prep charge)');
             const counted=prepCost.totalUnits+prepCost.retUnits;
@@ -838,9 +839,10 @@ function renderDashboard(){
           })()}
 
           <!-- Extras -->
-          ${(prepCost.osCost>0||prepCost.bundleCost>0||prepCost.boxCostTotal>0)?`
+          ${(prepCost.lavCost>0||prepCost.osCost>0||prepCost.bundleCost>0||prepCost.boxCostTotal>0)?`
           <div style="font-size:10px;font-weight:800;color:#b6c2d4;text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px;">Extras (ex. VAT)</div>`:''}
           ${[
+            ...(prepCost.lavCost>0?[[fmt(prepCost.lavUnits)+' PLUB bundles × '+_peP(_pePlub(prepFees))+'/unit (flat)',fmtGBP2(prepCost.lavCost),'#cc99ff']]:[]),
             ...(prepCost.osCost>0?[[fmt(prepCost.osUnits)+' oversize units × '+fmtGBP2(prepFees.osCostPerUnit)+'/unit',fmtGBP2(prepCost.osCost),'#fb923c']]:[]),
             ...(prepCost.bundleCost>0?[[fmt(prepCost.bundleUnits)+' bundle units × '+fmtGBP2(prepFees.bundleCostPerUnit)+'/unit',fmtGBP2(prepCost.bundleCost),'#34d399']]:[]),
             [fmt(prepCost.stdBoxes)+' standard boxes × '+fmtGBP2(prepFees.boxCost)+'/box',fmtGBP2(prepCost.stdBoxCost),'#60a5fa'],

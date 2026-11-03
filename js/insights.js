@@ -349,7 +349,7 @@ function renderInsights(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>
           <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Cost breakdown</div>
-          ${[...pc.months.filter(m=>m.tieredUnits>0).map(m=>[(pc.months.length>1?_peMon(m.ym)+': ':'')+fmt(m.tieredUnits)+' standard × '+_peP(m.rate)+' (band '+m.band+(m.basis==='estimate'?', estimate':'')+')',fmtGBP2(m.baseCost),'#fbbf24']),...(pc.osCost>0?[[pc.osUnits+' OS × £'+prepFees.osCostPerUnit,fmtGBP2(pc.osCost),'#fb923c']]:[]),...(pc.bundleCost>0?[[pc.bundleUnits+' bundle × £'+prepFees.bundleCostPerUnit,fmtGBP2(pc.bundleCost),'#34d399']]:[]),[pc.stdBoxes+' std boxes × £'+prepFees.boxCost,fmtGBP2(pc.stdBoxCost),'#60a5fa'],...(pc.dgBoxes>0?[[pc.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox,fmtGBP2(pc.dgExtra),'#f87171']]:[]),['VAT 20%','£'+(pc.withVat-pc.subtotal).toFixed(2),'#94a3b8'],['Total inc. VAT',fmtGBP2(pc.withVat),'#fbbf24']].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${l}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
+          ${[...pc.months.filter(m=>m.tieredUnits>0).map(m=>[(pc.months.length>1?_peMon(m.ym)+': ':'')+fmt(m.tieredUnits)+' standard × '+_peP(m.rate)+' (band '+m.band+(m.basis==='estimate'?', estimate':'')+')',fmtGBP2(m.baseCost),'#fbbf24']),...(pc.lavCost>0?[[fmt(pc.lavUnits)+' PLUB × '+_peP(_pePlub(prepFees))+' (flat)',fmtGBP2(pc.lavCost),'#cc99ff']]:[]),...(pc.osCost>0?[[pc.osUnits+' OS × £'+prepFees.osCostPerUnit,fmtGBP2(pc.osCost),'#fb923c']]:[]),...(pc.bundleCost>0?[[pc.bundleUnits+' bundle × £'+prepFees.bundleCostPerUnit,fmtGBP2(pc.bundleCost),'#34d399']]:[]),[pc.stdBoxes+' std boxes × £'+prepFees.boxCost,fmtGBP2(pc.stdBoxCost),'#60a5fa'],...(pc.dgBoxes>0?[[pc.dgBoxes+' DG boxes × £'+prepFees.dgExtraPerBox,fmtGBP2(pc.dgExtra),'#f87171']]:[]),['VAT 20%','£'+(pc.withVat-pc.subtotal).toFixed(2),'#94a3b8'],['Total inc. VAT',fmtGBP2(pc.withVat),'#fbbf24']].map(([l,v,col])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-size:10px;color:#94a3b8;">${l}</span><span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${col};">${v}</span></div>`).join('')}
         </div>
         <div>
           <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Cost by prep day (recent)</div>
@@ -553,11 +553,12 @@ function openPrepHistory(){
     <div class="pcmHdr">
       <div>
         <div class="pcmTtl">Prep cost — month by month</div>
-        <div class="pcmSub">What the warehouse bill should come to, worked out from what was sent. Click a month for the full breakdown.</div>
+        <div class="pcmSub">What the warehouse bill should come to, worked out from what was sent — inc. VAT. Click a month, or its bar, to open the full bill.</div>
       </div>
       <button class="pcmX" onclick="document.getElementById('prepHistModal').style.display='none'" title="Close">&#10005;</button></div>
     <div id="prepHistBody"></div></div>`;
   el.style.display='flex';
+  _pcmOpen=undefined;                                   /* b648: each time it opens, the newest month is open */
   try{renderInsMonthly(document.getElementById('prepHistBody'));}
   catch(e){document.getElementById('prepHistBody').innerHTML='<div class="pmeta">Could not build the history: '+String(e).slice(0,120)+'</div>';}
 }
@@ -565,17 +566,55 @@ function openPrepHistory(){
    boxes, cost, VAT etc." One row per month; open it and the whole bill is
    there: every unit type at its rate, the boxes, ex-VAT, VAT, inc-VAT, what
    went out, and the shipments that made it up. */
-let _pcmOpen=null;
-function pcmToggle(key){_pcmOpen=(_pcmOpen===key)?null:key;const b=document.getElementById('prepHistBody');if(b)renderInsMonthly(b);}
+let _pcmOpen;                 /* undefined: the newest month opens · null: every month closed (b648 — closing one used to open November) */
+let _pcmBody=null;            /* where the months are drawn — this popup, or the Insights Month by Month tab (b648) */
+const _pcmTipD={};            /* each bar's hover card */
+const _pcmScroller=el=>{for(let p=el&&el.parentElement;p;p=p.parentElement){const o=getComputedStyle(p).overflowY;if((o==='auto'||o==='scroll')&&p.scrollHeight>p.clientHeight)return p;}return null;};
+const _pcmRowEl=key=>_pcmBody&&_pcmBody.querySelector(`.pcmRow[data-k="${key}"]`);
+/* b648 (Jack, 3 Nov: "hard to know what is pressable and what does what"): opening or closing a month keeps the row you
+   clicked where it was on the screen — the month above folding away used to throw it off the top */
+function pcmToggle(key){
+  const r0=_pcmRowEl(key),y0=r0?r0.getBoundingClientRect().top:null;
+  _pcmOpen=(_pcmOpen===key)?null:key;
+  if(!_pcmBody)return;renderInsMonthly(_pcmBody);
+  const r1=_pcmRowEl(key),sc=r1&&_pcmScroller(r1);
+  if(r1&&sc&&y0!=null)sc.scrollTop+=r1.getBoundingClientRect().top-y0;
+}
+/* a bar opens its month and brings it to the top */
+function pcmPick(key){
+  pcmTipHide();_pcmOpen=key;if(!_pcmBody)return;renderInsMonthly(_pcmBody);
+  const r=_pcmRowEl(key),sc=r&&_pcmScroller(r);
+  if(r&&sc)sc.scrollTop+=r.getBoundingClientRect().top-sc.getBoundingClientRect().top-12;
+}
+/* a shipment opens on the Shipments page — the popup closes first (it used to open behind it and look dead) */
+function pcmShip(sid){
+  const ov=_pcmBody&&_pcmBody.closest('[id$="Modal"]');
+  if(ov){if(ov.id==='prepHistModal')ov.style.display='none';else{try{cm(ov.id);}catch(e){ov.style.display='none';}}}
+  try{openShipment(sid);}catch(e){}
+}
+function pcmTip(el,key){
+  const plot=el.closest('.pcmPlot'),t=plot&&plot.querySelector('.pcmTip');if(!t||!_pcmTipD[key])return;
+  t.innerHTML=_pcmTipD[key];t.style.display='block';
+  const P=plot.getBoundingClientRect(),B=el.getBoundingClientRect(),w=t.offsetWidth;
+  let x=B.right-P.left+8;if(x+w>P.width)x=B.left-P.left-w-8;
+  t.style.left=Math.max(0,x)+'px';t.style.top='0px';
+}
+function pcmTipHide(){document.querySelectorAll('.pcmTip').forEach(t=>t.style.display='none');}
+/* b648 (Jack: "show it pro-rated"): the running month carried on at the same rate to the end of the month */
+function _pcmPace(key){
+  const t=todayISO();if(t.slice(0,7)!==key)return null;
+  const day=Math.max(1,+t.slice(8,10)),dim=new Date(+key.slice(0,4),+key.slice(5,7),0).getDate();
+  return{day,dim,k:dim/day};
+}
 function _pcmShipments(md,key){
   /* the shipments inside one month, from the prep cost engine's lines — each line under
-     its own shipment, in the month the shipment went (b628) */
+     its own shipment, in the month the shipment went (b628); b648: and each one's prep */
   const S={};
   const put=(sid,date,type)=>{if(!S[sid])S[sid]={id:sid,date:date||'',type:type||'Standard',units:0,lav:0,boxes:(typeof shipBoxes!=='undefined'&&shipBoxes[sid])||0,skus:new Set()};return S[sid];};
   md.PE.linesMonth(key).forEach(l=>{if(!l.shipId||l.kind==='return')return;
     const x=put(l.shipId,l.day,_shipTypeCache[l.shipId]||l.type);
     if(l.kind==='lav')x.lav+=l.units||0;else{x.units+=l.units||0;if(l.sku)x.skus.add(l.sku);}});
-  return Object.values(S).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  return Object.values(S).map(x=>Object.assign(x,{prep:md.PE.priceShip(x.id).withVat||0})).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
 /* Jack, 8 Sep: "information on the popup is great, the UI/UX design is a bit
    meh… looks cartoony." Same numbers, house style: colour on the top border and
@@ -588,30 +627,52 @@ function _pcmKpi(label,value,sub,col){
     ${sub?`<div class="pcmKpiS">${sub}</div>`:''}
   </div>`;
 }
-function _pcmChart(months,avg){
+/* b648 (Jack, 3 Nov — "bars split by what made the bill": yes): each bar is the bill inc. VAT, stacked — stock at its
+   band rate, PLUB, oversize, OA bundles, boxes — with a 2px gap between the pieces; a dashed line at the finished months'
+   average; the running month's pace as a dashed outline. Hover for the split, click to open the month. The five colours
+   pass the dataviz validator on the dark surface (lightness band, colour-blind separation, contrast). */
+const PCM_SEGS=[['baseCost','Stock at its band rate','#c2840c','Stock'],['lavCost','PLUB','#9a6cf0','PLUB'],['osCost','Oversize','#e0661f','Oversize'],
+  ['bundleCost','OA bundles','#159a70','Bundles'],['boxCostTotal','Boxes','#3b7be0','Boxes']];
+function _pcmChart(months,avg,nFin){
   if(months.length<2)return '';
-  const data=months.slice().reverse();                 // oldest → newest, left to right
-  const max=Math.max(...data.map(d=>d.prep),1);
-  const now=new Date();const curKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const data=months.slice().reverse(),vr=prepFees.vatRate||1.2,TRACK=160;     // oldest → newest, left to right
+  const segOf=d=>PCM_SEGS.map(([k,l,c,sh])=>({k,l,c,sh,v:(+d.m[k]||0)*vr}));
+  const used=PCM_SEGS.filter(([k])=>data.some(d=>(+d.m[k]||0)>0));
+  const max=Math.max(...data.map(d=>Math.max(d.prep,d.pace?d.pace.v:0)),avg||0,1);
   const gbp0=v=>'£'+Math.round(v||0).toLocaleString('en-GB');
+  const bars=data.map(d=>{
+    const all=segOf(d),segs=all.filter(s=>s.v>0),h=d.prep/max*100,ph=d.pace?d.pace.v/max*100:0;
+    _pcmTipD[d.key]=`<div class="h">${esc(d.label)}${d.pace?' — so far':''}</div>
+      ${segs.map(s=>`<div class="r"><i style="background:${s.c}"></i>${s.l}<em>${fmtGBP2(s.v)}</em></div>`).join('')}
+      <div class="r t">Total inc. VAT<em>${fmtGBP2(d.prep)}</em></div>
+      ${d.pace?`<div class="r p"><i class="g"></i>On pace for ${esc(d.label.split(' ')[0])}<em>~${gbp0(d.pace.v)}</em></div><div class="n">pro-rated: so far × ${d.pace.dim} ÷ ${d.pace.day} day${d.pace.day===1?'':'s'}</div>`:''}
+      <div class="n">${fmt(d.units)} units · ${fmt(d.ships)} shipment${d.ships===1?'':'s'} · click to open</div>`;
+    return `<div class="pcmB${d.pace?' part':''}${d.key===_pcmOpen?' sel':''}" data-k="${d.key}" role="button" onclick="pcmPick('${d.key}')" onmouseenter="pcmTip(this,'${d.key}')" onmouseleave="pcmTipHide()">
+      <div class="pcmBt" style="height:${TRACK}px">
+        ${d.pace&&ph>h?`<span class="pcmGhost" style="height:${ph.toFixed(2)}%"></span>`:''}
+        <span class="pcmBv" style="bottom:calc(${Math.max(h,ph).toFixed(2)}% + 5px)">${gbp0(d.prep)}${d.pace?`<small>~${gbp0(d.pace.v)} on pace</small>`:''}</span>
+        <span class="pcmStk" style="height:${Math.max(1.5,h).toFixed(2)}%">${segs.map(s=>{
+          /* Jack, 3 Nov: "can it say in the colours what it is?" — the name in the block, and its £ when there is room */
+          const px=(h/100*TRACK-2*(segs.length-1))*s.v/(d.prep||1);
+          return `<i data-v="${s.v.toFixed(2)}" style="flex:${s.v.toFixed(4)} 1 0;background:${s.c}">${px>=27?`<b>${s.sh}</b><em>${gbp0(s.v)}</em>`:px>=13?`<b>${s.sh}</b>`:''}</i>`;}).join('')}</span>
+      </div>
+      <span class="pcmBl">${esc(d.shortLabel)}${d.pace?' <i>so far</i>':''}</span>
+    </div>`;}).join('');
   return `<div class="pcmChart">
     <div class="pcmChartH"><span>Prep cost inc. VAT — month by month</span>
-      <span class="pcmAvg">average ${gbp0(avg)} a month</span></div>
-    <div class="pcmPlot">
-      ${data.map(d=>{
-        const h=Math.max(3,Math.round((d.prep/max)*100));
-        const part=d.key===curKey;
-        return `<div class="pcmB${part?' part':''}" title="${esc(d.label)} — ${gbp0(d.prep)} inc. VAT · ${fmt(d.units)} units · ${fmt(d.ships)} shipments">
-          <span class="pcmBv">${gbp0(d.prep)}</span>
-          <span class="pcmBk" style="height:${h}%;"></span>
-          <span class="pcmBl">${esc(d.shortLabel)}${part?' <i>so far</i>':''}</span>
-        </div>`;}).join('')}
+      <span class="pcmLeg">${used.map(([k,l,c])=>`<span><i style="background:${c}"></i>${l}</span>`).join('')}${data.some(d=>d.pace)?'<span><i class="g"></i>On pace (pro-rated)</span>':''}${avg>0?`<span><i class="a"></i>Average ${gbp0(avg)}${nFin?` · the ${nFin} finished month${nFin===1?'':'s'}`:''}</span>`:''}</span></div>
+    <div class="pcmPlot" style="height:${TRACK+58}px">
+      ${avg>0?`<div class="pcmAvgL" style="bottom:${(22+avg/max*TRACK).toFixed(1)}px" title="Average ${gbp0(avg)} a month"></div>`:''}
+      ${bars}
+      <div class="pcmTip"></div>
     </div>
+    <div class="pcmChartF">Hover a bar for what made it up · click a bar to open that month below</div>
   </div>`;
 }
 function renderInsMonthly(body){
   /* b628: months by the day units went (the prep cost engine), each priced at its own band —
      it filed a row's every unit under its LAST send date, which put August in the 45p band */
+  _pcmBody=body;
   const PE=prepEngine();
   const entries=PE.months().filter(k=>PE.linesMonth(k).some(l=>l.kind!=='return')).sort((a,b)=>b.localeCompare(a)) // newest first
     .map(k=>[k,{PE,label:new Date(+k.slice(0,4),+k.slice(5,7)-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'})}]);
@@ -619,17 +680,22 @@ function renderInsMonthly(body){
   const months=entries.map(([key,md])=>{
     const m=PE.priceMonth(key);
     const[y,mm]=key.split('-');
-    return{key,md,m,label:md.label,
+    const o={key,md,m,label:md.label,
       shortLabel:new Date(+y,+mm-1,1).toLocaleString('en-GB',{month:'short'})+" '"+y.slice(2),
       units:m.totalUnits||0,boxes:m.totalBoxes||0,ships:m.ships||0,prep:m.withVat||0,ex:m.subtotal||0,cog:m.cog||0,
       ppu:(m.totalUnits>0)?(m.withVat/m.totalUnits):0};
+    const p=_pcmPace(key);if(p)o.pace={day:p.day,dim:p.dim,v:o.prep*p.k,units:o.units*p.k,boxes:o.boxes*p.k};
+    return o;
   });
-  if(_pcmOpen===null&&months.length)_pcmOpen=months[0].key;
+  if(_pcmOpen===undefined&&months.length)_pcmOpen=months[0].key;
+  const vr=prepFees.vatRate||1.2,gbp0=v=>'£'+Math.round(v||0).toLocaleString('en-GB');
   const totPrep=months.reduce((a,m)=>a+m.prep,0),totUnits=months.reduce((a,m)=>a+m.units,0);
   const totShips=months.reduce((a,m)=>a+m.ships,0),totBoxes=months.reduce((a,m)=>a+m.boxes,0);
-  const avgPrep=months.length?totPrep/months.length:0,avgPerUnit=totUnits>0?totPrep/totUnits:0;
-  const maxPrep=Math.max(...months.map(m=>m.prep),1);
-  const vatPct=Math.round(((prepFees.vatRate||1.2)-1)*100);
+  /* b648: the average is of the FINISHED months — three days of November pulled it down */
+  const fin=months.filter(m=>!m.pace),run=months.find(m=>m.pace);
+  const avgPrep=fin.length?fin.reduce((a,m)=>a+m.prep,0)/fin.length:(months.length?totPrep/months.length:0);
+  const avgPerUnit=totUnits>0?totPrep/totUnits:0;
+  const vatPct=Math.round((vr-1)*100);
   const money=v=>fmtGBP2(v||0);
   const pct=(cur,prev)=>prev>0?((cur-prev)/prev*100):null;
   const dChip=(cur,prev,goodDown,fmtFn)=>{const p=pct(cur,prev);if(p===null)return '<span class="pcmD n">—</span>';
@@ -637,27 +703,28 @@ function renderInsMonthly(body){
     return `<span class="pcmD ${good?'g':bad?'b':'n'}" title="${prev!=null?'was '+(fmtFn?fmtFn(prev):prev):''}">${up?'▲':dn?'▼':'→'} ${Math.abs(p).toFixed(1)}%</span>`;};
   const head=`
     <div class="pcmKpis">
-      ${_pcmKpi('Months tracked',fmt(months.length),'with shipment activity','#60a5fa')}
-      ${_pcmKpi('Total prep',money(totPrep),`inc. VAT · ${money(totPrep/(prepFees.vatRate||1.2))} ex. VAT`,'#fbbf24')}
-      ${_pcmKpi('Average a month',money(avgPrep),'across every month tracked','#f59e0b')}
+      ${_pcmKpi('This month so far',run?money(run.prep):'£0.00',run?`on pace for ~${gbp0(run.pace.v)} · day ${run.pace.day} of ${run.pace.dim}`:'nothing sent yet this month','#60a5fa')}
+      ${_pcmKpi('Total prep',money(totPrep),`inc. VAT · ${money(totPrep/vr)} ex. VAT · ${fmt(months.length)} month${months.length===1?'':'s'}`,'#fbbf24')}
+      ${_pcmKpi('Average a month',money(avgPrep),fin.length?`the ${fin.length} finished month${fin.length===1?'':'s'}`:'across every month tracked','#f59e0b')}
       ${_pcmKpi('Average a unit','£'+avgPerUnit.toFixed(2),`over ${fmt(totUnits)} units`,'#34d399')}
       ${_pcmKpi('Shipments',fmt(totShips),`${fmt(totBoxes)} boxes · ${totShips?(totUnits/totShips).toFixed(0):'—'} units each`,'#c084fc')}
     </div>`;
-  const chart=_pcmChart(months,avgPrep);
+  const chart=_pcmChart(months,avgPrep,fin.length);
   const detail=(m,prev)=>{
-    const M=m.m;const rateStr=r=>r==null?'—':(r<1?(r*100).toFixed(0)+'p':'£'+r.toFixed(2));
+    const M=m.m,P=m.pace;const rateStr=r=>r==null?'—':(r<1?(r*100).toFixed(0)+'p':'£'+r.toFixed(2));
     const vat=(M.withVat||0)-(M.subtotal||0);
     const line=(lab,sub,val,col)=>`<div class="pcmLine"><div><b>${lab}</b>${sub?`<span>${sub}</span>`:''}</div><div class="pcmVal" style="${col?'color:'+col:''}">${val}</div></div>`;
     const bill=`<div class="pcmCol"><div class="pcmColH">The bill — how it is worked out</div>
-      ${line('Standard units',`${fmt(M.tieredUnits||0)} × ${rateStr(M.unitRate)} · ${esc(M.unitRateBand||'')} band${M.basis==='estimate'?' · <b style="color:#fbbf24">estimate</b>':''} · standard ${fmt(M.stdUnits||0)}, DG ${fmt(M.dgUnits||0)}, PLUB ${fmt(M.lavUnits||0)}${M.info?' — '+esc(prepRateWhy(M.info)):''}`,money(M.baseCost))}
+      ${line('Standard units',`${fmt(M.tieredUnits||0)} × ${rateStr(M.unitRate)} · ${esc(M.unitRateBand||'')} band${M.basis==='estimate'?' · <b style="color:#fbbf24">estimate</b>':''} · standard ${fmt(M.stdUnits||0)}, DG ${fmt(M.dgUnits||0)}${M.info?' — '+esc(prepRateWhy(M.info)):''}`,money(M.baseCost))}
+      ${M.lavUnits?line('PLUB bundles',`${fmt(M.lavUnits)} × ${rateStr(_pePlub(prepFees))} · a flat rate — not part of the band`,money(M.lavCost)):''}
       ${M.osUnits?line('Oversize',`${fmt(M.osUnits)} × £${(prepFees.osCostPerUnit||0).toFixed(2)}`,money(M.osCost)):''}
       ${M.bundleUnits?line('Bundled units',`${fmt(M.bundleUnits)} × £${(prepFees.bundleCostPerUnit||0).toFixed(2)}`,money(M.bundleCost)):''}
       ${line('Boxes',`${fmt(M.stdBoxes||0)} × £${(prepFees.boxCost||0).toFixed(2)}${M.dgBoxes?` + ${fmt(M.dgBoxes)} DG × £${(prepFees.dgExtraPerBox||0).toFixed(2)}`:''}`,money(M.boxCostTotal))}
       ${line('Subtotal','ex. VAT',money(M.subtotal),'var(--text)')}
       ${line('VAT',vatPct+'%',money(vat))}
-      <div class="pcmLine pcmTot"><div><b>Total inc. VAT</b></div><div class="pcmVal" style="color:#fbbf24">${money(M.withVat)}</div></div>
+      <div class="pcmLine pcmTot"><div><b>Total inc. VAT</b>${P?`<span>so far · ~${gbp0(P.v)} on pace for the month</span>`:''}</div><div class="pcmVal" style="color:#fbbf24">${money(M.withVat)}</div></div>
     </div>`;
-    const out=`<div class="pcmCol"><div class="pcmColH">What went out</div>
+    const out=`<div class="pcmCol"><div class="pcmColH">What went out${P?' — so far':''}</div>
       ${line('Units sent','all types',fmt(M.totalUnits||0),'#60a5fa')}
       ${line('Shipments',`${fmt(M.totalBoxes||0)} boxes · ${M.ships?(M.totalUnits/M.ships).toFixed(0):'—'} units each`,fmt(M.ships||0),'#c084fc')}
       ${line('Units per box',M.totalBoxes?'':'no box counts recorded',M.totalBoxes?(M.totalUnits/M.totalBoxes).toFixed(1):'—')}
@@ -665,47 +732,52 @@ function renderInsMonthly(body){
       ${line('Stock value sent','COG of what went to Amazon',money(M.cog),'#4ade80')}
       ${line('Prep as % of COG','',M.cog?((M.withVat/M.cog)*100).toFixed(1)+'%':'—')}
     </div>`;
-    const per=`<div class="pcmCol"><div class="pcmColH">Per… and vs ${prev?esc(prev.shortLabel):'previous'}</div>
+    /* b648: the running month is compared on pace — so far, carried on to the end of the month */
+    const was=(a,b,f,pb)=>`${f(a)} → ${P?`${f(b)} so far · ~${f(pb)} on pace`:f(b)}`;
+    const per=`<div class="pcmCol"><div class="pcmColH">Per… and vs ${prev?esc(prev.shortLabel):'previous'}${P?' · on pace':''}</div>
       ${line('Per unit','inc. VAT','£'+(m.ppu||0).toFixed(2),'#fb923c')}
       ${line('Per shipment','',M.ships?'£'+(M.withVat/M.ships).toFixed(2):'—')}
       ${line('Per box','',M.totalBoxes?'£'+(M.withVat/M.totalBoxes).toFixed(2):'—')}
-      ${prev?`<div class="pcmLine"><div><b>Prep bill</b><span>${money(prev.prep)} → ${money(m.prep)}</span></div><div>${dChip(m.prep,prev.prep,true,money)}</div></div>
-      <div class="pcmLine"><div><b>Units</b><span>${fmt(prev.units)} → ${fmt(m.units)}</span></div><div>${dChip(m.units,prev.units,false,fmt)}</div></div>
-      <div class="pcmLine"><div><b>Boxes</b><span>${fmt(prev.boxes)} → ${fmt(m.boxes)}</span></div><div>${dChip(m.boxes,prev.boxes,true,fmt)}</div></div>
+      ${prev?`<div class="pcmLine"><div><b>Prep bill</b><span>${was(prev.prep,m.prep,v=>P&&v!==prev.prep&&v!==m.prep?gbp0(v):money(v),P?P.v:0)}</span></div><div>${dChip(P?P.v:m.prep,prev.prep,true,money)}</div></div>
+      <div class="pcmLine"><div><b>Units</b><span>${was(prev.units,m.units,v=>fmt(Math.round(v)),P?P.units:0)}</span></div><div>${dChip(P?P.units:m.units,prev.units,false,fmt)}</div></div>
+      <div class="pcmLine"><div><b>Boxes</b><span>${was(prev.boxes,m.boxes,v=>fmt(Math.round(v)),P?P.boxes:0)}</span></div><div>${dChip(P?P.boxes:m.boxes,prev.boxes,true,fmt)}</div></div>
       <div class="pcmLine"><div><b>Per unit</b><span>£${prev.ppu.toFixed(2)} → £${m.ppu.toFixed(2)}</span></div><div>${dChip(m.ppu,prev.ppu,true,v=>'£'+v.toFixed(2))}</div></div>`
       :'<div class="pcmLine"><div><span>first month tracked — nothing to compare</span></div></div>'}
     </div>`;
     const ships=_pcmShipments(m.md,m.key);
     const typeCol={Standard:'#60a5fa',DG:'#f87171',Oversize:'#fb923c'};
     const shipTbl=ships.length?`<div class="pcmShips">
-      <div class="pcmShipH"><span>Shipment</span><span>Date</span><span>Type</span><span class="r">Units</span><span class="r">PLUB</span><span class="r">Boxes</span><span class="r">SKUs</span></div>
-      ${ships.map(x=>`<div class="pcmShip" onclick="event.stopPropagation();try{openShipment('${esc(x.id)}')}catch(e){}" title="Open this shipment">
-        <span class="pcmSid">${esc(x.id)}</span><span>${x.date?_pcmDmy(x.date):'—'}</span>
+      <div class="pcmShipH"><span>Shipment</span><span>Date</span><span>Type</span><span class="r">Units</span><span class="r">PLUB</span><span class="r">Boxes</span><span class="r">SKUs</span><span class="r">Prep inc. VAT</span></div>
+      ${ships.map(x=>`<div class="pcmShip" role="button" onclick="event.stopPropagation();pcmShip('${esc(x.id)}')" title="Open ${esc(x.id)} on the Shipments page">
+        <span class="pcmSid">${esc(x.id)}<b class="pcmGo">Open ↗</b></span><span>${x.date?_pcmDmy(x.date):'—'}</span>
         <span><i class="pcmType" style="color:${typeCol[x.type]||'#94a3b8'};border-color:${(typeCol[x.type]||'#94a3b8')}55">${esc(x.type||'Standard')}</i></span>
-        <span class="r">${fmt(x.units)}</span><span class="r" style="color:${x.lav?'#38bdf8':'var(--text3)'}">${x.lav?fmt(x.lav):'—'}</span>
-        <span class="r" style="color:${x.boxes?'var(--text)':'#f87171'}">${x.boxes?fmt(x.boxes):'none'}</span><span class="r">${fmt(x.skus.size)}</span></div>`).join('')}
+        <span class="r">${fmt(x.units)}</span><span class="r" style="color:${x.lav?'#b79cf6':'var(--text3)'}">${x.lav?fmt(x.lav):'—'}</span>
+        <span class="r" style="color:${x.boxes?'var(--text)':'#f87171'}">${x.boxes?fmt(x.boxes):'none'}</span><span class="r">${fmt(x.skus.size)}</span>
+        <span class="r pcmSp">${money(x.prep)}</span></div>`).join('')}
+      <div class="pcmShipF">Prep = that shipment's share of the bill, inc. VAT, at ${esc(m.label.split(' ')[0])}'s rate · click a shipment to open it on the Shipments page</div>
       </div>`:'<div class="pmeta" style="padding:6px 0 0;">No shipment IDs recorded for this month.</div>';
     return `<div class="pcmDet"><div class="pcmGrid">${bill}${out}${per}</div>${shipTbl}</div>`;
   };
   const rowsHtml=months.map((m,i)=>{
-    const prev=months[i+1]||null;const open=_pcmOpen===m.key;
-    const barW=Math.round((m.prep/maxPrep)*100);
-    return `<div class="pcmRow ${open?'open':''}" onclick="pcmToggle('${m.key}')">
+    const prev=months[i+1]||null;const open=_pcmOpen===m.key;const M=m.m,P=m.pace;
+    /* b648 (Jack: "the rate in each row — yes"): what the month was priced at, in place of the bar that repeated the chart */
+    const what=[M.tieredUnits?`${fmt(M.tieredUnits)} stock`:'',M.lavUnits?`${fmt(M.lavUnits)} PLUB`:''].filter(Boolean).join(' · ');
+    return `<div class="pcmRow ${open?'open':''}" data-k="${m.key}" role="button" aria-expanded="${open}" onclick="pcmToggle('${m.key}')" title="${open?'Click to close this month':'Click to open the full bill'}">
       <div class="pcmMon"><span class="pcmCh">${open?'▾':'▸'}</span>${m.label}</div>
-      <div class="pcmBar"><div style="width:${barW}%"></div></div>
-      <div class="pcmVal" style="color:#fbbf24">${money(m.prep)}</div>
-      <div class="pcmVal" style="color:#60a5fa">${fmt(m.units)}<small>units</small></div>
+      <div class="pcmAt"><b>${M.tieredUnits>0?_peP(M.unitRate):'—'}</b>${M.basis==='estimate'?'<em>estimate</em>':''}<span>${what}</span></div>
+      <div class="pcmVal" style="color:#fbbf24">${money(m.prep)}${P?`<i class="pcmPace">~${gbp0(P.v)} on pace</i>`:''}</div>
+      <div class="pcmVal" style="color:#60a5fa">${fmt(m.units)}<small>units</small>${P?'<i class="pcmPace">so far</i>':''}</div>
       <div class="pcmVal" style="color:#c084fc">${fmt(m.ships)}</div>
       <div class="pcmVal">${m.boxes?fmt(m.boxes):'<span style="color:#f87171">none</span>'}</div>
       <div class="pcmVal" style="color:var(--text2)">£${m.ppu.toFixed(2)}</div>
-      <div class="pcmVal">${dChip(m.prep,prev?prev.prep:null,true,money)}</div>
+      <div class="pcmVal">${dChip(P?P.v:m.prep,prev?prev.prep:null,true,money)}${P?'<i class="pcmPace">on pace</i>':''}</div>
     </div>${open?detail(m,prev):''}`;
   }).join('');
   const table=`<div class="pcmTbl">
-      <div class="pcmRow pcmHead"><div>Month</div><div></div><div class="pcmVal">Prep inc. VAT</div><div class="pcmVal">Units</div><div class="pcmVal">Shipments</div><div class="pcmVal">Boxes</div><div class="pcmVal">£ / unit</div><div class="pcmVal">vs prev</div></div>
+      <div class="pcmRow pcmHead"><div>Month</div><div>Priced at</div><div class="pcmVal">Prep inc. VAT</div><div class="pcmVal">Units</div><div class="pcmVal">Shipments</div><div class="pcmVal">Boxes</div><div class="pcmVal">£ / unit</div><div class="pcmVal">vs prev</div></div>
       ${rowsHtml}
     </div>
-    <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.4;">“vs prev” compares each month’s bill to the month before — <span style="color:#f87171;">red ▲</span> spent more, <span style="color:#34d399;">green ▼</span> spent less. Boxes showing <span style="color:#f87171;">none</span> means nobody typed a box count for those shipments, so that month’s bill is missing its box charges. Rates live in Settings → Prep Fees.</div>`;
+    <div class="pcmFoot">“vs prev” is each month’s bill against the month before — <span style="color:#f87171;">red ▲</span> cost more, <span style="color:#34d399;">green ▼</span> less; this month is compared on pace (pro-rated: so far × days in the month ÷ days gone). Boxes <span style="color:#f87171;">none</span> = nobody typed a box count for those shipments, so the bill is missing their box charge. Rates live in Settings → Prep fees.</div>`;
   body.innerHTML=head+chart+table;
 }
 function _pcmDmy(iso){const d=new Date(String(iso).slice(0,10)+'T00:00:00');return isNaN(d)?String(iso):d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});}
@@ -742,7 +814,8 @@ function prepBreakdownRows(m){
     <div style="font-family:var(--mono);font-size:12px;font-weight:700;color:${col||'var(--text)'};">${val}</div>
   </div>`;
   return `
-    ${row('Volume base rate',fmtGBP2(m.baseCost||0),`${fmt(m.tieredUnits||0)} standard units (incl. PLUB and DG) × ${rateStr} (volume band ${m.unitRateBand||'—'})${m.basis==='estimate'?' — estimate':''}`,'#fbbf24')}
+    ${row('Volume base rate',fmtGBP2(m.baseCost||0),`${fmt(m.tieredUnits||0)} standard units (incl. DG) × ${rateStr} (volume band ${m.unitRateBand||'—'})${m.basis==='estimate'?' — estimate':''}`,'#fbbf24')}
+    ${(m.lavCost>0)?row('PLUB bundles',fmtGBP2(m.lavCost),`${fmt(m.lavUnits||0)} × ${_peP(_pePlub(prepFees))} — a flat rate, outside the band`,'#cc99ff'):''}
     ${(m.osCost>0)?row('Oversize surcharge',fmtGBP2(m.osCost),`${fmt(m.osUnits||0)} oversize units`,'#fb923c'):''}
     ${(m.bundleCost>0)?row('Bundle handling',fmtGBP2(m.bundleCost),`${fmt(m.bundleUnits||0)} bundled units`,'#34d399'):''}
     ${(m.boxCostTotal>0)?row('Boxes',fmtGBP2(m.boxCostTotal),`${fmt(m.stdBoxes||0)} standard × £${(+prepFees.boxCost||0).toFixed(2)} + ${fmt(m.dgBoxes||0)} DG × £${(+prepFees.dgExtraPerBox||0).toFixed(2)}`,'#60a5fa'):''}
@@ -828,7 +901,7 @@ function openPrepExplorer(key){
 
   // Cost composition (% of ex-VAT subtotal).
   const sub=m.subtotal||1;
-  const comp=[['Volume base',m.baseCost||0,'#fbbf24'],['Oversize',m.osCost||0,'#fb923c'],['Bundle',m.bundleCost||0,'#34d399'],['Boxes',m.boxCostTotal||0,'#60a5fa']].filter(c=>c[1]>0);
+  const comp=[['Volume base',m.baseCost||0,'#fbbf24'],['PLUB',m.lavCost||0,'#cc99ff'],['Oversize',m.osCost||0,'#fb923c'],['Bundle',m.bundleCost||0,'#34d399'],['Boxes',m.boxCostTotal||0,'#60a5fa']].filter(c=>c[1]>0);
 
   const kpiTile=(v,l,c)=>`<div style="background:var(--bg3);border-radius:8px;padding:11px 8px;text-align:center;"><div style="font-size:18px;font-weight:900;font-family:var(--num);font-variant-numeric:tabular-nums;color:${c};line-height:1;">${v}</div><div style="font-size:9.5px;color:#94a3b8;margin-top:4px;text-transform:uppercase;letter-spacing:.05em;">${l}</div></div>`;
 
@@ -1154,7 +1227,7 @@ function toggleInsMonth(key){
 }
 
 function saveSettingsPrepFees(){
-  ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit','expectedMonthlyUnits'].forEach(k=>{
+  ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit','plubCostPerUnit','expectedMonthlyUnits'].forEach(k=>{
     const el=document.getElementById('pf-'+k);
     if(el)prepFees[k]=parseFloat(el.value)||0;
   });
@@ -1167,7 +1240,7 @@ function resetPrepFees(){
   showConfirm('Reset prep fees?','This resets all rates to the Source 2 Store defaults.',()=>{
     prepFees={...PREP_FEE_DEFAULTS};
     savePrepFees();
-    ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit','expectedMonthlyUnits'].forEach(k=>{
+    ['tier1p','tier2p','tier3p','tier4p','boxCost','dgExtraPerBox','osCostPerUnit','bundleCostPerUnit','plubCostPerUnit','expectedMonthlyUnits'].forEach(k=>{
       const el=document.getElementById('pf-'+k);
       if(el)el.value=prepFees[k];
     });

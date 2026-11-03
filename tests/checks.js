@@ -2396,16 +2396,17 @@ window.PrepChecks=(function(){
       const P=at=>prepEngineFrom(prepLinesFrom(mine,_shipFirstDates(mine)),{fees:prepFees,today:at,boxes:shipBoxes,shipTypes:_shipTypeCache});
       const E=P('2026-10-29');
       eq(E.vols['2026-09'],3917,'September: 3,908 + the 9 that went on 30 Sep');
-      eq(E.vols['2026-10'],82,'October: 5 Part Sent + 11 + 26 DG + 40 PLUB — oversize apart');
+      eq(E.vols['2026-10'],42,'October: 5 Part Sent + 11 + 26 DG — PLUB (b647) and oversize apart');
       const R=E.rate('2026-10');ok(Math.abs(R.avg-(2821+3109+3917)/3)<1e-9,'the average of Jul, Aug, Sep');
       const O=E.priceMonth('2026-10');
-      eq(O.unitRate,prepFees.tier3p,'82 units ride on the 3,282 average → the 3,001–5,000 rate');eq(O.basis,'estimate','…as an estimate');
+      eq(O.unitRate,prepFees.tier3p,'42 units ride on the 3,282 average → the 3,001–5,000 rate');
+      eq(O.lavUnits,40,'40 PLUB');ok(Math.abs(O.lavCost-40*prepFees.plubCostPerUnit)<1e-9,'PLUB at its own flat rate (b647)');eq(O.basis,'estimate','…as an estimate');
       ok(/^ESTIMATE/.test(prepRateWhy(O.info)),'and says so');
       eq(O.osUnits,7,'7 oversize');eq(O.stdBoxes,3,'3 standard boxes');eq(O.dgBoxes,2,'2 DG boxes');
       ok(Math.abs(O.boxCostTotal-(3*prepFees.boxCost+2*prepFees.dgExtraPerBox))<1e-9,'DG boxes at the DG box cost');
       eq(E.priceShip('FBA-CHK628O').unitRate,O.unitRate,'one shipment is priced at its month’s rate');
       const F=P('2026-11-02').priceMonth('2026-10');
-      eq(F.unitRate,prepFees.tier1p,'October finished on 82 → its actual band');eq(F.basis,'actual','not an estimate any more');
+      eq(F.unitRate,prepFees.tier1p,'October finished on 42 → its actual band');eq(F.basis,'actual','not an estimate any more');
       /* the live engine sees exactly what the This Month card counts, and the pages agree */
       const PE=prepEngine(),ym=todayISO().slice(0,7),{s,e}=getMonthRange();
       eq(PE.linesMonth(ym).reduce((a,l)=>a+l.units,0),sentRollup(s,e).units,'prep counts every unit the This Month card counts');
@@ -3506,6 +3507,93 @@ window.PrepChecks=(function(){
     }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
   const q4dm=iso=>{const d=new Date(iso+'T00:00:00Z');return d.getUTCDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()];};
+
+  /* 134 · b647: PLUB bundles a flat 50p a unit, outside the volume bands — every month, back-dated */
+  S['b647: prep cost — PLUB a flat rate outside the bands, every month; its own line on the bill']=async()=>{
+    eq(PREP_FEE_DEFAULTS.plubCostPerUnit,0.5,'the PLUB rate starts at 50p');
+    ok(prepFees.plubCostPerUnit!=null&&prepFees.plubCostPerUnit>=0,'and is in the saved rates');
+    ok(document.getElementById('pf-plubCostPerUnit'),'Settings → Prep fees has the PLUB rate');
+    eq(PREP_STD_LABEL,'Standard units (incl. DG; PLUB and oversize priced separately)','the label');
+    /* the live engine: every month's band leaves PLUB out, PLUB is at its flat rate, and it is in the bill */
+    const PE=prepEngine();
+    PE.months().forEach(ym=>{const b=_peBucket(PE.linesMonth(ym)),M=PE.priceMonth(ym);
+      eq(PE.vols[ym],b.std+b.dg,ym+': the band is standard + DG only');
+      ok(Math.abs(M.lavCost-b.lav*prepFees.plubCostPerUnit)<1e-6,ym+': '+b.lav+' PLUB at the flat rate');
+      ok(Math.abs(M.baseCost-M.tieredUnits*M.unitRate)<1e-6,ym+': the band rate is on standard + DG only');
+      ok(Math.abs(M.subtotal-(M.baseCost+M.osCost+M.bundleCost+M.lavCost+M.boxCostTotal))<1e-6,ym+': PLUB is in the bill');
+      ok(Math.abs(M.withVat-M.subtotal*prepFees.vatRate)<1e-6,ym+': VAT on the lot');});
+    /* October in miniature: 4,446 standard + 2,260 PLUB — the PLUB no longer lifts the band */
+    const Ln=(day,units,o)=>Object.assign({day,ym:day.slice(0,7),units,kind:'oa',type:'Standard',bundle:false,shipId:'',cog:0,sku:'',asin:''},o||{});
+    const X=prepEngineFrom([Ln('2026-10-10',4446),Ln('2026-10-10',2260,{kind:'lav',type:''})],{fees:prepFees,today:'2026-11-03'}).priceMonth('2026-10');
+    eq(X.unitRate,prepFees.tier3p,'4,446 standard → the 3,001–5,000 band (with PLUB in it would have been 5,001+)');
+    ok(Math.abs(X.lavCost-2260*prepFees.plubCostPerUnit)<1e-9,'2,260 PLUB at the flat rate');
+    ok(Math.abs(X.subtotal-(4446*prepFees.tier3p+2260*prepFees.plubCostPerUnit))<1e-9,'the two add up');
+    /* the month-by-month popup: PLUB has its own line; the standard line no longer counts it */
+    const ym=PE.months().filter(k=>_peBucket(PE.linesMonth(k)).lav>0).pop();
+    if(ym){const keep=_pcmOpen;
+      try{openPrepHistory();_pcmOpen=ym;renderInsMonthly(document.getElementById('prepHistBody'));
+        const det=document.querySelector('#prepHistBody .pcmDet');ok(det,'a month opens');
+        const t=det?det.textContent:'';
+        ok(/PLUB bundles/.test(t)&&t.includes(fmtGBP2(PE.priceMonth(ym).lavCost)),ym+': a PLUB bundles line with its cost');
+        ok(!/PLUB \d/.test([...det.querySelectorAll('.pcmLine')].find(x=>/Standard units/.test(x.textContent)).textContent),'the standard line no longer counts PLUB');}
+      finally{_pcmOpen=keep;const m=document.getElementById('prepHistModal');if(m)m.style.display='none';}}
+  };
+
+  /* 135 · b648: the Prep cost popup — split bars, the running month pro-rated, the rate in each row, each shipment's
+     prep, and every click does what it looks like it does */
+  S['b648: Prep cost popup — split bars, pro-rated month, priced at, shipment prep, every click works']=async()=>{
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      openPrepHistory();const B=document.getElementById('prepHistBody'),PE=prepEngine(),vr=prepFees.vatRate;
+      const ms=PE.months().filter(k=>PE.linesMonth(k).some(l=>l.kind!=='return')),ym=todayISO().slice(0,7),run=ms.includes(ym);
+      eq(_pcmOpen,ms[ms.length-1],'it opens on the newest month');
+      /* 8: the first tile */
+      const k1=B.querySelector('.pcmKpi');ok(/This month so far/.test(k1.textContent),'the first tile is This month so far');
+      if(run){const so=PE.priceMonth(ym).withVat,d=+todayISO().slice(8,10),dim=new Date(+ym.slice(0,4),+ym.slice(5,7),0).getDate();
+        ok(k1.textContent.includes(fmtGBP2(so)),'…at what this month has cost so far');
+        ok(k1.textContent.includes('~£'+Math.round(so*dim/d).toLocaleString('en-GB')),'…and its pace, pro-rated');}
+      const fin=ms.filter(k=>k!==ym),avg=fin.reduce((a,k)=>a+PE.priceMonth(k).withVat,0)/fin.length;
+      ok([...B.querySelectorAll('.pcmKpi')][2].textContent.includes(fmtGBP2(avg)),'Average a month is the finished months');
+      /* 2: the bars — one per month, the pieces add up to the bill */
+      const bars=[...B.querySelectorAll('.pcmB')];eq(bars.length,ms.length,'one bar a month');
+      bars.forEach(b=>{const k=b.dataset.k,sum=[...b.querySelectorAll('.pcmStk i')].reduce((a,i)=>a+(+i.dataset.v),0);
+        ok(Math.abs(sum-PE.priceMonth(k).withVat)<0.05*[...b.querySelectorAll('.pcmStk i')].length+0.01,k+': the pieces add up to the bill inc. VAT');});
+      ok([...B.querySelectorAll('.pcmLeg span')].some(s=>/PLUB/.test(s.textContent)),'the legend names PLUB');
+      const big=bars.reduce((a,b)=>(+b.querySelector('.pcmStk').style.height.replace('%',''))>(+a.querySelector('.pcmStk').style.height.replace('%',''))?b:a);
+      const named=[...big.querySelectorAll('.pcmStk i b')].map(x=>x.textContent);
+      ok(named.includes('Stock')&&named.length>=2,'the tallest bar says in its colours what each piece is ('+named.join(', ')+')');
+      ok(B.querySelector('.pcmAvgL'),'an average line');
+      if(run)ok(B.querySelector(`.pcmB[data-k="${ym}"] .pcmGhost`)||PE.priceMonth(ym).withVat>0,'the running month shows its pace');
+      const oct=fin.length?fin[fin.length-1]:ms[0];                         /* the last finished month */
+      const bar=B.querySelector(`.pcmB[data-k="${oct}"]`);bar.dispatchEvent(new MouseEvent('mouseenter'));
+      const tip=B.querySelector('.pcmTip');ok(tip.style.display==='block'&&tip.textContent.includes(fmtGBP2(PE.priceMonth(oct).withVat)),'hovering a bar shows what made it up');
+      bar.dispatchEvent(new MouseEvent('mouseleave'));ok(tip.style.display==='none','and goes away');
+      bar.click();eq(_pcmOpen,oct,'clicking a bar opens its month');ok(B.querySelector(`.pcmRow[data-k="${oct}"].open`)&&B.querySelector('.pcmDet'),'…below');
+      /* 4: what each month was priced at */
+      ms.forEach(k=>{const M=PE.priceMonth(k),at=B.querySelector(`.pcmRow[data-k="${k}"] .pcmAt`).textContent;
+        if(M.tieredUnits>0)ok(at.includes(_peP(M.unitRate)),k+': priced at '+_peP(M.unitRate));
+        if(M.lavUnits)ok(at.includes(fmt(M.lavUnits)+' PLUB'),k+': its PLUB');});
+      /* 3: the running month on pace in the row */
+      if(run){const r=B.querySelector(`.pcmRow[data-k="${ym}"]`).textContent;ok(/on pace/.test(r),'the running month says on pace');}
+      /* every click: open another month keeps the row where it was; clicking the open month closes it */
+      const target=ms.find(k=>k<oct)||ms.find(k=>k!==oct);                     /* an older month, below it */
+      const rowT=()=>B.querySelector(`.pcmRow[data-k="${target}"]`);
+      rowT().scrollIntoView({block:'center'});const y0=rowT().getBoundingClientRect().top;
+      rowT().click();eq(_pcmOpen,target,'a row opens its month');
+      ok(Math.abs(rowT().getBoundingClientRect().top-y0)<3,'the row you clicked stays where it was ('+Math.round(y0)+' → '+Math.round(rowT().getBoundingClientRect().top)+')');
+      rowT().click();eq(_pcmOpen,null,'clicking the open month closes it — nothing opens in its place');
+      ok(!B.querySelector('.pcmDet'),'every month closed');
+      /* 6: each shipment's prep, and a shipment opens on the Shipments page with the popup out of the way */
+      _pcmOpen=oct;renderInsMonthly(B);
+      const sh=[...B.querySelectorAll('.pcmShip')];ok(sh.length,'the month lists its shipments');
+      sh.slice(0,6).forEach(s=>{const id=s.querySelector('.pcmSid').firstChild.textContent;
+        ok(s.querySelector('.pcmSp').textContent===fmtGBP2(PE.priceShip(id).withVat),id+': its prep inc. VAT');});
+      sh[0].click();
+      ok(document.getElementById('prepHistModal').style.display==='none','opening a shipment closes the popup');
+      eq((document.querySelector('.page.active')||{}).id,'page-shipments','…and goes to the Shipments page');
+    }finally{const m=document.getElementById('prepHistModal');if(m)m.style.display='none';
+      if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
 
   async function run(only){
     R.length=0;const t0=Date.now();

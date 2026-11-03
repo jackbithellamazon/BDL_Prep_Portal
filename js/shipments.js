@@ -425,6 +425,7 @@ function renderShipments(){
               ${[
                 [sc.totalUnits+' units','#94a3b8'],
                 ['Base £'+sc.baseCost.toFixed(2)+' ('+fmt(sc.tieredUnits)+' std × '+_peP(sc.unitRate)+(sc.basis==='estimate'?', estimate':'')+')','#fbbf24'],
+                ...(sc.lavCost>0?[['PLUB +£'+sc.lavCost.toFixed(2)+' ('+fmt(sc.lavUnits)+' × '+_peP(_pePlub(prepFees))+')','#cc99ff']]:[]),
                 ...(sc.osCost>0?[['OS +£'+sc.osCost.toFixed(2),'#fb923c']]:[]),
                 ...(sc.bundleCost>0?[['Bundle +£'+sc.bundleCost.toFixed(2),'#34d399']]:[]),
                 ...(sc.boxCostTotal>0?[['Boxes £'+sc.boxCostTotal.toFixed(2)+(sc.dgBoxes?' (incl. '+sc.dgBoxes+' DG at £'+(+prepFees.dgExtraPerBox).toFixed(2)+')':''),'#60a5fa']]:[]),

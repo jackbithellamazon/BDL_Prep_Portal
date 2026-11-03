@@ -688,6 +688,8 @@ const PREP_FEE_DEFAULTS={
   dgExtraPerBox:2.50,
   osCostPerUnit:1.50,
   bundleCostPerUnit:0.60,
+  /* b647 (Jack, 3 Nov 2026): PLUB bundles are a flat 50p a unit, outside the volume bands */
+  plubCostPerUnit:0.50,
   vatRate:1.20,
 };
 let prepFees={...PREP_FEE_DEFAULTS};
@@ -739,9 +741,11 @@ function savePrepFees(){
    THE RULES
    · A month is priced at ONE per-unit rate for ALL its standard units, set by the
      volume band (Settings: 50p 1–1,000 · 45p 1,001–3,000 · 35p 3,001–5,000 · 30p 5,001+).
-   · Standard units = Standard + PLUB + DG (DG is standard-size) — prepBandUnits,
-     the one definition. Oversize is priced on its own (£1.50), bundled units on
-     their own (60p). Returns sent back out carry no prep charge (as before b628).
+   · Standard units = Standard + DG (DG is standard-size) — prepBandUnits, the one
+     definition. PLUB bundles are a flat 50p of their own and do not count towards the
+     band (b647, Jack 3 Nov: "50p + VAT per unit" — every month, back-dated). Oversize is
+     priced on its own (£1.50), bundled OA units on their own (60p). Returns sent back
+     out carry no prep charge (as before b628).
    · Every unit counts in the month it WENT — its shipment's date, the rule the
      THIS MONTH card uses (sentRollup / allSentRows), Part Sent rows included.
    · A RUNNING month is priced at the band of max(the AVERAGE of the last 3 finished
@@ -754,7 +758,9 @@ function savePrepFees(){
    From PREP ENGINE START to PREP ENGINE END is pure — no app globals — so the
    Deno test (prep628_test.js in the harness) can load this block on its own. */
 /* PREP ENGINE START */
-const PREP_STD_LABEL='Standard units (incl. PLUB and DG; oversize priced separately)';
+const PREP_STD_LABEL='Standard units (incl. DG; PLUB and oversize priced separately)';
+/* the PLUB rate a unit — Settings, else 50p */
+const _pePlub=f=>f&&f.plubCostPerUnit!=null?(+f.plubCostPerUnit||0):0.50;
 const _peN=x=>Math.round(+x||0).toLocaleString('en-GB');
 const _peP=r=>r==null?'—':(r<1?Math.round(r*100)+'p':'£'+(+r).toFixed(2));
 const _peMon=ym=>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][(+String(ym).slice(5,7)||1)-1];
@@ -806,8 +812,8 @@ function _peBucket(ls){
     b.cog+=+l.cog||0;if(l.sku)b.skus.add(l.sku);if(l.asin)b.asins.add(l.asin);});
   return b;
 }
-/* THE units that set the band — Standard + PLUB + DG. Oversize and bundles are priced on their own. */
-const prepBandUnits=b=>b.std+b.dg+b.lav;
+/* THE units that set the band — Standard + DG. PLUB (b647), oversize and bundles are priced on their own. */
+const prepBandUnits=b=>b.std+b.dg;
 /* The rate for month `ym`. vols = standard units per month; todayYM = the running month. */
 function prepMonthRate(ym,vols,todayYM,f){
   const units=+(vols||{})[ym]||0;
@@ -834,7 +840,7 @@ function prepRateWhy(R){
 /* Price a set of lines: split by calendar month, each month at its own rate. */
 function prepPriceLines(ls,rateOf,f,boxes,shipTypes){
   const byM={};(ls||[]).forEach(l=>{(byM[l.ym]=byM[l.ym]||[]).push(l);});
-  const K=['stdUnits','osUnits','dgUnits','bundleUnits','lavUnits','retUnits','tieredUnits','baseCost','osCost','bundleCost','stdBoxes','dgBoxes','stdBoxCost','dgExtra'];
+  const K=['stdUnits','osUnits','dgUnits','bundleUnits','lavUnits','retUnits','tieredUnits','baseCost','osCost','bundleCost','lavCost','stdBoxes','dgBoxes','stdBoxCost','dgExtra'];
   const T={months:[]};K.forEach(k=>T[k]=0);
   const ships=new Set(),skus=new Set(),asins=new Set();let cog=0;
   Object.keys(byM).sort().forEach(ym=>{
@@ -843,15 +849,15 @@ function prepPriceLines(ls,rateOf,f,boxes,shipTypes){
     b.ships.forEach(s=>{const n=+((boxes||{})[s])||0;if(((shipTypes||{})[s]||'Standard')==='DG')db+=n;else sb+=n;ships.add(s);});
     const M={ym,rate:R.rate,band:R.band,basis:R.basis,info:R,tieredUnits:tiered,stdUnits:b.std,osUnits:b.os,dgUnits:b.dg,
       bundleUnits:b.bundle,lavUnits:b.lav,retUnits:b.ret,baseCost:tiered*R.rate,osCost:b.os*f.osCostPerUnit,
-      bundleCost:b.bundle*f.bundleCostPerUnit,stdBoxes:sb,dgBoxes:db,stdBoxCost:sb*f.boxCost,dgExtra:db*f.dgExtraPerBox};
+      bundleCost:b.bundle*f.bundleCostPerUnit,lavCost:b.lav*_pePlub(f),stdBoxes:sb,dgBoxes:db,stdBoxCost:sb*f.boxCost,dgExtra:db*f.dgExtraPerBox};
     M.totalUnits=M.stdUnits+M.osUnits+M.dgUnits+M.bundleUnits+M.lavUnits;M.totalBoxes=sb+db;
-    M.boxCostTotal=M.stdBoxCost+M.dgExtra;M.subtotal=M.baseCost+M.osCost+M.bundleCost+M.boxCostTotal;M.withVat=M.subtotal*f.vatRate;
+    M.boxCostTotal=M.stdBoxCost+M.dgExtra;M.subtotal=M.baseCost+M.osCost+M.bundleCost+M.lavCost+M.boxCostTotal;M.withVat=M.subtotal*f.vatRate;
     T.months.push(M);K.forEach(k=>T[k]+=M[k]);
     cog+=b.cog;b.skus.forEach(x=>skus.add(x));b.asins.forEach(x=>asins.add(x));
   });
   T.totalUnits=T.stdUnits+T.osUnits+T.dgUnits+T.bundleUnits+T.lavUnits;
   T.totalBoxes=T.stdBoxes+T.dgBoxes;T.boxCostTotal=T.stdBoxCost+T.dgExtra;
-  T.subtotal=T.baseCost+T.osCost+T.bundleCost+T.boxCostTotal;T.withVat=T.subtotal*f.vatRate;
+  T.subtotal=T.baseCost+T.osCost+T.bundleCost+T.lavCost+T.boxCostTotal;T.withVat=T.subtotal*f.vatRate;
   const priced=T.months.filter(m=>m.tieredUnits>0),rates=[...new Set(priced.map(m=>m.rate))];
   const one=T.months.length===1?T.months[0]:(rates.length===1?priced[0]:null);
   T.mixed=rates.length>1;                       // a range across months at different rates
@@ -908,7 +914,7 @@ function calcImpliedPrepCost(sentRows,sentLavRows,boxMap,rateUnits){
   // this period's own tiered units (correct for the monthly figure). Daily/weekly
   // tiles pass the typical monthly volume so they're priced at the realistic
   // monthly rate rather than their own small volume.
-  // Standard/DG/Lavarion → tiered rate pool
+  // Standard/DG → tiered rate pool; PLUB → its own flat rate (b647)
   // Oversize → £1.50 flat per unit
   // Bundle → 60p flat per unit
   // Standard boxes → £1.00, DG boxes → £2.50 (full rate, not £1+extra)
@@ -920,7 +926,7 @@ function calcImpliedPrepCost(sentRows,sentLavRows,boxMap,rateUnits){
   const dgUnits=sentRows.filter(r=>r.shipType==='DG').reduce((a,r)=>a+u(r),0);
   const bundleUnits=sentRows.filter(r=>r.inBundle==='Yes').reduce((a,r)=>a+u(r),0);
   const lavUnits=sentLavRows.reduce((a,s)=>a+(s.units||0),0);
-  const tieredUnits=stdUnits+dgUnits+lavUnits;
+  const tieredUnits=stdUnits+dgUnits;
   // rateUnits acts as a FLOOR on the band volume: price at your typical monthly
   // volume unless you have already sent more (which earns a cheaper high-volume
   // band). This stops early-month periods dropping into the 1-1,000 band when a
@@ -930,6 +936,7 @@ function calcImpliedPrepCost(sentRows,sentLavRows,boxMap,rateUnits){
   const baseCost=tieredUnits*pickUnitRate(_rateVol);
   const osCost=osUnits*prepFees.osCostPerUnit;
   const bundleCost=bundleUnits*prepFees.bundleCostPerUnit;
+  const lavCost=lavUnits*_pePlub(prepFees);
   const dgBoxes=Object.entries(boxMap).filter(([sid])=>(_shipTypeCache[sid]||'Standard')==='DG').reduce((a,[,b])=>a+(b||0),0);
   const stdBoxes=Object.values(boxMap).reduce((a,b)=>a+(b||0),0)-dgBoxes;
   /* b628: DG boxes at the DG box cost — the comment above always said so, the sum never did */
@@ -937,9 +944,9 @@ function calcImpliedPrepCost(sentRows,sentLavRows,boxMap,rateUnits){
   const boxCostTotal=stdBoxCost+dgExtra;
   const totalBoxes=stdBoxes+dgBoxes;
   const totalUnits=stdUnits+osUnits+dgUnits+bundleUnits+lavUnits;
-  const subtotal=baseCost+osCost+bundleCost+boxCostTotal;
+  const subtotal=baseCost+osCost+bundleCost+lavCost+boxCostTotal;
   return{totalUnits,stdUnits,osUnits,dgUnits,bundleUnits,lavUnits,tieredUnits,
-    baseCost,osCost,bundleCost,boxCostTotal,stdBoxCost,dgExtra,dgBoxes,stdBoxes,totalBoxes,
+    baseCost,osCost,bundleCost,lavCost,boxCostTotal,stdBoxCost,dgExtra,dgBoxes,stdBoxes,totalBoxes,
     unitRate:pickUnitRate(_rateVol),unitRateBand:unitRateBand(_rateVol),
     subtotal,withVat:subtotal*prepFees.vatRate};
 }
