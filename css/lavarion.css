@@ -2614,6 +2614,19 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .q4WkC.now small{color:#86efac;font-weight:700;}
 #page-lavarion .q4T2 td.q4Lft b{color:#fcd34d;}
 #page-lavarion .q4T2 td.q4Lft.ok b{color:#4ade80;}
+/* b649: hours of building left, from Jack's own timings */
+#page-lavarion .q4T2 td.q4Hr b{color:#93c5fd;font-variant-numeric:tabular-nums;}
+#page-lavarion .q4T2 td.q4Hr small{display:block;font-size:10.5px;color:var(--text3);margin-top:2px;white-space:nowrap;}
+#page-lavarion .q4T2 td.q4Hr.none small{margin-top:0;}
+#page-lavarion .q4T2 td.q4Hr .q4HrGo{color:#93c5fd;font-weight:700;opacity:0;transition:opacity .12s;}
+#page-lavarion .q4T2 tr.q4Row:hover td.q4Hr .q4HrGo{opacity:1;}
+#page-lavarion .q4DBRate .q4RateL{display:flex;flex-direction:column;gap:4px;margin:2px 0 6px;}
+#page-lavarion .q4DBRate .q4RateIn{max-width:150px;font:700 13px var(--mono,ui-monospace,monospace);}
+#page-lavarion .q4DBRate .q4RateL span{font-size:10.5px;color:var(--text3);}
+#page-lavarion .q4HrSum{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin:10px 2px 0;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);font-size:12px;color:var(--text2);}
+#page-lavarion .q4HrSum .q4HrT{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .q4HrSum b{font-size:15px;color:#93c5fd;font-variant-numeric:tabular-nums;}
+#page-lavarion .q4HrSum .q4HrOff{flex-basis:100%;font-size:11px;color:var(--text3);}
 #page-lavarion .q4T2 td.q4By b{font:800 13px var(--sans);white-space:nowrap;}
 #page-lavarion .q4T2 td.q4By small{display:block;font-size:10.5px;color:var(--text3);margin-top:2px;white-space:nowrap;}
 #page-lavarion .q4T2 td.q4By.ok b,#page-lavarion .q4T2 td.q4By.done b{color:#4ade80;}

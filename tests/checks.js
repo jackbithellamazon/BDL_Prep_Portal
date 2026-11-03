@@ -3595,6 +3595,43 @@ window.PrepChecks=(function(){
       if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
 
+  /* 136 · b649: Jack's timed hours → what he builds in an hour → hours of building left, per priority line and in all */
+  S['b649: Q4 — build speed from Jack’s timed hours, Hours left column and total, a timing saves']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),was=(document.querySelector('.page.active')||{}).id||'';
+    const keepS=JSON.stringify(D.settings),keepB=LV3.__prefsBase(),logN=D.log.length;
+    const own=Object.prototype.hasOwnProperty.call(sb,'from'),orig=sb.from;let wrote=null;
+    try{
+      const hc=D.products.find(p=>p.name==='Hot Chocolate Gift Hamper'&&!p.archived);
+      if(hc&&!D.settings.q4Rates){const r=LV3.q4RateOf(hc.id);ok(r&&r.n===2&&r.avg===22,'Hot Chocolate Gift Hamper starts at 23 and 21 → 22 an hour');}
+      goPage('lavarion');LV3.go('q4');await wait(250);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),TR=LV3.q4Track(R);
+      const tb=pg.querySelector('table.q4P');ok(tb,'the Priority bundles table');if(!tb)return;
+      ok([...tb.querySelectorAll('thead th')].some(th=>th.textContent==='Hours left'),'an Hours left column');
+      const rows=[...tb.querySelectorAll('tbody tr.q4Row')];
+      R.bundles.filter(r=>r.priority).forEach(r=>{
+        const tr=rows.find(x=>x.querySelector('td')&&x.querySelector('td').textContent.includes(r.name));if(!tr)return;
+        const cell=tr.querySelector('td.q4Hr'),rt=LV3.q4RateOf(r.id),left=TR.line(r).left;ok(cell,r.name+': an hours cell');
+        if(!left)ok(cell.textContent.includes('—'),r.name+': target hit, no hours');
+        else if(rt){const h=left/rt.avg,shown=h<10?(Math.round(h*10)/10).toFixed(1).replace(/\.0$/,''):Math.round(h).toLocaleString('en-GB');
+          ok(cell.textContent.includes('~'+shown+' h'),r.name+': '+left+' ÷ '+rt.avg+' = ~'+shown+' h ('+cell.textContent+')');}
+        else ok(/not timed/.test(cell.textContent),r.name+': not timed yet');});
+      const sum=pg.querySelector('.q4HrSum');ok(sum&&/Hours of building left/.test(sum.textContent),'the total under the table');
+      ok(tb.querySelector('.q4RateIn'),'each line has a timing box in its drop-down');
+      /* a timing saves through the PLUB settings, the same way a target does */
+      const p=R.bundles.filter(r=>r.priority)[0];
+      sb.from=t=>{const q={select:()=>q,eq:()=>q,in:()=>q,maybeSingle:()=>Promise.resolve({data:{value:keepS},error:null}),
+        upsert:v=>{wrote=JSON.parse(v.value);return Promise.resolve({error:null});}};return q;};
+      LV3.__setPrefsBase(JSON.parse(keepS));
+      ok(await LV3.q4SetRate(p.id,'30, 26 ,28'),'the save reports it landed');
+      ok(wrote&&wrote.q4Rates&&JSON.stringify(wrote.q4Rates[p.id])==='[30,26,28]','lavarion_prefs gets q4Rates['+p.id+'] = 30, 26, 28');
+      eq(LV3.q4RateOf(p.id).avg,28,'averaged: 28 an hour');
+      await LV3.q4SetRate(p.id,'');ok(wrote&&wrote.q4Rates&&!(p.id in wrote.q4Rates),'cleared: the line is not timed');
+    }finally{if(own)sb.from=orig;else delete sb.from;Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,JSON.parse(keepS));
+      LV3.__setPrefsBase(keepB);D.log.splice(0,D.log.length-logN);
+      try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
   async function run(only){
     R.length=0;const t0=Date.now();
     const _dbwWas=(typeof DBW!=='undefined')?DBW.paused:false;try{DBW.paused=true;}catch(e){}
