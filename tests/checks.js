@@ -3339,7 +3339,7 @@ window.PrepChecks=(function(){
       const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc();
       ['days','weeks'].forEach(m=>{const t=pg.querySelector('.q4GW-'+m+' table.q4G');ok(t,m+' table');if(!t)return;
         ok(![...t.querySelectorAll('tbody td.q4H0, tbody td.q4H')].some(td=>/—/.test(td.textContent)),m+': no dashes in the line cells');
-        ok([...t.querySelectorAll('tbody td.q4H0')].every(td=>td.textContent.trim()==='0'),m+': a line that sent nothing says 0 (b646)');
+        ok([...t.querySelectorAll('tbody td.q4H0')].every(td=>['0','✕','✓'].includes(td.textContent.trim())),m+': a line that sent nothing says 0, ✕ or ✓ (b650)');
         [...t.querySelectorAll('tbody tr:not(.q4Gap):not(.q4WkD)')].forEach(tr=>{const sent=parseInt(tr.querySelector('td.q4Snt b').textContent.replace(/[^\d]/g,''))||0;
           const parts=[...tr.querySelectorAll('td.q4H b')].reduce((a,b)=>a+(parseInt(b.textContent.replace(/[^\d]/g,''))||0),0);
           eq(parts,sent,m+' '+tr.querySelector('td b').textContent+': the line cells add up to Sent');});
@@ -3417,7 +3417,7 @@ window.PrepChecks=(function(){
       ok([...pg.querySelectorAll('.q4Kpis .kpi .k')].some(k=>/weekly average/.test(k.textContent)),'the finish tile runs on the weekly average (b644)');
       const ch=pg.querySelector('.q4Prog .q4Chart');ok(ch&&/weekly average/.test(ch.querySelector('.q4ChartK').textContent),'the chart key says the weekly average (b644)');
       const ceil=100*R.bundles.concat(R.singles).reduce((t,r)=>t+Math.min(r.max,r.done+r.left),0)/T.max;
-      if(ceil<100&&ch)ok(ch.querySelector('svg line.cl')&&ch.querySelector('.q4ChartK').textContent.includes(Math.floor(ceil)+'%'),'the chart marks where the parts stop: '+Math.floor(ceil)+'%');
+      if(ceil<100&&ch)ok(!ch.querySelector('svg line.cl')&&!/parts in hand/i.test(ch.textContent),'the chart has no parts in hand line (b651: '+Math.floor(ceil)+'% — parts are bought as needed)');
     }finally{if(keepBy===undefined)delete D.settings.q4SendBy;else D.settings.q4SendBy=keepBy;
       try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
@@ -3441,7 +3441,7 @@ window.PrepChecks=(function(){
       const box=pg.querySelector('section.q4Week');ok(box,'the This week panel');if(!box)return;
       eq(box.querySelectorAll('.q4WkPage .q4WkC').length,(R.progress.weeks||[]).length,'a bar for every week since the start');
       if(TR.avg.avg>0)ok(box.querySelector('.q4WeekNote').textContent.includes('~'+String(TR.avg.avg).replace(/\B(?=(\d{3})+(?!\d))/g,',')),'the panel gives the weekly average (~'+TR.avg.avg+')');
-      ok(!box.querySelector('.q4WC .n.bad, .q4WC .n.w'),'no red or amber parts notes on the cards');
+      ok(!box.querySelector('.q4WC .kv.parts.bad, .q4WC .kv.parts.w, .q4WC .kv.parts b.bad'),'no red or amber parts notes on the cards');
       ok(!pg.querySelector('table.q4P td.q4TW small.bad, table.q4P td.q4TW small.w'),'none in This week either');
       ok(![...pg.querySelectorAll('.q4Kpis .kpi .v')].some(v=>/fca5a5|f87171/.test(v.getAttribute('style')||'')),'no tile value in red');
     }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
@@ -3459,9 +3459,9 @@ window.PrepChecks=(function(){
       cards.forEach(c=>{const id=idOf(c),z=AZ[id],az=c.querySelector('.az'),nm=c.querySelector('.h').textContent;
         if(!z||z.sell==null){ok(!az,nm+': no Amazon line without an Amazon row');return;}
         const u=LV3.sendUrgency(z);
-        if(!u){ok(!az||/At Amazon: \d/.test(az.textContent),nm+': no sales figure — the count only');return;}
+        if(!u){ok(!az||/^\d/.test((az.querySelector('b')||{}).textContent||''),nm+': no sales figure — the count only');return;}
         ok(az,nm+': an At Amazon line');if(!az)return;
-        if((+z.sell||0)<=0){ok(az.classList.contains('bad')&&/^Out at Amazon/.test(az.textContent),nm+': out at Amazon now — red');return;}
+        if((+z.sell||0)<=0){ok(az.classList.contains('bad')&&/^Out/.test((az.querySelector('b')||{}).textContent||''),nm+': out at Amazon now — red');return;}
         const fe=u.firstEmpty!=null?Math.round(u.firstEmpty):null,days=Math.round(u.end),shown=fe!=null&&fe<days?fe:days;
         ok(az.textContent.includes('~'+shown+' day'),nm+': ~'+shown+' days ('+az.textContent+')');
         eq(az.classList.contains('bad'),!!u.losing,nm+': red only when a send today lands after it runs out');
@@ -3472,7 +3472,7 @@ window.PrepChecks=(function(){
       /* made-up rows: 56 at Amazon + 27 on the way at 4 a day lasts 20 days — amber (under 14 + 14) */
       const fake={p:{id:'x'},sell:56,inb:27,ads:4,tranches:[{q:27,d:9}],landIso:null};const fu=LV3.sendUrgency(fake);
       ok(fu&&Math.round(fu.end)===21&&fu.buffer&&!fu.losing,'56 + 27 at 4 a day: ~21 days, inside the cushion, not yet losing');
-      ok(!box.querySelector('.q4WC .n.bad, .q4WC .n.w'),'parts notes stay neutral');
+      ok(!box.querySelector('.q4WC .kv.parts.bad, .q4WC .kv.parts.w, .q4WC .kv.parts b.bad'),'parts notes stay neutral');
     }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
 
@@ -3630,6 +3630,152 @@ window.PrepChecks=(function(){
     }finally{if(own)sb.from=orig;else delete sb.from;Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,JSON.parse(keepS));
       LV3.__setPrefsBase(keepB);D.log.splice(0,D.log.length-logN);
       try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 137 · b650: the number alone, a red ✕ when none of a target line went out, Priority bundles above the graph */
+  S['b650: Progress tables — the number alone, a red ✕ when a target line had none go out; Priority bundles above the graph']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{goPage('lavarion');LV3.go('q4');await wait(250);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),PG=R.progress,num=e=>parseInt(((e||{}).textContent||'').replace(/[^\d]/g,''))||0;
+      let nX=0;
+      ['days','weeks'].forEach(m=>{const t=pg.querySelector('.q4GW-'+m+' table.q4G');ok(t,m+' table');if(!t)return;
+        const rows=(PG[m]||[]).filter(r=>r.units>0),trs=[...t.querySelectorAll('tbody tr:not(.q4Gap):not(.q4WkD)')];
+        eq(trs.length,rows.length,m+': a row for each one something went out');
+        const cum={},at={};(PG[m]||[]).slice().reverse().forEach(r=>{PG.pri.forEach(p=>{cum[p.id]=(cum[p.id]||0)+(r.by[p.id]||0);});at[r.key]=Object.assign({},cum);});
+        rows.forEach((r,i)=>{const tr=trs[i];if(!tr)return;const cells=[...tr.querySelectorAll('td.q4H, td.q4H0')];
+          ok(!tr.querySelector('td.q4Snt small')&&!tr.querySelector('td.q4H small'),m+' '+r.key+': the numbers stand alone — no % beside them');
+          PG.pri.forEach((p,j)=>{const td=cells[j],u=r.by[p.id]||0,tx=td?td.textContent.trim():'';if(!td){ok(false,p.name+': a cell');return;}
+            if(u>0){eq(num(td),u,p.name+' '+r.key+': '+u);ok(/% of its/.test(td.title),p.name+' '+r.key+': its % is in the hover');}
+            else if(r.now)eq(tx,'0',p.name+' '+r.key+': none yet today — a quiet 0, not a ✕');
+            else if(p.target>0&&(at[r.key][p.id]||0)>=p.target)eq(tx,'✓',p.name+' '+r.key+': target already hit — a quiet ✓');
+            else{eq(tx,'✕',p.name+' '+r.key+': none went out — ✕');ok(td.classList.contains('x')&&/none went out/.test(td.title),p.name+' '+r.key+': red, and the hover says so');nX++;}});
+          const o=cells[PG.pri.length];eq(o?num(o):-1,r.others||0,m+' '+r.key+': Others');ok(o&&!o.classList.contains('x'),m+' '+r.key+': no ✕ under Others (no target to miss)');});});
+      const x=pg.querySelector('.q4GW table.q4G td.q4H0.x b');
+      if(nX){ok(x,'a ✕ on the page');if(x)eq(getComputedStyle(x).color,'rgb(248, 113, 113)','the ✕ is red');}
+      ok(/none of that line went out/.test((pg.querySelector('.q4SegNote')||{}).textContent||''),'the note under Days / Weeks says what the ✕ means');
+      /* the page order: This week … Settings ▾, then the key + Priority bundles, then Progress ▾ (the graph and tables), then Other bundles */
+      const pri=pg.querySelector('.q4PriPanel'),prog=pg.querySelector('details.q4Prog:not(.q4Rec)'),leg=pg.querySelector('.q4Legend'),set=pg.querySelector('details.q4Set');
+      const oth=[...pg.querySelectorAll('section.q4Panel')].find(s=>((s.querySelector('.ph .t')||{}).textContent||'')==='Other bundles');
+      const after=(a,b)=>!!(a&&b&&(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING));
+      ok(after(pri,prog),'Priority bundles sits above the graph and the tables');
+      ok(after(leg,pri)&&leg.nextElementSibling===pri,'its Build now / Parts cover key sits just above it');
+      ok(after(set,leg),'Settings ▾ stays above it');
+      ok(after(prog,oth),'Other bundles stays below the graph');
+      ok(!/undefined|NaN/.test(pg.querySelector('.q4Prog').innerHTML),'no NaN');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 138 · b651: the Complete chart's lines heavier, no parts in hand line */
+  S['b651: Complete chart — thicker lines, no parts in hand line or key']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{goPage('lavarion');LV3.go('q4');await wait(250);
+      const ch=document.querySelector('#page-lavarion .q4Prog .q4Chart');ok(ch,'the Complete chart');if(!ch)return;
+      const sw=sel=>{const e=ch.querySelector(sel);return e?parseFloat(getComputedStyle(e).strokeWidth)||0:null;};
+      ok(sw('polyline.ln')>=3.5,'Sent so far: 3.5 or more ('+sw('polyline.ln')+')');
+      if(ch.querySelector('polyline.pj'))ok(sw('polyline.pj')>=3.5,'the weekly-average line: 3.5 or more ('+sw('polyline.pj')+')');
+      if(ch.querySelector('line.nd'))ok(sw('line.nd')>=4.5,'the needed-to-finish dots: 4.5 or more ('+sw('line.nd')+')');
+      ok(sw('line.by')>=2,'the last-send line: 2 or more');{const t=ch.querySelector('text.ax.by');if(t)eq(getComputedStyle(t).stroke,'none','its date is clean text — no dashed outline');}ok(sw('line.td')>=1.5,'the today line: 1.5 or more');
+      const k=ch.querySelector('.q4ChartK .k.p i');if(k)ok(parseFloat(getComputedStyle(k).borderTopWidth)>=3,'the key swatches are as thick as the lines');
+      ok(!ch.querySelector('svg line.cl')&&!ch.querySelector('.q4ChartK .k.c'),'no parts in hand line or key chip');
+      ok(!/parts in hand/i.test(ch.textContent+(ch.querySelector('svg').getAttribute('aria-label')||'')),'"parts in hand" is nowhere on the chart');
+      ok(!/undefined|NaN/.test(ch.innerHTML),'no NaN');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 139 · b652: sort (most done first), aligned names, a colour per line that never repaints, the drop-down and cards */
+  S['b652: Q4 — Sort box (most done first), aligned names, a colour per line that never repaints, drop-down + card layout']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),was=(document.querySelector('.page.active')||{}).id||'';let keepSort=null;try{keepSort=localStorage.getItem('lv3.q4.sort');}catch(e){}
+    const keepT=D.settings.q4Targets===undefined?undefined:JSON.stringify(D.settings.q4Targets);
+    try{
+      try{localStorage.removeItem('lv3.q4.sort');}catch(e){}
+      eq(LV3.q4SortPref(),'most','nothing picked: most done first');
+      goPage('lavarion');LV3.go('q4');await wait(250);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),TR=LV3.q4Track(R),byName={};R.bundles.filter(r=>r.priority).forEach(r=>{byName[r.name]=r;});
+      const order=()=>[...document.querySelectorAll('#page-lavarion table.q4P tbody tr.q4Row td.q4N .q4NT>b')].map(b=>byName[b.textContent]),pc=r=>r&&r.pct!=null?r.pct:-1;
+      let o=order();ok(o.length&&o.every(Boolean),'every row is a priority bundle');
+      ok(o.every((r,i)=>i===0||pc(o[i-1])>=pc(r)),'most done first: '+o.map(pc).join(', '));
+      const sel=pg.querySelector('.q4PriPanel select.q4SortSel');ok(sel&&sel.value==='most'&&sel.options.length===5,'a Sort box on Priority bundles, on Most done first');
+      LV3.q4SetSort('least');await wait(150);o=order();ok(o.every((r,i)=>i===0||pc(o[i-1])<=pc(r)),'Least done first');
+      LV3.q4SetSort('left');await wait(150);o=order();ok(o.every((r,i)=>i===0||TR.line(o[i-1]).left>=TR.line(r).left),'Most left to do');
+      LV3.q4SetSort('week');await wait(150);o=order();ok(o.every((r,i)=>i===0||TR.week(o[i-1]).toGo>=TR.week(r).toGo),'Most to do this week');
+      LV3.q4SetSort('name');await wait(150);o=order();ok(o.every((r,i)=>i===0||String(o[i-1].name).localeCompare(String(r.name))<=0),'A to Z');
+      eq((()=>{try{return localStorage.getItem('lv3.q4.sort');}catch(e){return null;}})(),'name','the choice is kept on this browser');
+      LV3.q4SetSort('most');await wait(150);
+      /* names: the chevron beside a name block — the ASIN starts where the name starts */
+      const nts=[...document.querySelectorAll('#page-lavarion table.q4T td.q4N .q4NW')];ok(nts.length&&nts.every(x=>x.querySelector('.q4Chev')&&x.querySelector('.q4NT>b')&&x.querySelector('.q4NT>small')),'every name cell is chevron + name block');
+      const vis=nts.filter(x=>x.getBoundingClientRect().width>0);
+      ok(vis.every(x=>Math.abs(x.querySelector('.q4NT>b').getBoundingClientRect().left-x.querySelector('.q4NT>small').getBoundingClientRect().left)<1.5),'the ASIN lines up under the name');
+      /* colours: one each, and adding targets repaints nobody */
+      const hueBy=()=>{const m={};document.querySelectorAll('#page-lavarion .q4Week .q4WC').forEach(c=>{const id=(c.getAttribute('onclick').match(/'([^']+)'/)||[])[1];m[id]=c.style.getPropertyValue('--c').trim();});return m;};
+      const h0=hueBy(),ids0=Object.keys(h0);ok(ids0.length&&new Set(Object.values(h0)).size===ids0.length,'every target line has a colour of its own ('+ids0.length+')');
+      const nameHue={};R.bundles.filter(r=>r.priority).forEach(r=>{nameHue[r.name]=h0[r.id];});
+      [['Gluten Free Snack Bundle','#9085e9'],['Gluten Free Biscuit Bundle','#3987e5'],['Hot Chocolate Gift Hamper','#d55181'],['Tea & Biscuits Hamper','#c98500'],['Pub Snacks Hamper','#199e70'],['Reindeer Food','#d95926']]
+        .forEach(([nm,h])=>{if(nameHue[nm]&&Object.keys(D.settings.q4Targets||{}).slice(0,6).some(k=>(R.bundles.find(r=>r.id===k)||{}).name===nm))eq(nameHue[nm],h,nm+' keeps its colour');});
+      const extra=R.bundles.filter(r=>!r.priority&&r.max>0).slice(0,2);
+      if(extra.length&&D.settings.q4Targets){const m=Object.assign({},D.settings.q4Targets);extra.forEach(r=>{m[String(r.id)]=50;});D.settings.q4Targets=m;LV3.render();goPage('lavarion');LV3.go('q4');await wait(250);
+        const h1=hueBy();ok(ids0.every(id=>h1[id]===h0[id]),'adding '+extra.length+' targets repaints nobody');
+        ok(new Set(Object.values(h1)).size===Object.keys(h1).length&&Object.keys(h1).length===ids0.length+extra.length,'and the new ones get colours of their own');
+        D.settings.q4Targets=JSON.parse(keepT);LV3.render();goPage('lavarion');LV3.go('q4');await wait(250);}
+      /* the drop-down: four cards, one row, the same height, in the order Left to do · Sent by week · Build speed · To buy */
+      const tr=document.querySelector('#page-lavarion table.q4P tbody tr.q4Row'),id=tr&&tr.getAttribute('data-q4r');
+      if(id){LV3.q4Toggle(id);await wait(150);
+        const dr=[...document.querySelectorAll('#page-lavarion table.q4P tr.q4Drop')].find(x=>x.getAttribute('data-q4d')===id),cs=dr?[...dr.querySelectorAll('.q4DropIn>.q4DB')]:[];
+        eq(cs.length,4,'four cards in the drop-down');
+        if(cs.length===4&&innerWidth>1280){const b=cs.map(c=>c.getBoundingClientRect());
+          ok(b.every(x=>Math.abs(x.top-b[0].top)<1.5&&Math.abs(x.height-b[0].height)<1.5),'one row, all the same height');
+          eq(cs.map((c,i)=>[b[i].left,(c.className.match(/q4DB\w+/g)||['']).pop()]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]).join(','),'q4DBLeft,q4DBWk,q4DBRate,q4DBBuy','Left to do, Sent by week, Build speed, To buy');}
+        const bad=dr&&dr.querySelector('.q4Stack i.bad');if(bad)eq(getComputedStyle(bad).backgroundColor,'rgb(148, 163, 184)','parts still to buy: a calm grey, not red');
+        ok(dr&&!dr.querySelector('.q4DBn.w'),'no amber notes in it');
+        const inp=dr&&dr.querySelector('.q4RateIn');if(inp)ok(getComputedStyle(inp,'::placeholder').color!==getComputedStyle(inp).color,'the e.g. placeholder is muted — it does not read as a value');
+        LV3.q4Toggle(id);await wait(100);}
+      /* This week cards: Last week · Parts in hand · At Amazon as a labelled list on the bottom edge, rows balanced */
+      const cards=[...document.querySelectorAll('#page-lavarion .q4Week .q4WC')],g=document.querySelector('#page-lavarion .q4WeekGrid');
+      cards.forEach(c=>{const nm=c.querySelector('.h').textContent,k=[...c.querySelectorAll('.kvs .kv>span')].map(s=>s.textContent);
+        eq(k[0],'Last week',nm+': Last week first');ok(!c.querySelector(':scope>.n, :scope>.s, :scope>.az'),nm+': no loose sentence lines');});
+      if(g&&cards.length){const cols=parseInt(g.style.getPropertyValue('--cols'));eq(cols,Math.ceil(cards.length/Math.ceil(cards.length/6)),cards.length+' cards → '+cols+' a row');
+        if(innerWidth>1180){const top0=cards[0].getBoundingClientRect().top,row=cards.filter(c=>Math.abs(c.getBoundingClientRect().top-top0)<1),kb=row.map(c=>c.querySelector('.kvs').getBoundingClientRect().bottom);
+          ok(kb.every(v=>Math.abs(v-kb[0])<1.5),'the labelled rows sit on the bottom edge of every card in a row');}}
+      ok(!/undefined|NaN/.test(pg.innerHTML),'no NaN');
+    }finally{if(keepT===undefined)delete D.settings.q4Targets;else D.settings.q4Targets=JSON.parse(keepT);
+      try{if(keepSort==null)localStorage.removeItem('lv3.q4.sort');else localStorage.setItem('lv3.q4.sort',keepSort);}catch(e){}
+      try{LV3.render();LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 140 · b653: hours of building as build days — hours ÷ his hours a day (8 until he sets it) */
+  S['b653: Q4 — hours left as build days at his hours a day (8 until set); the box saves']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),was=(document.querySelector('.page.active')||{}).id||'';
+    const keepS=JSON.stringify(D.settings),keepB=LV3.__prefsBase(),logN=D.log.length;
+    const own=Object.prototype.hasOwnProperty.call(sb,'from'),orig=sb.from;let wrote=null;
+    try{
+      if(D.settings.q4HoursDay==null)eq(LV3.q4HoursDay(),8,'nothing set: 8 hours a day');
+      goPage('lavarion');LV3.go('q4');await wait(250);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),TR=LV3.q4Track(R),hpd=LV3.q4HoursDay();
+      const fmtH=h=>h<10?(Math.round(h*10)/10).toFixed(1).replace(/\.0$/,''):Math.round(h).toLocaleString('en-GB');
+      const P=R.bundles.filter(r=>r.priority),timed=P.filter(r=>LV3.q4RateOf(r.id)&&TR.line(r).left>0);
+      timed.forEach(r=>{const h=TR.line(r).left/LV3.q4RateOf(r.id).avg,tr=[...pg.querySelectorAll('table.q4P tbody tr.q4Row')].find(t=>t.getAttribute('data-q4r')===r.id);
+        const cell=tr&&tr.querySelector('td.q4Hr');ok(cell&&cell.textContent.includes('≈ '+fmtH(h/hpd)+' build day'),r.name+': ~'+fmtH(h)+' h ≈ '+fmtH(h/hpd)+' build days ('+(cell&&cell.textContent)+')');
+        const dr=[...pg.querySelectorAll('table.q4P tr.q4Drop')].find(t=>t.getAttribute('data-q4d')===r.id);ok(dr&&dr.querySelector('.q4RateOut').textContent.includes('≈ '+fmtH(h/hpd)+' build day'),r.name+': the Build speed card gives the days too');});
+      const sum=pg.querySelector('.q4HrSum');
+      if(timed.length){const tot=timed.reduce((t,r)=>t+TR.line(r).left/LV3.q4RateOf(r.id).avg,0);
+        ok(sum&&sum.querySelector('.q4HrD').textContent.includes(fmtH(tot/hpd)+' build day'),'the strip: ~'+fmtH(tot)+' h ≈ '+fmtH(tot/hpd)+' build days');
+        ok(sum.querySelector('#q4t-hpd')&&+sum.querySelector('#q4t-hpd').value===hpd,'the hours-a-day box shows '+hpd);
+        ok(sum.textContent.includes(TR.wdLeft+' working day'),'beside the '+TR.wdLeft+' working days left');
+        /* the box saves through the PLUB settings */
+        sb.from=t=>{const q={select:()=>q,eq:()=>q,in:()=>q,maybeSingle:()=>Promise.resolve({data:{value:keepS},error:null}),
+          upsert:v=>{wrote=JSON.parse(v.value);return Promise.resolve({error:null});}};return q;};
+        LV3.__setPrefsBase(JSON.parse(keepS));
+        ok(await LV3.q4SetHoursDay('6.5'),'the save reports it landed');eq(wrote&&wrote.q4HoursDay,6.5,'lavarion_prefs gets q4HoursDay = 6.5');
+        await wait(150);ok(document.querySelector('#page-lavarion .q4HrSum .q4HrD').textContent.includes(fmtH(tot/6.5)+' build day'),'redrawn at 6.5 a day: '+fmtH(tot/6.5));
+        await LV3.q4SetHoursDay('');eq(LV3.q4HoursDay(),8,'cleared: back to 8');
+        await LV3.q4SetHoursDay('30');eq(LV3.q4HoursDay(),8,'over 24 is ignored');}
+      ok(!/undefined|NaN|Infinity/.test(pg.querySelector('.q4PriPanel').innerHTML),'no NaN');
+    }finally{if(own)sb.from=orig;else delete sb.from;Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,JSON.parse(keepS));
+      LV3.__setPrefsBase(keepB);D.log.splice(0,D.log.length-logN);
+      try{LV3.render();LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
 
   async function run(only){

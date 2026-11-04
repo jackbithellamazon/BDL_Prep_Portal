@@ -2772,6 +2772,10 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .q4G td.q4H0{padding:8px 12px;text-align:left;min-width:96px;}
 #page-lavarion .q4G td.q4H0 b{font:600 12.5px var(--num);color:var(--text3);opacity:.4;}
 #page-lavarion .q4G td.q4H0 .q4Hb{background:rgba(255,255,255,.035);}
+/* b650: a red ✕ when none of a target line went out; a quiet ✓ once its target is hit */
+#page-lavarion .q4G td.q4H0.x b{font:800 13.5px var(--num);color:#f87171;opacity:1;}
+#page-lavarion .q4G td.q4H0.dn b{color:#4ade80;opacity:.55;}
+#page-lavarion .q4SegNote .q4X{color:#f87171;font-weight:800;}
 #page-lavarion .q4G tr.q4WkD td{padding:12px 12px 6px;background:none;border-bottom:1px solid var(--border2);font-size:11.5px;color:var(--text3);white-space:nowrap;}
 #page-lavarion .q4G tbody tr.q4WkD:first-child td{padding-top:8px;}
 #page-lavarion .q4G .q4WkDl{font:800 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--text2);}
@@ -2835,6 +2839,17 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .q4T2 td.q4W.bad small{color:var(--text3);font-weight:600;}
 #page-lavarion .q4Chart .cl{stroke:#94a3b8;opacity:.6;}
 #page-lavarion .q4ChartK .k.c i{border-top:2px dashed #94a3b8;}
+/* b651 (Jack, 4 Nov: "thicker lines so I can see when it goes past"): every line on the Complete chart heavier, the key to match */
+#page-lavarion .q4Chart .ln{stroke-width:3.5;}
+#page-lavarion .q4Chart .pj{stroke-width:3.5;stroke-dasharray:10 7;opacity:1;}
+#page-lavarion .q4Chart .nd{stroke-width:4.5;stroke-dasharray:0.1 9;}
+#page-lavarion .q4Chart line.by{stroke:rgba(251,191,36,.8);stroke-width:2;stroke-dasharray:6 5;}
+#page-lavarion .q4Chart text.by{stroke:none;}   /* the "10 Dec" under it is text, not a line */
+#page-lavarion .q4Chart .td{stroke:rgba(255,255,255,.4);stroke-width:1.5;}
+#page-lavarion .q4Chart .hx{stroke-width:1.5;}
+#page-lavarion .q4ChartK .k i{width:24px;border-top-width:3.5px;}
+#page-lavarion .q4ChartK .k.p i{border-top:3.5px dashed #38bdf8;}
+#page-lavarion .q4ChartK .k.n i{border-top:4.5px dotted #fbbf24;}
 #page-lavarion .q4WeekTop{display:flex;gap:18px;align-items:stretch;flex-wrap:wrap;padding:2px 15px 12px;}
 #page-lavarion .q4WeekTrend{flex:0 1 400px;min-width:260px;padding:8px 12px 6px;border:1px solid var(--border);border-radius:10px;background:var(--bg3);}
 #page-lavarion .q4WkT{font:800 10px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
@@ -2842,3 +2857,62 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .q4WkC.out .q4WkB i{background:rgba(148,163,184,.35);}
 #page-lavarion .q4WkC.out b{color:var(--text3);}
 #page-lavarion .q4WeekTop .q4WeekNote{flex:1 1 360px;padding:4px 0 0;display:flex;flex-direction:column;gap:6px;justify-content:center;}
+/* ═══ b652 (Jack, 4 Nov: "improve the UI/UX — no dead space or dead blocks") ═══ */
+/* Priority bundles: the Sort box */
+#page-lavarion .q4SortL{display:inline-flex;align-items:center;gap:7px;margin-left:12px;font:700 10.5px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .q4SortSel{width:auto;height:30px;padding:0 28px 0 10px;font:600 12.5px var(--sans);letter-spacing:0;text-transform:none;color:var(--text);cursor:pointer;}
+/* names: the chevron beside a name block — a long name wraps under itself, the ASIN lines up under the name */
+#page-lavarion .q4T td.q4N .q4NW{display:flex;align-items:center;gap:11px;}
+#page-lavarion .q4T td.q4N .q4NT{min-width:0;}
+#page-lavarion .q4T td.q4N .q4NT b{display:block;line-height:1.3;}
+#page-lavarion .q4T td.q4N .q4NT small{display:block;margin:3px 0 0;}
+#page-lavarion .q4T2 tr.q4Tog td.q4N .q4NT small{margin-left:0;}
+#page-lavarion .q4T .q4NW .q4Chev,#page-lavarion .q4T tr.q4Tog.open .q4NW .q4Chev{flex:0 0 auto;margin:0 1px;}
+/* the drop-down: four cards in one row, the same height, each card's last line on its bottom edge */
+#page-lavarion .q4P .q4DropIn{grid-template-columns:minmax(230px,1fr) minmax(210px,.9fr) minmax(200px,.75fr) minmax(300px,1.5fr);align-items:stretch;}
+@media (max-width:1280px){#page-lavarion .q4P .q4DropIn{grid-template-columns:repeat(2,minmax(0,1fr));}}
+#page-lavarion .q4DB{display:flex;flex-direction:column;padding:11px 14px 12px;}
+#page-lavarion .q4DBLeft{order:1;}#page-lavarion .q4DBWk{order:2;}#page-lavarion .q4DBRate{order:3;}#page-lavarion .q4DBBuy{order:4;}
+#page-lavarion .q4DB .q4DBf{margin-top:auto;padding-top:9px;}
+#page-lavarion .q4DBWk .q4Wk{margin-top:auto;}
+#page-lavarion .q4DB .q4Split{flex-direction:row;flex-wrap:wrap;gap:3px 14px;}
+#page-lavarion .q4DB .q4Stack i.bad,#page-lavarion .q4DB .q4Split i.bad{background:#94a3b8;}
+#page-lavarion .q4T td .q4DB .q4Lim.q4Warn{color:var(--text2);}
+#page-lavarion .q4T td .q4DB .q4Lim.q4Warn b{color:var(--text);}
+#page-lavarion .q4DBRate .q4RateL{flex-direction:row;align-items:center;gap:9px;margin:2px 0 6px;}
+#page-lavarion .q4DBRate .q4RateIn{flex:0 1 150px;max-width:150px;}
+#page-lavarion .q4DBRate .q4RateIn::placeholder{color:var(--text3);font-weight:500;opacity:.7;}
+#page-lavarion .q4DBRate .q4RateL span{font-size:12px;color:var(--text2);}
+#page-lavarion .q4DBRate .q4RateHelp{margin-top:0;font-size:11px;color:var(--text3);}
+#page-lavarion .q4RateOut{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px;}
+#page-lavarion .q4RateOut b{font:800 19px var(--num);color:#93c5fd;font-variant-numeric:tabular-nums;}
+#page-lavarion .q4RateOut span{font-size:11.5px;color:var(--text3);}
+#page-lavarion .q4BuyL{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 14px;}
+#page-lavarion .q4BuyL li{display:flex;align-items:baseline;gap:8px;min-width:0;font-size:12px;color:var(--text2);}
+#page-lavarion .q4BuyL b{flex:0 0 auto;min-width:30px;text-align:right;font:800 12.5px var(--num);color:var(--text);font-variant-numeric:tabular-nums;}
+#page-lavarion .q4BuyL span{min-width:0;line-height:1.35;white-space:normal;}
+/* This week cards: rows balanced (11 = 6 + 5), the figures a labelled list on the bottom edge of every card */
+#page-lavarion .q4WeekGrid{grid-template-columns:repeat(var(--cols,6),minmax(0,1fr));}
+@media (max-width:1180px){#page-lavarion .q4WeekGrid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));}}
+#page-lavarion .q4WC{display:flex;flex-direction:column;padding:12px 14px 11px 17px;}
+#page-lavarion .q4WC .bw{display:flex;align-items:center;gap:9px;margin:9px 0 11px;}
+#page-lavarion .q4WC .bw .b{flex:1;margin:0;}
+#page-lavarion .q4WC .bw small{font:700 11px var(--num);color:var(--text3);white-space:nowrap;font-variant-numeric:tabular-nums;}
+#page-lavarion .q4WC .kvs{margin-top:auto;padding-top:9px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:5px;}
+#page-lavarion .q4WC .kv{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0;font-size:11.5px;font-weight:400;color:var(--text3);}
+#page-lavarion .q4WC .kv>span{white-space:nowrap;color:var(--text3);}
+#page-lavarion .q4WC .kv>b{font:700 11.5px var(--num);color:var(--text2);text-align:right;font-variant-numeric:tabular-nums;}
+#page-lavarion .q4WC .kv>b.ok{color:#86efac;}
+#page-lavarion .q4WC .kv>b.q4Dim{color:var(--text3);font-weight:600;}
+#page-lavarion .q4WC .kv.az.w>b{color:#fcd34d;}
+#page-lavarion .q4WC .kv.az.bad>b{color:#fca5a5;}
+#page-lavarion .q4WeekGrid .q4WC .kv.az>span{color:var(--text3);font-weight:400;}
+/* Hours left: "not timed / time it ›" as one centred pair — the second line no longer hides (it left the first sitting high) */
+#page-lavarion .q4T2 td.q4Hr.none .q4HrGo{opacity:.6;}
+#page-lavarion .q4T2 tr.q4Row:hover td.q4Hr.none .q4HrGo{opacity:1;}
+/* b653: hours of building as build days — the total, the hours-a-day box, the working days left */
+#page-lavarion .q4HrSum b.q4HrD{font-size:15px;color:#c4b5fd;}
+#page-lavarion .q4HrSum .q4HpdL{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);}
+#page-lavarion .q4HrSum .q4HpdIn{width:58px;height:26px;padding:0 6px;font:700 12.5px var(--num);text-align:center;}
+#page-lavarion .q4HrSum .q4HrWd{color:var(--text3);}
+#page-lavarion .q4T2 td.q4Hr small+small{margin-top:1px;}
