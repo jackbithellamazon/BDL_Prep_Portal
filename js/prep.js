@@ -220,14 +220,16 @@ function renderPrepRows(data){
         <button onclick="openIssueModal('${r.uuid||r.id}')" id="ib-${r.id}"
           style="padding:4px 10px;background:transparent;border:1px dashed var(--border2);color:var(--text3);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;min-width:32px;"
           title="Raise an issue against this row">+ issue</button>
-        ${(()=>{const _tg=(typeof _rowStateTag==='function')?_rowStateTag(r):null;   /* Jack, 15 Sep: "where are all of these?" — the row says whose it is */
+        ${(()=>{const _tg=(typeof _rowStateTag==='function'&&!_ocAsked(r))?_rowStateTag(r):null;   /* b657: an order check's own chip says With Jack */   /* Jack, 15 Sep: "where are all of these?" — the row says whose it is */
           return _tg?`<div class="ownTag" style="color:${_tg.col};border-color:${_tg.col}55;" title="${esc(_tg.tip||'')}">${esc(_tg.t)}</div>`:'';})()}
         ${(()=>{const _q=_ukQuery(r);const _rs=r.resolution||{};
           if(_isAmzDel(r)&&r.resolution.amzDelivered.kind==='leftover'){const _lf=_leftUnits(r);
             return `<div class="qryTag amz" title="${fmt(_lf)} booked in but never sent. Found them? Send them on the next shipment (Send more) — it clears itself. Not here? Press the button: the count is corrected and it goes back${_amazonRow(r)?' to Jack to raise with Amazon':' to Sarah'}.">Becki — check the shelves: ${fmt(_lf)} booked in, never sent</div>
             <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk qryNot" onclick="amzNotHere('${r.uuid||r.id}')" title="Checked the shelves, back stock and anywhere else — they are not here. The booked-in count is corrected.">Not here</button><button class="qryAsk" onclick="wentOutUnder('${r.uuid||r.id}')" title="They went out on another SKU's shipment — record it; Sarah confirms it in Seller Central">Another SKU&hellip;</button></div>`;}
+          if(_ocAsked(r))return `<div class="qryTag jk" title="${esc((r.resolution.ordChk||{}).by||'Becki')} couldn’t find it on the shelves — Jack is checking every order of this product on the accounts for a cancellation. Nothing to do until he answers; if it turns up, book it in as normal and it clears.">With Jack &middot; checking every order</div>
+            <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk" onclick="ocUndo('${_ocJs(_asinKey(r.asin))}')" title="Pressed by mistake — it comes back here with Not here, and off Jack’s list">Undo</button></div>`;
           if(_isAmzDel(r))return `<div class="qryTag amz" title="Amazon say this was delivered. Found it on the shelves? Book it in and send it on the next shipment — the flag clears itself, nothing to press. Not here? Press the button and it goes to Jack to raise with Amazon.">Becki — Amazon say delivered, check the shelves</div>
-            <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk qryNot" onclick="amzNotHere('${r.uuid||r.id}')" title="Checked the shelves, back stock and anywhere else — it is not here. It goes straight to Jack to raise with Amazon.">Not here</button></div>`;
+            <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk qryNot" onclick="amzNotHere('${r.uuid||r.id}')" title="Checked the shelves, back stock and anywhere else — it is not here. It goes straight to Jack to raise with Amazon.">Not here</button>${_ocCan(r)?`<button class="qryAsk qryOc" onclick="ocAsk('${r.uuid||r.id}')" title="Not on the shelves — before it is claimed, Jack checks every order of this product on the accounts for a cancellation. Every order of it you are looking for goes with it.">Ask Jack to check all orders</button>`:''}</div>`;
           if(typeof _partShipStale==='function'&&_partShipStale(r)){const _lf=(typeof remainingToShip==='function')?remainingToShip(r):0;
             return `<div class="qryTag" title="${fmt(parseInt(r.ship)||0)} went out${r.sentDate?' by '+_dmy(r.sentDate):''}; ${fmt(_lf)} never followed. Sarah is working out what happened; if it needs a shelf check it comes to Becki. Still on the shelf? Send them. Went out under another SKU? Press the button.">${fmt(_lf)} booked in, not sent yet &mdash; with Sarah</div>
             <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk" onclick="wentOutUnder('${r.uuid||r.id}')" title="They went out on another SKU's shipment — record it; Sarah confirms it in Seller Central">Went out under another SKU&hellip;</button></div>`;}
@@ -379,6 +381,7 @@ function _amzFoundBySave(r){
   if(!a||a.done||(a.kind==='leftover'?_leftUnits(r)>0:_owedUnits(r)>0))return false;
   const _d=new Date(),_dd=_ddUK(_d);
   a.done={by:_who(),at:_d.toISOString(),how:'found'};
+  if(_ocAsked(r))_ocRestore(r,'Found on the shelves — the order check is no longer needed',_d.toISOString());   /* b656 */
   r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${_dd}: ${a.kind==='leftover'?'found them — sent':'found it — all booked in'}`;
   r.vaNoteBy=_who();r.vaNoteAt=_d.toISOString();
   try{logAudit('Amazon-says-delivered cleared — all booked in',`${r.sku||r.asin||''} — ${fmt(parseInt(r.rcvd)||0)} of ${fmt(parseInt(r.exp)||0)} in`);}catch(e){}
@@ -426,7 +429,7 @@ function asinChkTile(r,where){
   }
   if(!jack)return '';
   if(!((typeof _owedUnits==='function'&&_owedUnits(r)>0)||(typeof _leftUnits==='function'&&_leftUnits(r)>0)))return '';
-  if(where==='sheet'&&!(typeof _isAmzDel==='function'&&_isAmzDel(r)))return '';
+  if(where==='sheet'&&(!(typeof _isAmzDel==='function'&&_isAmzDel(r))||_ocAsked(r)))return '';   /* b656: while he checks every order, his card's All delivered does this */
   {const od=typeof _sfOrderISO==='function'?_sfOrderISO(r):'';if(!od||od<ukAddDays(todayISO(),-60))return '';}   /* the tick covers the last 60 days */
   return `<button class="asinChkBtn" onclick="asinChkConfirm('${id}')" title="You have checked every order of this product from the last 60 days on the accounts and they all arrived — stamp it so Sarah and Becki can see.">&#10003; All orders of this ASIN checked</button>`;
 }
@@ -471,6 +474,253 @@ async function _saveAsinChecks(A,val){
   return ok;
 }
 function _asinChkRepaint(){try{renderPrep();}catch(e){}try{renderAdmin();}catch(e){}try{renderJack();}catch(e){}}
+/* ── b656 (Jack, 6 Nov: "a button for UK staff to escalate to Jack to check all orders in the last 60 days to see if
+   any of them have been cancelled — then in Jack's admin give me account, marketplace, order ID and a has it arrived
+   sort of triage"). Not on the shelves: one press puts EVERY stuck order of the product with Jack — state 'asked',
+   what 'asin-orders', so Sarah's grey row, the With Jack tag and his list follow the usual owner rules. His card lists
+   every order of the product from the last 60 days plus the stuck ones however old; he answers each Amazon one and the
+   card adds it up — delivered against booked in — and sends each stuck order where its answer says.
+   b662 (Jack: "audit it"): rewritten after an independent audit — see edit670.py for the list. */
+function _ocAsked(r){return !!(r&&!r.archived&&r.resolution&&r.resolution.state==='asked'&&r.resolution.what==='asin-orders');}
+function _ocCan(r){return !!r&&!!_asinKey(r.asin)&&_isAmzDel(r)&&r.resolution.amzDelivered.kind!=='leftover'&&typeof _amazonRow==='function'&&_amazonRow(r)&&!_ocAsked(r)
+  &&!(typeof _parkedOnDate==='function'&&_parkedOnDate(r));}   /* b662: needs an ASIN, and not parked on a promised date */
+/* an onclick argument inside a double-quoted attribute: JS-escaped, then HTML-escaped */
+function _ocJs(s){return esc(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"));}
+const _OC_MKT={'amazon uk':'co.uk','amazon germany':'de','amazon france':'fr','amazon spain':'es','amazon italy':'it'};
+function _ocOrderUrl(oid,sup){
+  const d=_OC_MKT[String(sup||'').trim().toLowerCase()],o=String(oid||'').trim();
+  return d&&/^\d{3}-\d{7}-\d{7}$/.test(o)?`https://www.amazon.${d}/gp/your-account/order-details?orderID=${o}`:'';
+}
+function _ocStuck(A){
+  A=_asinKey(A);if(!A)return [];
+  return rows.filter(x=>_ocAsked(x)&&_asinKey(x.asin)===A).sort((a,b)=>String(_sfOrderISO(a)).localeCompare(String(_sfOrderISO(b)))||String(a.uuid||a.id).localeCompare(String(b.uuid||b.id)));
+}
+/* every order of the product: the last 60 days, plus the stuck ones however old (a strict 60 days would leave off the
+   very order Becki is asking about) — grouped by order number; Amazon orders first, by account and marketplace */
+function _ocOrders(A,stuck){
+  if(!A)return [];
+  const since=ukAddDays(todayISO(),-60),S=new Set(stuck.map(x=>String(x.uuid||x.id))),by={},n=x=>parseInt(x)||0;
+  rows.forEach(x=>{if(_asinKey(x.asin)!==A)return;
+    const mine=S.has(String(x.uuid||x.id)),od=_sfOrderISO(x);if(!mine&&(!od||od<since))return;
+    const want=Math.max(0,n(x.exp)-n(x.cancelledQty)),bk=n(x.rcvd);if(!mine&&!want&&!bk)return;   /* cancelled on the sheet already */
+    const oid=String(x.oid||'').trim(),k=oid||('row:'+(x.uuid||x.id));
+    const o=by[k]=by[k]||{key:k,oid,acct:String(x.acct||'').trim(),sup:String(x.sup||'').trim(),od:od||'',want:0,booked:0,cxSheet:0,rows:[],stuck:[],old:false,amz:false};
+    if(typeof _amazonRow==='function'&&_amazonRow(x))o.amz=true;   /* b662: only an Amazon order is his to check on the accounts */
+    o.want+=want;o.booked+=bk;o.cxSheet+=n(x.cancelledQty);o.rows.push(x);if(mine){o.stuck.push(x);if(od&&od<since)o.old=true;}if(od&&(!o.od||od<o.od))o.od=od;});
+  return Object.values(by).sort((a,b)=>(a.amz===b.amz?0:a.amz?-1:1)||a.acct.localeCompare(b.acct)||a.sup.localeCompare(b.sup)||(a.od<b.od?-1:a.od>b.od?1:0));
+}
+/* his answers ride on EVERY stuck row (live on every laptop, kept on the rows afterwards) plus this laptop's own copy,
+   so a late echo of an earlier save can't take back a newer answer; a cleared answer is kept as {a:null} so it stays
+   cleared. The newest answer for an order wins. */
+const _ocCache={};
+function _ocCacheKey(A,stuck){return A+'|'+(stuck.map(s=>(((s.resolution||{}).ordChk)||{}).at||'').sort()[0]||'');}
+function _ocAnsAll(A,stuck){
+  const m={},take=(k,v)=>{if(v&&(!m[k]||String(v.at||'')>String(m[k].at||'')))m[k]=v;};
+  stuck.forEach(x=>{Object.entries((((x.resolution||{}).ordChk)||{}).ans||{}).forEach(([k,v])=>take(k,v));});
+  Object.entries(_ocCache[_ocCacheKey(A,stuck)]||{}).forEach(([k,v])=>take(k,v));
+  return m;
+}
+function _ocAnswers(A,stuck){const m=_ocAnsAll(A,stuck),o={};Object.entries(m).forEach(([k,v])=>{if(v.a)o[k]=v;});return o;}
+/* the sum: what Amazon delivered (his answers; a supplier order at the warehouse's word) against what was booked in.
+   A stuck line is covered first by its own order's other lines booked beyond theirs (a split order, rule R4), then by
+   orders with more booked in than Amazon delivered (an order Amazon cancelled) — never by units an earlier order check
+   already gave another line that Sarah hasn't moved yet. Each covering unit has one named source. What no booking
+   covers is really missing. */
+function _ocPlan(A){
+  A=_asinKey(A);const stuck=_ocStuck(A);if(!stuck.length)return null;
+  const orders=_ocOrders(A,stuck),ans=_ocAnswers(A,stuck),n=x=>parseInt(x)||0,SS=new Set(stuck),held={};
+  rows.forEach(x=>{if(x.archived||SS.has(x)||_asinKey(x.asin)!==A)return;const d=(((x.resolution||{}).ordChk)||{}).done;
+    if(!d||!Array.isArray(d.srcs)||!d.srcs.length)return;
+    let left=Math.min(_owedUnits(x),d.srcs.reduce((t,s)=>t+n(s.n),0));
+    d.srcs.forEach(s=>{const u=Math.min(left,n(s.n));if(u>0){held[s.key]=(held[s.key]||0)+u;left-=u;}});});
+  let D=0,B=0,answered=0,heldN=0;const rws=[];
+  orders.forEach(o=>{const a=o.amz?(ans[o.key]||null):null;o.ans=a;if(a)answered++;
+    o.cx=!a?0:a.a==='c'?o.want:a.a==='p'?Math.min(o.want,Math.max(0,n(a.k))):0;
+    o.del=o.amz?o.want-o.cx:Math.min(o.want,o.booked);D+=o.del;B+=o.booked;
+    let left=o.cx,Ss=0;const mine=[];
+    o.stuck.forEach(s=>{const ow=_owedUnits(s),c=Math.min(left,ow);left-=c;   /* a cancellation covers the missing units first */
+      const x={r:s,o,owed:ow,cx:c,short:ow-c,srcs:[],moved:0,miss:0};Ss+=x.short;mine.push(x);rws.push(x);});
+    const spare=Math.max(0,o.booked-o.del+Ss);let inner=Math.min(Ss,spare);   /* booked here beyond this order's own lines */
+    mine.forEach(x=>{const u=Math.min(x.short-x.moved,inner);if(u>0){x.srcs.push({o,n:u,inner:true});x.moved+=u;inner-=u;}});
+    const rest=Math.max(0,spare-Math.min(Ss,spare));o.held=Math.min(held[o.key]||0,rest);heldN+=o.held;o.over=rest-o.held;});
+  const pool=orders.filter(o=>o.over>0);
+  rws.forEach(x=>{let need=x.short-x.moved;
+    for(const o of pool){if(need<=0)break;const u=Math.min(need,o.over);if(u>0){x.srcs.push({o,n:u,inner:false});x.moved+=u;o.over-=u;need-=u;}}
+    x.miss=x.short-x.moved;x.route=!x.short?'cancelled':x.miss>0?'missing':'sarah';});
+  const S=rws.reduce((t,x)=>t+x.short,0),moved=rws.reduce((t,x)=>t+x.moved,0),extra=pool.reduce((t,o)=>t+o.over,0);
+  const amzN=orders.filter(o=>o.amz).length,all=amzN>0&&answered===amzN;
+  return{A,stuck,orders,amzN,answered,all,allDel:all&&orders.every(o=>!o.amz||o.ans.a==='d'),D,B,S,moved,M:S-moved,extra,held:heldN,
+    sur:orders.filter(o=>o.over>0||rws.some(x=>x.srcs.some(s=>s.o===o&&!s.inner))),rows:rws};
+}
+/* a copy of an order check for the row's history — without the big undo snapshot */
+function _ocSlim(oc){const c=JSON.parse(JSON.stringify(oc||{}));if(c.done)delete c.done.undo;return c;}
+async function ocAsk(rid){
+  const r=_rowById(rid);if(!_ocCan(r)){toast('This one can’t go for an order check','er');return;}
+  const A=_asinKey(r.asin),now=new Date().toISOString(),dd=_ddUK(new Date()),who=_who();
+  const list=_amzDelRows().filter(x=>_asinKey(x.asin)===A&&_ocCan(x));
+  for(const x of list){
+    const q=x.resolution||{},prev={state:q.state,kind:q.kind,what:q.what,ask:q.ask,note:q.note,by:q.by,at:q.at};
+    const ch=q.chase?Object.assign({},q.chase):{path:'never-arrived',step:'',due:'',log:[]};
+    ch.log=(ch.log||[]).concat([{at:now,by:who,what:'Not on the shelves — asked Jack to check every order of this product for a cancellation'}]);
+    x.resolution=Object.assign({},q,{state:'asked',kind:'check',what:'asin-orders',
+      ask:`${who} can’t find it on the shelves — check every order of this product for a cancellation`,note:'',by:who,at:now,chase:ch,
+      ordChk:{by:who,at:now,from:String(rid),prev,ans:{}},
+      ordChkHist:q.ordChk?(q.ordChkHist||[]).concat([_ocSlim(q.ordChk)]):q.ordChkHist});   /* b662: an earlier check stays on the row */
+    x.vaNote=((x.vaNote||'').trim()?(x.vaNote.trim()+'\n'):'')+`${who} ${dd}: not on the shelves — Jack is checking every order of this product`;
+    x.vaNoteBy=who;x.vaNoteAt=now;x._dirty=true;
+    try{await _mustSave(x);}catch(e){toast('Didn’t save — check the connection','er');renderPrep();return;}
+  }
+  try{logAudit('Order check — to Jack',`${A} — ${list.length} order${list.length===1?'':'s'} not on the shelves`);}catch(e){}
+  toast(`With Jack — he checks every order of this product${list.length>1?` (all ${list.length} of yours with it)`:''}`,'ok');
+  renderPrep();try{renderAdmin();renderJack();}catch(e){}
+}
+/* back exactly where it was before the ask — the ask stays in the row's history */
+function _ocRestore(x,why,now){
+  const q=x.resolution||{},oc=q.ordChk||{},p=oc.prev||{},res=Object.assign({},q);
+  ['state','kind','what','ask','note','by','at'].forEach(k=>{if(p[k]===undefined)delete res[k];else res[k]=p[k];});
+  delete res.ordChk;
+  const keep=Object.assign({},oc,{undoneBy:_who(),undoneAt:now,why});delete keep.prev;
+  res.ordChkUndone=(q.ordChkUndone||[]).concat([keep]);
+  if(res.chase)res.chase=Object.assign({},res.chase,{log:(res.chase.log||[]).concat([{at:now,by:_who(),what:why}])});
+  x.resolution=res;
+}
+async function ocUndo(A){
+  A=_asinKey(A);const list=_ocStuck(A);if(!list.length)return;
+  const now=new Date().toISOString(),dd=_ddUK(new Date());
+  for(const x of list){
+    _ocRestore(x,'Order check pulled back — back on the shelf check',now);
+    x.vaNote=((x.vaNote||'').trim()?(x.vaNote.trim()+'\n'):'')+`${_who()} ${dd}: order check pulled back — back on the shelf check`;
+    x.vaNoteBy=_who();x.vaNoteAt=now;x._dirty=true;
+    try{await _mustSave(x);}catch(e){toast('Didn’t save — check the connection','er');break;}
+  }
+  try{logAudit('Order check pulled back',A);}catch(e){}
+  toast('Back on the shelf check — Not here is back on the row','ok');
+  renderPrep();try{renderAdmin();renderJack();}catch(e){}
+}
+/* b661 (Jack: "ok" to an undo): his Send stays undoable for 48 working hours — his approvals' window — while nobody
+   has acted on what it sent (b662: a row filed since counts as acted on, so nothing is ever half-undone) */
+function _ocSendUntouched(x){
+  const q=x.resolution||{},d=(q.ordChk||{}).done;if(x.archived||!d||!d.undo)return false;
+  if(q.amzDelivered&&!q.amzDelivered.done)return false;   /* Sarah sent it to Becki again */
+  return d.route==='missing'?(q.state==='asked'&&q.what==='amz-missing'):(q.state==='rejected'&&/^jack/i.test(String(q.rejectedBy||'')));
+}
+function _ocSends(){
+  const by={};
+  rows.forEach(x=>{const d=(((x.resolution||{}).ordChk)||{}).done;if(!d||!d.undo||!d.at)return;
+    if(!(_workMsSince(d.at)<TM.undoHours*3600e3))return;
+    const k=_asinKey(x.asin)+'|'+d.at;(by[k]=by[k]||{A:_asinKey(x.asin),at:d.at,n:d.n,prod:x.prod||x.sku||'',rows:[]}).rows.push(x);});
+  return Object.values(by).map(g=>Object.assign(g,{ok:g.rows.every(_ocSendUntouched),
+    tl:g.rows.reduce((t,x)=>{const r=x.resolution.ordChk.done.route;t[r]=(t[r]||0)+1;return t;},{})})).sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+}
+async function ocUndoSend(A,at){
+  A=_asinKey(A);const g=_ocSends().find(s=>s.A===A&&s.at===at);if(!g)return;
+  if(!g.ok){toast('Part of it has already been acted on — answer those rows instead','er');return;}
+  const now=new Date().toISOString(),dd=_ddUK(new Date()),who=_who();let jobs=[],tick=false,tickPrev=null;
+  for(const x of g.rows){const cur=x.resolution,d=cur.ordChk.done;jobs=jobs.concat(d.jobs||[]);if(d.tickPrev!==undefined){tick=true;tickPrev=d.tickPrev;}
+    const res=JSON.parse(JSON.stringify(d.undo)),keep=JSON.parse(JSON.stringify(d));delete keep.undo;
+    /* b662: nothing the Send wrote is thrown away — his answer, the routes and every case-log line stay on the row */
+    res.ordChkUndoneSends=(res.ordChkUndoneSends||[]).concat([Object.assign(keep,{undoneAt:now,undoneBy:who,answer:cur.rejectNote||cur.ask||''})]);
+    const log=((cur.chase&&cur.chase.log)||[]).concat([{at:now,by:who,what:'Order check answer undone — back with Jack to answer again'}]);
+    res.chase=Object.assign({},res.chase||{path:'never-arrived',step:'',due:'',log:[]},{log});
+    x.resolution=res;
+    x.vaNote=((x.vaNote||'').trim()?(x.vaNote.trim()+'\n'):'')+`${who} ${dd}: order check answer undone — Jack is checking every order again`;
+    x.vaNoteBy=who;x.vaNoteAt=now;x._dirty=true;
+    try{await _mustSave(x);}catch(e){toast('Didn’t save — check the connection','er');return;}
+  }
+  if(jobs.length&&typeof VA_ACTIONS!=='undefined'){
+    VA_ACTIONS.forEach(a=>{if(jobs.includes(a.id)&&!a.done){a.done=true;a.doneBy=who;a.doneAt=now;a.edited=now;a.why='Jack undid his order check';}});
+    try{await saveVaActions();}catch(e){}}
+  if(tick&&ASIN_CHECKS[A]&&ASIN_CHECKS[A].at===at){try{await _saveAsinChecks(A,tickPrev||null);}catch(e){}}
+  try{logAudit('Order check answer undone',`${A} — back with Jack`);}catch(e){}
+  toast('Undone — the card is back on your list with your answers on it','ok');
+  renderJack();try{renderAdmin();renderPrep();}catch(e){}
+}
+/* one save at a time, in order — two quick answers must not land the wrong way round; every stuck row gets the lot */
+let _ocQ=Promise.resolve();
+function _ocSetAns(A,fn){
+  A=_asinKey(A);const st=_ocStuck(A);if(!st.length)return Promise.resolve(false);
+  if(!(typeof _isJack==='function'&&_isJack())){toast('Only Jack answers these','er');return Promise.resolve(false);}
+  const ans=Object.assign({},_ocAnsAll(A,st)),orders=_ocOrders(A,st),ck=_ocCacheKey(A,st);
+  fn(ans,orders,new Date().toISOString());
+  _ocCache[ck]=Object.assign({},ans);
+  st.forEach(x=>{x.resolution=Object.assign({},x.resolution,{ordChk:Object.assign({},x.resolution.ordChk||{},{ans:Object.assign({},ans)})});x._dirty=true;});
+  const save=()=>Promise.all(st.map(x=>_mustSave(x))).then(()=>true,()=>{toast('Didn’t save — check the connection','er');return false;});
+  _ocQ=_ocQ.then(save,save);
+  renderJack();return _ocQ;
+}
+function ocAns(A,key,a,k){
+  return _ocSetAns(A,(ans,orders,now)=>{const o=orders.find(x=>x.key===key);if(!o||!o.amz)return;
+    let kk=a==='p'?Math.max(0,parseInt(k)||0):0;
+    if(a==='p'&&kk>=o.want){a='c';kk=0;}else if(a==='p'&&kk<=0){ans[key]={a:null,by:_who(),at:now};return;}
+    ans[key]=a==='p'?{a,k:kk,by:_who(),at:now}:{a,by:_who(),at:now};});
+}
+function ocAllDel(A){
+  return _ocSetAns(A,(ans,orders,now)=>{orders.forEach(o=>{if(o.amz&&!(ans[o.key]&&ans[o.key].a))ans[o.key]={a:'d',by:_who(),at:now};});});
+}
+const _ocBusy=new Set();
+async function ocSend(A){
+  A=_asinKey(A);if(_ocBusy.has(A))return;   /* b662: a second press while it sends does nothing */
+  const P0=_ocPlan(A);if(!P0)return;
+  if(!P0.all){toast('Answer every order first','er');return;}
+  _ocBusy.add(A);try{renderJack();}catch(e){}
+  let failed=false;const tally={cancelled:0,sarah:0,missing:0};
+  try{
+    try{await _ocQ;}catch(e){}
+    const P=_ocPlan(A);if(!P||!P.all)return;
+    const now=new Date().toISOString(),dd=_ddUK(new Date()),who=_who(),n=P.orders.length,nA=P.amzN,SS=new Set(P.stuck);
+    const L=o=>`${o.oid||'(no order number)'} (${[o.acct,o.sup].filter(Boolean).join(', ')})`;
+    const skus=o=>{const s=[...new Set(o.rows.filter(y=>(parseInt(y.rcvd)||0)>0&&!SS.has(y)).map(y=>y.sku).filter(Boolean))];return s.length?` under ${s.join(', ')}`:'';};
+    const why=o=>!o.amz?'a supplier order with more booked in than ordered':o.cx>=o.want?'which Amazon cancelled':o.cx>0?`which Amazon part-cancelled (${fmt(o.cx)})`:'which has more booked in than was ordered';
+    const srcTxt=x=>x.srcs.map(s=>s.inner?`${fmt(s.n)} booked under the other line of this same order${skus(s.o)}`:`${fmt(s.n)} booked against order ${L(s.o)}${skus(s.o)}, ${why(s.o)}`).join('; ');
+    const answers=P.orders.map(o=>({key:o.key,oid:o.oid,acct:o.acct,sup:o.sup,od:o.od,want:o.want,booked:o.booked,a:o.ans?o.ans.a:'supplier',k:(o.ans&&o.ans.k)||0}));
+    const head=`Jack checked all ${fmt(nA)} Amazon order${nA===1?'':'s'} of this product on the accounts${n>nA?` (${fmt(n-nA)} supplier order${n-nA===1?'':'s'} counted as booked in)`:''} — delivered ${fmt(P.D)}, ${fmt(P.B)} booked in.`;
+    const extraTxt=P.extra>0?` Also: ${fmt(P.extra)} more booked in than delivered on ${P.orders.filter(o=>o.over>0).map(L).join(', ')} — the Purchase Sheet is wrong there.`:'';
+    const tickPrev=P.allDel?(ASIN_CHECKS[A]||null):undefined;
+    for(const x of P.rows){const r=x.r,id=r.uuid||r.id;
+      const undo=JSON.parse(JSON.stringify(r.resolution||{})),was={n:r.vaNote,b:r.vaNoteBy,a:r.vaNoteAt};
+      const back=()=>{r.resolution=undo;r.vaNote=was.n;r.vaNoteBy=was.b;r.vaNoteAt=was.a;};   /* a failed save leaves the row exactly as it was */
+      const srcs=x.srcs.map(s=>({key:s.o.key,oid:s.o.oid,n:s.n,inner:!!s.inner}));
+      r.resolution=Object.assign({},r.resolution,{
+        amzDelivered:Object.assign({},r.resolution.amzDelivered,{done:{by:who,at:now,how:'orders-checked'}}),
+        ordChk:Object.assign({},r.resolution.ordChk,{done:{by:who,at:now,n,nA,D:P.D,B:P.B,route:x.route,cx:x.cx,moved:x.moved,miss:x.miss,srcs,answers,undo,jobs:[],tickPrev}})});
+      if(x.route==='missing'){
+        const ch=r.resolution.chase?Object.assign({},r.resolution.chase):{path:'never-arrived',step:'',due:'',log:[]};
+        ch.log=(ch.log||[]).concat([{at:now,by:who,what:`Checked every order of this product — delivered ${P.D}, ${P.B} booked in: ${x.miss} really missing. Raise it with Amazon.`}]);
+        r.resolution=Object.assign({},r.resolution,{state:'asked',kind:'check',what:'amz-missing',
+          ask:`${head} ${fmt(x.miss)} really missing — not in the warehouse.${x.moved?` ${srcTxt(x)} — Sarah has the job to move ${x.moved===1?'it':'them'} across.`:''}${x.cx?` ${fmt(x.cx)} ${x.cx===1?'was':'were'} cancelled by Amazon — ${x.cx===1?'it closes':'they close'} with the claim.`:''} Raise ${fmt(x.miss)} with Amazon.`,
+          note:'',by:who,at:now,chase:ch,ocClaim:{at:now,miss:x.miss,moved:x.moved,cx:x.cx,owed0:x.owed}});
+        r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${who} ${dd}: checked every order — delivered, not in the warehouse. Jack raises it with Amazon`;
+        r.vaNoteBy=who;r.vaNoteAt=now;r._dirty=true;
+        try{await _mustSave(r);}catch(e){back();failed=true;break;}
+        /* the move, on the row it was booked against — one job per source, and only those jobs are this Send's */
+        if(x.srcs.length&&typeof addVaActions==='function'){const made=[];
+          for(const s of x.srcs){const sr=s.o.rows.filter(y=>!SS.has(y)).sort((a,b)=>(parseInt(b.rcvd)||0)-(parseInt(a.rcvd)||0))[0]||s.o.rows[0];if(!sr)continue;
+            const task=`Move ${fmt(s.n)} booked-in unit${s.n===1?'':'s'} across to ${r.sku||'the stuck line'} (order ${r.oid||''}): ${s.inner?`booked under the other line of the same order${skus(s.o)}`:`booked against order ${L(s.o)}${skus(s.o)}, ${why(s.o)}`}.${!s.inner&&s.o.amz&&s.o.cx>=s.o.want?` Note ${s.o.oid||'it'} as cancelled on the Purchase Sheet.`:''}`;
+            try{await addVaActions(sr,[task],`Jack’s order check ${dd}: ${fmt(x.miss)} of order ${r.oid||''} really missing — Jack is raising ${x.miss===1?'it':'them'} with Amazon.`);}catch(e){}
+            VA_ACTIONS.filter(a=>!a.done&&a.rid===(sr.uuid||sr.id)&&a.task===task).forEach(a=>{if(!made.includes(a.id))made.push(a.id);});}
+          if(made.length){r.resolution.ordChk.done.jobs=made;r._dirty=true;try{await _mustSave(r);}catch(e){}}}
+        tally.missing++;continue;
+      }
+      r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${who} ${dd}: checked every order — ${x.route==='cancelled'?'this one was cancelled':'it was booked against another order'}. No need to check the shelves`;
+      r.vaNoteBy=who;r.vaNoteAt=now;
+      const ok=x.route==='cancelled'
+        ?await jackAnswered(id,`${head} This order was cancelled — the money is back by itself. Note the sheet and close it.${extraTxt}`,
+          {meant:'cancelled',restGone:{why:'cancelled',ordered:parseInt(r.rcvd)||0,owed:x.cx,at:now}})
+        :await jackAnswered(id,`${head} Nothing is missing on this one: ${srcTxt(x)} — ${x.moved===1?'that unit is':'those are'} this order’s. Record ${x.moved===1?'it':'them'} as this order’s (sent under that SKU if already gone) and note any cancelled order on the Purchase Sheet.${x.cx?` ${fmt(x.cx)} of this order ${x.cx===1?'was':'were'} cancelled too.`:''}${extraTxt}`,
+          {fromNote:true,meant:'note'});
+      if(ok===false){back();failed=true;break;}
+      tally[x.route]++;
+    }
+    /* every Amazon order delivered: his green tick, exactly as the one-press button gives it */
+    if(!failed&&P.allDel){const stamp={at:now,by:who,orders:P.orders.filter(o=>o.amz).map(o=>({oid:o.oid,key:o.key,acct:o.acct,units:o.want,od:o.od}))};
+      try{await _saveAsinChecks(A,stamp);}catch(e){}}
+    try{logAudit('Order check answered',`${A} — ${nA} Amazon order${nA===1?'':'s'}: delivered ${P.D}, booked in ${P.B} · `+
+      [tally.cancelled?tally.cancelled+' cancelled':'',tally.sarah?tally.sarah+' booked against another order':'',tally.missing?tally.missing+' to raise with Amazon':''].filter(Boolean).join(', ')+(failed?' — stopped: a save failed':''));}catch(e){}
+  }finally{_ocBusy.delete(A);}
+  if(failed)toast('Stopped — a save didn’t go through, so the rest are still on the card. Check the connection and press Send again.','er');
+  else toast(['✓ Checked',tally.cancelled?`${tally.cancelled} cancelled → Sarah`:'',tally.sarah?`${tally.sarah} booked against another order → Sarah`:'',tally.missing?`${tally.missing} to raise with Amazon → your list`:''].filter(Boolean).join(' · '),'ok');
+  renderJack();try{renderAdmin();renderPrep();}catch(e){}
+}
 /* ── Jack, 28 Oct — the C920: one Amazon order of 2 was typed onto the Purchase Sheet twice (VAS_02 + VAS1_02).
    The copy never arrives, so it walked the whole late chain — Sarah, Jack's account check, Becki's shelves —
    and nearly became a refund claim for units that never existed. The pattern: another line with the SAME
@@ -499,13 +749,13 @@ let _amzFilterActive=false;
 function toggleAmzFilter(){_amzFilterActive=!_amzFilterActive;renderPrep();}
 function renderAmzBanner(){
   const el=document.getElementById('amzDelBanner');if(!el)return;
-  const _R=_amzDelRows(),n=_R.length,nL=_R.filter(r=>r.resolution.amzDelivered.kind==='leftover').length,nA=n-nL;
+  const _Rall=_amzDelRows(),_R=_Rall.filter(r=>!_ocAsked(r)),nJ=_Rall.length-_R.length,n=_R.length,nL=_R.filter(r=>r.resolution.amzDelivered.kind==='leftover').length,nA=n-nL;
   if(!n){if(_amzFilterActive){_amzFilterActive=false;}el.innerHTML='';return;}
   el.innerHTML=`<div class="nbBanner" style="border-color:rgba(34,211,238,.5);">
     <div class="nbTop">
       <span class="nbDot" style="color:#22d3ee;">&#9679;</span>
       <b>${[nA?`${nA} order${nA===1?'':'s'} Amazon say ${nA===1?'was':'were'} delivered but ${nA===1?'is':'are'}n\u2019t fully booked in`:'',
-           nL?`${nL} row${nL===1?'':'s'} booked in but never sent`:''].filter(Boolean).join(' · ')}</b>
+           nL?`${nL} row${nL===1?'':'s'} booked in but never sent`:''].filter(Boolean).join(' · ')}</b>${nJ?`<span class="nbSub" style="color:#22d3ee;">${fmt(nJ)} more with Jack &mdash; he is checking every order</span>`:''}
       <span class="nbSub">check the shelves &mdash; if it is here, book it in or send it. If it is not, press the red <b style="color:#f87171;">Not here</b> button in the Issues column of the row</span>
       <button class="nbGo" style="background:rgba(34,211,238,.18);border-color:rgba(34,211,238,.5);color:#22d3ee;" onclick="toggleAmzFilter()">${_amzFilterActive?'Show everything':'Show just those'}</button>
     </div></div>`;
@@ -692,7 +942,7 @@ async function amzNotHere(rid){
 function amzMoneyBox(rid,btn){
   const td=btn&&btn.closest('td');if(!td)return;
   const r=_rowById(rid);if(!r)return;
-  const owe=_owedUnits(r),val=(parseSKU(r.sku).cogs||0)*owe;
+  const owe=_amzClaimUnits(r),val=(parseSKU(r.sku).cogs||0)*owe;   /* b661 */
   td.innerHTML=`<div class="jkAnsBox" data-jk-edit="1">
     <div class="jkAnsT">${fmt(owe)} unit${owe===1?'':'s'} &middot; ${fmtGBP2(val)} &mdash; has the money come back?</div>
     <button class="csAct good" onclick="amzMissingDone('${rid}','in')" title="The refund or reimbursement has landed. The row closes everywhere and nothing stays on your money list.">Yes &mdash; the money is back</button>
@@ -700,12 +950,24 @@ function amzMoneyBox(rid,btn){
     <button class="csAct warn" onclick="amzMissingDone('${rid}','refused')" title="No money coming — written off. It stays visible as a loss rather than disappearing.">No money coming &mdash; write it off</button>
     <button class="csAct plain" onclick="renderJack()">Back</button></div>`;
 }
+/* b661: an order check that found part of a row booked against an order Amazon cancelled — only the rest is claimed;
+   the booked part is Sarah's move (a job on her list) */
+function _amzClaimParts(r){
+  const o=_owedUnits(r),q=(r&&r.resolution)||{},c=q.ocClaim;
+  /* b662: only while the order check's figure is still the question — a later Not here starts afresh */
+  if(!(q.what==='amz-missing'&&c&&c.at&&c.at===q.at))return{claim:o,pending:0,cx:0,owe:o};
+  const n=x=>Math.max(0,parseInt(x)||0),movedDone=Math.max(0,n(c.owed0)-o),pending=Math.max(0,n(c.moved)-movedDone);
+  const claim=Math.min(o,n(c.miss)),cx=Math.min(n(c.cx),Math.max(0,o-claim-pending));
+  return{claim,pending,cx,owe:o};
+}
+function _amzClaimUnits(r){return _amzClaimParts(r).claim;}
 async function amzMissingDone(rid,money){
   const r=_rowById(rid);if(!r||!r.resolution)return;
   const now=new Date().toISOString();
-  const owe=_owedUnits(r);
+  const _cp=_amzClaimParts(r),owe=_cp.claim,_cpx=_cp.cx;   /* b661/b662: the claim, plus what Amazon cancelled */
   const ch=r.resolution.chase||{path:'never-arrived',step:'',due:'',log:[]};
   ch.log=(ch.log||[]).concat([{at:now,by:_who(),what:`Sorted with Amazon — refund or reimbursement raised${owe?` · ${owe} unit${owe===1?'':'s'} written off`:''}`}]);
+  if(_cpx)ch.log=ch.log.concat([{at:now,by:_who(),what:`${_cpx} cancelled by Amazon (Jack’s order check) — closed with it`}]);
   money=money||'in';
   ch.log=(ch.log||[]).concat([{at:now,by:_who(),what:money==='in'?'Refund received':money==='refused'?'No refund coming — written off':'Refund raised with Amazon — waiting on the money'}]);
   r.resolution=Object.assign({},r.resolution,{state:'approved',kind:'ops',
@@ -716,7 +978,7 @@ async function amzMissingDone(rid,money){
     chase:ch});
   /* Jack, 8 Sep: a processed refund is closed and done. The units are not
      coming, so they stop being owed — otherwise the row resurfaces forever. */
-  if(owe>0)r.cancelledQty=(parseInt(r.cancelledQty)||0)+owe;
+  if(owe+_cpx>0)r.cancelledQty=(parseInt(r.cancelledQty)||0)+owe+_cpx;
   try{_statusFollowsStock(r);if(/^Late/.test(String(r.transitAction||'')))r.transitAction='';}catch(e){}
   r._dirty=true;
   try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded','er');return;}

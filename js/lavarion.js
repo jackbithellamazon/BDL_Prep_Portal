@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v56.4 · lav3 · 2026-11-04 · b653';
+const BUILD='v56.4 · lav3 · 2026-11-06 · b664';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -4181,21 +4181,35 @@ function vQ4(){
         ${perDay.length?`<div><span>On a send day ${usual===1?'1 priority line usually goes':`${usual} priority lines usually go`} out (most ${most})</span></div>`:''}</div></div>
     <div class="q4WeekGrid" style="--cols:${Math.max(1,Math.ceil(PW.length/Math.max(1,Math.ceil(PW.length/6))))}">${PW.map(wkCard).join('')}</div>
     <div class="q4Foot">A target's share = what it had left on Monday, spread evenly over the ${fmt(TR.wdFromMon)} working days to ${byTxt}, so a big batch this week lowers next week's. <b>Parts in hand</b> = what the shelf can build — bought as needed. <b>At Amazon</b> = how long the stock there and on its way lasts at today's sales — amber: a send made today lands inside the ${fmt(safetyDays())}-day cushion; red: out now. Hover a card for the sum; click it to open the line.</div></section>`:'';
+  /* b655 (Jack, 5 Nov: "add in how many hours of Q4 prep needed"): every priority line still to build, in hours — a
+     timed line at its own average, a line not timed yet at the average of every hour he has timed (an estimate, and
+     labelled one: input beats derived) — against the working days left at his hours a day */
+  const HR=(()=>{const open=P.map(r=>({r,left:TR.line(r).left,rt:q4RateOf(r.id)})).filter(x=>x.left>0);
+    const on=open.filter(x=>x.rt),off=open.filter(x=>!x.rt),tot=on.reduce((t,x)=>t+x.left/x.rt.avg,0);
+    const hrs=[].concat(...on.map(x=>x.rt.list)),rate=hrs.length?hrs.reduce((t,v)=>t+v,0)/hrs.length:0;
+    const offU=off.reduce((t,x)=>t+x.left,0),est=rate>0?offU/rate:0;
+    return{open,on,off,tot,hrs,rate,offU,est,all:tot+est};})();
+  const hrTile=(()=>{if(!P.length)return '';const K='<div class="k">Hours of prep left</div>';
+    if(!HR.open.length)return `<div class="kpi" style="--rail:#4ade80">${K}<div class="v" style="color:#4ade80">None &#10003;</div><div class="s">every target is sent</div></div>`;
+    if(!HR.on.length)return `<div class="kpi" style="--rail:#94a3b8">${K}<div class="v">—</div><div class="s">no line timed yet — open a line and type how many you build in an hour</div></div>`;
+    const hpd=q4HoursDay(),fit=HR.all/hpd<=TR.wdLeft;
+    const tip=`${HR.on.map(x=>`${q4Short(x.r.name)}: ${fmt(x.left)} ÷ ${q4Hrs(x.rt.avg)} an hour = ~${q4Hrs(x.left/x.rt.avg)} h`).join('\n')}${HR.off.length?`\nNot timed yet — ${HR.off.map(x=>`${q4Short(x.r.name)} ${fmt(x.left)}`).join(', ')}: ${fmt(HR.offU)} ÷ ${q4Hrs(HR.rate)} an hour (the average of your ${fmt(HR.hrs.length)} timed hour${HR.hrs.length===1?'':'s'}) = ~${q4Hrs(HR.est)} h, an estimate until you time them`:''}\n~${q4Hrs(HR.all)} h ÷ ${q4Hrs(hpd)} h a day ≈ ${q4BDays(HR.all)}; ${fmt(TR.wdLeft)} working day${TR.wdLeft===1?'':'s'} left to ${byTxt}`;
+    return `<div class="kpi" style="--rail:${fit?'#4ade80':'#fbbf24'}" title="${esc(tip)}">${K}<div class="v" style="color:${fit?'#93c5fd':'#fcd34d'}">~${q4Hrs(HR.all)} h</div><div class="s">≈ <b>${q4BDays(HR.all)}</b> at ${q4Hrs(hpd)} h a day<br><b>${fmt(TR.wdLeft)}</b> working day${TR.wdLeft===1?'':'s'} left to ${byTxt}<br>${HR.off.length?`<b>${q4Hrs(HR.tot)} h</b> timed · <b>~${q4Hrs(HR.est)} h</b> estimated`:`timed on all ${fmt(HR.on.length)} lines`}</div></div>`;})();
   const priHtml=P.length
-    ?`<div class="q4Scroll"><table class="shT q4T q4T2 q4P">${colsP}${headP}<tbody>${P.map(priRow).join('')}</tbody></table></div>
-      ${(()=>{const open=P.map(r=>({r,left:TR.line(r).left,rt:q4RateOf(r.id)})).filter(x=>x.left>0);if(!open.length)return '';
-        const on=open.filter(x=>x.rt),off=open.filter(x=>!x.rt),tot=on.reduce((t,x)=>t+x.left/x.rt.avg,0);
-        return `<div class="q4HrSum"><span class="q4HrT">Hours of building left</span>${on.length?`<b>~${q4Hrs(tot)} h</b><b class="q4HrD">≈ ${q4BDays(tot)}</b><label class="q4HpdL">at <input class="in q4HpdIn" id="q4t-hpd" type="number" min="1" max="24" step="0.5" inputmode="decimal" value="${q4Hrs(q4HoursDay())}" aria-label="Hours a day you build" onchange="LV3.q4SetHoursDay(this.value)"> h a day</label><span class="q4HrWd">— ${fmt(TR.wdLeft)} working day${TR.wdLeft===1?'':'s'} left to ${byTxt}</span><span>on ${on.length===1?'the timed line':`the ${fmt(on.length)} timed lines`}: ${on.map(x=>`${esc(q4Short(x.r.name))} ~${q4Hrs(x.left/x.rt.avg)} h`).join(' · ')}</span>`:'<span>no line timed yet</span>'}${off.length?`<span class="q4HrOff">not timed yet: ${off.map(x=>esc(q4Short(x.r.name))).join(', ')} — open a line and type how many you build in an hour</span>`:''}</div>`;})()}
+    ?`<div class="q4Scroll q4PScroll"><table class="shT q4T q4T2 q4P">${colsP}${headP}<tbody>${P.map(priRow).join('')}</tbody></table></div>
+      ${(()=>{const {open,on,off,tot}=HR;if(!open.length)return '';
+        return `<div class="q4HrSum"><span class="q4HrT">Hours of building left</span>${on.length?`<b>~${q4Hrs(tot)} h</b><b class="q4HrD">≈ ${q4BDays(tot)}</b><label class="q4HpdL">at <input class="in q4HpdIn" id="q4t-hpd" type="number" min="1" max="24" step="0.5" inputmode="decimal" value="${q4Hrs(q4HoursDay())}" aria-label="Hours a day you build" onchange="LV3.q4SetHoursDay(this.value)"> h a day</label><span class="q4HrWd">— ${fmt(TR.wdLeft)} working day${TR.wdLeft===1?'':'s'} left to ${byTxt}</span><span>on ${on.length===1?'the timed line':`the ${fmt(on.length)} timed lines`}: ${on.map(x=>`${esc(q4Short(x.r.name))} ~${q4Hrs(x.left/x.rt.avg)} h`).join(' · ')}</span>`:'<span>no line timed yet</span>'}${off.length?`<span class="q4HrOff">not timed yet: ${off.map(x=>esc(q4Short(x.r.name))).join(', ')}${HR.est>0?` — ~${q4Hrs(HR.est)} h more at ${q4Hrs(HR.rate)} an hour, the average of your timed hours.`:' —'} Open a line and type how many you build in an hour</span>`:''}</div>`;})()}
       <div class="q4Foot"><b>Left to do</b> = target − sent. <b>Hours left</b> = left to do ÷ what you build in an hour (the average of the hours you time). <b>This week</b> = its share of what it had left on Monday, spread evenly over the working days to ${byTxt} (the day is in Settings ▾) — aim to have it out by Friday; a big batch this week lowers next week's share. <b>Done</b> = sent ÷ target; the lighter part of the bar is how far the parts take it. Bundles with a target get shared parts first, in the Action centre's order, up to target +${fmt(R.over)}%. The order is the Sort box, top right — click a line to open it.</div>`
     :`<div class="q4Empty">No targets yet — add them in Settings ▾ above. A bundle with a target moves here and is handed shared components first.</div>`;
   $('lav3View').innerHTML=`
   <div class="q4">
   <div class="q4Intro">The Christmas lines — what has gone to Amazon since ${day}, against your targets (priority bundles) or what the parts can make (the rest). <span>Settings ▾ adds or takes a line off.</span></div>
   ${notes}
-  <div class="kpis q4Kpis">
+  <div class="kpis q4Kpis${hrTile?' q4K6':''}">
     <div class="kpi" style="--rail:${T.pct===100?'#4ade80':'#38bdf8'}" title="${esc(hundred)}"><div class="k">Complete</div><div class="v" style="color:${T.pct===100?'#4ade80':'var(--text)'}">${pc(T.pct)}</div><div class="s">${fmt(T.done)} of ${fmt(T.max)}</div>${bar(T.pct,T.pct===100?'ok':'')}</div>
     <div class="kpi" style="--rail:#38bdf8"><div class="k">Sent since ${day}</div><div class="v" style="color:#7dd3fc">${fmt(T.done)}</div><div class="s">${wk?`this week so far <b>+${fmt(wk.units)}</b>`:'nothing this week yet'}${G.lines?` · singles ${fmt(G.done)}`:''}</div></div>
     <div class="kpi" style="--rail:#a78bfa"><div class="k">Still to send</div><div class="v" style="color:#c4b5fd">${fmt(T.toGo)}</div><div class="s"><b>${fmt(kNow)}</b> can be built now${kOrd?` · <b>${fmt(kOrd)}</b> when orders land`:''}${kShort?` · <b>${fmt(kShort)}</b> need parts bought`:''}</div></div>
+    ${hrTile}
     <div class="kpi" style="--rail:${kShort?'#94a3b8':'#4ade80'}" title="Units the targets need that the parts here${ON?' and on order':''} cannot build yet — bought as they are needed; the list below has them"><div class="k">Parts still to buy for</div><div class="v" style="color:${kShort?'var(--text)':'#4ade80'}">${kShort?fmt(kShort):'None'}${kShort?'':' &#10003;'}</div><div class="s">${kShort?`units across ${fmt(shortN)} line${shortN===1?'':'s'} — bought as needed, the list is below`:'every target is covered by parts here or on order'}</div></div>
     <div class="kpi" style="--rail:${fGood?'#4ade80':'#fbbf24'}" title="${esc(`The whole page at your weekly average of ~${fmt(tp)} — the recent full weeks, the newest counting most (the slow start and a one-off quiet week are left out). ${fmt(T.toGo)} still to send at that = all out ~${fEta?dlY(fEta):'—'}. To finish by ${byTxt}: ${fmt(W0.perWk)} a week. It assumes the parts are bought as they are needed.`)}"><div class="k">All done at your weekly average</div><div class="v" style="color:${fGood?'#4ade80':'#fcd34d'}">${T.toGo===0?'Done &#10003;':fEta?'~'+dlY(fEta):'—'}</div><div class="s">${T.toGo===0?'':`needs <b>${fmt(W0.perWk)}</b> a week · average <b>${fmt(tp)}</b><br>last week <b>${fmt(W0.last)}</b> · this week so far <b>${fmt(W0.sent)}</b>`}</div></div>
   </div>
@@ -4217,6 +4231,8 @@ function vQ4(){
   </section>`:''}
   ${recHtml}
   </div>`;
+  /* b654: the frozen Priority heading sits just under the PLUB bar, however tall the bar wraps */
+  try{const bar=document.querySelector('#page-lavarion .lav3bar'),pg=document.getElementById('page-lavarion'),h=bar?bar.offsetHeight:0;if(pg&&h>0)pg.style.setProperty('--lv3H',h+'px');}catch(e){}
 }
 
 /* ═══════════════ TABS + ROUTER ═══════════════ */
@@ -13614,6 +13630,32 @@ function stockLedger(run,when){
   });
   if(Lg.length>600)S.stockOuts=Lg.slice(-600);
 }
+/* b663 — the MINI sales run (Mon / Wed / Fri / Sat 20:00 UK; Jack, 6 Nov: "PrepHub will want the latest sale for the
+   PLUB side of things"). Sales only: units over 7 / 14 / 30 days, each product's last sale, Q4 so far. It never touches
+   a count, a send or Sarah's cards, and it only lands when it is newer than the full run already applied. The month
+   before (Thursday's full run) is kept as it was. Pure on a settings object, so the checks can drive it. */
+function _sfSalesInto(S,run,fullAt,byAsin){
+  if(!run||!run.id||(run.summary||{}).kind!=='sales')return null;
+  if(fullAt&&new Date(fullAt).getTime()>=new Date(run.at).getTime())return null;
+  if(S.sfSalesApplied==='s'+run.id)return null;
+  S.sfSold=S.sfSold||{};S.sfLastSold=S.sfLastSold||{};let ns=0,nl=0;
+  (run.sold||[]).forEach(x=>{const p=byAsin(x.asin);if(!p||x.units30==null)return;const was=S.sfSold[p.asin]||{};
+    S.sfSold[p.asin]={u30:Math.max(0,parseInt(x.units30)||0),u7:x.units7==null?null:Math.max(0,parseInt(x.units7)||0),
+      u14:x.units14==null?null:Math.max(0,parseInt(x.units14)||0),p30:was.p30==null?null:was.p30,at:run.at};ns++;});
+  Object.entries((run.summary||{}).lastSold||{}).forEach(([a,d])=>{const p=byAsin(a);d=String(d||'').slice(0,10);
+    if(!p||!/^\d{4}-\d{2}-\d{2}$/.test(d))return;if(String(S.sfLastSold[p.asin]||'')>=d)return;S.sfLastSold[p.asin]=d;nl++;});
+  const q=(run.summary||{}).q4;if(q&&q.by)S.sfQ4={at:run.at,from:q.from||null,to:q.to||null,by:q.by};
+  S.sfSalesApplied='s'+run.id;
+  return{sold:ns,lastSold:nl};
+}
+function sfApplySalesRun(run){
+  if(!run||!_booted)return 0;
+  const r=_sfSalesInto(D.settings,run,(window.SFRUN||{}).at||null,_prodByAsin);if(!r)return 0;
+  _plCache=null;savePrefs();save();
+  const when=ukStamp(ukDT(new Date(run.at)));
+  if(r.sold)logIt('edit',`Sales from the SellerFuse mini run ${whenTxt(when)} UK — ${r.sold} product${r.sold===1?'':'s'}${r.lastSold?`, ${r.lastSold} newer last sale${r.lastSold===1?'':'s'}`:''}`);
+  return r.sold;
+}
 /* October, from the SellerToolKit daily-sales file Jack shared on 26 Oct — a one-off seed so the
    page starts with the month that prompted it. "confirmed" = backed by a count or Seller Central;
    "likely" = a run of no sales on a line that was selling, nothing to confirm it. */
@@ -13787,6 +13829,7 @@ async function boot(){
       logIt('edit',`Kept as a second purchase — ${p.name} ${dshort(p.date)} (identical sheet line, answered automatically)`);});save();}
   }catch(e){console.warn('[lav3] dup auto-keep',e);}
   try{if(window.SFRUN)sfApplyFromRun(window.SFRUN);}catch(e){console.warn('[lav3] sellerfuse',e);}
+  try{if(window.SFSALES)sfApplySalesRun(window.SFSALES);}catch(e){console.warn('[lav3] sellerfuse sales',e);}
   try{seedJack551();seedJack555();seedJack556();}catch(e){console.warn('[lav3] seed',e);}
   paint();
   /* Sales come from the hub, over the network, so they are not held up behind
@@ -13831,7 +13874,7 @@ const API={go,render:paint,boot,q4SetSort,q4SortPref,dupConfirm,pdInStock,q4Calc
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,refreshShared,reloadData,rtChange,checkStockSafety,__save:()=>save(),__remRpc:()=>_remRpc,__setRemRpc:v=>{_remRpc=v;},settleIssue,sheetSays,relinkOrphans,openSheetDiff,mergeIntoSheetLine,dropDiffLine,cancelDiffLine,ackDiffLine,sheetDiffItems,__persist:()=>persist(),__pushNow:()=>pushNow(),__PURCH:()=>PURCH,__prefsMerge:_prefsMerge,__savePrefs:()=>savePrefs(),__saveState:()=>saveState(),__prefsBase:()=>_prefsBase,__setPrefsBase:v=>{_prefsBase=v;},__ack:()=>ACK,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
   sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,amzUnlock,amzLocked,amzSfLast,copyAsin,copyAsinChip,shelfWalk,shareParts,upliftOf,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
-  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,lossOfRows,lossLine,profitSrcOf,fbaCalDays,priceOf,acCopySend,acJump,sfPace,safetyFor,emptyDaysIn,stockAt,stockLedger,vHealth,coverDaysOf,isWorkDay,workDaysAfter,fbaLearn,primeDays,primeSet,copyAsin,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
+  __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfApplySalesRun,__sfSalesInto:_sfSalesInto,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,lossOfRows,lossLine,profitSrcOf,fbaCalDays,priceOf,acCopySend,acJump,sfPace,safetyFor,emptyDaysIn,stockAt,stockLedger,vHealth,coverDaysOf,isWorkDay,workDaysAfter,fbaLearn,primeDays,primeSet,copyAsin,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
   setUplift,upliftCfg,upliftOf,upliftNote,demandBetween,daysCovered,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
   cm:id=>cm(id),om:id=>om(id),

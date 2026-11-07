@@ -159,7 +159,7 @@ function _adminItems(){
     const _partDays=TM.partDays;   /* Jack, 6 Sep: S&S arrives together — same clock as everything else */
     const _part=(typeof _partOverdue==='function')?_partOverdue(r):(_got>0&&(_units-_got-_cx)>0&&!!_partSince&&_partMs>=_partDays*24*3600e3&&!_q);   /* one clock — js/rules.js */
     const _partRed=_part&&_partMs>=(_partDays+1)*24*3600e3;
-    if(!isStuck&&!inChase&&!expOverdue&&!_liveCase&&!_handedBack&&!_q&&!_part&&!_partShip&&!_flag)return;
+    if(!isStuck&&!inChase&&!expOverdue&&!_liveCase&&!_handedBack&&!_q&&!_part&&!_partShip&&!_flag&&!(typeof _ocAsked==='function'&&_ocAsked(r)))return;   /* b656: Becki's order check — she sees where it is, however young the order */
     let sev,col;
     if(ta==='Urgent — Chase Now'){sev=4;col='#ef4444';}
     else if(ta==='Late — Needs Chasing'||isStuck){sev=3;col='#ef4444';}

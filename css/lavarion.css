@@ -2916,3 +2916,20 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .q4HrSum .q4HpdIn{width:58px;height:26px;padding:0 6px;font:700 12.5px var(--num);text-align:center;}
 #page-lavarion .q4HrSum .q4HrWd{color:var(--text3);}
 #page-lavarion .q4T2 td.q4Hr small+small{margin-top:1px;}
+/* b654 (Jack, 4 Nov: "freeze this heading"): Priority bundles' heading stays put under the PLUB bar as the lines scroll.
+   Where the table fits, its box clips sideways instead of scrolling (a scrolling box anchors sticky to itself); the
+   orange line is drawn on the heading cells so it moves with them. Narrower than 1180px it scrolls sideways as before. */
+@media (min-width:1180px){
+  #page-lavarion .q4PScroll{overflow-x:clip;}
+  #page-lavarion .q4PScroll table.q4P thead th{top:var(--lv3H,45px);z-index:5;box-shadow:inset 0 -2px 0 var(--accent);}
+  #page-lavarion .q4PScroll table.q4P thead tr{border-bottom:0;}
+}
+/* b655: six Q4 tiles (Hours of prep left joined) — one row on a laptop (the last a little wider, so "All done at your
+   weekly average" stays on one line and its date lines up with the others), two even rows of three below 1500px */
+#page-lavarion .q4Kpis.q4K6{grid-template-columns:repeat(5,minmax(0,1fr)) minmax(0,1.15fr);}
+/* every tile's figure on the same line across the row — the lines pack to the top instead of spreading to fill the
+   tallest tile (35% and 2,651 sat lower than the rest) */
+#page-lavarion .q4Kpis .kpi{align-content:flex-start;}
+@media(max-width:1500px){#page-lavarion .q4Kpis.q4K6{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(max-width:900px){#page-lavarion .q4Kpis.q4K6{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:700px){#page-lavarion .q4Kpis.q4K6{grid-template-columns:1fr;}}

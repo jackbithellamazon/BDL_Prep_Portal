@@ -154,7 +154,8 @@ async function doneVaAction(id){
 
 // ── PROPOSING A CLOSURE ───────────────────────────────────────────────────────
 let _srtRid=null;
-let _tfuSort='priority',_tfuDir=1,_admQ='',_admKind='all',_jkQ='',_jkKind='all',_jkSort='oldest',_jkSup='all',_jkAcct='all';
+/* b664 (Jack, 6 Nov: "auto sort … newest first on Jack's and Sarah's page"): both pages open newest first */
+let _tfuSort='days',_tfuDir=-1,_admQ='',_admKind='all',_jkQ='',_jkKind='all',_jkSort='newest',_jkSup='all',_jkAcct='all';
 /* ── THE PRIORITY ORDER — built with Jack, 16 Aug, from his own worked example.
    His answer, in his words: the Wagner he sent back yesterday first; this
    morning's damage next (newer AND worth more); the 6-day-old shortage third;

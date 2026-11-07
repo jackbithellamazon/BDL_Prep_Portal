@@ -16,7 +16,10 @@ let SF_DATES_TRUSTED=true;   /* Jack, 29 Oct: Seller Central shows FBA15MS5FS83 
 /* Jack, 29 Oct: Sun / Tue / Thu at 20:00 UK — the evening before Sarah's Monday, Wednesday and Friday (she starts
    04:00 UK), inside his awake hours so the Mac is on. "3 is better than 2 — up to 4 when needed": add a day here
    (Monday next, for Becki's post-weekend sends) and in the scheduled task. */
+/* b663 (Jack, 6 Nov): the full check stays on these three; a MINI sales-only run goes Mon / Wed / Fri / Sat 20:00 (its
+   own scheduled task) — its row is summary.kind "sales", is never SFRUN, and never counts as a check for this banner. */
 const SF_SLOT_DAYS=[0,2,4],SF_SLOT_HOUR=20,SF_GRACE_H=2;
+let SFSALES=null;   /* the newest mini sales row, when it is newer than SFRUN */
 /* 20:00 UK on that day — counted from UTC, so a clock-change Sunday (23 or 25 hours long) is still 20:00 */
 const _sfSlotAt=iso=>{const p=iso.split('-').map(Number),g=Date.UTC(p[0],p[1]-1,p[2],SF_SLOT_HOUR);return g-_ukOffMin(g)*6e4;};
 function _sfLastSlot(now){now=now==null?Date.now():now;const t=ukDayISO(now);
@@ -29,16 +32,24 @@ function _sfMissed(now,atMs){const s=_sfDueSlot(now);return !!s&&(!atMs||atMs<s-
 
 async function sfLoad(){
   try{
-    const {data,error}=await sb.from('sf_check_runs').select('*').order('run_at',{ascending:false}).limit(1);
+    /* b663: full rows only — a mini sales row carries no counts, shipments or late orders, so it must never
+       stand in for the check Sarah's cards are built from */
+    const {data,error}=await sb.from('sf_check_runs').select('*').is('summary->>kind',null).order('run_at',{ascending:false}).limit(1);
     if(error)throw error;
     SFRUN=(data&&data[0])?sfNorm(data[0]):null;
   }catch(e){SFRUN=null;}            /* table not made yet, or offline — the app works exactly as before */
   window.SFRUN=SFRUN;try{sfStaleBanner();}catch(e){}
+  try{const r=await sb.from('sf_check_runs').select('id,run_at,sold,summary').eq('summary->>kind','sales').order('run_at',{ascending:false}).limit(1);
+    const x=r&&!r.error&&r.data&&r.data[0];
+    SFSALES=(x&&(!SFRUN||new Date(x.run_at)>new Date(SFRUN.at)))?{id:x.id,at:x.run_at,sold:x.sold||[],summary:x.summary||{}}:null;
+  }catch(e){SFSALES=null;}
+  window.SFSALES=SFSALES;
   if(SFRUN){
     try{await sfPutBackExcluded();}catch(e){console.warn('[sf] put back',e);}
     try{await sfFixShipDates();}catch(e){console.warn('[sf] ship dates',e);}
     try{if(window.LV3&&LV3.__booted&&LV3.__booted())LV3.sfApplyFromRun(SFRUN);}catch(e){console.warn('[sf] plub',e);}
   }
+  if(SFSALES){try{if(window.LV3&&LV3.__booted&&LV3.__booted())LV3.sfApplySalesRun(SFSALES);}catch(e){console.warn('[sf] plub sales',e);}}
   try{if(_pageActive('page-admin'))renderAdmin();}catch(e){}
   return SFRUN;
 }

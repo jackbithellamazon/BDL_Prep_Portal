@@ -123,8 +123,11 @@ function renderJack(){
         <button class="csAct good" onclick="lavLateNewDate('${esc1(g.key)}',document.getElementById('${_id}').value)" title="The order's window moves to this date, it stops being late and clears everywhere">New date &mdash; done</button>
         <button class="csAct plain" onclick="lavLateSarahBox('${esc1(g.key)}',this)" title="Something for Sarah to do on this one — chase, check an invoice, ring them. It lands on her Admin with your note.">Send Sarah a job&hellip;</button>`});});
   checks.forEach(r=>{const q=r.resolution||{};const Q=_ukQuery(r);const _id=r.uuid||r.id;
+    if(q.what==='asin-orders')return;   /* b656: one card per product, below */
     if(q.what==='amz-missing'||q.what==='amz-claim'){
       const _owe=Math.max(0,(r.exp||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0));
+      /* b661: the order check found some booked against an order Amazon cancelled — claim only the rest */
+      const _cp=(q.what==='amz-missing'&&typeof _amzClaimParts==='function')?_amzClaimParts(r):{claim:_owe,pending:0,cx:0},_oU=_cp.claim,_oMv=_cp.pending,_oCx=_cp.cx;
       items.push({kind:'check',id:_id,prod:r.prod||r.sku||'',sup:r.sup,oid:r.oid,acct:r.acct,sku:r.sku,asin:r.asin||'',
         by:q.by||'someone',at:q.at,wait:days(q.at),
         type:q.what==='amz-claim'
@@ -132,9 +135,9 @@ function renderJack(){
           :['AMAZON SAYS DELIVERED','#22d3ee','Becki checked the shelves — not there. Raise it with Amazon.'],
         why:esc(q.what==='amz-claim'
           ?`${fmt(_owe)} unit${_owe===1?'':'s'} never delivered — refund or reimbursement to raise`
-          :`${fmt(_owe)} unit${_owe===1?'':'s'} Amazon say ${_owe===1?'was':'were'} delivered — not in the warehouse`),note:'',
+          :`${fmt(_oU)} unit${_oU===1?'':'s'} Amazon say ${_oU===1?'was':'were'} delivered — not in the warehouse${_oMv>0?` · ${fmt(_oMv)} more booked against another order — Sarah is moving ${_oMv===1?'it':'them'} across`:''}${_oCx>0?` · ${fmt(_oCx)} cancelled by Amazon — ${_oCx===1?'it closes':'they close'} with the claim`:''}`),note:'',
         clog:(q.chase&&q.chase.log)||[],expDate:r.expectedDelivery||'',
-        value:(parseSKU(r.sku).cogs||0)*_owe,left:refundLeft(r.date,r),
+        value:(parseSKU(r.sku).cogs||0)*_oU,left:refundLeft(r.date,r),
           acts:`<button class="csAct good" onclick="amzMoneyBox('${_id}',this)" title="Sorted with Amazon — it asks what happened to the money so a refund that never lands does not quietly disappear">Sorted with Amazon&hellip;</button>
           <button class="csAct plain" onclick="jackAmzDate('${_id}',this)" title="Amazon are sending it again — record the date, the row parks">Replacement coming &mdash; date&hellip;</button>
           <button class="csAct plain" onclick="jackAnswerAsk('${_id}')">Back to Sarah with a note</button>`});
@@ -158,6 +161,15 @@ function renderJack(){
       age:_ordAge(r),odate:r.date||'',
       whyHtml:_jkCheckFacts(r),   /* b630: what SellerFuse found — Sarah no longer types it */
       acts:_jkCheckActs(r,_id)});});
+  /* b656: "check every order" — one card per product, however many of its orders Becki can't find */
+  [...new Set(checks.filter(r=>(r.resolution||{}).what==='asin-orders').map(r=>_asinKey(r.asin)))].forEach(A=>{
+    const P=_ocPlan(A);if(!P)return;const s0=P.stuck[0],oc=(s0.resolution||{}).ordChk||{},at=oc.at||(s0.resolution||{}).at;
+    const owe=P.rows.reduce((t,x)=>t+x.owed,0);
+    items.push({kind:'ordchk',id:'oc:'+A,A,P,prod:s0.prod||s0.sku||'',sup:s0.sup,oid:'',acct:'',sku:'',asin:A,
+      by:oc.by||'Becki',at,wait:days(at),owedU:owe,
+      type:['CHECK EVERY ORDER','#22d3ee','Not on the shelves — has any order of this product been cancelled?'],
+      why:esc(`${fmt(owe)} not on the shelves · ${fmt(P.orders.length)} orders to check`),note:'',left:null,acts:'',
+      value:P.rows.reduce((t,x)=>t+(parseSKU(x.r.sku).cogs||0)*x.owed,0)});});
   /* Jack, 10 Sep, the Wella: one order number, two rows, 24 units shipped
      against 20 ordered. Not a decision the app can make — a card that puts the
      rows side by side so he can. Only fires when the rows between them have
@@ -262,15 +274,20 @@ function renderJack(){
           <button class="csAct plain" onclick="escalateMoney('${r.uuid||r.id}')" title="Back on Sarah's sheet with the history, to chase and escalate">Back to Sarah</button>`
         :`<button class="csAct good" onclick="refundRaised('${r.uuid||r.id}')" title="Raised in the Amazon account — it moves to Waiting on the money">Refund raised &#10003;</button>
           <button class="csAct warn" onclick="escalateMoney('${r.uuid||r.id}')" title="Back on Sarah's sheet with the history, to chase and escalate">Back to Sarah</button>`});});
-  const order={check:0,dec:1,refund:2,claim:3,lav:4,fix:5};
+  const order={ordchk:0,check:0,dec:1,refund:2,claim:3,lav:4,fix:5};
   items.sort((a,b)=>{
     switch(_jkSort){
       case 'oldest':return (b.wait||0)-(a.wait||0);
-      case 'newest':return (a.wait||0)-(b.wait||0);
+      case 'newest':{   /* b664: whole days first, then the exact time inside a day — the newest really is on top */
+        const d=(a.wait||0)-(b.wait||0);if(d)return d;const ta=Date.parse(a.at||'')||0,tb=Date.parse(b.at||'')||0;return tb-ta;}
       case 'money':return (b.value||0)-(a.value||0);
       case 'claim':{const ax=a.left==null?9e9:(a.left<0?9e8:a.left),bx=b.left==null?9e9:(b.left<0?9e8:b.left);return ax-bx;}
       case 'supplier':return String(a.sup||'').localeCompare(String(b.sup||''))||(b.wait||0)-(a.wait||0);
-      default:return (order[a.kind]-order[b.kind])||(b.wait-a.wait);
+      default:
+        /* b661 (Jack: "do newest first pls"): Becki's order checks at the top, newest first */
+        if((a.kind==='ordchk')!==(b.kind==='ordchk'))return a.kind==='ordchk'?-1:1;
+        if(a.kind==='ordchk')return String(b.at||'').localeCompare(String(a.at||''));
+        return (order[a.kind]-order[b.kind])||(b.wait-a.wait);
     }
   });
   /* Same toolbar language as Sarah's page — search, chips with counts. */
@@ -280,8 +297,8 @@ function renderJack(){
   const _q=(_jkQ||'').toLowerCase();
   if(_q)shown=shown.filter(it=>[it.prod,it.sup,it.oid,it.sku,it.by,it.note,it.why].filter(Boolean).join(' ').toLowerCase().includes(_q));
   if(_jkKind!=='all')shown=shown.filter(it=>it.kind===_jkKind);
-  if(_jkSup!=='all')shown=shown.filter(it=>String(it.sup||'')===_jkSup);
-  if(_jkAcct!=='all')shown=shown.filter(it=>String(it.acct||'')===_jkAcct);
+  if(_jkSup!=='all')shown=shown.filter(it=>it.kind==='ordchk'?it.P.orders.some(o=>o.sup===_jkSup):String(it.sup||'')===_jkSup);   /* b662: a card spans several */
+  if(_jkAcct!=='all')shown=shown.filter(it=>it.kind==='ordchk'?it.P.orders.some(o=>o.acct===_jkAcct):String(it.acct||'')===_jkAcct);
   const owedTotal=(owed||[]).reduce((a,o)=>a+(o.value||0),0);
   const atRisk=items.filter(i=>i.kind!=='fix').reduce((a,i)=>a+(i.value||0),0);
   const needs=shown.filter(it=>it.kind!=='fix'),info=shown.filter(it=>it.kind==='fix');
@@ -420,11 +437,15 @@ function renderJack(){
     const ap=rows.filter(r=>r.resolution&&r.resolution.state==='approved'&&/^jack/i.test(String(r.resolution.approvedBy||''))&&!r.resolution.filed&&r.resolution.approvedAt&&_workMsSince(r.resolution.approvedAt)<TM.undoHours*3600e3&&!['in-transit','query-missing','query-cancelled','query-refunded'].includes(r.resolution.what));
     const T=new Date().toISOString().slice(0,10);
     const an=rows.filter(r=>r.resolution&&r.resolution.state==='rejected'&&/^jack/i.test(String(r.resolution.rejectedBy||''))&&String(r.resolution.at||'').slice(0,10)===T);
-    if(!ap.length&&!an.length)return '';
+    const _an0=an.filter(r=>!((r.resolution.ordChk||{}).done)),_oc=(typeof _ocSends==='function')?_ocSends():[];   /* b661 */
+    if(!ap.length&&!_an0.length&&!_oc.length)return '';
     const line=(r,what,btn)=>`<div class="jkDoneRow"><span class="jkDoneP">${esc(r.prod||r.sku||'')}</span><span class="jkDoneW">${what}</span>${btn||''}</div>`;
-    return `<details class="jkDone" open><summary><span class="jkInfoT">Done</span><span class="jkInfoN">${fmt(ap.length+an.length)}</span><span class="ovDim2">what you dealt with — approvals stay undoable for 48 working hours</span></summary>
+    return `<details class="jkDone" open><summary><span class="jkInfoT">Done</span><span class="jkInfoN">${fmt(ap.length+_an0.length+_oc.length)}</span><span class="ovDim2">what you dealt with — approvals and order checks stay undoable for 48 working hours</span></summary>
       ${ap.map(r=>line(r,`approved — ${esc(_resText(r.resolution.what))} · ${esc(_logWhen(r.resolution.approvedAt))}`,`<button class="csAct plain" onclick="reopenResolution('${r.uuid||r.id}',true)" title="Bring it back — everything it knew is still on it">Undo</button>`)).join('')}
-      ${an.map(r=>line(r,`answered — ${esc((r.resolution.rejectNote||'').slice(0,90))} · ${esc(_logWhen(r.resolution.at))}`,'')).join('')}
+      ${_oc.map(g=>line({prod:g.prod},`order check sent — ${fmt(g.n)} order${g.n===1?'':'s'}: ${[g.tl.cancelled?fmt(g.tl.cancelled)+' cancelled':'',g.tl.sarah?fmt(g.tl.sarah)+' booked against another order':'',g.tl.missing?fmt(g.tl.missing)+' to raise with Amazon':''].filter(Boolean).join(' · ')} · ${esc(_logWhen(g.at))}`,
+        g.ok?`<button class="csAct plain" onclick="ocUndoSend('${_ocJs(g.A)}','${_ocJs(g.at)}')" title="Bring the card back with your answers on it — off Sarah's list and your raise list, her move job withdrawn">Undo</button>`
+          :`<span class="ovDim2" title="Sarah or you have already acted on part of what it sent — answer those rows instead">already acted on</span>`)).join('')}
+      ${_an0.map(r=>line(r,`answered — ${esc((r.resolution.rejectNote||'').slice(0,90))} · ${esc(_logWhen(r.resolution.at))}`,'')).join('')}
     </details>`;})();
   const _woHtml=(()=>{
     const L=_writeOffs();if(!L.length)return '';
@@ -514,7 +535,7 @@ function renderJack(){
           .map(([k,l])=>`<option value="${k}" ${_jkSort===k?'selected':''}>${l}</option>`).join('')}
       </select>
       <div class="admChips">
-        ${[['all','All'],['check','Checks'],['dec','Decisions'],['refund','Refunds to raise'],['claim','Claims'],['lav','Shortages'],['fix','Qty fixes']]
+        ${[['all','All'],['ordchk','Order checks'],['check','Checks'],['dec','Decisions'],['refund','Refunds to raise'],['claim','Claims'],['lav','Shortages'],['fix','Qty fixes']]
           .filter(([k])=>k==='all'||_jkCounts[k])
           .map(([k,l])=>`<button class="admChip${_jkKind===k?' on':''}" onclick="_jkKind='${k}';renderJack();">${l} <b>${_jkCounts[k]||0}</b></button>`).join('')}
       </div>
@@ -536,7 +557,7 @@ function renderJack(){
     <div class="tfuScroll" style="margin:0;max-height:none;overflow:visible;">
     <table class="tfu">
       <tbody class="jkCards">
-      ${needs.map(_jkRow).join('')}
+      ${needs.map((it,x)=>it.kind==='ordchk'?_ocCardHtml(it,x):_jkRow(it,x)).join('')}
       </tbody>
     </table>
     </div>
@@ -591,6 +612,72 @@ function renderJackAuto(){
 }
 /* Answering is a real reply, not a status flip — he types what he found and it
    goes back to her with the answer attached. */
+/* b656: the CHECK EVERY ORDER card — every order of the product by account and marketplace, his answer on each Amazon
+   one, the sum underneath and the one press that sends each stuck order where its answer says (b662: supplier orders
+   greyed, each unit's source named, quotes safe in the buttons) */
+function _ocCardHtml(it,x){
+  const P=it.P,A=it.A,q=_ocJs,nS=P.rows.length,owe=it.owedU||0,busy=typeof _ocBusy!=='undefined'&&_ocBusy.has(A);
+  const sf=(()=>{try{return typeof sfJackHtml==='function'?sfJackHtml(P.stuck[0]):'';}catch(e){return '';}})();
+  let grp=null;
+  const tr=P.orders.map(o=>{
+    const a=o.ans&&o.ans.a,url=_ocOrderUrl(o.oid,o.sup),g=o.acct+'|'+o.sup,top=g!==grp;grp=g;
+    const lost=o.stuck.reduce((t,s)=>t+_owedUnits(s),0);
+    const chip=(v,t,cls,tip)=>`<button class="ocChip ${cls}${a===v?' on':''}" onclick="ocAns('${q(A)}','${q(o.key)}','${v}')" title="${esc(tip)}">${t}</button>`;
+    const ansHtml=!o.amz
+      ?`<span class="ocDim" title="Not an Amazon order — you can’t see it on the accounts. What the warehouse booked in counts as arrived; if that is wrong it is Sarah’s road.">Supplier order &mdash; counted as booked in</span>`
+      :`${chip('d','Delivered','good',`Amazon show ${o.want===1?'it':'all '+fmt(o.want)} delivered`)}${chip('c','Cancelled','warn','Amazon cancelled or refunded the whole order')}${o.want>1?`<label class="ocPart${a==='p'?' on':''}" title="Amazon cancelled some of the ${fmt(o.want)} still expected${o.cxSheet?` — on top of the ${fmt(o.cxSheet)} the sheet already has cancelled`:''}. Type how many.">Part cancelled <input type="number" min="1" max="${o.want-1}" step="1" value="${a==='p'?esc(String(o.ans.k||'')):''}" placeholder="how many" onchange="ocAns('${q(A)}','${q(o.key)}','p',this.value)"></label>`:''}`;
+    return `<tr class="${top?'ocGrp':''}${o.stuck.length?' ocStuck':''}${a?' ocDone':''}${o.amz?'':' ocSup'}">
+      <td class="ocAcct">${top?esc(o.acct||'—'):''}</td>
+      <td class="ocMkt">${top?esc(o.sup||'—'):''}</td>
+      <td class="ocOid">${o.oid?`${url?`<a href="${esc(url)}" target="_blank" rel="noopener" title="Open this order on ${esc(o.sup)} — signed in as ${esc(o.acct||'that account')}">${esc(o.oid)}</a>`:`<span>${esc(o.oid)}</span>`}<span class="ocCp" title="Copy the order ID" onclick="copyVal('${q(o.oid)}',this)">copy</span>`:'<span class="ocDim">no order number</span>'}</td>
+      <td class="ocOd">${o.od?esc(_dmy(o.od)):'—'}${o.old?'<small title="Older than 60 days — on the list because it is one of the stuck ones">over 60 days</small>':''}</td>
+      <td class="ocN">${fmt(o.want)}${o.cxSheet?`<small class="ocCxS" title="The Purchase Sheet already has ${fmt(o.cxSheet)} of this order cancelled — the ${fmt(o.want)} is what is still expected">+${fmt(o.cxSheet)} cancelled on the sheet</small>`:''}</td>
+      <td class="ocN${o.booked<o.want?' ocShort':''}">${fmt(o.booked)}${o.stuck.length?`<small>${fmt(lost)} not on the shelves</small>`:''}</td>
+      <td class="ocAns"><div class="ocAnsW">${ansHtml}</div></td></tr>`;}).join('');
+  /* where each covering unit was booked, said once per source */
+  const srcLine=rs=>{const m={};rs.forEach(r=>r.srcs.forEach(s=>{const k=(s.inner?'i:':'o:')+s.o.key;(m[k]=m[k]||{s,n:0}).n+=s.n;}));
+    return Object.values(m).map(({s,n})=>s.inner?`${fmt(n)} under the other line of order ${esc(s.o.oid||'')}`
+      :`${fmt(n)} against ${esc(s.o.oid||'another order')} (${!s.o.amz?'supplier order, more booked in than ordered':s.o.cx>=s.o.want?'Amazon cancelled it':s.o.cx>0?'Amazon part-cancelled it':'more booked in than ordered'})`).join(', ');};
+  const V=[];
+  if(P.all){
+    const c=P.rows.filter(r=>r.route==='cancelled'),sR=P.rows.filter(r=>r.route==='sarah'),mR=P.rows.filter(r=>r.route==='missing');
+    const mS=sR.reduce((t,r)=>t+r.moved,0),mJ=mR.reduce((t,r)=>t+r.moved,0),cJ=mR.reduce((t,r)=>t+r.cx,0);
+    if(c.length)V.push(`<div class="ocV warn">${fmt(c.reduce((t,r)=>t+r.cx,0))} cancelled &mdash; Sarah notes the sheet and closes ${c.length===1?'it':'them'}</div>`);
+    if(mS)V.push(`<div class="ocV go">${fmt(mS)} not missing &mdash; booked ${srcLine(sR)}. Sarah moves ${mS===1?'it':'them'} across</div>`);
+    if(mJ)V.push(`<div class="ocV go">${fmt(mJ)} not missing &mdash; booked ${srcLine(mR)}. Sarah gets the job to move ${mJ===1?'it':'them'}; you claim only what is really missing</div>`);
+    if(P.M)V.push(`<div class="ocV bad">${fmt(P.M)} really missing &mdash; onto your list to raise with Amazon</div>`);
+    if(cJ)V.push(`<div class="ocV warn">${fmt(cJ)} cancelled by Amazon on ${mR.length===1?'that order':'those orders'} &mdash; closed with the claim</div>`);
+    if(P.extra)V.push(`<div class="ocV warn">${fmt(P.extra)} more booked in than delivered &mdash; the sheet is wrong; it goes to Sarah with the rest</div>`);
+    if(P.held)V.push(`<div class="ocV dim">${fmt(P.held)} booked-in unit${P.held===1?' was':'s were'} already given to an earlier order check &mdash; not counted twice</div>`);
+  }
+  const tl=P.rows.reduce((t,r)=>(t[r.route]=(t[r.route]||0)+1,t),{});
+  const go=busy?'Sending&hellip;':P.all?'Send it &mdash; '+[tl.cancelled||tl.sarah?`${fmt((tl.cancelled||0)+(tl.sarah||0))} to Sarah`:'',tl.missing?`${fmt(tl.missing)} to raise with Amazon`:''].filter(Boolean).join(' &middot; '):`Answer every order first &mdash; ${fmt(P.amzN-P.answered)} to go`;
+  const nSup=P.orders.length-P.amzN;
+  return `<tr class="jkCardRow"><td colspan="8"><div class="jkCard ocCard" style="border-left-color:#22d3ee;">
+    <div class="ocTop">
+      <span class="jkNum">${x+1}</span>
+      <span class="jkType" style="color:#22d3ee;background:#22d3ee1a;border-color:#22d3ee50;" title="${esc(it.type[2])}">${it.type[0]}</span>
+      <div class="ocProd" title="${esc(it.prod||'')}">${esc(it.prod)}</div>
+      <span class="s-asin ocAsin" onclick="copyVal('${q(A)}',this)" title="Click to copy">${esc(A)}</span>
+      <span class="jkBy"><b>${esc(it.by)}</b> &middot; ${it.wait===0?'today':it.wait+'d ago'}</span>
+    </div>
+    <div class="ocAsk"><b>${esc(it.by)}</b> can’t find ${fmt(owe)} on the shelves${nS>1?` (${fmt(nS)} orders)`:''} &mdash; has any order of this product been cancelled? Every order of it from the last 60 days${P.orders.some(o=>o.old)?', plus the stuck one older than that':''}.</div>
+    ${sf?`<div class="ocSf">${sf}</div>`:''}
+    <div class="ocBar">
+      <button class="csAct good" onclick="ocAllDel('${q(A)}')" title="Every Amazon order you haven’t answered is Delivered — then change just the odd one"${P.answered===P.amzN||busy?' disabled':''}>All delivered</button>
+      <span class="ocCnt"><b>${fmt(P.answered)}</b> of ${fmt(P.amzN)} answered${nSup?` <span class="ocDim">&middot; ${fmt(nSup)} supplier order${nSup===1?'':'s'} counted as booked in</span>`:''}</span>
+      <button class="csAct plain" onclick="ocUndo('${q(A)}')" title="No order check needed — back on Becki’s shelf check with Not here"${busy?' disabled':''}>Back to Becki</button>
+    </div>
+    <div class="ocScroll"><table class="ocT">
+      <thead><tr><th>Account</th><th>Marketplace</th><th>Order ID</th><th>Ordered</th><th>Units</th><th>Booked in</th><th>Amazon shows</th></tr></thead>
+      <tbody>${tr}</tbody></table></div>
+    <div class="ocFoot">
+      <div class="ocSum">Delivered <b>${fmt(P.D)}</b> &middot; booked in <b>${fmt(P.B)}</b>${P.all?'':' <span class="ocDim">&mdash; so far, counting the ones not answered as delivered</span>'}</div>
+      ${V.join('')}
+      <button class="csAct good ocGo" onclick="ocSend('${q(A)}')"${P.all&&!busy?'':' disabled'}>${go}</button>
+    </div>
+  </div></td></tr>`;
+}
 function jackAnswerAsk(rid){
   const r=_rowById(rid);if(!r)return;
   _askRid=rid;
@@ -1237,14 +1324,16 @@ async function jackAnswered(rid,answer,extra){
     r.resolution.chase=_back||undefined;
   }
   r._dirty=true;
+  let _saved=true;
   try{
-    await saveRow(r);
+    if((await saveRow(r))===false)throw new Error('save-failed');   /* b662: saveRow reports a failure by returning false */
     logAudit('Jack answered a check',`${r.sku||r.asin||''} — ${answer}`);
     fireWebhook(`${_who()} answered "${r.prod||r.sku||''}": ${answer}`,
       {event:'jack_answered',sku:r.sku||'',by:_who()});
     toast('✓ Sent back with your answer');
-  }catch(e){toast('Didn\'t save — check the connection','er');}
+  }catch(e){_saved=false;toast('Didn\'t save — check the connection','er');}
   renderJack();try{renderAdmin();renderDashboard();paintJackBadge();}catch(e){}
+  return _saved;
 }
 function sarahTodo(){
   const open=VA_ACTIONS.filter(a=>!a.done);

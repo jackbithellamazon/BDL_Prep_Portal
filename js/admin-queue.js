@@ -2533,12 +2533,12 @@ function renderAdmin(){
             const _wWhat=waiting.state==='asked'?(waiting.ask||'Amazon order check'):_resText(waiting.what);
             /* Jack, 8 Sep: an Amazon claim is his until it is sorted — she can
                see where it stands, but there is nothing for her to undo. */
-            const _jackOwned=waiting.what==='amz-claim'||waiting.what==='amz-missing';
+            const _jackOwned=waiting.what==='amz-claim'||waiting.what==='amz-missing'||waiting.what==='asin-orders';   /* b656: Becki's ask — not hers to undo */
             /* Jack, 9 Sep: "she still needs visibility of where the issue
                currently sits, even when she isn't responsible for the next
                action." Every stage said "With Jack" — checking the account and
                chasing a refund read identically. */
-            const _stage=_jackOwned?'With Jack · chasing Amazon':'With Jack · checking the account';
+            const _stage=waiting.what==='asin-orders'?'With Jack · checking every order':_jackOwned?'With Jack · chasing Amazon':'With Jack · checking the account';
             const _q=i.query;
             return`<tr class="tfuWaiting tfuCompact">
               <td class="tfuNumCell" style="text-align:center;"><span class="tfuStripe" style="background:#94a3b8;" title="${esc(edgeTitle)}"></span><span style="font:800 12px var(--mono);color:var(--text3);cursor:help;" title="${esc(edgeTitle)}">${n+1}</span></td>

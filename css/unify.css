@@ -1230,3 +1230,63 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 .jkSfBal{color:var(--text2);}
 .jkSfWho{color:var(--text3);font-size:10.5px;}
 .jkMeant select{margin-left:4px;padding:3px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11.5px;font-weight:700;}
+/* b656: Becki's "Ask Jack to check all orders" and Jack's CHECK EVERY ORDER card */
+.qryAsk.qryOc{border:1px solid #f59e0b;background:rgba(245,158,11,.16);color:#fde68a;font-size:11px;font-weight:800;padding:5px 10px;margin-top:6px;}
+.qryAsk.qryOc:hover{background:rgba(245,158,11,.3);color:#fff;}   /* b660: amber — not Becki's cyan, not Not here's red, not Jack's violet tick */
+.jkCard.ocCard{display:block;padding:11px 16px 13px;}
+.ocTop{display:flex;align-items:center;gap:10px;min-width:0;}
+.ocProd{font-size:13.5px;font-weight:800;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ocAsin{font:700 11px var(--mono);cursor:pointer;flex:0 0 auto;}
+.ocAsk{margin-top:6px;font-size:12px;color:var(--text2);line-height:1.45;}
+.ocAsk b{color:var(--text);}
+.ocSf{margin-top:4px;font-size:11.5px;}
+.ocBar{display:flex;align-items:center;gap:10px;margin:9px 0 6px;}
+.ocBar .csAct{margin:0;}
+.ocBar .csAct[disabled]{opacity:.45;cursor:default;}
+.ocCnt{font-size:11.5px;color:var(--text3);font-weight:600;margin-right:auto;}
+.ocCnt b{color:var(--text);font-family:var(--num);}
+.ocScroll{overflow-x:auto;}
+.ocT{width:100%;border-collapse:collapse;font-size:12px;}
+.ocT th{text-align:left;font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);padding:5px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.ocT td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;white-space:nowrap;}
+.ocT tr.ocGrp td{border-top:1px solid var(--border);}
+.ocT tr.ocStuck td{background:rgba(34,211,238,.06);}
+.ocT tr.ocStuck td:first-child{box-shadow:inset 3px 0 0 #22d3ee;}
+.ocT td.ocAcct{font-weight:800;color:var(--text);}
+.ocT td.ocMkt{color:var(--text2);font-weight:600;}
+.ocT td.ocOid a,.ocT td.ocOid span:first-child{font:700 11.5px var(--mono);color:#7dd3fc;text-decoration:none;}
+.ocT td.ocOid a:hover{text-decoration:underline;}
+.ocCp{margin-left:8px;font-size:10px;font-weight:700;color:var(--text3);cursor:pointer;border:1px solid var(--border2);border-radius:4px;padding:0 5px;}
+.ocCp:hover{color:#7dd3fc;border-color:rgba(56,189,248,.5);}
+.ocT td.ocN{font:700 12.5px var(--num);text-align:right;}
+.ocT td.ocN.ocShort{color:#fcd34d;}
+.ocT td small{display:block;font-size:10px;font-weight:600;color:#22d3ee;white-space:nowrap;}
+.ocT td.ocOd small{color:var(--text3);}
+.ocT td.ocAns{white-space:normal;}
+.ocAnsW{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
+.ocChip{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;background:transparent;border:1px solid var(--border2);color:var(--text2);}
+.ocChip.good:hover,.ocChip.good.on{background:rgba(52,211,153,.18);border-color:rgba(52,211,153,.6);color:#a7f3d0;}
+.ocChip.warn:hover,.ocChip.warn.on{background:rgba(251,191,36,.16);border-color:rgba(251,191,36,.6);color:#fde68a;}
+.ocPart{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--text3);border:1px dashed var(--border2);border-radius:6px;padding:2px 4px 2px 8px;}
+.ocPart.on{border-style:solid;border-color:rgba(251,191,36,.6);color:#fde68a;background:rgba(251,191,36,.1);}
+.ocPart input{width:80px;height:22px;padding:0 5px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font:700 11.5px var(--num);}
+.ocFoot{display:flex;flex-direction:column;align-items:flex-start;gap:5px;margin-top:9px;}
+.ocSum{font-size:12.5px;color:var(--text2);}
+.ocSum b{font-family:var(--num);color:var(--text);font-size:14px;}
+.ocV{font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px;border:1px solid;}
+.ocV.warn{color:#fde68a;border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.08);}
+.ocV.go{color:#a7f3d0;border-color:rgba(52,211,153,.45);background:rgba(52,211,153,.08);}
+.ocV.bad{color:#fca5a5;border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.08);}
+.ocDim{color:var(--text3);font-weight:600;}
+.ocFoot .ocGo{margin:2px 0 0;}
+.ocFoot .ocGo[disabled]{opacity:.45;cursor:not-allowed;}
+/* b657 (Jack: "change Jack's colour button/tag so it's more clear"): Jack's things on the Prep Sheet in Jack-blue,
+   apart from Becki's cyan — his tick button a solid button (the green done-tick stays green), the order-check chip solid */
+/* b658 (Jack: "same colour? completely different colour") — the blue was too close to Becki's cyan: Jack is VIOLET */
+.asinChkBtn{border:1px solid #a78bfa;background:#7c3aed;color:#fff;font-weight:800;box-shadow:0 1px 4px rgba(124,58,237,.35);}
+.asinChkBtn:hover{background:#8b5cf6;color:#fff;}
+.qryTag.jk{color:#ede9fe!important;border-color:#a78bfa!important;background:rgba(139,92,246,.3)!important;}
+/* b662: supplier orders on the order-check card greyed; sheet cancellations; a quiet verdict line */
+.ocT tr.ocSup td{opacity:.6;}
+.ocT td small.ocCxS{color:var(--text3);}
+.ocV.dim{color:var(--text2);border-color:var(--border2);background:rgba(255,255,255,.03);}
