@@ -502,14 +502,17 @@ function _ocStuck(A){
    very order Becki is asking about) — grouped by order number; Amazon orders first, by account and marketplace */
 function _ocOrders(A,stuck){
   if(!A)return [];
-  const since=ukAddDays(todayISO(),-60),S=new Set(stuck.map(x=>String(x.uuid||x.id))),by={},n=x=>parseInt(x)||0;
+  /* b668: 60 days back from today — or from 14 days before the oldest stuck order, whichever goes further back, so an
+     old stuck order brings the orders placed alongside it (HIGH5 Caffeine, 3 Sep: its Biz 01 order the same day) */
+  const s60=ukAddDays(todayISO(),-60),_o0=stuck.map(s=>_sfOrderISO(s)).filter(Boolean).sort()[0]||'',_b=_o0?ukAddDays(_o0,-14):'';
+  const since=_b&&_b<s60?_b:s60,S=new Set(stuck.map(x=>String(x.uuid||x.id))),by={},n=x=>parseInt(x)||0;
   rows.forEach(x=>{if(_asinKey(x.asin)!==A)return;
     const mine=S.has(String(x.uuid||x.id)),od=_sfOrderISO(x);if(!mine&&(!od||od<since))return;
     const want=Math.max(0,n(x.exp)-n(x.cancelledQty)),bk=n(x.rcvd);if(!mine&&!want&&!bk)return;   /* cancelled on the sheet already */
     const oid=String(x.oid||'').trim(),k=oid||('row:'+(x.uuid||x.id));
     const o=by[k]=by[k]||{key:k,oid,acct:String(x.acct||'').trim(),sup:String(x.sup||'').trim(),od:od||'',want:0,booked:0,cxSheet:0,rows:[],stuck:[],old:false,amz:false};
     if(typeof _amazonRow==='function'&&_amazonRow(x))o.amz=true;   /* b662: only an Amazon order is his to check on the accounts */
-    o.want+=want;o.booked+=bk;o.cxSheet+=n(x.cancelledQty);o.rows.push(x);if(mine){o.stuck.push(x);if(od&&od<since)o.old=true;}if(od&&(!o.od||od<o.od))o.od=od;});
+    o.want+=want;o.booked+=bk;o.cxSheet+=n(x.cancelledQty);o.rows.push(x);if(mine)o.stuck.push(x);if(od&&od<s60)o.old=true;if(od&&(!o.od||od<o.od))o.od=od;});
   /* b667 (Jack: "yes" to likely twins first): an Amazon order placed the same day at the same price as a stuck one is
      the likeliest place its units were booked — its account goes to the top, and it leads its account */
   const _cg=x=>{try{return Math.round(((typeof parseSKU==='function'?parseSKU(x.sku).cogs:0)||0)*100);}catch(e){return 0;}};
@@ -1067,6 +1070,7 @@ function _ocClaimFacts(r){
 }
 function _ocClaimMsg(r){
   const q=(r&&r.resolution)||{},d=(q.ordChk||{}).done||{},n=(typeof _amzClaimUnits==='function'?_amzClaimUnits(r):0)||_owedUnits(r);
+  if(q.what==='amz-claim')return `Order ${r.oid||''}: ${n} x ${String(r.prod||'').slice(0,90)}${r.asin?` (ASIN ${r.asin})`:''} ${n===1?'was':'were'} never delivered. Please refund the ${n} unit${n===1?'':'s'}.`;   /* b668 */
   return `Order ${r.oid||''}: ${n} x ${String(r.prod||'').slice(0,90)}${r.asin?` (ASIN ${r.asin})`:''} ${n===1?'shows':'show'} as delivered, but ${n===1?'it never':'they never'} arrived. `
     +(d.n?`We have checked every other delivery of this item from the same weeks and they all arrived in full, and we have searched our warehouse. `:'We have searched our warehouse. ')
     +`Please refund the ${n} missing unit${n===1?'':'s'}.`;

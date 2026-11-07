@@ -3841,7 +3841,7 @@ window.PrepChecks=(function(){
           b:o(70,'202-'+k+'-0000002','Biz 03 - WM',{exp:1,rcvd:0,resolution:jk()}),   /* stuck and older than 60 days */
           c:o(12,'202-'+k+'-0000003','Biz 01',{exp:1,rcvd:1,ship:1}),
           d:o(20,'302-'+k+'-0000004','EU 03',{sup:'Amazon Germany',exp:2,rcvd:2,ship:2}),
-          e:o(80,'202-'+k+'-0000005','Biz 02',{exp:3,rcvd:3,ship:3})};};   /* older than 60 days and not stuck */
+          e:o(100,'202-'+k+'-0000005','Biz 02',{exp:3,rcvd:3,ship:3})};};   /* older than 60 days and not stuck — b668: and well before the stuck one */
       /* 1 · the ask: one press, both stuck orders of the product go to Jack */
       let t=setUp('X');
       who('Sarah');await amzToBecki(t.a.uuid);await amzToBecki(t.b.uuid);ok(_isAmzDel(t.a)&&_isAmzDel(t.b),'both stuck orders are with Becki');
@@ -3869,7 +3869,7 @@ window.PrepChecks=(function(){
       /* 3 · his card: every order of the product, the stuck one over 60 days included, the old one not */
       who('Becki');await ocAsk(t.b.uuid);
       const P0=_ocPlan(t.A);
-      eq(P0.orders.length,4,'4 orders on the card: the 2 stuck, 2 more from the last 60 days (the 80-day one left off)');
+      eq(P0.orders.length,4,'4 orders on the card: the 2 stuck, 2 more from the last 60 days (the 100-day one left off)');
       ok(P0.orders.some(o=>o.old&&o.stuck.length),'the stuck order older than 60 days is on it');
       ok(!P0.orders.some(o=>o.oid===t.e.oid),'an old order that isn’t stuck is not');
       eq(_ocOrderUrl(t.d.oid,'Amazon Germany'),'https://www.amazon.de/gp/your-account/order-details?orderID='+t.d.oid,'an Amazon Germany order opens on amazon.de');
@@ -4331,6 +4331,30 @@ window.PrepChecks=(function(){
       who('Sarah');await amzToBecki(e1.uuid);who('Becki');await ocAsk(e1.uuid);ok(_ocOrigin(e1)==='becki','her ask is hers');
       who('Jack');await ocAllDel(E);await ocSend(E);eq(e1.resolution.what,'amz-missing','she already looked: really missing goes straight to his claim, as before');
     }finally{window._saveAsinChecks=keepSave;ASIN_CHECKS=keepA;try{closeSorted();}catch(e){}try{renderJack();}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* 152 · b668: an old stuck order brings the orders placed alongside it; the never-delivered claim message */
+  S['b668: an old stuck order brings the orders placed with it; a never-delivered claim says so']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const keepSave=window._saveAsinChecks,keepA=ASIN_CHECKS;
+    try{
+      window._saveAsinChecks=async(A,v)=>{const m=Object.assign({},ASIN_CHECKS);if(v)m[A]=v;else delete m[A];ASIN_CHECKS=m;return true;};
+      const dm=d=>{const t=ukAddDays(todayISO(),-d);return t.slice(8)+'/'+t.slice(5,7);};
+      const k=String(++_n).padStart(7,'0').slice(-7),A='B0CHK68A'+(++_n);
+      const jk=()=>({state:'rejected',kind:'check',what:'jack-check',rejectNote:'Arrived — YES, the account shows it delivered.',rejectedBy:'Jack',by:'Sarah',at:iso()});
+      const s=mkRow({asin:A,prod:'CHECK ROW old',date:dm(65),oid:'202-'+k+'-0000001',acct:'Biz 02',exp:12,rcvd:0,resolution:jk()});
+      const same=mkRow({asin:A,prod:'CHECK ROW old',date:dm(65),oid:'026-'+k+'-0000002',acct:'Biz 01',exp:4,rcvd:4,ship:4});
+      const before=mkRow({asin:A,prod:'CHECK ROW old',date:dm(75),oid:'026-'+k+'-0000003',acct:'Biz 01',exp:2,rcvd:2,ship:2});
+      const far=mkRow({asin:A,prod:'CHECK ROW old',date:dm(90),oid:'026-'+k+'-0000004',acct:'Biz 01',exp:2,rcvd:2,ship:2});
+      who('Sarah');await amzToBecki(s.uuid);who('Becki');await ocAsk(s.uuid);who('Jack');
+      const P=_ocPlan(A),has=r=>P.orders.some(o=>o.oid===r.oid);
+      ok(has(same),'an order placed the same day as the 65-day-old stuck one is on the card');
+      ok(has(before),'and one 10 days before it');ok(!has(far),'but not one 25 days before it');
+      ok(P.orders.find(o=>o.oid===same.oid).old,'it is labelled older than 60 days');
+      /* the claim message on "Amazon say it was never delivered" */
+      const c=mkRow({prod:'CHECK ROW claim',exp:6,rcvd:0,resolution:{state:'asked',kind:'check',what:'amz-claim',ask:'x',by:'Jack',at:iso()}});
+      const m=_ocClaimMsg(c);ok(/never delivered/.test(m)&&!/shows? as delivered/.test(m),'a never-delivered claim says never delivered ('+m.slice(0,80)+')');
+    }finally{window._saveAsinChecks=keepSave;ASIN_CHECKS=keepA;}
   };
 
   async function run(only){
