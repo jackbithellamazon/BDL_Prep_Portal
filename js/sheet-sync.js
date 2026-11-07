@@ -1037,7 +1037,7 @@ async function runSheetSync(manual){
           if(res.error)throw res.error;
           if(!Array.isArray(res.data)||res.data.length!==chunk.length)
             throw new Error('batch answered for '+((res.data||[]).length)+' of '+chunk.length+' rows');
-          res.data.forEach((d,i)=>{if(d&&d.id){chunk[i].uuid=d.id;_setBase(chunk[i]);}});
+          res.data.forEach((d,i)=>{if(d&&d.id){chunk[i].uuid=d.id;delete chunk[i]._minted;_setBase(chunk[i]);}});   /* b665: it is saved — no longer new */
         }else{
           /* 13 Oct 2026: only the columns that changed, never the whole row —
              grouped by which columns, because one bulk upsert needs one shape */
@@ -1045,7 +1045,7 @@ async function runSheetSync(manual){
           chunk.forEach(r=>{
             const diff=r._base?_rowDiff(r):_colsOf(r);_missingCols.forEach(c=>delete diff[c]);
             const ks=Object.keys(diff).sort();if(!ks.length)return;          // nothing changed — nothing to write
-            (groups[ks.join(',')]=groups[ks.join(',')]||[]).push({r,diff});
+            (groups[ks.join(',')]=groups[ks.join(',')]||[]).push({r,diff:JSON.parse(JSON.stringify(diff))});   /* b665: copied as sent */
           });
           for(const g of Object.values(groups)){
             const res=await sb.from('prep_rows').upsert(g.map(x=>Object.assign({id:x.r.uuid},x.diff)),{onConflict:'id'}).select('id');
@@ -1164,7 +1164,7 @@ const sheetOnly=['sku','date','oid','sup','acct','prod','asin','dg','vat','sas',
          sheet is corrected; the moment the sheet changes, the sheet wins. */
       if(k==='exp'&&existing.qtyFix&&!existing.qtyFix.sheetDone){
         if(parseInt(fields[k])===parseInt(existing.qtyFix.from))return;
-        existing.qtyFix.sheetDone=true;
+        existing.qtyFix=Object.assign({},existing.qtyFix,{sheetDone:true});changed=true;   /* b665: saved on purpose */
       }
       const was=existing[k];
       /* vaNoteSheet has no database column, so after every reload it is
@@ -1222,7 +1222,7 @@ const sheetOnly=['sku','date','oid','sup','acct','prod','asin','dg','vat','sas',
     _toReact.push(existing);
   }
   await _saveMany(_toReact,async existing=>{
-    try{await saveRow(existing);reactivated++;}
+    try{if(await saveRow(existing))reactivated++;else saveErrors.push('Reactivate failed: '+existing.sku);}
     catch(e){saveErrors.push('Reactivate error: '+existing.sku+' — '+e.message);}
   },6,'Putting rows back');
 

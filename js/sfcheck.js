@@ -352,7 +352,7 @@ async function sfFixShipDates(){
       try{logAudit('Send date set to Amazon’s',`${r.sku||''} — ${s.id}: ${was.map(_dmy).join(', ')} → ${_dmy(d)} (SellerFuse)`);}catch(e){}
     }
   }
-  for(const r of touched){try{await saveRow(r);n++;}catch(e){}}
+  for(const r of touched){try{if(await saveRow(r))n++;}catch(e){}}
   if(n){toast(`${fmt(n)} send date${n===1?'':'s'} set to the day Amazon made the shipment`,'ok');try{renderPrep();renderStats();}catch(e){}}
   return n;
 }
@@ -373,11 +373,13 @@ async function sfPutBackExcluded(){
     if(!ships.length)continue;
     const exIdx=_sfExcluded().findIndex(x=>(x.syncId||'')===e.syncId);
     if(exIdx<0)continue;                                   /* another laptop already did it */
-    if(rows.some(r=>(r.sheetSyncId||'')===e.syncId))continue;
+    if(rows.some(r=>(r.sheetSyncId||'')===e.syncId)){   /* b665 (review): already put back — lift a leftover exclusion */
+      if(rows.some(r=>(r.sheetSyncId||'')===e.syncId&&r.importedFrom==='SellerFuse check')){_syncExcluded.splice(exIdx,1);try{await saveSyncExcluded();}catch(err){}}
+      continue;}
     const units=ships.reduce((t,s)=>t+(parseInt(s.units)||0),0);
     const ex=_sfExcluded()[exIdx];
-    _syncExcluded.splice(exIdx,1);
-    try{await saveSyncExcluded();}catch(err){continue;}
+    /* b665: the row goes in FIRST — lifting the exclusion first and then failing the insert lost the order from both
+       lists, and the next sync brought it back as a fresh late order for Sarah to chase */
     const r={uuid:(window.crypto&&crypto.randomUUID?crypto.randomUUID():undefined),_minted:true,id:++nid,
       date:(typeof skuDateDDMM==='function'&&skuDateDDMM(e.sku))||'',oid:ex.oid||'',sup:'',acct:'',prod:ex.prod||'',
       asin:ex.asin||'',sku:e.sku,exp:units,rcvd:units,ship:0,cancelledQty:0,status:'In Warehouse',
@@ -386,11 +388,13 @@ async function sfPutBackExcluded(){
     rows.push(r);
     ships.forEach(s=>{try{addSegment(r,s.id,parseInt(s.units)||0,'Standard');}catch(err){}
       const seg=(r.shipSegments||[]).find(x=>x.shipId===s.id);if(seg&&s.date)seg.date=s.date;});
-    r.sent='Yes';r.sentDate=ships[0].date||todayISO();
+    r.sent='Yes';r.sentDate=ships.map(s=>s.date).filter(Boolean).sort()[0]||todayISO();   /* b665: the earliest send */
     try{_statusFollowsStock(r);}catch(err){}
     r.notes=`Put back by the SellerFuse check ${sfWhen()}: it had been removed from the sheet, but Amazon received ${fmt(units)} on ${ships.map(s=>s.id).join(', ')}`;
     r._dirty=true;
-    try{await saveRow(r);}catch(err){}
+    let _in=false;try{_in=await saveRow(r);}catch(err){_in=false;}
+    if(!_in){const k=rows.indexOf(r);if(k>=0)rows.splice(k,1);continue;}   /* not saved: no phantom row, the exclusion stays */
+    {const j=_sfExcluded().findIndex(x=>(x.syncId||'')===e.syncId);if(j>=0){_syncExcluded.splice(j,1);try{await saveSyncExcluded();}catch(err){}}}
     try{logAudit('Put back on the sheet by the SellerFuse check',`${e.sku} (${e.syncId}) — ${fmt(units)} shipped on ${ships.map(s=>s.id).join(', ')}`);}catch(err){}
     n++;
   }

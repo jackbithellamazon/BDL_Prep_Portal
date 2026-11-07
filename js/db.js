@@ -368,12 +368,17 @@ async function _finalizeHistory(gen){
 function _canon(v){
   if(v===undefined)return 'u';
   if(v===null||typeof v!=='object')return JSON.stringify(v);
-  if(Array.isArray(v))return '['+v.map(_canon).join(',')+']';
-  return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+_canon(v[k])).join(',')+'}';   /* jsonb sorts keys */
+  if(Array.isArray(v))return '['+v.map(x=>x===undefined?'null':_canon(x)).join(',')+']';
+  /* b665: a key holding undefined is not stored by jsonb — skip it, so a real copy of the row never reads as a change */
+  return '{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+_canon(v[k])).join(',')+'}';   /* jsonb sorts keys */
 }
 function _colsOf(r){const d=rowToDb(r);delete d.id;return d;}
 function _setBase(r,cols){
-  try{Object.defineProperty(r,'_base',{value:cols||_colsOf(r),writable:true,configurable:true,enumerable:false});}catch(e){}
+  /* b665: a REAL copy. It used to hold the very same case-record object as the row, so a button that changed the
+     case record in place (r.resolution.state='approved', .filed, .refundRaised, a chase log line) changed the
+     "last saved" copy with it — no difference, nothing sent, and the change never reached the database. */
+  let c=cols||_colsOf(r);try{c=JSON.parse(JSON.stringify(c));}catch(e){}
+  try{Object.defineProperty(r,'_base',{value:c,writable:true,configurable:true,enumerable:false});}catch(e){}
   return r;
 }
 function _rowDiff(r){
@@ -708,7 +713,18 @@ function _missingColInErr(err){
 }
 // Back-compat alias used elsewhere.
 function _isMissingShipSegmentsErr(err){return _missingColInErr(err)==='ship_segments';}
+/* b665 (review): saves of one row are counted while they run. A put-back after a failed press waits for every other
+   save of that row to settle, then returns the row to what the database holds by then — so a second press whose
+   save carried both changes is never undone on screen while the database keeps it. */
+const _svBusy=new Map();
+function _svKey(r){return r&&(r.uuid||('L'+r.id));}
+function _saveIdle(r){const s=_svBusy.get(_svKey(r));return s&&s.n>0?new Promise(res=>s.w.push(res)):Promise.resolve();}
 async function saveRow(r){
+  const k=_svKey(r),s=_svBusy.get(k)||{n:0,w:[]};s.n++;_svBusy.set(k,s);
+  try{return await _saveRowNow(r);}
+  finally{s.n--;if(s.n<=0){if(_svBusy.get(k)===s)_svBusy.delete(k);s.w.splice(0).forEach(f=>{try{f();}catch(e){}});}}
+}
+async function _saveRowNow(r){
   _lastSaveErr=null;
   /* Jack, 10 Sep: Starbucks — "has Becki said this has arrived? why is this at
      warehouse, how did that happen?" Nobody pressed anything: the status was
@@ -758,13 +774,26 @@ async function saveRow(r){
     /* only the columns this laptop changed (FIELD-LEVEL SAVES, above) */
     const _diff=r._base?_rowDiff(r):null;
     if(_diff&&!Object.keys(_diff).length){setTimeout(()=>{r._dirty=false;},1500);setSyncStatus('synced');return true;}
+    /* b665 (review): the case record goes as one whole column. If another laptop changed it since this one last
+       heard, sending ours would put the old record back over theirs — so look first; if it moved, take theirs, stop. */
+    if(_diff&&('resolution' in _diff)&&r._base){
+      try{const cur=await sb.from('prep_rows').select('resolution').eq('id',r.uuid).maybeSingle();
+        if(cur&&!cur.error&&cur.data&&_canon(cur.data.resolution||null)!==_canon(r._base.resolution||null)){
+          const theirs=cur.data.resolution==null?null:JSON.parse(JSON.stringify(cur.data.resolution));
+          r._base.resolution=theirs==null?null:JSON.parse(JSON.stringify(theirs));r.resolution=theirs;
+          _lastSaveErr={message:'conflict: the case was changed on another laptop'};r._dirty=false;setSyncStatus('synced');
+          toast('This case was just changed on another laptop — it has been refreshed. Check it and press again.','er');
+          try{rtRepaint();}catch(e){}
+          return false;}
+      }catch(e){}
+    }
     // Ask for the updated rows back so we can tell if it actually matched
     // anything. Supabase .update() does NOT error when it matches zero rows —
     // it silently succeeds — so a stale/missing uuid would "save" but write
     // nothing, and the value reverts on refresh. Verify the match count.
     res=await runWrite(data=>{
       const send=_diff?Object.fromEntries(Object.keys(_diff).filter(k=>k in data).map(k=>[k,data[k]])):data;
-      delete send.id;_sent=send;
+      delete send.id;try{_sent=JSON.parse(JSON.stringify(send));}catch(e){_sent=send;}   /* b665: copied as sent */
       if(!Object.keys(send).length)return Promise.resolve({data:[{id:r.uuid}],error:null});
       return sb.from('prep_rows').update(send).eq('id',r.uuid).select('id');});
     if(!res.error&&(!res.data||res.data.length===0)){
@@ -780,12 +809,15 @@ async function saveRow(r){
     res=await runWrite(data=>sb.from('prep_rows').insert(data).select().single());
     if(res.data)r.uuid=res.data.id;
     if(!res.error){delete r._minted;_setBase(r);}
-    else if(_isDupKeyErr(res.error)&&r._minted){
+    /* b665: only a clash on the row's OWN id is our earlier insert landing — one on sheet_sync_id is another
+       laptop's copy of the same sheet line, so it falls through: false + _lastSaveErr, and sync drops the phantom */
+    else if(_isDupKeyErr(res.error)&&r._minted&&!/sheet_sync_id/i.test(((res.error.message||'')+' '+(res.error.details||'')))){
       /* Retrying an insert whose first attempt actually committed: the PK
          already exists because WE put it there. That is success. */
       delete r._minted;
-      setTimeout(()=>{r._dirty=false;},1500);
-      setSyncStatus('synced');return true;
+      /* b665 (review): it landed — but what changed since must still go. This used to return true having written
+         nothing, so a row added by sheet sync and booked in straight away lost Becki's count on the next refresh. */
+      return await _saveRowNow(r);
     }
   }
   if(res.error){
@@ -809,6 +841,36 @@ async function saveRow(r){
   // short delay instead of immediately. (Fixes status reverting after ~1s.)
   setTimeout(()=>{r._dirty=false;},1500);
   setSyncStatus('synced');return true;
+}
+/* b665 (the 7 Nov audit): after a save that did not go through, put the row back to exactly what the database holds,
+   so nothing half-done is left on it to ride along with the next save, and pressing the button again starts clean.
+   Only the stored columns move — this laptop's own working fields (starting _) are left alone. The copy in rows[]
+   is put back too, in case a change from another laptop swapped the object while the save was running. */
+function _rowBackToSaved(r){
+  if(!r||!r._base)return false;
+  const objs=[r],cur=r.uuid?rows.find(x=>x.uuid===r.uuid):null;if(cur&&cur!==r)objs.push(cur);
+  let n=0;
+  objs.forEach(o=>{
+    const b=o._base||r._base;if(!b)return;
+    let fresh;try{fresh=dbToRow(JSON.parse(JSON.stringify(Object.assign({},b,{id:o.uuid}))));}catch(e){return;}
+    let now=_colsOf(o);
+    Object.keys(fresh).forEach(f=>{
+      if(f[0]==='_'||f==='uuid'||f==='id')return;
+      if(_canon(fresh[f])===_canon(o[f]))return;
+      /* only a field that brings a changed column back, and leaves every column that is already right alone
+         (a field like the SellerAmp link is rebuilt from the ASIN — setting it would CREATE a difference) */
+      const t=_colsOf(Object.assign({},o,{[f]:fresh[f]})),pend=k=>_canon(now[k])!==_canon(b[k]);
+      if(Object.keys(t).some(k=>pend(k)&&_canon(t[k])===_canon(b[k]))&&!Object.keys(t).some(k=>!pend(k)&&_canon(t[k])!==_canon(now[k]))){o[f]=fresh[f];now=t;n++;}
+    });
+    try{o._srch=null;}catch(e){}o._dirty=false;
+  });
+  return n>0;
+}
+/* a save a one-press loop can count on: true, or false with the row already put back */
+async function _saveOk(r){
+  const ok=await saveRow(r);
+  if(ok===false){await _saveIdle(r);_rowBackToSaved(r);return false;}
+  return true;
 }
 async function deleteRow(r){
   if(!r.uuid)return;

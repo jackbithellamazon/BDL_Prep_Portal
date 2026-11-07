@@ -2252,6 +2252,8 @@ async function doBulkClearOld(){
       setSyncStatus('syncing');
       const stamp=new Date().toISOString();
       const ids=[];
+      /* b665: what each row held before — Undo used to set resolution=null, wiping a live claim's chase log */
+      const _was=new Map(todo.map(r=>[r,JSON.stringify({archived:!!r.archived,resolution:r.resolution==null?null:r.resolution,transitAction:r.transitAction||''})]));
       todo.forEach(r=>{
         r.resolution={state:'approved',kind:'ops',what:'cleared-old',
           note:'Cleared in bulk — this was dealt with before PrepHub tracked it',
@@ -2262,15 +2264,19 @@ async function doBulkClearOld(){
       });
       clearBulkSelect();
       renderPrep();try{renderAdmin();}catch(e){}try{renderDashboard();}catch(e){}
-      for(const r of todo){try{await saveRow(r);}catch(e){console.warn('[clearOld]',e);}}
-      try{logAudit('Old rows cleared',`${todo.length} row${todo.length===1?'':'s'} archived as sorted outside the app`);}catch(e){}
+      const _ok=[];for(const r of todo){if(await _saveOk(r))_ok.push(r);}
       if(btn){btn.disabled=false;btn.textContent='Clear as sorted';}
+      renderPrep();try{renderAdmin();}catch(e){}try{renderDashboard();}catch(e){}
+      if(!_ok.length){toast('Didn\u2019t save — nothing was cleared. Check the connection and try again.','er');return;}
+      try{logAudit('Old rows cleared',`${_ok.length} row${_ok.length===1?'':'s'} archived as sorted outside the app`);}catch(e){}
       setSyncStatus('synced');
-      toastUndo(`${todo.length} row${todo.length===1?'':'s'} cleared — under Show Archived if you need them`,async()=>{
-        todo.forEach(r=>{r.archived=false;r.resolution=null;});
+      const _miss=todo.length-_ok.length;
+      toastUndo(`${_ok.length} row${_ok.length===1?'':'s'} cleared${_miss?` — ${_miss} didn’t save, press again for those`:' — under Show Archived if you need them'}`,async()=>{
+        let back=0;
+        for(const r of _ok){const w=JSON.parse(_was.get(r));r.archived=w.archived;r.resolution=w.resolution;r.transitAction=w.transitAction;r._dirty=true;
+          if(await _saveOk(r))back++;}
         renderPrep();try{renderAdmin();}catch(e){}
-        for(const r of todo){try{await saveRow(r);}catch(e){}}
-        toast('Put back','ok');
+        toast(back===_ok.length?'Put back':`${back} put back — ${_ok.length-back} didn’t save, try Undo again from the row`,back===_ok.length?'ok':'er');
       });
     });
 }

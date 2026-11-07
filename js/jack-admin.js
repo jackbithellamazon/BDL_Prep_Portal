@@ -962,9 +962,10 @@ async function jackNudgeQuiet(){
     r._dirty=true;hit.push(r);
   });
   if(!hit.length){toast('Nothing is overdue a chase right now','ok');return;}
-  for(const r of hit){try{await _mustSave(r);}catch(e){}}
-  logAudit('Nudged Sarah',hit.length+' overdue chase'+(hit.length===1?'':'s')+' flagged');
-  toast('&#9889; Flagged '+hit.length+' — it is on her rows now','ok');
+  let ok=0;for(const r of hit){try{await _mustSave(r);ok++;}catch(e){}}   /* b665: count what saved */
+  if(!ok){toast('Didn\u2019t save — nothing was flagged. Check the connection and try again.','er');renderJack();return;}
+  logAudit('Nudged Sarah',ok+' overdue chase'+(ok===1?'':'s')+' flagged');
+  toast('&#9889; Flagged '+ok+(ok<hit.length?' — '+(hit.length-ok)+' didn\u2019t save, press again':' — it is on her rows now'),ok<hit.length?'er':'ok');
   renderJack();try{renderAdmin();}catch(e){}
 }
 async function unparkDate(rid){

@@ -4072,6 +4072,113 @@ window.PrepChecks=(function(){
     ok(/case 'newest':\{[^}]*Date\.parse\(a\.at/.test(ja),'same-day items on Jack’s page go by the exact time');
   };
 
+  /* 148 · b665: a failed save leaves nothing behind; a change made in place is really sent */
+  S['b665: saves — in-place changes are sent, a failed press is put back, jobs and messages only after a save']=async()=>{
+    const keepSave=window.saveRow,keepWh=window.fireWebhook,keepVa=window.addVaActions,keepAud=window.logAudit;
+    let hooks=0,jobs=0,auds=[];
+    const fail=async r=>{r._dirty=false;return false;},okSave=async r=>{_setBase(r);setTimeout(()=>{r._dirty=false;},0);return true;};
+    const mk=(o)=>{const r=mkRow(Object.assign({asin:'B0CHK665AA',sku:'CHK_665_'+(Math.random()*1e6|0),exp:10,rcvd:7},o||{}));
+      r.uuid=r.uuid||('00000000-0000-4000-8000-'+String(Date.now()%1e12).padStart(12,'0'));return r;};
+    try{
+      window.fireWebhook=()=>{hooks++;};window.addVaActions=async()=>{jobs++;};window.logAudit=(a)=>{auds.push(a);};
+      /* 1 — the last-saved copy is a real copy: an in-place change is a difference */
+      let r=mk();r.resolution={state:'proposed',kind:'ops',what:'cancelled',chase:{log:[{what:'a'}]}};_setBase(r);
+      ok(r._base.resolution!==r.resolution,'the last-saved copy is its own object');
+      eq(Object.keys(_rowDiff(r)).length,0,'a fresh copy reads as no change');
+      r.resolution.state='approved';ok('resolution' in _rowDiff(r),'an approval made in place is now sent');
+      r.resolution.state='proposed';r.resolution.chase.log.push({what:'b'});ok('resolution' in _rowDiff(r),'a chase-log line added in place is now sent');
+      r.resolution.chase.log.pop();r.resolution.x=undefined;eq(Object.keys(_rowDiff(r)).length,0,'a key holding undefined is not a change (jsonb never stores it)');
+      /* 2 — _rowBackToSaved puts the stored columns back, the working fields stay */
+      r=mk();r.resolution={state:'working',chase:{step:'contact',log:[]}};r.cancelledQty=0;_setBase(r);
+      r.cancelledQty=3;r.expectedDelivery='2026-12-01';r.resolution.chase.log.push({what:'x'});r._keep='mine';
+      ok(_rowBackToSaved(r),'something was put back');
+      eq(r.cancelledQty,0,'units back');eq(r.expectedDelivery||'',(dbToRow(Object.assign({},r._base,{id:r.uuid})).expectedDelivery)||'','date back');
+      eq(r.resolution.chase.log.length,0,'the log line is gone');eq(r._keep,'mine','this laptop’s own working field is left alone');
+      eq(Object.keys(_rowDiff(r)).length,0,'nothing left to ride along with the next save');
+      /* …also when another laptop’s change swapped the object in rows[] during the save */
+      r=mk();r.cancelledQty=0;_setBase(r);const twin=Object.assign(Object.create(Object.getPrototypeOf(r)),r);_setBase(twin,r._base);
+      const ix=rows.indexOf(r);rows[ix]=twin;twin.cancelledQty=4;r.cancelledQty=4;_rowBackToSaved(r);
+      eq(twin.cancelledQty,0,'the copy on screen is put back too');rows[ix]=r;
+      /* 3 — Amazon missing sorted: fail, then press again — the units go off ONCE */
+      window.saveRow=fail;
+      r=mk({exp:10,rcvd:7});r.cancelledQty=0;r.resolution={state:'asked',kind:'check',what:'amz-missing',at:new Date().toISOString(),chase:{path:'never-arrived',log:[]}};_setBase(r);
+      await amzMissingDone(r.uuid,'in');
+      eq(parseInt(r.cancelledQty)||0,0,'a failed press leaves nothing cancelled');eq(r.resolution.state,'asked','…and the case still open');
+      window.saveRow=okSave;await amzMissingDone(r.uuid,'in');
+      eq(parseInt(r.cancelledQty)||0,3,'pressing again cancels the 3 once, not 6');eq(r.resolution.state,'approved','…and closes it');
+      /* 4 — a case date that did not save is not left on the row */
+      window.saveRow=fail;r=mk();r.resolution={state:'working',chase:{path:'never-arrived',step:'waiting',log:[]}};const ed0=r.expectedDelivery||'';_setBase(r);
+      if(typeof caseDate==='function'){try{await caseDate(r.uuid,'2026-12-24');}catch(e){}
+        eq(r.expectedDelivery||'',ed0,'the replacement date is not left on the row');eq((r.resolution.chase.log||[]).length,0,'no log line left');}
+      /* 5 — Jack’s Approve: on a failed save no jobs, no message, no audit line; on a good one all three */
+      window.saveRow=fail;hooks=0;jobs=0;auds=[];
+      r=mk({exp:5,rcvd:3});r.resolution={state:'proposed',kind:'ops',what:'cancelled',by:'Sarah',at:new Date().toISOString(),followUps:['Update Purchase Sheet']};_setBase(r);
+      await approveResolution(r.uuid);
+      eq(r.resolution.state,'proposed','a failed approve leaves it proposed');eq(jobs,0,'no jobs');eq(hooks,0,'no message to Discord');
+      ok(!auds.includes('Closure approved'),'no audit line');
+      window.saveRow=okSave;await approveResolution(r.uuid);
+      eq(r.resolution.state,'approved','approved once it saves');ok(jobs>0,'Sarah’s follow-up job made after the save');eq(hooks,1,'one message');
+      /* 6 — bulk loops count what really saved (the Put-right loop, through _saveOk) */
+      window.saveRow=fail;r=mk();_setBase(r);r.transitAction='Late — Needs Chasing';
+      eq(await _saveOk(r),false,'_saveOk reports the failure');eq(r.transitAction||'',(dbToRow(Object.assign({},r._base,{id:r.uuid})).transitAction)||'','…and has put the row back');
+      /* 7 — moving lines: a row that did not save is not moved */
+      if(typeof moveShipLines==='function'){window.saveRow=fail;
+        r=mk({ship:2});r.shipSegments=[{shipId:'FBA15CHK665A',units:2,date:'2026-11-01',type:'Standard'}];r.allShipIds=['FBA15CHK665A'];r.shipId='FBA15CHK665A';_setBase(r);
+        const n=await moveShipLines([{kind:'oa',row:r,from:'FBA15CHK665A'}],'FBA15CHK665A','FBA15CHK665B',{noUndo:true});
+        eq(n,0,'nothing counted as moved');eq(r.shipSegments[0].shipId,'FBA15CHK665A','the line stays on its shipment');}
+      /* 8 — a duplicate on sheet_sync_id is another laptop's row, not our own retry */
+      ok(/sheet_sync_id/i.test('duplicate key value violates unique constraint "prep_rows_sheet_sync_id_key"'),'the clash names the sheet line');
+      const src=(x=>{const q=new XMLHttpRequest();q.open('GET',x+'?'+Date.now(),false);q.send();return q.responseText;})('/js/db.js');
+      ok(/_isDupKeyErr\(res\.error\)&&r\._minted&&!\/sheet_sync_id\/i/.test(src),'only a clash on our own id counts as our earlier insert');
+    }finally{window.saveRow=keepSave;window.fireWebhook=keepWh;window.addVaActions=keepVa;window.logAudit=keepAud;try{renderAdmin();renderJack();renderPrep();}catch(e){}}
+  };
+
+  /* 149 · b665, the second review: a newer case on another laptop wins, overlapping saves, a landed insert still saves */
+  S['b665 review: another laptop’s newer case wins, overlapping saves settle first, a landed insert still saves']=async()=>{
+    const keepFrom=sb.from,keepNow=window._saveRowNow;
+    const src=x=>{const q=new XMLHttpRequest();q.open('GET',x+'?'+Date.now(),false);q.send();return q.responseText;};
+    try{
+      /* 1 — another laptop changed the case: ours is not sent, theirs is taken */
+      let r=mkRow({asin:'B0CHK665BB',sku:'CHK_665_RV1',exp:4,rcvd:2});r.resolution={state:'proposed',kind:'ops',what:'cancelled'};_setBase(r);
+      r.resolution.state='approved';
+      let updated=0;const theirs={state:'rejected',kind:'ops',what:'cancelled',rejectNote:'Jack: escalate'};
+      sb.from=function(t){if(t!=='prep_rows')return keepFrom.apply(sb,arguments);
+        return{select:()=>({eq:()=>({maybeSingle:async()=>({data:{resolution:theirs},error:null})})}),
+               update:()=>{updated++;return{eq:()=>({select:async()=>({data:[{id:r.uuid}],error:null})})};}};};
+      const ok1=await window.saveRow(r);
+      eq(ok1,false,'the save stops');eq(updated,0,'our old case record is never sent');
+      eq(r.resolution.state,'rejected','the other laptop’s newer case is taken');ok(!('resolution' in _rowDiff(r)),'…and no case record is left waiting to go');
+      /* …and when nobody else changed it, it goes as normal */
+      r.resolution=Object.assign({},r.resolution,{state:'approved'});
+      sb.from=function(t){if(t!=='prep_rows')return keepFrom.apply(sb,arguments);
+        return{select:()=>({eq:()=>({maybeSingle:async()=>({data:{resolution:theirs},error:null})})}),
+               update:(d)=>{updated++;return{eq:()=>({select:async()=>({data:[{id:r.uuid}],error:null})})};}};};
+      const ok2=await window.saveRow(r);eq(ok2,true,'an unchanged case saves');eq(updated,1,'…once');
+      sb.from=keepFrom;
+      /* 2 — two saves of one row at once: a failed one waits, and keeps what the other one landed */
+      r=mkRow({asin:'B0CHK665BB',sku:'CHK_665_RV2',exp:4,rcvd:2});r.cancelledQty=0;_setBase(r);r.cancelledQty=2;
+      let rel=null;
+      window._saveRowNow=async x=>{if(!rel)return await new Promise(res=>{rel=()=>{_setBase(x);res(true);};});return false;};
+      const p2=window.saveRow(r);
+      let threw=false;const p1=_mustSave(r).catch(()=>{threw=true;});
+      await wait(30);eq(r.cancelledQty,2,'nothing is put back while the other save is still running');
+      rel();await p2;await p1;
+      ok(threw,'the failed press still reports it');eq(r.cancelledQty,2,'what the other save landed stays on screen');
+      eq(Object.keys(_rowDiff(r)).length,0,'screen and database agree');
+      window._saveRowNow=keepNow;
+      /* 3 — the rest, by what the code now does */
+      const db=src('/js/db.js'),ss=src('/js/sheet-sync.js'),aq=src('/js/admin-queue.js'),co=src('/js/closeoff.js'),sf=src('/js/sfcheck.js');
+      ok(/delete chunk\[i\]\._minted/.test(ss),'a row the sync batch-inserted is no longer “new”');
+      ok(/delete r\._minted;[\s\S]{0,400}return await _saveRowNow\(r\);/.test(db),'an insert that had landed still sends what changed since');
+      {const f=(aq.split('function jackAmzDate(')[1]||'').split(/\n(?:async )?function /)[0];ok(f&&!/setDueDate\(/.test(f)&&/r\.expectedDelivery=v;/.test(f),'Jack’s Amazon date goes in the same write as his answer');}
+      ok(/const _had=claims\.find/.test(aq),'a second “nothing more coming” press does not raise a second claim');
+      ok(/existing\.qtyFix=Object\.assign\(\{\},existing\.qtyFix,\{sheetDone:true\}\);changed=true;/.test(ss),'the “sheet corrected” mark is saved on purpose');
+      ok(/SRT_DRAFTS\[String\(rid\)\]=_d;[\s\S]{0,120}closeSorted\(\);/.test(co),'Sarah’s answers are kept before the popup closes');
+      ok(/importedFrom==='SellerFuse check'\)\)\{_syncExcluded\.splice/.test(sf),'a leftover exclusion on a put-back order is lifted');
+      eq(_canon([1,undefined]),_canon(JSON.parse(JSON.stringify([1,undefined]))),'an undefined array item matches what JSON stores');
+    }finally{sb.from=keepFrom;window._saveRowNow=keepNow;}
+  };
+
   async function run(only){
     R.length=0;const t0=Date.now();
     const _dbwWas=(typeof DBW!=='undefined')?DBW.paused:false;try{DBW.paused=true;}catch(e){}

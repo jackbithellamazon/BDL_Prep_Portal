@@ -67,7 +67,7 @@ async function pnFixRun(){
         /* anything the warehouse typed alongside it stays where it is */
         r.notes=n.replace(an,'').replace(/\n{2,}/g,'\n').trim();
         r._dirty=true;
-        try{await saveRow(r);done++;}catch(e){failed++;}
+        if(await _saveOk(r)){done++;}else failed++;
       }
       logAudit('Packing notes tidied',`${done} moved to the VA note${failed?' · '+failed+' failed':''}`);
       toast(failed?`${done} moved — ${failed} did not save, try again`:`\u2713 ${done} note${done===1?'':'s'} moved to the VA note`,failed?'er':'ok');
@@ -110,20 +110,20 @@ async function psFixRun(){
       for(const r of l){
         const st=_settleClosedUnits(r,(r.resolution||{}).what);
         if(st.toBecki){await _sendToBeckiShelves(r,`${fmt(_owedUnits(r))} unaccounted for after \u201C${_resText((r.resolution||{}).what)}\u201D`);
-          try{await saveRow(r);becki++;try{logAudit('Sent to the warehouse to check',`${r.sku||r.asin||''} — ${st.note}`);}catch(e){}}catch(e){failed++;}
+          if(await _saveOk(r)){becki++;try{logAudit('Sent to the warehouse to check',`${r.sku||r.asin||''} — ${st.note}`);}catch(e){}}else failed++;
           continue;}
         if(!st.changed)continue;
         r._dirty=true;
-        try{await saveRow(r);done++;try{logAudit('Closed row settled',`${r.sku||r.asin||''} — ${st.note}`);}catch(e){}}catch(e){failed++;}}
+        if(await _saveOk(r)){done++;try{logAudit('Closed row settled',`${r.sku||r.asin||''} — ${st.note}`);}catch(e){}}else failed++;}
       for(const r of stale){r.transitAction='';r._dirty=true;
-        try{await saveRow(r);labels++;try{logAudit('Stale Late label cleared',`${r.sku||r.asin||''} — nothing outstanding`);}catch(e){}}catch(e){failed++;}}
+        if(await _saveOk(r)){labels++;try{logAudit('Stale Late label cleared',`${r.sku||r.asin||''} — nothing outstanding`);}catch(e){}}else failed++;}
       let flags=0;
       for(const r of si){const was=(r.issueType||'')+(r.issueQty?' · '+r.issueQty:'');
         r.issueType='';r.issueQty='';r._dirty=true;
-        try{await saveRow(r);flags++;try{logAudit('Resolved issue flag cleared',`${r.sku||r.asin||''} — ${was}, claim closed and nothing owed`);}catch(e){}}catch(e){failed++;}}
+        if(await _saveOk(r)){flags++;try{logAudit('Resolved issue flag cleared',`${r.sku||r.asin||''} — ${was}, claim closed and nothing owed`);}catch(e){}}else failed++;}
       let sentN=0;
       for(const r of sn){r.status='Sent to Amazon';r.sent='Yes';if(!r.sentDate)r.sentDate=((r.shipSegments||[]).slice(-1)[0]||{}).date||new Date().toISOString().slice(0,10);r._dirty=true;
-        try{await saveRow(r);sentN++;try{logAudit('Status moved to Sent to Amazon',`${r.sku||r.asin||''} — everything it held had shipped, nothing owed`);}catch(e){}}catch(e){failed++;}}
+        if(await _saveOk(r)){sentN++;try{logAudit('Status moved to Sent to Amazon',`${r.sku||r.asin||''} — everything it held had shipped, nothing owed`);}catch(e){}}else failed++;}
       const bits=[done?`${done} settled`:'',becki?`${becki} to Becki`:'',labels?`${labels} label${labels===1?'':'s'} cleared`:'',flags?`${flags} issue flag${flags===1?'':'s'} cleared`:'',sentN?`${sentN} moved to Sent to Amazon`:''].filter(Boolean).join(' · ');
       toast(failed?`${bits} — ${failed} did not save, try again`:`\u2713 ${bits}`,failed?'er':'ok');
       psFixPaint();try{renderPrep();renderAdmin();renderDashboard();}catch(e){}
@@ -1271,6 +1271,8 @@ async function submitSorted(){
      it — the row was waiting on a decision nobody could see. Ops self-closures
      need no approval, so those still archive immediately, below. */
   if(kind==='ops'&&follow.includes('Remove from Prep Sheet'))r.archived=true;
+  /* b665: the jobs and audit lines this close makes are held until the save has landed */
+  let _opsJobs=null;const _after=[];
   if(kind==='ops'){
     r.resolution.approvedBy=_who();
     r.resolution.approvedAt=new Date().toISOString();
@@ -1287,7 +1289,7 @@ async function submitSorted(){
       if(ticks[f]||stepKeys.has(f))return;
       if(jobs.some(j=>j===f||j.indexOf(f)===0))return;
       jobs.push(f);});
-    await addVaActions(r,jobs,[overrideWhy?('Left open: '+overrideWhy):'',sheetNote,fix].filter(Boolean).join(' — ')||_resText(what));
+    _opsJobs={jobs,why:[overrideWhy?('Left open: '+overrideWhy):'',sheetNote,fix].filter(Boolean).join(' — ')||_resText(what)};
   }
   r.cancelledQty=cx;
   /* Jack, 29 Oct (the C920): the close-off never writes Qty Received. It copied its "Arrived" box onto the row,
@@ -1297,17 +1299,22 @@ async function submitSorted(){
   /* an ops close is final the moment it is pressed — settle the row now */
   if(kind==='ops'&&!_looksWrong){const _st=_settleClosedUnits(r,what);
     if(_st.toBecki){await _sendToBeckiShelves(r,`${fmt(_owedUnits(r))} unaccounted for after "${_resText(what)}"`);
-      try{logAudit('Sent to the warehouse to check',`${r.sku||r.asin||''} — ${_st.note}`);}catch(e){}}
-    else if(_st.changed&&_st.note){try{logAudit('Row settled on close',`${r.sku||r.asin||''} — ${_st.note}`);}catch(e){}}}
+      _after.push(()=>logAudit('Sent to the warehouse to check',`${r.sku||r.asin||''} — ${_st.note}`));}
+    else if(_st.changed&&_st.note){_after.push(()=>logAudit('Row settled on close',`${r.sku||r.asin||''} — ${_st.note}`));}}
   /* the snapshot Undo reads: the row before, the counted fields after, and the resolution this one replaced */
   if(r.resolution)r.resolution.closeSnap={v:1,at:new Date().toISOString(),by:_who(),before:_snapB,after:_snapTake(r,_SNAP_COUNT),prev:_snapP};
   r._dirty=true;
+  try{const _d=_srtCollect();if(_d&&_d.what)SRT_DRAFTS[String(rid)]=_d;}catch(e){}   /* b665: kept until it lands */
   closeSorted();
   /* the row leaves the list straight away — the save carries on behind it
      rather than freezing the dialog while three round trips finish */
   renderAdmin();
   try{
-    await saveRow(r);
+    /* b665: saveRow says false, it never throws — a failed save put up a green "Closed off — Jack has been told",
+       messaged Jack and made her jobs for a close that never happened. Now nothing goes out until it has landed. */
+    if(!(await _saveOk(r))){toast('Didn\'t save — nothing was closed off and Jack has not been told. Your answers are kept: open it and press again.','er');renderAdmin();return;}
+    if(_opsJobs){try{await addVaActions(r,_opsJobs.jobs,_opsJobs.why);}catch(e){toast('Closed off — but the follow-up jobs didn\'t save. Add them from the row.','er');}}
+    _after.forEach(f=>{try{f();}catch(e){}});
     /* Only now. Dropping the part-finished copy before the save had actually
        landed would throw away her working on the one occasion it still mattered
        — the occasion where the save failed. */
@@ -1353,14 +1360,16 @@ async function approveResolution(rid){
   if(_sn)_snapRebase(_sn,r);
   /* Now it is genuinely closed, honour the follow-up she ticked. */
   if((r.resolution.followUps||[]).includes('Remove from Prep Sheet'))r.archived=true;
+  const _after=[];   /* b665: audit lines and Sarah's jobs only once the approval has landed */
   {const _st=_settleClosedUnits(r,r.resolution.what);
    if(_st.toBecki){await _sendToBeckiShelves(r,`${fmt(_owedUnits(r))} unaccounted for after "${_resText(r.resolution.what)}"`);
-     try{logAudit('Sent to the warehouse to check',`${r.sku||r.asin||''} — ${_st.note}`);}catch(e){}}
-   else if(_st.changed&&_st.note){try{logAudit('Row settled on approval',`${r.sku||r.asin||''} — ${_st.note}`);}catch(e){}}}
+     _after.push(()=>logAudit('Sent to the warehouse to check',`${r.sku||r.asin||''} — ${_st.note}`));}
+   else if(_st.changed&&_st.note){_after.push(()=>logAudit('Row settled on approval',`${r.sku||r.asin||''} — ${_st.note}`));}}
   if(_sn)_sn.after=_snapTake(r,_SNAP_COUNT);
   r._dirty=true;
-  await addVaActions(r,r.resolution.followUps||[],_resText(r.resolution.what));
-  try{await _mustSave(r);}catch(e){toast('Didn\'t save — nothing was recorded. Check the connection and try again.','er');return;}
+  try{await _mustSave(r);}catch(e){toast('Didn\'t save — nothing was recorded. Check the connection and try again.','er');try{renderAdmin();renderJack();}catch(e2){}return;}
+  _after.forEach(f=>{try{f();}catch(e){}});
+  try{await addVaActions(r,r.resolution.followUps||[],_resText(r.resolution.what));}catch(e){toast('Approved — but the follow-up jobs didn\'t save','er');}
   toast('Approved — closed off'+((r.resolution.followUps||[]).filter(f=>f!=='No further action required').length?' and the follow-up work is on Sarah\'s list':''),'ok');
   logAudit('Closure approved',`${r.sku||r.asin||''} — ${_resText(r.resolution.what)}`);
   fireWebhook(`${_who()} approved the close-off on "${r.prod||r.sku||''}" — ${_resText(r.resolution.what)}`,
@@ -1779,12 +1788,13 @@ async function saveQtyFix(){
   if(isNaN(nv)||nv<0||nv===(r.exp||0))return;
   const why=((document.getElementById('qfWhy')||{}).value||'').trim();
   const from=r.exp||0;
+  const _qcl=[],_qAfter=[];   /* b665: claims to close and audit lines wait for the save */
   r.qtyFix={from,to:nv,by:_who(),at:new Date().toISOString(),why,seen:false};
   r.exp=nv;r.aqty=nv;
   {const was=parseInt(r.rcvd)||0,box=document.getElementById('qfRcvd'),wrap=document.getElementById('qfRcvdWrap');
    if(nv<was&&nv>=(parseInt(r.ship)||0)&&box&&box.checked&&wrap&&wrap.style.display!=='none'){
      r.rcvd=nv;r.qtyFix.rcvdFrom=was;
-     try{logAudit('Booked-in count corrected',`${r.sku||r.asin||''} — ${was} → ${nv} (only ${nv} ordered) by ${_who()}`);}catch(e){}}}
+     _qAfter.push(()=>logAudit('Booked-in count corrected',`${r.sku||r.asin||''} — ${was} → ${nv} (only ${nv} ordered) by ${_who()}`));}}
   try{_statusFollowsStock(r);}catch(e){}
   /* A claim raised only because the sheet was wrong is not a real claim. */
   const got=parseInt(r.rcvd)||0;
@@ -1793,12 +1803,7 @@ async function saveQtyFix(){
     if(r.issueType&&r.issueType!=='None'){r.issueType='';r.issueQty=0;cleared++;}
     if(['Late — Needs Chasing','Urgent — Chase Now','Chasing Supplier','Awaiting Update','Delayed'].includes(r.transitAction))r.transitAction='';
     try{
-      (claims||[]).filter(c=>String(c.prepRowId)===String(r.uuid||r.id)&&c.cst!=='Resolved').forEach(c=>{
-        c.cst='Resolved';c.resolvedAt=c.resolvedAt||todayISO();
-        if(!c.log)c.log=[];
-        c.log.push({t:getNowUK(),msg:'Closed automatically — expected quantity corrected from '+from+' to '+nv+' by '+_who()});
-        saveClaim(c);cleared++;
-      });
+      (claims||[]).filter(c=>String(c.prepRowId)===String(r.uuid||r.id)&&c.cst!=='Resolved').forEach(c=>{_qcl.push(c);cleared++;});
     }catch(e){}
   }
   /* If the real number leaves nothing outstanding there is no longer anything
@@ -1816,6 +1821,9 @@ async function saveQtyFix(){
   r._dirty=true;
   closeQtyFix();
   try{await _mustSave(r);}catch(e){toast('Didn\'t save — nothing was recorded. Check the connection and try again.','er');return;}
+  _qAfter.forEach(f=>{try{f();}catch(e){}});
+  _qcl.forEach(c=>{try{c.cst='Resolved';c.resolvedAt=c.resolvedAt||todayISO();if(!c.log)c.log=[];
+    c.log.push({t:getNowUK(),msg:'Closed automatically — expected quantity corrected from '+from+' to '+nv+' by '+_who()});saveClaim(c);}catch(e){}});
   /* Jack, 10 Sep: "fix the sheet and close it" — the sheet job is the point,
      not a bonus for rows that happen to remember their sheet row number. */
   try{await addVaActions(r,['Update Purchase Sheet'],'Expected quantity corrected '+from+' → '+nv+(why?' — '+why:''));}catch(e){}

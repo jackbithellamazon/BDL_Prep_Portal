@@ -283,7 +283,8 @@ async function moveShipLines(items,fromId,toId,opts){
       r.ship=segmentsSentTotal(r);
       {const ds=merged.map(s=>s.date).filter(Boolean).sort();if(ds.length)r.sentDate=ds[0];}
       r._dirty=true;
-      try{await saveRow(r);}catch(e){Object.assign(r,snap);continue;}
+      /* b665: saveRow says false, it never throws — a failed row was counted as moved and kept the move in memory */
+      if(!(await saveRow(r))){Object.keys(r).forEach(k=>{if(!(k in snap))delete r[k];});Object.assign(r,snap);r._dirty=false;continue;}
       done.push({kind:'oa',row:r,snap});units+=moved;
       try{logAudit('Moved to another shipment',`${r.sku||r.asin||''} — ${moved} unit${moved===1?'':'s'} ${from} → ${toId}`);}catch(e){}
     }else if(it.kind==='lav'||it.kind==='ret'){
@@ -300,11 +301,13 @@ async function moveShipLines(items,fromId,toId,opts){
   const paint=()=>{try{renderShipments();}catch(e){}try{renderPrep();}catch(e){}try{renderDashboard();}catch(e){}};
   paint();
   if(!opts.noUndo)toastUndo(`✓ ${done.length} line${done.length===1?'':'s'} · ${fmt(units)} unit${units===1?'':'s'} moved to ${toId}`,async()=>{
+    let bad=0;
     for(const d of done.slice().reverse()){
-      if(d.kind==='oa'){Object.keys(d.row).forEach(k=>{if(!(k in d.snap))delete d.row[k];});Object.assign(d.row,d.snap);d.row._dirty=true;try{await saveRow(d.row);}catch(e){}}
-      else{d.line.shipId=d.from;if(d.line.uuid)try{await sb.from(d.tbl).update({ship_id:d.from}).eq('id',d.line.uuid);}catch(e){}}
+      if(d.kind==='oa'){Object.keys(d.row).forEach(k=>{if(!(k in d.snap))delete d.row[k];});Object.assign(d.row,d.snap);d.row._dirty=true;if(!(await _saveOk(d.row)))bad++;}
+      else{d.line.shipId=d.from;if(d.line.uuid)try{const w=await sb.from(d.tbl).update({ship_id:d.from}).eq('id',d.line.uuid);if(w&&w.error)throw w.error;}catch(e){d.line.shipId=toId;bad++;}}
     }
-    try{logAudit('Undone — move to another shipment',`${done.length} line(s) back from ${toId}`);}catch(e){}
+    try{logAudit('Undone — move to another shipment',`${done.length-bad} line(s) back from ${toId}${bad?` · ${bad} didn’t save`:''}`);}catch(e){}
+    if(bad)toast(`${bad} line${bad===1?'':'s'} didn’t go back — check the connection and move ${bad===1?'it':'them'} again`,'er');
     paint();});
   return done.length;
 }

@@ -168,7 +168,10 @@ function queryNoneComing(rid){
     `${r.prod||r.sku||''}\n\nThe order shows fully delivered but only ${got} of ${exp} were booked in. This raises a Missing issue for ${short} unit${short===1?'':'s'} (${fmtGBP2(cog*short)} at cost) against the row — the same as the warehouse pressing Raise Issue — ${amz?'and puts the refund claim on Jack\'s list, because only he can raise it in the Amazon account.':'and puts the claim on your list to chase.'}\n\nThe Prep Sheet row is updated so the warehouse can see the answer.`,
     async()=>{
       const who=_who();
-      try{await _createIssueClaim(r,'Missing',short,{
+      /* b665 (review): a press whose row save failed already raised the claim — a second press must not raise another */
+      const _had=claims.find(c=>(c.prepRowId===(r.uuid||r.id)||c.prepRowId===r.id||c.prepRowId===r.uuid)&&c.issT==='Missing'
+        &&c.cst!=='Resolved'&&c.cst!=='Closed'&&String(c.notes||'').indexOf('Query answered by')===0);
+      if(!_had)try{await _createIssueClaim(r,'Missing',short,{
         note:`Query answered by ${who} — order shows fully delivered, ${short} of ${exp} never arrived`,
         logMsg:'Raised from a warehouse query — nothing more coming',
         owner:amz?'Jack':undefined,
@@ -286,7 +289,9 @@ function _amazonRow(r){
    through this instead, so a failed write actually stops the step. */
 async function _mustSave(r){
   const ok=await saveRow(r);
-  if(ok===false)throw new Error('save-failed');
+  /* b665: and the row goes back to what the database holds — the step, date, log line or units this press put on
+     it must not stay on screen, or ride along with the next save, or be added twice when she presses again */
+  if(ok===false){await _saveIdle(r);_rowBackToSaved(r);try{rtRepaint();}catch(e){}throw new Error('save-failed');}
   return ok;
 }
 function _caseSet(r,chase){
@@ -937,9 +942,13 @@ function jackAmzDate(rid,btn){
       what:(_Q?'Answered the warehouse — more still coming, expected '+v:_says+' says it will arrive '+v+' — parked until then')+(_rep?' — '+_rep:'')}]);
     _ch.step='due-date';_ch.due=v;r.resolution.chase=_ch;
     r.sentToJack=null;
+    /* b665 (review): the date goes in the SAME write — a second save that failed on its own left it approved with no
+       date, so it dropped off every list and never came back when the date slipped */
+    const _wasD=r.expectedDelivery||'';r.expectedDelivery=v;r.chaseSnoozeUntil='';
+    if(r.transitAction==='Late — Needs Chasing')r.transitAction='';
     r._dirty=true;
-    try{await _mustSave(r);}catch(e){}
-    await setDueDate(rid,v);
+    try{await _mustSave(r);}catch(e){toast('Didn\u2019t save — nothing was recorded. Check the connection and try again.','er');return;}   /* b665 */
+    try{logAudit('Due date set',`${r.sku||r.asin||''} — ${_wasD||'none'} → ${v}`);}catch(e){}
     try{renderJack();renderAdmin();renderPrep();paintJackBadge();}catch(e){}
     try{logAudit('Amazon delivery date set',`${r.sku||''} → ${v}`);}catch(e){}
     toast('Parked until '+v+' — back on the list if it slips','ok');
