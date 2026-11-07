@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v56.4 · lav3 · 2026-11-07 · b665';
+const BUILD='v56.4 · lav3 · 2026-11-07 · b667';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -1632,6 +1632,17 @@ function emptyDaysIn(p,days,endISO){
     for(let i=0;f<=t&&i<400;i++,f=addCalDays(f,1))if(!seen[f]){seen[f]=1;n++;}});
   return Math.min(n,days);
 }
+/* b666 (Jack, 7 Nov: "sold in last 30 days — was it active / in stock?"): days in stock at Amazon out of the last 30,
+   the same figure Per day divides by (sfPace: SellerFuse's 30-day window less the stock-out record's empty days) */
+function insDays30(p){const pc=sfPace(p);return pc&&pc.sell&&pc.sell[30]!=null?pc.sell[30]:999;}
+function insCell(p){
+  const pc=sfPace(p),s=pc&&pc.sell?pc.sell[30]:null,e=pc&&pc.empty?(pc.empty[30]||0):0;
+  if(s==null)return '<span class="dim" style="font-size:14px">—</span>';
+  const col=!e?'#4ade80':s<15?'#f87171':'#fbbf24';
+  const tip=`In stock at Amazon ${s} of the last 30 days${e?` — empty ${e}`:''}. From PrepHub's stock-out record, over SellerFuse's 30-day window${pc.at?' (to '+dshort(String(pc.at).slice(0,10))+')':''}. Sold 30d only had those days to sell in; Per day leaves the empty ones out.`;
+  return `<span class="mono b" style="font-size:14px;color:${col}" title="${esc(tip)}">${fmt(s)}<span style="font-size:11px;font-weight:600;color:var(--text3)"> / 30</span></span>`
+    +`<div class="sldSub">days in stock</div>`;   /* Sold 30d already says "N days empty" under it — not twice */
+}
 /* the first send recorded for a product — a line under 60 days old is "new" */
 function lineAgeDays(p){
   const a=p&&p.asin;if(!a)return null;let first=null;
@@ -2666,7 +2677,7 @@ function planAmazon(){
   /* the planner's own floor: 3 weeks of sales at the run-out pace once the send lands, less what will be there */
   const floorOf=r=>{let m=1;try{m=Math.ceil(demandBetween(r.upP||null,r.ads,r.landIso,21)-(r.projAtLand||0));}catch(e){}
     return Math.max(1,Math.min(r.rec,m||1));};
-  shareParts(act,{have:onHand,comp,floor:floorOf});
+  shareParts(act,{have:onHand,comp,floor:floorOf,hold:q4Holds()});   /* b666: lines put first hold their parts */
   return{rows,act};
 }
 /* Jack, 30 Oct: "if something shares something — e.g. the wool — it goes to a little of both to start with to make sure
@@ -2683,18 +2694,32 @@ function shareParts(act,o){
   const pool={},get=x=>{if(pool[x.id]===undefined)pool[x.id]=o.have(x);return pool[x.id];};
   const parts=r=>r.p.type!=='bundle'?[{c:r.p,q:1}]
     :(r.p.recipe||[]).map(rc=>({c:o.comp(rc.c),q:+rc.q||1})).filter(x=>x.c&&!x.c.untracked);
-  const capOf=r=>{let cap=Infinity,lim=null;
-    parts(r).forEach(x=>{const can=Math.floor(get(x.c)/x.q);if(can<cap){cap=can;lim=x.c;}});
+  /* b666: parts held for a line put first — held[product id][part id] = units kept back for it (only it may use them) */
+  const held={},heldFor={},mine=r=>held[String(r.p.id)]||{};
+  const capOf=r=>{let cap=Infinity,lim=null;const h=mine(r);
+    parts(r).forEach(x=>{const can=Math.floor((get(x.c)+(h[x.c.id]||0))/x.q);if(can<cap){cap=can;lim=x.c;}});
     return{cap:cap===Infinity?0:Math.max(0,cap),lim:r.p.type==='bundle'?lim:null};};
-  const take=(r,n)=>{if(!(n>0))return;r.alloc+=n;parts(r).forEach(x=>{get(x.c);pool[x.c.id]-=x.q*n;});};
-  act.forEach(r=>{r.alloc=0;r.limTakers=undefined;});
+  const take=(r,n)=>{if(!(n>0))return;r.alloc+=n;const h=mine(r);
+    parts(r).forEach(x=>{get(x.c);let q=x.q*n;const u=Math.min(q,h[x.c.id]||0);if(u>0){h[x.c.id]-=u;q-=u;}pool[x.c.id]-=q;});};
+  act.forEach(r=>{r.alloc=0;r.limTakers=undefined;r.limHeld=undefined;});
+  /* b666 (Jack, 7 Nov: "reindeer food priority goes to christmas eve boxes"): a line put first (o.hold, from Q4
+     Settings ▾) takes its own send first, then the parts for the rest of its Q4 target are held back for it, so no one
+     else is handed them. o.hold empty = nothing below changes. */
+  const H=(o.hold||[]).filter(h=>h&&h.p&&h.need>0),rowOf=p=>act.find(x=>x.p===p||String(x.p.id)===String(p.id));
+  H.forEach(h=>{const r=rowOf(h.p);if(r)take(r,Math.min(r.rec,capOf(r).cap));});
+  H.forEach(h=>{const r=rowOf(h.p),left=Math.max(0,h.need-(r?r.alloc:0)),k=String(h.p.id);if(!left)return;
+    (h.p.recipe||[]).forEach(rc=>{const c=o.comp(rc.c);if(!c||c.untracked)return;
+      const n=Math.min(Math.max(0,get(c)),(+rc.q||1)*left);if(!(n>0))return;
+      pool[c.id]-=n;(held[k]=held[k]||{})[c.id]=(held[k][c.id]||0)+n;
+      const f=heldFor[c.id]=heldFor[c.id]||[];if(!f.includes(h.p.name))f.push(h.p.name);});});
   const fastest=act.slice().sort((a,b)=>((b.ads||0)-(a.ads||0))||((a.protDays||0)-(b.protDays||0)));
   [[act,()=>1],[act,o.floor],[fastest,r=>r.rec]].forEach(([order,goal])=>order.forEach(r=>{
     const n=Math.min(goal(r),r.rec)-r.alloc;if(n>0)take(r,Math.min(n,capOf(r).cap));}));
   act.forEach(r=>{const c=capOf(r);r.buildCap=r.alloc+c.cap;r.lim=c.lim;});
   act.forEach(r=>{if(r.alloc>=r.rec||!r.lim)return;
     r.limTakers=act.filter(x=>x!==r&&x.alloc>0&&x.p.type==='bundle'
-      &&(x.p.recipe||[]).some(rc=>String(rc.c)===String(r.lim.id))).map(x=>x.p.name);});
+      &&(x.p.recipe||[]).some(rc=>String(rc.c)===String(r.lim.id))).map(x=>x.p.name);
+    const hf=(heldFor[r.lim.id]||[]).filter(n=>n!==r.p.name);if(hf.length)r.limHeld=hf;});
   return act;
 }
 /* when a product cannot be fully built: is the limiting component's incoming
@@ -3262,6 +3287,50 @@ function q4TargetMap(){
   if(s&&typeof s==='object'&&!Array.isArray(s))return{map:s,saved:true};
   return{map:q4PlanFill(D.products),saved:false};
 }
+/* b666 (Jack, 7 Nov: "reindeer food priority goes to christmas eve boxes"): a line Jack puts FIRST for shared parts.
+   D.settings.q4First = {product id: when it was put first} — a map, so the settings merge keeps each laptop's own tick.
+   Pre-filled with the Christmas Eve Box by ASIN until the first tick is saved. On the Q4 page it leads the queue (first
+   ticked first, then the closest to running out); in the Action centre the parts for what is left of its Q4 target are
+   held for it before anything else is handed out (q4Holds -> shareParts). Nothing put first = nothing changes. */
+const Q4_FIRST_SEED=[['B0HQ6VX412','2026-11-07']];   /* Christmas Eve Box 2026 — ahead of Reindeer Food for the reindeer parts */
+function q4FirstMap(){
+  const s=D.settings&&D.settings.q4First;
+  if(s&&typeof s==='object'&&!Array.isArray(s))return{map:s,saved:true};
+  const m={};Q4_FIRST_SEED.forEach(([a,at])=>{const p=(D.products||[]).find(x=>x&&!x.archived&&x.type==='bundle'&&String(x.asin||'').trim().toUpperCase()===a);
+    if(p&&m[String(p.id)]===undefined)m[String(p.id)]=at;});
+  return{map:m,saved:false};
+}
+/* the lines put first, in the order they were put first */
+function q4FirstIds(map){const m=map||q4FirstMap().map;
+  return Object.keys(m).filter(k=>m[k]).sort((a,b)=>String(m[a]).localeCompare(String(m[b]))||a.localeCompare(b));}
+function q4SetFirst(pid,on){
+  const k=String(pid==null?'':pid),p=k?prod(k):null;if(!p)return Promise.resolve(false);
+  const cur=q4FirstMap(),m=Object.assign({},cur.map);
+  if(on){if(!m[k])m[k]=nowISO();}else delete m[k];
+  if(cur.saved&&_same(m,cur.map))return Promise.resolve(true);
+  D.settings.q4First=m;
+  try{logIt('edit',`Q4: ${p.name||k} ${on?'goes first for shared parts':'no longer goes first'}`);}catch(e){}
+  q4Redraw();
+  return savePrefs();
+}
+/* units of an ASIN on an Amazon shipment (one with an ID) dated from the Q4 start — the Q4 page's "sent" */
+function q4SentOf(asin){
+  const a=String(asin||'').trim().toUpperCase();if(!a)return 0;let n=0;
+  (typeof lavShipments!=='undefined'?lavShipments:[]).forEach(x=>{if(!x||!String(x.shipId||'').trim())return;
+    const d=String(x.date||'').slice(0,10);if(!d||d<Q4_FROM)return;
+    if(String(x.asin||'').trim().toUpperCase()===a)n+=parseInt(x.units)||0;});
+  return Math.max(0,n);
+}
+/* what the Action centre holds back: [{p, need}], need = target − sent, for each line put first that has a target,
+   is on the Q4 page and is still before the last send day */
+function q4Holds(){
+  try{
+    if(dayISO()>q4SendBy())return [];
+    const TG=q4TargetMap().map,IN=q4OnPageOf((D.settings||{}).q4Include,TG);
+    return q4FirstIds().map(k=>prod(k)).filter(p=>p&&!p.archived&&p.type==='bundle'&&IN(p))
+      .map(p=>{const t=Math.round(+TG[String(p.id)]);return{p,need:t>0?Math.max(0,t-q4SentOf(p.asin)):0};}).filter(h=>h.need>0);
+  }catch(e){console.warn('[q4] goes-first holds',e);return [];}
+}
 /* b649 (Jack, 3 Nov: "timing myself … 23 in hour one, 21 in the second … the average per hour — how many hours of
    bundles do we need left?"): every hour Jack times on a line, kept as he typed it, averaged. Input beats derived: the
    hours are his, the average and the hours left are worked out from them. */
@@ -3344,14 +3413,16 @@ function q4Calc(o){
   const T0={},A0={},packs={};
   const key=c=>{const k=String(c.id);if(T0[k]===undefined){T0[k]=num(hand(c))+num(coming(c));A0[k]=num(hand(c));}return k;};
   /* pass 1 = the bundles with a target, pass 2 = the rest — each in the Action centre's order */
-  const queue=shown.filter(p=>p.type==='bundle').map((p,i)=>{const v=prot(p);return{p,i,pd:(v==null||!isFinite(v))?null:+v,pri:(!p.archived&&tgtOf(p))?0:1};})
-    .sort((a,b)=>(a.pri-b.pri)||((a.pd==null?1e12:a.pd)-(b.pd==null?1e12:b.pd))||(a.i-b.i));
-  const Q=queue.map(({p,pd,pri},ix)=>{
+  /* b666: a line Jack puts first (Settings ▾ "goes first") leads its pass — first ticked first */
+  const FIRST=q4FirstIds(o.first||q4FirstMap().map),fpos=p=>{const k=FIRST.indexOf(String(p.id));return k<0?1e9:k;};
+  const queue=shown.filter(p=>p.type==='bundle').map((p,i)=>{const v=prot(p);return{p,i,fp:fpos(p),pd:(v==null||!isFinite(v))?null:+v,pri:(!p.archived&&tgtOf(p))?0:1};})
+    .sort((a,b)=>(a.pri-b.pri)||(a.fp-b.fp)||((a.pd==null?1e12:a.pd)-(b.pd==null?1e12:b.pd))||(a.i-b.i));
+  const Q=queue.map(({p,pd,pri,fp},ix)=>{
     const done=doneM.get(p)||0,target=p.archived?null:tgtOf(p);
     const allowTo=target?Math.ceil(target*(100+OVER)/100-1e-9):null;   /* target + 5%: where pass 1 stops */
     const r={id:String(p.id),asin:p.asin||'',name:p.name||p.asin||'',type:'bundle',archived:!!p.archived,
       order:ix+1,protDays:pd,done,left:0,arrived:0,target,formulaMax:done,max:done,pct:null,need:null,cover:null,
-      starved:false,owed:owedOf(p),why:'ok',lim:null,priority:pri===0,over:OVER,allowTo,allow:target?Math.max(0,allowTo-done):null};
+      starved:false,owed:owedOf(p),why:'ok',lim:null,priority:pri===0,first:fp<1e9,over:OVER,allowTo,allow:target?Math.max(0,allowTo-done):null};
     const rec=p.recipe||[],need={};let missing=0;
     rec.forEach(rc=>{const c=cBy[String(rc.c)];if(!c){missing++;return;}if(c.untracked)return;
       if(q4IsPack(c)){packs[String(c.id)]=c.name||'';return;}       /* components only — never the box */
@@ -3891,7 +3962,7 @@ function vQ4(){
   try{R=q4Calc();}
   catch(e){console.warn('[q4]',e);
     $('lav3View').innerHTML=`<div class="panel"><div class="empty" style="padding:22px">Q4 prepping could not be worked out just now — ${esc(e&&e.message||e)}</div></div>`;return;}
-  const T=R.totals,B=T.bundles,G=T.singles,TM=q4TargetMap();
+  const T=R.totals,B=T.bundles,G=T.singles,TM=q4TargetMap(),FM=q4FirstMap().map;
   /* nothing on order for any line → no "When orders land" column (Jack, 30 Oct: it was dashes all the way down) */
   const ON=R.bundles.concat(R.singles).some(r=>r.left-r.arrived>0);
   const day=(()=>{try{return new Date(R.from+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});}catch(e){return dshort(R.from);}})();
@@ -3910,7 +3981,7 @@ function vQ4(){
   const cpy='<svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="1.8"/><path d="M10.5 5V3.6A1.6 1.6 0 0 0 8.9 2H3.6A1.6 1.6 0 0 0 2 3.6v5.3a1.6 1.6 0 0 0 1.6 1.6H5"/></svg>';
   const asinChip=a=>a?`<span class="q4Asin" role="button" tabindex="0" title="Copy the ASIN" onclick="event.stopPropagation();LV3.copyAsinChip(this,'${esc(a)}')" onkeydown="if(event.key==='Enter'){event.stopPropagation();LV3.copyAsinChip(this,'${esc(a)}')}"><span class="sAsinT">${esc(a)}</span>${cpy}</span>`:'';
   /* b652 (Jack: "centralise it — looks off"): the chevron beside a name block, so a long name wraps under itself */
-  const nameTd=(r,extra)=>`<td class="q4N"><div class="q4NW"><span class="q4Chev" aria-hidden="true"></span><div class="q4NT"><b>${esc(r.name)}</b><small>${asinChip(r.asin)}${r.archived?' · archived':''}${extra||''}</small></div></div></td>`;
+  const nameTd=(r,extra)=>`<td class="q4N"><div class="q4NW"><span class="q4Chev" aria-hidden="true"></span><div class="q4NT"><b>${esc(r.name)}</b><small>${asinChip(r.asin)}${r.archived?' · archived':''}${r.first?' <span class="q4FirstT" title="Goes first for shared parts (Settings ▾)">goes first</span>':''}${extra||''}</small></div></div></td>`;
   const wkBars=r=>{const W=q4WeeksOf(R,r.id),mx=Math.max(1,...W.map(w=>w.units));
     return `<div class="q4Wk">${W.map(w=>`<div class="q4WkC${w.now?' now':''}" title="${q4DayLabel(w.start)} – ${q4DayLabel(w.end)}: ${fmt(w.units)} sent · ${fmt(w.cum)} in all${r.target?` · ${q4Pct(w.cum,r.target)}% of ${fmt(r.target)}`:''}"><b>${w.units?fmt(w.units):'—'}</b><span class="q4WkB"><i style="height:${w.units?Math.max(6,Math.round(100*w.units/mx)):0}%"></i></span><small>${w.now?'so far':q4DayLabel(w.start).replace(/^\S+ /,'')}</small></div>`).join('')}</div>`;};
   const dropRow=(r,cols,blocks)=>`<tr class="q4Drop${rowCls(r)}" data-q4d="${esc(r.id)}"><td colspan="${cols}"><div class="q4DropIn">${blocks}
@@ -4031,11 +4102,11 @@ function vQ4(){
         <input class="in q4TIn q4OverIn" id="q4t-over" type="number" min="0" step="1" inputmode="decimal" value="${R.over}" onchange="LV3.q4SetTarget('%over',this.value)"><span>% — then everything else shares what is left.</span></div>
       <div class="q4SetOver"><label for="q4t-by">Last send day for Q4</label>
         <input class="in q4ByIn" id="q4t-by" type="date" value="${TR.by}" onchange="LV3.q4SetSendBy(this.value)"><span>— “Done at this pace” goes amber after it, and the chart in Progress ▾ counts down to it.</span></div>
-      <div class="q4SetHelp">A target is the most you mean to send this Q4 — 100% = the target. It also moves the bundle up the queue for shared components: bundles with a target are handed them first (closest to running out first among them), up to their target +${fmt(R.over)}%. Leave a box empty for no target: that bundle waits its turn and counts up to what its parts make.${!TM.saved&&plan.length?` Filled in from your plan by name (${plan.map(([n,t])=>`${esc(n)} ${fmt(t)}`).join(' · ')}) — check it is the right Hot Chocolate and Tea &amp; Biscuits, there are GF and Mini versions too. Nothing is saved until you change a box.`:''}</div>
+      <div class="q4SetHelp">A target is the most you mean to send this Q4 — 100% = the target. It also moves the bundle up the queue for shared components: bundles with a target are handed them first (closest to running out first among them), up to their target +${fmt(R.over)}%. Leave a box empty for no target: that bundle waits its turn and counts up to what its parts make. Tick <b>goes first</b> to put a bundle ahead of all of them for shared parts — here and in the Action centre, which keeps the parts for the rest of its target for it.${!TM.saved&&plan.length?` Filled in from your plan by name (${plan.map(([n,t])=>`${esc(n)} ${fmt(t)}`).join(' · ')}) — check it is the right Hot Chocolate and Tea &amp; Biscuits, there are GF and Mini versions too. Nothing is saved until you change a box.`:''}</div>
       ${addHtml}
       <div class="q4SetGrid">${live.map(p=>{const k=String(p.id),r=rowOf[k]||{done:0,formulaMax:0,left:0},v=+TM.map[k]>0?Math.round(+TM.map[k]):'';
         return `<div class="q4SetRow"><span class="nm"><b>${esc(p.name)}</b><small>sent ${fmt(r.done)} · ${p.type==='bundle'?`parts make ${fmt(r.formulaMax)} in all`:`own stock ${fmt(r.left)}`}</small></span>
-          ${p.type==='bundle'?`<input class="in q4TIn" id="q4t-${esc(k)}" type="number" min="0" step="1" inputmode="numeric" placeholder="no target" value="${v}" aria-label="Target for ${esc(p.name)}" onchange="LV3.q4SetTarget('${esc(k)}',this.value)">`:'<span class="q4Dim q4NoT">no target</span>'}${rm(k)}</div>`;}).join('')||'<div class="q4Dim">Nothing on the page yet — add a line above.</div>'}</div>
+          ${p.type==='bundle'?`<input class="in q4TIn" id="q4t-${esc(k)}" type="number" min="0" step="1" inputmode="numeric" placeholder="no target" value="${v}" aria-label="Target for ${esc(p.name)}" onchange="LV3.q4SetTarget('${esc(k)}',this.value)">`:'<span class="q4Dim q4NoT">no target</span>'}${p.type==='bundle'?`<label class="q4FirstL" title="Goes first for shared parts — ahead of every other line here and in the Action centre, which keeps the parts for the rest of its target for it"><input type="checkbox"${FM[k]?' checked':''} aria-label="${esc(p.name)} goes first for shared parts" onchange="LV3.q4SetFirst('${esc(k)}',this.checked)"><span>goes first</span></label>`:''}${rm(k)}</div>`;}).join('')||'<div class="q4Dim">Nothing on the page yet — add a line above.</div>'}</div>
     </div></details>`;
   /* Jack, 30 Oct (the page audit): what is left, split into what can go now, what waits on orders, and what is short */
   const ALL=R.bundles.concat(R.singles).filter(r=>!r.archived),togo=r=>Math.max(0,r.max-r.done);
@@ -5114,7 +5185,7 @@ const sortTh=(which,k,label,sub)=>{
     title="Sort by this${on?' — click again to reverse':''}">${label}<span class="thArr">${on?(dir>0?'▲':'▼'):'↕'}</span>
     ${sub?`<span class="thSub">${sub}</span>`:''}</button>`;
 };
-const P_OPT_COLS=['pInb','pLeft','pIncoming','pOrdered','pS7','pSold','pDay','pLast','pSendBy','pCog'];
+const P_OPT_COLS=['pInb','pLeft','pIncoming','pOrdered','pS7','pSold','pIns','pDay','pLast','pSendBy','pCog'];
 const P_SORTS=[['name','Name A–Z'],['reorder','Action — most urgent first'],['left','Fewest days left'],['perday','Fastest selling'],
                ['avail','Least available'],['atamz','Least at Amazon'],['sold','Best selling'],
                ['cog','Highest COG'],['incoming','Most incoming']];
@@ -5134,6 +5205,8 @@ function sortProducts(rows){
     inb:(a,b)=>prodLine(b).inb-prodLine(a).inb,
     left:(a,b)=>{const x=prodLine(a),y=prodLine(b);return ((x.gap?-1e3:0)+(x.left==null?1e9:x.left))-((y.gap?-1e3:0)+(y.left==null?1e9:y.left));},
     s7:(a,b)=>((prodLine(b).sf||{}).u7||0)-((prodLine(a).sf||{}).u7||0),
+    /* b666: fewest days in stock first — the ones whose 30-day sales undersell them; no figure sinks */
+    ins:(a,b)=>insDays30(a)-insDays30(b),
     perday:(a,b)=>(prodLine(b).day||0)-(prodLine(a).day||0),
     last:(a,b)=>String(a.lastSent||'').localeCompare(String(b.lastSent||'')),
     /* numeric, so 2 days sorts above 10 days. DUE NOW keeps its negative value
@@ -5233,6 +5306,7 @@ function vProducts(){
       ${COL('pOrdered')?'<th style="width:84px">Ordered</th>':''}
       ${COL('pS7')?`<th style="width:90px" title="Units sold in the last 7 days — SellerFuse. Red = days it was empty at Amazon.">${sortTh('p','s7','Sold 7d')}</th>`:''}
       ${COL('pSold')?`<th style="width:96px" title="Units sold in the last 30 days — SellerFuse. Falls back to the BDL hub's last month when the check has not run.">${sortTh('p','sold','Sold 30d')}</th>`:''}
+      ${COL('pIns')?`<th style="width:96px" title="Days it was in stock at Amazon out of the last 30 — PrepHub's stock-out record, over SellerFuse's 30-day window. Sold 30d only counts those days; Per day leaves the empty ones out.">${sortTh('p','ins','In stock 30d')}</th>`:''}
       ${COL('pDay')?`<th style="width:112px" title="The pace the planner uses, units a day — sold ÷ the days it was in stock at Amazon, so empty days never drag it down. ▲ selling faster this week, ▼ slower.">${sortTh('p','perday','Per day')}</th>`:''}
       ${COL('pLast')?`<th style="width:72px">${sortTh('p','last','Last sent')}</th>`:''}
       ${COL('pSendBy')?`<th style="width:140px" title="When to act, the Planner's verdict, how many to send and what stops it. Hover a cell for the days of stock behind it.">${sortTh('p','reorder','Next step')}</th>`:''}
@@ -5515,6 +5589,8 @@ function prodRow(p){
       :`<span class="mono b" style="font-size:14px;color:${PL.leftCol}">${PL.sell===0&&!PL.gap&&!(PL.inb>0)?'empty':fmt(Math.floor(PL.left))+'d'}</span>${PL.gap?`<div class="sldSub" style="color:#f87171;font-weight:800">then ${fmt(PL.gap)}d empty</div>`:PL.inb>0&&PL.left!=null?`<div class="sldSub">incl. on the way</div>`:''}`}</td>`:''}
     <td><span class="num" style="color:${col}">${a.kind==='norecipe'?'—':fmt(a.n)}</span>
       <div class="pmeta">${a.kind==='build'?'buildable':a.kind==='norecipe'?'on the shelf':'in stock'}</div>
+      ${(()=>{const R=a.kind==='build'?(plData().azBy||{})[p.id]:null,hf=R&&R.limHeld;   /* b666 */
+        return hf&&hf.length&&R.buildCap!=null&&R.buildCap<a.n?`<div class="pmeta" style="color:#7dd3fc;font-weight:600" title="${esc(`${R.lim?R.lim.name:'A part'} is kept for ${hf.join(', ')} first (Q4 tab → Settings ▾ → goes first) — ${fmt(R.buildCap)} can be built once that is kept back.`)}">${fmt(R.buildCap)} after ${esc(hf[0])}</div>`:'';})()}
       </td>
     ${COL('pIncoming')?`<td>${(()=>{
       /* This column used to print a paragraph per line — two product names, two
@@ -5552,6 +5628,7 @@ function prodRow(p){
         if(src==='hub')return esc(ymName(hubMonth().ym))+' (hub)'+(hubSkipped(p)?` · <button class="sldFix" title="Was marked not selling in the review; it is selling now, so the planner uses these sales. Click to clear the old mark." onclick="event.stopPropagation();LV3.plUnskip('${esc(p.asin)}')">clear old mark</button>`:'');
         const age=sold30Age(p);
         return `<span class="est">typed in${age!=null?` ${age}d ago`:''}</span>`;})()}</div></td>`:''}
+    ${COL('pIns')?`<td>${insCell(p)}</td>`:''}
     ${COL('pDay')?`<td title="${esc(PL.d?'Planned at '+(PL.day!=null?PL.day.toFixed(2):'—')+' a day — '+PL.d.label:'No sales figure')}">${PL.day?`<span class="mono b" style="font-size:14px">${PL.day>=10?fmt(Math.round(PL.day)):PL.day.toFixed(1)}</span>${PL.trend?`<span class="pTrend ${PL.trend.k}" title="${esc(PL.trend.tip)}">${PL.trend.t}</span>`:''}`:'<span class="dim">—</span>'}
       <div class="sldSub" title="${esc(PL.d&&PL.d.pace?paceTip(PL.d.pace):'')}">${PL.d?esc(paceShort(PL.d).replace(/ · in stock$/,''))+(!PL.trend&&PL.d.pace&&PL.d.pace.slow?' <span style="color:#fbbf24">↓</span>':!PL.trend&&PL.d.pace&&PL.d.pace.spike?' <span style="color:#c4b5fd">↑</span>':'')+pdInStock(PL.d):''}</div></td>`:''}
     ${COL('pLast')?`<td>${p.lastSent?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(p.lastSent)}</span><div class="sldSub">${fmt(daysSince(p.lastSent))}d ago</div>`:'<span class="dim">never</span>'}</td>`:''}
@@ -5580,7 +5657,11 @@ function prodRow(p){
             const SL=R.lim||null,tk=R.limTakers||[];
             /* GET PARTS already says none can be built; the product column already names its limiting part */
             if(_al>0)line(`${fmt(_al)} can be built now`,'var(--amb)');
-            if(SL&&(tk.length||!(lim&&String(lim.id)===String(SL.id))))line(tk.length?`${esc(SL.name)} shared with ${esc(tk[0])}${tk.length>1?' +'+fmt(tk.length-1):''}`
+            const hf=R.limHeld||[];
+            /* b666: the part is held for a line put first — say so, whatever else the product column shows */
+            if(SL&&hf.length)line(`${esc(SL.name)} kept for ${esc(hf[0])}${hf.length>1?' +'+fmt(hf.length-1):''}`,'var(--text3)',
+              `${hf.join(', ')} ${hf.length===1?'goes':'go'} first for shared parts (Q4 tab → Settings ▾ → goes first): the ${SL.name} for the rest of ${hf.length===1?'its':'their'} Q4 target is kept for ${hf.length===1?'it':'them'} before anything else gets some. Untick it there to share it out again.`);
+            else if(SL&&(tk.length||!(lim&&String(lim.id)===String(SL.id))))line(tk.length?`${esc(SL.name)} shared with ${esc(tk[0])}${tk.length>1?' +'+fmt(tk.length-1):''}`
                 :`short: ${esc(SL.name)}${onOrder(SL)>0?` · ${fmt(onOrder(SL))} on order`:' · none on order'}`,'var(--text3)',
               tk.length?`A shared part: every product that needs a send gets some first, then its 3-week minimum, then the rest goes to the fastest seller. Also getting it: ${tk.join(', ')}`:`What stops more being built: ${SL.name}`);
           }
@@ -13143,7 +13224,7 @@ function vSettings(){
         <div style="padding:12px 14px">
           <div class="lab" style="margin-bottom:7px">Products table</div>
           <div class="colgrid">
-            ${[['pInb','On the way'],['pLeft','Days left'],['pIncoming','Parts coming'],['pOrdered','Ordered date'],['pS7','Sold 7d'],['pSold','Sold 30d'],['pDay','Per day'],['pLast','Last sent'],['pSendBy','Next step'],['pCog','COG / unit']]
+            ${[['pInb','On the way'],['pLeft','Days left'],['pIncoming','Parts coming'],['pOrdered','Ordered date'],['pS7','Sold 7d'],['pSold','Sold 30d'],['pIns','In stock 30d'],['pDay','Per day'],['pLast','Last sent'],['pSendBy','Next step'],['pCog','COG / unit']]
               .map(([k,l])=>`<label><input type="checkbox" ${COL(k)?'checked':''} onchange="LV3.setCol('${k}',this.checked)"> ${l}</label>`).join('')}
           </div>
           <div class="lab" style="margin:14px 0 7px">Components table</div>
@@ -13861,7 +13942,7 @@ function paint(){
 }
 
 /* everything the page's inline handlers need */
-const API={go,render:paint,boot,q4SetSort,q4SortPref,dupConfirm,pdInStock,q4Calc,q4SetTarget,q4SetRate,q4RateOf,q4Rates,q4HoursDay,q4SetHoursDay,q4SetOpen,q4Pick,q4History,q4ChartHover,q4Jump,q4ProgPref,q4DayY,compSupplierOf:c=>compSupplier(c),q4RecOpen,q4DayShort:d=>q4DayLabel(d).replace(/^\S+ /,''),q4Toggle,q4ToggleAll,q4SetSendBy,q4Track,q4One,q4SendBy,q4WeeksOf,q4CopyBuy,q4PlanFill,q4LimHtml,__layers:()=>LAYERS,__purch:()=>PURCH,
+const API={go,render:paint,boot,q4SetSort,q4SortPref,dupConfirm,pdInStock,q4Calc,q4SetTarget,q4SetFirst,q4FirstMap,q4Holds,q4SentOf,q4SetRate,q4RateOf,q4Rates,q4HoursDay,q4SetHoursDay,q4SetOpen,q4Pick,q4History,q4ChartHover,q4Jump,q4ProgPref,q4DayY,compSupplierOf:c=>compSupplier(c),q4RecOpen,q4DayShort:d=>q4DayLabel(d).replace(/^\S+ /,''),q4Toggle,q4ToggleAll,q4SetSendBy,q4Track,q4One,q4SendBy,q4WeeksOf,q4CopyBuy,q4PlanFill,q4LimHtml,__layers:()=>LAYERS,__purch:()=>PURCH,
   openProduct,editProduct,setType,setSold30,rowMenu,closeRowMenu,dupeAsins,setSort,saveProductForce,addRecipeRow,rcChange,rcSearch,rcPick,rcMake,recipePreview,copyRecipe,saveProduct,delProduct,togRow,setArchived,
   openShip,drawShip,doShip,copyCog,shipSetQty,shipOverride,shipQty,shipFba,setQ,selOne,selAll,selClear,selType,selVat,
   openComp,editComp,saveComp,delComp,pickKind,openAddBatch,abPreview,doAddBatch,selArchive,selDelete,cselOne,cselAll,cselClear,cselKind,cselTrack,cselArchive,cselDelete,markArrived,openAdjust,doAdjust,

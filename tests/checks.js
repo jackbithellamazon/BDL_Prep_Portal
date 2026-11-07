@@ -4179,6 +4179,160 @@ window.PrepChecks=(function(){
     }finally{sb.from=keepFrom;window._saveRowNow=keepNow;}
   };
 
+  /* 150 · b666: a line put first for shared parts */
+  S['b666: a line put first — the Christmas Eve Box gets the reindeer parts before Reindeer Food']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    /* the Action centre */
+    const C={s:{id:'s',name:'Seeds'},o:{id:'o',name:'Oats'},k:{id:'k',name:'Key'}};
+    const share=(have,rows,hold)=>LV3.shareParts(rows,{have:c=>have[c.id],comp:id=>C[id],floor:r=>r._fl,hold});
+    const mk=(id,rec,ads,pd,fl,rc)=>({p:{id,name:'CHECK '+id,type:'bundle',recipe:rc},rec,ads,protDays:pd,_fl:fl});
+    const RF=()=>mk('rf',300,10,5,100,[{c:'s',q:2},{c:'o',q:2}]),BX=()=>mk('bx',50,2,40,20,[{c:'s',q:1},{c:'k',q:1}]);
+    const HAVE={s:435,o:585,k:480},sig=a=>JSON.stringify(a.map(r=>[r.alloc,r.buildCap,r.lim&&r.lim.id,r.limTakers||null,r.limHeld||null]));
+    let a=RF(),b=BX();share(HAVE,[a,b]);const before=sig([a,b]);
+    a=RF();b=BX();share(HAVE,[a,b],[]);eq(sig([a,b]),before,'nothing put first: the Action centre shares the parts exactly as before');
+    a=RF();b=BX();share(HAVE,[a,b],[{p:b.p,need:470}]);
+    eq(b.alloc,50,'the box takes its own send first (50)');
+    eq(a.alloc,0,'Reindeer Food gets none of the seeds — all 435 are the box’s');
+    eq(b.buildCap,435,'the box can build all its held seeds make (435)');
+    eq(JSON.stringify(a.limHeld),JSON.stringify(['CHECK bx']),'Reindeer Food says the seeds are kept for the box');
+    a=RF();share(HAVE,[a],[{p:BX().p,need:470}]);
+    eq(a.alloc,0,'the box needs no send today: its seeds are still kept for it');
+    a=RF();share(HAVE,[a],[{p:BX().p,need:35}]);
+    eq(a.alloc,200,'only what the box still needs is held — Reindeer Food gets (435 − 35) ÷ 2 = 200');
+    a=RF();share(HAVE,[a],[{p:BX().p,need:0}]);
+    eq(a.alloc,217,'a line that has hit its target holds nothing (217 as before)');
+    /* the Q4 page queue */
+    const P=[{id:'chk666-rf',name:'CHECK RF',asin:'BCHK666RF1',type:'bundle',recipe:[{c:'chk666-s',q:2}]},
+             {id:'chk666-bx',name:'CHECK BOX',asin:'BCHK666BX1',type:'bundle',recipe:[{c:'chk666-s',q:1}]}];
+    const comps=[{id:'chk666-s',name:'CHECK seeds',layers:[]}];
+    const q=first=>{const R=LV3.q4Calc({products:P,components:comps,purchases:[],shipments:[],owed:{},targets:{'chk666-rf':1000,'chk666-bx':500},
+      over:5,protDays:p=>p.id==='chk666-rf'?5:null,onHand:()=>435,onOrder:()=>0,first});
+      return [R.bundles.find(r=>r.id==='chk666-rf'),R.bundles.find(r=>r.id==='chk666-bx')];};
+    let [ra,rb]=q({});
+    ok(ra.order<rb.order&&ra.left===217&&rb.left===1&&!rb.first,'nothing put first: Reindeer Food leads the Q4 queue (217 and 1)');
+    [ra,rb]=q({'chk666-bx':'2026-11-07'});
+    ok(rb.order<ra.order&&rb.left===435&&ra.left===0&&rb.first===true,'the box put first: it leads and gets all 435 seeds ('+rb.left+' / '+ra.left+')');
+    /* real data: the pre-fill, the hold, the save */
+    const D=LV3.__D(),box=D.products.find(p=>!p.archived&&String(p.asin||'').toUpperCase()==='B0HQ6VX412');
+    if(box){
+      const keepS=JSON.stringify(D.settings),keepB=LV3.__prefsBase(),logN=D.log.length;
+      const own=Object.prototype.hasOwnProperty.call(sb,'from'),orig=sb.from;let wrote=null;
+      try{
+        delete D.settings.q4First;
+        ok(LV3.q4FirstMap().map[box.id]&&!LV3.q4FirstMap().saved,'nothing saved yet: the Christmas Eve Box goes first');
+        const t=+((D.settings.q4Targets||{})[box.id]);
+        if(t>0){const h=LV3.q4Holds().find(x=>x.p.id===box.id);
+          ok(h&&h.need===Math.max(0,t-LV3.q4SentOf(box.asin)),'the Action centre holds parts for target − sent ('+(h&&h.need)+')');
+          const rb2=LV3.q4Calc().bundles.find(r=>r.id===String(box.id));ok(rb2&&rb2.first&&rb2.order===1,'on the Q4 page it is first in the queue');}
+        sb.from=t2=>{const qq={select:()=>qq,eq:()=>qq,in:()=>qq,maybeSingle:()=>Promise.resolve({data:{value:keepS},error:null}),
+          upsert:v=>{wrote=JSON.parse(v.value);return Promise.resolve({error:null});}};return qq;};
+        LV3.__setPrefsBase(JSON.parse(keepS));
+        ok(await LV3.q4SetFirst(box.id,false),'unticking saves');
+        ok(wrote&&wrote.q4First&&!(box.id in wrote.q4First),'lavarion_prefs gets q4First without the box');
+        ok(!LV3.q4Holds().some(x=>x.p.id===box.id),'unticked: nothing is held for it');
+        await LV3.q4SetFirst(box.id,true);
+        ok(wrote&&wrote.q4First&&wrote.q4First[box.id],'ticked again: it is saved back');
+        /* the Products table's In stock 30d column */
+        const was=(document.querySelector('.page.active')||{}).id||'';
+        try{goPage('lavarion');LV3.go('products');await wait(400);
+          const pg=document.querySelector('#page-lavarion');ok(pg&&/In stock 30d/i.test(pg.innerText)&&/\/ 30/.test(pg.innerText),'the Products table shows In stock 30d (“N / 30”)');
+        }finally{if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+      }finally{if(own)sb.from=orig;else delete sb.from;Object.keys(D.settings).forEach(k=>delete D.settings[k]);Object.assign(D.settings,JSON.parse(keepS));
+        LV3.__setPrefsBase(keepB);D.log.splice(0,D.log.length-logN);}
+    }
+  };
+
+  /* 151 · b667: the new order of steps — Jack's "delivered" opens the check, twins first, squared early, Sarah's one
+     tick, Becki for exactly how many, Not here to his claim with the evidence, not delivered yet parks, bring them over */
+  S['b667: the new order of steps — Jack first, twins first, squared early, one tick, Becki’s count, the claim, parked']=async()=>{
+    const keepSave=window._saveAsinChecks,keepA=ASIN_CHECKS,was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      window._saveAsinChecks=async(A,v)=>{const n=Object.assign({},ASIN_CHECKS);if(v)n[A]=v;else delete n[A];ASIN_CHECKS=n;return true;};
+      const dm=d=>{const t=ukAddDays(todayISO(),-d);return t.slice(8)+'/'+t.slice(5,7);};
+      const kk=()=>String(++_n).padStart(7,'0').slice(-7);
+      const askJ=()=>({state:'asked',kind:'check',what:'jack-check',ask:'Check whether this order actually arrived',by:'Sarah',at:iso(),
+        chase:{path:'never-arrived',step:'to-jack',due:'',log:[{at:iso(),by:'Sarah',what:'Sent to Jack — Check whether this order actually arrived'}]}});
+      const jk=()=>({state:'rejected',kind:'check',what:'jack-check',rejectNote:'Arrived — YES, the account shows it delivered.',rejectedBy:'Jack',by:'Sarah',at:iso()});
+      /* 1 · his "delivered" opens the card; its own order is pre-ticked; the twin leads */
+      const A='B0CHK67A'+(++_n),k=kk();
+      const s=mkRow({asin:A,sku:'Amuk_149.96_26096_255_THC3_'+k,prod:'CHECK ROW twin',date:dm(30),oid:'203-'+k+'-0000001',acct:'Biz 03 - WM',exp:1,rcvd:0,resolution:askJ()});
+      const tw=mkRow({asin:A,sku:'Amuk_149.96_26096_255_THC1_'+k,prod:'CHECK ROW twin',date:dm(30),oid:'203-'+k+'-0000002',acct:'Biz 03 - WM',exp:1,rcvd:1,ship:1});
+      const o1=mkRow({asin:A,sku:'Amuk_139.99_20096_255_THC_'+k,prod:'CHECK ROW twin',date:dm(36),oid:'204-'+k+'-0000003',acct:'Biz 01',exp:1,rcvd:1,ship:1});
+      const o2=mkRow({asin:A,sku:'Amuk_149.96_26096_255_THC2_'+k,prod:'CHECK ROW twin',date:dm(30),oid:'205-'+k+'-0000004',acct:'Biz 04',exp:1,rcvd:1,ship:1});
+      who('Jack');await ocStartFromJack(s.uuid);
+      ok(_ocAsked(s)&&_ocOrigin(s)==='jack','his “delivered” opens the order check, as his own (nobody has searched)');
+      eq(s.delivered,'Yes','his answer is recorded as always');
+      ok(((s.resolution.chase||{}).log||[]).some(l=>/Arrived — YES/.test(l.what||'')),'his answer is in the case log');
+      let P=_ocPlan(A);
+      eq((P.orders.find(o=>o.oid===s.oid).ans||{}).a,'d','its own order is pre-ticked Delivered');
+      const am=P.orders.filter(o=>o.amz);
+      ok(am[0]&&am[0].acct==='Biz 03 - WM'&&am.find(o=>o.oid===tw.oid).twin,'the twin (same day, same price) is marked, and its account leads');
+      ok(!am.find(o=>o.oid===o1.oid).twin,'a different price or day is not a twin');
+      ok(am.find(o=>o.oid===o2.oid).twin,'same day and price on another account is a twin too');
+      ok(!P.ready,'nothing answered yet: not ready');
+      /* 2 · squared early — the twin cancelled covers it; the rest don't need ticking */
+      await ocAns(A,tw.oid,'c');P=_ocPlan(A);
+      ok(P.ready&&P.squared&&!P.all&&P.M===0,'one tick squares it — ready, though 2 orders are not ticked');
+      goPage('jack');renderJack();await wait(150);
+      {const c=[...document.querySelectorAll('#jackWrap .ocCard')].find(x=>x.textContent.includes(A));
+        ok(c&&!c.querySelector('.ocGo[disabled]')&&/squared/i.test(c.textContent),'his card: Send is on, and it says squared');
+        ok(c&&/likely twin/.test(c.textContent)&&/Not needed/.test(c.textContent),'the twin is labelled, the untouched orders say not needed');
+        ok(c&&c.querySelector('.ocLine'),'the 60-day line is on top');}
+      await ocSend(A);
+      eq(s.resolution.state,'rejected','to Sarah');ok(s.resolution.bookedAs&&s.resolution.bookedAs.srcs[0].oid===tw.oid&&s.resolution.bookedAs.srcs[0].sku===tw.sku,'booked in as the twin — its order and SKU');
+      ok(onSarahActive(s),'on Sarah’s list');ok(!_isAmzDel(s),'not on Becki’s shelf check');
+      ok(_ocProofSku(s,tw.sku)&&!_ocProofSku(s,o1.sku),'the close-off takes the twin’s SKU as proven — and only that one');
+      eq(s.resolution.ordChk.done.squared,true,'the history says it squared early');
+      /* Sarah's one tick: the wrong-SKU close, filled in, its SKU check satisfied */
+      who('Sarah');srtBookedAs(s.uuid);await wait(60);
+      {const inp=document.getElementById('srtSku');eq(inp&&inp.value,tw.sku,'the close-off opens with the twin’s SKU');
+        ok(window._srtSkuCheck&&!window._srtSkuCheck.short,'its “did that SKU send more?” check is satisfied by Jack’s order check');
+        ok(/Jack’s order check/.test((document.getElementById('srtNote')||{}).value||''),'the note says why');}
+      try{closeSorted();}catch(e){}
+      /* 3 · really missing on his own check → Becki for exactly how many; Not here → his claim with the evidence */
+      const B='B0CHK67B'+(++_n),k2=kk();
+      const b1=mkRow({asin:B,prod:'CHECK ROW becki',date:dm(20),oid:'306-'+k2+'-0000001',acct:'EU 01',sup:'Amazon Germany',exp:5,rcvd:0,resolution:askJ()});
+      const b2=mkRow({asin:B,prod:'CHECK ROW becki',date:dm(20),oid:'302-'+k2+'-0000002',acct:'EU 03',sup:'Amazon Germany',exp:5,rcvd:5,ship:5});
+      who('Jack');await ocStartFromJack(b1.uuid);await ocAllDel(B);P=_ocPlan(B);eq(P.M,5,'all delivered: 5 really missing');
+      await ocSend(B);
+      ok(!_ocAsked(b1)&&_isAmzDel(b1)&&b1.resolution.amzDelivered.how==='order-check'&&b1.resolution.amzDelivered.need===5,'to Becki’s shelf check, for exactly 5');
+      ok(!onJack(b1),'off his list while she looks');
+      {const g=_ocSends().find(x=>x.A===B);ok(g&&g.ok,'his Send can still be undone while Becki hasn’t looked');}
+      who('Becki');await amzNotHere(b1.uuid);
+      eq(b1.resolution.what,'amz-missing','Not here → straight to his claim');eq(_amzClaimUnits(b1),5,'claiming the 5');
+      {const f=_ocClaimFacts(b1);ok(/Every order of it checked/.test(f)&&/not here/.test(f),'the claim card shows how it is missing');
+        const m=_ocClaimMsg(b1);ok(m.includes(b1.oid)&&/refund the 5 missing units/.test(m),'the message for Amazon names the order and the 5');}
+      who('Jack');goPage('jack');renderJack();await wait(150);
+      {const c=[...document.querySelectorAll('#jackWrap .jkCard')].find(x=>x.textContent.includes(b1.sku));
+        ok(c&&/Copy message for Amazon/.test(c.textContent)&&/Every order of it checked/.test(c.textContent),'his claim card has the evidence and the copy button');}
+      /* 4 · the twin not delivered yet → this order waits on Amazon's date; Undo puts it back */
+      const C='B0CHK67C'+(++_n),k3=kk(),eta=ukAddDays(todayISO(),7);
+      const c1=mkRow({asin:C,sku:'Amuk_18.99_06106_0_Repl1_'+k3,prod:'CHECK ROW park',date:dm(25),oid:'203-'+k3+'-0000001',acct:'Biz 03 - WM',exp:4,rcvd:0,resolution:askJ()});
+      const c2=mkRow({asin:C,sku:'Amuk_18.99_06106_0_Repl_'+k3,prod:'CHECK ROW park',date:dm(25),oid:'204-'+k3+'-0000002',acct:'Biz 01',exp:4,rcvd:4,ship:4});
+      await ocStartFromJack(c1.uuid);await ocAns(C,c2.oid,'n');P=_ocPlan(C);
+      ok(P.etaMissing&&!P.ready,'“not delivered yet” needs Amazon’s date first');
+      await ocEta(C,c2.oid,eta);P=_ocPlan(C);ok(P.ready&&P.rows[0].route==='park','with the date: it squares, and this order waits');
+      const edWas=c1.expectedDelivery||'';
+      await ocSend(C);
+      eq(c1.resolution.what,'in-transit','parked');eq(String(c1.expectedDelivery).slice(0,10),eta,'on Amazon’s date for the twin');
+      ok(/book the next one in here/.test(c1.resolution.rejectNote||''),'it says what happens next');
+      {const g=_ocSends().find(x=>x.A===C);ok(g&&g.ok,'undoable');await ocUndoSend(C,g.at);
+        ok(_ocAsked(c1)&&(c1.expectedDelivery||'')===edWas,'Undo: back on his card, the date taken off');}
+      /* 5 · bring Becki's over — press twice; his earlier "delivered" is the tick */
+      const D2='B0CHK67D'+(++_n),k4=kk();
+      const d1=mkRow({asin:D2,prod:'CHECK ROW pull',date:dm(15),oid:'202-'+k4+'-0000001',acct:'Biz 02',exp:3,rcvd:0,resolution:jk()});
+      who('Sarah');await amzToBecki(d1.uuid);ok(_ocPullable().includes(d1),'on Becki’s shelf check: can be brought over');
+      who('Jack');await ocBringBack(null);ok(!_ocAsked(d1),'one press only arms it');
+      await ocBringBack(null);ok(_ocAsked(d1)&&_ocOrigin(d1)==='jack','the second press brings it over, as his own check');
+      eq((_ocPlan(D2).orders.find(o=>o.oid===d1.oid).ans||{}).a,'d','his earlier “delivered” is the tick on its own order');
+      /* 6 · Becki's own ask still works exactly as before */
+      const E='B0CHK67E'+(++_n),k5=kk();
+      const e1=mkRow({asin:E,prod:'CHECK ROW old',date:dm(12),oid:'202-'+k5+'-0000001',acct:'Biz 01',exp:1,rcvd:0,resolution:jk()});
+      who('Sarah');await amzToBecki(e1.uuid);who('Becki');await ocAsk(e1.uuid);ok(_ocOrigin(e1)==='becki','her ask is hers');
+      who('Jack');await ocAllDel(E);await ocSend(E);eq(e1.resolution.what,'amz-missing','she already looked: really missing goes straight to his claim, as before');
+    }finally{window._saveAsinChecks=keepSave;ASIN_CHECKS=keepA;try{closeSorted();}catch(e){}try{renderJack();}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
   async function run(only){
     R.length=0;const t0=Date.now();
     const _dbwWas=(typeof DBW!=='undefined')?DBW.paused:false;try{DBW.paused=true;}catch(e){}

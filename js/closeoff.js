@@ -494,6 +494,15 @@ function srtSkuTake(sku){
   inp.value=sku;srtSkuShut();srtSync();
 }
 function srtSkuShut(){const b=document.getElementById('srtSkuList');if(b)b.style.display='none';_srtSkuIx=-1;}
+/* b667: Sarah's one tick on "booked in as X" — the wrong-SKU close with X's SKU and Jack's check filled in */
+function srtBookedAs(rid){
+  const r=_rowById(rid);if(!r)return;const ba=(r.resolution||{}).bookedAs||{},s=ba.srcs||[],sku=(s.find(x=>x.sku)||{}).sku||'';
+  openSorted(rid,'wrong-sku');
+  try{if(sku)srtSkuTake(sku);
+    const ta=document.getElementById('srtNote'),ln=`Jack’s order check: it arrived, booked in as ${s.map(x=>(x.oid||x.sku)+(x.sku&&x.oid?' ('+x.sku+')':'')).join(', ')}. Nothing is missing.`;
+    if(ta&&!String(ta.value||'').includes(ln)){ta.value=(String(ta.value||'').trim()?String(ta.value).trim()+'\n':'')+ln;}
+    srtSync();}catch(e){console.warn('[b667] booked-as close',e);}
+}
 function srtSkuKey(e){
   const box=document.getElementById('srtSkuList');
   if(!box||box.style.display==='none')return;
@@ -897,7 +906,9 @@ function srtSync(){
   const _rSku=_rG||{};
   const _need=Math.max(1,_owedUnits(_rSku)||0,(typeof _leftUnits==='function'?_leftUnits(_rSku):0)||0);
   const _spare=(_sj.kind==='same'&&typeof sfSkuSpare==='function')?sfSkuSpare(_sj.sku,_rSku):null;
-  const _skuShort=_sj.kind==='same'&&_spare!==null&&_spare<_need;
+  /* b667: Jack's order check named this SKU's order as where the units were booked — that is the proof */
+  const _ocPr=_sj.kind==='same'&&typeof _ocProofSku==='function'&&_ocProofSku(_rSku,_sj.sku);
+  const _skuShort=_sj.kind==='same'&&_spare!==null&&_spare<_need&&!_ocPr;
   const _skuOther=['other','own','unknown'].includes(_sj.kind)?_sj.kind:'';
   const _skuShip=_sj.kind==='shipid';
   const _skuWhy=((document.getElementById('srtSkuWhy')||{}).value||'').trim();

@@ -2731,6 +2731,18 @@ function renderAdmin(){
                   /* Jack, 10 Sep: he typed "please double-check this… then
                      send the evidence back to me" and her page called it an
                      ANSWER with a green close button. A typed note is a job. */
+                  /* b667: Jack's order check found it — booked in as another order. One tick: the wrong-SKU close, filled in. */
+                  if(sentBack.bookedAs&&(sentBack.bookedAs.srcs||[]).length){const _s=sentBack.bookedAs.srcs,_o=_s.map(x=>x.oid||x.sku).filter(Boolean);
+                    return `<div class="csNow">
+                      <div class="csNowCap" style="color:#4ade80;">Found on paper &mdash; one tick</div>
+                      <div class="csNowTxt" title="${esc(a)}">${esc(a)}</div>
+                      <div class="csActs">
+                        <button class="csAct good" onclick="srtBookedAs('${i.rid}')" title="Opens the close-off filled in: went out under ${esc(_s[0].sku||'')}. Nothing is missing — no shelf check, no claim.">Close it &mdash; booked in as ${esc(_o.join(', '))}</button>
+                        <button class="csAct plain" onclick="askJackAsk('${i.rid}','free')" title="Something doesn’t add up — send it back to Jack with what you found">Something&rsquo;s wrong &rarr; back to Jack</button>
+                      </div>
+                      <div class="tfuGuide">Jack checked every order of this product: it arrived, and was booked in under ${_o.length===1?'that order':'those orders'}. Nothing is lost.</div>
+                    </div>`;
+                  }
                   if(sentBack.jackNote){
                     return `<div class="csNow">
                       <div class="csNowCap" style="color:#fbbf24;">Jack needs you to check</div>
@@ -2929,7 +2941,7 @@ function renderAdmin(){
                     const _ay=!_nc&&_mw.arrivedYes;
                     state=_jn?'JACK NEEDS A CHECK':'JACK ANSWERED';scol=_jn?'#fbbf24':'#f87171';
                     last=(_jn?'Asked':'Answered')+(sentBack.at?' · '+lw(sentBack.at):'')+(_jn?' — what he needs is in Triage':' — his answer is in Triage');
-                    next=sentBack.dupOf?'Close it as Duplicate record — one press (left)':_jn?'Do the check, then send what you found to Jack (left)':_rg?'Note the sheet and close it — one press (left)':isAmz
+                    next=sentBack.bookedAs?'Close it — booked in as another order, one tick (left)':sentBack.dupOf?'Close it as Duplicate record — one press (left)':_jn?'Do the check, then send what you found to Jack (left)':_rg?'Note the sheet and close it — one press (left)':isAmz
                       ?(_nc?'Amazon refund it themselves — note the sheet and close it (left)':_ay?'Answer “wrong SKU?” on the left':'Record his answer and close it off (left)')
                       :(_nc?'Close it as cancelled or never arrived (left)':_ay?'Answer “wrong SKU?” on the left':'Pick the move that follows from his answer (left)');
                   }

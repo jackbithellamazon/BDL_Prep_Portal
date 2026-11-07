@@ -1290,3 +1290,16 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 .ocT tr.ocSup td{opacity:.6;}
 .ocT td small.ocCxS{color:var(--text3);}
 .ocV.dim{color:var(--text2);border-color:var(--border2);background:rgba(255,255,255,.03);}
+
+/* b667: the order check — likely twin, Amazon's date, the 60-day line, squared, bring them over, the claim evidence */
+.ocTwin{margin-left:6px;font-size:10px;font-weight:800;letter-spacing:.03em;padding:1px 6px;border-radius:4px;color:#0c2a3d;background:#7dd3fc;}
+.ocEta{margin-left:6px;padding:3px 6px;border-radius:6px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font:700 11px var(--sans);color-scheme:dark;}
+.ocLine{font-size:12px;font-weight:600;color:var(--text2);margin:6px 0 4px;}
+.ocLine b{color:var(--text);font-family:var(--mono);}
+.ocSq{color:#86efac;}
+.ocV.dim{color:var(--text3);border-color:var(--border2);background:rgba(255,255,255,.03);}
+.ocPull{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:9px;background:rgba(34,211,238,.07);border:1px solid rgba(34,211,238,.35);font-size:12px;font-weight:600;color:var(--text2);}
+.ocPull b{color:#67e8f9;}
+.ocPull .csAct{margin-left:auto;white-space:nowrap;}
+.ocFacts{font-size:11.5px;font-weight:600;color:var(--text2);line-height:1.55;}
+.ocFacts b{color:var(--text);}
