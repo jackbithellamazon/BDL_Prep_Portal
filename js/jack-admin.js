@@ -640,7 +640,7 @@ function _ocCardHtml(it,x){
       <td class="ocOid">${o.oid?`${url?`<a href="${esc(url)}" target="_blank" rel="noopener" title="Open this order on ${esc(o.sup)} — signed in as ${esc(o.acct||'that account')}">${esc(o.oid)}</a>`:`<span>${esc(o.oid)}</span>`}<span class="ocCp" title="Copy the order ID" onclick="copyVal('${q(o.oid)}',this)">copy</span>${o.twin?'<span class="ocTwin" title="Placed the same day at the same price as the stuck order — the likeliest place its units were booked. Tick this one first.">likely twin</span>':''}`:'<span class="ocDim">no order number</span>'}</td>
       <td class="ocOd">${o.od?esc(_dmy(o.od)):'—'}${o.old?`<small title="${o.stuck.length?'Older than 60 days — on the list because it is one of the stuck ones':'Older than 60 days — on the list because it is from the same weeks as the stuck one'}">over 60 days</small>`:''}</td>
       <td class="ocN">${fmt(o.want)}${o.cxSheet?`<small class="ocCxS" title="The Purchase Sheet already has ${fmt(o.cxSheet)} of this order cancelled — the ${fmt(o.want)} is what is still expected">+${fmt(o.cxSheet)} cancelled on the sheet</small>`:''}</td>
-      <td class="ocN${o.booked<o.want?' ocShort':''}">${fmt(o.booked)}${o.stuck.length?`<small>${fmt(lost)} not on the shelves</small>`:''}</td>
+      <td class="ocN${o.booked<o.want?' ocShort':''}">${fmt(o.booked)}${o.stuck.length?`<small>${fmt(lost)} ${_jo?'not booked in':'not on the shelves'}</small>`:''}</td>
       <td class="ocAns"><div class="ocAnsW">${ansHtml}</div></td></tr>`;}).join('');
   /* where each covering unit was booked, said once per source */
   const srcLine=rs=>{const m={};rs.forEach(r=>r.srcs.forEach(s=>{const k=(s.inner?'i:':'o:')+s.o.key;(m[k]=m[k]||{s,n:0}).n+=s.n;}));
