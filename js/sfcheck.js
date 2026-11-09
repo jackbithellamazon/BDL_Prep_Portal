@@ -89,6 +89,13 @@ function _sfIsReturnSku(sku){
 function _sfExcluded(){return (typeof _syncExcluded!=='undefined'?_syncExcluded:[])||[];}
 
 /* ── 1 · the late-order answer for Sarah's card (automatic) ────────────────── */
+/* b672 (Jack, 9 Nov — the Lindt on FBA15MSP81LH: we sent 2, Amazon counted 4): on the prep side what WE sent is
+   accounted for — fewer counted in is the claims team's job, never prep's. MORE counted in than we sent means units
+   PrepHub still has as booked-in-not-sent went in that box. The check (v4.7) carries Amazon's count on a line as
+   "received" when it re-read the line after Amazon counted it; the bigger of the two is what Amazon has of ours. */
+function _sfGot(l){const u=parseInt(l&&l.units)||0,rc=parseInt(l&&l.received)||0;return rc>u?rc:u;}
+function _sfOver(ships){return (ships||[]).filter(s=>(parseInt(s&&s.received)||0)>(parseInt(s&&s.units)||0));}
+function _sfOverTxt(ships){return _sfOver(ships).map(s=>`Amazon counted ${fmt(parseInt(s.received)||0)} on ${s.id} — we sent ${fmt(parseInt(s.units)||0)}`).join(' · ');}
 function sfLateFor(r){
   if(!SFRUN||!r)return null;
   const rid=r.uuid||String(r.id);
@@ -97,12 +104,12 @@ function sfLateFor(r){
   /* Jack, 29 Oct (HIGH5 Zero, Natures Aid): look at the product as a whole on each shipment. If PrepHub already
      has as many of it there as Amazon — under any SKU — nothing on that shipment belongs to this order. */
   const n=x=>parseInt(x)||0;
-  const sfOn=id=>(e.own||[]).filter(s=>s.id===id).reduce((t,s)=>t+n(s.units),0)+(e.asinSkus||[]).filter(x=>x.id===id).reduce((t,x)=>t+n(x.units),0);
+  const sfOn=id=>(e.own||[]).filter(s=>s.id===id).reduce((t,s)=>t+_sfGot(s),0)+(e.asinSkus||[]).filter(x=>x.id===id).reduce((t,x)=>t+_sfGot(x),0);
   const gapOn=id=>r.asin?sfOn(id)-_sfPhOnAsin(id,r.asin):Infinity;
-  const own=(e.own||[]).map(s=>{const ph=_sfPhOn(s.id,r.sku);return{...s,ph,x:Math.min(n(s.units)-ph,gapOn(s.id))};}).filter(s=>s.x>0);
+  const own=(e.own||[]).map(s=>{const ph=_sfPhOn(s.id,r.sku);return{...s,ph,x:Math.min(_sfGot(s)-ph,gapOn(s.id))};}).filter(s=>s.x>0);
   const ownExtra=own.reduce((t,s)=>t+s.x,0);
   const sisters=(e.asinSkus||[]).filter(x=>x.sku&&x.sku!==r.sku);
-  const other=sisters.map(z=>{const ph=_sfPhOn(z.id,z.sku);return{...z,ph,x:Math.min(n(z.units)-ph,gapOn(z.id))};}).filter(z=>z.x>0);
+  const other=sisters.map(z=>{const ph=_sfPhOn(z.id,z.sku);return{...z,ph,x:Math.min(_sfGot(z)-ph,gapOn(z.id))};}).filter(z=>z.x>0);
   if(ownExtra>0){const room=_sfRoom(r);return{state:'shipped',units:ownExtra,ships:own,at:SFRUN.at,room,fits:ownExtra<=room};}
   if(other.length)return{state:'other',ships:other,at:SFRUN.at};
   return{state:'clear',sisters:sisters.length,at:SFRUN.at};
@@ -170,7 +177,7 @@ function sfAsinBalance(r){
   const notIn=mine.map(x=>({x,left:Math.max(0,n(x.exp)-n(x.cancelledQty)-n(x.rcvd))})).filter(o=>o.left>0);
   /* per shipment and SKU: what Amazon was sent beyond what PrepHub recorded on that same shipment */
   const extra=[];let sfSent=0;
-  lines.forEach(l=>{const u=n(l.units);sfSent+=u;const ph=_sfPhOn(l.id,l.sku);if(u>ph)extra.push({id:l.id,sku:l.sku,date:l.date,units:u-ph,ph});});
+  lines.forEach(l=>{const u=_sfGot(l);sfSent+=u;const ph=_sfPhOn(l.id,l.sku);if(u>ph)extra.push({id:l.id,sku:l.sku,date:l.date,units:u-ph,ph,sent:n(l.units),counted:n(l.received)>n(l.units)?n(l.received):0});});
   const unrec=extra.reduce((t,e)=>t+e.units,0);
   return{since,ordered,booked,sent,notIn,orders:mine.length,sfSent,extra,unrec,at:B.at||SFRUN.at};
 }
@@ -178,7 +185,7 @@ function sfFactHtml(r){
   const v=sfLateFor(r);if(!v)return '';
   if(v.state==='unchecked')return `<span style="color:var(--text3)">not checked yet${SFRUN?' · last check '+esc(sfWhen()):''}</span>`;
   if(v.state==='clear')return `<span style="color:#86efac">✓ not on any shipment${v.sisters?`, not under its ${v.sisters} other SKU${v.sisters===1?'':'s'}`:''}</span> <span style="color:var(--text3)">· Claude, ${esc(sfWhen())}</span>`;
-  if(v.state==='shipped')return `<span style="color:#fbbf24"><b>${fmt(v.units)} shipped under this SKU</b> on ${v.ships.map(s=>esc(s.id)).join(', ')} — PrepHub has no record. See SellerFuse check at the top.</span>`;
+  if(v.state==='shipped')return _sfOver(v.ships).length?`<span style="color:#fbbf24"><b>${esc(_sfOverTxt(v.ships))}</b> — the ${fmt(v.units)} PrepHub has as not sent went in that box.</span>`:`<span style="color:#fbbf24"><b>${fmt(v.units)} shipped under this SKU</b> on ${v.ships.map(s=>esc(s.id)).join(', ')} — PrepHub has no record. See SellerFuse check at the top.</span>`;
   return `<span style="color:#fbbf24"><b>Possibly under another SKU:</b> ${v.ships.map(s=>`${esc(s.sku)} sent ${fmt(s.units)} on ${esc(s.id)}, PrepHub has ${fmt(s.ph)}`).join(' · ')}</span>`;
 }
 /* the wrong-SKU step, answered by the check: nothing on any shipment, nothing extra under a sister SKU */
@@ -491,7 +498,7 @@ function sfJackFacts(r){
   let sku;
   if(v.state==='unchecked')sku=`not checked yet — the next check is ${sfNextCheck()}`;
   else if(v.state==='clear')sku=`not on any shipment under this SKU${v.sisters?`, nothing extra under its ${fmt(v.sisters)} other SKU${v.sisters===1?'':'s'}`:', and no other SKU of it went out'}`;
-  else if(v.state==='shipped')sku=`${fmt(v.units)} went out under this SKU on ${v.ships.map(s=>s.id).join(', ')} — PrepHub has no record of ${v.units===1?'it':'them'}`;
+  else if(v.state==='shipped')sku=_sfOver(v.ships).length?`${_sfOverTxt(v.ships)} — the ${fmt(v.units)} PrepHub has as not sent went in that box`:`${fmt(v.units)} went out under this SKU on ${v.ships.map(s=>s.id).join(', ')} — PrepHub has no record of ${v.units===1?'it':'them'}`;
   else sku=`possibly under another SKU — ${v.ships.map(s=>`${s.sku} sent ${fmt(s.units)} on ${s.id}, PrepHub has ${fmt(s.ph)}`).join(' · ')}`;
   let bal='';
   const b=left>0&&typeof sfAsinBalance==='function'?sfAsinBalance(r):null;

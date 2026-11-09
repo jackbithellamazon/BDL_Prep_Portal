@@ -185,15 +185,21 @@ function tfuSort(k){
 }
 function _rowById(rid){return rows.find(x=>x.uuid===String(rid)||String(x.id)===String(rid));}
 function openSorted(rid,preset){
+  /* b672: Jack's order check answered "booked in as X" — Sorted opens his close (wrong SKU, X, his check noted) */
+  {const _r0=_rowById(rid);if(!preset&&_r0&&_srtBaSku(_r0)&&typeof srtBookedAs==='function')return srtBookedAs(rid);}
   logOpened(rid,'close it off');markSeen(rid);
   const r=_rowById(rid);if(!r){toast('Row not found','er');return;}
   /* The popup already knows what she answered on the row. Arrived + wrong SKU
      → that outcome, ready to confirm or change. Arrived with nothing else said
      → arrived and correct. Never arrived → the refund path. Arrived + wrongSku
      = No is a live stock hunt — nothing is assumed, she picks what she found. */
+  let _psShip='';
   if(!preset){
     if(r.delivered==='Yes'&&r.wrongSku==='Yes')preset='wrong-sku';
-    else if(r.delivered==='Yes'&&!r.wrongSku)preset='arrived-ok';
+    else if(r.delivered==='Yes'&&!r.wrongSku){
+      /* b672: on a part-shipped row "Arrived and correct" never clears it — start from what SellerFuse found, or nothing */
+      if(!(typeof _partShipStale==='function'&&_partShipStale(r)))preset='arrived-ok';
+      else{const _f=_srtPsFound(r);if(_f){preset='sent-not-stamped';_psShip=_f.id;}}}
     else if(r.delivered==='No')preset='no-refund';
   }
   _srtRid=rid;
@@ -248,6 +254,7 @@ function openSorted(rid,preset){
       <div id="srtColL">
       <div id="srtKind" class="srtWarn" style="display:none;background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.4);color:#93c5fd;"></div>
       <div id="srtAmzGate" class="srtWarn" style="display:none;margin-top:14px;background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.45);color:#93c5fd;"></div>
+      <div id="srtTrap" class="srtWarn" style="display:none;margin-top:14px;background:rgba(251,146,60,.12);border-color:rgba(251,146,60,.55);color:#fdba74;"></div>
       <div id="srtClaimWarn" class="srtWarn" style="display:none;">
         Stock is genuinely gone. Jack sees this flagged so the refund gets claimed.
       </div>
@@ -385,6 +392,7 @@ function openSorted(rid,preset){
   const _draft=srtDraft(rid);
   if(_draft)_srtApplyDraft(_draft);
   else if(preset){srtPick(preset);
+    if(preset==='sent-not-stamped'&&_psShip){const _si=document.getElementById('srtShipId');if(_si&&!_si.value){_si.value=_psShip;try{srtSync();}catch(e){}}}
     if(preset==='part-cancelled'||preset==='cancelled'){
       const _cx=document.getElementById('srtCx');
       const _owed=Math.max(0,(parseInt(r.exp)||0)-(parseInt(r.rcvd)||0)-(parseInt(r.cancelledQty)||0));
@@ -851,6 +859,15 @@ function srtSync(){
      gb.innerHTML=!_gate?'':_gate.why==='not-arrived'
        ?`<b>Jack checked the account: it did not arrive.</b>${_gate.check&&_gate.check.note?` &ldquo;${esc(_gate.check.note)}&rdquo;`:''} &ldquo;${esc(_resText(what))}&rdquo; says it did, so it goes back to him with what you found. Nothing closes and no units move until he answers.`
        :`<b>Amazon order &mdash; Jack hasn&rsquo;t checked the account yet.</b> Only he can see whether it was delivered, so &ldquo;${esc(_resText(what))}&rdquo; goes to him first, with your note. Nothing closes and no units move until he answers &mdash; then it comes back to you to close.`;}}
+  /* b672: "Arrived and correct" where it can't do what she wants — said before she presses, with the right one a press away */
+  {const tw=document.getElementById('srtTrap'),t=_srtArrivedTrap(what,_rG);
+   if(tw){tw.style.display=t?'block':'none';
+     const _R=t&&t.found?(parseInt(t.found.received)||0):0,_U=t&&t.found?(parseInt(t.found.units)||0):0,_it=t&&t.n===1;
+     tw.innerHTML=!t?'':t.kind==='booked-as'
+       ?`<b>This would send it to Becki to search the shelves.</b> Jack&rsquo;s order check found it was booked in and sent under <b>${esc(t.sku)}</b> &mdash; it&rsquo;s already at Amazon, so there&rsquo;s nothing on the shelf to find. <button type="button" class="srtSwap" onclick="srtTrapUse()">Use &ldquo;Arrived, but sent under the wrong SKU&rdquo; with ${esc(t.sku)} &rarr;</button>`
+       :`<b>This won&rsquo;t clear the card.</b> ${fmt(t.n)} ${_it?'was':'were'} booked in but never sent to Amazon, and &ldquo;Arrived and correct&rdquo; doesn&rsquo;t say where ${_it?'it':'they'} went &mdash; so the card comes straight back.`
+         +(t.found?`<div style="margin-top:6px;">SellerFuse: ${_R>_U?`Amazon counted <b>${fmt(_R)}</b> on <b>${esc(t.found.id)}</b> &mdash; we sent ${fmt(_U)}. ${_it?'It':'They'} went in that box.`:`<b>${fmt(t.found.x||0)}</b> went out on <b>${esc(t.found.id)}</b> that PrepHub never recorded.`} <button type="button" class="srtSwap" onclick="srtTrapUse()">Use &ldquo;Already sent&rdquo; with ${esc(t.found.id)} &rarr;</button></div>`
+           :`<div style="margin-top:6px;">Went in a box? Pick &ldquo;Already sent &mdash; the shipment ID was never added&rdquo; and type the box. Went out on another listing? Pick &ldquo;Arrived, but sent under the wrong SKU&rdquo;. Don&rsquo;t know? Press Cancel and use ${_amazonRow(_rG)?'&ldquo;Send to Jack&rdquo;':'&ldquo;Ask Becki to check the shelves&rdquo;'} on the card.</div>`);}}
   /* more arrived than Becki booked in? That is a shelf question, one press — never a number typed here */
   {const ga=document.getElementById('srtGotAsk');
    if(ga){const r0=_rG||{},owe=_owedUnits(r0),withB=!!(r0.resolution&&r0.resolution.amzDelivered&&!r0.resolution.amzDelivered.done);
@@ -1030,6 +1047,7 @@ function srtAskClose(override){
   if(!what)return;
   /* Jack, 29 Oct (the OneBlade): an Amazon "it's here" he hasn't checked goes to him first, with her note */
   if(_srtAmzGate(what,r))return srtJackFirst();
+  {const _t=_srtArrivedTrap(what,r);if(_t){toast(_srtTrapToast(_t),'er');return;}}   /* b672 */
   const kind=_resKind(what,r);
   /* Say what is in the way, in her words, on the button she just pressed. */
   const G=window._srtGate||{};
@@ -1162,6 +1180,7 @@ async function submitSorted(){
   if(ord-got-cx<0){_unlatch();return;}
   /* an Amazon "it's here" Jack hasn't checked never closes — the button sends it to him (srtJackFirst) */
   if(_srtAmzGate(what,r)){_unlatch();toast('Amazon order — Jack checks the account first: press “Send to Jack”','er');return;}
+  {const _t=_srtArrivedTrap(what,r);if(_t){_unlatch();toast(_srtTrapToast(_t),'er');return;}}   /* b672 */
   const follow=FOLLOW_UPS.filter((f,n)=>{const c=document.getElementById('srtF'+n);return c&&c.checked;});
   const note=((document.getElementById('srtNote')||{}).value||'').trim();
   const fix=((document.getElementById('srtFix')||{}).value||'').trim();
@@ -1181,7 +1200,10 @@ async function submitSorted(){
   if(_sjS&&_sjS.kind==='same')wentAs=_sjS.sku;
   const _needS=Math.max(1,_owedUnits(r)||0,(typeof _leftUnits==='function'?_leftUnits(r):0)||0);
   const _spS=(_sjS&&_sjS.kind==='same'&&typeof sfSkuSpare==='function')?sfSkuSpare(wentAs,r):null;
-  const _shortS=_spS!==null&&_spS<_needS;
+  /* b672 — the TCL TV, 9 Nov: b667 let Jack's order check count as the proof in the popup's live check (_ocPr) but
+     not here, so the popup said all was well and this press said "only sent what its own order had" */
+  const _ocS=!!_sjS&&_sjS.kind==='same'&&typeof _ocProofSku==='function'&&_ocProofSku(r,wentAs);
+  const _shortS=_spS!==null&&_spS<_needS&&!_ocS;
   if(_shortS&&!_whyS){_unlatch();toast(`${wentAs} only sent what its own order had — pick another SKU, or give a reason to override`,'er');return;}
   const refunded=(document.getElementById('srtRefund')||{}).value||'';
   /* Snapshot the ticks BEFORE anything calls closeSorted — that clears them,
@@ -1467,6 +1489,25 @@ function _amzJackCheck(r){
    in was counted), "went out under another SKU" while units are owed or booked in and never sent (Jack's leftover
    question). Cancelled / refunded / duplicate are left as they are: Jack's own answers route those. */
 const _SRT_HERE=['arrived-ok','wrong-sku','cancel-wrong-sku','sent-not-stamped'];
+/* b672 (9 Nov 2026 — Sarah's two "Arrived and correct" closes): the one outcome with no questions was where she went
+   when the right one asked for something. On the Lindt (2 booked in, never sent — Amazon counted them on
+   FBA15MSP81LH) it saved and the card came straight back; on the TCL TV (Jack's order check: booked in as THC1) it
+   sent the TV to Becki to search the shelves for a unit already at Amazon. Both now say why and offer the right one. */
+function _srtBaSku(r){const q=(r&&r.resolution)||{};if(q.state!=='rejected'||q.meant!=='booked-as'||!q.bookedAs)return '';
+  return ((q.bookedAs.srcs||[]).find(s=>s&&s.sku)||{}).sku||'';}
+function _srtPsFound(r){const v=(r&&typeof sfLateFor==='function')?sfLateFor(r):null;
+  if(!v||v.state!=='shipped'||v.fits===false||!(v.ships||[]).length)return null;return v.ships[0];}
+function _srtArrivedTrap(what,r){
+  if(what!=='arrived-ok'||!r)return null;
+  const ba=_srtBaSku(r);if(ba)return{kind:'booked-as',sku:ba};
+  if(typeof _partShipStale==='function'&&_partShipStale(r))return{kind:'part-ship',n:(typeof _leftUnits==='function')?_leftUnits(r):0,found:_srtPsFound(r)};
+  return null;}
+function _srtTrapToast(t){return t.kind==='booked-as'
+  ?`“Arrived and correct” would send it to Becki to search the shelves — but Jack found it went out under ${t.sku}. Use “Arrived, but sent under the wrong SKU”.`
+  :`“Arrived and correct” won’t clear this — ${fmt(t.n)} booked in ${t.n===1?'was':'were'} never sent. Say where ${t.n===1?'it':'they'} went (the orange box).`;}
+function srtTrapUse(){const r=_rowById(_srtRid),t=_srtArrivedTrap('arrived-ok',r);if(!t)return;
+  if(t.kind==='booked-as'){srtPick('wrong-sku');try{srtSkuTake(t.sku);}catch(e){}return;}
+  if(t.found){srtPick('sent-not-stamped');const el=document.getElementById('srtShipId');if(el)el.value=t.found.id;try{srtSync();}catch(e){}}}
 function _srtAmzGate(what,r){
   if(!what||!r||!_SRT_HERE.includes(what))return null;
   if(!(typeof _amazonRow==='function'&&_amazonRow(r)))return null;

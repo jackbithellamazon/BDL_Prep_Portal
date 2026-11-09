@@ -4504,6 +4504,78 @@ window.PrepChecks=(function(){
     function q4BuyShapeN(R){return LV3.q4BuyShape(R).sups.length;}
   };
 
+  /* 158 · b672 (9 Nov — Sarah's Lindt and the TCL TV): Amazon counting MORE than we sent is where the booked-in-not-sent
+     ones went (fewer is never prep's); "Arrived and correct" never closes onto the same card or sends a unit already at
+     Amazon to Becki's shelves; Jack's order check is the proof on the final press too */
+  S['Arrived and correct says why; Amazon’s bigger count finds them; Jack’s check lets the wrong-SKU close through']=async()=>{
+    const keep={run:SFRUN,t:window.toast,s:window.saveRow,v:window.addVaActions},ts=[];
+    window.toast=m=>{ts.push(String(m));};window.saveRow=async()=>true;window.addVaActions=async()=>{};
+    const v=id=>((document.getElementById(id)||{}).value||'');
+    const shut=()=>{try{closeSorted();}catch(e){}};
+    try{
+      who('Sarah');
+      const A=mkRow({exp:6,rcvd:6,ship:4,status:'Part Sent',sent:'No',delivered:'Yes',sentDate:'2026-10-20',
+        shipSegments:[{shipId:'FBA15CHKA672',units:2,date:'2026-10-20',type:'Standard'},{shipId:'FBA15CHKB672',units:2,date:'2026-10-20',type:'Standard'}],
+        allShipIds:['FBA15CHKA672','FBA15CHKB672']});
+      ok(_partShipStale(A),'the fixture: some went, 2 booked in never followed');
+      SFRUN={id:'chk-672',at:new Date().toISOString(),shipments:[],stock:[],sold:[],excluded:[],summary:{},
+        late:[{rowId:A.uuid,sku:A.sku,kind:'shelf',own:[{id:'FBA15CHKA672',date:'2026-10-20',units:2},{id:'FBA15CHKB672',date:'2026-10-20',units:2}],asinSkus:[]}]};
+      window.SFRUN=SFRUN;
+      eq(sfLateFor(A).state,'clear','sent what PrepHub has — nothing found');
+      SFRUN.late[0].own[0].received=1;
+      eq(sfLateFor(A).state,'clear','Amazon counted FEWER than we sent — not prep’s (the claims team’s)');
+      SFRUN.late[0].own[0].received=4;
+      const f=sfLateFor(A);
+      ok(f.state==='shipped'&&f.units===2&&f.ships[0].id==='FBA15CHKA672','Amazon counted 4 where we sent 2 — the 2 found on that box');
+      ok(/Amazon counted <b>4<\/b> on <b>FBA15CHKA672<\/b> &mdash; we sent 2/.test(_tcOverLine(A.uuid,2)),'the card says it plainly');
+      ok(/Fix it/.test(_tcFoundBtns(A.uuid)),'…with Fix it');
+      SFRUN.summary.asinBal={since:'2026-06-01',at:'2026-11-09',by:{[A.asin]:[{id:'FBA15CHKA672',sku:A.sku,date:'2026-10-20',units:2,received:4},{id:'FBA15CHKB672',sku:A.sku,date:'2026-10-20',units:2}]}};
+      const b=sfAsinBalance(A);
+      ok(b&&b.extra.length===1&&b.extra[0].units===2&&b.extra[0].counted===4&&b.extra[0].sent===2,'the 60-day balance sees the 2 extra Amazon counted');
+      /* the popup: opens on "Already sent" with the box filled in */
+      openSorted(A.uuid);await wait(60);
+      eq(v('srtWhat'),'sent-not-stamped','Sorted opens on “Already sent”');
+      eq(v('srtShipId'),'FBA15CHKA672','…with the box SellerFuse found');
+      srtPick('arrived-ok');srtSync();
+      const tw=document.getElementById('srtTrap');
+      ok(tw&&tw.style.display==='block'&&/won’t clear the card/.test(tw.textContent)&&/Amazon counted 4 on FBA15CHKA672/.test(tw.textContent),'“Arrived and correct” says it won’t clear it, and why');
+      const was=JSON.stringify(A.resolution);srtAskClose();await wait(60);
+      ok(ts.some(m=>/won’t clear this/.test(m)),'pressing it says so');
+      eq(JSON.stringify(A.resolution),was,'…and nothing is saved');
+      srtTrapUse();
+      ok(v('srtWhat')==='sent-not-stamped'&&v('srtShipId')==='FBA15CHKA672','the orange box’s button puts the right one back');
+      shut();
+      delete SFRUN.late[0].own[0].received;
+      openSorted(A.uuid);await wait(60);
+      eq(v('srtWhat'),'','not found by SellerFuse — it opens on nothing, not on “Arrived and correct”');
+      shut();
+      const B=mkRow({exp:3,rcvd:3,ship:0,delivered:'Yes',status:'In Warehouse'});
+      openSorted(B.uuid);await wait(60);
+      eq(v('srtWhat'),'arrived-ok','nothing sent yet — still opens on “Arrived and correct”, as before');
+      eq(_srtArrivedTrap('arrived-ok',B),null,'…and it closes as before');
+      shut();
+      /* the TCL TV: Jack's order check said booked in as another SKU of the product */
+      const X=mkRow({exp:1,rcvd:1,ship:1,status:'Sent to Amazon',sent:'Yes',asin:'B0CHK672T'});
+      const Cr=mkRow({exp:1,rcvd:0,delivered:'Yes',asin:'B0CHK672T'});
+      Cr.resolution={state:'rejected',what:'jack-check',kind:'check',meant:'booked-as',at:new Date().toISOString(),by:'Jack',
+        bookedAs:{at:new Date().toISOString(),by:'Jack',srcs:[{n:1,sku:X.sku,oid:X.oid,key:X.oid}]}};
+      eq(_srtBaSku(Cr),X.sku,'Jack’s answer names the SKU it was booked in as');
+      openSorted(Cr.uuid);await wait(80);
+      ok(v('srtWhat')==='wrong-sku'&&v('srtSku')===X.sku,'Sorted opens Jack’s close: wrong SKU, with his SKU');
+      srtPick('arrived-ok');srtSync();
+      ok(/send it to Becki to search the shelves/.test((document.getElementById('srtTrap')||{}).textContent||''),'“Arrived and correct” says it would send it to Becki');
+      const was2=JSON.stringify(Cr.resolution);srtAskClose();await wait(60);
+      ok(ts.some(m=>/Jack found it went out under/.test(m))&&JSON.stringify(Cr.resolution)===was2,'…and won’t do it');
+      srtTrapUse();await wait(40);
+      ok(v('srtWhat')==='wrong-sku'&&v('srtSku')===X.sku,'the button puts Jack’s close back');
+      for(let k=0;k<6;k++){const c=[...document.querySelectorAll('#sortedModal #srtSteps input')].find(i=>!i.checked);if(!c)break;c.click();await wait(30);}
+      ts.length=0;srtSync();srtAskClose();await wait(300);
+      ok(!ts.some(m=>/only sent what its own order had/.test(m)),'the final press reads Jack’s check — no “only sent what its own order had”');
+      ok(Cr.resolution&&Cr.resolution.what==='wrong-sku'&&Cr.resolution.state==='approved','it closes as went out under his SKU — not a decision for Jack again');
+      eq(_owedUnits(Cr),0,'nothing owed — nothing for Becki to search for');
+    }finally{shut();SFRUN=keep.run;window.SFRUN=keep.run;window.toast=keep.t;window.saveRow=keep.s;window.addVaActions=keep.v;}
+  };
+
   async function run(only){
     R.length=0;const t0=Date.now();
     const _dbwWas=(typeof DBW!=='undefined')?DBW.paused:false;try{DBW.paused=true;}catch(e){}

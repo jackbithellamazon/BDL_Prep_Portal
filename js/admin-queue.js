@@ -2083,7 +2083,7 @@ let _showDone=false;   /* Jack, 5 Sep: the done rows live behind one strip */
 function _tcSfState(rid){const r=_rowById(rid);const v=(r&&typeof sfLateFor==='function')?sfLateFor(r):null;return v||{state:'unchecked'};}
 function _tcFound(rid){const st=_tcSfState(rid).state;return st==='shipped'||st==='other';}
 function _tcSkuCap(rid){const v=_tcSfState(rid);
-  return v.state==='shipped'?'SellerFuse found it — it went out, PrepHub never recorded it'
+  return v.state==='shipped'?((typeof _sfOver==='function'&&_sfOver(v.ships).length)?'SellerFuse found it — Amazon counted more than we sent on '+_sfOver(v.ships)[0].id:'SellerFuse found it — it went out, PrepHub never recorded it')
     :v.state==='other'?'SellerFuse: probably went out under another SKU'
     :v.state==='clear'?'SellerFuse: not on any shipment, not under another SKU'
     :'Has it gone out on the wrong SKU?';}
@@ -2091,6 +2091,12 @@ function _tcWentBtn(rid,cls,label){const r=_rowById(rid),left=(r&&typeof _leftUn
   return left>0
     ?`<button class="csAct ${cls}" onclick="wentOutUnder('${rid}')" title="Record which SKU and shipment they went out on — the units are accounted for and the row closes">${label}</button>`
     :`<button class="csAct ${cls}" onclick="openSorted('${rid}','wrong-sku')" title="It went out on another listing — close it off; the popup asks which SKU">${label}</button>`;}
+/* b672 (Jack, 9 Nov — "it should say and tell Sarah what happened"): Amazon counted more than we sent on a box —
+   that is where the booked-in-not-sent ones went, said in plain words above the Fix it button */
+function _tcOverLine(rid,left){const v=_tcSfState(rid);if(v.state!=='shipped'||typeof _sfOver!=='function')return '';
+  const o=_sfOver(v.ships);if(!o.length)return '';
+  const s=o[0],R=parseInt(s.received)||0,U=parseInt(s.units)||0,x=Math.min(left||v.units||0,s.x||(R-U));
+  return `<div class="csNowTxt" style="color:#fde68a;"><b>Found ${x===(left||x)?'them':fmt(x)+' of them'}:</b> Amazon counted <b>${fmt(R)}</b> on <b>${esc(s.id)}</b> &mdash; we sent ${fmt(U)}. ${x===1?'It':'They'} went in that box. Press <b>Fix it</b> to record ${x===1?'it':'them'}.</div>`;}
 function _tcFoundBtns(rid){const v=_tcSfState(rid);
   if(v.state==='shipped'){
     /* never more than the order can take — the rest is a question for Jack (Jack, 29 Oct) */
@@ -2239,9 +2245,9 @@ function _tcBalance(b,r,left){
     +(b.notIn.length?` · <b>${fmt(b.notIn.reduce((t,o)=>t+o.left,0))} not booked in</b>: ${b.notIn.map(label).join(' · ')}`:'');
   let cls,ic,verdict;
   if(unrec>=left){cls='found';ic='!';
-    verdict=`<b class="tcOk">Amazon got ${fmt(unrec)} more than PrepHub recorded since this order</b> — ${ex.map(e=>`${fmt(e.units)} × ${esc(e.sku)} on ${esc(e.id)} (${d(e.date)})`).join(' · ')}. These ${fmt(left)} most likely went out without being booked in — nothing to claim.`;}
+    verdict=`<b class="tcOk">Amazon got ${fmt(unrec)} more than PrepHub recorded since this order</b> — ${ex.map(e=>`${fmt(e.units)} × ${esc(e.sku)} on ${esc(e.id)} (${d(e.date)})${e.counted?` — we sent ${fmt(e.sent)}, Amazon counted ${fmt(e.counted)}`:''}`).join(' · ')}. These ${fmt(left)} most likely went out without being booked in — nothing to claim.`;}
   else if(unrec>0){cls='found';ic='!';
-    verdict=`<b class="tcWarn">Amazon got ${fmt(unrec)} more than PrepHub recorded since this order</b> — ${ex.map(e=>`${fmt(e.units)} × ${esc(e.sku)} on ${esc(e.id)} (${d(e.date)})`).join(' · ')}. Up to ${fmt(unrec)} of these ${fmt(left)} may have gone out; ${fmt(left-unrec)} still unaccounted for.`;}
+    verdict=`<b class="tcWarn">Amazon got ${fmt(unrec)} more than PrepHub recorded since this order</b> — ${ex.map(e=>`${fmt(e.units)} × ${esc(e.sku)} on ${esc(e.id)} (${d(e.date)})${e.counted?` — we sent ${fmt(e.sent)}, Amazon counted ${fmt(e.counted)}`:''}`).join(' · ')}. Up to ${fmt(unrec)} of these ${fmt(left)} may have gone out; ${fmt(left-unrec)} still unaccounted for.`;}
   else{cls='done';ic='✓';
     verdict=`<b>Nothing extra went to Amazon since this order</b> — these ${fmt(left)} aren’t hidden in another shipment.`+(others.length?` <b class="tcWarn">${fmt(others.length)} other order${others.length===1?'':'s'} of this product ${others.length===1?'is':'are'} missing too</b> — worth checking together.`:'');}
   if(olderN)verdict+=` <span class="tcOld">(${fmt(olderN)} unrecorded on ${older.map(e=>esc(e.id)+' '+d(e.date)).join(', ')} — before this order, so not these.)</span>`;
@@ -2807,7 +2813,7 @@ function renderAdmin(){
                 if(i.partShip){const _pr=_rowById(i.rid),_amzP=_amazonRow(_pr),_lf=(typeof _leftUnits==='function')?_leftUnits(_pr):0;
                   return `<div class="csNow">
                   <div class="csNowCap" style="color:#fb923c;">Some went &mdash; the rest never followed</div>
-                  <div class="csNowTxt">${fmt(_lf)} booked in but never sent &mdash; what happened to them?</div>
+                  <div class="csNowTxt">${fmt(_lf)} booked in but never sent &mdash; what happened to them?</div>${_tcOverLine(i.rid,_lf)}
                   <div class="csActs">
                     ${_tcFoundBtns(i.rid)}
                     ${_amzP?`<button class="csAct ${_tcFound(i.rid)?'plain':'go'}" onclick="amzAskJack('${i.rid}')" title="Amazon order — Jack checks what the account shows (all delivered, or the Purchase Sheet is wrong) and it comes back to you">Send to Jack &mdash; check the Amazon order</button>`:''}
