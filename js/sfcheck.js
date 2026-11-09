@@ -5,7 +5,7 @@
    PREP ONLY: Amazon receiving claims, costs and write-offs belong to the
    reimbursement system, not here.
    Automatic: the late-order answer on Sarah's cards, PLUB stock at Amazon and
-   sold-in-30-days (lavarion.js sfApplyFromRun), and an order removed from the
+   sold-in-30-days (plub.js sfApplyFromRun), and an order removed from the
    sheet that Amazon shows shipped comes back. Everything else is listed with a
    button — a person presses it. */
 let SFRUN=null;
@@ -577,6 +577,36 @@ function sfSkuSpare(sku,exceptRow){
   return spare;
 }
 window.sfSkuSpare=sfSkuSpare;
+/* b670 (the OneBlade Pro 360, 171-5824393): "went out under another SKU" is only possible if another SKU of this
+   product sent MORE than its own orders had. Every other SKU of the ASIN, judged by sfSkuSpare from this order's
+   date. null = can't judge (no check yet, or no other SKU) — say nothing rather than block. */
+function sfWrongSkuDoubt(r){
+  if(!r||!r.asin||!SFRUN||typeof sfSkuSpare!=='function')return null;
+  const A=String(r.asin).toUpperCase(),skus=new Set();
+  rows.forEach(x=>{if(x!==r&&x.sku&&x.sku!==r.sku&&String(x.asin||'').toUpperCase()===A)skus.add(x.sku);});
+  (SFRUN.shipments||[]).forEach(s=>(s.lines||[]).forEach(l=>{if(l&&l.sku&&l.sku!==r.sku&&String(l.asin||'').toUpperCase()===A)skus.add(l.sku);}));
+  let judged=0,spare=0;
+  skus.forEach(k=>{const v=sfSkuSpare(k,r);if(v!==null){judged++;spare+=v;}});
+  return judged?{judged,spare}:null;
+}
+window.sfWrongSkuDoubt=sfWrongSkuDoubt;
+/* b670 (Jack: "make sure Sarah can't press the wrong thing by being lazy"): the overrides on these checks are his */
+function canOverrideStock(){return /^jack/i.test(String(window.currentUserName||'').trim());}
+window.canOverrideStock=canOverrideStock;
+/* the day a shipment went out — from PrepHub's own shipment records first, then SellerFuse's created date */
+function sfShipDate(id){
+  const k=String(id||'').trim().toUpperCase();if(!k)return '';
+  let d='';
+  rows.forEach(x=>(x.shipSegments||[]).forEach(s=>{if(String(s.shipId||'').toUpperCase()===k&&s.date){const v=String(s.date).slice(0,10);if(!d||v<d)d=v;}}));
+  if(!d&&SFRUN)(SFRUN.shipments||[]).forEach(s=>{if(String(s.id||'').toUpperCase()===k&&s.created)d=String(s.created).slice(0,10);});
+  return d;
+}
+/* a shipment that left before this order was placed can't have carried it — {ship, order} or null */
+function sfShipBeforeOrder(r,id){
+  const sd=sfShipDate(id),od=(typeof _sfOrderISO==='function')?_sfOrderISO(r):'';
+  return (sd&&od&&sd<od)?{ship:sd,order:od}:null;
+}
+window.sfShipDate=sfShipDate;window.sfShipBeforeOrder=sfShipBeforeOrder;
 
 /* Jack, 26 Oct: "a banner when the check hasn't landed — on every page". The check only runs when the Mac
    is awake. Jack, 29 Oct: from 22:00 on a check evening Jack sees it while there is time to press Run now

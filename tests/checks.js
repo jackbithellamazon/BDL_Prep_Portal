@@ -3279,8 +3279,8 @@ window.PrepChecks=(function(){
         const o=row.classList.contains('open');chip.click();await wait(30);eq(row.classList.contains('open'),o,'copying the ASIN does not open the line');}
       ok(pg.querySelector('.q4Prog .q4Chart svg polyline.ln'),'Progress ▾ opens with the Complete chart');
       ok(!/NaN|undefined|Infinity/.test(pg.querySelector('.q4Prog').innerHTML),'no NaN in the chart or tables');
-      const wk=pg.querySelector('.q4GW-weeks tbody tr td.q4Cmp b');
-      eq((wk||{}).textContent,(R.totals.pct==null?'—':R.totals.pct+'%'),'the newest week ends on the Complete tile');
+      const wk=pg.querySelector('.q4GW-weeks tbody tr td.q4Cmp small.q4CTot');   /* b670: the running total is the small one */
+      eq((wk||{}).textContent,(R.totals.pct==null?'':R.totals.pct+'% total'),'the newest week ends on the Complete tile');
       ok([...pg.querySelectorAll('.q4Kpis .kpi .k')].some(k=>/All done at your weekly average/.test(k.textContent)),'an All done at your weekly average tile (b644)');
       {const TR1=LV3.q4Track(R),tp=TR1.avg.avg,e=R.totals.toGo===0?null:tp>0?TR1.etaOf(R.totals.toGo,tp/5):null;
         const tv=([...pg.querySelectorAll('.q4Kpis .kpi')].find(k=>/All done at your weekly average/.test(k.textContent))||{}).querySelector('.v');
@@ -4245,8 +4245,9 @@ window.PrepChecks=(function(){
   /* 151 · b667: the new order of steps — Jack's "delivered" opens the check, twins first, squared early, Sarah's one
      tick, Becki for exactly how many, Not here to his claim with the evidence, not delivered yet parks, bring them over */
   S['b667: the new order of steps — Jack first, twins first, squared early, one tick, Becki’s count, the claim, parked']=async()=>{
-    const keepSave=window._saveAsinChecks,keepA=ASIN_CHECKS,was=(document.querySelector('.page.active')||{}).id||'';
+    const keepSave=window._saveAsinChecks,keepA=ASIN_CHECKS,was=(document.querySelector('.page.active')||{}).id||'',keepPull=window._ocPullable;
     try{
+      window._ocPullable=()=>keepPull().filter(r=>r._chk);   /* b668: never pull the real rows over, even in test mode */
       window._saveAsinChecks=async(A,v)=>{const n=Object.assign({},ASIN_CHECKS);if(v)n[A]=v;else delete n[A];ASIN_CHECKS=n;return true;};
       const dm=d=>{const t=ukAddDays(todayISO(),-d);return t.slice(8)+'/'+t.slice(5,7);};
       const kk=()=>String(++_n).padStart(7,'0').slice(-7);
@@ -4297,6 +4298,11 @@ window.PrepChecks=(function(){
       await ocSend(B);
       ok(!_ocAsked(b1)&&_isAmzDel(b1)&&b1.resolution.amzDelivered.how==='order-check'&&b1.resolution.amzDelivered.need===5,'to Becki’s shelf check, for exactly 5');
       ok(!onJack(b1),'off his list while she looks');
+      ok(!_ocPullable().includes(b1),'already checked by him: never offered to bring back');
+      /* b668: and if it ever comes back (b667's button did, 15:44), his answers are remembered */
+      {const keepR=JSON.stringify(b1.resolution);_ocIntoJack(b1,'Jack',iso(),'becki-queue',true);P=_ocPlan(B);
+        ok(P.orders.filter(o=>o.amz).every(o=>o.ans&&o.ans.a==='d')&&P.ready,'back on his card with every earlier answer ticked — ready to Send');
+        b1.resolution=JSON.parse(keepR);}
       {const g=_ocSends().find(x=>x.A===B);ok(g&&g.ok,'his Send can still be undone while Becki hasn’t looked');}
       who('Becki');await amzNotHere(b1.uuid);
       eq(b1.resolution.what,'amz-missing','Not here → straight to his claim');eq(_amzClaimUnits(b1),5,'claiming the 5');
@@ -4305,6 +4311,12 @@ window.PrepChecks=(function(){
       who('Jack');goPage('jack');renderJack();await wait(150);
       {const c=[...document.querySelectorAll('#jackWrap .jkCard')].find(x=>x.textContent.includes(b1.sku));
         ok(c&&/Copy message for Amazon/.test(c.textContent)&&/Every order of it checked/.test(c.textContent),'his claim card has the evidence and the copy button');}
+      /* b668: his "delivered" answers still with Sarah come over too */
+      {const k6=kk(),F='B0CHK68F'+(++_n);const f1=mkRow({asin:F,prod:'CHECK ROW with sarah',date:dm(15),oid:'202-'+k6+'-0000001',acct:'Biz 01',exp:2,rcvd:0,resolution:jk()});
+        ok(_ocPullable().includes(f1),'his “delivered” answer waiting with Sarah can be brought over');
+        await ocBringBack(null);await ocBringBack(null);ok(_ocAsked(f1)&&_ocOrigin(f1)==='jack','and comes over as his own check, without going via Becki');
+        const f2=mkRow({asin:F,prod:'CHECK ROW cancelled',date:dm(15),oid:'202-'+k6+'-0000002',acct:'Biz 01',exp:2,rcvd:0,resolution:Object.assign(jk(),{rejectNote:'Amazon cancelled or refunded the order',meant:'cancelled'})});
+        ok(!_ocPullable().includes(f2),'a cancelled answer is not brought over');}
       /* 4 · the twin not delivered yet → this order waits on Amazon's date; Undo puts it back */
       const C='B0CHK67C'+(++_n),k3=kk(),eta=ukAddDays(todayISO(),7);
       const c1=mkRow({asin:C,sku:'Amuk_18.99_06106_0_Repl1_'+k3,prod:'CHECK ROW park',date:dm(25),oid:'203-'+k3+'-0000001',acct:'Biz 03 - WM',exp:4,rcvd:0,resolution:askJ()});
@@ -4330,7 +4342,7 @@ window.PrepChecks=(function(){
       const e1=mkRow({asin:E,prod:'CHECK ROW old',date:dm(12),oid:'202-'+k5+'-0000001',acct:'Biz 01',exp:1,rcvd:0,resolution:jk()});
       who('Sarah');await amzToBecki(e1.uuid);who('Becki');await ocAsk(e1.uuid);ok(_ocOrigin(e1)==='becki','her ask is hers');
       who('Jack');await ocAllDel(E);await ocSend(E);eq(e1.resolution.what,'amz-missing','she already looked: really missing goes straight to his claim, as before');
-    }finally{window._saveAsinChecks=keepSave;ASIN_CHECKS=keepA;try{closeSorted();}catch(e){}try{renderJack();}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+    }finally{window._ocPullable=keepPull;window._saveAsinChecks=keepSave;ASIN_CHECKS=keepA;try{closeSorted();}catch(e){}try{renderJack();}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
 
   /* 152 · b668: an old stuck order brings the orders placed alongside it; the never-delivered claim message */
@@ -4351,10 +4363,145 @@ window.PrepChecks=(function(){
       ok(has(same),'an order placed the same day as the 65-day-old stuck one is on the card');
       ok(has(before),'and one 10 days before it');ok(!has(far),'but not one 25 days before it');
       ok(P.orders.find(o=>o.oid===same.oid).old,'it is labelled older than 60 days');
+      /* "Sheet says too many": the stuck order now owes nothing → to Sarah to close, not cancelled */
+      s.exp=0;const P2=_ocPlan(A);eq(P2.rows.find(x=>x.r===s).route,'none','owing nothing after a quantity fix: route none, not cancelled');ok(P2.ready,'and the card is ready');s.exp=12;
+      goPage('jack');renderJack();await wait(120);
+      {const c=[...document.querySelectorAll('#jackWrap .ocCard')].find(x=>x.textContent.includes(A));ok(c&&/The sheet quantity is wrong/.test(c.textContent),'every Amazon order has “The sheet quantity is wrong…”, as on his single cards');}
+      /* b668: a gated claim already in Recovery Stock shows on his page and closes with one press — nothing deleted */
+      {const g=mkRow({prod:'CHECK ROW gated',oid:'203-'+k+'-0000009',exp:2,rcvd:2,status:'In Warehouse',issueType:'Gated'});
+        const gc={id:'chk-g-'+k,uuid:null,prepRowId:g.uuid,date:g.date,raisedAt:todayISO(),sup:'Amazon UK',oid:g.oid,prod:g.prod,sku:g.sku,asin:g.asin,issT:'Gated',exp:2,rec:0,dif:2,cost:75,claimValue:150,cst:'Open',owner:'Jack',log:[]};
+        const gi={id:'chk-rec-'+k,qty:2,source:'Gated Amazon stock',source_ref:g.oid,status:'here',archived:false,created_at:'2026-09-07T11:00:00Z'};
+        claims.push(gc);REC.push(gi);
+        try{ok(jackTodo().claimsQ.includes(gc),'already in Recovery Stock: it is on his page, not hidden');
+          await closeGatedInRec(gc.id);eq(gc.cst,'Resolved','one press closes the claim');ok(g.archived&&/Recovery Stock/.test(g.notes||''),'and files the row, with a note — nothing deleted');
+          ok(!jackTodo().claimsQ.includes(gc),'then it leaves his page');}
+        finally{const i=claims.indexOf(gc);if(i>=0)claims.splice(i,1);const j=REC.indexOf(gi);if(j>=0)REC.splice(j,1);}}
       /* the claim message on "Amazon say it was never delivered" */
       const c=mkRow({prod:'CHECK ROW claim',exp:6,rcvd:0,resolution:{state:'asked',kind:'check',what:'amz-claim',ask:'x',by:'Jack',at:iso()}});
       const m=_ocClaimMsg(c);ok(/never delivered/.test(m)&&!/shows? as delivered/.test(m),'a never-delivered claim says never delivered ('+m.slice(0,80)+')');
     }finally{window._saveAsinChecks=keepSave;ASIN_CHECKS=keepA;}
+  };
+
+  /* 153 · b669: Stock needed = the Planner's own figures, summed the way the cell says */
+  S['b669: Stock needed on Products is the Planner\'s want, against what you have']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const P=(LV3.__plData().az.rows||[]).filter(r=>r.want!=null&&r.ads>0&&r.landIso);ok(P.length>0,'the Planner has products to plan');
+    P.forEach(r=>{const N=LV3.__needOf(r.p);ok(N&&!N.none,r.p.name+': has a figure');
+      eq(N.need,N.toLand+Math.round(r.want),r.p.name+': needed = sells before a send lands + the cover it wants');
+      eq(N.have,N.amz+N.inb+N.build,r.p.name+': have = at Amazon + on the way + can build');
+      eq(N.short,N.need-N.have,r.p.name+': short = needed − have');
+      ok(N.amz===Math.max(0,Math.round(r.sell||0))&&N.inb===(r.inb||0),r.p.name+': the same Amazon and on-the-way figures the Planner uses');});
+    const off=(LV3.__plData().az.rows||[]).find(r=>r.state==='paused'||r.state==='nodata');
+    if(off){const N=LV3.__needOf(off.p);ok(N&&N.none,'a product the Planner does not plan says so, with no number');}
+  };
+
+  /* 154 · b670: "wrong SKU — yes" is checked against SellerFuse */
+  S['b670: Wrong SKU is checked against SellerFuse before it saves']=async()=>{
+    ok(typeof sfWrongSkuDoubt==='function','the check exists');
+    eq(sfWrongSkuDoubt({asin:'B000NOTREAL',sku:'NOPE'}),null,'a product with no other SKUs: says nothing');
+    /* the case that started it, while it is still in the data: the twin SKUs sent only their own 2 + 2 */
+    const p=rows.find(x=>x.oid==='171-5824393-5103563');
+    if(p&&SFRUN&&(SFRUN.shipments||[]).some(s=>s.id==='FBA15MNT2Y47')){const d=sfWrongSkuDoubt(p);
+      ok(d&&d.judged>=2&&d.spare===0,'Pro 360 171-5824393: its twin SKUs had nothing spare');}
+    /* the dropdown: Cancel leaves the row as it was, and nothing is saved */
+    const r=rows.find(x=>!x.archived&&x.asin&&x.wrongSku!=='Yes'&&(()=>{const d=sfWrongSkuDoubt(x);return d&&d.spare===0;})());
+    if(r){const was=r.wrongSku,note=r.vaNote,oc=window.confirm;let asked=0;
+      window.confirm=()=>{asked++;return false;};
+      try{await setTriage(r.uuid||r.id,'wrongSku','Yes');}finally{window.confirm=oc;}
+      eq(asked,1,'she is asked');eq(r.wrongSku,was,'Cancel: the row is unchanged');eq(r.vaNote,note,'Cancel: no note written');}
+  };
+
+  /* 155 · b670: Sarah can't wave a wrong SKU through — the overrides are Jack's */
+  S['b670: Wrong SKU and early shipments are hard stops for anyone but Jack']=async()=>{
+    ok(typeof canOverrideStock==='function'&&typeof sfShipBeforeOrder==='function','the checks exist');
+    const who=window.currentUserName;
+    try{
+      window.currentUserName='Sarah';ok(!canOverrideStock(),'Sarah cannot override');
+      const r=rows.find(x=>!x.archived&&x.asin&&x.wrongSku!=='Yes'&&(()=>{const d=sfWrongSkuDoubt(x);return d&&d.spare===0;})());
+      if(r){const was=r.wrongSku,oc=window.confirm;let asked=0;window.confirm=()=>{asked++;return true;};
+        try{await setTriage(r.uuid||r.id,'wrongSku','Yes');}finally{window.confirm=oc;}
+        eq(asked,0,'Sarah gets no OK box to click through');eq(r.wrongSku,was,'Sarah: the row is unchanged');}
+    }finally{window.currentUserName=who;}
+    ok(canOverrideStock()===/^jack/i.test(String(who||'')),'Jack can override');
+    /* a shipment that left before the order date */
+    let seg=null;rows.some(x=>(x.shipSegments||[]).some(s=>{if(s.shipId&&s.date){seg=s;return true;}return false;}));
+    if(seg){const d=String(seg.date).slice(0,10),dt=new Date(d+'T00:00:00');dt.setDate(dt.getDate()+10);
+      const after={date:String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')};
+      if(_sfOrderISO(after)>d)ok(!!sfShipBeforeOrder(after,seg.shipId),seg.shipId+' ('+d+') is before an order placed 10 days later');
+      const before={date:d.slice(8,10)+'/'+d.slice(5,7)};
+      ok(!sfShipBeforeOrder(before,seg.shipId),'the same day is fine');}
+    /* the case that started it: Sarah's note named FBA15M8T8MRG (28 Aug) for an order placed 7 Oct */
+    if(sfShipDate('FBA15M8T8MRG'))ok(!!sfShipBeforeOrder({date:'07/10'},'FBA15M8T8MRG'),'FBA15M8T8MRG left before 7 Oct');
+  };
+
+  /* 156 · b670: escalations reach Jack pinned to the top; the Q4 weeks show what each week added */
+  S['b670: an escalation is pinned to the top of Jack\'s page; weeks show what they added']=async()=>{
+    const e=mkRow({exp:2,rcvd:0,resolution:asked({escalation:{why:'test: the check disagrees',by:'Sarah',at:iso()}})});
+    const lw=mkRow({exp:2,rcvd:0,resolution:{state:'proposed',kind:'ops',what:'wrong-sku',looksWrong:{why:'only sent its own',by:'Sarah'},by:'Sarah',at:iso()}});
+    const plain=mkRow({exp:2,rcvd:0,resolution:asked({})});
+    ok(/the check disagrees/.test(_jkEscOf(e.uuid)),'an escalated question is an escalation');
+    ok(!!_jkEscOf(lw.uuid),'a close-off that looks wrong is an escalation');
+    eq(_jkEscOf(plain.uuid),'','an ordinary question is not');
+    ok(!!_jkEscOf('oc:'+String(e.asin||'').toUpperCase())===!!e.asin,'an order-check card holding an escalated row is an escalation');
+    const its=[{id:plain.uuid,n:1},{id:e.uuid,n:2,esc:true},{id:'x',n:3},{id:lw.uuid,n:4,esc:true}];
+    eq(_jkEscFirst(its).map(x=>x.n).join(','),'2,4,1,3','escalations first, the chosen order kept inside each group');
+    /* the weeks table: a row's own share, then the running total */
+    if(window.LV3&&LV3.go){try{LV3.go('q4');}catch(_){}await wait(300);
+      const c=document.querySelector('#page-lavarion .q4G td.q4Cmp');
+      if(c)ok(/^\+[\d.]+%|^—/.test(c.querySelector('b').textContent)&&/total/.test(c.textContent),'a week shows +N% and the running total');}
+  };
+
+  /* 157 · b671: first targets before newer ones, every target before anyone's +5%, the buy list per ASIN with cases */
+  S['b671: Q4 — oldest targets first, every target before the +5%, buy list per ASIN with cases and a full order list']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const Lr=q=>[{id:'l'+q,date:'2026-09-20',qty:q,rem:q,cost:1,arr:1,sup:'CHECK Supplier'}];
+    const comps=[{id:'c671-p',name:'CHECK Shared part',caseQty:24,layers:Lr(300)},{id:'c671-q',name:'CHECK Part Q',layers:Lr(1000)},{id:'c671-r',name:'CHECK Part R',layers:Lr(1000)}];
+    const B=(id,name,rec)=>({id,asin:'B0CHK671'+id.slice(-1).toUpperCase(),name,type:'bundle',recipe:rec.map(([c,q])=>({c,q})),layers:[]});
+    const prods=[B('p671-a','CHECK Old target',[['c671-p',1],['c671-q',1]]),B('p671-b','CHECK New target',[['c671-p',1],['c671-r',1]]),B('p671-c','CHECK No target',[['c671-p',1]])];
+    const calc=(t,ta,cs)=>LV3.q4Calc({products:prods,components:cs||comps,purchases:[],shipments:[],owed:{},over:5,targets:t,targetAt:ta,first:{},
+      protDays:p=>({'p671-a':5,'p671-b':1,'p671-c':2})[p.id],today:'2026-11-09'});
+    const left=R=>JSON.stringify(R.bundles.map(r=>[r.id,r.left]));
+    /* the GF Snack case: the newer target is closer to running out, but the first target gets the shared part first */
+    const R1=calc({'p671-a':200,'p671-b':150},{'p671-b':'2026-11-04'});
+    eq(left(R1),JSON.stringify([['p671-a',200],['p671-b',100],['p671-c',0]]),'first target first (200), the newer one gets the rest (100)');
+    eq(R1.bundles[1].setAt,'2026-11-04','the newer line carries the day it was set');
+    const R0=calc({'p671-a':200,'p671-b':150},{});
+    eq(left(R0),JSON.stringify([['p671-b',150],['p671-a',150],['p671-c',0]]),'with no dates the old order stands — closest to running out first');
+    /* every target before anyone's +5% (before: the first in the queue took 105 and the second got 95) */
+    const cs2=comps.map(c=>c.id==='c671-p'?Object.assign({},c,{layers:Lr(200)}):c);
+    const R2=calc({'p671-a':100,'p671-b':100},{},cs2);
+    eq(left(R2),JSON.stringify([['p671-b',100],['p671-a',100],['p671-c',0]]),'both reach their target — no +5% out of the other one’s target');
+    const cs3=comps.map(c=>c.id==='c671-p'?Object.assign({},c,{layers:Lr(220)}):c);
+    eq(left(calc({'p671-a':100,'p671-b':100},{},cs3)),JSON.stringify([['p671-b',105],['p671-a',105],['p671-c',10]]),'the spare then goes +5% each, in order, then to the rest');
+    /* per ASIN: each line's own shortfall, adding up to the one list */
+    eq(JSON.stringify(R1.shopBy.map(x=>[x.id,x.buy.map(b=>[b.id,b.qty,b.cq])])),JSON.stringify([['p671-a',[]],['p671-b',[['c671-p',50,24]]]]),
+      'the first target needs nothing; the newer one needs 50 of the shared part (cases of 24)');
+    const sum={};R1.shopBy.forEach(x=>x.buy.forEach(b=>{sum[b.id]=(sum[b.id]||0)+b.qty;}));
+    eq(JSON.stringify(sum),JSON.stringify(Object.fromEntries(R1.shopAll.buy.map(b=>[b.id,b.qty]))),'per ASIN adds up to the one shopping list');
+    const S=LV3.q4BuyShape(R1);
+    eq(JSON.stringify(S.groups.map(g=>[g.label,g.lines.length])),JSON.stringify([['Your first targets',1],['Targets set 4 Nov',1]]),'grouped: first targets, then the day the newer one was set');
+    const M=LV3.q4StaffMsg(R1);
+    ok(/B0CHK671B · CHECK New target/.test(M)&&/CHECK Shared part: 50 = 3 cases of 24/.test(M),'the message: ASIN, what to buy, cases rounded up');
+    ok(/CHECK Shared part: need 50 → buy 3 cases of 24 = 72 → 22 left over/.test(M),'the full order list: full cases only, and what is left over');
+    ok(/FULL ORDER LIST/.test(M)&&/CHECK SUPPLIER/.test(M),'…and the full order list by supplier');
+    ok(/Nothing to buy: B0CHK671A · CHECK Old target/.test(M),'…and says which need nothing');
+    /* the live data: every line with a target before every one without; per ASIN adds up to the one list */
+    const live=LV3.q4Calc(),ls={};(live.shopBy||[]).forEach(x=>x.buy.forEach(b=>{ls[b.id]=(ls[b.id]||0)+b.qty;}));
+    ok(live.bundles.every((r,i,a)=>i===0||!(r.priority&&!a[i-1].priority)),'live: targets before the rest');
+    eq(JSON.stringify(Object.keys(ls).sort().map(k=>[k,ls[k]])),JSON.stringify((live.shopAll.buy||[]).map(b=>[b.id,b.qty]).sort((a,b)=>a[0]<b[0]?-1:1)),'live: per ASIN adds up to the one list');
+    /* the page: per ASIN cards, the toggle, the full order list */
+    const was=(document.querySelector('.page.active')||{}).id||'';let keep=null;try{keep=localStorage.getItem('lv3.q4.buyView');}catch(e){}
+    try{
+      goPage('lavarion');LV3.go('q4');await wait(200);
+      const pg=document.getElementById('page-lavarion'),sh=(live.shopBy||[]).filter(x=>x.buy.length);
+      eq(pg.querySelectorAll('.q4Buy .q4BuyC').length,(LV3.q4BuyView()==='all'?q4BuyShapeN(live):sh.length),'one card per short ASIN (or per supplier)');
+      LV3.q4BuyView('all');await wait(120);
+      if(sh.length){ok(pg.querySelector('.q4Buy .q4Seg button.on').textContent==='Full order list','the toggle shows the full order list');
+        eq(pg.querySelectorAll('.q4Buy .q4BuyC li').length,LV3.q4BuyShape(live).items.length,'one line per item, every ASIN added up');}
+      LV3.q4BuyView('asin');await wait(120);
+      if(sh.length)eq(pg.querySelectorAll('.q4Buy .q4BuyC').length,sh.length,'back to one card per short ASIN');
+    }finally{try{if(keep===null)localStorage.removeItem('lv3.q4.buyView');else localStorage.setItem('lv3.q4.buyView',keep);}catch(e){}if(was)goPage(was.replace(/^page-/,''));}
+    function q4BuyShapeN(R){return LV3.q4BuyShape(R).sups.length;}
   };
 
   async function run(only){

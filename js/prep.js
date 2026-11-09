@@ -229,7 +229,7 @@ function renderPrepRows(data){
           if(_ocAsked(r))return `<div class="qryTag jk" title="${esc((r.resolution.ordChk||{}).by||'Becki')} couldn’t find it on the shelves — Jack is checking every order of this product on the accounts for a cancellation. Nothing to do until he answers; if it turns up, book it in as normal and it clears.">With Jack &middot; checking every order</div>
             <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk" onclick="ocUndo('${_ocJs(_asinKey(r.asin))}')" title="Pressed by mistake — it comes back here with Not here, and off Jack’s list">Undo</button></div>`;
           if(_isAmzDel(r)&&r.resolution.amzDelivered.how==='order-check'){const _nd=parseInt(r.resolution.amzDelivered.need)||_owedUnits(r);   /* b667 */
-            return `<div class="qryTag amz" title="Jack checked every order of this product on the accounts — every other order adds up, so these are worth looking for. Found them? Book them in — it clears itself. Not here? Press the button: it goes straight to Jack to claim, with his check as the evidence.">Becki — Jack checked every order: look for ${fmt(_nd)}</div>
+            return `<div class="qryTag amz" title="Jack checked every order of this product on the accounts — every other order adds up, so these are worth looking for. Found them? Book them in — it clears itself. Not here? Press the button: it goes straight to Jack to claim, with his check as the evidence."><b>Jack checked every order of this product (last 60 days) — Amazon delivered them all.</b><br>So it’s here somewhere, or Amazon never really sent it. <b>Look for ${fmt(_nd)}.</b></div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk qryNot" onclick="amzNotHere('${r.uuid||r.id}')" title="Checked the shelves, back stock and anywhere else — not here. It goes straight to Jack to claim.">Not here</button></div>`;}
           if(_isAmzDel(r))return `<div class="qryTag amz" title="Amazon say this was delivered. Found it on the shelves? Book it in and send it on the next shipment — the flag clears itself, nothing to press. Not here? Press the button and it goes to Jack to raise with Amazon.">Becki — Amazon say delivered, check the shelves</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:4px;"><button class="qryAsk qryNot" onclick="amzNotHere('${r.uuid||r.id}')" title="Checked the shelves, back stock and anywhere else — it is not here. It goes straight to Jack to raise with Amazon.">Not here</button>${_ocCan(r)?`<button class="qryAsk qryOc" onclick="ocAsk('${r.uuid||r.id}')" title="Not on the shelves — before it is claimed, Jack checks every order of this product on the accounts for a cancellation. Every order of it you are looking for goes with it.">Ask Jack to check all orders</button>`:''}</div>`;
@@ -539,6 +539,11 @@ const _ocCache={};
 function _ocCacheKey(A,stuck){return A+'|'+(stuck.map(s=>(((s.resolution||{}).ordChk)||{}).at||'').sort()[0]||'');}
 function _ocAnsAll(A,stuck){
   const m={},take=(k,v)=>{if(v&&(!m[k]||String(v.at||'')>String(m[k].at||'')))m[k]=v;};
+  /* b668: his answers from the last check of this product he SENT — remembered, so nothing is asked twice; anything
+     he answers now is newer and wins */
+  stuck.forEach(x=>{const q=x.resolution||{},H=[].concat(q.ordChkHist||[]).filter(h=>h&&h.done&&Array.isArray(h.done.answers));
+    const last=H.sort((a,b)=>String(a.done.at).localeCompare(String(b.done.at))).pop();
+    if(last)last.done.answers.forEach(a=>{if(['d','c','p','n'].includes(a.a))take(a.key,{a:a.a,k:a.k||undefined,eta:a.eta||undefined,by:last.done.by||'Jack',at:last.done.at,prev:true});});});
   stuck.forEach(x=>{Object.entries((((x.resolution||{}).ordChk)||{}).ans||{}).forEach(([k,v])=>take(k,v));});
   Object.entries(_ocCache[_ocCacheKey(A,stuck)]||{}).forEach(([k,v])=>take(k,v));
   return m;
@@ -570,7 +575,7 @@ function _ocPlan(A){
   const pool=orders.filter(o=>o.over>0);
   rws.forEach(x=>{let need=x.short-x.moved;
     for(const o of pool){if(need<=0)break;const u=Math.min(need,o.over);if(u>0){x.srcs.push({o,n:u,inner:false});x.moved+=u;o.over-=u;need-=u;}}
-    x.miss=x.short-x.moved;x.route=!x.short?'cancelled':x.miss>0?'missing':x.srcs.some(s=>!s.inner&&s.o.notYet)?'park':'sarah';});
+    x.miss=x.short-x.moved;x.route=!x.owed?'none':!x.short?'cancelled':x.miss>0?'missing':x.srcs.some(s=>!s.inner&&s.o.notYet)?'park':'sarah';});
   const S=rws.reduce((t,x)=>t+x.short,0),moved=rws.reduce((t,x)=>t+x.moved,0),extra=pool.reduce((t,o)=>t+o.over,0);
   const amzN=orders.filter(o=>o.amz).length,all=amzN>0&&answered===amzN;
   /* b667: squared once nothing is really missing — the orders not ticked yet can't change that. Something really missing
@@ -636,7 +641,16 @@ async function ocStartFromJack(rid){
   return true;
 }
 /* every row waiting on Becki's shelf check that can have an order check */
-function _ocPullable(){return _amzDelRows().filter(x=>_ocCan(x));}
+function _ocPullable(){
+  /* b668: also his "delivered" answers still with Sarah for "Send to Becki" (given before b667 went live) */
+  const wait=rows.filter(r=>{if(!r||r.archived)return false;const q=r.resolution||{};
+    if(q.state!=='rejected'||q.what!=='jack-check'||q.amzDelivered||q.restGone||q.dupOf||q.bookedAs||q.jackNote)return false;
+    if(!(typeof _ansMeans==='function'&&_ansMeans(q).arrivedYes))return false;
+    if(!(typeof _amazonRow==='function'&&_amazonRow(r))||!_asinKey(r.asin)||!(_owedUnits(r)>0)||_ocAsked(r))return false;
+    if(typeof _parkedOnDate==='function'&&_parkedOnDate(r))return false;
+    return !(typeof _leftUnits==='function'&&(parseInt(r.rcvd)||0)>=(parseInt(r.exp)||0));});
+  const done=x=>{const q=x.resolution||{};return (q.amzDelivered||{}).how==='order-check'||!!((q.ordChk||{}).done);};
+  return [...new Set(_amzDelRows().filter(x=>_ocCan(x)&&!done(x)).concat(wait.filter(x=>!done(x))))];}
 let _ocPullArm=0;
 async function ocBringBack(btn){
   if(!(typeof _isJack==='function'&&_isJack())){toast('Only Jack brings these over','er');return;}
@@ -803,6 +817,14 @@ async function ocSend(A){
             VA_ACTIONS.filter(a=>!a.done&&a.rid===(sr.uuid||sr.id)&&a.task===task).forEach(a=>{if(!made.includes(a.id))made.push(a.id);});}
           if(made.length){r.resolution.ordChk.done.jobs=made;r._dirty=true;try{await _mustSave(r);}catch(e){}}}
         tally[toBecki?'becki':'missing']++;continue;
+      }
+      /* b668: the sheet quantity was fixed and nothing is owed — Sarah closes it, no claim, no shelf check */
+      if(x.route==='none'){
+        r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${who} ${dd}: checked every order — the sheet quantity was wrong and is fixed; nothing missing`;
+        r.vaNoteBy=who;r.vaNoteAt=now;
+        const okN=await jackAnswered(id,`${head} Nothing is missing on this one: the sheet quantity was wrong and has been corrected. Close it.${extraTxt}`,{meant:'qty-fixed'});
+        if(okN===false){back();failed=true;break;}
+        tally.none=(tally.none||0)+1;continue;
       }
       /* b667: the twin isn't delivered yet — this one's units came under it, so this order waits for the twin's parcel */
       if(x.route==='park'){
@@ -1270,11 +1292,17 @@ function wentOutUnder(rid){
           const _cs=_cleanShipId(id);id=_cs.id;
           if(!id){toast('Type the shipment ID','er');return;}
           if(!_cs.ok){toast('That isn\u2019t an FBA shipment ID — it looks like FBA15 and 7 letters/numbers','er');return;}
+          /* b670: a shipment that left before the order was placed can't have carried it */
+          const _early=typeof sfShipBeforeOrder==='function'?sfShipBeforeOrder(r,id):null;
+          if(_early){toast(`${id} went out on ${_dmy(_early.ship)} — before this order was placed (${_dmy(_early.order)}). It can\u2019t have carried these.`,'er');return;}
           _wentOutGo(r,sku,id,left);
         },guess?guess.id:'',guess?'Checked: that shipment went out after these units landed. Change it if they rode a different one.':'Type the shipment ID — it is recorded against this row so the numbers add up.');
       };
       const _sp=(typeof sfSkuSpare==='function')?sfSkuSpare(sku,r):null;
       if(_sp!==null&&_sp<left){
+        /* b670: only Jack records it anyway */
+        if(typeof canOverrideStock==='function'&&!canOverrideStock()){
+          askJackAsk(r.uuid||r.id,'free',`Said these went out under ${sku}, but ${sku} only sent what its own orders had — nothing extra went out under it, so these can’t have gone out as it.`);return;}
         askText('That SKU has no spare units',
           `${sku} only sent what its own orders had${_sp?` (${fmt(_sp)} spare, ${fmt(left)} needed)`:''}. Pick another SKU, or give a reason to record it anyway — the reason goes in the history.`,
           'why it is still right…','Record anyway',why=>{

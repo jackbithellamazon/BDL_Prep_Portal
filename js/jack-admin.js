@@ -91,6 +91,21 @@ async function escalateMoney(rid){
    the same row appeared twice and the two drifted apart.
    Every live item belongs to exactly one of them. This is his half. */
 function paintJackBadge(){/* badge retired — Jack, 30 Aug: "get rid of the 4" */}
+/* b670: an escalation is a row where we believe something is wrong — Sarah/Becki escalated past a refused check, or a
+   close-off that the check says can't be right (looksWrong). Returns the reason, or ''. */
+function _jkEscOf(id){
+  /* an order-check card (one per product) is an escalation when any of its rows is */
+  if(/^oc:/.test(String(id||''))){const A=String(id).slice(3).toUpperCase();
+    const x=rows.find(r=>!r.archived&&String(r.asin||'').toUpperCase()===A&&((r.resolution||{}).escalation&&(r.resolution||{}).state==='asked'||(r.resolution||{}).looksWrong&&(r.resolution||{}).state==='proposed'));
+    return x?_jkEscOf(x.uuid||x.id):'';}
+  const r=typeof _rowById==='function'?_rowById(id):null;if(!r||r.archived)return '';
+  const q=r.resolution||{};
+  if(q.escalation&&q.state==='asked')return q.escalation.why||'Escalated';
+  if(q.looksWrong&&q.state==='proposed')return `${q.looksWrong.by||'Sarah'} wanted to close it, but the check says it can’t be right`;
+  return '';
+}
+/* escalations first, keeping the chosen sort inside each group */
+function _jkEscFirst(items){const e=items.filter(it=>it.esc),o=items.filter(it=>!it.esc);items.length=0;items.push(...e,...o);return items;}
 function renderJack(){
   const w=document.getElementById('jackWrap');if(!w)return;
   /* Same gate as every other page: skip while unseen, note the debt, repaint on
@@ -207,6 +222,7 @@ function renderJack(){
         <button class="csAct warn" onclick="rejectResolution('${r.uuid||r.id}')">Send back</button>
         <button class="csAct plain" onclick="backToSarah('${r.uuid||r.id}')" title="No decision needed from me">Not my call</button>`});});
   (claimsQ||[]).forEach(c=>{const gated=(c.issT||'')==='Gated';const sj=c.sentToJack||{};
+    const _inR=gated&&typeof _gatedInRec==='function'?_gatedInRec(c):null;   /* b668: already in Recovery Stock — close it */
     const _lastSup=(c.log||[]).slice().reverse().find(l=>/supplier|replied|chased|case/i.test(String(l.msg||'')));
     const _cAsk=sj.at?(sj.ask?`<b>${esc(sj.by||'Sarah')} is asking:</b> ${esc(sj.ask)}`
       :`<b>${esc(sj.by||'Sarah')} sent it without saying what she needs</b>${_lastSup?` — her last step: ${esc(String(_lastSup.msg).replace(/\s*—\s*\w+$/,''))} (${esc(_lastSup.t||'')})`:''}. The newer Send to Jack asks her.`):'';
@@ -217,11 +233,11 @@ function renderJack(){
       na:c.nextAction||'',
       /* a gated claim he took off Sarah himself is his, not something she is waiting on */
       by:sj.at?(sj.by||c.raisedBy||'someone'):(gated?'Yours — gated':(c.raisedBy||'someone')),at:sj.at||c.raisedAt,wait:days(sj.at||c.raisedAt),noNag:!sj.at,
-      type:gated?['GATED','#c084fc','Cannot be sold — eBay it or ungate it']:['CLAIM','#fbbf24','A claim she sent over'],
+      type:_inR?['GATED · IN RECOVERY','#c084fc','Its units are already in Recovery Stock — the claim was never closed']:gated?['GATED','#c084fc','Cannot be sold — eBay it or ungate it']:['CLAIM','#fbbf24','A claim she sent over'],
       whyHtml:_cAsk,
       why:esc((c.issT||'Issue')+' · '+(c.dif||0)+' unit'+((c.dif||0)===1?'':'s')),note:c.notes||'',
       value:c.claimValue||0,left:null,
-      acts:(gated?`<button class="csAct go" onclick="recFromClaimModal('${c.id}')" title="Fill in what it is, then it lands in Recovery Stock under Needs Sorting">eBay it &rarr; Recovery</button>
+      acts:_inR?`<button class="csAct good" onclick="closeGatedInRec('${c.id}')" title="Closes the claim the normal way and files the Prep Sheet row — nothing is deleted; Show Archived keeps it, the claim stays on the Claims page as Resolved">Close it &mdash; the ${fmt(parseInt(_inR.qty)||c.dif||0)} ${(parseInt(_inR.qty)||0)===1?'is':'are'} in Recovery Stock</button><button class="csAct good" onclick="claimBackFromJack('${c.id}')">Answer &amp; hand back</button>`:(gated?`<button class="csAct go" onclick="recFromClaimModal('${c.id}')" title="Fill in what it is, then it lands in Recovery Stock under Needs Sorting">eBay it &rarr; Recovery</button>
           <button class="csAct go" onclick="setGatedDecision('${c.id}','Ungate')">Ungate</button>
           <button class="csAct plain" onclick="takeGatedMine('${c.id}')" title="Nobody but you can act on a gated item — this takes it off Sarah's Admin and off the Prep Sheet and leaves it here. Undo puts it back.">Off their lists</button>`:'')+
         `<button class="csAct good" onclick="claimBackFromJack('${c.id}')">Answer &amp; hand back</button>`
@@ -292,13 +308,18 @@ function renderJack(){
         return (order[a.kind]-order[b.kind])||(b.wait-a.wait);
     }
   });
+  /* b670 (Jack: "if we think it's wrong it comes to me as an escalation — and priority"): pinned top, whatever the sort */
+  items.forEach(it=>{const e=_jkEscOf(it.id);if(!e)return;it.esc=true;
+    it.type=['ESCALATION','#f87171','We think something is wrong — the check disagrees. Top priority.'];
+    it.whyHtml=`<b style="color:#f87171">Escalation:</b> ${esc(e)}`+(it.whyHtml?`<div>${it.whyHtml}</div>`:'');});
+  _jkEscFirst(items);
   /* Same toolbar language as Sarah's page — search, chips with counts. */
-  const _jkCounts={all:items.length};
+  const _jkCounts={all:items.length,esc:items.filter(it=>it.esc).length};
   items.forEach(it=>{_jkCounts[it.kind]=(_jkCounts[it.kind]||0)+1;});
   let shown=items;
   const _q=(_jkQ||'').toLowerCase();
   if(_q)shown=shown.filter(it=>[it.prod,it.sup,it.oid,it.sku,it.by,it.note,it.why].filter(Boolean).join(' ').toLowerCase().includes(_q));
-  if(_jkKind!=='all')shown=shown.filter(it=>it.kind===_jkKind);
+  if(_jkKind!=='all')shown=shown.filter(it=>_jkKind==='esc'?it.esc:it.kind===_jkKind);
   if(_jkSup!=='all')shown=shown.filter(it=>it.kind==='ordchk'?it.P.orders.some(o=>o.sup===_jkSup):String(it.sup||'')===_jkSup);   /* b662: a card spans several */
   if(_jkAcct!=='all')shown=shown.filter(it=>it.kind==='ordchk'?it.P.orders.some(o=>o.acct===_jkAcct):String(it.acct||'')===_jkAcct);
   const owedTotal=(owed||[]).reduce((a,o)=>a+(o.value||0),0);
@@ -470,6 +491,7 @@ function renderJack(){
       <div style="display:flex;align-items:baseline;gap:12px;">
         <h2 style="margin:0;">Jack's Admin</h2>
         <p style="margin:0;">${needsAll.length?`${needsAll.length} thing${needsAll.length===1?'':'s'} need your answer — oldest first, work top to bottom.`:'Nothing needs your answer. Nobody is blocked on you.'}</p>
+        ${_jkCounts.esc?`<span style="font-size:12px;font-weight:800;color:#f87171;white-space:nowrap;cursor:pointer;" onclick="_jkKind='esc';renderJack();" title="We think something is wrong — the check disagrees. They are pinned to the top.">&#9888; ${fmt(_jkCounts.esc)} escalation${_jkCounts.esc===1?'':'s'} at the top</span>`:''}
         ${window._jkSince&&(window._jkSince.res||window._jkSince.newIn)?`<span style="font-size:11px;font-weight:700;color:#93c5fd;white-space:nowrap;">Since you last looked: <b style="color:#4ade80;">${fmt(window._jkSince.res)}</b> resolved · <b>${fmt(window._jkSince.newIn)}</b> new</span>`:''}
         <span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap;" title="The last 7 days at a glance">This week: <b style="color:#4ade80;">${fmt(_res7.length)}</b> resolved · <b style="color:#4ade80;">${fmtGBP2(_rec7)}</b> recovered · <b style="color:#93c5fd;">${fmt(_new7)}</b> new</span>
       </div>
@@ -482,7 +504,7 @@ function renderJack(){
         ${kpi(fmt(decN),'decisions',(decN?'hot':'ok')+(_jkKind==='dec'?' on':''),'dec')}
       </div>
       ${(()=>{const n=(typeof _ocPullable==='function')?_ocPullable().length:0;if(!n)return '';   /* b667 */
-        return `<div class="ocPull"><span><b>${fmt(n)}</b> order${n===1?'':'s'} waiting on Becki’s shelf check &mdash; bring ${n===1?'it':'them'} to you first and check every order, so she only looks for what is really missing.</span>
+        return `<div class="ocPull"><span><b>${fmt(n)}</b> order${n===1?'':'s'} Amazon say ${n===1?'was':'were'} delivered but ${n===1?'isn’t':'aren’t'} booked in (on Becki’s shelf check, or with Sarah to send there) &mdash; bring ${n===1?'it':'them'} to you first and check every order, so she only looks for what is really missing.</span>
           <button class="csAct go" onclick="ocBringBack(this)" title="One card per product on your list. Press twice — it asks first.">Bring ${n===1?'it':'them all'} to me</button></div>`;})()}
       <details class="jkMore"><summary>Sarah’s page &amp; the pipeline — <b>${fmt(_sq.length)}</b> on her queue · <b style="color:${_ps.quiet?'#ef4444':'#4ade80'}">${fmt(_ps.quiet)}</b> gone quiet · <b>${fmt(_ps.parked)}</b> parked · <b style="color:#c084fc">${fmt(_gated)}</b> gated <span class="jkMoreHint">open ▾</span></summary>
       <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:stretch;padding-top:8px;">
@@ -540,7 +562,7 @@ function renderJack(){
           .map(([k,l])=>`<option value="${k}" ${_jkSort===k?'selected':''}>${l}</option>`).join('')}
       </select>
       <div class="admChips">
-        ${[['all','All'],['ordchk','Order checks'],['check','Checks'],['dec','Decisions'],['refund','Refunds to raise'],['claim','Claims'],['lav','Shortages'],['fix','Qty fixes']]
+        ${[['all','All'],['esc','Escalations'],['ordchk','Order checks'],['check','Checks'],['dec','Decisions'],['refund','Refunds to raise'],['claim','Claims'],['lav','Shortages'],['fix','Qty fixes']]
           .filter(([k])=>k==='all'||_jkCounts[k])
           .map(([k,l])=>`<button class="admChip${_jkKind===k?' on':''}" onclick="_jkKind='${k}';renderJack();">${l} <b>${_jkCounts[k]||0}</b></button>`).join('')}
       </div>
@@ -633,7 +655,9 @@ function _ocCardHtml(it,x){
     const ansHtml=!o.amz
       ?`<span class="ocDim" title="Not an Amazon order — you can’t see it on the accounts. What the warehouse booked in counts as arrived; if that is wrong it is Sarah’s road.">Supplier order &mdash; counted as booked in</span>`
       :(P.squared&&!a)?`<span class="ocDim ocSq">Not needed &mdash; it&rsquo;s squared</span> ${chip('d','tick it anyway','good','Answer it anyway — it doesn’t change the result')}`
-      :`${chip('d','Delivered','good',`Amazon show ${o.want===1?'it':'all '+fmt(o.want)} delivered`)}${chip('c','Cancelled','warn','Amazon cancelled or refunded the whole order')}${chip('n','Not delivered yet','plain','Amazon say it is still coming — put their date on it')}${a==='n'?`<input type="date" class="ocEta" value="${esc(String((o.ans&&o.ans.eta)||''))}" min="2024-01-01" max="2030-12-31" title="Amazon’s delivery date" onchange="ocEta('${q(A)}','${q(o.key)}',this.value)">`:''}${o.want>1?`<label class="ocPart${a==='p'?' on':''}" title="Amazon cancelled some of the ${fmt(o.want)} still expected${o.cxSheet?` — on top of the ${fmt(o.cxSheet)} the sheet already has cancelled`:''}. Type how many.">Part cancelled <input type="number" min="1" max="${o.want-1}" step="1" value="${a==='p'?esc(String(o.ans.k||'')):''}" placeholder="how many" onchange="ocAns('${q(A)}','${q(o.key)}','p',this.value)"></label>`:''}`;
+      :`${chip('d','Delivered','good',`Amazon show ${o.want===1?'it':'all '+fmt(o.want)} delivered`)}${chip('c','Cancelled','warn','Amazon cancelled or refunded the whole order')}${chip('n','Not delivered yet','plain','Amazon say it is still coming — put their date on it')}${(()=>{const qr=o.stuck[0]||o.rows[0];if(!qr)return '';const _qi=q(String(qr.uuid||qr.id));   /* the same two as his single CHECK card */
+  return (o.booked>0&&o.booked<o.want?`<button class="ocChip" style="border-color:rgba(251,191,36,.5);color:#fcd34d;" onclick="openQtyFix('${_qi}',{to:${o.booked},why:'Jack checked the account — only ${o.booked} ordered'})" title="The account shows only ${fmt(o.booked)} ordered — the sheet says ${fmt(o.want)}. Corrects it; Sarah gets the Purchase Sheet job.">Only ${fmt(o.booked)} ${o.booked===1?'was':'were'} ordered &mdash; the sheet is wrong</button>`:'')
+    +`<button class="ocChip" style="border-color:rgba(96,165,250,.5);color:#93c5fd;" onclick="openQtyFix('${_qi}',{why:'Jack checked the account — fewer were ordered'})" title="The Purchase Sheet quantity itself is wrong — correct it here. Sarah gets the Purchase Sheet job; the card adds it up again.">The sheet quantity is wrong&hellip;</button>`;})()}${a==='n'?`<input type="date" class="ocEta" value="${esc(String((o.ans&&o.ans.eta)||''))}" min="2024-01-01" max="2030-12-31" title="Amazon’s delivery date" onchange="ocEta('${q(A)}','${q(o.key)}',this.value)">`:''}${o.want>1?`<label class="ocPart${a==='p'?' on':''}" title="Amazon cancelled some of the ${fmt(o.want)} still expected${o.cxSheet?` — on top of the ${fmt(o.cxSheet)} the sheet already has cancelled`:''}. Type how many.">Part cancelled <input type="number" min="1" max="${o.want-1}" step="1" value="${a==='p'?esc(String(o.ans.k||'')):''}" placeholder="how many" onchange="ocAns('${q(A)}','${q(o.key)}','p',this.value)"></label>`:''}`;
     return `<tr class="${top?'ocGrp':''}${o.stuck.length?' ocStuck':''}${a?' ocDone':''}${o.amz?'':' ocSup'}">
       <td class="ocAcct">${top?esc(o.acct||'—'):''}</td>
       <td class="ocMkt">${top?esc(o.sup||'—'):''}</td>
@@ -657,6 +681,7 @@ function _ocCardHtml(it,x){
     if(mJ)V.push(`<div class="ocV go">${fmt(mJ)} not missing &mdash; booked ${srcLine(mR)}. Sarah gets the job to move ${mJ===1?'it':'them'}; you claim only what is really missing</div>`);
     if(P.M)V.push(_jo?`<div class="ocV bad">${fmt(P.M)} really missing &mdash; Becki checks the shelves for ${fmt(P.M)}; if not there, it comes back to you to claim</div>`
       :`<div class="ocV bad">${fmt(P.M)} really missing &mdash; onto your list to raise with Amazon</div>`);
+    {const nR=P.rows.filter(r=>r.route==='none');if(nR.length)V.push(`<div class="ocV go">${fmt(nR.length)} order${nR.length===1?'':'s'} owing nothing now the sheet quantity is fixed &mdash; to Sarah to close</div>`);}
     if(P.squared)V.push(`<div class="ocV dim">Squared after ${fmt(P.answered)} of ${fmt(P.amzN)} &mdash; the rest don&rsquo;t need ticking</div>`);
     if(cJ)V.push(`<div class="ocV warn">${fmt(cJ)} cancelled by Amazon on ${mR.length===1?'that order':'those orders'} &mdash; closed with the claim</div>`);
     if(P.extra)V.push(`<div class="ocV warn">${fmt(P.extra)} more booked in than delivered &mdash; the sheet is wrong; it goes to Sarah with the rest</div>`);
@@ -674,6 +699,8 @@ function _ocCardHtml(it,x){
       <span class="jkBy"><b>${esc(it.by)}</b> &middot; ${it.wait===0?'today':it.wait+'d ago'}</span>
     </div>
     <div class="ocAsk">${_jo?`Amazon say delivered but ${fmt(owe)} ${owe===1?'isn’t':'aren’t'} booked in${nS>1?` (${fmt(nS)} orders)`:''} &mdash; before anyone searches the shelves, has any order of this product been cancelled, or is one still coming? Likely twins are at the top. Every order of it from the last 60 days`:`<b>${esc(it.by)}</b> can’t find ${fmt(owe)} on the shelves${nS>1?` (${fmt(nS)} orders)`:''} &mdash; has any order of this product been cancelled? Every order of it from the last 60 days`}${P.orders.some(o=>o.old)?', plus the stuck one older than that':''}.</div>
+    ${(()=>{const pv=P.orders.map(o=>o.ans).filter(a=>a&&a.prev);if(!pv.length)return '';const w=pv.map(a=>a.at).sort().pop();   /* b668 */
+      return `<div class="ocV go">Your answers from ${esc(_dmy(String(w).slice(0,10)))} are ticked for you &mdash; you checked this product before. Check them and press Send.</div>`;})()}
     ${line}
     ${sf?`<div class="ocSf">${sf}</div>`:''}
     <div class="ocBar">
@@ -836,6 +863,7 @@ async function jackAcctFix(rid,acct,note){
    in the approve/reject queue. It rides in `resolution`, which already
    round-trips to the database, so there is no migration to run. */
 let _askRid=null;
+let _askEsc='';   /* b670: the check's reason when this is an escalation */
 /* Jack, 9 Sep: "don't need the required if the tick says what she needs from
    me — add other where she can freehand write the note, get rid of 3." The
    tick IS the message on the three named reasons; the note is only compulsory
@@ -848,9 +876,9 @@ const ASK_REASONS=[
 ];
 const ASK_FREE='Something else — I’ll explain below';
 function askShut(){const el=document.getElementById('askModal');if(el)el.style.display='none';_askRid=null;}
-function askJackAsk(rid,pick){
+function askJackAsk(rid,pick,escWhy){
   const r=_rowById(rid);if(!r){toast('Row not found','er');return;}
-  _askRid=rid;
+  _askRid=rid;_askEsc=String(escWhy||'');if(_askEsc)pick='free';
   let el=document.getElementById('askModal');
   if(!el){
     el=document.createElement('div');el.id='askModal';el.className='overlay';
@@ -858,7 +886,8 @@ function askJackAsk(rid,pick){
     el.addEventListener('click',e=>{if(e.target===el)askShut();});
   }
   el.innerHTML=`<div class="modal srtCfm">
-    <div class="srtCfmTtl">Send this to Jack</div>
+    <div class="srtCfmTtl">${_askEsc?'Escalate to Jack — we think something is wrong':'Send this to Jack'}</div>
+    ${_askEsc?`<div class="srtNeed" style="margin:0 0 10px;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1);"><b style="color:#f87171;">ESCALATION.</b> ${esc(_askEsc)} It goes to the top of Jack&rsquo;s page &mdash; say what you found and why you think it&rsquo;s still right.</div>`:''}
     <div class="srtCfmSub">${esc(r.prod||r.sku||'')} · ${r.oid?oidHtml(r.oid,r.sup,r.acct):'no order id'}${r.sup?' · '+esc(r.sup):''}${r.acct?' · '+esc(r.acct):''}</div>
     ${!_amazonRow(r)?`<div class="srtNeed" style="margin:0 0 10px;"><b>Not an Amazon order.</b> A refund from ${esc(r.sup||'this supplier')} is yours to see through: if they have promised it, wait 48 hours, check the emails, then close it as <b>Refund being processed — done</b> or chase again. Only send it to Jack if you need something only he can do.</div>`:''}
     <div class="srtCfmLab">What is it about?</div>
@@ -875,7 +904,7 @@ function askJackAsk(rid,pick){
       <li>Nothing is closed and nothing is deleted</li></ul></div>
     <div class="srtCfmFoot">
       <button class="srtGhost" onclick="askShut()">Cancel</button>
-      <button class="srtGo" id="askGo" onclick="askSend()">Send to Jack</button>
+      <button class="srtGo" id="askGo" onclick="askSend()">${_askEsc?'Escalate to Jack':'Send to Jack'}</button>
     </div></div>`;
   el.style.display='flex';
   if(pick==='free'){const fr=[...el.querySelectorAll('input[name="askWhy"]')].find(x=>x.value===ASK_FREE);if(fr)fr.checked=true;}
@@ -914,7 +943,9 @@ async function askSend(){
     what:'Sent to Jack — '+why}]);
   r.resolution={notDup:(r.resolution&&r.resolution.notDup)||undefined,state:'asked',kind:'check',what:'jack-check',ask:why,note,
     chase:_riding||undefined,query:(r.resolution&&r.resolution.query)||undefined,
+    escalation:_askEsc?{why:_askEsc,by:_who(),at:new Date().toISOString()}:undefined,   /* b670 */
     by:_who(),at:new Date().toISOString()};
+  const _wasEsc=!!_askEsc;_askEsc='';
   /* Jack, 8 Sep: this line used to land in PACKING NOTES — Becki's column —
      which is where the twelve order references and "refund issued in gift
      card" came from. It is Sarah's finding, so it is a VA note. */
@@ -930,7 +961,7 @@ async function askSend(){
   renderAdmin();                 // it leaves her queue immediately
   try{
     await saveRow(r);
-    toast('✓ Sent to Jack — the row is grey at the bottom of your list until he answers');
+    toast(_wasEsc?'✓ Escalated to Jack — it is at the top of his page':'✓ Sent to Jack — the row is grey at the bottom of your list until he answers');
     logAudit('Asked Jack to check',`${r.sku||r.asin||''} — ${why}`);
     fireWebhook(`${_who()} needs you to check "${r.prod||r.sku||''}" — ${why}${note?'. '+note:''}`,
       {event:'asked_jack',sku:r.sku||'',asin:r.asin||'',by:_who()});
@@ -1379,7 +1410,26 @@ function sarahTodo(){
 async function setTriage(rid,field,val){
   markSeen(rid);
   const r=_rowById(rid);if(!r)return;
+  /* b670: "wrong SKU — yes" is checked against SellerFuse before it is believed (sfWrongSkuDoubt) */
+  let _wsOverride=false;
+  if(field==='wrongSku'&&val==='Yes'&&r.wrongSku!=='Yes'){
+    const d=(typeof sfWrongSkuDoubt==='function')?sfWrongSkuDoubt(r):null;
+    if(d&&d.spare===0){
+      const n=Math.max(0,(parseInt(r.exp)||0)-(parseInt(r.cancelledQty)||0));
+      if(!(typeof canOverrideStock==='function'&&canOverrideStock())){
+        try{renderAdmin();}catch(e){}
+        askJackAsk(rid,'free',`Marked “wrong SKU”, but SellerFuse shows this product’s other SKUs only sent what their own orders had — nothing extra went out, so these can’t have gone out under another SKU. If it never came, cancel this and answer Arrived: No.`);
+        return;}
+      if(!confirm(`SellerFuse (${typeof sfWhen==='function'?sfWhen():'last check'}): this product's other ${d.judged===1?'SKU':d.judged+' SKUs'} only sent what ${d.judged===1?'its':'their'} own orders had — nothing extra went out under ${d.judged===1?'it':'any of them'} since this order.\n\n`
+        +`So ${n===1?'this one':'these '+n} can't have gone out under another SKU. Check it really arrived — on an Amazon order, Amazon may have refunded it.\n\nMark it "wrong SKU" anyway?`)){
+        try{renderAdmin();}catch(e){}return;}
+      _wsOverride=true;
+    }
+  }
   r[field]=val;r._dirty=true;
+  if(_wsOverride){const _n=new Date();
+    r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${_who()} ${_ddUK(_n)}: marked wrong SKU although SellerFuse showed nothing extra under this product's other SKUs`;
+    r.vaNoteBy=_who();r.vaNoteAt=_n.toISOString();}
   /* Answering "no" IS the diagnosis — the case opens itself on the next step
      so she is never left holding a verdict with nowhere to take it. Clearing
      the answer closes an untouched case again; one that has been worked on is

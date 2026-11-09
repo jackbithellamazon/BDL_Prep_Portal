@@ -115,7 +115,7 @@ Rollback: upload the previous dated folder the same way.
 
   Each line shows day, source, product, supplier · order, why · who, units and £. Its heading gives £ this month and in all. Click a line to open its record. PLUB lines closed as refunded, auto refunded or miscount are NOT losses (`writtenOff:1` only means closed). Check 72.
 
-Build number: in `js/lavarion.js` (`BUILD`) and on Settings.
+Build number: in `js/plub.js` (`BUILD`) and on Settings.
 
 ## Leftovers follow Jack's triage again (v54.3, 22 Oct 2026)
 Jack's process: **Sarah first → OA: Sarah handles it · Amazon: Jack checks the account → back to Sarah → wrong SKU? → physical check: Becki.**
@@ -296,7 +296,7 @@ Now:
 - Dashboard (Jack): "Empty at Amazon — N PLUB products" from the stock-out record.
 - Weekly from the check: ads share (send-card footer). (Buy Box was built and taken out — Jack: not needed for PLUB listings.)
 - Dashboard (Jack, Mondays and Tuesdays): last week's PLUB stock-outs in one line — how many, empty days, ≈ £ profit lost, and why (sends too late / parts not in time / sales jumped), biggest cost first.
-- Working days skip England & Wales bank holidays as well as weekends (collections are 9–5 weekdays only) — UK_BH in lavarion.js, 2026–2028.
+- Working days skip England & Wales bank holidays as well as weekends (collections are 9–5 weekdays only) — UK_BH in plub.js, 2026–2028.
 
 ## v55.9 · b621 (26 Oct 2026, late)
 - Sarah's Admin: the sort bar above the cards had collapsed into a 166px column stacked over the first card (a flex header row inside a table gets squeezed into the first column). Now one full-width header cell with the pills, column widths kept in a colgroup so the compact rows below don't move.
@@ -343,7 +343,7 @@ A **temporary** PLUB tab, next to Planner, for everyone (Jack, 29 Oct 2026 — h
 - **Singles & private label**: own stock, no build — max = sent + on the shelf + on order.
 - Flags: purchase lines dated since 1 Oct not linked to a part or product ("max may be low", → Purchases' To review), and units sent over stock that are not settled yet ("max may read high").
 - The sums are one pure function, `LV3.q4Calc(opts)` → `{bundles, singles, totals, unlinked}`; `vQ4` only draws it. Pass `{products, components, purchases, shipments, targets, protDays, owed, onHand, onOrder, linkState, from}` to run it on other data; it also returns `packaging` and each line's `lim.say` (the tested sentence). Checks: "Q4 prepping: …" and "Q4 prepping round 2: …".
-- **To remove in January:** the `['q4','Q4 prepping','']` tab entry and `q4:vQ4` in `render()`, the Q4 PREPPING block before TABS + ROUTER, `q4Calc, q4SetTarget, q4SetOpen, q4PlanFill, q4LimHtml` in the API, both Q4 CSS blocks in css/lavarion.css, and both checks (`q4Targets` in lavarion_prefs can stay — nothing reads it then).
+- **To remove in January:** the `['q4','Q4 prepping','']` tab entry and `q4:vQ4` in `render()`, the Q4 PREPPING block before TABS + ROUTER, `q4Calc, q4SetTarget, q4SetOpen, q4PlanFill, q4LimHtml` in the API, both Q4 CSS blocks in css/plub.css, and both checks (`q4Targets` in lavarion_prefs can stay — nothing reads it then).
 - b625 part c — FBA15MSC66QL (28 Oct): bulk "In Warehouse" on a sent row now clears the shipment record as well as the number (`doBulkAction`), save rule R7 sets shipped = its shipments (rules.js), `healShipFromSegments` fixes the 12 live rows (120 units) on load with an audit line each, retyping a Shipment ID keeps the number and logs the change (`editShipIdInline`), the erase line reports real units, bulk All Shipped skips rows already fully on another shipment. Check 99. Open for Jack: should bulk "In Warehouse" on a PART SENT row erase its shipment too (the single-row dropdown does, after a confirm)?
 - b625 part d — the second tester: `_sfApply` caps at what the order can take at the moment of the fix and `sfFixAll` re-works the list before each line (an order of 4 hit by two shipments of 3 got 6); one product gap across several SKUs on a shipment is `look`, never one press (`missA`); Undo is newest-first per row (`__sfGen`); the late-card button names what one press records; Sarah's card asks about cancelled / eBay-held units properly; `sfFixShipDates` sets sentDate to the first send and saves each row once. Amazon's shipment date (shipDateFor + sfFixShipDates) is behind `SF_DATES_TRUSTED`, OFF until Jack confirms SellerFuse's "created" is the UK day. Check 100.
 - b625 part e — move lines to another shipment: `moveShipLines(items,from,to)` (stock-moves.js; units/numbers/history intact, date follows the shipment, Undo), Shipments → Edit "Move some lines to another shipment" (`_shipMovePaint`/`shipMoveGo`, returns.js), Prep Sheet bulk "⇄ Move to shipment…" (`doBulkMoveShip`), bulk "In Warehouse" on rows on a shipment asks first (`_bulkUnsendAsk`), SellerFuse "WRONG SHIPMENT ID" on Jack's panel (`_sfWrongId`/`sfMoveIt`: exactly those units on a shipment SellerFuse knows has none of the product, and on another). Check 101.

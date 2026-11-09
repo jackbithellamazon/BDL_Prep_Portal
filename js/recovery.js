@@ -619,6 +619,27 @@ async function recFromClaim(c,opts){
    it becomes his: ownership moves, the waiting flag clears (which is what her
    page keys off), and the Prep Sheet row is marked so it stops taking a line.
    Nothing is closed or deleted — Undo puts it straight back on their lists. */
+/* b668: the Recovery Stock item holding a gated claim's units (same order number), or null */
+function _gatedInRec(c){
+  if(!c||(c.issT||'')!=='Gated'||!c.oid||typeof REC==='undefined'||!Array.isArray(REC))return null;
+  return REC.find(i=>!i.archived&&i.source==='Gated Amazon stock'&&String(i.source_ref||'').trim()===String(c.oid).trim())||null;
+}
+async function closeGatedInRec(claimId){
+  const c=(typeof claims!=='undefined'?claims:[]).find(x=>String(x.id)===String(claimId));if(!c){toast('Claim not found','er');return;}
+  const it=_gatedInRec(c);if(!it){toast('Its units aren’t in Recovery Stock — use eBay it or Ungate','er');return;}
+  const qty=parseInt(it.qty)||parseInt(c.dif)||parseInt(c.exp)||0,since=String(it.created_at||it.at||'').slice(0,10);
+  const was=JSON.parse(JSON.stringify({cst:c.cst,resolvedAt:c.resolvedAt,outcome:c.outcome,log:c.log||[]}));
+  c.cst='Resolved';c.resolvedAt=todayISO();c.outcome='recovery';
+  (c.log=c.log||[]).push({t:getNowUK(),msg:`Sent to Recovery Stock — ${qty} unit${qty===1?'':'s'} (there since ${since?_ddUK(new Date(since)):'earlier'}; claim closed by ${_who()})`});
+  let ok=false;try{ok=(await saveClaim(c))!==false;}catch(e){ok=false;}
+  if(!ok){Object.assign(c,was);toast('Didn’t save — nothing changed. Check the connection and press again.','er');try{renderJack();}catch(e){}return;}
+  const r=typeof _rowById==='function'?_rowById(c.prepRowId):null;
+  if(r&&typeof _recoveryFiled==='function'&&_recoveryFiled(r)){
+    try{await _mustSave(r);}catch(e){toast('The claim is closed, but the Prep Sheet row didn’t save — it files itself next time the list rebuilds','er');}}
+  try{logAudit('Gated claim closed — already in Recovery Stock',`${c.sku||c.prod||''} — ${qty} unit${qty===1?'':'s'}`);}catch(e){}
+  toast(`Closed — the ${qty} ${qty===1?'is':'are'} in Recovery Stock, and the row is filed (Show Archived keeps it)`,'ok');
+  try{renderJack();renderAdmin();renderPrep();paintJackBadge();}catch(e){}
+}
 async function takeGatedMine(claimId){
   const c=(typeof claims!=='undefined'?claims:[]).find(x=>String(x.id)===String(claimId));
   if(!c){toast('Claim not found','er');return;}
@@ -933,9 +954,8 @@ function jackTodo(){
      fell off her page and never appeared on his. Same issue, his side. */
   const claimsQ=claims.filter(c=>!c.archived&&c.cst!=='Resolved'
     &&(((c.owner)||('VA'))==='Jack')
-    /* already sitting in Recovery Stock under this order = dealt with */
-    &&!((c.issT||'')==='Gated'&&c.oid&&typeof REC!=='undefined'&&Array.isArray(REC)
-        &&REC.some(i=>!i.archived&&i.source==='Gated Amazon stock'&&String(i.source_ref||'').trim()===String(c.oid).trim())));
+    /* b668: already in Recovery Stock is NOT dealt with until the claim is closed — it shows, with Close it */
+    );
   /* Jack, 10 Sep: "everything Lavarion comes to me first, then I send it to
      Sarah if and when I need to" — shortages and damage at check-in included. */
   let lavQ=[];try{lavQ=(_lavIssues(true)||[]).filter(g=>!g.quiet&&!lavCleared()[String(g.key)]&&!g.toSarah);}catch(e){}

@@ -949,8 +949,10 @@ function srtSync(){
   /* the tester, 29 Oct: "paid — then refunded?" asked a dropdown that is always hidden (Jack, 3 Sep: not her
      job), so a non-Amazon cancellation paid with a card could never close. It no longer asks. */
   const _shipIdV=((document.getElementById('srtShipId')||{}).value||'').trim();
+  const _shipEarly=(ask.includes('shipid')&&_shipIdV&&typeof sfShipBeforeOrder==='function')?sfShipBeforeOrder(_rG||{},_shipIdV):null;   /* b670 */
   const missingAsk=(ask.includes('paid')&&!paid)
     ||(ask.includes('shipid')&&!_shipIdV)
+    ||!!_shipEarly
     ||(ask.includes('arrived')&&!arrived)||(kind==='date'&&!due)
     ||(ask.includes('sku')&&!wentAs)
     ||_skuShip
@@ -973,7 +975,7 @@ function srtSync(){
   /* Jack, 8 Sep (Sarah stuck on a grey button): the button always works —
      press it and it says exactly what still needs doing, then lets her close. */
   window._srtGate={ok,what,left,mism,missingAsk,needFix:!!(needFix&&!fix),todoLeft,paid,ask,refunded,arrived,due,kind,wentAs,skuShort:_skuShort,skuWhy:!!_skuWhy,shipid:_shipIdV,
-    skuShip:_skuShip,skuOther:_skuOther,amzGate:_gate?_gate.why:''};
+    skuShip:_skuShip,skuOther:_skuOther,shipEarly:_shipEarly,amzGate:_gate?_gate.why:''};
   if(go){
     go.disabled=!what;go.style.opacity=what?'1':'.45';go.style.cursor=what?'pointer':'not-allowed';
     /* nothing reaches Jack before the investigation is written down */
@@ -1042,6 +1044,7 @@ function srtAskClose(override){
       const A=G.ask||[],n0=need.length;
       if(A.includes('paid')&&!G.paid){need.push('Answer “Had the money already left the account?” — the dropdown on the left.');focusId=focusId||'srtPaid';}
       if(A.includes('shipid')&&!G.shipid){need.push('Type the FBA shipment ID it went on — the box on the left.');focusId=focusId||'srtShipId';}
+      if(G.shipEarly){need.push(`${G.shipid} went out on ${_dmy(G.shipEarly.ship)} — before this order was placed (${_dmy(G.shipEarly.order)}), so it can’t have carried it. Type the shipment it really went on.`);focusId=focusId||'srtShipId';}
       if(A.includes('arrived')&&!G.arrived){need.push('Say whether the stock arrived — the question on the left.');focusId=focusId||'srtArrived';}
       if(G.kind==='date'&&!G.due){need.push('Set the date.');focusId=focusId||'srtDate';}
       if(A.includes('sku')&&!G.wentAs){need.push('Say which SKU it went out under — pick it from the list.');focusId=focusId||'srtSku';}
@@ -1170,6 +1173,8 @@ async function submitSorted(){
   /* Jack, 29 Oct (the OneBlade): "went out under" is a SKU of this product — checked again here, on the press */
   const _sjS=_resAsk(what).includes('sku')&&wentAs?_srtSkuJudge(wentAs,r):null;
   const _whyS=((document.getElementById('srtSkuWhy')||{}).value||'').trim();
+  {const _sid=((document.getElementById('srtShipId')||{}).value||'').trim(),_e=(_sid&&_resAsk(what).includes('shipid')&&typeof sfShipBeforeOrder==='function')?sfShipBeforeOrder(r,_sid):null;
+    if(_e){_unlatch();toast(`${_sid} went out before this order was placed — it can’t have carried it`,'er');return;}}
   if(_sjS&&_sjS.kind==='shipid'){_unlatch();toast("That's a shipment ID — pick the SKU it went out under.",'er');return;}
   const _otherS=!!_sjS&&['other','own','unknown'].includes(_sjS.kind);
   if(_otherS&&!_whyS){_unlatch();toast('That isn’t a SKU of this product — pick one from the list, or give a reason to override','er');return;}
