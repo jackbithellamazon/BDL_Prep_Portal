@@ -2966,3 +2966,43 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .q4FirstL input{accent-color:#38bdf8;margin:0;width:14px;height:14px;cursor:pointer;}
 #page-lavarion .q4FirstL:has(input:checked){color:#7dd3fc;font-weight:600;}
 #page-lavarion .q4FirstT{display:inline-block;padding:0 6px;border-radius:4px;font:700 10px var(--num);letter-spacing:.03em;color:#0c2a3d;background:#7dd3fc;vertical-align:1px;}
+
+/* b673 — the buy list folds; This week opens on the minimum */
+#page-lavarion .q4Fold{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:2px 4px 2px 0;margin:0;color:inherit;font:inherit;cursor:pointer;border-radius:6px;}
+#page-lavarion .q4Fold:focus-visible{outline:2px solid #fbbf24;outline-offset:2px;}
+#page-lavarion .q4Chev{display:inline-block;width:16px;text-align:center;color:#fcd34d;font-size:17px;line-height:1;transition:transform .15s;}
+#page-lavarion .q4FoldHint{font-size:11px;font-weight:700;color:#fcd34d;border:1px solid rgba(251,191,36,.4);border-radius:999px;padding:1px 8px;}
+#page-lavarion .q4FoldHint i{font-style:normal;}
+#page-lavarion .q4Buy .q4FoldHint .o,#page-lavarion .q4Buy.shut .q4FoldHint .c{display:none;}
+#page-lavarion .q4Buy.shut .q4FoldHint .o{display:inline;}
+#page-lavarion .q4Buy.shut .q4Chev{transform:rotate(-90deg);}
+#page-lavarion .q4Buy.shut>:not(.ph){display:none;}
+#page-lavarion .q4Buy.shut .q4Seg{display:none;}
+#page-lavarion .q4Buy.shut .q4Seg+.btn{margin-left:auto;}
+#page-lavarion .q4WeekMain{flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:10px;}
+#page-lavarion .q4WeekDue{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+#page-lavarion .q4WD{border:1px solid var(--border);border-radius:10px;background:var(--bg3);padding:9px 13px 10px;box-shadow:inset 0 3px 0 var(--rail,#38bdf8);min-width:0;}
+#page-lavarion .q4WD.main{--rail:#fbbf24;background:rgba(251,191,36,.07);border-color:rgba(251,191,36,.35);}
+#page-lavarion .q4WD.sent{--rail:#38bdf8;}
+#page-lavarion .q4WD.left{--rail:#a78bfa;}
+#page-lavarion .q4WD.shelf{--rail:#4ade80;}
+#page-lavarion .q4WD.shelf.w{--rail:#94a3b8;}
+#page-lavarion .q4WD .k{font:800 10px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--text3);}
+#page-lavarion .q4WD.main .k{color:#fcd34d;}
+#page-lavarion .q4WD .v{font:800 26px var(--num);color:var(--text);font-variant-numeric:tabular-nums;line-height:1.15;margin-top:3px;}
+#page-lavarion .q4WD.main .v{color:#fde68a;}
+#page-lavarion .q4WD.sent .v{color:#7dd3fc;}
+#page-lavarion .q4WD.left .v{color:#c4b5fd;}
+#page-lavarion .q4WD.shelf .v{color:#86efac;}
+#page-lavarion .q4WD.shelf.w .v{color:var(--text);}
+#page-lavarion .q4WD .v span{font-size:13px;font-weight:700;color:var(--text3);}
+#page-lavarion .q4WD .s{font-size:11.5px;color:var(--text2);margin-top:3px;line-height:1.4;}
+#page-lavarion .q4WD .s b{color:var(--text);}
+#page-lavarion .q4WDb{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.07);margin:4px 0 5px;}
+#page-lavarion .q4WDb i{display:block;height:100%;border-radius:3px;background:#38bdf8;}
+#page-lavarion .q4WeekWhy{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--text2);}
+#page-lavarion .q4WeekWhy b{color:var(--text);}
+#page-lavarion .q4WeekWhy span{color:var(--text3);}
+#page-lavarion .q4WeekWhy .ok{color:#86efac;}
+#page-lavarion .q4WeekWhy .warn{color:#fcd34d;}
+@media (max-width:1100px){#page-lavarion .q4WeekDue{grid-template-columns:repeat(2,minmax(0,1fr));}}

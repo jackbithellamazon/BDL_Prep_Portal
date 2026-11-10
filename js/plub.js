@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v56.4 · lav3 · 2026-11-09 · b672';
+const BUILD='v56.4 · lav3 · 2026-11-09 · b673';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -3931,6 +3931,13 @@ function q4ChartHover(ev,el){
   tip.style.top=Math.round(r.top-bx.top+M.T0*r.height/M.H+6)+'px';
 }
 let _q4SetOpen=false,_q4RecOpen=false;
+/* b673 (Jack, 9 Nov: "collapse this"): the buy list folds — folded until opened, remembered in this browser */
+const Q4_BUY_KEY='lav3.q4BuyShut';
+function q4BuyIsShut(){try{const v=localStorage.getItem(Q4_BUY_KEY);return v===null?true:v==='1';}catch(e){return true;}}
+function q4BuyFold(){const sh=!q4BuyIsShut();try{localStorage.setItem(Q4_BUY_KEY,sh?'1':'0');}catch(e){}
+  const el=document.querySelector('#page-lavarion .q4Buy');
+  if(el){el.classList.toggle('shut',sh);const b=el.querySelector('.q4Fold');if(b)b.setAttribute('aria-expanded',String(!sh));}
+  return sh;}
 function q4RecOpen(v){_q4RecOpen=!!v;}
 const Q4_PROG_KEY='lv3.q4.progress';
 /* b642 (Jack, 2 Nov: "default open, but remember if it's closed"): open unless this browser closed it — only a close is
@@ -4314,6 +4321,15 @@ function vQ4(){
   const big=PW.filter(x=>x.w.toGo>0&&!x.blocked).slice(0,3);
   const sendDays={};(R.sends||[]).forEach(x=>{if(isPri[x.id])(sendDays[x.date]=sendDays[x.date]||new Set()).add(x.id);});
   const perDay=Object.keys(sendDays).map(d=>sendDays[d].size).sort((a,b)=>a-b),usual=perDay.length?perDay[Math.floor((perDay.length-1)/2)]:0,most=perDay.length?perDay[perDay.length-1]:0;
+  /* b673 (Jack, 9 Nov: "how many due this week — what do you expect as a minimum — is it pro-rated?"): the week's
+     figures are the cards added up, so the head and the cards always agree */
+  const WK=(()=>{const due=PW.reduce((t,x)=>t+(x.left>0?x.w.need:0),0),sent=PW.reduce((t,x)=>t+x.w.sent,0),toGo=PW.reduce((t,x)=>t+(x.left>0?x.w.toGo:0),0);
+    const can=PW.reduce((t,x)=>t+(x.left>0?Math.min(x.w.toGo,x.shelf):0),0);
+    const wait=PW.filter(x=>x.left>0&&x.w.toGo>x.shelf).map(x=>({r:x.r,n:x.w.toGo-x.shelf})).sort((a,b)=>b.n-a.n);
+    const lines=PW.filter(x=>x.left>0&&x.w.toGo>0).length;
+    const ahead=PW.filter(x=>x.left>0&&x.w.last>x.w.perWk).sort((a,b)=>(b.w.last-b.w.perWk)-(a.w.last-a.w.perWk))[0]||null;
+    const perWk=PW.reduce((t,x)=>t+(x.left>0?x.w.perWk:0),0);   /* a full week, added up the same way — the top tile uses it */
+    return{due,sent,toGo,can,wait,lines,ahead,perWk,pct:due?Math.min(100,Math.round(100*Math.min(sent,due)/due)):100};})();
   /* b645 (Jack, 2 Nov: "yes — but the top stays the most to do"): how long the stock at Amazon lasts, on each card —
      information for choosing between two close jobs; the order stays biggest job first. sendUrgency(): what is at Amazon
      plus what is on its way if it lands before the shelf empties, at what it sells now (the Christmas rise on a gift line). */
@@ -4337,7 +4353,7 @@ function vQ4(){
     return `<div class="q4WC${done?' done':''}${x.blocked?' noParts':''}" style="--c:${hue}" role="button" tabindex="0" title="${esc(`${x.r.name}: ${fmt(w.leftMon)} left on Monday, so ${fmt(w.need)} this week (${fmt(w.perWk)} in a full week to make ${byTxt}). Click to open it below.`)}" onclick="LV3.q4Jump('${esc(x.r.id)}')" onkeydown="if(event.key==='Enter'){event.preventDefault();LV3.q4Jump('${esc(x.r.id)}')}">
       <div class="h">${esc(q4Short(x.r.name))}</div>
       ${x.left===0?'<div class="v ok">Target hit &#10003;</div>':w.toGo===0?'<div class="v ok">This week done &#10003;</div>':`<div class="v"><b>${fmt(w.toGo)}</b><span>to go</span></div>`}
-      <div class="bw"><span class="b"><i style="width:${pct}%"></i></span><small>${x.left===0?`${fmt(x.r.done)} sent`:`${fmt(w.sent)} of ${fmt(w.need)}`}</small></div>
+      <div class="bw"><span class="b"><i style="width:${pct}%"></i></span><small>${x.left===0?`${fmt(x.r.done)} sent`:`${fmt(w.sent)} of ${fmt(w.need)} due`}</small></div>
       <div class="kvs"><div class="kv"><span>Last week</span><b>${fmt(w.last)}</b></div>${parts?`<div class="kv parts"><span>Parts in hand</span>${parts}</div>`:''}${az?`<div class="kv az${az.cls?' '+az.cls:''}" title="${esc(az.tip)}"><span>At Amazon</span><b>${az.v}</b></div>`:''}</div>
     </div>`;};
   /* b644 (Jack, 2 Nov: "track it week on week — see where things jump"): the page's weeks since the start, the ones the
@@ -4345,14 +4361,22 @@ function vQ4(){
   const AV=TR.avg,wkRows=(R.progress.weeks||[]).slice().reverse(),wkMx=Math.max(1,...wkRows.map(w=>w.units));
   const outWhy=w=>w.now?'':AV.dropped&&AV.dropped.start===w.key?'left out of the average — a one-off quiet week':AV.lead.some(x=>x.start===w.key)?'left out of the average — the slow start':w.start<R.from?'a part week — left out of the average':'';
   const strip=`<div class="q4Wk q4WkPage">${wkRows.map(w=>{const why=outWhy(w);return `<div class="q4WkC${w.now?' now':''}${why?' out':''}" title="${esc(`${q4DayLabel(w.start)} – ${q4DayLabel(w.end)}: ${fmt(w.units)} sent${w.now?' so far':''}${why?` — ${why}`:''}`)}"><b>${w.units?fmt(w.units):'—'}</b><span class="q4WkB"><i style="height:${w.units?Math.max(4,Math.round(100*w.units/wkMx)):0}%"></i></span><small>${w.now?'so far':dmy(w.start)}</small></div>`;}).join('')}</div>`;
-  const weekHtml=P.length?`<section class="panel q4Week"><div class="ph"><span class="t">This week</span><span class="sub">${q4DayLabel(TR.wkStart)} – ${q4DayLabel(TR.wkEnd)} · aim to have it out by ${q4DayLabel(TR.wkFri)}</span><div class="r q4Sum">${fmt(W0.sent)} of ${fmt(W0.need)} sent · last week <b>${fmt(W0.last)}</b></div></div>
+  const weekHtml=P.length?`<section class="panel q4Week"><div class="ph"><span class="t">This week</span><span class="sub">${q4DayLabel(TR.wkStart)} – ${q4DayLabel(TR.wkEnd)} · aim to have it out by ${q4DayLabel(TR.wkFri)}</span><div class="r q4Sum">${fmt(WK.sent)} sent of <b>${fmt(WK.due)}</b> due · last week <b>${fmt(W0.last)}</b></div></div>
     <div class="q4WeekTop"><div class="q4WeekTrend"><div class="q4WkT">Week by week</div>${strip}</div>
-      <div class="q4WeekNote"><div>${AV.avg>0?`Your weekly average <b>~${fmt(AV.avg)}</b> <span>— the recent weeks count most${AV.lead.length?'; the slow start is left out':''}${AV.dropped?`; the quiet week of ${dmy(AV.dropped.start)} is left out as a one-off`:''}</span>`:'<span>No full week sent yet — the average starts after the first one</span>'}</div>
-        <div>Needs <b>${fmt(W0.perWk)}</b> a week to finish by ${byTxt} · this week so far <b>${fmt(W0.sent)}</b> · last week <b>${fmt(W0.last)}</b></div>
-        <div>${big.length?`Biggest jobs left this week: ${big.map(x=>`<b>${esc(q4Short(x.r.name))}</b> ${fmt(x.w.toGo)}`).join(' · ')}`:'Every target has had its share for this week &#10003;'}</div>
-        ${perDay.length?`<div><span>On a send day ${usual===1?'1 priority line usually goes':`${usual} priority lines usually go`} out (most ${most})</span></div>`:''}</div></div>
+      <div class="q4WeekMain">
+        <div class="q4WeekDue">
+          <div class="q4WD main" title="${esc(`Every line's share of this week added up — the same as the cards below. A share = what the line had left on Monday, spread evenly over the ${fmt(TR.wdFromMon)} working days to ${byTxt}, × the ${fmt(TR.wdThisWk)} working days this week.`)}"><div class="k">Minimum this week</div><div class="v">${WK.due?fmt(WK.due):'&#10003;'}</div><div class="s">${WK.due?`out by <b>${q4DayLabel(TR.wkFri)}</b> to stay on course for ${byTxt}`:'every target is hit'}</div></div>
+          <div class="q4WD sent"><div class="k">Sent so far</div><div class="v">${fmt(WK.sent)}</div><div class="s"><span class="q4WDb"><i style="width:${WK.pct}%"></i></span>${WK.pct}% of the minimum</div></div>
+          <div class="q4WD left"><div class="k">Still to go</div><div class="v">${WK.toGo?fmt(WK.toGo):'Done &#10003;'}</div><div class="s">${WK.toGo?`across ${fmt(WK.lines)} line${WK.lines===1?'':'s'}`:'this week’s share is out'}</div></div>
+          <div class="q4WD shelf${WK.wait.length?' w':''}" title="${esc(WK.wait.length?`Waits on parts: ${WK.wait.map(x=>`${q4Short(x.r.name)} ${fmt(x.n)}`).join(', ')} — bought as needed.`:'The shelf has the parts for all of this week.')}"><div class="k">Can build from the shelf</div><div class="v">${fmt(WK.can)}${WK.toGo?`<span> of ${fmt(WK.toGo)}</span>`:''}</div><div class="s">${WK.wait.length?`waits on parts: ${WK.wait.slice(0,3).map(x=>`<b>${esc(q4Short(x.r.name))}</b> ${fmt(x.n)}`).join(' · ')}${WK.wait.length>3?` +${WK.wait.length-3} more`:''}`:'parts for all of it &#10003;'}</div></div>
+        </div>
+        <div class="q4WeekWhy">
+          ${AV.avg>0&&WK.due?`<div class="${AV.avg>=WK.due?'ok':'warn'}">${AV.avg>=WK.due?'&#10003;':'&#9888;'} Your weekly average <b>~${fmt(AV.avg)}</b> ${AV.avg>=WK.due?`is above the minimum — on course (last week <b>${fmt(W0.last)}</b>)`:`is <b>${fmt(WK.due-AV.avg)}</b> under the minimum — this week needs a bit more than usual (last week <b>${fmt(W0.last)}</b>)`}</div>`:AV.avg>0?`<div>Your weekly average <b>~${fmt(AV.avg)}</b> <span>— this week's share is all out</span></div>`:'<div><span>No full week sent yet — the average starts after the first one</span></div>'}
+          <div><span>Pro-rated: a line's share = what it had left on Monday ÷ the ${fmt(TR.wdFromMon)} working days to ${byTxt} × the ${fmt(TR.wdThisWk)} this week. A line that's ahead gets less${WK.ahead?` — ${esc(q4Short(WK.ahead.r.name))} sent ${fmt(WK.ahead.w.last)} last week, so it needs just ${fmt(WK.ahead.w.need)} this week`:''}.</span></div>
+        </div>
+      </div></div>
     <div class="q4WeekGrid" style="--cols:${Math.max(1,Math.ceil(PW.length/Math.max(1,Math.ceil(PW.length/6))))}">${PW.map(wkCard).join('')}</div>
-    <div class="q4Foot">A target's share = what it had left on Monday, spread evenly over the ${fmt(TR.wdFromMon)} working days to ${byTxt}, so a big batch this week lowers next week's. <b>Parts in hand</b> = what the shelf can build — bought as needed. <b>At Amazon</b> = how long the stock there and on its way lasts at today's sales — amber: a send made today lands inside the ${fmt(safetyDays())}-day cushion; red: out now. Hover a card for the sum; click it to open the line.</div></section>`:'';
+    <div class="q4Foot">A big batch this week lowers next week's share. <b>Parts in hand</b> = what the shelf can build — bought as needed. <b>At Amazon</b> = how long the stock there and on its way lasts at today's sales — amber: a send made today lands inside the ${fmt(safetyDays())}-day cushion; red: out now. Hover a card for the sum; click it to open the line.${perDay.length?` On a send day ${usual===1?'1 priority line usually goes':`${usual} priority lines usually go`} out (most ${most}).`:''}</div></section>`:'';
   /* b655 (Jack, 5 Nov: "add in how many hours of Q4 prep needed"): every priority line still to build, in hours — a
      timed line at its own average, a line not timed yet at the average of every hour he has timed (an estimate, and
      labelled one: input beats derived) — against the working days left at his hours a day */
@@ -4383,7 +4407,7 @@ function vQ4(){
     <div class="kpi" style="--rail:#a78bfa"><div class="k">Still to send</div><div class="v" style="color:#c4b5fd">${fmt(T.toGo)}</div><div class="s"><b>${fmt(kNow)}</b> can be built now${kOrd?` · <b>${fmt(kOrd)}</b> when orders land`:''}${kShort?` · <b>${fmt(kShort)}</b> need parts bought`:''}</div></div>
     ${hrTile}
     <div class="kpi" style="--rail:${kShort?'#94a3b8':'#4ade80'}" title="Units the targets need that the parts here${ON?' and on order':''} cannot build yet — bought as they are needed; the list below has them"><div class="k">Parts still to buy for</div><div class="v" style="color:${kShort?'var(--text)':'#4ade80'}">${kShort?fmt(kShort):'None'}${kShort?'':' &#10003;'}</div><div class="s">${kShort?`units across ${fmt(shortN)} line${shortN===1?'':'s'} — bought as needed, the list is below`:'every target is covered by parts here or on order'}</div></div>
-    <div class="kpi" style="--rail:${fGood?'#4ade80':'#fbbf24'}" title="${esc(`The whole page at your weekly average of ~${fmt(tp)} — the recent full weeks, the newest counting most (the slow start and a one-off quiet week are left out). ${fmt(T.toGo)} still to send at that = all out ~${fEta?dlY(fEta):'—'}. To finish by ${byTxt}: ${fmt(W0.perWk)} a week. It assumes the parts are bought as they are needed.`)}"><div class="k">All done at your weekly average</div><div class="v" style="color:${fGood?'#4ade80':'#fcd34d'}">${T.toGo===0?'Done &#10003;':fEta?'~'+dlY(fEta):'—'}</div><div class="s">${T.toGo===0?'':`needs <b>${fmt(W0.perWk)}</b> a week · average <b>${fmt(tp)}</b><br>last week <b>${fmt(W0.last)}</b> · this week so far <b>${fmt(W0.sent)}</b>`}</div></div>
+    <div class="kpi" style="--rail:${fGood?'#4ade80':'#fbbf24'}" title="${esc(`The whole page at your weekly average of ~${fmt(tp)} — the recent full weeks, the newest counting most (the slow start and a one-off quiet week are left out). ${fmt(T.toGo)} still to send at that = all out ~${fEta?dlY(fEta):'—'}. To finish by ${byTxt}: ${fmt(WK.perWk)} a week (every line's share added up). It assumes the parts are bought as they are needed.`)}"><div class="k">All done at your weekly average</div><div class="v" style="color:${fGood?'#4ade80':'#fcd34d'}">${T.toGo===0?'Done &#10003;':fEta?'~'+dlY(fEta):'—'}</div><div class="s">${T.toGo===0?'':`needs <b>${fmt(WK.perWk)}</b> a week · average <b>${fmt(tp)}</b><br>last week <b>${fmt(W0.last)}</b> · this week so far <b>${fmt(W0.sent)}</b>`}</div></div>
   </div>
   ${weekHtml}
   ${(()=>{const S=q4BuyShape(R);if(!S.short.length)return '';
@@ -4395,7 +4419,8 @@ function vQ4(){
       return `<div class="q4BuyGrp"><div class="q4BuyGL">${esc(g.label)}</div>${has.length?`<div class="q4BuyGrid">${has.map(card).join('')}</div>`:''}${no.length?`<div class="q4BuyNo">Nothing to buy: ${no.map(x=>esc(x.name)).join(' · ')}</div>`:''}</div>`;}).join('');
     const allV=`<div class="q4BuyGrid">${S.sups.map(g=>`<div class="q4BuyC"><div class="q4BuyH"><div class="q4BuyHT"><b>${esc(g.sup)}</b></div><small>${g.sup==='No supplier saved'?'':'usual supplier · '}${fmt(g.items.length)} item${g.items.length===1?'':'s'}</small></div><ul>${g.items.map(t=>`<li><b>${fmt(t.qty)}</b><span class="nm">${esc(t.name)}${t.for.length>1?`<small>${t.for.map(f=>`${fmt(f.qty)} ${esc(f.name)}`).join(' + ')}</small>`:''}</span>${t.cq?`<span class="q4BuyCs" title="${fmt(t.qty)} needed → ${q4CaseTxt(t.qty,t.cq)} = ${fmt(q4Cases(t.qty,t.cq)*t.cq)}, ${fmt(q4Spare(t.qty,t.cq))} left over">${q4CaseTxt(t.qty,t.cq)}<small>= ${fmt(q4Cases(t.qty,t.cq)*t.cq)} · ${fmt(q4Spare(t.qty,t.cq))} left over</small></span>`:cs(t.qty,t.cq)}</li>`).join('')}</ul></div>`).join('')}</div>`;
     const seg=k=>`<button type="button" class="${V===k?'on':''}" aria-pressed="${V===k}" onclick="LV3.q4BuyView('${k}')">${k==='asin'?'Per ASIN':'Full order list'}</button>`;
-    return `<section class="panel q4Buy"><div class="ph"><span class="t">To hit every target, buy</span><span class="sub">${V==='asin'?`${fmt(S.short.length)} ASIN${S.short.length===1?'':'s'} short · priority order — each counted after the ones above it have their parts`:`${fmt(S.items.length)} item${S.items.length===1?'':'s'} · every ASIN added up · cases worked out on the total`}</span>
+    const shut=q4BuyIsShut();
+    return `<section class="panel q4Buy${shut?' shut':''}"><div class="ph"><button type="button" class="q4Fold" aria-expanded="${!shut}" title="Open or fold the buy list" onclick="LV3.q4BuyFold()"><span class="q4Chev" aria-hidden="true">&#9662;</span><span class="t">To hit every target, buy</span><span class="q4FoldHint"><i class="o">show the list</i><i class="c">hide</i></span></button><span class="sub">${V==='asin'?`${fmt(S.short.length)} ASIN${S.short.length===1?'':'s'} short · priority order — each counted after the ones above it have their parts`:`${fmt(S.items.length)} item${S.items.length===1?'':'s'} · every ASIN added up · cases worked out on the total`}</span>
       <div class="q4Seg" role="group" aria-label="How to show the buy list">${seg('asin')}${seg('all')}</div><button class="btn sm" onclick="LV3.q4CopyBuy()" title="Copies a message for the staff: per ASIN in priority order, then the full order list by supplier">Copy message for staff</button></div>
       ${V==='asin'?asinV:allV}
       ${S.noCase.length?`<div class="q4BuyFoot">No case size saved yet on ${S.noCase.length} part${S.noCase.length===1?'':'s'}: ${S.noCase.map(t=>esc(t.name)).join(', ')} — set it on the part in Components and cases show here.</div>`:''}</section>`;})()}
@@ -14089,7 +14114,7 @@ function paint(){
 }
 
 /* everything the page's inline handlers need */
-const API={go,render:paint,boot,__needOf:p=>needOf(p),q4SetSort,q4SortPref,dupConfirm,pdInStock,q4Calc,q4SetTarget,q4SetFirst,q4FirstMap,q4Holds,q4SentOf,q4SetRate,q4RateOf,q4Rates,q4HoursDay,q4SetHoursDay,q4SetOpen,q4Pick,q4History,q4ChartHover,q4Jump,q4ProgPref,q4DayY,compSupplierOf:c=>compSupplier(c),q4RecOpen,q4DayShort:d=>q4DayLabel(d).replace(/^\S+ /,''),q4Toggle,q4ToggleAll,q4SetSendBy,q4Track,q4One,q4SendBy,q4WeeksOf,q4CopyBuy,q4BuyView,q4StaffMsg,q4BuyShape,q4TargetAtMap,q4PlanFill,q4LimHtml,__layers:()=>LAYERS,__purch:()=>PURCH,
+const API={go,render:paint,boot,__needOf:p=>needOf(p),q4SetSort,q4SortPref,dupConfirm,pdInStock,q4Calc,q4SetTarget,q4SetFirst,q4FirstMap,q4Holds,q4SentOf,q4SetRate,q4RateOf,q4Rates,q4HoursDay,q4SetHoursDay,q4SetOpen,q4BuyFold,q4BuyIsShut,q4Pick,q4History,q4ChartHover,q4Jump,q4ProgPref,q4DayY,compSupplierOf:c=>compSupplier(c),q4RecOpen,q4DayShort:d=>q4DayLabel(d).replace(/^\S+ /,''),q4Toggle,q4ToggleAll,q4SetSendBy,q4Track,q4One,q4SendBy,q4WeeksOf,q4CopyBuy,q4BuyView,q4StaffMsg,q4BuyShape,q4TargetAtMap,q4PlanFill,q4LimHtml,__layers:()=>LAYERS,__purch:()=>PURCH,
   openProduct,editProduct,setType,setSold30,rowMenu,closeRowMenu,dupeAsins,setSort,saveProductForce,addRecipeRow,rcChange,rcSearch,rcPick,rcMake,recipePreview,copyRecipe,saveProduct,delProduct,togRow,setArchived,
   openShip,drawShip,doShip,copyCog,shipSetQty,shipOverride,shipQty,shipFba,setQ,selOne,selAll,selClear,selType,selVat,
   openComp,editComp,saveComp,delComp,pickKind,openAddBatch,abPreview,doAddBatch,selArchive,selDelete,cselOne,cselAll,cselClear,cselKind,cselTrack,cselArchive,cselDelete,markArrived,openAdjust,doAdjust,

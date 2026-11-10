@@ -708,7 +708,7 @@ window.PrepChecks=(function(){
   S['PLUB log: one laptop cannot wipe another’s lines']=async()=>{
     const D=LV3.__D(),keepLog=D.log.slice();
     const own=Object.prototype.hasOwnProperty.call(sb,'from'),orig=sb.from;let wrote=null;
-    const theirs={t:'2026-10-12T02:00:00.000Z',k:'edit',txt:'CHECK Stock at Amazon counted 12 Oct — 41 products',who:'Sarah'};
+    const theirs={t:new Date(Date.now()-60000).toISOString(),k:'edit',txt:'CHECK Stock at Amazon counted 12 Oct — 41 products',who:'Sarah'};
     sb.from=t=>{const q={select:()=>q,eq:()=>q,maybeSingle:()=>Promise.resolve({data:{value:JSON.stringify({log:[theirs].concat(keepLog.slice(0,5)),ack:{}})},error:null}),
       upsert:v=>{wrote=JSON.parse(v.value);return Promise.resolve({error:null});}};return q;};
     try{
@@ -3328,7 +3328,7 @@ window.PrepChecks=(function(){
     eq(f({layers:[{sup:'Tesco'},{sup:'Tesco'},{sup:'LovePubSnacks'}]}),'Tesco','a different supplier with more lines still wins');
     eq(f({supplier:'Pure Gusto',layers:[{sup:'Tesco'}]}),'Pure Gusto','a supplier set on the part always wins');
     const D=LV3.__D(),c=D.components.find(x=>/Mini Cheddars/i.test(x.name)&&!x.supplier);
-    if(c)eq(f(c),'Love Pub Snacks','Mini Cheddars goes on the Love Pub Snacks order');
+    if(c)ok(/^Love ?Pub ?Snacks$/i.test(f(c)),'Mini Cheddars goes on the Love Pub Snacks order (either spelling — whichever the lines use most)');
   };
 
   /* 128 · b640: Progress tables — units per line as shaded cells, quiet runs folded, the sums still add up */
@@ -3440,7 +3440,7 @@ window.PrepChecks=(function(){
       const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),TR=LV3.q4Track(R);
       const box=pg.querySelector('section.q4Week');ok(box,'the This week panel');if(!box)return;
       eq(box.querySelectorAll('.q4WkPage .q4WkC').length,(R.progress.weeks||[]).length,'a bar for every week since the start');
-      if(TR.avg.avg>0)ok(box.querySelector('.q4WeekNote').textContent.includes('~'+String(TR.avg.avg).replace(/\B(?=(\d{3})+(?!\d))/g,',')),'the panel gives the weekly average (~'+TR.avg.avg+')');
+      if(TR.avg.avg>0)ok(box.querySelector('.q4WeekWhy').textContent.includes('~'+String(TR.avg.avg).replace(/\B(?=(\d{3})+(?!\d))/g,',')),'the panel gives the weekly average (~'+TR.avg.avg+')');
       ok(!box.querySelector('.q4WC .kv.parts.bad, .q4WC .kv.parts.w, .q4WC .kv.parts b.bad'),'no red or amber parts notes on the cards');
       ok(!pg.querySelector('table.q4P td.q4TW small.bad, table.q4P td.q4TW small.w'),'none in This week either');
       ok(![...pg.querySelectorAll('.q4Kpis .kpi .v')].some(v=>/fca5a5|f87171/.test(v.getAttribute('style')||'')),'no tile value in red');
@@ -4574,6 +4574,32 @@ window.PrepChecks=(function(){
       ok(Cr.resolution&&Cr.resolution.what==='wrong-sku'&&Cr.resolution.state==='approved','it closes as went out under his SKU — not a decision for Jack again');
       eq(_owedUnits(Cr),0,'nothing owed — nothing for Becki to search for');
     }finally{shut();SFRUN=keep.run;window.SFRUN=keep.run;window.toast=keep.t;window.saveRow=keep.s;window.addVaActions=keep.v;}
+  };
+
+  /* 159 · b673 (Jack, 9 Nov: "collapse this — how many due this week, the minimum — is it pro-rated?") */
+  S['b673: Q4 — the buy list folds and remembers; This week’s minimum is the cards added up']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    let was=null;try{was=localStorage.getItem('lav3.q4BuyShut');localStorage.removeItem('lav3.q4BuyShut');}catch(e){}
+    try{
+      if(typeof goPage==='function')goPage('lavarion');await wait(300);LV3.go('q4');await wait(400);
+      eq(LV3.q4BuyIsShut(),true,'with nothing saved the buy list starts folded');
+      const B=document.querySelector('#page-lavarion .q4Buy');
+      if(B){ok(B.classList.contains('shut'),'…and draws folded');
+        LV3.q4BuyFold();ok(!B.classList.contains('shut')&&LV3.q4BuyIsShut()===false,'one press opens it and remembers');
+        LV3.q4BuyFold();ok(B.classList.contains('shut')&&LV3.q4BuyIsShut()===true,'a second press folds it again');}
+      else ok(true,'nothing to buy right now — no buy list to fold');
+      const W=document.querySelector('#page-lavarion .q4Week');
+      if(W){const num=t=>parseInt(String(t||'').replace(/[^0-9]/g,''))||0;
+        const cards=[...W.querySelectorAll('.q4WC')].filter(c=>!c.querySelector('.v.ok'));
+        const dueCards=[...W.querySelectorAll('.q4WC')].reduce((t,c)=>{const m=/of ([\d,]+) due/.exec(c.textContent);return t+(m?num(m[1]):0);},0);
+        const v=W.querySelector('.q4WD.main .v'),tg=W.querySelector('.q4WD.left .v');
+        ok(!!v,'This week opens on the minimum');
+        eq(num(v&&v.textContent),dueCards,'the minimum = every card’s share added up');
+        const toGo=cards.reduce((t,c)=>t+num((c.querySelector('.v b')||{}).textContent),0);
+        if(toGo)eq(num(tg&&tg.textContent),toGo,'still to go = the cards’ “to go” added up');
+        ok(/Pro-rated/.test(W.textContent),'it says how the share is worked out');}
+      else ok(true,'no priority lines — no This week panel');
+    }finally{try{if(was===null)localStorage.removeItem('lav3.q4BuyShut');else localStorage.setItem('lav3.q4BuyShut',was);}catch(e){}}
   };
 
   async function run(only){
