@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v56.4 · lav3 · 2026-11-09 · b673';
+const BUILD='v56.4 · lav3 · 2026-11-11 · b675';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -134,6 +134,7 @@ function adoptId(kind,oldId,newId){
     D.products.forEach(p=>(p.recipe||[]).forEach(r=>{if(String(r.c)===o)r.c=nu;}));
     if(D.settings.untracked&&D.settings.untracked[o]){
       D.settings.untracked[nu]=true;delete D.settings.untracked[o];savePrefs();}
+    if(D.settings.scoop&&D.settings.scoop[o]!==undefined){D.settings.scoop[nu]=D.settings.scoop[o];delete D.settings.scoop[o];savePrefs();}
     if(D.settings.aliases){Object.keys(D.settings.aliases).forEach(k=>{
       if(String(D.settings.aliases[k])===o)D.settings.aliases[k]=nu;});}
   }
@@ -280,6 +281,7 @@ function hydrate(){
     kind:c.kind||(c.type==='packing'?'packaging':'component'),
     tag:c.tag||c.type||'complementary',caseQty:c.caseQty||null,
     untracked:isUntracked(c.id),
+    scoop:isScoop(c.id,c.name),
     layers:LAYERS.filter(l=>l.kind==='component'&&l.tid===String(c.id)),_src:c}));
   D.components.forEach(c=>{const x=c._src;if(x&&x._sig===undefined)
     x._sig=[c.name,c.kind,c.tag,c.caseQty].join('|');});
@@ -833,7 +835,7 @@ function nextCog(p){
   const items=[];
   if(p.type!=='bundle')items.push({o:p,per:1});
   else (p.recipe||[]).forEach(r=>{const c=comp(r.c);
-    if(!c||c.untracked||c.kind==='packaging')return;      // packaging is never costed
+    if(!c||c.untracked||c.scoop||c.kind==='packaging')return;      // packaging is never costed; a scooped part (b675) never sets the price run
     items.push({o:c,per:r.q});});
   if(!items.length)return null;
   let now=0,next=0,changed=false;const changes=[];
@@ -853,7 +855,7 @@ function cogCheck(p,units){
   const items=[];
   if(p.type!=='bundle')items.push({o:p,per:1,name:p.name,isComp:false});
   else p.recipe.forEach(r=>{const c=comp(r.c);
-    if(!c||c.untracked||c.kind==='packaging')return;   // packaging never affects COG
+    if(!c||c.untracked||c.scoop||c.kind==='packaging')return;   // packaging never affects COG; scooped (b675) never makes a send "mixed"
     items.push({o:c,per:r.q,name:c.name,isComp:true});});
   let cleanMax=Infinity;const mixed=[];
   items.forEach(it=>{
@@ -873,7 +875,7 @@ function avail(p){
   if(!p.recipe.length)return{n:null,kind:'norecipe',limiter:null};
   let m=Infinity,lim=null;
   for(const r of p.recipe){const c=comp(r.c);if(!c){return{n:0,kind:'broken',limiter:null};}
-    if(c.untracked)continue;                      // not stock-controlled — can never block
+    if(c.untracked||c.scoop)continue;             // not stock-controlled, or scooped (b675) — can never block
     const can=Math.floor(onHand(c)/r.q);if(can<m){m=can;lim=c.id;}}
   return{n:m===Infinity?0:m,kind:'build',limiter:lim};
 }
@@ -891,6 +893,8 @@ function cogOf(p,units){
       const c=comp(r.c);if(!c)continue;
       if(c.untracked)continue;                   // no stock, no cost, no block
       const need=r.q*units;const f=fifo(c,need);const isPack=c.kind==='packaging';
+      if(c.scoop&&f.short>0){const nx=arrLayers(c).filter(l=>l.cost>0).slice(-1)[0],pc=nx?nx.cost:(avgCost(c)||0);
+        f.value+=f.short*pc;f.short=0;}   /* b675: a scooped part never blocks — its count is a guess */
       lines.push({name:c.name,kind:c.kind,pack:isPack,q:r.q,need,parts:f.parts,short:f.short,unpriced:isPack?0:f.unpriced,value:f.value,cid:c.id});
       if(!isPack)total+=f.value;
       if(f.short>0)blocked.push({o:c,need,have:need-f.short,short:f.short});
@@ -2693,7 +2697,7 @@ function planAmazon(){
 function shareParts(act,o){
   const pool={},get=x=>{if(pool[x.id]===undefined)pool[x.id]=o.have(x);return pool[x.id];};
   const parts=r=>r.p.type!=='bundle'?[{c:r.p,q:1}]
-    :(r.p.recipe||[]).map(rc=>({c:o.comp(rc.c),q:+rc.q||1})).filter(x=>x.c&&!x.c.untracked);
+    :(r.p.recipe||[]).map(rc=>({c:o.comp(rc.c),q:+rc.q||1})).filter(x=>x.c&&!x.c.untracked&&!x.c.scoop);
   /* b666: parts held for a line put first — held[product id][part id] = units kept back for it (only it may use them) */
   const held={},heldFor={},mine=r=>held[String(r.p.id)]||{};
   const capOf=r=>{let cap=Infinity,lim=null;const h=mine(r);
@@ -2708,7 +2712,7 @@ function shareParts(act,o){
   const H=(o.hold||[]).filter(h=>h&&h.p&&h.need>0),rowOf=p=>act.find(x=>x.p===p||String(x.p.id)===String(p.id));
   H.forEach(h=>{const r=rowOf(h.p);if(r)take(r,Math.min(r.rec,capOf(r).cap));});
   H.forEach(h=>{const r=rowOf(h.p),left=Math.max(0,h.need-(r?r.alloc:0)),k=String(h.p.id);if(!left)return;
-    (h.p.recipe||[]).forEach(rc=>{const c=o.comp(rc.c);if(!c||c.untracked)return;
+    (h.p.recipe||[]).forEach(rc=>{const c=o.comp(rc.c);if(!c||c.untracked||c.scoop)return;
       const n=Math.min(Math.max(0,get(c)),(+rc.q||1)*left);if(!(n>0))return;
       pool[c.id]-=n;(held[k]=held[k]||{})[c.id]=(held[k][c.id]||0)+n;
       const f=heldFor[c.id]=heldFor[c.id]||[];if(!f.includes(h.p.name))f.push(h.p.name);});});
@@ -3439,15 +3443,17 @@ function q4Calc(o){
     const r={id:String(p.id),asin:p.asin||'',name:p.name||p.asin||'',type:'bundle',archived:!!p.archived,
       order:ix+1,protDays:pd,done,left:0,arrived:0,target,formulaMax:done,max:done,pct:null,need:null,cover:null,
       starved:false,owed:owedOf(p),why:'ok',lim:null,priority:pri===0,first:fp<1e9,setAt:ta||null,over:OVER,allowTo,allow:target?Math.max(0,allowTo-done):null};
-    const rec=p.recipe||[],need={};let missing=0;
+    const rec=p.recipe||[],need={},scoop={};let missing=0;
     rec.forEach(rc=>{const c=cBy[String(rc.c)];if(!c){missing++;return;}if(c.untracked)return;
+      /* b675: a scooped part (Reindeer oats, seeds) never limits what can be built — but it is still bought */
+      if(c.scoop&&!q4IsPack(c)){const k=key(c);(scoop[k]=scoop[k]||{k,c,q:0}).q+=Math.max(1,parseInt(rc.q)||1);return;}
       if(q4IsPack(c)){packs[String(c.id)]=c.name||'';return;}       /* components only — never the box */
       const k=key(c);(need[k]=need[k]||{k,c,q:0}).q+=Math.max(1,parseInt(rc.q)||1);});
     if(p.archived)r.why='archived';
     else if(!rec.length)r.why='norecipe';
     else if(missing)r.why='broken';            /* the build list names a part that is gone — it cannot be sent (avail) */
     else if(!Object.keys(need).length)r.why='untracked';   /* only packaging / untracked parts */
-    return{r,parts:r.why==='ok'?Object.values(need):[]};
+    return{r,parts:r.why==='ok'?Object.values(need):[],scoops:r.why==='ok'?Object.values(scoop):[]};
   });
   /* THE allocation, as one function, so any "buy more" can be tested by running the whole queue
      again with the extra parts added — the sentence on the page is always what really happens */
@@ -3561,6 +3567,12 @@ function q4Calc(o){
       if(!more)break;}
     return{ok:tg.every(({l,ix})=>s.caps[ix]>=l.r.target-l.r.done),lines:short.length,
       buy:Object.keys(extra).filter(k=>extra[k]>0).map(k=>({id:k,name:(cBy[k]||{}).name||'',qty:extra[k]})).sort((a,b)=>b.qty-a.qty)};})();
+  /* b675: a scooped part never limits, so the queue above never asks for it — but it is still bought: what the targets
+     need of it, less what is here and on order (the same sum the per-ASIN lists make, so the two still add up) */
+  {const sc={};Q.forEach(l=>{const r=l.r;if(!r.target||r.archived||!l.parts.length)return;const left=Math.max(0,r.target-r.done);
+      (l.scoops||[]).forEach(x=>{(sc[x.k]=sc[x.k]||{x,need:0}).need+=left*x.q;});});
+    Object.values(sc).forEach(({x,need})=>{const b=need-T0[x.k];if(b>0)shopAll.buy.push({id:x.k,name:x.c.name||'',qty:b,scoop:true});});
+    shopAll.buy.sort((a,b)=>b.qty-a.qty);}
   const bundles=Q.map(({r})=>{
     r.formulaMax=r.done+r.left;
     if(r.target){
@@ -3590,8 +3602,8 @@ function q4Calc(o){
      line above it counted as having its parts (so the lines add up to the one list, a shared part bought once) */
   const shopBy=(()=>{const pool={},out=[];
     Q.forEach(l=>{const r=l.r;if(!r.target||r.archived||!l.parts.length)return;const left=Math.max(0,r.target-r.done),buy=[];
-      l.parts.forEach(x=>{if(pool[x.k]===undefined)pool[x.k]=T0[x.k];const need=left*x.q,take=Math.min(pool[x.k],need);pool[x.k]-=take;
-        if(need>take)buy.push({id:x.k,name:x.c.name||'',qty:need-take,cq:(+x.c.caseQty>1)?Math.round(+x.c.caseQty):null,
+      l.parts.concat(l.scoops||[]).forEach(x=>{if(pool[x.k]===undefined)pool[x.k]=T0[x.k];const need=left*x.q,take=Math.min(pool[x.k],need);pool[x.k]-=take;
+        if(need>take)buy.push({id:x.k,name:x.c.name||'',qty:need-take,cq:(+x.c.caseQty>1)?Math.round(+x.c.caseQty):(x.c.scoop?SCOOP_PER:null),cu:x.c.scoop?'KG bag':null,
           sup:(()=>{try{return compSupplier(x.c)||'';}catch(e){return '';}})(),ord:num(coming(x.c))});});
       buy.sort((a,b)=>b.qty-a.qty||String(a.name).localeCompare(String(b.name)));
       out.push({id:r.id,asin:r.asin,name:r.name,target:r.target,done:r.done,left,first:r.first,setAt:r.setAt,buy});});
@@ -4008,17 +4020,17 @@ function q4Pick(pid,on){
 /* b671: the buy list in the shapes the page and the message use — groups of lines (goes first / first targets / set on a
    day), and every part added up across the lines, by supplier, cases worked out on the total */
 const q4Cases=(q,cq)=>cq?Math.ceil(q/cq):null;
-const q4CaseTxt=(q,cq)=>cq?`${fmt(q4Cases(q,cq))} case${q4Cases(q,cq)===1?'':'s'} of ${fmt(cq)}`:'';
+const q4CaseTxt=(q,cq,u)=>cq?`${fmt(q4Cases(q,cq))} ${u||'case'}${q4Cases(q,cq)===1?'':'s'} of ${fmt(cq)}`:'';   /* b675: u = 'KG bag' for a scooped part */
 /* Jack, 9 Nov: "we buy a minimum of the cases — 7.4 of a case = buy 8 — and say how many we'll have left over" */
 const q4Spare=(q,cq)=>cq?q4Cases(q,cq)*cq-q:0;
-const q4CaseBuy=(q,cq)=>cq?`buy ${q4CaseTxt(q,cq)} = ${fmt(q4Cases(q,cq)*cq)} → ${fmt(q4Spare(q,cq))} left over`:`case size not saved – buy enough full cases to cover ${fmt(q)}`;
+const q4CaseBuy=(q,cq,u)=>cq?`buy ${q4CaseTxt(q,cq,u)} = ${fmt(q4Cases(q,cq)*cq)} → ${fmt(q4Spare(q,cq))} left over`:`case size not saved – buy enough full cases to cover ${fmt(q)}`;
 function q4BuyShape(R){
   const by=(R&&R.shopBy)||[],groups=[];
   by.forEach(x=>{const key=x.first?'first':(x.setAt||'');let g=groups[groups.length-1];
     if(!g||g.key!==key){g={key,label:key==='first'?'Goes first':key?`Targets set ${q4DayLabel(key).replace(/^\S+ /,'')}`:'Your first targets',lines:[]};groups.push(g);}
     g.lines.push(x);});
   const tot={},order=[];
-  by.forEach(x=>x.buy.forEach(b=>{if(!tot[b.id]){tot[b.id]={id:b.id,name:b.name,qty:0,cq:b.cq,sup:b.sup||'',ord:b.ord,for:[]};order.push(b.id);}
+  by.forEach(x=>x.buy.forEach(b=>{if(!tot[b.id]){tot[b.id]={id:b.id,name:b.name,qty:0,cq:b.cq,cu:b.cu||null,sup:b.sup||'',ord:b.ord,for:[]};order.push(b.id);}
     tot[b.id].qty+=b.qty;tot[b.id].for.push({asin:x.asin,name:x.name,qty:b.qty});}));
   const sups=[];order.forEach(id=>{const t=tot[id],s=t.sup||'No supplier saved';let g=sups.find(y=>y.sup===s);if(!g){g={sup:s,items:[]};sups.push(g);}g.items.push(t);});
   sups.sort((a,b)=>(a.sup==='No supplier saved')-(b.sup==='No supplier saved')||b.items.length-a.items.length||a.sup.localeCompare(b.sup));
@@ -4039,13 +4051,13 @@ function q4StaffMsg(R){
     const none=[];
     g.lines.forEach(x=>{if(!x.buy.length){none.push(`${x.asin} · ${x.name}`);return;}
       L.push(`${x.asin} · ${x.name}${x.first?' (goes first)':''}`,`Target ${fmt(x.target)} · ${fmt(x.done)} sent · ${fmt(x.left)} to go`);
-      x.buy.forEach(b=>L.push(`• ${b.name}: ${fmt(b.qty)}${b.cq?' = '+q4CaseTxt(b.qty,b.cq):' (case size not saved)'}${b.ord?` – ${fmt(b.ord)} already on order, counted`:''}`));
+      x.buy.forEach(b=>L.push(`• ${b.name}: ${fmt(b.qty)}${b.cq?' = '+q4CaseTxt(b.qty,b.cq,b.cu):' (case size not saved)'}${b.ord?` – ${fmt(b.ord)} already on order, counted`:''}`));
       L.push('');});
     if(none.length)L.push('Nothing to buy: '+none.join(', '),'');
   });
   L.push(bar,'FULL ORDER LIST – every ASIN added up, by supplier',bar,'We can only buy full cases (7.4 cases needed = buy 8). Format: need → buy X cases of Y = what we get → left over.','');
   S.sups.forEach(g=>{L.push(g.sup.toUpperCase()+(g.sup==='No supplier saved'?'':' (usual supplier)'));
-    g.items.forEach(t=>L.push(`• ${t.name}: need ${fmt(t.qty)} → ${q4CaseBuy(t.qty,t.cq)}${t.for.length>1?' ('+t.for.map(f=>`${fmt(f.qty)} ${f.asin}`).join(' + ')+')':''}`));
+    g.items.forEach(t=>L.push(`• ${t.name}: need ${fmt(t.qty)} → ${q4CaseBuy(t.qty,t.cq,t.cu)}${t.for.length>1?' ('+t.for.map(f=>`${fmt(f.qty)} ${f.asin}`).join(' + ')+')':''}`));
     L.push('');});
   if(S.noCase.length)L.push(`No case size saved in PrepHub yet: ${S.noCase.map(t=>t.name).join(', ')}. Buy the full cases that cover the need, then tell Jack the case size so it's saved for next time.`);
   return L.join('\n');
@@ -4412,12 +4424,12 @@ function vQ4(){
   ${weekHtml}
   ${(()=>{const S=q4BuyShape(R);if(!S.short.length)return '';
     /* b671 (Jack, 9 Nov: "ASIN — buy X for this ASIN … if there are cases put cases too … overall 100 + 100 = 200") */
-    const V=q4BuyView(),cs=(q,cq)=>cq?`<span class="q4BuyCs">${q4CaseTxt(q,cq)}</span>`:'<span class="q4BuyCs n" title="No case size saved on this part — set it on the part in Components">no case size</span>';
-    const item=b=>`<li><b>${fmt(b.qty)}</b><span class="nm">${esc(b.name)}</span>${cs(b.qty,b.cq)}</li>`;
+    const V=q4BuyView(),cs=(q,cq,u)=>cq?`<span class="q4BuyCs">${q4CaseTxt(q,cq,u)}</span>`:'<span class="q4BuyCs n" title="No case size saved on this part — set it on the part in Components">no case size</span>';
+    const item=b=>`<li><b>${fmt(b.qty)}</b><span class="nm">${esc(b.name)}</span>${cs(b.qty,b.cq,b.cu)}</li>`;
     const card=x=>`<div class="q4BuyC"><div class="q4BuyH"><div class="q4BuyHT">${asinChip(x.asin)}<b>${esc(x.name)}</b>${x.first?'<span class="q4FirstT">goes first</span>':''}</div><small>target ${fmt(x.target)} · ${fmt(x.left)} to go</small></div><ul>${x.buy.map(item).join('')}</ul></div>`;
     const asinV=S.groups.map(g=>{const has=g.lines.filter(x=>x.buy.length),no=g.lines.filter(x=>!x.buy.length);
       return `<div class="q4BuyGrp"><div class="q4BuyGL">${esc(g.label)}</div>${has.length?`<div class="q4BuyGrid">${has.map(card).join('')}</div>`:''}${no.length?`<div class="q4BuyNo">Nothing to buy: ${no.map(x=>esc(x.name)).join(' · ')}</div>`:''}</div>`;}).join('');
-    const allV=`<div class="q4BuyGrid">${S.sups.map(g=>`<div class="q4BuyC"><div class="q4BuyH"><div class="q4BuyHT"><b>${esc(g.sup)}</b></div><small>${g.sup==='No supplier saved'?'':'usual supplier · '}${fmt(g.items.length)} item${g.items.length===1?'':'s'}</small></div><ul>${g.items.map(t=>`<li><b>${fmt(t.qty)}</b><span class="nm">${esc(t.name)}${t.for.length>1?`<small>${t.for.map(f=>`${fmt(f.qty)} ${esc(f.name)}`).join(' + ')}</small>`:''}</span>${t.cq?`<span class="q4BuyCs" title="${fmt(t.qty)} needed → ${q4CaseTxt(t.qty,t.cq)} = ${fmt(q4Cases(t.qty,t.cq)*t.cq)}, ${fmt(q4Spare(t.qty,t.cq))} left over">${q4CaseTxt(t.qty,t.cq)}<small>= ${fmt(q4Cases(t.qty,t.cq)*t.cq)} · ${fmt(q4Spare(t.qty,t.cq))} left over</small></span>`:cs(t.qty,t.cq)}</li>`).join('')}</ul></div>`).join('')}</div>`;
+    const allV=`<div class="q4BuyGrid">${S.sups.map(g=>`<div class="q4BuyC"><div class="q4BuyH"><div class="q4BuyHT"><b>${esc(g.sup)}</b></div><small>${g.sup==='No supplier saved'?'':'usual supplier · '}${fmt(g.items.length)} item${g.items.length===1?'':'s'}</small></div><ul>${g.items.map(t=>`<li><b>${fmt(t.qty)}</b><span class="nm">${esc(t.name)}${t.for.length>1?`<small>${t.for.map(f=>`${fmt(f.qty)} ${esc(f.name)}`).join(' + ')}</small>`:''}</span>${t.cq?`<span class="q4BuyCs" title="${fmt(t.qty)} needed → ${q4CaseTxt(t.qty,t.cq,t.cu)} = ${fmt(q4Cases(t.qty,t.cq)*t.cq)}, ${fmt(q4Spare(t.qty,t.cq))} left over">${q4CaseTxt(t.qty,t.cq,t.cu)}<small>= ${fmt(q4Cases(t.qty,t.cq)*t.cq)} · ${fmt(q4Spare(t.qty,t.cq))} left over</small></span>`:cs(t.qty,t.cq,t.cu)}</li>`).join('')}</ul></div>`).join('')}</div>`;
     const seg=k=>`<button type="button" class="${V===k?'on':''}" aria-pressed="${V===k}" onclick="LV3.q4BuyView('${k}')">${k==='asin'?'Per ASIN':'Full order list'}</button>`;
     const shut=q4BuyIsShut();
     return `<section class="panel q4Buy${shut?' shut':''}"><div class="ph"><button type="button" class="q4Fold" aria-expanded="${!shut}" title="Open or fold the buy list" onclick="LV3.q4BuyFold()"><span class="q4Chev" aria-hidden="true">&#9662;</span><span class="t">To hit every target, buy</span><span class="q4FoldHint"><i class="o">show the list</i><i class="c">hide</i></span></button><span class="sub">${V==='asin'?`${fmt(S.short.length)} ASIN${S.short.length===1?'':'s'} short · priority order — each counted after the ones above it have their parts`:`${fmt(S.items.length)} item${S.items.length===1?'':'s'} · every ASIN added up · cases worked out on the total`}</span>
@@ -5895,7 +5907,7 @@ function prodRow(p){
     const line=r=>{const c=comp(r.c);const h=onHand(c);const can=Math.floor(h/r.q);const isLim=multi&&a.limiter===c.id;
       return `<div class="rline${isLim?' lim':''}" onclick="LV3.openComp('${c.id}')"><span class="q">×${r.q}</span>
         <div class="rlMain"><div class="nm"><span class="rlName">${esc(c.name)}</span>${c.kind==='packaging'?'<span class="chip packaging">Packaging</span>':''}
-        ${isLim?'<span class="chip bad">limits build</span>':''}</div>
+        ${isLim?'<span class="chip bad">limits build</span>':''}${c.scoop?'<span class="chip" title="Scooped from a bin — nobody counts how many bags a KG makes, so this count is a guess and never limits the build. The bags and tags do.">scooped</span>':''}</div>
         <div class="st">${c.untracked?'<span class="rpill">not tracked</span>'
           :(()=>{
             /* "72 on hand · next out £2.95 →36units" — three facts jammed
@@ -6028,7 +6040,7 @@ function openProduct(id){
 
   /* what a full delivery would unlock */
   const potential=isB
-    ? (p.recipe.length?Math.min(...p.recipe.map(r=>{const c=comp(r.c);return c?(c.untracked?1e9:Math.floor((onHand(c)+onOrder(c))/r.q)):0;})):0)
+    ? (p.recipe.length?Math.min(...p.recipe.map(r=>{const c=comp(r.c);return c?((c.untracked||c.scoop)?1e9:Math.floor((onHand(c)+onOrder(c))/r.q)):0;})):0)
     : onHand(p)+onOrder(p);
   const unlock=Math.max(0,potential-(a.n||0));
 
@@ -7039,7 +7051,7 @@ function openComp(id){
         <div class="pmeta" style="margin:3px 0 0">${compNeed60(c)?(compShort60(c)>0?`${fmt(compShort60(c))} short, counting what's on order`:'covered'):'no product needs it yet'}</div></div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-      <span class="lab" style="margin:0">Stock batches — consumed oldest first</span>
+      <span class="lab" style="margin:0">Stock batches — consumed oldest first</span>${c.scoop?`<span class="chip" style="margin-left:6px" title="Scooped from a bin: nobody counts how many bags a KG makes, so this count is a guess. It never limits Can build or blocks a send — the countable parts do. It still counts toward COG, and the Q4 buy list shows it in KG bags of ${SCOOP_PER}. Turn it off on Edit.">scooped — never limits a build</span>`:''}
       <button class="btn sm pri" style="margin-left:auto" title="Backstock you already hold at a different price"
         onclick="LV3.openAddBatch('${c.id}','component')">+ Add a batch</button>
     </div>
@@ -7085,6 +7097,10 @@ function editComp(id){
       <input type="checkbox" id="c-untracked" ${c.untracked?'checked':''} style="margin-top:2px">
       <span>Don't track stock for this one
         <span class="pmeta" style="margin-top:2px">For things you always have and share with OA — poly bags, tape, labels. It still shows in the recipe, but never blocks a build and never counts toward COG.</span></span></label>
+    <label style="display:flex;gap:9px;align-items:flex-start;margin:-4px 0 12px;font-size:12.5px;color:var(--text2);cursor:pointer">
+      <input type="checkbox" id="c-scoop" ${c.scoop?'checked':''} style="margin-top:2px">
+      <span>Scooped from a bin — never limits a build
+        <span class="pmeta" style="margin-top:2px">For loose things tipped into a bin and scooped into bags, where nobody counts how many bags a KG makes (Reindeer oats and seeds). Its count is a guess, so it never limits Can build or blocks a send — the countable parts (bags, tags) do. It still counts toward COG, and the Q4 buy list shows it in KG bags of ${SCOOP_PER}.</span></span></label>
     ${id?`<div class="note info">Stock comes from batches — each delivery keeps its own price. Use <b>Correct stock</b> if a physical count disagrees, or <b>Log an order</b> for a new delivery.</div>`
       :`<div class="panel" style="margin-top:4px">
         <div class="ph"><span class="t">What you have right now</span><span class="sub">optional — this becomes its first batch</span></div>
@@ -7286,11 +7302,15 @@ function pickKind(k){
 }
 function saveComp(id){
   const name=$('c-name').value.trim();if(!name){toast('Name required','er');return;}
-  const untracked=!!($('c-untracked')||{}).checked;
-  const obj={name,kind:window._ck||'component',tag:$('c-tag').value,caseQty:parseInt($('c-case').value)||null,untracked};
+  const untracked=!!($('c-untracked')||{}).checked,scoop=!!($('c-scoop')||{}).checked;
+  const obj={name,kind:window._ck||'component',tag:$('c-tag').value,caseQty:parseInt($('c-case').value)||null,untracked,scoop};
   const cid=id||newId('c');
   D.settings.untracked=D.settings.untracked||{};
   if(untracked)D.settings.untracked[String(cid)]=true;else delete D.settings.untracked[String(cid)];
+  /* b675: stored only when it differs from the default (on for the two Reindeer parts), so off stays off */
+  D.settings.scoop=D.settings.scoop||{};
+  {const k=String(cid),was=D.settings.scoop[k];delete D.settings.scoop[k];if(isScoop(k,name)!==scoop)D.settings.scoop[k]=scoop;
+    if(was!==D.settings.scoop[k])logIt('edit',`${name}: ${scoop?'scooped — never limits a build':'counted — limits the build like any part'}`);}
   savePrefs();
   let opened=0;
   if(id){Object.assign(comp(id),obj);}
@@ -7908,7 +7928,9 @@ function parseSheetRows(rows,tab){
   (rows||[]).forEach(raw=>{
     const r={};Object.keys(raw).forEach(k=>{r[k.trim().toLowerCase()]=raw[k];});
     const get=k=>(r[k]==null?'':String(r[k])).trim();
-    const ds=get('date').split(/\s+/)[0];if(!ds){_parseSkips.date++;return;}   /* "13/10/2026 14:00" — the time is not part of the date */
+    const ds=get('date').split(/\s+/)[0];if(!ds){/* b675: Jack's COG note rows ("COG pub snacks - £5.78") and empty rows have no quantity — they are not
+      purchases with a bad date, so they are not counted as one (267 of them were, 11 Nov) */
+      if(get('name')&&sheetNum(get('quanity bought')||get('quantity bought')||get('qty'))>0)_parseSkips.date++;return;}   /* "13/10/2026 14:00" — the time is not part of the date */
     /* build the ISO date from the parts — toISOString() shifts to UTC and in
        British Summer Time that moved 02/08 back to the 1st */
     let iso='';const p=ds.split('/');
@@ -8281,6 +8303,13 @@ async function syncPurchases(){
              new order/invoice number is an edit, not a second purchase (Becki
              hand-deleted three of those on 23 Sep) */
           &&(q.alloc||[]).every(a=>targetOf(a.to)));
+        /* b675 (Becki, 11 Nov — Kingdom Coffee): two orders renumbered on the sheet at once ("1000169069" → "#1000169069",
+           "invoice number tbc" → ") with the same products on both, so each edited line had TWO old lines to choose
+           from and came in as new — a second copy of stock already counted. OA lines are matched like this already (by
+           their SKU): when only the order number changed, the old line that agrees on everything else — same day, same
+           quantity, same price, same product — is the one. */
+        if(c.length>1){const ex=c.filter(q=>q.date===p.date&&(parseInt(q.qty)||0)===(parseInt(p.qty)||0)
+          &&Math.abs((+q.price||0)-(+p.price||0))<0.005&&norm(q.name)===norm(p.name));if(ex.length===1)return{p,q:ex[0]};}
         return{p,q:c.length===1?c[0]:null};});
       pairs.forEach(({p,q})=>{
         if(!q)return;
@@ -8299,6 +8328,51 @@ async function syncPurchases(){
         added--;corrected++;
         const what=[oldQty!==newQty?`${fmt(oldQty)} → ${fmt(newQty)} units`:'',String(oldOid||'')!==String(p.oid||'')?`order ${oldOid||'—'} → ${p.oid||'—'}`:'',oldName!==p.name?`name “${oldName}” → “${p.name}”`:''].filter(Boolean).join(', ')||'figures updated';
         logIt('edit',`Corrected on the sheet — ${q.name} ${dshort(q.date)} · ${q.sup||''}: ${what} (the old line is no longer on the sheet, so the purchase was updated, not doubled)`);
+      });
+    }
+    /* b675 · JOIN WHAT IS ALREADY COUNTED (Becki, 11 Nov: "it has linked some old orders that have already been accounted
+       for"). Two kinds of line came in "new" for stock PLUB already holds — linking either would count it twice. Each is
+       joined only when it is certain: one match each way, or it is left exactly as it was.
+       a · the order number changed on the sheet after an earlier sync had already added the edited line as new: the old
+           purchase (stock booked, its own line gone from the sheet) and the new one (nothing linked) agree on the day,
+           product, quantity, supplier and price. The old purchase takes the sheet's order number and keeps its stock;
+           the empty copy goes. Stock does not change.
+       b · stock typed in by hand before the line was on the sheet (Black HC 300 Nisbets and Cafe HC 400 Kingdom Coffee,
+           29/09, "transferred over from hub"): a batch with no purchase behind it — same part, day, quantity, supplier
+           and price. The sheet line is linked to that batch. No new stock. */
+    let joinedRe=0,joinedHand=0;
+    {
+      const norm=x=>(x||'').toLowerCase().replace(/\s+/g,' ').trim();
+      const same=(a,b)=>a.date===b.date&&norm(a.name)===norm(b.name)&&(parseInt(a.qty)||0)===(parseInt(b.qty)||0)
+        &&norm(a.sup)===norm(b.sup)&&Math.abs((+a.price||0)-(+b.price||0))<0.005;
+      const bare=p=>readTabs.has(p.tab)&&_sheetKeysNow.has(purchKey(p))&&!(p.alloc||[]).length&&!_booked(p.id);
+      const olds=D.purchases.filter(q=>readTabs.has(q.tab)&&!_sheetKeysNow.has(purchKey(q))&&((q.alloc||[]).length||_booked(q.id)));
+      const pr=D.purchases.filter(bare).map(n=>({n,c:olds.filter(q=>q.tab===n.tab&&same(q,n))})).filter(x=>x.c.length===1);
+      pr.forEach(({n,c})=>{const q=c[0];
+        if(pr.filter(x=>x.c[0]===q).length!==1)return;          /* one old line wanted by two new ones — not certain */
+        const was=q.oid;
+        q.oid=n.oid;q.invoice=n.invoice;q.notes=n.notes;q.acct=n.acct;q.sheetArr=n.sheetArr;q.spend=n.spend;q.mismatch=n.mismatch;
+        _layersOfP(q.id).forEach(({l})=>{l.oid=n.oid;l._dirty=1;});
+        claimed.add(q.id);
+        const fi=fresh.indexOf(n);if(fi>=0){fresh.splice(fi,1);added--;}
+        dropReview(n.id,true,true);
+        joinedRe++;
+        logIt('edit',`Order number changed on the sheet — ${q.name} ${dshort(q.date)} · ${q.sup||''}: ${was||'—'} → ${n.oid||'—'}. Joined to the purchase that already had the stock; the copy an earlier sync added was removed (stock unchanged)`);
+      });
+      /* b · stock typed in by hand. "Opening stock", corrections, found-extra and a blank supplier are never a purchase */
+      const JUNK=/^(opening stock|stock (correction|adjust|adjustment)|stocktake|found extra|backstock|—|-|n\/a|unknown)?$/i;
+      const loose=[];D.components.concat(D.products).forEach(o=>(o.layers||[]).forEach(l=>{
+        if(/^P:/.test(String(l.src||''))||!l.arr||JUNK.test(String(l.sup||'').trim()))return;loose.push({o,l});}));
+      const hp=D.purchases.filter(bare).map(n=>({n,c:loose.filter(({o,l})=>String(l.date||'').slice(0,10)===n.date
+          &&(parseInt(l.qty)||0)===(parseInt(n.qty)||0)&&Math.abs((+l.cost||0)-(+n.price||0))<0.005
+          &&norm(l.sup)===norm(n.sup)&&nameClose(o.name,n.name))})).filter(x=>x.c.length===1);
+      hp.forEach(({n,c})=>{const {o,l}=c[0];
+        if(hp.filter(x=>x.c[0].l===l).length!==1)return;        /* one batch wanted by two lines — not certain */
+        l.src='P:'+n.id;l.allocIx=0;l.oid=n.oid;l._dirty=1;
+        n.alloc=[{to:o.id,qty:parseInt(n.qty)||0}];delete n.link;
+        const fi=fresh.indexOf(n);if(fi>=0){fresh.splice(fi,1);added--;}
+        joinedHand++;
+        logIt('edit',`Already in stock — the sheet line ${n.name} ${dshort(n.date)} · ${n.sup||''} ×${fmt(n.qty)} is linked to the batch typed in by hand on ${dshort(l.date)}${l.note?` (“${l.note}”)`:''}. No new stock`);
       });
     }
     /* Exact copies — same date, order, name AND quantity as a line that is
@@ -8327,7 +8401,8 @@ async function syncPurchases(){
     const _cnt=arr=>arr.reduce((m,x)=>{const k=purchKey(x);m[k]=(m[k]||0)+1;return m;},{});
     const _sC=_cnt(all.filter(r=>!purchKilled()[purchKey(r)]));
     const _aC=_cnt(D.purchases.filter(p=>readTabs.has(p.tab)&&p.date>=from&&p.date<=future));
-    const _diff=[...new Set([...Object.keys(_sC),...Object.keys(_aC)])].filter(k=>(_sC[k]||0)!==(_aC[k]||0));
+    const _ack=(D.settings&&D.settings.diffAck)||{};   /* b675: a line somebody marked "Leave it" is answered — it stops counting */
+    const _diff=[...new Set([...Object.keys(_sC),...Object.keys(_aC)])].filter(k=>(_sC[k]||0)!==(_aC[k]||0)&&!(_ack[k]&&(_aC[k]||0)>(_sC[k]||0)));
     window.__lavSheetDiff=_diff.map(k=>({k,sheet:_sC[k]||0,app:_aC[k]||0}));
     SHEET_DIFF={at:new Date().toISOString(),rows:window.__lavSheetDiff,sheetKeys:new Set(Object.keys(_sC)),
       inRange:p=>readTabs.has(p.tab)&&p.date>=from&&p.date<=future};
@@ -8335,7 +8410,7 @@ async function syncPurchases(){
       ?`<br><b style="color:var(--amb)">⚠ ${fmt(_diff.length)} line${_diff.length===1?'':'s'} differ between the sheet and the app</b> <span class="pmeta" style="margin:0">— ${esc(_diff.slice(0,3).map(k=>{const p=k.split('|');return `${p[2]} ${dshort(p[0])} (sheet ${_sC[k]||0}, app ${_aC[k]||0})`;}).join('; '))}${_diff.length>3?'…':''}</span> <button class="btn sm warn" onclick="LV3.openSheetDiff()">Review them</button>`
       :`<br><b style="color:var(--grn)">✓ Sheet and app match</b> <span class="pmeta" style="margin:0">— ${fmt(Object.values(_sC).reduce((t,n)=>t+n,0))} lines, each once</span>`;
     const un=D.purchases.filter(x=>allocState(x).k==='none'&&!dupTwin(x)).length;
-    say(`<b style="color:var(--grn)">${fmt(added)} new</b>${corrected?` · <b style="color:var(--blu)">${fmt(corrected)} corrected on the sheet</b> (updated in place)`:''}${updated?` · ${fmt(updated)} price${updated===1?'':'s'} refreshed`:''}${renamed?` · <b style="color:var(--blu)">${fmt(renamed)} renamed on the sheet</b>`:''} · ${fmt(all.length)} row${all.length===1?'':'s'} read
+    say(`<b style="color:var(--grn)">${fmt(added)} new</b>${corrected?` · <b style="color:var(--blu)">${fmt(corrected)} corrected on the sheet</b> (updated in place)`:''}${updated?` · ${fmt(updated)} price${updated===1?'':'s'} refreshed`:''}${renamed?` · <b style="color:var(--blu)">${fmt(renamed)} renamed on the sheet</b>`:''}${joinedRe?` · <b style="color:var(--blu)">${fmt(joinedRe)} order number${joinedRe===1?'':'s'} changed on the sheet</b> (joined to the purchase that had the stock — nothing doubled)`:''}${joinedHand?` · <b style="color:var(--blu)">${fmt(joinedHand)} already in stock</b> (linked to the batch typed in by hand — no new stock)`:''} · ${fmt(all.length)} row${all.length===1?'':'s'} read
       ${un?` · <b style="color:var(--amb)">${fmt(un)} waiting to be linked</b>`:''}
       ${_relinked.done.length?` · <b style="color:var(--blu)">${fmt(_relinked.done.length)} stock batch${_relinked.done.length===1?'':'es'} re-attached to their purchases</b>`:''}
       ${healed?` · <b style="color:var(--blu)">${fmt(healed)} cop${healed===1?'y':'ies'} the app had made removed</b> <span class="pmeta" style="margin:0">(the sheet has each of these lines once — no stock was booked against them)</span>`:''}
@@ -13623,7 +13698,7 @@ function extraPlan(asin,units){
     const nx=arrLayers(o).filter(l=>l.rem>0&&l.cost>0).slice(-1)[0]||arrLayers(o).filter(l=>l.cost>0).slice(-1)[0];
     out.push({o,name:o.name,qty:gap,cost:(nx&&nx.cost>0)?nx.cost:(avgCost(o)||0)});};
   if(p.type!=='bundle')one(p,units);
-  else p.recipe.forEach(r=>{const c=comp(r.c);if(c&&!c.untracked)one(c,r.q*units);});
+  else p.recipe.forEach(r=>{const c=comp(r.c);if(c&&!c.untracked&&!c.scoop)one(c,r.q*units);});
   return out;
 }
 function bookExtraForBuild(asin,units,why,note){
@@ -14091,6 +14166,14 @@ async function boot(){
   hubLoad().then(()=>{try{paint();}catch(e){}}).catch(e=>console.warn('hub sales',e));
   checkStockSafety().then(()=>{try{paint();}catch(e){}});
 }
+/* b675 (Becki, 11 Nov: "it is marginal the amount we get out of the KG … we already know we have a lot more at home";
+   Jack: "Yes to A"). A SCOOPED part is tipped into a bin and scooped into bags — nobody counts how many bags a KG makes,
+   so its count is a guess. It never limits Can build and never blocks a send: the countable parts (bags, tags) decide.
+   It still counts toward COG and is still on the Q4 buy list, in KG bags of SCOOP_PER. On by default for the two
+   Reindeer parts; the tick on a part's Edit turns it on or off (an explicit "off" is kept, so off stays off). */
+const SCOOP_PER=25;   /* portions per KG bag — the figure the purchase sheet already uses (Becki: "an average of 25") */
+const isScoop=(id,name)=>{const m=(D.settings&&D.settings.scoop)||{},v=m[String(id)];
+  return v===true||(v!==false&&/^reindeer (oats?|bird seeds?)$/i.test(String(name||'').trim()));};
 const isUntracked=id=>!!(D.settings&&D.settings.untracked&&D.settings.untracked[String(id)]);
 const COL=k=>{const c=(D.settings&&D.settings.cols)||{};return c[k]!==false;};
 function paint(){
@@ -14114,7 +14197,7 @@ function paint(){
 }
 
 /* everything the page's inline handlers need */
-const API={go,render:paint,boot,__needOf:p=>needOf(p),q4SetSort,q4SortPref,dupConfirm,pdInStock,q4Calc,q4SetTarget,q4SetFirst,q4FirstMap,q4Holds,q4SentOf,q4SetRate,q4RateOf,q4Rates,q4HoursDay,q4SetHoursDay,q4SetOpen,q4BuyFold,q4BuyIsShut,q4Pick,q4History,q4ChartHover,q4Jump,q4ProgPref,q4DayY,compSupplierOf:c=>compSupplier(c),q4RecOpen,q4DayShort:d=>q4DayLabel(d).replace(/^\S+ /,''),q4Toggle,q4ToggleAll,q4SetSendBy,q4Track,q4One,q4SendBy,q4WeeksOf,q4CopyBuy,q4BuyView,q4StaffMsg,q4BuyShape,q4TargetAtMap,q4PlanFill,q4LimHtml,__layers:()=>LAYERS,__purch:()=>PURCH,
+const API={go,render:paint,boot,__needOf:p=>needOf(p),q4SetSort,q4SortPref,dupConfirm,pdInStock,q4Calc,q4SetTarget,q4SetFirst,q4FirstMap,q4Holds,q4SentOf,q4SetRate,q4RateOf,q4Rates,q4HoursDay,q4SetHoursDay,q4SetOpen,q4BuyFold,q4BuyIsShut,q4Pick,q4History,q4ChartHover,q4Jump,q4ProgPref,q4DayY,compSupplierOf:c=>compSupplier(c),q4RecOpen,q4DayShort:d=>q4DayLabel(d).replace(/^\S+ /,''),q4Toggle,q4ToggleAll,q4SetSendBy,q4Track,q4One,q4SendBy,q4WeeksOf,q4CopyBuy,q4BuyView,q4StaffMsg,q4BuyShape,q4TargetAtMap,__onHand:o=>onHand(o),__parseRows:(rows,tab)=>{const was=_parseSkips;_parseSkips={date:0,qty:0};try{const r=parseSheetRows(rows,tab);return{rows:r,skips:Object.assign({},_parseSkips)};}finally{_parseSkips=was;}},q4PlanFill,q4LimHtml,__layers:()=>LAYERS,__purch:()=>PURCH,
   openProduct,editProduct,setType,setSold30,rowMenu,closeRowMenu,dupeAsins,setSort,saveProductForce,addRecipeRow,rcChange,rcSearch,rcPick,rcMake,recipePreview,copyRecipe,saveProduct,delProduct,togRow,setArchived,
   openShip,drawShip,doShip,copyCog,shipSetQty,shipOverride,shipQty,shipFba,setQ,selOne,selAll,selClear,selType,selVat,
   openComp,editComp,saveComp,delComp,pickKind,openAddBatch,abPreview,doAddBatch,selArchive,selDelete,cselOne,cselAll,cselClear,cselKind,cselTrack,cselArchive,cselDelete,markArrived,openAdjust,doAdjust,

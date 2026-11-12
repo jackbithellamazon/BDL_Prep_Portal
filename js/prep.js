@@ -580,9 +580,50 @@ function _ocPlan(A){
   const amzN=orders.filter(o=>o.amz).length,all=amzN>0&&answered===amzN;
   /* b667: squared once nothing is really missing — the orders not ticked yet can't change that. Something really missing
      still needs every order. A "not delivered yet" needs Amazon's date. */
-  const etaMissing=orders.some(o=>o.notYet&&!o.eta),squared=!all&&S-moved===0;
-  return{A,stuck,orders,amzN,answered,all,ready:(all||S-moved===0)&&!etaMissing,squared,etaMissing,allDel:all&&orders.every(o=>!o.amz||o.ans.a==='d'),D,B,S,moved,M:S-moved,extra,held:heldN,
+  /* b674 (AQUARIAN): an Amazon order he ticked Delivered with units still not booked in, that isn't one of the stuck
+     ones — it can join the check (ocJoin); Send waits for it. Squared only when nothing is left over either. */
+  const lone=orders.filter(o=>o.amz&&!o.stuck.length&&o.ans&&o.ans.a==='d'&&o.rows.some(y=>!y.archived&&_owedUnits(y)>0&&!_ocAsked(y)));
+  const etaMissing=orders.some(o=>o.notYet&&!o.eta),squared=!all&&S-moved===0&&extra===0&&!lone.length;
+  return{A,stuck,orders,amzN,answered,all,ready:(all||squared)&&!etaMissing&&!lone.length,squared,etaMissing,lone,allDel:all&&orders.every(o=>!o.amz||o.ans.a==='d'),D,B,S,moved,M:S-moved,extra,held:heldN,
     sur:orders.filter(o=>o.over>0||rws.some(x=>x.srcs.some(s=>s.o===o&&!s.inner))),rows:rws};
+}
+/* b674 (Jack, 10 Nov — AQUARIAN: "if it's not matching I need to check them all"): the orders he ticked Delivered with
+   units not booked in join the check, so units booked over under another order can cover them too. His answers so
+   far ride onto the new rows, so nothing he ticked is lost. */
+async function ocJoin(A){
+  A=_asinKey(A);const P=_ocPlan(A);if(!P||!(P.lone||[]).length)return;
+  if(!(typeof _isJack==='function'&&_isJack())){toast('Only Jack adds these','er');return;}
+  const now=new Date().toISOString(),who=_who(),from=String((P.stuck[0]||{}).uuid||(P.stuck[0]||{}).id||'');
+  const ans=Object.assign({},_ocAnsAll(A,P.stuck));
+  let n=0,bad=false;
+  for(const o of P.lone)for(const x of o.rows.filter(y=>!y.archived&&_owedUnits(y)>0&&!_ocAsked(y))){
+    const keepR=JSON.parse(JSON.stringify(x.resolution||null)),keepN={n:x.vaNote,b:x.vaNoteBy,a:x.vaNoteAt};
+    _ocIntoJack(x,who,now,from,true);
+    x.resolution.ordChk=Object.assign({},x.resolution.ordChk,{ans:Object.assign({},ans,x.resolution.ordChk.ans||{}),joined:true});
+    try{await _mustSave(x);n++;}catch(e){x.resolution=keepR;x.vaNote=keepN.n;x.vaNoteBy=keepN.b;x.vaNoteAt=keepN.a;bad=true;break;}
+  }
+  try{logAudit('Order check — orders added',`${A} — ${n} order line${n===1?'':'s'} ticked delivered with nothing booked in`);}catch(e){}
+  toast(bad?`Stopped after ${n} — a save didn’t go through. Press it again.`:`Added to the check — the card adds it up again`,bad?'er':'ok');
+  renderJack();try{renderAdmin();renderPrep();}catch(e){}
+}
+/* b674 (Jack, 10 Nov: "go to Sarah first to do her changes and then send to Becki"): his order check found units really
+   missing — Sarah ticks off any move job, then sends it to Becki's shelf check for exactly that many */
+async function ocSarahToBecki(rid){
+  const r=_rowById(rid);if(!r||!r.resolution||!r.resolution.ocBecki||r.resolution.amzDelivered)return;
+  const q=r.resolution,b=q.ocBecki,d=((q.ordChk||{}).done)||{},jobs=d.jobs||[];
+  if(jobs.some(id=>(typeof VA_ACTIONS!=='undefined'?VA_ACTIONS:[]).some(a=>a.id===id&&!a.done))){toast('Tick off the move job first — then send it to Becki','er');return;}
+  const now=new Date().toISOString(),dd=_ddUK(new Date()),who=_who();
+  const keep=JSON.parse(JSON.stringify(q)),keepN={n:r.vaNote,b:r.vaNoteBy,a:r.vaNoteAt};
+  const ch=q.chase?Object.assign({},q.chase):{path:'never-arrived',step:'',due:'',log:[]};
+  ch.log=(ch.log||[]).concat([{at:now,by:who,what:`Sent to Becki — check the shelves for ${fmt(b.need)} (Jack’s order check)`}]);
+  r.resolution=Object.assign({},q,{chase:ch,ocBecki:Object.assign({},b,{sentAt:now,sentBy:who}),
+    amzDelivered:{by:q.rejectedBy||'Jack',at:now,sentBy:who,how:'order-check',need:b.need,ocAt:d.at||''}});
+  r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${who} ${dd}: Jack checked every order — ${fmt(b.need)} really missing. Becki: check the shelves for ${fmt(b.need)}`;
+  r.vaNoteBy=who;r.vaNoteAt=now;r._dirty=true;
+  try{await _mustSave(r);}catch(e){r.resolution=keep;r.vaNote=keepN.n;r.vaNoteBy=keepN.b;r.vaNoteAt=keepN.a;toast('Didn’t save — nothing was recorded','er');return;}
+  try{logAudit('Sent to the warehouse to check',`${r.sku||r.asin||''} — ${b.need} really missing (Jack’s order check)`);}catch(e){}
+  toast(`Sent to Becki — she checks the shelves for ${fmt(b.need)}`,'ok');
+  renderAdmin();try{renderPrep();renderJack();}catch(e){}
 }
 /* a copy of an order check for the row's history — without the big undo snapshot */
 function _ocSlim(oc){const c=JSON.parse(JSON.stringify(oc||{}));if(c.done)delete c.done.undo;return c;}
@@ -644,7 +685,7 @@ async function ocStartFromJack(rid){
 function _ocPullable(){
   /* b668: also his "delivered" answers still with Sarah for "Send to Becki" (given before b667 went live) */
   const wait=rows.filter(r=>{if(!r||r.archived)return false;const q=r.resolution||{};
-    if(q.state!=='rejected'||q.what!=='jack-check'||q.amzDelivered||q.restGone||q.dupOf||q.bookedAs||q.jackNote)return false;
+    if(q.state!=='rejected'||q.what!=='jack-check'||q.amzDelivered||q.restGone||q.dupOf||q.bookedAs||q.jackNote||q.ocBecki)return false;
     if(!(typeof _ansMeans==='function'&&_ansMeans(q).arrivedYes))return false;
     if(!(typeof _amazonRow==='function'&&_amazonRow(r))||!_asinKey(r.asin)||!(_owedUnits(r)>0)||_ocAsked(r))return false;
     if(typeof _parkedOnDate==='function'&&_parkedOnDate(r))return false;
@@ -695,7 +736,10 @@ async function ocUndo(A){
    has acted on what it sent (b662: a row filed since counts as acted on, so nothing is ever half-undone) */
 function _ocSendUntouched(x){
   const q=x.resolution||{},d=(q.ordChk||{}).done;if(x.archived||!d||!d.undo)return false;
-  if(d.route==='missing'&&d.toBecki)return !!(q.amzDelivered&&!q.amzDelivered.done&&q.amzDelivered.how==='order-check'&&q.amzDelivered.at===d.at);   /* b667: Becki hasn't looked yet */
+  if(d.route==='missing'&&d.toBecki){   /* b674: with Sarah and not sent on yet — or with Becki who hasn't looked */
+    if(q.ocBecki)return q.ocBecki.at===d.at&&!q.amzDelivered&&q.state==='rejected'
+      &&!(d.jobs||[]).some(id=>(typeof VA_ACTIONS!=='undefined'?VA_ACTIONS:[]).some(a=>a.id===id&&a.done));   /* once Sarah has acted, never undone under her */
+    return !!(q.amzDelivered&&!q.amzDelivered.done&&q.amzDelivered.how==='order-check'&&q.amzDelivered.at===d.at);}   /* b667 sends: Becki hasn't looked yet */
   if(d.route==='park')return q.state==='approved'&&q.what==='in-transit'&&q.answeredAt===d.at;   /* b667: still parked on his date */
   if(q.amzDelivered&&!q.amzDelivered.done)return false;   /* Sarah sent it to Becki again */
   return d.route==='missing'?(q.state==='asked'&&q.what==='amz-missing'):(q.state==='rejected'&&/^jack/i.test(String(q.rejectedBy||'')));
@@ -794,14 +838,20 @@ async function ocSend(A){
           toBecki,owed0:x.owed,squared:!!P.squared,eta:_eta,prevEd:x.route==='park'?(r.expectedDelivery||''):undefined}})});
       if(x.route==='missing'){
         const ch=r.resolution.chase?Object.assign({},r.resolution.chase):{path:'never-arrived',step:'',due:'',log:[]};
-        ch.log=(ch.log||[]).concat([{at:now,by:who,what:toBecki?`Checked every order of this product — delivered ${P.D}, ${P.B} booked in: ${x.miss} really missing. To Becki to check the shelves for ${x.miss}.`
+        ch.log=(ch.log||[]).concat([{at:now,by:who,what:toBecki?`Checked every order of this product — delivered ${P.D}, ${P.B} booked in: ${x.miss} really missing. To Sarah${x.moved?' to move what was booked under another order':''}, then to Becki to check the shelves for ${x.miss}.`
           :`Checked every order of this product — delivered ${P.D}, ${P.B} booked in: ${x.miss} really missing. Raise it with Amazon.`}]);
         if(toBecki){
-          /* b667: back to where it was before the check (his "delivered" answer), on Becki's shelf check for exactly this many */
-          const oc=r.resolution.ordChk||{},pv=oc.prev||{},res=Object.assign({},r.resolution);
-          ['state','kind','what','ask','note','by','at'].forEach(k=>{if(pv[k]===undefined)delete res[k];else res[k]=pv[k];});
-          res.amzDelivered={by:who,at:now,sentBy:who,how:'order-check',need:x.miss};res.chase=ch;r.resolution=res;
-          r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${who} ${dd}: checked every order — ${fmt(x.miss)} really missing. Becki: check the shelves for ${fmt(x.miss)}`;
+          /* b674 (Jack, 10 Nov: "go to Sarah first to do her changes and then send to Becki"): with Sarah, his finding and
+             the number; she ticks off any move, then Send to Becki (ocSarahToBecki) puts it on the shelf check for exactly
+             this many. Off Becki's list until then. */
+          const res=Object.assign({},r.resolution);
+          if(res.amzDelivered)res.amzDeliveredPrev=(res.amzDeliveredPrev||[]).concat([res.amzDelivered]);
+          delete res.amzDelivered;delete res.bookedAs;delete res.restGone;delete res.dupOf;delete res.jackNote;
+          Object.assign(res,{state:'rejected',kind:'check',what:'jack-check',ask:res.ask||'',rejectedBy:who,at:now,meant:'delivered',chase:ch,
+            rejectNote:`${head} ${fmt(x.miss)} really missing — not booked in under any order.${x.moved?` First: ${srcTxt(x)} — the job to move ${x.moved===1?'it':'them'} across is on that order.`:''}${x.cx?` ${fmt(x.cx)} ${x.cx===1?'was':'were'} cancelled by Amazon.`:''} Then send it to Becki to check the shelves for ${fmt(x.miss)}.${extraTxt}`,
+            ocBecki:{at:now,by:who,need:x.miss,moved:x.moved}});
+          r.resolution=res;r.delivered='Yes';
+          r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${who} ${dd}: checked every order — ${fmt(x.miss)} really missing. Sarah: ${x.moved?'do the move first, then ':''}send it to Becki to check the shelves for ${fmt(x.miss)}`;
         }else
         r.resolution=Object.assign({},r.resolution,{state:'asked',kind:'check',what:'amz-missing',
           ask:`${head} ${fmt(x.miss)} really missing — not in the warehouse.${x.moved?` ${srcTxt(x)} — Sarah has the job to move ${x.moved===1?'it':'them'} across.`:''}${x.cx?` ${fmt(x.cx)} ${x.cx===1?'was':'were'} cancelled by Amazon — ${x.cx===1?'it closes':'they close'} with the claim.`:''} Raise ${fmt(x.miss)} with Amazon.`,

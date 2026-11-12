@@ -4296,14 +4296,18 @@ window.PrepChecks=(function(){
       const b2=mkRow({asin:B,prod:'CHECK ROW becki',date:dm(20),oid:'302-'+k2+'-0000002',acct:'EU 03',sup:'Amazon Germany',exp:5,rcvd:5,ship:5});
       who('Jack');await ocStartFromJack(b1.uuid);await ocAllDel(B);P=_ocPlan(B);eq(P.M,5,'all delivered: 5 really missing');
       await ocSend(B);
-      ok(!_ocAsked(b1)&&_isAmzDel(b1)&&b1.resolution.amzDelivered.how==='order-check'&&b1.resolution.amzDelivered.need===5,'to Becki’s shelf check, for exactly 5');
+      ok(!_ocAsked(b1)&&!_isAmzDel(b1)&&b1.resolution.ocBecki&&b1.resolution.ocBecki.need===5&&onSarahActive(b1),'b674: to Sarah first — 5 really missing, not on Becki’s list yet');
+      ok(!_ocPullable().includes(b1),'with Sarah and his finding: never offered to bring back');
+      {const g=_ocSends().find(x=>x.A===B);ok(g&&g.ok,'his Send can be undone while it is with Sarah');}
+      who('Sarah');await ocSarahToBecki(b1.uuid);who('Jack');
+      ok(!_ocAsked(b1)&&_isAmzDel(b1)&&b1.resolution.amzDelivered.how==='order-check'&&b1.resolution.amzDelivered.need===5,'Sarah sends it: Becki’s shelf check, for exactly 5');
       ok(!onJack(b1),'off his list while she looks');
       ok(!_ocPullable().includes(b1),'already checked by him: never offered to bring back');
       /* b668: and if it ever comes back (b667's button did, 15:44), his answers are remembered */
       {const keepR=JSON.stringify(b1.resolution);_ocIntoJack(b1,'Jack',iso(),'becki-queue',true);P=_ocPlan(B);
         ok(P.orders.filter(o=>o.amz).every(o=>o.ans&&o.ans.a==='d')&&P.ready,'back on his card with every earlier answer ticked — ready to Send');
         b1.resolution=JSON.parse(keepR);}
-      {const g=_ocSends().find(x=>x.A===B);ok(g&&g.ok,'his Send can still be undone while Becki hasn’t looked');}
+      {const g=_ocSends().find(x=>x.A===B);ok(g&&!g.ok,'b674: once Sarah has sent it on to Becki, his Send is never undone under her');}
       who('Becki');await amzNotHere(b1.uuid);
       eq(b1.resolution.what,'amz-missing','Not here → straight to his claim');eq(_amzClaimUnits(b1),5,'claiming the 5');
       {const f=_ocClaimFacts(b1);ok(/Every order of it checked/.test(f)&&/not here/.test(f),'the claim card shows how it is missing');
@@ -4600,6 +4604,249 @@ window.PrepChecks=(function(){
         ok(/Pro-rated/.test(W.textContent),'it says how the share is worked out');}
       else ok(true,'no priority lines — no This week panel');
     }finally{try{if(was===null)localStorage.removeItem('lav3.q4BuyShut');else localStorage.setItem('lav3.q4BuyShut',was);}catch(e){}}
+  };
+
+  /* 160 · b674 (Jack, 10 Nov — HIGH5 "49 (PrepHub 0) seems well off"; Skullcandy "a column of how many sent") */
+  S['b674: order check — SellerFuse like for like, the Sent column, a delivered order outside the check, two-SKU one tick']=async()=>{
+    const keepRun=SFRUN,keepSave=window._saveAsinChecks,keepA=ASIN_CHECKS,keepPull=window._ocPullable;
+    try{
+      window._ocPullable=()=>keepPull().filter(r=>r._chk);
+      window._saveAsinChecks=async(A,v)=>{const n=Object.assign({},ASIN_CHECKS);if(v)n[A]=v;else delete n[A];ASIN_CHECKS=n;return true;};
+      const dm=d=>{const t=ukAddDays(todayISO(),-d);return t.slice(8)+'/'+t.slice(5,7);},dI=d=>ukAddDays(todayISO(),-d);
+      const k=String(++_n).padStart(7,'0').slice(-7),A='B0CHK674'+k.slice(-2);
+      const askJ=()=>({state:'rejected',kind:'check',what:'jack-check',rejectNote:'Arrived — YES, the account shows it delivered.',rejectedBy:'Jack',by:'Sarah',at:iso()});
+      /* the HIGH5 shape: an old order sent in two boxes (one before SellerFuse starts), one sent on one box, the stuck one,
+         and a newer order delivered with nothing booked in that is not part of the check */
+      const st=mkRow({asin:A,prod:'CHECK ROW sf',date:dm(40),oid:'202-'+k+'-0000001',acct:'Biz 02',exp:6,rcvd:0,resolution:{state:'asked',kind:'check',what:'jack-check',ask:'Check whether this order actually arrived',by:'Sarah',at:iso()}});
+      const y1=mkRow({asin:A,sku:'Amuk_14.13_X_'+k+'_03',prod:'CHECK ROW sf',date:dm(40),oid:'026-'+k+'-0000002',acct:'Biz 01',exp:3,rcvd:3,ship:3,sent:'Yes',
+        shipSegments:[{shipId:'FBA15'+k.slice(0,6)+'A',units:3,date:dI(20),type:'Standard'}],allShipIds:['FBA15'+k.slice(0,6)+'A']});
+      const y2=mkRow({asin:A,sku:'Amuk_14.13_X_'+k+'_08',prod:'CHECK ROW sf',date:dm(40),oid:'202-'+k+'-0000003',acct:'EU 03',exp:8,rcvd:8,ship:8,sent:'Yes',
+        shipSegments:[{shipId:'FBA15'+k.slice(0,6)+'B',units:6,date:dI(38),type:'Standard'},{shipId:'FBA15'+k.slice(0,6)+'C',units:2,date:dI(20),type:'Standard'}],allShipIds:['FBA15'+k.slice(0,6)+'B','FBA15'+k.slice(0,6)+'C']});
+      const y3=mkRow({asin:A,prod:'CHECK ROW sf',date:dm(28),oid:'202-'+k+'-0000004',acct:'Biz 03 - WM',exp:8,rcvd:0});
+      const ln=(id,sku,u)=>({id,sku,units:u,date:dI(20)});
+      SFRUN=Object.assign({},keepRun||{at:iso()},{summary:Object.assign({},(keepRun&&keepRun.summary)||{},{asinBal:{since:dI(30),at:todayISO(),
+        by:{[A]:[ln('FBA15'+k.slice(0,6)+'A',y1.sku,3),ln('FBA15'+k.slice(0,6)+'C',y2.sku,2),ln('FBA15'+k.slice(0,6)+'D','Amuk_OLD_'+k,30)]}}})});window.SFRUN=SFRUN;
+      mkRow({asin:A,sku:'Amuk_OLD_'+k,prod:'CHECK ROW sf',date:dm(95),oid:'202-'+k+'-0000005',acct:'Biz 02',exp:30,rcvd:30,ship:30,sent:'Yes',archived:true,
+        shipSegments:[{shipId:'FBA15'+k.slice(0,6)+'D',units:30,date:dI(20),type:'Standard'}],allShipIds:['FBA15'+k.slice(0,6)+'D']});
+      who('Jack');await ocStartFromJack(st.uuid);await ocAllDel(A);
+      goPage('jack');renderJack();await wait(150);
+      let c=[...document.querySelectorAll('#jackWrap .ocCard')].find(x=>x.textContent.includes(A));
+      ok(!!c,'the card is on Jack’s page');
+      if(c){const L=c.querySelector('.ocSfL');
+        ok(L&&/35 of this product went to Amazon on 3 shipments/.test(L.textContent),'SellerFuse: every unit of the product on its shipments since its start — an old order’s box included');
+        ok(L&&/PrepHub has the same 35/.test(L.textContent),'…and PrepHub has the same on those shipments — like for like, not “PrepHub 0”');
+        ok(!/in its 60 days/.test(c.textContent),'the old “in its 60 days (PrepHub N)” wording is gone');
+        ok([...c.querySelectorAll('.ocT th')].some(th=>th.textContent==='Sent'),'a Sent column');
+        const row=oid=>[...c.querySelectorAll('.ocT tbody tr')].find(tr=>tr.textContent.includes(oid));
+        const r1=row(y1.oid),r2=row(y2.oid),r3=row(st.oid);
+        ok(r1&&r1.querySelector('.ocSentC .ocSeg.ok'),'an order sent on one box: ✓ against SellerFuse');
+        ok(r2&&r2.querySelector('.ocSentC .ocSeg.old')&&r2.querySelector('.ocSentC .ocSeg.ok'),'an order split over two boxes: the one before SellerFuse starts says so, the other is ✓');
+        ok(r2&&/^8/.test(r2.querySelector('.ocSentC').textContent.trim()),'…and the column shows its total sent');
+        ok(r3&&r3.querySelector('.ocSentC .ocDim0'),'the stuck order: 0 sent');
+        ok(/8 more on/.test(c.textContent)&&c.textContent.includes(y3.oid),'the newer order ticked delivered with nothing booked in is named — Send doesn’t touch it');}
+      /* a SellerFuse line that differs from PrepHub is red, and the line says how many went with nothing behind them */
+      SFRUN.summary.asinBal.by[A][0]=ln('FBA15'+k.slice(0,6)+'A',y1.sku,4);renderJack();await wait(80);
+      c=[...document.querySelectorAll('#jackWrap .ocCard')].find(x=>x.textContent.includes(A));
+      if(c){const r1=[...c.querySelectorAll('.ocT tbody tr')].find(tr=>tr.textContent.includes(y1.oid));
+        ok(r1&&r1.querySelector('.ocSentC .ocSeg.bad'),'SellerFuse 4, PrepHub 3 on that box: red');
+        ok(/PrepHub has 35 of them — 1 went with nothing booked in/.test((c.querySelector('.ocSfL')||{}).textContent||''),'…and the SellerFuse line says 1 went with nothing booked in');}
+      /* the one tick: two orders, two SKUs */
+      const Z='B0CHK674Z'+k.slice(-1),kz=String(++_n).padStart(7,'0').slice(-7);
+      const zs=mkRow({asin:Z,prod:'CHECK ROW two',date:dm(30),oid:'406-'+kz+'-0000001',acct:'EU 02',sup:'Amazon Spain',exp:2,rcvd:0,resolution:{state:'asked',kind:'check',what:'jack-check',ask:'Check whether this order actually arrived',by:'Sarah',at:iso()}});
+      const zf=mkRow({asin:Z,sku:'Amf_72.25_X_'+kz+'_01',prod:'CHECK ROW two',date:dm(30),oid:'171-'+kz+'-0000002',acct:'EU 03',sup:'Amazon France',exp:1,rcvd:1,ship:1});
+      const zd=mkRow({asin:Z,sku:'Amf_72.82_X_'+kz+'_01',prod:'CHECK ROW two',date:dm(30),oid:'302-'+kz+'-0000003',acct:'EU 03',sup:'Amazon Germany',exp:1,rcvd:1,ship:1});
+      await ocStartFromJack(zs.uuid);let P=_ocPlan(Z);
+      for(const o of P.orders.filter(o=>o.amz&&o.oid!==zs.oid))await ocAns(Z,o.key,'c');
+      P=_ocPlan(Z);ok(P.ready&&P.M===0,'both covering orders cancelled: nothing missing');
+      await ocSend(Z);
+      ok(zs.resolution.bookedAs&&zs.resolution.bookedAs.srcs.length===2,'booked in as two orders');
+      who('Sarah');srtBookedAs(zs.uuid);await wait(60);
+      {const inp=document.getElementById('srtSku'),note=(document.getElementById('srtNote')||{}).value||'';
+        ok(inp&&[zf.sku,zd.sku].includes(inp.value),'the close-off opens with one of the two SKUs');
+        ok(note.includes('1 as '+zf.oid)&&note.includes('1 as '+zd.oid)&&note.includes(zf.sku)&&note.includes(zd.sku),'the note names both orders and both SKUs, with a count each');
+        ok(window._srtSkuCheck&&!window._srtSkuCheck.short,'its SKU check is satisfied by Jack’s order check');}
+      try{closeSorted();}catch(e){}
+    }finally{SFRUN=keepRun;window.SFRUN=keepRun;window._saveAsinChecks=keepSave;ASIN_CHECKS=keepA;window._ocPullable=keepPull;who('Jack');}
+  };
+
+  /* 161 · b674 (AQUARIAN: "how many up and down … if it's not matching I need to check them all"; "go to Sarah first") */
+  S['b674: delivered orders join the check, up and down, squared only when it matches; Sarah first, then Becki; job cards say what']=async()=>{
+    const keepSave=window._saveAsinChecks,keepA=ASIN_CHECKS,keepPull=window._ocPullable;
+    try{
+      window._ocPullable=()=>keepPull().filter(r=>r._chk);
+      window._saveAsinChecks=async(A,v)=>{const n=Object.assign({},ASIN_CHECKS);if(v)n[A]=v;else delete n[A];ASIN_CHECKS=n;return true;};
+      const dm=d=>{const t=ukAddDays(todayISO(),-d);return t.slice(8)+'/'+t.slice(5,7);};
+      const kk=()=>String(++_n).padStart(7,'0').slice(-7);
+      const askJ=()=>({state:'asked',kind:'check',what:'jack-check',ask:'Check whether this order actually arrived',by:'Sarah',at:iso()});
+      /* the AQUARIAN shape: stuck 96/87, one order booked over (32 ordered, 200 booked), two delivered with none booked */
+      const A='B0CHK74A'+(++_n),k=kk();
+      const st=mkRow({asin:A,prod:'CHECK ROW aq',date:dm(30),oid:'203-'+k+'-0000001',acct:'Biz 03 - WM',exp:96,rcvd:87,ship:87,sent:'Yes',resolution:askJ()});
+      const ov=mkRow({asin:A,prod:'CHECK ROW aq',date:dm(30),oid:'203-'+k+'-0000002',acct:'Biz 03 - WM',exp:32,rcvd:200,ship:200,sent:'Yes'});
+      const l1=mkRow({asin:A,prod:'CHECK ROW aq',date:dm(30),oid:'203-'+k+'-0000003',acct:'Biz 03 - WM',exp:120,rcvd:0});
+      const l2=mkRow({asin:A,prod:'CHECK ROW aq',date:dm(30),oid:'203-'+k+'-0000004',acct:'Biz 03 - WM',exp:36,rcvd:0});
+      const ok1=mkRow({asin:A,prod:'CHECK ROW aq',date:dm(30),oid:'204-'+k+'-0000005',acct:'Biz 01',exp:200,rcvd:200,ship:200,sent:'Yes'});
+      who('Jack');await ocStartFromJack(st.uuid);
+      let P=_ocPlan(A);
+      ok(!P.squared,'units booked over that nothing explains yet: not squared — every order needs an answer');
+      await ocAllDel(A);P=_ocPlan(A);
+      eq(P.lone.length,2,'two orders ticked delivered with nothing booked in are outside the check');
+      ok(!P.ready,'Send waits until they are added');
+      goPage('jack');renderJack();await wait(150);
+      let c=[...document.querySelectorAll('#jackWrap .ocCard')].find(x=>x.textContent.includes(A));
+      ok(c&&c.querySelector('.ocJoin button'),'the card offers to add them');
+      ok(c&&/Add the 2 orders above to the check first/.test((c.querySelector('.ocGo')||{}).textContent||''),'…and Send says why it waits');
+      {const u=c&&c.querySelector('.ocUD');ok(u&&u.textContent.includes(ov.oid)&&/\+168/.test(u.textContent)&&/−120/.test(u.textContent)&&/−36/.test(u.textContent)&&/−9/.test(u.textContent),'up and down, order by order: +168, −120, −36, −9');
+        ok(u&&/overall \+3/.test(u.textContent),'…and overall +3');}
+      await ocJoin(A);P=_ocPlan(A);
+      ok(_ocAsked(l1)&&_ocAsked(l2),'added: both on the check');
+      ok(P.orders.filter(o=>o.amz).every(o=>o.ans&&o.ans.a==='d'),'every answer he gave is still ticked');
+      ok(P.ready&&P.M===0,'now it adds up: nothing really missing');
+      eq(P.extra,3,'only the real 3 extra are left over');
+      ok(P.rows.every(x=>x.route==='sarah'),'all three go to Sarah — booked in as the order booked over');
+      await ocSend(A);
+      ok([st,l1,l2].every(x=>x.resolution.state==='rejected'&&x.resolution.bookedAs&&x.resolution.bookedAs.srcs[0].oid===ov.oid),'each: one tick for Sarah, booked in as '+ov.oid);
+      ok(/3 more booked in than delivered/.test(st.resolution.rejectNote||''),'Sarah is told about the 3 extra');
+      /* matching: squared early still works when nothing is left over */
+      const B='B0CHK74B'+(++_n),k2=kk();
+      const b1=mkRow({asin:B,prod:'CHECK ROW sq',date:dm(30),oid:'203-'+k2+'-0000001',acct:'Biz 03 - WM',exp:2,rcvd:0,resolution:askJ()});
+      const b2=mkRow({asin:B,prod:'CHECK ROW sq',date:dm(30),oid:'203-'+k2+'-0000002',acct:'Biz 03 - WM',exp:2,rcvd:2,ship:2});
+      mkRow({asin:B,prod:'CHECK ROW sq',date:dm(30),oid:'204-'+k2+'-0000003',acct:'Biz 01',exp:2,rcvd:2,ship:2});
+      await ocStartFromJack(b1.uuid);await ocAns(B,b2.oid,'c');P=_ocPlan(B);
+      ok(P.squared&&P.ready,'a cancelled twin that covers it exactly: squared early, as before');
+      /* Sarah first, with a move job: Send to Becki waits for the move */
+      const C='B0CHK74C'+(++_n),k3=kk();
+      const c1=mkRow({asin:C,prod:'CHECK ROW mv',date:dm(30),oid:'406-'+k3+'-0000001',acct:'EU 03',sup:'Amazon Spain',exp:2,rcvd:0,resolution:askJ()});
+      const c2=mkRow({asin:C,prod:'CHECK ROW mv',date:dm(30),oid:'407-'+k3+'-0000002',acct:'EU 03',sup:'Amazon Spain',exp:1,rcvd:1,ship:1});
+      await ocStartFromJack(c1.uuid);await ocAns(C,c2.oid,'c');P=_ocPlan(C);
+      ok(P.ready&&P.M===1&&P.rows[0].route==='missing'&&P.rows[0].moved===1,'1 under the cancelled order, 1 really missing');
+      await ocSend(C);
+      ok(c1.resolution.ocBecki&&c1.resolution.ocBecki.need===1&&!_isAmzDel(c1)&&onSarahActive(c1),'to Sarah with the finding — not on Becki’s list yet');
+      const jobs=c1.resolution.ordChk.done.jobs||[];ok(jobs.length===1,'Sarah has the move job');
+      who('Sarah');goPage('admin');renderAdmin();await wait(150);
+      {const b=[...document.querySelectorAll('button')].find(x=>/Send to Becki — check the shelves for 1/.test(x.textContent));
+        ok(!b||b.disabled,'her Send to Becki waits for the move job'+(b?'':' (card not drawn on this page — checked by the press below)'));}
+      await ocSarahToBecki(c1.uuid);ok(!_isAmzDel(c1),'pressing it before the move does nothing');
+      await doneVaActions(jobs);await ocSarahToBecki(c1.uuid);
+      ok(_isAmzDel(c1)&&c1.resolution.amzDelivered.need===1&&c1.resolution.amzDelivered.how==='order-check','move done → Becki’s shelf check for exactly 1');
+      {const g=_ocSends().find(x=>x.A===C);ok(g&&!g.ok,'…and once Sarah has acted, his Send can’t be undone under her');}
+      /* a job card says what it is */
+      const j=mkRow({asin:'B0CHK74J'+(++_n),prod:'CHECK ROW job',date:dm(10),exp:5,rcvd:5});
+      if(typeof addVaActions==='function'){await addVaActions(j,['Update Purchase Sheet'],'Expected quantity corrected 400 → 96');renderAdmin();await wait(120);
+        const cardTxt=[...document.querySelectorAll('.jobWhat')].map(x=>x.textContent+' '+((x.nextElementSibling||{}).textContent||'')).join(' | ');
+        ok(/Update Purchase Sheet/.test(cardTxt)&&/400 → 96/.test(cardTxt),'a job card says what the job is and why, without opening it');}
+    }finally{window._ocPullable=keepPull;window._saveAsinChecks=keepSave;ASIN_CHECKS=keepA;who('Jack');}
+  };
+
+  /* 162 · b675 (Becki, 11 Nov — Kingdom Coffee renumbered on the sheet, hub stock typed in by hand, the COG note rows,
+     Reindeer "103 buildable", and the SellerFuse bar on a tab opened before the check landed) */
+  S['b675: renumbered lines join, hand-typed stock joins, note rows aren’t bad dates, scooped parts never limit, SellerFuse bar looks again']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),TAB='Lavarion Q4',SUP='CHECK KC SUP',HUB='CHECK HUB SUP',NM='CHECK Clipper HC',NM2='CHECK Mini Marsh';
+    const prodW=D.products.find(p=>!p.archived&&p.type==='bundle'&&(p.recipe||[]).length);ok(prodW,'a bundle to link to');
+    const cid=prodW.recipe[0].c,C=()=>D.components.concat(D.products),cc=C().find(x=>x.id===cid);
+    const d1='2026-10-01',d2='2026-10-02';
+    const P=(id,date,name,qty,oid,linked,extra)=>Object.assign({id,uuid:null,tab:TAB,date,name,qty,price:0.29,sup:SUP,oid,loc:'Warehouse',arr:0,
+      alloc:linked?[{to:cid,qty}]:[],acct:'',invoice:'',notes:'',spend:+(qty*0.29).toFixed(2),mismatch:0},extra||{});
+    const row=(date,name,qty,oid,extra)=>Object.assign({tab:TAB,date,name,qty,price:0.29,sup:SUP,oid,acct:'',invoice:'',notes:'',sheetArr:'Confirmed',spend:+(qty*0.29).toFixed(2),mismatch:0},extra||{});
+    const lay=(pid,qty)=>{(cc.layers=cc.layers||[]).push({id:'chkL-'+pid,date:d2,qty,rem:0,cost:0.29,sup:SUP,oid:'x',loc:'Warehouse',arr:1,src:'P:'+pid});};
+    const keepAck=JSON.stringify(D.settings.diffAck||{});
+    const clean=()=>{const A=LV3.__D().purchases;for(let i=A.length-1;i>=0;i--)if(A[i].sup===SUP||A[i].sup===HUB)A.splice(i,1);
+      C().forEach(o=>{if(o.layers)o.layers=o.layers.filter(l=>!/^chkL-/.test(String(l.id||'')));});
+      const k=LV3.__D().settings.purchKilled||{};Object.keys(k).forEach(x=>{if(/check (clipper|mini marsh)|chk hub/i.test(x))delete k[x];});};
+    const mine=()=>LV3.__D().purchases.filter(p=>p.sup===SUP);
+    const byId=id=>LV3.__D().purchases.find(p=>p.id===id);
+    const run=async rows=>{window.__lavSheetRowsHook=t=>t===TAB?rows:null;try{await LV3.syncPurchases();}finally{delete window.__lavSheetRowsHook;}};
+    try{
+      /* G · two Kingdom Coffee orders renumbered at once, the same two products on both */
+      clean();
+      [['chk-a',d1,NM,300,'1000169069'],['chk-b',d2,NM,7500,'invoice number tbc'],['chk-c',d1,NM2,88,'1000169063'],['chk-d',d2,NM2,1518,'invoice number tbc']]
+        .forEach(([id,d,nm,q,o])=>{D.purchases.push(P(id,d,nm,q,o,true));lay(id,q);});
+      await run([row(d1,NM,300,'#1000169069'),row(d2,NM,7500,'"'),row(d1,NM2,88,'#1000169063'),row(d2,NM2,1518,'"')]);
+      eq(mine().length,4,'G: four lines on the sheet, four purchases — nothing doubled');
+      eq((byId('chk-a')||{}).oid,'#1000169069','G: the 01/10 Clipper takes its new order number');
+      eq((byId('chk-b')||{}).oid,'"','G: the 02/10 Clipper takes its new order number');
+      eq((byId('chk-d')||{}).oid,'"','G: the 02/10 marshmallows too');
+      ok(mine().every(p=>(p.alloc||[]).length),'G: none waiting to be linked');
+      /* H · today's state: an earlier sync already added the edited line as new beside the one holding the stock */
+      clean();
+      D.purchases.push(P('chk-a',d1,NM,300,'1000169069',true));lay('chk-a',300);
+      D.purchases.push(P('chk-n',d1,NM,300,'#1000169069',false));
+      const hand0=LV3.__onHand(cc);
+      await run([row(d1,NM,300,'#1000169069')]);
+      eq(mine().length,1,'H: the copy goes — one purchase for one sheet line');
+      ok(byId('chk-a')&&!byId('chk-n'),'H: the one that keeps it is the one with the stock');
+      eq(byId('chk-a').oid,'#1000169069','H: it takes the sheet’s order number');
+      const L1=cc.layers.find(l=>l.id==='chkL-chk-a');ok(L1&&L1.src==='P:chk-a'&&L1.oid==='#1000169069','H: its stock stays on it, with the new number');
+      eq(LV3.__onHand(cc),hand0,'H: stock unchanged');
+      ok(!Object.keys(D.settings.purchKilled||{}).some(k=>/check clipper/.test(k)),'H: nothing is put on the ignore list');
+      /* H2 · not certain (two old lines the same) — left exactly as it was */
+      clean();
+      D.purchases.push(P('chk-a',d1,NM,300,'1000169069',true));lay('chk-a',300);
+      D.purchases.push(P('chk-b',d1,NM,300,'1000169070',true));lay('chk-b',300);
+      D.purchases.push(P('chk-n',d1,NM,300,'#1000169069',false));
+      await run([row(d1,NM,300,'#1000169069')]);
+      ok(byId('chk-n')&&byId('chk-a').oid==='1000169069'&&byId('chk-b').oid==='1000169070','H2: two old lines it could be — nothing joined, nothing changed');
+      /* I · stock typed in by hand before the line was on the sheet (Black HC 300, Nisbets, 29/09, "transferred over from hub") */
+      clean();
+      (cc.layers=cc.layers||[]).push({id:'chkL-hub',date:'2026-09-29',qty:300,rem:0,cost:0.24,sup:HUB,oid:'—',loc:'Warehouse',arr:1,src:'backstock',note:'transferred over from hub'});
+      D.purchases.push({id:'chk-h',uuid:null,tab:TAB,date:'2026-09-29',name:cc.name,qty:300,price:0.24,sup:HUB,oid:'UK19037313',loc:'Warehouse',arr:0,alloc:[],acct:'',invoice:'',notes:'',spend:72,mismatch:0});
+      const hand1=LV3.__onHand(cc),nL=cc.layers.length;
+      await run([{tab:TAB,date:'2026-09-29',name:cc.name,qty:300,price:0.24,sup:HUB,oid:'UK19037313',acct:'',invoice:'',notes:'',sheetArr:'Confirmed',spend:72,mismatch:0}]);
+      const h=byId('chk-h');ok(h&&(h.alloc||[]).length===1&&h.alloc[0].to===cid&&h.alloc[0].qty===300,'I: the sheet line is linked to the part');
+      eq((cc.layers.find(l=>l.id==='chkL-hub')||{}).src,'P:chk-h','I: …through the batch typed in by hand');
+      eq(cc.layers.length,nL,'I: no new batch');eq(LV3.__onHand(cc),hand1,'I: stock unchanged');
+      /* J · "Leave it" stops counting as a difference */
+      clean();
+      D.purchases.push(P('chk-y',d1,NM,11,'OLD-Y',true));lay('chk-y',11);
+      D.purchases.push(P('chk-z',d1,NM,12,'OLD-Z',true));lay('chk-z',12);
+      D.settings.diffAck=D.settings.diffAck||{};D.settings.diffAck[[d1,'old-z',NM.toLowerCase(),12].join('|')]={on:d1,by:'check'};
+      await run([row(d1,NM2,5,'NEW-1')]);
+      const dk=(window.__lavSheetDiff||[]).map(x=>x.k);
+      ok(dk.includes([d1,'old-y',NM.toLowerCase(),11].join('|')),'J: a line nobody has answered still counts');
+      ok(!dk.includes([d1,'old-z',NM.toLowerCase(),12].join('|')),'J: a line marked "Leave it" does not');
+      /* K · note rows and empty rows are not "a date that isn't a real day" */
+      const pr=LV3.__parseRows([{Date:'',Name:'COG pub snacks - £5.78'},{Date:'',Name:'',Spent:'£0.00'},
+        {Date:'',Name:'Real thing','Quanity Bought':'5','Buy Price':'1'},{Date:'31/09/2026',Name:'Bad day','Quanity Bought':'3','Buy Price':'1'},
+        {Date:'02/10/2026',Name:'Fine','Quanity Bought':'4','Buy Price':'1'}],'Lavarion Q3');
+      eq(pr.skips.date,2,'K: only real lines with no proper date are counted (not the note row or the empty one)');eq(pr.rows.length,1,'K: the good line comes through');
+    }finally{clean();D.settings.diffAck=JSON.parse(keepAck);}
+    /* L · scooped parts never limit, still cost, still bought — in KG bags */
+    const limParts=p=>(p.recipe||[]).map(r=>({r,c:D.components.find(x=>x.id===r.c)})).filter(x=>x.c&&!x.c.untracked&&!x.c.scoop);
+    const bundle=D.products.find(p=>!p.archived&&p.type==='bundle'&&limParts(p).length>=2&&limParts(p).some(x=>x.c.kind!=='packaging'));
+    if(bundle){
+      const parts=limParts(bundle),canOf=x=>Math.floor(LV3.__onHand(x.c)/x.r.q);
+      const low=parts.filter(x=>x.c.kind!=='packaging').sort((a,b)=>canOf(a)-canOf(b))[0];
+      const next=Math.min(...parts.filter(x=>x!==low).map(canOf));
+      const av0=(LV3.lavShipList().find(x=>x.asin===bundle.asin)||{}).available;
+      const keepS=JSON.stringify(D.settings.scoop||{});
+      try{
+        D.settings.scoop=D.settings.scoop||{};D.settings.scoop[String(low.c.id)]=true;low.c.scoop=true;
+        const av1=(LV3.lavShipList().find(x=>x.asin===bundle.asin)||{}).available;
+        ok(av1>=av0,'L: scooping the part that limited it never lowers Can build');
+        eq(av1,next,'L: the next countable part decides');
+      }finally{D.settings.scoop=JSON.parse(keepS);low.c.scoop=isScoopChk(low.c);}
+    }
+    function isScoopChk(c){return /^reindeer (oats?|bird seeds?)$/i.test(String(c.name||'').trim())&&(D.settings.scoop||{})[String(c.id)]!==false;}
+    const rf=D.products.find(p=>/^reindeer food$/i.test(String(p.name||'').trim())&&!p.archived);
+    if(rf){
+      const comps=rf.recipe.map(r=>({r,c:D.components.find(x=>x.id===r.c)})).filter(x=>x.c);
+      ok(comps.filter(x=>/oats?|seeds?/i.test(x.c.name)).every(x=>x.c.scoop),'L: Reindeer oats and seeds are scooped by default');
+      const want=Math.min(...comps.filter(x=>!x.c.scoop&&!x.c.untracked).map(x=>Math.floor(LV3.__onHand(x.c)/x.r.q)));
+      eq((LV3.lavShipList().find(x=>x.asin===rf.asin)||{}).available,want,'L: Reindeer Food — the bags and tags decide Can build');
+      const sb1=(LV3.q4Calc().shopBy||[]).find(x=>x.asin===rf.asin);
+      if(sb1&&sb1.left>0){const kg=sb1.buy.filter(b=>b.cu==='KG bag');
+        ok(kg.length&&kg.every(b=>b.cq===25),'L: the Q4 buy list still has the oats and seeds — in KG bags of 25');}
+    }
+    {const msg=LV3.q4StaffMsg({shopBy:[{id:'x',asin:'B0CHKSCOOP',name:'CHECK Reindeer',target:10,done:0,left:10,first:false,setAt:null,
+        buy:[{id:'c1',name:'CHECK Oats',qty:1253,cq:25,cu:'KG bag',sup:'Tesco',ord:0},{id:'c2',name:'CHECK Tags',qty:30,cq:10,cu:null,sup:'Tesco',ord:0}]}]});
+      ok(/CHECK Oats: 1,253 = 51 KG bags of 25/.test(msg),'L: the staff message says KG bags');
+      ok(/buy 51 KG bags of 25 = 1,275 → 22 left over/.test(msg),'L: …and in the full order list');
+      ok(/CHECK Tags: 30 = 3 cases of 10/.test(msg),'L: a counted part still says cases');}
+    /* M · the SellerFuse bar looks for a newer check before it warns */
+    if(window.SFRUN&&window._sfPeekNewer){const was=SFRUN.at;SFRUN.at='2026-01-01T00:00:00Z';
+      const got=await window._sfPeekNewer(true);
+      ok(got&&window.SFRUN&&new Date(window.SFRUN.at)>new Date('2026-01-02'),'M: a newer check in the database is loaded before any warning');
+      ok(window.SFRUN.at===was||new Date(window.SFRUN.at)>=new Date(was),'M: …the newest one');}
   };
 
   async function run(only){

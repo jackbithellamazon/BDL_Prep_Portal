@@ -2623,6 +2623,8 @@ function renderAdmin(){
           _C.wrong=`              ${(()=>{const K=_typeOf(i);
                 return `<span style="font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:3px 8px;border-radius:9px;color:${K[1]};background:${K[1]}1a;border:1px solid ${K[1]}50;white-space:nowrap;cursor:default;margin-right:5px;" title="${K[2]}">${K[0]}</span>`;})()}
               ${i.kind==='claim'||i.kind==='job'?'':`<span class="tfuWhy" style="color:${i.col};background:${i.col}1f;border:1px solid ${i.col}55;cursor:default;" title="Why this row is on the page — worked out by the app from the numbers">${esc(i.reason)}</span>`}
+              ${/* b674 (Jack, 10 Nov: "yes please"): a job says what it is without opening it */''}
+              ${i.kind==='job'?`<span class="tfuWhy jobWhat" title="The job">${esc((i.jobList&&i.jobList.length>1)?i.jobList.map(j=>j.task).join(' · '):i.reason)}</span>${i.notes?`<div class="tfuRaiseNote jobDet" title="Why">${esc(i.notes)}${i.jobBy?' &middot; '+esc(i.jobBy):''}</div>`:''}`:''}
               ${/* The note typed by whoever RAISED it — the context Jack wants
                     Sarah to see without digging. Different from the chase notes:
                     this is why it exists, those are what has happened since. */''}
@@ -2737,6 +2739,18 @@ function renderAdmin(){
                   /* Jack, 10 Sep: he typed "please double-check this… then
                      send the evidence back to me" and her page called it an
                      ANSWER with a green close button. A typed note is a job. */
+                  /* b674 (Jack, 10 Nov: "go to Sarah first to do her changes and then send to Becki") */
+                  if(sentBack.ocBecki&&!sentBack.amzDelivered){const _b=sentBack.ocBecki,_jobs=(((sentBack.ordChk||{}).done)||{}).jobs||[];
+                    const _open=_jobs.filter(id=>(typeof VA_ACTIONS!=='undefined'?VA_ACTIONS:[]).some(x=>x.id===id&&!x.done));
+                    return `<div class="csNow">
+                      <div class="csNowCap" style="color:#fcd34d;">Jack checked every order &mdash; ${fmt(_b.need)} really missing</div>
+                      <div class="csNowTxt" title="${esc(a)}">${esc(a)}</div>
+                      <div class="csActs">
+                        <button class="csAct go" onclick="ocSarahToBecki('${i.rid}')"${_open.length?' disabled':''} title="${_open.length?'Tick off the move job first':'Puts it on Becki’s shelf check for exactly '+fmt(_b.need)}">Send to Becki &mdash; check the shelves for ${fmt(_b.need)}</button>
+                        <button class="csAct plain" onclick="askJackAsk('${i.rid}','free')" title="Something doesn’t add up — send it back to Jack with what you found">Something&rsquo;s wrong &rarr; back to Jack</button>
+                      </div>
+                      <div class="tfuGuide">${_open.length?`First: the move job${_open.length===1?'':'s'} for the ${fmt(_b.moved||0)} booked under another order (on that order, on your list) &mdash; tick ${_open.length===1?'it':'them'} off, then send this to Becki.`:'Becki looks for exactly this many. If they aren’t there, it goes back to Jack to claim.'}</div>
+                    </div>`;}
                   /* b667: Jack's order check found it — booked in as another order. One tick: the wrong-SKU close, filled in. */
                   if(sentBack.bookedAs&&(sentBack.bookedAs.srcs||[]).length){const _s=sentBack.bookedAs.srcs,_o=_s.map(x=>x.oid||x.sku).filter(Boolean);
                     return `<div class="csNow">
@@ -2947,7 +2961,7 @@ function renderAdmin(){
                     const _ay=!_nc&&_mw.arrivedYes;
                     state=_jn?'JACK NEEDS A CHECK':'JACK ANSWERED';scol=_jn?'#fbbf24':'#f87171';
                     last=(_jn?'Asked':'Answered')+(sentBack.at?' · '+lw(sentBack.at):'')+(_jn?' — what he needs is in Triage':' — his answer is in Triage');
-                    next=sentBack.bookedAs?'Close it — booked in as another order, one tick (left)':sentBack.dupOf?'Close it as Duplicate record — one press (left)':_jn?'Do the check, then send what you found to Jack (left)':_rg?'Note the sheet and close it — one press (left)':isAmz
+                    next=(sentBack.ocBecki&&!sentBack.amzDelivered)?'Do any move job, then Send to Becki (left)':sentBack.bookedAs?'Close it — booked in as another order, one tick (left)':sentBack.dupOf?'Close it as Duplicate record — one press (left)':_jn?'Do the check, then send what you found to Jack (left)':_rg?'Note the sheet and close it — one press (left)':isAmz
                       ?(_nc?'Amazon refund it themselves — note the sheet and close it (left)':_ay?'Answer “wrong SKU?” on the left':'Record his answer and close it off (left)')
                       :(_nc?'Close it as cancelled or never arrived (left)':_ay?'Answer “wrong SKU?” on the left':'Pick the move that follows from his answer (left)');
                   }

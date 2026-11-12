@@ -646,7 +646,7 @@ function _ocCardHtml(it,x){
   const P=it.P,A=it.A,q=_ocJs,nS=P.rows.length,owe=it.owedU||0,busy=typeof _ocBusy!=='undefined'&&_ocBusy.has(A);
   const sf=(()=>{try{return typeof sfJackHtml==='function'?sfJackHtml(P.stuck[0]):'';}catch(e){return '';}})();
   const _jo=typeof _ocOrigin==='function'&&_ocOrigin(P.stuck[0])==='jack';   /* b667: his own check — nobody has searched yet */
-  const line=_ocLineHtml(P);
+  const line=_ocLineHtml(P),SFB=_ocSfBal(A);
   let grp=null;
   const tr=P.orders.map(o=>{
     const a=o.ans&&o.ans.a,url=_ocOrderUrl(o.oid,o.sup),g=o.acct+'|'+o.sup,top=g!==grp;grp=g;
@@ -665,6 +665,7 @@ function _ocCardHtml(it,x){
       <td class="ocOd">${o.od?esc(_dmy(o.od)):'—'}${o.old?`<small title="${o.stuck.length?'Older than 60 days — on the list because it is one of the stuck ones':'Older than 60 days — on the list because it is from the same weeks as the stuck one'}">over 60 days</small>`:''}</td>
       <td class="ocN">${fmt(o.want)}${o.cxSheet?`<small class="ocCxS" title="The Purchase Sheet already has ${fmt(o.cxSheet)} of this order cancelled — the ${fmt(o.want)} is what is still expected">+${fmt(o.cxSheet)} cancelled on the sheet</small>`:''}</td>
       <td class="ocN${o.booked<o.want?' ocShort':''}">${fmt(o.booked)}${o.stuck.length?`<small>${fmt(lost)} ${_jo?'not booked in':'not on the shelves'}</small>`:''}</td>
+      <td class="ocSentC">${_ocSentHtml(o,SFB)}</td>
       <td class="ocAns"><div class="ocAnsW">${ansHtml}</div></td></tr>`;}).join('');
   /* where each covering unit was booked, said once per source */
   const srcLine=rs=>{const m={};rs.forEach(r=>r.srcs.forEach(s=>{const k=(s.inner?'i:':'o:')+s.o.key;(m[k]=m[k]||{s,n:0}).n+=s.n;}));
@@ -679,16 +680,27 @@ function _ocCardHtml(it,x){
     {const pR=P.rows.filter(r=>r.route==='park');if(pR.length){const e=P.orders.filter(o=>o.notYet).map(o=>o.eta).filter(Boolean).sort().pop()||'';
       V.push(`<div class="ocV go">${fmt(pR.reduce((t,r)=>t+r.moved,0))} came under the order Amazon say is still coming &mdash; this one waits${e?' until '+esc(_dmy(e)):''}, and the next one booked in squares it</div>`);}}
     if(mJ)V.push(`<div class="ocV go">${fmt(mJ)} not missing &mdash; booked ${srcLine(mR)}. Sarah gets the job to move ${mJ===1?'it':'them'}; you claim only what is really missing</div>`);
-    if(P.M)V.push(_jo?`<div class="ocV bad">${fmt(P.M)} really missing &mdash; Becki checks the shelves for ${fmt(P.M)}; if not there, it comes back to you to claim</div>`
+    if(P.M)V.push(_jo?`<div class="ocV bad">${fmt(P.M)} really missing &mdash; to Sarah first${mJ?' to move what was booked under another order':''}, then she sends it to Becki to check the shelves for ${fmt(P.M)}; if not there, it comes back to you to claim</div>`
       :`<div class="ocV bad">${fmt(P.M)} really missing &mdash; onto your list to raise with Amazon</div>`);
     {const nR=P.rows.filter(r=>r.route==='none');if(nR.length)V.push(`<div class="ocV go">${fmt(nR.length)} order${nR.length===1?'':'s'} owing nothing now the sheet quantity is fixed &mdash; to Sarah to close</div>`);}
     if(P.squared)V.push(`<div class="ocV dim">Squared after ${fmt(P.answered)} of ${fmt(P.amzN)} &mdash; the rest don&rsquo;t need ticking</div>`);
     if(cJ)V.push(`<div class="ocV warn">${fmt(cJ)} cancelled by Amazon on ${mR.length===1?'that order':'those orders'} &mdash; closed with the claim</div>`);
-    if(P.extra)V.push(`<div class="ocV warn">${fmt(P.extra)} more booked in than delivered &mdash; the sheet is wrong; it goes to Sarah with the rest</div>`);
+    if(P.extra)V.push(`<div class="ocV warn">${fmt(P.extra)} more booked in than Amazon delivered${(P.lone||[]).length?' (before the orders above are added)':''}${(()=>{const L=P.orders.filter(o=>o.over>0);return L.length?` on ${L.map(o=>esc(o.oid||'an order')).join(', ')}`:'';})()} &mdash; the sheet is wrong there; it goes to Sarah with the rest</div>`);
     if(P.held)V.push(`<div class="ocV dim">${fmt(P.held)} booked-in unit${P.held===1?' was':'s were'} already given to an earlier order check &mdash; not counted twice</div>`);
   }
+  /* b674 (Jack, 10 Nov — HIGH5's 13/10 order): ticked Delivered, nothing booked in, and not one of the stuck orders —
+     it is in "Delivered" above but Send doesn't touch it, so the card says so */
+  {const lone=P.lone||[];
+    if(lone.length){const u=lone.reduce((t,o)=>t+Math.max(0,o.want-o.booked),0);
+      V.push(`<div class="ocV warn ocJoin"><span>${fmt(u)} more on ${lone.map(o=>`${esc(o.oid||'an order')} (${esc([o.acct,o.od?_dmy(o.od):''].filter(Boolean).join(', '))})`).join(', ')} &mdash; you ticked ${lone.length===1?'it':'them'} delivered and ${lone.length===1?'it isn’t':'they aren’t'} booked in, but ${lone.length===1?'it isn’t':'they aren’t'} part of this check yet. Add ${lone.length===1?'it':'them'}, so units booked over under another order can cover ${lone.length===1?'it':'them'} too.</span>
+        <button class="csAct go" onclick="ocJoin('${q(A)}')"${busy?' disabled':''} title="Puts ${lone.length===1?'that order':'those orders'} on this check with your Delivered tick — the card adds it up again">Add ${lone.length===1?'it':'them'} to this check</button></div>`);}}
+  /* b674 (Jack, 10 Nov: "how many up and or how many down are we"): booked in minus delivered, order by order */
+  const _ud=P.orders.map(o=>({o,d:o.booked-o.del})).filter(x=>x.d);
+  const udHtml=_ud.length?(()=>{const net=P.B-P.D;
+    return `<div class="ocUD" title="Booked in minus delivered for each order — up = more booked in than Amazon delivered, down = fewer"><span class="ocUDk">Up and down</span>${_ud.map(x=>`<span class="${x.d>0?'up':'dn'}" title="${esc(`${x.o.acct||''} ${x.o.sup||''}: delivered ${fmt(x.o.del)}, booked in ${fmt(x.o.booked)}`)}">${esc(x.o.oid||'(no order number)')} <b>${x.d>0?'+':'−'}${fmt(Math.abs(x.d))}</b></span>`).join('')}<span class="ocUDn ${net>0?'up':net<0?'dn':'ok'}">overall <b>${net>0?'+':net<0?'−':''}${fmt(Math.abs(net))}</b> &mdash; ${net===0?'it balances':net>0?`${fmt(net)} more booked in than delivered`:`${fmt(-net)} fewer booked in than delivered`}${P.all?'':' (so far, counting the ones not answered as delivered)'}</span></div>`;})():'';
+
   const tl=P.rows.reduce((t,r)=>(t[r.route]=(t[r.route]||0)+1,t),{});
-  const go=busy?'Sending&hellip;':P.etaMissing?'Put Amazon&rsquo;s date on the one not delivered yet':P.ready?'Send it &mdash; '+[tl.cancelled||tl.sarah?`${fmt((tl.cancelled||0)+(tl.sarah||0))} to Sarah`:'',tl.missing?(_jo?`${fmt(tl.missing)} to Becki&rsquo;s shelves`:`${fmt(tl.missing)} to raise with Amazon`):'',tl.park?`${fmt(tl.park)} waiting for Amazon`:''].filter(Boolean).join(' &middot; '):`Answer every order first &mdash; ${fmt(P.amzN-P.answered)} to go`;
+  const go=busy?'Sending&hellip;':(P.lone||[]).length?`Add the ${fmt(P.lone.length)} order${P.lone.length===1?'':'s'} above to the check first`:P.etaMissing?'Put Amazon&rsquo;s date on the one not delivered yet':P.ready?'Send it &mdash; '+[tl.cancelled||tl.sarah?`${fmt((tl.cancelled||0)+(tl.sarah||0))} to Sarah`:'',tl.missing?(_jo?`${fmt(tl.missing)} to Sarah, then Becki&rsquo;s shelves`:`${fmt(tl.missing)} to raise with Amazon`):'',tl.park?`${fmt(tl.park)} waiting for Amazon`:''].filter(Boolean).join(' &middot; '):`Answer every order first &mdash; ${fmt(P.amzN-P.answered)} to go`;
   const nSup=P.orders.length-P.amzN;
   return `<tr class="jkCardRow"><td colspan="8"><div class="jkCard ocCard" style="border-left-color:#22d3ee;">
     <div class="ocTop">
@@ -709,14 +721,41 @@ function _ocCardHtml(it,x){
       <button class="csAct plain" onclick="ocUndo('${q(A)}')" title="${_jo?'Puts it back exactly where it was before':'No order check needed — back on Becki’s shelf check with Not here'}"${busy?' disabled':''}>${_jo?'Undo':'Back to Becki'}</button>
     </div>
     <div class="ocScroll"><table class="ocT">
-      <thead><tr><th>Account</th><th>Marketplace</th><th>Order ID</th><th>Ordered</th><th>Units</th><th>Booked in</th><th>Amazon shows</th></tr></thead>
+      <thead><tr><th>Account</th><th>Marketplace</th><th>Order ID</th><th>Ordered</th><th>Units</th><th>Booked in</th><th title="${esc(`What PrepHub sent of each order, shipment by shipment. ✓ = SellerFuse has the same units of that SKU on that shipment${SFB?` (its check on ${_dmy(SFB.at)}; its history starts ${_dmy(SFB.since)})`:''}.`)}">Sent</th><th>Amazon shows</th></tr></thead>
       <tbody>${tr}</tbody></table></div>
     <div class="ocFoot">
       <div class="ocSum">Delivered <b>${fmt(P.D)}</b> &middot; booked in <b>${fmt(P.B)}</b>${P.all?'':P.squared?' <span class="ocDim" style="color:#86efac">&mdash; squared &#10003; the rest aren&rsquo;t needed</span>':' <span class="ocDim">&mdash; so far, counting the ones not answered as delivered</span>'}</div>
+      ${udHtml}
       ${V.join('')}
       <button class="csAct good ocGo" onclick="ocSend('${q(A)}')"${P.ready&&!busy?'':' disabled'}>${go}</button>
     </div>
   </div></td></tr>`;
+}
+/* b674: SellerFuse's shipment lines for one product, the day they start from and the day of the check */
+function _ocSfBal(A){
+  try{const B=(typeof SFRUN!=='undefined'&&SFRUN&&SFRUN.summary&&SFRUN.summary.asinBal)||null;if(!B||!B.by)return null;
+    const k=String(A||'');return{since:String(B.since||''),at:String(B.at||SFRUN.at||'').slice(0,10),lines:B.by[k]||B.by[k.toUpperCase()]||[]};}
+  catch(e){return null;}
+}
+/* b674 (Jack, 10 Nov: "add in a column of how many sent via SF check"): what PrepHub sent of this order, shipment by
+   shipment, each against SellerFuse's own line for that SKU on that shipment */
+function _ocSentHtml(o,S){
+  const segs=[];
+  o.rows.forEach(y=>(typeof normaliseSegments==='function'?normaliseSegments(y):[]).forEach(s=>segs.push({id:String(s.shipId||''),n:parseInt(s.units)||0,d:String(s.date||'').slice(0,10),sku:String(y.sku||'')})));
+  const sent=o.rows.reduce((t,y)=>t+(typeof _sentOut==='function'?_sentOut(y):(parseInt(y.ship)||0)),0);
+  if(!sent&&!segs.length)return `<span class="ocDim0">0</span>`;
+  const ln=segs.map(s=>{let st='',tip='';
+    if(S){const Ls=S.lines.filter(l=>String(l.sku||'')===s.sku&&_sfSameShip(l.id,s.id)),sf=Ls.reduce((t,l)=>t+_sfGot(l),0);
+      if(Ls.length){const ph=_sfPhOn(Ls[0].id,s.sku);
+        if(sf===ph){st='ok';tip=`SellerFuse has the same ${fmt(sf)} of this SKU on ${s.id}`;}
+        else{st='bad';tip=`SellerFuse has ${fmt(sf)} of this SKU on ${s.id} — PrepHub has ${fmt(ph)}`;}}
+      else if(S.since&&s.d&&s.d<S.since){st='old';tip=`Sent before SellerFuse’s history starts (${_dmy(S.since)}) — nothing to check it against`;}
+      else if(S.at&&s.d&&s.d>S.at){st='new';tip=`Sent after the last SellerFuse check (${_dmy(S.at)}) — the next check covers it`;}
+      else{st='miss';tip=`SellerFuse has none of this SKU on ${s.id}`;}}
+    const mk=st==='ok'?' <b class="ocSfOk">&#10003;</b>':st==='bad'?' <b class="ocSfBad">SellerFuse differs</b>':st==='miss'?' <b class="ocSfMiss">not on SellerFuse</b>'
+      :st==='old'?' <i>before SellerFuse</i>':st==='new'?' <i>after the last check</i>':'';
+    return `<small class="ocSeg ${st}" title="${esc(tip)}">${fmt(s.n)} &middot; ${esc(s.id)}${s.d?' &middot; '+esc(_dmy(s.d)):''}${mk}</small>`;});
+  return `${fmt(sent)}${ln.slice(0,3).join('')}${ln.length>3?`<small class="ocSeg">+${fmt(ln.length-3)} more shipment${ln.length-3===1?'':'s'}</small>`:''}`;
 }
 /* b667: the 60-day line — what was ordered, booked in and sent, and what SellerFuse saw go to Amazon */
 function _ocLineHtml(P){
@@ -724,7 +763,17 @@ function _ocLineHtml(P){
     const ord=P.orders.reduce((t,o)=>t+o.want,0),snt=P.orders.reduce((t,o)=>t+o.rows.reduce((u,y)=>u+(typeof _sentOut==='function'?_sentOut(y):0),0),0);
     const bal=typeof sfAsinBalance==='function'?sfAsinBalance(P.stuck[0]):null,od0=P.stuck.map(s=>_sfOrderISO(s)).filter(Boolean).sort()[0]||'';
     const ex=(bal&&bal.extra)||[],aft=ex.filter(e=>String(e.date||'')>=od0),bef=ex.filter(e=>String(e.date||'')<od0);
-    let h=`<div class="ocLine"><b>${fmt(P.orders.length)}</b> order${P.orders.length===1?'':'s'} &middot; ordered <b>${fmt(ord)}</b> &middot; booked in <b>${fmt(P.B)}</b> &middot; sent <b>${fmt(snt)}</b>${bal?` &middot; SellerFuse saw <b>${fmt(bal.sfSent)}</b> go to Amazon in its 60 days (PrepHub ${fmt(bal.sent)})`:''}</div>`;
+    let h=`<div class="ocLine"><b>${fmt(P.orders.length)}</b> order${P.orders.length===1?'':'s'} &middot; ordered <b>${fmt(ord)}</b> &middot; booked in <b>${fmt(P.B)}</b> &middot; sent <b>${fmt(snt)}</b></div>`;
+    /* b674 (Jack, 10 Nov — HIGH5: "49 (PrepHub 0) … seems well off"): SellerFuse's shipments against what PrepHub has on
+       those SAME shipments, SKU by SKU — not against the orders placed since a date */
+    const S=_ocSfBal(P.A);
+    if(S){const Ls=S.lines,tot=Ls.reduce((t,l)=>t+_sfGot(l),0),ships=new Set(Ls.map(l=>l.id)).size,
+        mat=Ls.reduce((t,l)=>t+Math.min(_sfGot(l),_sfPhOn(l.id,l.sku)),0);
+      h+=`<div class="ocLine ocSfL" title="${esc(`SellerFuse’s own shipment lines for this product, from ${_dmy(S.since)} to its check on ${_dmy(S.at)}, matched shipment by shipment and SKU by SKU to what PrepHub recorded on them — older orders included. Each order’s own sends are in the Sent column.`)}"><span class="ocSfTag">SellerFuse</span> since ${esc(_dmy(S.since))}: ${tot
+        ?`<b>${fmt(tot)}</b> of this product went to Amazon on <b>${fmt(ships)}</b> shipment${ships===1?'':'s'} &mdash; ${mat>=tot
+          ?`<span class="ok">PrepHub has the same ${fmt(tot)} on ${ships===1?'it':'them'} &#10003;</span>`
+          :`<span class="warn">PrepHub has ${fmt(mat)} of them &mdash; ${fmt(tot-mat)} went with nothing booked in behind ${tot-mat===1?'it':'them'}</span>`}`
+        :'none of this product went to Amazon'}</div>`;}
     if(aft.length)h+=`<div class="ocV warn">${aft.map(e=>`${fmt(e.units)} went to Amazon under ${esc(e.sku)} on ${esc(e.id)} (${esc(_dmy(e.date))}) with nothing booked in behind ${e.units===1?'it':'them'} &mdash; after this order was placed, so ${e.units===1?'it':'they'} may be this order&rsquo;s`).join(' &middot; ')}</div>`;
     if(bef.length)h+=`<div class="ocV dim">${bef.map(e=>`${fmt(e.units)} extra went to Amazon on ${esc(e.id)} (${esc(_dmy(e.date))}), before this order was placed &mdash; can&rsquo;t be one of these`).join(' &middot; ')}</div>`;
     return h;

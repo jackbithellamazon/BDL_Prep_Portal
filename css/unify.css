@@ -1296,6 +1296,27 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 .ocEta{margin-left:6px;padding:3px 6px;border-radius:6px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font:700 11px var(--sans);color-scheme:dark;}
 .ocLine{font-size:12px;font-weight:600;color:var(--text2);margin:6px 0 4px;}
 .ocLine b{color:var(--text);font-family:var(--mono);}
+/* b674: SellerFuse like for like, and the Sent column */
+.ocSfL{margin-top:0;}
+.ocV.ocJoin{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.ocV.ocJoin .csAct{padding:4px 10px;}
+.ocUD{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;font-size:11.5px;color:var(--text2);}
+.ocUD .ocUDk{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);}
+.ocUD span b{font-family:var(--num);font-variant-numeric:tabular-nums;}
+.ocUD .up b{color:#fcd34d;}
+.ocUD .dn b{color:#f87171;}
+.ocUD .ocUDn{font-weight:700;color:var(--text);}
+.ocUD .ocUDn.ok b{color:#4ade80;}
+.ocSfL .ocSfTag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#c4b5fd;border:1px solid rgba(167,139,250,.5);border-radius:4px;padding:0 5px;margin-right:4px;}
+.ocSfL .ok{color:#86efac;font-weight:700;}
+.ocSfL .warn{color:#fcd34d;font-weight:700;}
+.ocT td.ocSentC{font:700 12.5px var(--num);font-variant-numeric:tabular-nums;color:var(--text);}
+.ocT td.ocSentC .ocDim0{color:var(--text3);}
+.ocT td small.ocSeg{color:var(--text3);font-weight:600;}
+.ocT td small.ocSeg b.ocSfOk{color:#4ade80;}
+.ocT td small.ocSeg.bad,.ocT td small.ocSeg b.ocSfBad{color:#f87171;}
+.ocT td small.ocSeg.miss,.ocT td small.ocSeg b.ocSfMiss{color:#fcd34d;}
+.ocT td small.ocSeg i{font-style:normal;color:var(--text3);}
 .ocSq{color:#86efac;}
 .ocV.dim{color:var(--text3);border-color:var(--border2);background:rgba(255,255,255,.03);}
 .ocPull{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:9px;background:rgba(34,211,238,.07);border:1px solid rgba(34,211,238,.35);font-size:12px;font-weight:600;color:var(--text2);}
@@ -1303,3 +1324,7 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 .ocPull .csAct{margin-left:auto;white-space:nowrap;}
 .ocFacts{font-size:11.5px;font-weight:600;color:var(--text2);line-height:1.55;}
 .ocFacts b{color:var(--text);}
+
+/* b674: a job says what it is */
+.tfuWhy.jobWhat{color:#e2e8f0;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.4);cursor:default;}
+.tfuRaiseNote.jobDet{border-left-color:#94a3b8;color:var(--text2);}

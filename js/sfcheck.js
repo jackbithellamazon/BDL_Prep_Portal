@@ -619,12 +619,24 @@ window.sfShipDate=sfShipDate;window.sfShipBeforeOrder=sfShipBeforeOrder;
    is awake. Jack, 29 Oct: from 22:00 on a check evening Jack sees it while there is time to press Run now
    before bed (Sarah starts 04:00); after that everyone sees which check didn't land. Also any day once the
    last count is over SF_STALE_DAYS old. */
+/* b675 (Becki, 11 Nov — "The Tue 20:00 SellerFuse check didn't land" when it had, at 20:13): her tab was opened before
+   the check and never reloaded, so it judged the slot by the run it loaded that morning. Before warning, ask the
+   database whether a newer check is there (one tiny read, at most every 5 minutes) and load it if so — the bar goes. */
+let _sfPeekAt=0;
+async function _sfPeekNewer(force){
+  if(!force&&Date.now()-_sfPeekAt<5*60*1000)return false;_sfPeekAt=Date.now();
+  try{const r=await sb.from('sf_check_runs').select('run_at').is('summary->>kind',null).order('run_at',{ascending:false}).limit(1);
+    const x=r&&!r.error&&r.data&&r.data[0];
+    if(x&&(!SFRUN||new Date(x.run_at)>new Date(SFRUN.at))){await sfLoad();return true;}}catch(e){}
+  return false;}
+window._sfPeekNewer=_sfPeekNewer;
 function sfStaleBanner(){
   let el=document.getElementById('sfStaleBar');
   const now=Date.now(),atMs=SFRUN?new Date(SFRUN.at).getTime():0,at=atMs?new Date(atMs):null;
   const missed=_sfMissed(now,atMs);
   const old=!at||(now-atMs)>SF_STALE_DAYS*864e5;
   if(!missed&&!old){if(el)el.remove();return;}
+  try{_sfPeekNewer();}catch(e){}   /* b675: a tab left open since before the check landed */
   if(!el){el=document.createElement('div');el.id='sfStaleBar';const tb=document.querySelector('.topbar');if(tb&&tb.parentNode)tb.parentNode.insertBefore(el,tb.nextSibling);else document.body.prepend(el);}
   const s=_sfDueSlot(now),sDay=s?ukDayISO(s):'',tonight=sDay===ukDayISO(now);
   const day=sDay?['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][ukWeekdayOf(sDay)]:'';

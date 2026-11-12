@@ -504,10 +504,16 @@ function srtSkuTake(sku){
 function srtSkuShut(){const b=document.getElementById('srtSkuList');if(b)b.style.display='none';_srtSkuIx=-1;}
 /* b667: Sarah's one tick on "booked in as X" — the wrong-SKU close with X's SKU and Jack's check filled in */
 function srtBookedAs(rid){
-  const r=_rowById(rid);if(!r)return;const ba=(r.resolution||{}).bookedAs||{},s=ba.srcs||[],sku=(s.find(x=>x.sku)||{}).sku||'';
+  const r=_rowById(rid);if(!r)return;const ba=(r.resolution||{}).bookedAs||{},s=ba.srcs||[];
+  /* b674: two or more SKUs (Skullcandy: 1 under the French order, 1 under the German) — the box gets the SKU with the
+     most units, and the note names every one with its count */
+  const many=new Set(s.map(x=>x.sku).filter(Boolean)).size>1;
+  const sku=(s.filter(x=>x.sku).slice().sort((a,b)=>(parseInt(b.n)||0)-(parseInt(a.n)||0))[0]||{}).sku||'';
   openSorted(rid,'wrong-sku');
   try{if(sku)srtSkuTake(sku);
-    const ta=document.getElementById('srtNote'),ln=`Jack’s order check: it arrived, booked in as ${s.map(x=>(x.oid||x.sku)+(x.sku&&x.oid?' ('+x.sku+')':'')).join(', ')}. Nothing is missing.`;
+    const ta=document.getElementById('srtNote'),ln=many
+      ?`Jack’s order check: it arrived, booked in as ${s.map(x=>`${parseInt(x.n)||0} as ${x.oid||x.sku}${x.sku&&x.oid?' ('+x.sku+')':''}`).join(', ')}. Nothing is missing.`
+      :`Jack’s order check: it arrived, booked in as ${s.map(x=>(x.oid||x.sku)+(x.sku&&x.oid?' ('+x.sku+')':'')).join(', ')}. Nothing is missing.`;
     if(ta&&!String(ta.value||'').includes(ln)){ta.value=(String(ta.value||'').trim()?String(ta.value).trim()+'\n':'')+ln;}
     srtSync();}catch(e){console.warn('[b667] booked-as close',e);}
 }
