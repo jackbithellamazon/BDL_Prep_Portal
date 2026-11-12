@@ -4849,6 +4849,77 @@ window.PrepChecks=(function(){
       ok(window.SFRUN.at===was||new Date(window.SFRUN.at)>=new Date(was),'M: …the newest one');}
   };
 
+  S['b676/b677: cases on the On order list, Receive and Receive several — count in boxes, a cases box beside every units box']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),T=LV3.__casesTxt;
+    eq(T(240,24),'10 cases','a whole number of cases');
+    eq(T(245,24),'10 cases + 5 loose','cases + loose');
+    eq(T(1,24),'1 loose — under a case','under a case');
+    eq(T(24,24),'1 case','one case');
+    eq(T(0,24),'','nothing owed, nothing said');
+    eq(T(100,0),'','no case size — never guessed');
+    const day=new Date().toISOString().slice(0,10);
+    const c={id:'chk-case-c',name:'CHECK Case Tea',kind:'component',tag:'complementary',caseQty:24,layers:[
+      {id:'chk-case-l',src:'',qty:240,rem:240,ord:240,arr:0,date:day,sup:'CHECK CASE',oid:'CHK-CASE',cost:0.15,arrivedOn:day}]};
+    /* its own stand-in record, so a save never adds it to the real parts list */
+    c._src={id:c.id,uuid:null,name:c.name,kind:'component',tag:'complementary',caseQty:24,archived:false};
+    c._src._sig=[c.name,c.kind,c.tag,c.caseQty].join('|');
+    D.components.push(c);
+    const $=id=>document.getElementById(id);
+    try{
+      /* A · Receive with a case size */
+      LV3.openReceive('component',c.id,'chk-case-l');await wait(120);
+      eq(String($('rcvCs').value),'10','A: the boxes start at what is owed — 10 cases');
+      eq(String($('rcvLoose').value),'0','A: …and 0 loose');
+      ok(/10 cases/.test(document.querySelector('.rcvFacts').textContent),'A: Ordered / Outstanding say their cases');
+      ok([...document.querySelectorAll('.rcvAll')].some(b=>/All 240 · 10 cases/.test(b.textContent)),'A: "All 240 · 10 cases"');
+      $('rcvCs').value='9';$('rcvLoose').value='5';LV3.rcvFromCases();
+      eq(String($('rcvGot').value),'221','A: 9 cases of 24 + 5 loose fills in 221');
+      $('rcvGot').focus();$('rcvGot').value='50';LV3.rcvPreview();
+      eq(String($('rcvCs').value)+'/'+String($('rcvLoose').value),'2/2','A: typing 50 units shows 2 cases + 2 loose');
+      LV3.cm('lav3Ov2');
+      /* A2 · b677: the On order list has a cases box beside the units box, in step both ways */
+      LV3.go('purchases');await wait(300);
+      ok($('rcv-chk-case-l-c'),'A2: the On order list has a cases box');
+      eq(String($('rcv-chk-case-l-c').value),'10','A2: 240 owed shows 10 cases');
+      $('rcv-chk-case-l-c').value='9';LV3.ordCsIn('chk-case-l',24,'c');
+      eq(String($('rcv-chk-case-l').value),'216','A2: typing 9 cases sets 216 units');
+      $('rcv-chk-case-l').value='221';LV3.ordCsIn('chk-case-l',24,'u');
+      eq(String($('rcv-chk-case-l-c').value)+'|'+$('rcv-chk-case-l-l').textContent,'9|+ 5 loose','A2: typing 221 units shows 9 cases + 5 loose');
+      $('rcv-chk-case-l-c').value='8';LV3.ordCsIn('chk-case-l',24,'c');
+      eq(String($('rcv-chk-case-l').value),'197','A2: typing 8 cases keeps the 5 loose — 197');
+      LV3.go('overview');await wait(150);
+      /* B · a part with no case size asks, and keeps what is typed */
+      c.caseQty=null;
+      LV3.openReceive('component',c.id,'chk-case-l');await wait(120);
+      ok($('rcvCq')&&!$('rcvCs'),'B: no case size — it asks how many in a case, no boxes guessed');
+      $('rcvCq').value='12';LV3.rcvCqTyped();
+      eq(String(($('rcvCs')||{}).value),'20','B: typed 12 a case — 240 owed shows 20 cases');
+      $('rcvGot').value='36';LV3.rcvPreview();
+      LV3.rcvConfirm();await wait(150);
+      eq(c.caseQty,12,'B: the case size typed at check-in is kept on the part');
+      const lay=c.layers.find(l=>String(l.id)==='chk-case-l');
+      eq(lay&&lay.rcvd,36,'B: 36 booked in (3 cases)');
+      /* C · a part that already has a case size is never overwritten from check-in */
+      c.caseQty=24;
+      LV3.openReceive('component',c.id,'chk-case-l');await wait(120);
+      ok(!$('rcvCq'),'C: a part with a case size is not asked again');
+      LV3.cm('lav3Ov2');
+      /* D · Receive several says the cases under the count */
+      LV3.openDeliveries();await wait(150);
+      const i=(window._dlv||[]).findIndex(x=>String(x.l.id)==='chk-case-l');
+      ok(i>=0,'D: the arrived line is in Receive several');
+      const qi=$('dlv-q-'+i);qi.value='50';LV3.dlvCs(i);
+      eq(String($('dlv-q-'+i+'-c').value)+'|'+$('dlv-q-'+i+'-l').textContent,'2|+ 2 loose','D: 50 typed → 2 cases + 2 loose');
+      $('dlv-q-'+i+'-c').value='3';LV3.dlvCsIn(i,'c');
+      eq(String(qi.value),'74','D: typing 3 cases → 74 units (the 2 loose kept)');
+      LV3.cm('lav3Ov2');LV3.cm('lav3Ov1');
+    }finally{
+      const ix=D.components.indexOf(c);if(ix>=0)D.components.splice(ix,1);
+      try{LV3.cm('lav3Ov2');LV3.cm('lav3Ov1');}catch(e){}
+    }
+  };
+
   async function run(only){
     R.length=0;const t0=Date.now();
     const _dbwWas=(typeof DBW!=='undefined')?DBW.paused:false;try{DBW.paused=true;}catch(e){}

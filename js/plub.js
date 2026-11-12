@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v56.4 · lav3 · 2026-11-11 · b675';
+const BUILD='v56.4 · lav3 · 2026-11-12 · b677';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -7423,6 +7423,58 @@ function lavGate(retry){
     {danger:true,ok:'Proceed anyway'});
   return true;
 }
+/* b676 (Jack, 12 Nov: "mention cases and help check in by saying cases too — makes it easier for UK staff to check
+   stuff in"). Counting a delivery is counting BOXES. The case size lives on the part (caseQty — set in its Edit, or
+   typed once at check-in). Never guessed: no case size, no cases. */
+const caseOfO=o=>{const n=parseInt(o&&o.caseQty)||0;return n>1?n:0;};
+const casesTxt=(n,cq)=>{n=Math.max(0,parseInt(n)||0);if(!cq||!n)return'';const full=Math.floor(n/cq),rem=n%cq;
+  if(!full)return `${fmt(rem)} loose — under a case`;
+  return `${fmt(full)} case${full===1?'':'s'}${rem?` + ${fmt(rem)} loose`:''}`;};
+let _rcvCq=0,_rcvCqNew=false;
+function rcvCaseRowHtml(got,cq){got=Math.max(0,parseInt(got)||0);
+  const ent=`onkeydown="if(event.key==='Enter'){event.preventDefault();LV3.rcvConfirm();}"`;
+  return `<label>Count it in boxes <span>a case is ${fmt(cq)}</span></label>
+    <div class="rcvCaseRow">
+      <input class="in num" id="rcvCs" type="number" min="0" value="${Math.floor(got/cq)}" oninput="LV3.rcvFromCases()" ${ent}>
+      <span class="rcvX">cases of ${fmt(cq)}</span><span class="rcvX">+</span>
+      <input class="in num" id="rcvLoose" type="number" min="0" value="${got%cq}" oninput="LV3.rcvFromCases()" ${ent}>
+      <span class="rcvX">loose</span><span class="rcvEq" id="rcvCsEq">= ${fmt(got)}</span></div>
+    <div class="rcvTip">Fills in the count below — or type the count and the boxes follow.</div>`;}
+/* boxes typed → the unit count */
+function rcvFromCases(){if(!_rcvCq)return;
+  const cs=Math.max(0,parseInt((document.getElementById('rcvCs')||{}).value)||0),
+        lo=Math.max(0,parseInt((document.getElementById('rcvLoose')||{}).value)||0);
+  const e=document.getElementById('rcvGot');if(e)e.value=cs*_rcvCq+lo;
+  rcvPreview();}
+/* the unit count typed (or All / None / ±) → the boxes, unless somebody is typing in the boxes right now */
+function rcvSyncCases(got){if(!_rcvCq)return;
+  const a=document.activeElement,cs=document.getElementById('rcvCs'),lo=document.getElementById('rcvLoose'),q=document.getElementById('rcvCsEq');
+  if(q)q.textContent='= '+fmt(got);
+  if(!cs||!lo||a===cs||a===lo)return;
+  cs.value=Math.floor(got/_rcvCq);lo.value=got%_rcvCq;}
+/* a part with no case size: typed here once, kept for next time when the delivery is booked in */
+function rcvCqTyped(){
+  const v=parseInt((document.getElementById('rcvCq')||{}).value)||0,w=document.getElementById('rcvCaseRowWrap');
+  const got=Math.max(0,parseInt((document.getElementById('rcvGot')||{}).value)||0);
+  if(v>1){const fresh=_rcvCq!==v;_rcvCq=v;_rcvCqNew=true;if(w&&fresh)w.innerHTML=rcvCaseRowHtml(got,v);}
+  else{_rcvCq=0;_rcvCqNew=false;if(w)w.innerHTML='';}
+  rcvPreview();}
+/* b677 (Jack: "do cases and normal if possible — makes it easier for UK staff"): a count box in units AND cases,
+   kept in step. Typing cases keeps the loose ones; typing units moves the cases (not while somebody is in the cases box). */
+function _csSync(uId,cId,lId,cq,from){const u=document.getElementById(uId),c=document.getElementById(cId),l=document.getElementById(lId);
+  if(!u||!c||!cq)return;
+  if(from==='c'){const loose=Math.max(0,parseInt(u.value)||0)%cq;u.value=Math.max(0,parseInt(c.value)||0)*cq+loose;}
+  else if(document.activeElement!==c)c.value=Math.floor(Math.max(0,parseInt(u.value)||0)/cq);
+  const rem=Math.max(0,parseInt(u.value)||0)%cq;if(l)l.textContent=rem?`+ ${fmt(rem)} loose`:'';}
+function csPairHtml(id,qty,cq,on,align){qty=Math.max(0,parseInt(qty)||0);const rem=qty%cq;
+  return `<div class="csPair${align==='r'?' r':''}"><input class="in num csIn" type="number" min="0" id="${id}-c" value="${Math.floor(qty/cq)}"
+      oninput="${on}" title="Cases of ${fmt(cq)} — the units box follows"><span>cases</span><span class="csLoose" id="${id}-l">${rem?`+ ${fmt(rem)} loose`:''}</span></div>`;}
+/* On order list, "Arriving now" */
+function ordCsIn(lid,cq,from){_csSync('rcv-'+lid,'rcv-'+lid+'-c','rcv-'+lid+'-l',cq,from);}
+/* Receive several */
+function dlvCsIn(i,from){const x=(window._dlv||[])[i],cq=x?caseOfO(x.o):0;if(!cq)return;
+  _csSync('dlv-q-'+i,'dlv-q-'+i+'-c','dlv-q-'+i+'-l',cq,from);if(from==='c')dlvSum();}
+function dlvCs(i){dlvCsIn(i,'u');}
 function openReceive(kind,oid,lid){
   if(lavGate(()=>openReceive(kind,oid,lid)))return;
   const found=findLayer(kind,oid,lid);
@@ -7431,7 +7483,7 @@ function openReceive(kind,oid,lid){
   const ordered=ordQty(l),already=rcvdQty(l),outstanding=outQty(l);
   const inp=document.getElementById('rcv-'+lid);
   const pre=Math.max(0,parseInt(inp?inp.value:outstanding)||outstanding);
-  _rcvCtx={kind,oid,lid};_rcvThat=false;
+  _rcvCtx={kind,oid,lid};_rcvThat=false;_rcvCq=caseOfO(o);_rcvCqNew=false;   /* b676 */
   const eta=l.eta1?dshort(l.eta1)+((l.eta2&&l.eta2!==l.eta1)?' – '+dshort(l.eta2):''):'—';
   $('lav3Mod2').className='mod';
   $('lav3Mod2').innerHTML=`
@@ -7443,9 +7495,9 @@ function openReceive(kind,oid,lid){
             whether this order is finished, and it used to be worked out in
             somebody's head from two others. */''}
       <div class="rcvFacts">
-        <div><i>Ordered</i><b>${fmt(ordered)}</b></div>
+        <div><i>Ordered</i><b>${fmt(ordered)}</b>${_rcvCq&&ordered>=_rcvCq?`<span class="rcvCs">${casesTxt(ordered,_rcvCq)}</span>`:''}</div>
         <div><i>Received so far</i><b ${already?'style="color:var(--grn)"':''}>${fmt(already)}</b></div>
-        <div><i>Outstanding</i><b ${outstanding?'style="color:var(--amb)"':''}>${fmt(outstanding)}</b></div>
+        <div><i>Outstanding</i><b ${outstanding?'style="color:var(--amb)"':''}>${fmt(outstanding)}</b>${_rcvCq&&outstanding>=_rcvCq?`<span class="rcvCs">${casesTxt(outstanding,_rcvCq)}</span>`:''}</div>
         <div><i>Unit cost</i><b>${l.cost>0?gbp(l.cost):'—'}</b></div>
         <div><i>Expected</i><b>${esc(eta)}</b></div>
       </div>
@@ -7456,13 +7508,19 @@ function openReceive(kind,oid,lid){
       </div>`:''}
 
       <div class="rcvAsk">
+        ${_rcvCq?`<div class="rcvCases" id="rcvCaseBox">${rcvCaseRowHtml(pre,_rcvCq)}</div>`
+          :(kind==='component'?`<div class="rcvCases ask" id="rcvCaseBox">
+            <label for="rcvCq">Counting boxes? How many come in one case? <span>optional</span></label>
+            <div class="rcvCaseRow"><input class="in num" id="rcvCq" type="number" min="2" placeholder="e.g. 24" oninput="LV3.rcvCqTyped()">
+              <span class="rcvX">in a case — typed once, kept for next time</span></div>
+            <div id="rcvCaseRowWrap" style="margin-top:10px"></div></div>`:'')}
         <label for="rcvGot">How many actually arrived?</label>
         <div class="rcvStep">
           <button class="rcvPm" onclick="LV3.rcvBump(-1)" title="One less">&minus;</button>
           <input class="in num" id="rcvGot" type="number" min="0" value="${pre}"
             oninput="LV3.rcvPreview()" onkeydown="if(event.key==='Enter'){event.preventDefault();LV3.rcvConfirm();}">
           <button class="rcvPm" onclick="LV3.rcvBump(1)" title="One more">+</button>
-          <button class="rcvAll" onclick="LV3.rcvSet(${outstanding})" title="Everything still owed turned up">All ${fmt(outstanding)}</button>
+          <button class="rcvAll" onclick="LV3.rcvSet(${outstanding})" title="Everything still owed turned up">All ${fmt(outstanding)}${_rcvCq&&outstanding>=_rcvCq?' · '+casesTxt(outstanding,_rcvCq):''}</button>
           <button class="rcvAll" onclick="LV3.rcvSet(0)" title="Nothing turned up">None</button>
         </div>
         <div class="rcvTip">Count everything that came out of the box — damaged included, and <b>any extra over the order</b> (it goes into stock at the same price).</div>
@@ -7549,6 +7607,7 @@ function rcvPreview(){
   _rcvCtx.oid=o.id;_rcvCtx.kind=found.kind;   // keep the handle fresh
   const out=outQty(l),ord=ordQty(l),before=rcvdQty(l);
   const got=Math.max(0,parseInt((document.getElementById('rcvGot')||{}).value)||0);
+  rcvSyncCases(got);   /* b676 */
   const box=document.getElementById('rcvSay');if(!box)return;
   const go=document.getElementById('rcvGo');
   const dmg=Math.min(got,_rcvDmgVal());
@@ -7643,6 +7702,10 @@ function rcvConfirm(){
     toastUndo(`Nothing arrived \u00b7 ${fmt(n)} short \u2014 raised with Sarah`,'er');
     return;
   }
+  /* b676: a case size typed at check-in is kept on the part for next time — only when it had none */
+  if(_rcvCqNew&&_rcvCq>1&&found.kind==='component'&&!caseOfO(found.o)){
+    found.o.caseQty=_rcvCq;logIt('edit',`${found.o.name}: case size ${fmt(_rcvCq)} saved at check-in`);}
+  _rcvCq=0;_rcvCqNew=false;
   const c=_rcvCtx;_rcvCtx=null;_rcvThat=false;
   cm('lav3Ov2');
   receiveRow(c.kind,c.oid,c.lid,got,note,dmg,that);
@@ -11966,7 +12029,9 @@ function deliveriesPanel(){
           ${(()=>{const cq=parseInt(x.o&&x.o.caseQty)||0;if(cq<2)return'';
             const n=ordQty(l),full=Math.floor(n/cq),rem=n%cq;
             if(full<1)return'';                       /* under a full case — "0 × 100" helps nobody */
-            return `<div class="ordCases" title="Case size ${fmt(cq)} — set on the component">${fmt(full)} case${full===1?'':'s'} of ${fmt(cq)}${rem?` + ${fmt(rem)}`:''}</div>`;})()}</td>
+            return `<div class="ordCases" title="Case size ${fmt(cq)} — set on the component">${fmt(full)} case${full===1?'':'s'} of ${fmt(cq)}${rem?` + ${fmt(rem)}`:''}</div>`;})()}
+          ${x.kind==='component'&&!caseOfO(x.o)?`<button class="ordCaseSet" onclick="event.stopPropagation();LV3.editComp('${x.o.id}')"
+            title="No case size saved for this part — set it once and every delivery shows in boxes (or type it when you press Receive)">+ case size</button>`:''}</td>
         <td>${l.cost>0?`<span class="num quiet">${gbp(l.cost)}</span>`:'<span class="dim" style="font-size:11.5px">no price</span>'}</td>
         <td class="l">${esc(l.sup||'—')}
           ${(()=>{const u=unlocks(x);
@@ -11997,8 +12062,9 @@ function deliveriesPanel(){
           <div class="pmeta" style="margin:4px 0 0;color:${e.col};font-weight:700">${e.sub||e.txt}</div></td>
         <td onclick="event.stopPropagation()">
           <input class="in num rcvQty" type="number" min="0" value="${l.qty}" id="rcv-${l.id}"
-            title="How many are being counted in now — change it if only part of what is owed has turned up">
-          <div class="pmeta" style="margin:3px 0 0;text-align:center">of ${fmt(outQty(l))} still owed</div></td>
+            title="How many are being counted in now — change it if only part of what is owed has turned up"${caseOfO(x.o)?` oninput="LV3.ordCsIn('${l.id}',${caseOfO(x.o)},'u')"`:''}>
+          ${caseOfO(x.o)?csPairHtml('rcv-'+l.id,l.qty,caseOfO(x.o),`LV3.ordCsIn('${l.id}',${caseOfO(x.o)},'c')`):''}
+          <div class="pmeta" style="margin:3px 0 0;text-align:center">of ${fmt(outQty(l))} still owed</div>${caseOfO(x.o)&&outQty(l)>=caseOfO(x.o)?`<div class="ordCases">${casesTxt(outQty(l),caseOfO(x.o))}</div>`:''}</td>
         <td class="acts" onclick="event.stopPropagation()">
           <button class="btn sm go" title="Count it in — asks what actually arrived before anything is booked"
             onclick="LV3.openReceive('${x.kind}','${x.o.id}','${l.id}')">${rcvdQty(l)?'Receive more':'Receive'}</button>
@@ -12084,7 +12150,7 @@ function openDeliveries(){
                   if(u.blocked.length)return `· <b style="color:var(--grn)">unblocks ${esc(u.blocked[0].name)}</b>`;
                   if(u.uses.length)return `· makes ~${fmt(u.adds)} more ${esc(u.uses[0].name)}`;return'';})()}</div></div>
             <div class="dvEta" style="color:${e.col}">${e.txt}<div class="pmeta" style="margin:0">${e.sub||''}</div></div>
-            <div class="dvQty"><span class="num">${fmt(outQty(x.l))}</span><div class="pmeta" style="margin:0">${rcvdQty(x.l)?'still owed':'ordered'}</div></div>
+            <div class="dvQty"><span class="num">${fmt(outQty(x.l))}</span><div class="pmeta" style="margin:0">${rcvdQty(x.l)?'still owed':'ordered'}</div>${caseOfO(x.o)&&outQty(x.l)>=caseOfO(x.o)?`<div class="pmeta" style="margin:0;color:#93c5fd;font-weight:700">${casesTxt(outQty(x.l),caseOfO(x.o))}</div>`:''}</div>
             <button class="btn sm hereBtn" onclick="LV3.dlvArrived('${x.l.id}')">It's here</button>
           </div>`;}).join('')}
       </div>`).join('')}
@@ -12144,11 +12210,12 @@ function openDeliveries(){
             if(full<1)return'';
             return `<div class="pmeta" style="margin:1px 0 0;color:#93c5fd;font-weight:700" title="Case size ${fmt(cq)}">${fmt(full)} case${full===1?'':'s'} of ${fmt(cq)}${rem?` + ${fmt(rem)}`:''}</div>`;})()}
           ${rcvdQty(x.l)?`<div class="pmeta" style="margin:2px 0 0;color:var(--grn)">${fmt(rcvdQty(x.l))} of ${fmt(ordQty(x.l))} already in</div>`:''}</div>
-        <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><div style="display:flex;align-items:center;gap:7px;justify-content:flex-end">
           <span class="pmeta" style="margin:0">received</span>
           <input class="in num" type="number" min="0" value="${x.l.qty}" id="dlv-q-${i}"
-            style="width:70px;text-align:center;padding:6px" oninput="LV3.dlvSum()"
+            style="width:70px;text-align:center;padding:6px" oninput="LV3.dlvSum();LV3.dlvCs(${i})"
             onkeydown="if(event.key==='Enter'){event.preventDefault();const n=document.getElementById('dlv-q-${i+1}');if(n){n.focus();n.select();}else{const g=document.getElementById('dlvGo');if(g&&!g.disabled)g.focus();}}"></div>
+          ${caseOfO(x.o)?csPairHtml('dlv-q-'+i,x.l.qty,caseOfO(x.o),`LV3.dlvCsIn(${i},'c')`,'r'):''}</div>
         <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
           <span class="pmeta" style="margin:0">landed</span>
           <input class="in" type="date" id="dlv-d-${i}" value="${x.l.arrivedOn||dayISO()}" max="${dayISO()}"
@@ -14209,7 +14276,7 @@ const API={go,render:paint,boot,__needOf:p=>needOf(p),q4SetSort,q4SortPref,dupCo
   sendBy,sendState,primeDays,setPrimeDays,workDaysBefore,workDaysBetween,
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,refreshShared,reloadData,rtChange,checkStockSafety,__save:()=>save(),__remRpc:()=>_remRpc,__setRemRpc:v=>{_remRpc=v;},settleIssue,sheetSays,relinkOrphans,openSheetDiff,mergeIntoSheetLine,dropDiffLine,cancelDiffLine,ackDiffLine,sheetDiffItems,__persist:()=>persist(),__pushNow:()=>pushNow(),__PURCH:()=>PURCH,__prefsMerge:_prefsMerge,__savePrefs:()=>savePrefs(),__saveState:()=>saveState(),__prefsBase:()=>_prefsBase,__setPrefsBase:v=>{_prefsBase=v;},__ack:()=>ACK,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
-  sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,amzUnlock,amzLocked,amzSfLast,copyAsin,copyAsinChip,shelfWalk,shareParts,upliftOf,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,amzUnlock,amzLocked,amzSfLast,copyAsin,copyAsinChip,shelfWalk,shareParts,upliftOf,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvFromCases,rcvCqTyped,dlvCs,dlvCsIn,ordCsIn,__casesTxt:(n,cq)=>casesTxt(n,cq),rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfApplySalesRun,__sfSalesInto:_sfSalesInto,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,lossOfRows,lossLine,profitSrcOf,fbaCalDays,priceOf,acCopySend,acJump,sfPace,safetyFor,emptyDaysIn,stockAt,stockLedger,vHealth,coverDaysOf,isWorkDay,workDaysAfter,fbaLearn,primeDays,primeSet,copyAsin,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
   setUplift,upliftCfg,upliftOf,upliftNote,demandBetween,daysCovered,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),
