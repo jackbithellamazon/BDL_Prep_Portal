@@ -719,6 +719,23 @@ function _isMissingShipSegmentsErr(err){return _missingColInErr(err)==='ship_seg
 const _svBusy=new Map();
 function _svKey(r){return r&&(r.uuid||('L'+r.id));}
 function _saveIdle(r){const s=_svBusy.get(_svKey(r));return s&&s.n>0?new Promise(res=>s.w.push(res)):Promise.resolve();}
+/* b681 (Jack, 15 Nov: "need it doing daily now"): stock on its way to us, every day. Every booking-in writes its own
+   dated line — the Prep Sheet kept only the LAST booked-in time, so an order that came in two goes lost the first day —
+   and an order closed with units never arrived says when. Written here, after the database took the save, so it is
+   every path (count-in, the Received cell, the status, the sheet, SellerFuse, the rules) and only what really landed.
+   base = what the database held before; sent = the columns this save wrote. */
+function _trBookLog(r,base,sent){
+  if(!r||!sent)return;
+  const b=base||{};
+  if('qty_received' in sent){
+    const was=parseInt(b.qty_received)||0,now=parseInt(sent.qty_received)||0;
+    if(was!==now)logAudit('Booked in',`${r.sku||r.asin||''} — received ${was} → ${now} · order ${r.oid||'-'} · row ${r.uuid}${b.rcvd_at?' · was stamped '+b.rcvd_at:''}`);
+  }
+  if(sent.archived===true&&b.archived!==true){
+    const left=(typeof _owedUnits==='function')?_owedUnits(r):0;
+    if(left>0)logAudit('Closed — never arrived',`${r.sku||r.asin||''} — ${left} never arrived · order ${r.oid||'-'} · row ${r.uuid}`);
+  }
+}
 async function saveRow(r){
   const k=_svKey(r),s=_svBusy.get(k)||{n:0,w:[]};s.n++;_svBusy.set(k,s);
   try{return await _saveRowNow(r);}
@@ -808,7 +825,8 @@ async function _saveRowNow(r){
   }else{
     res=await runWrite(data=>sb.from('prep_rows').insert(data).select().single());
     if(res.data)r.uuid=res.data.id;
-    if(!res.error){delete r._minted;_setBase(r);}
+    if(!res.error){delete r._minted;_setBase(r);
+      try{if((parseInt(r.rcvd)||0)>0)_trBookLog(r,{qty_received:0},{qty_received:parseInt(r.rcvd)||0});}catch(e){}}   /* b681 */
     /* b665: only a clash on the row's OWN id is our earlier insert landing — one on sheet_sync_id is another
        laptop's copy of the same sheet line, so it falls through: false + _lastSaveErr, and sync drops the phantom */
     else if(_isDupKeyErr(res.error)&&r._minted&&!/sheet_sync_id/i.test(((res.error.message||'')+' '+(res.error.details||'')))){
@@ -834,6 +852,7 @@ async function _saveRowNow(r){
     return false;
   }
   /* the database now holds what we sent — nothing else about the row changes */
+  if(_sent){try{_trBookLog(r,r._base,_sent);}catch(e){}}   /* b681: before the base moves on */
   if(_sent)_setBase(r,Object.assign({},r._base||{},_sent));
   // Keep _dirty TRUE briefly so Supabase's realtime echo of THIS write
   // (which can arrive a few hundred ms after the update commits) doesn't

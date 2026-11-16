@@ -96,27 +96,65 @@ function paintJackBadge(){/* badge retired — Jack, 30 Aug: "get rid of the 4" 
 function _jkEscOf(id){
   /* an order-check card (one per product) is an escalation when any of its rows is */
   if(/^oc:/.test(String(id||''))){const A=String(id).slice(3).toUpperCase();
-    const x=rows.find(r=>!r.archived&&String(r.asin||'').toUpperCase()===A&&((r.resolution||{}).escalation&&(r.resolution||{}).state==='asked'||(r.resolution||{}).looksWrong&&(r.resolution||{}).state==='proposed'));
+    const x=rows.find(r=>!r.archived&&String(r.asin||'').toUpperCase()===A&&(_jkEscLive(r.resolution||{})||(r.resolution||{}).looksWrong&&(r.resolution||{}).state==='proposed'));
     return x?_jkEscOf(x.uuid||x.id):'';}
   const r=typeof _rowById==='function'?_rowById(id):null;if(!r||r.archived)return '';
   const q=r.resolution||{};
-  if(q.escalation&&q.state==='asked')return q.escalation.why||'Escalated';
+  if(_jkEscLive(q))return q.escalation.why||'Escalated';
   if(q.looksWrong&&q.state==='proposed')return `${q.looksWrong.by||'Sarah'} wanted to close it, but the check says it can’t be right`;
   return '';
 }
+/* b680: an escalation belongs to the question it was raised with — once that question is answered (or replaced by a
+   newer one) the old reason stops pinning the row to the top */
+function _jkEscLive(q){if(!q||!q.escalation||q.state!=='asked')return false;
+  const a=Date.parse(q.escalation.at||''),b=Date.parse(q.at||'');return !(a&&b)||Math.abs(a-b)<120000;}
 /* escalations first, keeping the chosen sort inside each group */
 function _jkEscFirst(items){const e=items.filter(it=>it.esc),o=items.filter(it=>!it.esc);items.length=0;items.push(...e,...o);return items;}
+/* b678 (Jack, 13 Nov: "look how unsmooth this is — just not smooth at all"): what is on his screen stays where it is
+   when the page redraws. _jkAnchor = what to keep in place (set by a press: the new card goes where the row was); with
+   none set, the first card he can see stays put — an answered row closes up and the next one takes its place.
+   _jkHold: a press that saves several things draws the page once, at the end, not once per save. */
+let _jkHold=0,_jkHoldAt=0,_jkAnchor=null,_jkItemCache={};
+const _ocAutoJoin=new Set();   /* b680: a card made on the old version heals itself once */
+const _ocMoreOpen=new Set();
+function _jkSel(id){try{return CSS.escape(String(id));}catch(e){return String(id).replace(/["\\]/g,'\\$&');}}
+function _jkScroller(w){let s=w;while(s&&s!==document.body&&s!==document.documentElement){const oy=getComputedStyle(s).overflowY;
+  if((oy==='auto'||oy==='scroll')&&s.scrollHeight>s.clientHeight+2)return s;s=s.parentElement;}return document.scrollingElement||document.documentElement;}
+function _jkHoldOn(){_jkHold++;_jkHoldAt=Date.now();}
+function _jkHoldOff(){_jkHold=Math.max(0,_jkHold-1);}
+function _jkAnchorSet(id,top,flash){_jkAnchor={id:String(id),top:top==null?null:top,flash:!!flash};}
+/* b678: a tick redraws its own card only */
+function _ocRepaint(A){
+  const w=document.getElementById('jackWrap');
+  const tr=w&&w.querySelector(`tr[data-jk="${_jkSel('oc:'+A)}"]`),c=_jkItemCache['oc:'+A];
+  if(!tr||!c||document.hidden||!_pageActive('page-jack')){renderJack();return;}
+  const P=_ocPlan(A);if(!P||!P.stuck.length){renderJack();return;}
+  const it=Object.assign({},c.it,{P,owedU:P.rows.reduce((t,x)=>t+x.owed,0)});
+  const tb=document.createElement('tbody');tb.innerHTML=_ocCardHtml(it,c.x);
+  const nw=tb.firstElementChild;if(!nw){renderJack();return;}
+  tr.replaceWith(nw);_jkItemCache['oc:'+A]={it,x:c.x};
+}
+/* b678: the extra answers on an order that was booked in and sent in full — sheet quantity, part cancelled */
+function ocMoreShow(A,key,btn){_ocMoreOpen.add(A+'|'+key);const s=btn&&btn.previousElementSibling;if(s&&s.classList.contains('ocMoreW'))s.classList.add('on');if(btn)btn.remove();}
 function renderJack(){
   const w=document.getElementById('jackWrap');if(!w)return;
   /* Same gate as every other page: skip while unseen, note the debt, repaint on
      return. */
   if(document.hidden||!_pageActive('page-jack')){_dirtyR.jack=true;return;}
+  if(_jkHold>0&&Date.now()-_jkHoldAt<15000){_dirtyR.jack=true;return;}   /* b678: one draw per press */
   _dirtyR.jack=false;
   const _st=w.scrollTop||0;   /* a repaint must not throw him back to the top */
   /* Jack, 15 Sep: 'not smooth' — whichever ancestor is actually scrolling (the
      shell's main pane, not the wrap) must be put back where it was */
   const _sc=[];{let _a=w.parentElement;while(_a){if(_a.scrollTop>0)_sc.push([_a,_a.scrollTop]);_a=_a.parentElement;}
     const _de=document.scrollingElement||document.documentElement;if(_de&&_de.scrollTop>0)_sc.push([_de,_de.scrollTop]);}
+  /* b678: what he is looking at, so the redraw puts it back on the same spot */
+  const _scr=_jkScroller(w);let _anc=_jkAnchor;_jkAnchor=null;
+  try{const vt=(_scr===document.scrollingElement||_scr===document.documentElement)?0:_scr.getBoundingClientRect().top;
+    if(_anc)_anc.vt=vt;
+    else if((_scr.scrollTop||0)>4){const els=[...w.querySelectorAll('tr[data-jk]')],i=els.findIndex(e=>e.getBoundingClientRect().bottom>vt+8);
+      if(i>=0)_anc={id:els[i].dataset.jk,top:els[i].getBoundingClientRect().top,vt,alt:els.slice(i+1,i+12).map(e=>e.dataset.jk)};}}catch(e){_anc=null;}
+  _jkItemCache={};
   /* Jack, 17 Aug: "jack's admin needs a whole redesign — make it more table
      like, like Sarah's… way too much wasted space, but like the idea of having
      KPIs there." So: a slim KPI strip of real numbers, then ONE table in the
@@ -181,12 +219,18 @@ function renderJack(){
   /* b656: "check every order" — one card per product, however many of its orders Becki can't find */
   [...new Set(checks.filter(r=>(r.resolution||{}).what==='asin-orders').map(r=>_asinKey(r.asin)))].forEach(A=>{
     const P=_ocPlan(A);if(!P)return;const s0=P.stuck[0],oc=(s0.resolution||{}).ordChk||{},at=oc.at||(s0.resolution||{}).at;
+    const sAt=(typeof _ocSortAt==='function')?_ocSortAt(P.stuck):null;   /* b678 */
     const owe=P.rows.reduce((t,x)=>t+x.owed,0);
     items.push({kind:'ordchk',id:'oc:'+A,A,P,prod:s0.prod||s0.sku||'',sup:s0.sup,oid:'',acct:'',sku:'',asin:A,
-      by:oc.by||'Becki',at,wait:days(at),owedU:owe,
+      by:oc.by||'Becki',at,wait:days(at),sAt,sWait:sAt?days(sAt):null,inPlace:!!sAt,owedU:owe,
       type:['CHECK EVERY ORDER','#22d3ee','Not on the shelves — has any order of this product been cancelled?'],
       why:esc(`${fmt(owe)} not on the shelves · ${fmt(P.orders.length)} orders to check`),note:'',left:null,acts:'',
       value:P.rows.reduce((t,x)=>t+(parseSKU(x.r.sku).cogs||0)*x.owed,0)});});
+  /* b680 (Jack, 14 Nov): a card opened on the old version can have an order outside it that is short too (the yellow
+     "add it to this check" box, Send greyed out) — it joins by itself the first time he sees the card. Once per card. */
+  try{if(typeof _isJack==='function'&&_isJack()&&typeof _ocJoinable==='function')
+    items.forEach(it=>{if(it.kind!=='ordchk'||_ocAutoJoin.has(it.A)||(typeof _ocBusy!=='undefined'&&_ocBusy.has(it.A))||!_ocJoinable(it.P))return;
+      _ocAutoJoin.add(it.A);setTimeout(()=>{try{ocJoin(it.A,true);}catch(e){}},30);});}catch(e){}
   /* Jack, 10 Sep, the Wella: one order number, two rows, 24 units shipped
      against 20 ordered. Not a decision the app can make — a card that puts the
      rows side by side so he can. Only fires when the rows between them have
@@ -293,19 +337,21 @@ function renderJack(){
         :`<button class="csAct good" onclick="refundRaised('${r.uuid||r.id}')" title="Raised in the Amazon account — it moves to Waiting on the money">Refund raised &#10003;</button>
           <button class="csAct warn" onclick="escalateMoney('${r.uuid||r.id}')" title="Back on Sarah's sheet with the history, to chase and escalate">Back to Sarah</button>`});});
   const order={ordchk:0,check:0,dec:1,refund:2,claim:3,lav:4,fix:5};
+  /* b678: a card started from a row sorts where that row was */
+  const _W=x=>x.sWait!=null?x.sWait:(x.wait||0),_T=x=>x.sAt||x.at||'',_top=x=>x.kind==='ordchk'&&!x.inPlace;
   items.sort((a,b)=>{
     switch(_jkSort){
-      case 'oldest':return (b.wait||0)-(a.wait||0);
+      case 'oldest':return _W(b)-_W(a);
       case 'newest':{   /* b664: whole days first, then the exact time inside a day — the newest really is on top */
-        const d=(a.wait||0)-(b.wait||0);if(d)return d;const ta=Date.parse(a.at||'')||0,tb=Date.parse(b.at||'')||0;return tb-ta;}
+        const d=_W(a)-_W(b);if(d)return d;const ta=Date.parse(_T(a))||0,tb=Date.parse(_T(b))||0;return tb-ta;}
       case 'money':return (b.value||0)-(a.value||0);
       case 'claim':{const ax=a.left==null?9e9:(a.left<0?9e8:a.left),bx=b.left==null?9e9:(b.left<0?9e8:b.left);return ax-bx;}
       case 'supplier':return String(a.sup||'').localeCompare(String(b.sup||''))||(b.wait||0)-(a.wait||0);
       default:
         /* b661 (Jack: "do newest first pls"): Becki's order checks at the top, newest first */
-        if((a.kind==='ordchk')!==(b.kind==='ordchk'))return a.kind==='ordchk'?-1:1;
-        if(a.kind==='ordchk')return String(b.at||'').localeCompare(String(a.at||''));
-        return (order[a.kind]-order[b.kind])||(b.wait-a.wait);
+        if(_top(a)!==_top(b))return _top(a)?-1:1;
+        if(_top(a))return String(b.at||'').localeCompare(String(a.at||''));
+        return (order[a.kind]-order[b.kind])||(_W(b)-_W(a));
     }
   });
   /* b670 (Jack: "if we think it's wrong it comes to me as an escalation — and priority"): pinned top, whatever the sort */
@@ -318,7 +364,7 @@ function renderJack(){
   items.forEach(it=>{_jkCounts[it.kind]=(_jkCounts[it.kind]||0)+1;});
   let shown=items;
   const _q=(_jkQ||'').toLowerCase();
-  if(_q)shown=shown.filter(it=>[it.prod,it.sup,it.oid,it.sku,it.by,it.note,it.why].filter(Boolean).join(' ').toLowerCase().includes(_q));
+  if(_q)shown=shown.filter(it=>[it.prod,it.sup,it.oid,it.sku,it.asin,it.by,it.note,it.why].concat(it.kind==='ordchk'&&it.P?it.P.orders.map(o=>o.oid):[]).filter(Boolean).join(' ').toLowerCase().includes(_q));   /* b680: a card by any of its orders */
   if(_jkKind!=='all')shown=shown.filter(it=>_jkKind==='esc'?it.esc:it.kind===_jkKind);
   if(_jkSup!=='all')shown=shown.filter(it=>it.kind==='ordchk'?it.P.orders.some(o=>o.sup===_jkSup):String(it.sup||'')===_jkSup);   /* b662: a card spans several */
   if(_jkAcct!=='all')shown=shown.filter(it=>it.kind==='ordchk'?it.P.orders.some(o=>o.acct===_jkAcct):String(it.acct||'')===_jkAcct);
@@ -422,7 +468,7 @@ function renderJack(){
         if(!_last||(it.note&&_last.endsWith(String(it.note).trim())))return '';
         return `<div class="tfuRaiseNote" style="border-left-color:#60a5fa;color:#93c5fd;" title="The VA Note column on the Prep Sheet row — latest line${_ls.length>1?' of '+_ls.length:''}">VA note: ${esc(_last.slice(0,220))}${_last.length>220?'…':''}${_ls.length>1?` <span style="color:var(--text3);font-weight:600;">· ${_ls.length-1} earlier on the row</span>`:''}</div>`;})():''
     ].filter(Boolean).join('');
-    return `<tr class="jkCardRow${late?' jkLate':''}"><td colspan="8">
+    return `<tr class="jkCardRow${late?' jkLate':''}" data-jk="${esc(String(it.id))}"><td colspan="8">
       <div class="jkCard" style="border-left-color:${it.type[1]};">
         <div class="jkC1">
           <div class="jkHead">
@@ -465,7 +511,7 @@ function renderJack(){
     const line=(r,what,btn)=>`<div class="jkDoneRow"><span class="jkDoneP">${esc(r.prod||r.sku||'')}</span><span class="jkDoneW">${what}</span>${btn||''}</div>`;
     return `<details class="jkDone" open><summary><span class="jkInfoT">Done</span><span class="jkInfoN">${fmt(ap.length+_an0.length+_oc.length)}</span><span class="ovDim2">what you dealt with — approvals and order checks stay undoable for 48 working hours</span></summary>
       ${ap.map(r=>line(r,`approved — ${esc(_resText(r.resolution.what))} · ${esc(_logWhen(r.resolution.approvedAt))}`,`<button class="csAct plain" onclick="reopenResolution('${r.uuid||r.id}',true)" title="Bring it back — everything it knew is still on it">Undo</button>`)).join('')}
-      ${_oc.map(g=>line({prod:g.prod},`order check sent — ${fmt(g.n)} order${g.n===1?'':'s'}: ${[g.tl.cancelled?fmt(g.tl.cancelled)+' cancelled':'',g.tl.sarah?fmt(g.tl.sarah)+' booked against another order':'',g.tl.missing?fmt(g.tl.missing)+' to raise with Amazon':''].filter(Boolean).join(' · ')} · ${esc(_logWhen(g.at))}`,
+      ${_oc.map(g=>line({prod:g.prod},`order check sent — ${fmt(g.n)} order${g.n===1?'':'s'}: ${[g.tl.cancelled?fmt(g.tl.cancelled)+' cancelled':'',g.tl.sarah?fmt(g.tl.sarah)+' booked against another order':'',g.tl.missing?fmt(g.tl.missing)+' to raise with Amazon':'',g.tl.becki?fmt(g.tl.becki)+' really missing → Sarah, then Becki’s shelves':'',g.tl.park?fmt(g.tl.park)+' waiting for Amazon’s date':'',g.tl.none?fmt(g.tl.none)+' nothing owed — Sarah closes':''].filter(Boolean).join(' · ')} · ${esc(_logWhen(g.at))}`,
         g.ok?`<button class="csAct plain" onclick="ocUndoSend('${_ocJs(g.A)}','${_ocJs(g.at)}')" title="Bring the card back with your answers on it — off Sarah's list and your raise list, her move job withdrawn">Undo</button>`
           :`<span class="ovDim2" title="Sarah or you have already acted on part of what it sent — answer those rows instead">already acted on</span>`)).join('')}
       ${_an0.map(r=>line(r,`answered — ${esc((r.resolution.rejectNote||'').slice(0,90))} · ${esc(_logWhen(r.resolution.at))}`,'')).join('')}
@@ -490,7 +536,7 @@ function renderJack(){
     <div class="jkHero" style="padding:12px 16px 14px;margin-bottom:10px;flex-direction:column;align-items:stretch;gap:10px;">
       <div style="display:flex;align-items:baseline;gap:12px;">
         <h2 style="margin:0;">Jack's Admin</h2>
-        <p style="margin:0;">${needsAll.length?`${needsAll.length} thing${needsAll.length===1?'':'s'} need your answer — oldest first, work top to bottom.`:'Nothing needs your answer. Nobody is blocked on you.'}</p>
+        <p style="margin:0;">${needsAll.length?`${needsAll.length} thing${needsAll.length===1?'':'s'} need your answer — ${_jkSort==='oldest'?'oldest first':_jkSort==='newest'?'newest first':'in the order you picked'}, work top to bottom.`:'Nothing needs your answer. Nobody is blocked on you.'}</p>
         ${_jkCounts.esc?`<span style="font-size:12px;font-weight:800;color:#f87171;white-space:nowrap;cursor:pointer;" onclick="_jkKind='esc';renderJack();" title="We think something is wrong — the check disagrees. They are pinned to the top.">&#9888; ${fmt(_jkCounts.esc)} escalation${_jkCounts.esc===1?'':'s'} at the top</span>`:''}
         ${window._jkSince&&(window._jkSince.res||window._jkSince.newIn)?`<span style="font-size:11px;font-weight:700;color:#93c5fd;white-space:nowrap;">Since you last looked: <b style="color:#4ade80;">${fmt(window._jkSince.res)}</b> resolved · <b>${fmt(window._jkSince.newIn)}</b> new</span>`:''}
         <span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap;" title="The last 7 days at a glance">This week: <b style="color:#4ade80;">${fmt(_res7.length)}</b> resolved · <b style="color:#4ade80;">${fmtGBP2(_rec7)}</b> recovered · <b style="color:#93c5fd;">${fmt(_new7)}</b> new</span>
@@ -584,7 +630,7 @@ function renderJack(){
     <div class="tfuScroll" style="margin:0;max-height:none;overflow:visible;">
     <table class="tfu">
       <tbody class="jkCards">
-      ${needs.map((it,x)=>it.kind==='ordchk'?_ocCardHtml(it,x):_jkRow(it,x)).join('')}
+      ${needs.map((it,x)=>{if(it.kind==='ordchk')_jkItemCache[it.id]={it,x};return it.kind==='ordchk'?_ocCardHtml(it,x):_jkRow(it,x);}).join('')}
       </tbody>
     </table>
     </div>
@@ -599,6 +645,12 @@ function renderJack(){
   paintJackBadge();
   if(_st)w.scrollTop=_st;
   _sc.forEach(([el,t])=>{try{el.scrollTop=t;}catch(e){}});
+  /* b678: the anchor back on its spot — the new card where the row was, or the next card where an answered one was */
+  try{if(_anc){let el=w.querySelector(`tr[data-jk="${_jkSel(_anc.id)}"]`),moved=false;
+    if(!el&&_anc.alt)for(const k of _anc.alt){el=w.querySelector(`tr[data-jk="${_jkSel(k)}"]`);if(el){moved=true;break;}}
+    if(el){if(_anc.top!=null){const want=moved?Math.max(_anc.top,_anc.vt||0):_anc.top,d=el.getBoundingClientRect().top-want;if(Math.abs(d)>1)_scr.scrollTop+=d;}
+      else el.scrollIntoView({block:'nearest'});
+      if(_anc.flash){el.classList.add('jkFlash');setTimeout(()=>{try{el.classList.remove('jkFlash');}catch(e){}},1800);}}}}catch(e){}
 }
 /* Jack, 7 Sep: "buggy — typed date and then it went off this page." A live
    event from another laptop (or his own echo) rebuilt the page under his
@@ -652,12 +704,14 @@ function _ocCardHtml(it,x){
     const a=o.ans&&o.ans.a,url=_ocOrderUrl(o.oid,o.sup),g=o.acct+'|'+o.sup,top=g!==grp;grp=g;
     const lost=o.stuck.reduce((t,s)=>t+_owedUnits(s),0);
     const chip=(v,t,cls,tip)=>`<button class="ocChip ${cls}${a===v?' on':''}" onclick="ocAns('${q(A)}','${q(o.key)}','${v}')" title="${esc(tip)}">${t}</button>`;
+    /* b678: an order booked in and sent in full needs three answers; the sheet-quantity and part-cancelled ones wait under "more" */
+    const _full=o.stuck.length>0||o.booked<o.want||a==='p'||a==='n'||_ocMoreOpen.has(A+'|'+o.key);
     const ansHtml=!o.amz
       ?`<span class="ocDim" title="Not an Amazon order — you can’t see it on the accounts. What the warehouse booked in counts as arrived; if that is wrong it is Sarah’s road.">Supplier order &mdash; counted as booked in</span>`
       :(P.squared&&!a)?`<span class="ocDim ocSq">Not needed &mdash; it&rsquo;s squared</span> ${chip('d','tick it anyway','good','Answer it anyway — it doesn’t change the result')}`
-      :`${chip('d','Delivered','good',`Amazon show ${o.want===1?'it':'all '+fmt(o.want)} delivered`)}${chip('c','Cancelled','warn','Amazon cancelled or refunded the whole order')}${chip('n','Not delivered yet','plain','Amazon say it is still coming — put their date on it')}${(()=>{const qr=o.stuck[0]||o.rows[0];if(!qr)return '';const _qi=q(String(qr.uuid||qr.id));   /* the same two as his single CHECK card */
+      :`${chip('d','Delivered','good',`Amazon show ${o.want===1?'it':'all '+fmt(o.want)} delivered`)}${chip('c','Cancelled','warn','Amazon cancelled or refunded the whole order')}${chip('n','Not delivered yet','plain','Amazon say it is still coming — put their date on it')}<span class="ocMoreW${_full?' on':''}">${(()=>{const qr=o.stuck[0]||o.rows[0];if(!qr)return '';const _qi=q(String(qr.uuid||qr.id));   /* the same two as his single CHECK card */
   return (o.booked>0&&o.booked<o.want?`<button class="ocChip" style="border-color:rgba(251,191,36,.5);color:#fcd34d;" onclick="openQtyFix('${_qi}',{to:${o.booked},why:'Jack checked the account — only ${o.booked} ordered'})" title="The account shows only ${fmt(o.booked)} ordered — the sheet says ${fmt(o.want)}. Corrects it; Sarah gets the Purchase Sheet job.">Only ${fmt(o.booked)} ${o.booked===1?'was':'were'} ordered &mdash; the sheet is wrong</button>`:'')
-    +`<button class="ocChip" style="border-color:rgba(96,165,250,.5);color:#93c5fd;" onclick="openQtyFix('${_qi}',{why:'Jack checked the account — fewer were ordered'})" title="The Purchase Sheet quantity itself is wrong — correct it here. Sarah gets the Purchase Sheet job; the card adds it up again.">The sheet quantity is wrong&hellip;</button>`;})()}${a==='n'?`<input type="date" class="ocEta" value="${esc(String((o.ans&&o.ans.eta)||''))}" min="2024-01-01" max="2030-12-31" title="Amazon’s delivery date" onchange="ocEta('${q(A)}','${q(o.key)}',this.value)">`:''}${o.want>1?`<label class="ocPart${a==='p'?' on':''}" title="Amazon cancelled some of the ${fmt(o.want)} still expected${o.cxSheet?` — on top of the ${fmt(o.cxSheet)} the sheet already has cancelled`:''}. Type how many.">Part cancelled <input type="number" min="1" max="${o.want-1}" step="1" value="${a==='p'?esc(String(o.ans.k||'')):''}" placeholder="how many" onchange="ocAns('${q(A)}','${q(o.key)}','p',this.value)"></label>`:''}`;
+    +`<button class="ocChip" style="border-color:rgba(96,165,250,.5);color:#93c5fd;" onclick="openQtyFix('${_qi}',{why:'Jack checked the account — fewer were ordered'})" title="The Purchase Sheet quantity itself is wrong — correct it here. Sarah gets the Purchase Sheet job; the card adds it up again.">The sheet quantity is wrong&hellip;</button>`;})()}${a==='n'?`<input type="date" class="ocEta" value="${esc(String((o.ans&&o.ans.eta)||''))}" min="2024-01-01" max="2030-12-31" title="Amazon’s delivery date" onchange="ocEta('${q(A)}','${q(o.key)}',this.value)">`:''}${o.want>1?`<label class="ocPart${a==='p'?' on':''}" title="Amazon cancelled some of the ${fmt(o.want)} still expected${o.cxSheet?` — on top of the ${fmt(o.cxSheet)} the sheet already has cancelled`:''}. Type how many.">Part cancelled <input type="number" min="1" max="${o.want-1}" step="1" value="${a==='p'?esc(String(o.ans.k||'')):''}" placeholder="how many" onchange="ocAns('${q(A)}','${q(o.key)}','p',this.value)"></label>`:''}</span>${_full?'':`<button class="ocChip ocMoreBtn" onclick="ocMoreShow('${q(A)}','${q(o.key)}',this)" title="The sheet quantity is wrong, or Amazon part-cancelled it">more &#9662;</button>`}`;
     return `<tr class="${top?'ocGrp':''}${o.stuck.length?' ocStuck':''}${a?' ocDone':''}${o.amz?'':' ocSup'}">
       <td class="ocAcct">${top?esc(o.acct||'—'):''}</td>
       <td class="ocMkt">${top?esc(o.sup||'—'):''}</td>
@@ -678,7 +732,9 @@ function _ocCardHtml(it,x){
     if(c.length)V.push(`<div class="ocV warn">${fmt(c.reduce((t,r)=>t+r.cx,0))} cancelled &mdash; Sarah notes the sheet and closes ${c.length===1?'it':'them'}</div>`);
     if(mS)V.push(`<div class="ocV go">${fmt(mS)} not missing &mdash; booked ${srcLine(sR)}. ${sR.every(r=>!r.cx)?`Sarah closes ${sR.length===1?'it':'them'} with one tick &mdash; booked in as that order`:`Sarah moves ${mS===1?'it':'them'} across`}</div>`);
     {const pR=P.rows.filter(r=>r.route==='park');if(pR.length){const e=P.orders.filter(o=>o.notYet).map(o=>o.eta).filter(Boolean).sort().pop()||'';
-      V.push(`<div class="ocV go">${fmt(pR.reduce((t,r)=>t+r.moved,0))} came under the order Amazon say is still coming &mdash; this one waits${e?' until '+esc(_dmy(e)):''}, and the next one booked in squares it</div>`);}}
+      const own=pR.filter(r=>r.coming&&!r.moved),tw=pR.filter(r=>!(r.coming&&!r.moved));   /* b680 */
+      if(own.length)V.push(`<div class="ocV go">${fmt(own.reduce((t,r)=>t+r.coming,0))} still coming &mdash; Amazon&rsquo;s date${own.length===1&&own[0].o.eta?' '+esc(_dmy(own[0].o.eta)):''}; ${own.length===1?'it waits':'they wait'} off everyone&rsquo;s list until then</div>`);
+      if(tw.length)V.push(`<div class="ocV go">${fmt(tw.reduce((t,r)=>t+r.moved,0))} came under the order Amazon say is still coming &mdash; this one waits${e?' until '+esc(_dmy(e)):''}, and the next one booked in squares it</div>`);}}
     if(mJ)V.push(`<div class="ocV go">${fmt(mJ)} not missing &mdash; booked ${srcLine(mR)}. Sarah gets the job to move ${mJ===1?'it':'them'}; you claim only what is really missing</div>`);
     if(P.M)V.push(_jo?`<div class="ocV bad">${fmt(P.M)} really missing &mdash; to Sarah first${mJ?' to move what was booked under another order':''}, then she sends it to Becki to check the shelves for ${fmt(P.M)}; if not there, it comes back to you to claim</div>`
       :`<div class="ocV bad">${fmt(P.M)} really missing &mdash; onto your list to raise with Amazon</div>`);
@@ -702,7 +758,7 @@ function _ocCardHtml(it,x){
   const tl=P.rows.reduce((t,r)=>(t[r.route]=(t[r.route]||0)+1,t),{});
   const go=busy?'Sending&hellip;':(P.lone||[]).length?`Add the ${fmt(P.lone.length)} order${P.lone.length===1?'':'s'} above to the check first`:P.etaMissing?'Put Amazon&rsquo;s date on the one not delivered yet':P.ready?'Send it &mdash; '+[tl.cancelled||tl.sarah?`${fmt((tl.cancelled||0)+(tl.sarah||0))} to Sarah`:'',tl.missing?(_jo?`${fmt(tl.missing)} to Sarah, then Becki&rsquo;s shelves`:`${fmt(tl.missing)} to raise with Amazon`):'',tl.park?`${fmt(tl.park)} waiting for Amazon`:''].filter(Boolean).join(' &middot; '):`Answer every order first &mdash; ${fmt(P.amzN-P.answered)} to go`;
   const nSup=P.orders.length-P.amzN;
-  return `<tr class="jkCardRow"><td colspan="8"><div class="jkCard ocCard" style="border-left-color:#22d3ee;">
+  return `<tr class="jkCardRow" data-jk="${esc(String(it.id))}"><td colspan="8"><div class="jkCard ocCard" style="border-left-color:#22d3ee;">
     <div class="ocTop">
       <span class="jkNum">${x+1}</span>
       <span class="jkType" style="color:#22d3ee;background:#22d3ee1a;border-color:#22d3ee50;" title="${esc(it.type[2])}">${it.type[0]}</span>
@@ -718,7 +774,7 @@ function _ocCardHtml(it,x){
     <div class="ocBar">
       <button class="csAct good" onclick="ocAllDel('${q(A)}')" title="Every Amazon order you haven’t answered is Delivered — then change just the odd one"${P.answered===P.amzN||busy?' disabled':''}>All delivered</button>
       <span class="ocCnt"><b>${fmt(P.answered)}</b> of ${fmt(P.amzN)} answered${nSup?` <span class="ocDim">&middot; ${fmt(nSup)} supplier order${nSup===1?'':'s'} counted as booked in</span>`:''}</span>
-      <button class="csAct plain" onclick="ocUndo('${q(A)}')" title="${_jo?'Puts it back exactly where it was before':'No order check needed — back on Becki’s shelf check with Not here'}"${busy?' disabled':''}>${_jo?'Undo':'Back to Becki'}</button>
+      <button class="csAct plain" onclick="ocUndo('${q(A)}',this)" title="${_jo?'Puts it back exactly where it was before':'No order check needed — back on Becki’s shelf check with Not here'}"${busy?' disabled':''}>${_jo?'Undo':'Back to Becki'}</button>
     </div>
     <div class="ocScroll"><table class="ocT">
       <thead><tr><th>Account</th><th>Marketplace</th><th>Order ID</th><th>Ordered</th><th>Units</th><th>Booked in</th><th title="${esc(`What PrepHub sent of each order, shipment by shipment. ✓ = SellerFuse has the same units of that SKU on that shipment${SFB?` (its check on ${_dmy(SFB.at)}; its history starts ${_dmy(SFB.since)})`:''}.`)}">Sent</th><th>Amazon shows</th></tr></thead>
@@ -1168,7 +1224,7 @@ function _jkCheckActs(r,_id){
     B.push(`<div class="jkWhere"><b class="jkQ">Is order ${esc(r.oid)} ${fmt(_dup.got)} unit${_dup.got===1?'':'s'} or ${fmt(_dup.total)}?</b><span class="jkQsub">It is on the Purchase Sheet twice: ${_dup.sibs.map(x=>esc(x.sku)).join(', ')} arrived ${fmt(_dup.got)} of ${fmt(_dup.got)}; this line is ${fmt(_dup.mine)} more and nothing of it arrived. ${fmt(_dup.got)} on the account means this line is a copy.</span></div>`);
     B.push(`<button class="csAct good" onclick="jackDupAnswer('${_id}')" title="The Amazon order is ${fmt(_dup.got)} and they all arrived under ${esc(_dup.sku)}. Back to Sarah with one press: close it as Duplicate record — no shelf check, no claim.">${fmt(_dup.got)} &mdash; this line is a duplicate</button>`);
   }
-  if(!_dup)B.push(`<div class="jkWhere"><b class="jkQ">${got>0?`${fmt(got)} of ${fmt(exp)} booked in &mdash; what happened to the other ${fmt(owe)}?`:`Nothing booked in &mdash; what happened to all ${fmt(exp)}?`}</b><span class="jkQsub">None of these close the row &mdash; your answer goes back to Sarah.</span></div>`);
+  if(!_dup)B.push(`<div class="jkWhere"><b class="jkQ">${got>0?`${fmt(got)} of ${fmt(exp)} booked in &mdash; what happened to the other ${fmt(owe)}?`:`Nothing booked in &mdash; what happened to all ${fmt(exp)}?`}</b><span class="jkQsub">Look the order up on that Amazon account, then press what it shows.</span></div>`);
   if(amz&&!_dup&&r.asin)B.push(`<button class="csAct good" onclick="ocStartFromJack('${_id}')" title="The account shows the full order delivered, so the missing ${fmt(owe)} are somewhere. Before anyone searches, every order of this product from the last 60 days comes up here for you to tick — b667.">All ${fmt(exp)} were delivered &mdash; check every order</button>`);
   else B.push(`<button class="csAct good" onclick="jackAnswered('${_id}','Arrived — YES, the account shows it delivered.'${_dup?',{notDup:true}':''})" title="The account shows the full order delivered, so the missing ${fmt(owe)} are somewhere. Sarah checks the wrong SKU next, then Becki the shelves.">${_dup?`It was ${fmt(_dup.total)} &mdash; all ${fmt(_dup.total)} were delivered`:`All ${fmt(exp)} were delivered`}</button>`);
   if(got>0){
@@ -1438,7 +1494,7 @@ async function jackAnswered(rid,answer,extra){
     logAudit('Jack answered a check',`${r.sku||r.asin||''} — ${answer}`);
     fireWebhook(`${_who()} answered "${r.prod||r.sku||''}": ${answer}`,
       {event:'jack_answered',sku:r.sku||'',by:_who()});
-    toast('✓ Sent back with your answer');
+    if(!(_jkHold>0))toast('✓ Sent back with your answer');   /* b678: inside a bigger press, that press says what happened */
   }catch(e){_saved=false;toast('Didn\'t save — check the connection','er');}
   renderJack();try{renderAdmin();renderDashboard();paintJackBadge();}catch(e){}
   return _saved;

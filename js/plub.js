@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v56.4 · lav3 · 2026-11-12 · b677';
+const BUILD='v56.4 · lav3 · 2026-11-15 · b682';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -2574,8 +2574,27 @@ function plAmazonRow(p){
      record counts too (a double send costs more than a few days' under-send). */
   const _cAtFull=String((D.settings.atAmzAt||{})[p.asin]||''),_cAt=_cAtFull.slice(0,10);
   const _cMs=_cAtFull?new Date(hasZone(_cAtFull)?_cAtFull:ukStamp(_cAtFull.length>10?_cAtFull.slice(0,16):_cAtFull.slice(0,10)+'T12:00')).getTime():0;
-  const since=(_cAt&&typeof lavShipments!=='undefined')?lavShipments.filter(x=>{if(x.asin!==p.asin||!x.date)return false;const d=String(x.date).slice(0,10);
-    return d>_cAt||(d===_cAt&&(!x.at||new Date(x.at).getTime()>_cMs));}).reduce((t,x)=>t+(parseInt(x.units)||0),0):0;
+  const _afterCount=x=>{const d=String(x.date).slice(0,10);return d>_cAt||(d===_cAt&&(!x.at||new Date(x.at).getTime()>_cMs));};
+  const since=(_cAt&&typeof lavShipments!=='undefined')?lavShipments.filter(x=>x.asin===p.asin&&x.date&&_afterCount(x)).reduce((t,x)=>t+(parseInt(x.units)||0),0):0;
+  /* b678 (Jack, 13 Nov — "did we not send some?": 50 Mini on FBA15MWRGKB6 recorded 19:17, SellerFuse counted 20:13):
+     Amazon's on-the-way figure lags a new shipment by a few hours, so a send made shortly before the count can be in
+     neither the count nor "sent since" — the card asked for 50 too many. Not the status: FBA15MWP6DP0 (12:27) was still
+     "ready to ship" too, yet already in Amazon's figure. So: what SellerFuse's shipments not yet at the warehouse carry
+     for this product, minus what Amazon lists as on the way, is the part Amazon hasn't caught up with — capped at our
+     own sends recorded before the count on a shipment not yet shipped. Only ever less than the truth, never a unit twice.
+     Only when the count IS SellerFuse's latest run. */
+  const rts=(()=>{try{const RN=window.SFRUN;if(!_cAt||!_cMs||!RN||!RN.at||!Array.isArray(RN.shipments)||typeof lavShipments==='undefined')return 0;
+    if(Math.abs(new Date(RN.at).getTime()-_cMs)>3*60e3)return 0;
+    const A=String(p.asin||'').toUpperCase(),notOut=/^(WORKING|READY_TO_SHIP)$/i,moving=/^(WORKING|READY_TO_SHIP|SHIPPED|IN_TRANSIT)$/i;
+    const open=new Set();let expect=0;
+    RN.shipments.forEach(s=>{const st=String(s.status||'');if(!moving.test(st))return;
+      (s.lines||[]).forEach(l=>{if(String(l.asin||'').toUpperCase()!==A)return;
+        expect+=Math.max(0,(parseInt(l.units)||0)-(parseInt(l.received)||0));if(notOut.test(st))open.add(String(s.id||'').trim().toUpperCase());});});
+    if(!open.size)return 0;
+    const ours=lavShipments.filter(x=>x.asin===p.asin&&x.date&&x.shipId&&open.has(String(x.shipId).trim().toUpperCase())&&!_afterCount(x))
+      .reduce((t,x)=>t+(parseInt(x.units)||0),0);
+    const amzOtw=Math.max(0,(amzIn(p)||0)-((D.settings.atAmzMov||{})[p.asin]||0));   /* Amazon's own, without units moving between its warehouses */
+    return Math.max(0,Math.min(ours,expect-amzOtw));}catch(e){return 0;}})();
   /* Jack, 23 Oct: "make sure we don't run out of stock". A count is a moment — by Monday,
      Friday's count of Ube has sold ~20 more. Sends since the count are added above; sales
      since the count come off here, at the planned pace. The Products page still shows the
@@ -2587,9 +2606,9 @@ function plAmazonRow(p){
       if(days>0.25){soldSince=Math.min(counted,Math.round(demandBetween(pu,d.m/30,ukDayISO(t),days)));sell=counted-soldSince;}}}
   /* 26 Oct (SAS rule): on the way = shipping + moving between Amazon warehouses. The moving
      part is sellable in about MOV_DAYS; the shipping part takes the FBA pipeline. */
-  const movQ=Math.min(amzIn(p)||0,(D.settings.atAmzMov||{})[p.asin]||0),shipQ=Math.max(0,(amzIn(p)||0)-movQ)+since;
+  const movQ=Math.min(amzIn(p)||0,(D.settings.atAmzMov||{})[p.asin]||0),shipQ=Math.max(0,(amzIn(p)||0)-movQ)+since+rts;
   const inb=movQ+shipQ;
-  const out={p,demand:d,sell,counted,soldSince,inb,since,mov:movQ,inbShip:shipQ,alloc:0,rec:0};
+  const out={p,demand:d,sell,counted,soldSince,inb,since,rts,mov:movQ,inbShip:shipQ,alloc:0,rec:0};
   if(!d){out.state='nodata';
     out.why='No sales figure and no planning demand. Nothing is planned for it — type a monthly estimate below and it joins in.';return out;}
   if(d.m===0){out.state='paused';
@@ -6930,7 +6949,7 @@ function vComponents(){
               : (EL.state==='noroute'||EL.state==='nosup')
                 ? `<span class="num dimNum">—</span><div class="pmeta" style="color:var(--amb)">${EL.state==='nosup'?'no supplier':'<a href="javascript:void(0)" onclick="event.stopPropagation();LV3.go(\'planner\')" style="color:var(--amb)">set the route</a>'}</div>`
                 : EL.buyQty>0
-                  ? `<span style="display:inline-block;padding:2px 10px;border-radius:6px;font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:900;font-size:13.5px;color:#14120f;background:${EL.buyByDays<=0?'#f87171':'#fbbf24'}">${fmt(EL.buyQty)}</span><div class="pmeta" style="color:${EL.buyByDays<0?'var(--red)':'var(--text3)'}">${EL.buyByDays<0?fmt(-EL.buyByDays)+'d overdue':EL.buyByDays<=0?'order today':'by '+dshort(EL.buyBy)}</div>`
+                  ? `<span style="display:inline-block;padding:2px 10px;border-radius:6px;font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:900;font-size:13.5px;color:#14120f;background:${EL.buyByDays<=0?'#f87171':'#fbbf24'}">${fmt(EL.buyQty)}</span>${caseOfO(c)?`<div class="tbCs" title="In whole cases of ${caseOfO(c)} — rounded up">${_cpBuyCases(EL.buyQty,caseOfO(c))}</div>`:''}<div class="pmeta" style="color:${EL.buyByDays<0?'var(--red)':'var(--text3)'}">${EL.buyByDays<0?fmt(-EL.buyByDays)+'d overdue':EL.buyByDays<=0?'order today':'by '+dshort(EL.buyBy)}</div>`
                   : `<span class="num dimNum">—</span><div class="pmeta">${EL.state==='waiting'?'on order covers it':'covered'}</div>`}</td>
         <td>${c.untracked||!EL||EL.cover==null
             ? '<span class="num dimNum">—</span>'
@@ -7025,52 +7044,101 @@ function compTimeline(c){
 const TL_ICON={order:'○',recv:'✓',short:'!',dmg:'⚠',repl:'↻',off:'✕',adj:'±',ship:'→'};
 const TL_COL={order:'var(--blu)',recv:'var(--grn)',short:'var(--red)',dmg:'var(--amb)',repl:'var(--vio)',
   off:'var(--text3)',adj:'var(--amb)',ship:'var(--vio)'};
-function timelineHtml(c){
+function timelineHtml(c,lim){
   const ev=compTimeline(c);
   if(!ev.length)return `<div class="pmeta" style="padding:10px 0">Nothing has happened to this one yet.</div>`;
-  return `<div class="tl">${ev.map(e=>`<div class="tlRow">
+  const row=e=>`<div class="tlRow">
     <span class="tlDot" style="background:${TL_COL[e.k]||'var(--text3)'}">${TL_ICON[e.k]||'·'}</span>
     <div class="tlTxt"><b>${e.txt}</b>${e.sub?`<span>${e.sub}</span>`:''}</div>
     <span class="tlWhen">${dshort(e.on)}<i>${daysSince(e.on)===0?'today':daysSince(e.on)+'d ago'}</i></span>
-  </div>`).join('')}</div>`;
+  </div>`;
+  /* b679: the latest few, the rest folded away */
+  if(!lim||ev.length<=lim+1)return `<div class="tl">${ev.map(row).join('')}</div>`;
+  return `<div class="tl">${ev.slice(0,lim).map(row).join('')}<details class="cpTlMore"><summary>Show ${fmt(ev.length-lim)} earlier &#9662;</summary>${ev.slice(lim).map(row).join('')}</details></div>`;
+}
+/* b679 (Jack, 13 Nov, the Horlicks: "improve the popup — add in cases and how much a case is" / "10 cases × 30 = 1,500
+   units" / "how much is a case from all our suppliers"): every count in units AND cases, a case's price from every
+   supplier we've bought it from, the batches still in stock first with the used-up ones folded away, the latest of its
+   story first. No case size saved → units only, never guessed. */
+function _cpBuyCases(n,cq){n=Math.max(0,parseInt(n)||0);if(!cq||!n)return '';const cs=Math.ceil(n/cq);
+  return `${fmt(cs)} case${cs===1?'':'s'} × ${fmt(cq)}${cs*cq!==n?` = ${fmt(cs*cq)}`:''}`;}
+function _cpSuppliers(c){
+  const m={};
+  realLayers(c).forEach(l=>{const raw=String(l.sup||'').trim();
+    if(!raw||/^(opening stock|stock (correction|adjust)|stocktake)/i.test(raw))return;
+    const k=raw.toLowerCase(),s=m[k]=m[k]||{sup:raw,n:0,units:0,last:null,min:null};
+    s.n++;s.units+=parseInt(l.qty)||0;const cost=+l.cost||0;
+    if(cost>0){if(!s.last||String(l.date||'')>=String(s.last.date||''))s.last={date:l.date,cost,oid:l.oid||''};if(s.min==null||cost<s.min)s.min=cost;}});
+  return Object.values(m).filter(s=>s.last).sort((a,b)=>a.last.cost-b.last.cost||String(b.last.date).localeCompare(String(a.last.date)));
 }
 function openComp(id){
-  const c=comp(id),uses=usedIn(id);
+  const c=comp(id),uses=usedIn(id),cq=caseOfO(c);
   const ls=realLayers(c).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const live=arrLayers(c).filter(x=>x.rem>0),lastL=live.slice(-1)[0]||null,lastB=ls.filter(l=>+l.cost>0).slice(-1)[0]||null;
+  const sups=_cpSuppliers(c),best=sups.length?sups[0].last.cost:null,oneBest=sups.length>1&&sups.filter(s=>s.last.cost===best).length===1;
+  const h=onHand(c),oo=onOrder(c),need=compNeed60(c),short=compShort60(c);
+  const EL=(function(){try{return (plData().byComp||{})[c.id]||null;}catch(e){return null;}})();
+  const unit=lastL?+lastL.cost||0:(lastB?+lastB.cost||0:0);
+  const nSpent=ls.filter(l=>l.arr&&l.rem===0).length,cols=cq?9:8;
+  const cs=n=>cq&&n>0?`<div class="cpCs">${casesTxt(n,cq)}</div>`:'';
+  const csT=n=>cq&&n>0?`<div class="cpCsT">${casesTxt(n,cq)}</div>`:'';
+  const tile=(k,v,col,sub,tip)=>`<div class="stat"${tip?` title="${esc(tip)}"`:''}><div class="k">${k}</div><div class="v"${col?` style="color:${col}"`:''}>${v}</div>${sub||''}</div>`;
+  const tiles=[
+    tile('On hand',fmt(h),h?'var(--grn)':'var(--red)',cs(h)),
+    tile('On order',fmt(oo),oo?'var(--blu)':'',cs(oo)||(oo?'':'<div class="cpSub">nothing on order</div>')),
+    EL&&EL.buyQty>0
+      ?tile('To buy — Planner',fmt(EL.buyQty),EL.buyByDays<=0?'var(--red)':'var(--amb)',
+        `${cq?`<div class="cpCs">${_cpBuyCases(EL.buyQty,cq)}</div>`:''}<div class="cpSub" style="color:${EL.buyByDays<0?'var(--red)':'var(--text3)'}">${EL.buyByDays<0?fmt(-EL.buyByDays)+'d overdue':EL.buyByDays<=0?'order today':'by '+dshort(EL.buyBy)}${EL.sup?' · '+esc(EL.sup):''}</div>`,
+        'What the Planner says to buy now'+(cq?`, in whole cases of ${cq}`:''))
+      :tile('To buy — Planner','—','',`<div class="cpSub">${EL&&EL.state==='waiting'?'what is on order covers it':EL?'covered':'not on the Planner'}</div>`),
+    tile(`Needed for ${compCoverLabel(c)}`,need?fmt(need):'—',short>0?'var(--amb)':need?'var(--grn)':'',
+      `${need?cs(need):''}<div class="cpSub">${need?(short>0?`${fmt(short)} short, counting what's on order`:'covered'):'no product needs it yet'}</div>`),
+    cq?tile(`A case of ${fmt(cq)}`,unit?gbp(unit*cq):'—','var(--accent)',
+        `<div class="cpSub">${unit?`${gbp(unit)} a unit · ${lastL?'latest batch in stock':'last bought'}`:'no price yet'}</div>${sups.length>1&&best!=null&&best<unit?`<div class="cpSub" style="color:var(--grn)">cheapest now: ${esc(sups[0].sup)} ${gbp(best*cq)}</div>`:''}`,
+        'Every batch keeps its own price — this is the latest one in stock, times the case size')
+      :tile('A unit',unit?gbp(unit):'—','var(--accent)',
+        `<div class="cpSub">${lastL?'latest batch in stock':'last bought'}</div><div class="cpSub"><a href="javascript:void(0)" onclick="LV3.editComp('${c.id}')" style="color:#93c5fd;font-weight:700">+ set the case size</a> for case prices</div>`)
+  ].join('');
+  const supHtml=sups.length?`<div class="cpSec"><span class="lab">A case from each supplier</span><span class="pmeta">${cq?`case of ${fmt(cq)} · `:''}from every batch we've bought — cheapest now first</span></div>
+    <table class="ltab cpSupT"><thead><tr><th>Supplier</th><th>Last bought</th><th>A unit</th><th>${cq?`A case of ${fmt(cq)}`:'A case'}</th><th>Cheapest we've paid</th><th>Bought from them</th></tr></thead><tbody>
+    ${sups.map(s=>`<tr><td>${esc(s.sup)}${oneBest&&s.last.cost===best?'<span class="cpBest">cheapest now</span>':''}</td>
+      <td>${dshort(s.last.date)}${s.last.oid?`<div class="cpCsT cpDim">${esc(s.last.oid)}</div>`:''}</td>
+      <td>${gbp(s.last.cost)}</td>
+      <td class="cpCaseP">${cq?gbp(s.last.cost*cq):'<span class="cpDim">—</span>'}</td>
+      <td>${s.min<s.last.cost?`${gbp(s.min)}${cq?`<div class="cpCsT">${gbp(s.min*cq)} a case</div>`:''}`:'<span class="cpDim">the same</span>'}</td>
+      <td>${fmt(s.units)}${csT(s.units)}<div class="cpCsT cpDim">${fmt(s.n)} order${s.n===1?'':'s'}</div></td></tr>`).join('')}
+    </tbody></table>${cq?'':`<div class="pmeta" style="margin-top:6px">No case size saved, so there are no case prices — <a href="javascript:void(0)" onclick="LV3.editComp('${c.id}')" style="color:#93c5fd;font-weight:700">set it on Edit</a>.</div>`}`:'';
+  const status=l=>{const nextOut=l.arr&&l.rem>0&&live[0]===l;
+    return !l.arr?`<button class="btn sm go" onclick="LV3.markArrived('component','${c.id}','${l.id}')">Receive</button>`
+      :nextOut?'<span class="chip warn">next out</span>':l.rem?'<span class="chip ok">in stock</span>':'<span class="chip vat">used up</span>';};
   $('lav3Mod1').className='mod wide';
   $('lav3Mod1').innerHTML=`
-  <div class="mh"><h3>${esc(c.name)}</h3><span class="chip ${c.kind}">${c.kind==='packaging'?'Packaging':'Component'}</span><button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
+  <div class="mh"><h3>${esc(c.name)}</h3><span class="chip ${c.kind}">${c.kind==='packaging'?'Packaging':'Component'}</span>
+    ${cq?`<span class="chip cpCaseChip" title="The case size — set on Edit">case of ${fmt(cq)}</span>`:`<button class="btn sm" style="margin-left:4px" onclick="LV3.editComp('${c.id}')" title="How many come in one case — it is asked once and kept">+ case size</button>`}
+    <button class="x" onclick="LV3.cm('lav3Ov1')">&#10005;</button></div>
   <div class="mb">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:13px">
-      <div class="stat"><div class="k">On hand</div><div class="v" style="color:${onHand(c)?'var(--grn)':'var(--red)'}">${fmt(onHand(c))}</div></div>
-      <div class="stat"><div class="k">On order</div><div class="v" ${onOrder(c)?'style="color:var(--blu)"':''}>${fmt(onOrder(c))}</div></div>
-      <div class="stat"><div class="k">Latest batch</div><div class="v" style="color:var(--accent)">${(()=>{const l=arrLayers(c).filter(x=>x.rem>0).slice(-1)[0];return l?gbp(l.cost):'—';})()}</div>
-        <div class="pmeta" style="margin:3px 0 0">every batch keeps its own price</div></div>
-      <div class="stat"><div class="k">Needed for ${compCoverLabel(c)}</div>
-        <div class="v" style="color:${compShort60(c)>0?'var(--amb)':'var(--grn)'}">${compNeed60(c)?fmt(compNeed60(c)):'—'}</div>
-        <div class="pmeta" style="margin:3px 0 0">${compNeed60(c)?(compShort60(c)>0?`${fmt(compShort60(c))} short, counting what's on order`:'covered'):'no product needs it yet'}</div></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-      <span class="lab" style="margin:0">Stock batches — consumed oldest first</span>${c.scoop?`<span class="chip" style="margin-left:6px" title="Scooped from a bin: nobody counts how many bags a KG makes, so this count is a guess. It never limits Can build or blocks a send — the countable parts do. It still counts toward COG, and the Q4 buy list shows it in KG bags of ${SCOOP_PER}. Turn it off on Edit.">scooped — never limits a build</span>`:''}
+    <div class="cpTiles">${tiles}</div>
+    ${supHtml}
+    <div class="cpSec"><span class="lab">Stock batches — the oldest goes out first</span>${c.scoop?`<span class="chip" title="Scooped from a bin: nobody counts how many bags a KG makes, so this count is a guess. It never limits Can build or blocks a send — the countable parts do. It still counts toward COG, and the Q4 buy list shows it in KG bags of ${SCOOP_PER}. Turn it off on Edit.">scooped — never limits a build</span>`:''}
       <button class="btn sm pri" style="margin-left:auto" title="Backstock you already hold at a different price"
-        onclick="LV3.openAddBatch('${c.id}','component')">+ Add a batch</button>
-    </div>
-    <table class="ltab"><thead><tr><th>Supplier</th><th>Bought</th><th>Order</th><th>Qty</th><th>Left</th><th>Unit</th><th>Where</th><th>Status</th></tr></thead><tbody>
-    ${ls.map((l,i)=>{const nextOut=l.arr&&l.rem>0&&arrLayers(c).filter(x=>x.rem>0)[0]===l;
-      return `<tr class="${l.arr&&l.rem===0?'spent':''} ${nextOut?'used':''}"><td>${esc(l.sup)}</td><td>${dshort(l.date)}</td>
-      <td style="font-size:10px">${esc(l.oid)}</td><td>${fmt(l.qty)}</td><td>${l.arr?fmt(l.rem):'—'}</td><td>${gbp(l.cost)}</td>
-      <td style="font-size:10.5px">${esc(l.loc)}</td>
-      <td>${!l.arr?`<button class="btn sm go" onclick="LV3.markArrived('component','${c.id}','${l.id}')">Receive</button>`
-        :nextOut?'<span class="chip warn">next out</span>':l.rem?'<span class="chip ok">in stock</span>':'<span class="chip vat">used up</span>'}</td></tr>`;}).join('')}
+        onclick="LV3.openAddBatch('${c.id}','component')">+ Add a batch</button></div>
+    <table class="ltab cpBatT"><thead><tr><th>Supplier</th><th>Bought</th><th>Order</th><th>Qty</th><th>Left</th><th>A unit</th>${cq?'<th>A case</th>':''}<th>Where</th><th>Status</th></tr></thead><tbody>
+    ${nSpent?`<tr class="cpTog"><td colspan="${cols}"><button class="cpTogB" onclick="const t=this.closest('table');t.classList.toggle('showSpent');this.innerHTML=t.classList.contains('showSpent')?'Hide the ${nSpent} used-up batch${nSpent===1?'':'es'} &#9652;':'Show the ${nSpent} used-up batch${nSpent===1?'':'es'} &#9662;'">Show the ${nSpent} used-up batch${nSpent===1?'':'es'} &#9662;</button></td></tr>`:''}
+    ${ls.map(l=>{const nextOut=l.arr&&l.rem>0&&live[0]===l,spent=l.arr&&l.rem===0;
+      return `<tr class="${spent?'spent cpSpent':''}${nextOut?' used':''}"><td>${esc(l.sup)}</td><td>${dshort(l.date)}</td>
+      <td class="cpOid">${esc(l.oid)}</td><td>${fmt(l.qty)}${csT(l.qty)}</td><td>${l.arr?fmt(l.rem):'—'}${l.arr&&l.rem>0?csT(l.rem):''}</td><td>${gbp(l.cost)}</td>
+      ${cq?`<td>${+l.cost>0?gbp(l.cost*cq):'—'}</td>`:''}
+      <td style="font-size:10.5px">${esc(l.loc)}</td><td>${status(l)}</td></tr>`;}).join('')}
+    ${!live.length&&!ls.some(l=>!l.arr)?`<tr><td colspan="${cols}" class="cpDim" style="text-align:left">None in stock and nothing on order.</td></tr>`:''}
     </tbody></table>
-    <div class="lab" style="margin:16px 0 6px">What has happened to it</div>
-    ${timelineHtml(c)}
-    ${uses.length?`<div class="lab" style="margin:14px 0 4px">Used in ${uses.length} product${uses.length===1?'':'s'}</div>
+    <div class="cpSec"><span class="lab">What has happened to it</span><span class="pmeta">newest first</span></div>
+    ${timelineHtml(c,6)}
+    ${uses.length?`<div class="cpSec"><span class="lab">Used in ${uses.length} product${uses.length===1?'':'s'}</span></div>
     <table class="ltab"><thead><tr><th>Product</th><th>Per unit</th><th>Buildable from this</th><th>30d demand</th></tr></thead><tbody>
     ${uses.map(u=>{const r=u.recipe.find(x=>x.c===id);return `<tr><td>${esc(u.name)}</td><td>×${r.q}</td>
-      <td>${fmt(Math.floor(onHand(c)/r.q))}</td><td>${fmt(r.q*(u.ship30||0))}</td></tr>`;}).join('')}
+      <td>${fmt(Math.floor(h/r.q))}</td><td>${fmt(r.q*(u.ship30||0))}${csT(r.q*(u.ship30||0))}</td></tr>`;}).join('')}
     </tbody></table>
-    ${uses.length>1?`<div class="note" style="margin-top:10px">Shared part — every one of these products draws from the same ${fmt(onHand(c))} units.</div>`:''}`
+    ${uses.length>1?`<div class="note" style="margin-top:10px">Shared part — every one of these products draws from the same ${fmt(h)} units.</div>`:''}`
     :'<div class="note info" style="margin-top:13px">Not used in any product yet. Add it to a build list from the product editor.</div>'}
   </div>
   <div class="mf"><button class="btn dgr" onclick="LV3.delComp('${c.id}')">Delete</button>
@@ -12876,6 +12944,311 @@ function mxSave(){
 }
 
 /* ── data menu ── */
+/* ═══ b681 — STOCK ON ITS WAY TO US, EVERY DAY ════════════════════════════════════════════════════════════════
+   Jack, 15 Nov 2026: "prep sheet and plub side — we get it every day since we started, backdate it … how can we
+   future-proof it now … a full on breakdown like an excel sheet … super low storage but detailed" → "need it doing
+   daily now". Bought but not checked in yet, at cost: the Prep Sheet (OA orders) and PLUB (parts).
+   · Every booking-in on the Prep Sheet writes its own dated line ("Booked in", js/db.js) and an order closed with
+     units never arrived says when ("Closed — never arrived"), so any day can be rebuilt exactly from now on.
+   · Once a day the first laptop with PrepHub open saves the day before — the totals and every line still coming — as
+     one small activity-log line ("On its way — end of day", a few KB). Later edits can never change it. Missed days
+     (nobody in on a Sunday) are caught up, a week at most.
+   · Data → "Every day since we started (Excel)": Daily, Monthly, every order line and how sure its arrival day is.
+   Before 15 Sep 2026 the Prep Sheet kept no booked-in day: those arrivals come from the count-in log (from 9 Aug) or
+   are estimated (the supplier's usual wait, never later than the day it shipped to Amazon), and say so. */
+const TR_BOOK='Booked in',TR_CLOSE='Closed — never arrived',TR_DAY='On its way — end of day',TR_FROM='2026-01-01',TR_MARK='⟨data⟩';
+const _trN=s=>Date.UTC(+String(s).slice(0,4),+String(s).slice(5,7)-1,+String(s).slice(8,10))/864e5;
+const _trS=n=>new Date(Math.round(n)*864e5).toISOString().slice(0,10);
+const _trDay=t=>{try{return t?ukDayISO(new Date(t)):'';}catch(e){return '';}};
+const _trMed=a=>{if(!a.length)return 0;const s=a.slice().sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;};
+const _trOk=(y,m,d)=>{const x=new Date(Date.UTC(y,m-1,d));return x.getUTCFullYear()===y&&x.getUTCMonth()===m-1&&x.getUTCDate()===d;};
+/* the Prep Sheet keeps day/month only: the year is the one that puts the order just before the row reached the sheet */
+function _trOrderDay(r){
+  const ca=String(r.createdISO||String(r._ca||'').slice(0,10)||dayISO()).slice(0,10),cy=+ca.slice(0,4);
+  const tries=[[String(r.date||''),'order date'],[String(String(r.sku||'').split('_')[2]||''),'date in the SKU']];
+  for(const [s0,how] of tries){
+    const s=s0.replace(/\//g,'');if(s.length<4||!/^\d{4}/.test(s))continue;
+    const dd=+s.slice(0,2),mm=+s.slice(2,4);
+    for(const y of [cy,cy-1]){
+      if(!_trOk(y,mm,dd))continue;
+      const t=`${y}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+      if(_trN(t)-_trN(ca)>40)continue;
+      if(_trN(ca)-_trN(t)<=200)return {d:t,how};
+    }
+  }
+  return {d:ca,how:'day it reached the sheet'};
+}
+function _trShipDay(r){
+  const ds=(Array.isArray(r.shipSegments)?r.shipSegments:[]).map(s=>String((s&&s.date)||'').slice(0,10));
+  if(r.sentDate)ds.push(String(r.sentDate).slice(0,10));
+  return ds.filter(x=>/^\d{4}-\d\d-\d\d$/.test(x)).sort()[0]||'';
+}
+/* the activity-log lines the history is rebuilt from */
+function _trParse(list){
+  const L={book:{},close:{},count:{},days:[]};
+  (list||[]).forEach(a=>{const t=String(a.detail||''),at=a.created_at;
+    if(a.action===TR_BOOK){const m=t.match(/received (\d+) → (\d+) · order .*? · row (\S+?)(?: · was stamped (\S+))?$/);
+      if(m)(L.book[m[3]]=L.book[m[3]]||[]).push({at,from:+m[1],to:+m[2],prevAt:m[4]||''});}
+    else if(a.action===TR_CLOSE){const m=t.match(/(\d+) never arrived · order .*? · row (\S+)$/);if(m&&!L.close[m[2]])L.close[m[2]]={at,n:+m[1]};}
+    else if(a.action==='Counted in'){const m=t.match(/^(.*?) — (\d+) of \d+/);if(m)(L.count[m[1]]=L.count[m[1]]||[]).push({at,n:+m[2]});}
+    else if(a.action==='Received typed'){const m=t.match(/^(.*?) — \d+ → (\d+) \(typed/);if(m)(L.count[m[1]]=L.count[m[1]]||[]).push({at,n:+m[2]});}
+    else if(a.action===TR_DAY){const i=t.indexOf(TR_MARK);if(i>=0){try{const j=JSON.parse(t.slice(i+TR_MARK.length));if(j&&j.day)L.days.push(j);}catch(e){}}}
+  });
+  const byAt=(x,y)=>String(x.at).localeCompare(String(y.at));
+  Object.values(L.book).forEach(a=>a.sort(byAt));Object.values(L.count).forEach(a=>a.sort(byAt));
+  /* two laptops can save the same day at the same moment — the first one stands */
+  const seen=new Set();L.days=L.days.sort(byAt).filter(x=>!seen.has(x.day)&&seen.add(x.day));
+  return L;
+}
+async function _trRead(withDays){
+  const acts=[TR_BOOK,TR_CLOSE,'Counted in','Received typed'].concat(withDays===false?[]:[TR_DAY]);let out=[];
+  for(let off=0;off<60000;off+=1000){
+    const {data,error}=await sb.from('audit_log').select('action,detail,created_at').in('action',acts)
+      .order('created_at',{ascending:true}).range(off,off+999);
+    if(error)throw error;out=out.concat(data||[]);if(!data||data.length<1000)break;
+  }
+  return _trParse(out);
+}
+/* every order line, cut into what arrived when — the one source for the nightly save and the Excel */
+function trBuild(L,src){
+  L=L||{book:{},close:{},count:{},days:[]};src=src||{};
+  const R=src.rows||(typeof rows!=='undefined'?rows:[]),CMP=src.comps||D.components,today=src.today||dayISO();
+  const cogsOf=r=>{try{return (parseSKU(r.sku)||{}).cogs||0;}catch(e){return 0;}};
+  const waits={},all=[];
+  R.forEach(r=>{if(!((parseInt(r.rcvd)||0)>0)||!r.rcvdAt)return;
+    const o=_trOrderDay(r).d,s=_trShipDay(r);let a=_trDay(r.rcvdAt);if(s&&s<a)a=s;
+    const n=_trN(a)-_trN(o);if(n>=0&&n<=90){(waits[r.sup||'?']=waits[r.sup||'?']||[]).push(n);all.push(n);}});
+  const MED={};Object.keys(waits).forEach(k=>{if(waits[k].length>=5)MED[k]=_trMed(waits[k]);});
+  const ALL=all.length?_trMed(all):9;
+  const skuN={};R.forEach(r=>{if(r.sku)skuN[r.sku]=(skuN[r.sku]||0)+1;});
+  const prep=[],plub=[],left=[];
+  const trim=(steps,k)=>{for(let i=steps.length-1;i>=0&&k>0;i--){const t=Math.min(k,steps[i].u);steps[i].u-=t;k-=t;}};
+  R.forEach(r=>{
+    const O=_trOrderDay(r),o=O.d,ship=_trShipDay(r);
+    const want=Math.max(0,(parseInt(r.exp)||0)-(parseInt(r.cancelledQty)||0));
+    let got=parseInt(r.rcvd)||0;if(want>0)got=Math.min(got,want);
+    const base={side:'Prep',order:o,osrc:O.how,acct:r.acct||'',sup:r.sup||'',prod:String(r.prod||'').slice(0,80),asin:r.asin||'',
+      oid:r.oid||'',sku:r.sku||'',cost:cogsOf(r),status:r.status||'',closed:r.archived?'Yes':'No'};
+    /* the day a count of n was reached, from the best evidence there is */
+    const when=(stamp,n)=>{
+      if(stamp){let a=_trDay(stamp),how='Booked-in stamp';if(ship&&ship<a){a=ship;how='Shipped day (before the stamp)';}return {a,how};}
+      const cl=(r.sku&&skuN[r.sku]===1)?(L.count[r.sku]||[]):[],hit=cl.find(x=>x.n>=n);
+      if(hit){let a=_trDay(hit.at),how='Count-in log';if(ship&&ship<a){a=ship;how='Shipped day (before the count-in)';}return {a,how};}
+      const m=MED[base.sup]!=null?MED[base.sup]:ALL,est=_trS(_trN(o)+Math.round(m));
+      if(ship&&ship<=est)return {a:ship,how:'Estimated — the day it shipped (no booked-in day kept before 15 Sep)'};
+      return {a:est,how:`Estimated — usual ${Math.round(m)} days for ${base.sup||'this supplier'}`};
+    };
+    const steps=[],B=(r.uuid&&L.book[r.uuid])||[];
+    if(B.length){
+      const f0=want>0?Math.min(B[0].from,want):B[0].from;
+      if(f0>0){const x=when(B[0].prevAt,f0);steps.push({u:f0,a:x.a,how:x.how});}
+      let prev=B[0].from;
+      B.forEach(b=>{const d=b.to-prev;prev=b.to;if(d>0)steps.push({u:d,a:_trDay(b.at),how:'Booking log'});else if(d<0)trim(steps,-d);});
+      const sum=steps.reduce((t,s)=>t+s.u,0);   /* what the row says now is the truth */
+      if(sum>got)trim(steps,sum-got);else if(sum<got){const x=when(r.rcvdAt,got);steps.push({u:got-sum,a:x.a,how:x.how});}
+    }else if(got>0){const x=when(r.rcvdAt,got);steps.push({u:got,a:x.a,how:x.how});}
+    steps.filter(s=>s.u>0).forEach(s=>prep.push(Object.assign({},base,{units:s.u,arr:s.a<o?o:s.a,how:s.how})));
+    const rest=want-got;
+    if(rest>0){
+      const cl=r.uuid&&L.close[r.uuid];
+      if(!r.archived)prep.push(Object.assign({},base,{units:rest,arr:null,how:'Still on its way'}));
+      else if(cl){const a=_trDay(cl.at);prep.push(Object.assign({},base,{units:rest,arr:a<o?o:a,how:'Stopped — closed, never arrived'}));}
+      else left.push(Object.assign({},base,{units:rest,why:'Order closed with these never booked in (refunded, claimed or lost) before closes were dated'}));
+    }
+  });
+  const pw=[];CMP.forEach(cp=>(cp.layers||[]).forEach(l=>{if(l.recvOn&&l.date){const n=_trN(l.recvOn)-_trN(l.date);if(n>=0&&n<=90)pw.push(n);}}));
+  const PMED=pw.length?_trMed(pw):3;
+  CMP.forEach(cp=>{if(cp.untracked)return;
+    (cp.layers||[]).forEach(l=>{
+      if(l.src==='backstock'||/^backstock/i.test(String(l.note||'')))return;   /* opening stock was never on its way */
+      const o0=String(l.date||'').slice(0,10);if(!o0&&l.arr)return;
+      const o=o0||today,c=+l.cost||0,ordQ=(parseInt(l.ord)||0)||(parseInt(l.qty)||0)||(parseInt(l.rcvd)||0);
+      const base={side:'PLUB',order:o,part:cp.name||'?',kind:cp.kind||cp.type||'',sup:l.sup||'',oid:l.oid||'',cost:c,note:String(l.note||'').slice(0,60)};
+      let done=0;
+      (l.rcpts||[]).forEach(x=>{const u=parseInt(x&&x.got)||0;if(u>0&&x.on){const a=String(x.on).slice(0,10);
+        plub.push(Object.assign({},base,{units:u,arr:a<o?o:a,how:'Delivery record'}));done+=u;}});
+      if(l.arr){
+        if(!done){const u=(parseInt(l.rcvd)||0)||(parseInt(l.qty)||0)||ordQ;let a,how;
+          if(l.recvOn){a=String(l.recvOn).slice(0,10);how='Checked-in day';}
+          else if(l.closed){a=String(l.closed).slice(0,10);how='Order closed day';}
+          else{const eta=l.eta2||l.eta1;if(eta){a=String(eta).slice(0,10);how='Estimated — its delivery date';}
+            else{a=_trS(_trN(o)+Math.round(PMED));how=`Estimated — usual ${Math.round(PMED)} days`;}}
+          if(u>0)plub.push(Object.assign({},base,{units:u,arr:a<o?o:a,how}));}
+      }else{
+        const u=(+l.rem||+l.qty||0);
+        if(l.writtenOff){if(ordQ-done>0)left.push(Object.assign({},base,{units:ordQ-done,why:'written off'}));}
+        else if(cp.archived){if(u>0)left.push(Object.assign({},base,{units:u,why:'part archived'}));}
+        else if(u>0)plub.push(Object.assign({},base,{units:u,arr:null,how:'Still on its way'}));
+        else if(ordQ-done>0)left.push(Object.assign({},base,{units:ordQ-done,why:'closed short (nothing left to come)'}));
+      }
+    });});
+  return {prep,plub,left,today,MED,ALL,PMED,days:L.days||[]};
+}
+/* what was on its way at the end of a day */
+function trOnWay(T,day){
+  const o={prepGbp:0,prepU:0,prepEst:0,prepN:0,plubGbp:0,plubU:0,plubN:0},on=x=>x.order<=day&&(x.arr==null||x.arr>day);
+  T.prep.forEach(x=>{if(!on(x))return;o.prepGbp+=x.units*x.cost;o.prepU+=x.units;o.prepN++;if(x.arr!=null&&/^Estimated/.test(x.how))o.prepEst+=x.units*x.cost;});
+  T.plub.forEach(x=>{if(!on(x))return;o.plubGbp+=x.units*x.cost;o.plubU+=x.units;o.plubN++;});
+  return o;
+}
+/* right now, the quick way (the Data popup): the Prep Sheet's open rows and the PLUB Warehouse tile's "on order" */
+function trNow(){
+  let pg=0,pu=0;(typeof rows!=='undefined'?rows:[]).forEach(r=>{if(r.archived)return;const n=_owedUnits(r);
+    if(n>0){pu+=n;pg+=n*((parseSKU(r.sku)||{}).cogs||0);}});
+  const W=whNow();return {prepGbp:pg,prepU:pu,plubGbp:W.ordV,plubU:W.ordU};
+}
+function trDayRecord(T,day,full){
+  const on=x=>x.order<=day&&(x.arr==null||x.arr>day),r2=n=>Math.round(n*100)/100,P=T.prep.filter(on),Q=T.plub.filter(on);
+  const rec={v:1,day,at:new Date().toISOString(),by:(typeof cu!=='undefined'&&cu&&cu.name)||'',build:BUILD,
+    prep:{gbp:r2(P.reduce((t,x)=>t+x.units*x.cost,0)),units:P.reduce((t,x)=>t+x.units,0),n:P.length},
+    plub:{gbp:r2(Q.reduce((t,x)=>t+x.units*x.cost,0)),units:Q.reduce((t,x)=>t+x.units,0),n:Q.length}};
+  if(full!==false){
+    rec.prep.lines=P.map(x=>[x.oid,x.order,x.units,x.cost,x.sup,x.acct,x.asin,x.arr==null?'':x.arr]);
+    rec.plub.lines=Q.map(x=>[x.part,x.sup,x.oid,x.order,x.units,x.cost,x.arr==null?'':x.arr]);
+  }
+  return rec;
+}
+const _trSum=rec=>`${dshort(rec.day)}: Prep Sheet £${fmt(Math.round(rec.prep.gbp))} (${fmt(rec.prep.units)} units) · PLUB £${fmt(Math.round(rec.plub.gbp))} (${fmt(rec.plub.units)} units) on their way${rec.backdated?' (backdated)':''}`;
+/* b682: each day's line is stamped midday UTC on its OWN day — always the same UK day — so "which days are saved"
+   reads dates only, never the lines */
+async function _trWriteMany(recs){
+  const u=(typeof cu!=='undefined'&&cu)||{};
+  const row=rec=>({user_id:u.id||null,user_name:u.name||'',user_role:u.role||'',user_init:u.init||'',user_col:u.col||'',
+    action:TR_DAY,detail:_trSum(rec)+' '+TR_MARK+JSON.stringify(rec),created_at:rec.day+'T12:00:00.000Z'});
+  for(let i=0;i<recs.length;i+=50){
+    const part=recs.slice(i,i+50);
+    let {error}=await sb.from('audit_log').insert(part.map(row));
+    /* the safety net (no SQL): if the table ever refused a day's full line, keep its totals rather than nothing */
+    if(error&&part.some(r=>r.prep.lines||r.plub.lines)){
+      console.warn('[on its way] full line refused — saving the totals only',error.message);
+      ({error}=await sb.from('audit_log').insert(part.map(r=>{const c=JSON.parse(JSON.stringify(r));delete c.prep.lines;delete c.plub.lines;c.short=true;return row(c);})));
+    }
+    if(error)throw error;
+  }
+  return recs.length;
+}
+async function _trSavedDays(){
+  const have=new Set();
+  for(let off=0;off<20000;off+=1000){
+    const {data,error}=await sb.from('audit_log').select('created_at').eq('action',TR_DAY).order('created_at',{ascending:true}).range(off,off+999);
+    if(error)throw error;
+    (data||[]).forEach(x=>{const t=String(x.created_at||'');if(!t)return;
+      have.add(/T12:00:00/.test(t)?t.slice(0,10):_trS(_trN(_trDay(t))-1));});   /* a b681 line was saved the morning after */
+    if(!data||data.length<1000)break;
+  }
+  return have;
+}
+/* once a day: save every day not saved yet, back to the first order (b682, Jack: "can we backdate every day since we
+   first started using it?"). The last 7 days keep every line; older backdated days keep the totals. Cheap once done. */
+let _trBusy=false,_trDone='';
+async function trFreeze(opt){
+  opt=opt||{};const today=opt.today||dayISO(),yest=_trS(_trN(today)-1);
+  if(!opt.force&&_trDone===today)return 0;
+  if(_trBusy)return 0;
+  if(!opt.src){
+    if(!READY||typeof rows==='undefined'||!rows.length)return 0;
+    if(typeof _historyReady!=='undefined'&&!_historyReady)return 0;   /* orders closed since then live in the archive */
+    if(typeof cu==='undefined'||!cu||!cu.id)return 0;
+  }
+  _trBusy=true;
+  try{
+    const have=opt.have||await _trSavedDays();
+    const L=opt.logs||await _trRead(false);
+    const T=trBuild(L,opt.src),all=T.prep.concat(T.plub);
+    const first=all.reduce((m,x)=>x.order<m?x.order:m,yest),start=first<TR_FROM?TR_FROM:first;
+    const recs=[];
+    for(let d=_trN(start);d<=_trN(yest);d++){const day=_trS(d);if(have.has(day))continue;
+      const rec=trDayRecord(T,day,_trN(yest)-d<7);if(_trN(today)-d>1)rec.backdated=true;recs.push(rec);}
+    if(recs.length)await (opt.write||_trWriteMany)(recs);
+    _trDone=today;return recs.length;
+  }catch(e){console.warn('[on its way] nightly save',e);return 0;}
+  finally{_trBusy=false;}
+}
+/* the Excel: plain values (it is a record), one sheet per question */
+function trSheets(T){
+  const today=T.today,ser=s=>_trN(s)-_trN('1899-12-30'),r2=n=>Math.round(n*100)/100;
+  const lines=T.prep.concat(T.plub),first=lines.reduce((m,x)=>x.order<m?x.order:m,today),start=first<TR_FROM?TR_FROM:first;
+  const saved={};(T.days||[]).forEach(x=>{saved[x.day]=x;});
+  const daily=[];
+  for(let d=_trN(start);d<=_trN(today);d++){const day=_trS(d),o=trOnWay(T,day),s=day===today?null:saved[day];
+    daily.push({day,pg:s?s.prep.gbp:o.prepGbp,pu:s?s.prep.units:o.prepU,est:o.prepEst,qg:s?s.plub.gbp:o.plubGbp,qu:s?s.plub.units:o.plubU,
+      src:day===today?'Today so far':s?(s.backdated?'Backdated from the records':'Saved that night'):'Rebuilt from the records'});}
+  const tot=x=>x.pg+x.qg;
+  const DL=[['Day','Prep Sheet £ on its way','Prep units','of which £ on an estimated arrival day','PLUB parts £ on its way','PLUB units',
+    'Total £ on its way','Total units','Where the figure comes from']].concat(daily.map(x=>[ser(x.day),r2(x.pg),x.pu,r2(x.est),r2(x.qg),x.qu,r2(tot(x)),x.pu+x.qu,x.src]));
+  const byM={};daily.forEach(x=>{(byM[x.day.slice(0,7)]=byM[x.day.slice(0,7)]||[]).push(x);});
+  const MO=[['Month','Prep £ — average day','PLUB £ — average day','Total £ — average day','Total £ — highest day','Total £ — last day of the month','Days']]
+    .concat(Object.keys(byM).sort().map(k=>{const a=byM[k],n=a.length;
+      return [ser(k+'-01'),r2(a.reduce((t,x)=>t+x.pg,0)/n),r2(a.reduce((t,x)=>t+x.qg,0)/n),r2(a.reduce((t,x)=>t+tot(x),0)/n),r2(Math.max(...a.map(tot))),r2(tot(a[n-1])),n];}));
+  const dOn=x=>(x.arr?_trN(x.arr):_trN(today))-_trN(x.order),srt=(a,b)=>a.order<b.order?-1:a.order>b.order?1:0;
+  const PR=[['Ordered','Arrived (blank = still on its way)','How we know the arrival day','Days on the way','Account','Supplier','Product','ASIN',
+    'Order ID','SKU','Units','Cost a unit','£ at cost','Row status','Row closed?','Order date from']]
+    .concat(T.prep.slice().sort(srt).map(x=>[ser(x.order),x.arr?ser(x.arr):'',x.how,dOn(x),x.acct,x.sup,x.prod,x.asin,x.oid,x.sku,x.units,x.cost,r2(x.units*x.cost),x.status,x.closed,x.osrc]));
+  const PL=[['Ordered','Arrived (blank = still on its way)','How we know the arrival day','Days on the way','Part','Type','Supplier','Order ref','Units','Cost a unit','£ at cost','Note']]
+    .concat(T.plub.slice().sort(srt).map(x=>[ser(x.order),x.arr?ser(x.arr):'',x.how,dOn(x),x.part,x.kind,x.sup,x.oid,x.units,x.cost,r2(x.units*x.cost),x.note]));
+  const SV=[['Day','Saved','Saved at','By','Prep Sheet £','Prep units','Prep lines','PLUB £','PLUB units','PLUB lines','Every line kept?','Build']]
+    .concat((T.days||[]).slice().sort((a,b)=>a.day<b.day?-1:1).map(x=>[ser(x.day),x.backdated?'Backdated':'That night',String(x.at||'').replace('T',' ').slice(0,16),x.by||'',
+      x.prep.gbp,x.prep.units,x.prep.n,x.plub.gbp,x.plub.units,x.plub.n,x.prep.lines?'Yes':'Totals only',x.build||'']));
+  const LO=[['Side','Ordered','Supplier','Product / part','Order ID / ref','Units that never arrived','Cost a unit','£ at cost','Why it is left out']]
+    .concat(T.left.slice().sort(srt).map(x=>[x.side,ser(x.order),x.sup,x.prod||x.part||'',x.oid,x.units,x.cost,r2(x.units*x.cost),x.why]));
+  const now=daily[daily.length-1],mx=daily.reduce((m,x)=>tot(x)>tot(m)?x:m,daily[0]);
+  const since=daily.filter(x=>x.day>='2026-09-01'),avg=since.length?since.reduce((t,x)=>t+tot(x),0)/since.length:0;
+  const nEst=T.prep.filter(x=>/^Estimated/.test(x.how)).length,nSaved=(T.days||[]).length;
+  const RM=[['Stock on its way to us — every day'],
+    [`Bought but not checked in yet, at what we paid: Prep Sheet (OA orders) and PLUB (parts). Made by PrepHub ${BUILD} on ${dshort(today)}.`],[],
+    ['Right now — Prep Sheet',r2(now.pg),`${fmt(now.pu)} units`],['Right now — PLUB parts',r2(now.qg),`${fmt(now.qu)} units`],
+    ['Right now — total',r2(tot(now)),`${fmt(now.pu+now.qu)} units`],['Highest day — total',r2(tot(mx)),ser(mx.day)],
+    ['Average day since 1 Sep 2026 — total',r2(avg),''],
+    ['Days saved each night',nSaved,nSaved?'first: '+dshort(T.days.map(x=>x.day).sort()[0]):'the first is saved just after midnight'],[],
+    ['The sheets'],
+    ['Daily','','One line a day: £ and units on their way at the end of that day. Saved days are frozen; the rest are rebuilt from the records.'],
+    ['Monthly','','Average day, highest day and the last day of each month — handy for month-end stock.'],
+    ['Prep lines','',`Every Prep Sheet order line, cut into what arrived when (${fmt(T.prep.length)} lines).`],
+    ['PLUB lines','',`Every PLUB part order, one line per delivery (${fmt(T.plub.length)} lines). Opening stock (backstock) was never on its way.`],
+    ['Saved each night','','What PrepHub saved: each night the day before, with every line still coming. Days before it started were backdated from the records once (totals; their lines rebuild from the orders any time).'],
+    ['Left out','','Units that never arrived on orders closed before closes were dated (15 Nov 2026). Not counted on any day.'],[],
+    ['How sure is it'],
+    ['PLUB','','Recorded: the day each part was ordered and the day each delivery was checked in.'],
+    ['Prep Sheet from 15 Sep 2026','','Recorded: the booked-in stamp (or the day it shipped, if earlier). From 15 Nov 2026 every booking has its own dated line.'],
+    ['Prep Sheet before 15 Sep 2026','',`The count-in log where there is one (from 9 Aug), otherwise estimated (${fmt(nEst)} lines): the supplier's usual wait, never later than the day it shipped to Amazon. Daily column D shows how much of a day rests on those.`],
+    ['Order dates','','The Prep Sheet keeps day/month only — the year comes from when the row reached the sheet; rows with none use the date in the SKU.'],
+    ['Cost','','Prep Sheet: the cost a unit in the SKU. PLUB: the price paid on that order line.']];
+  const G='"£"#,##0',G2='"£"#,##0.00',N='#,##0',DT='dd/mm/yyyy';
+  return [
+    {name:'Read me',rows:RM,head:1,w:[36,14,110],cz:[[3,1,G],[4,1,G],[5,1,G],[6,1,G],[6,2,DT],[7,1,G],[8,1,N]]},
+    {name:'Daily',rows:DL,head:1,filter:true,w:[13,14,10,16,14,10,14,10,24],fmt:{0:'ddd dd/mm/yyyy',1:G,2:N,3:G,4:G,5:N,6:G,7:N}},
+    {name:'Monthly',rows:MO,head:1,w:[11,14,14,14,14,16,7],fmt:{0:'mmm yyyy',1:G,2:G,3:G,4:G,5:G,6:N}},
+    {name:'Prep lines',rows:PR,head:1,filter:true,w:[11,12,40,8,10,15,44,13,21,30,7,10,10,14,8,18],fmt:{0:DT,1:DT,3:N,10:N,11:G2,12:G2}},
+    {name:'PLUB lines',rows:PL,head:1,filter:true,w:[11,12,30,8,32,13,20,18,8,10,10,30],fmt:{0:DT,1:DT,3:N,8:N,9:G2,10:G2}},
+    {name:'Saved each night',rows:SV,head:1,filter:true,w:[11,11,17,10,12,9,9,12,9,9,14,26],fmt:{0:DT,4:G,5:N,6:N,7:G,8:N,9:N}},
+    {name:'Left out',rows:LO,head:1,filter:true,w:[7,11,16,44,21,12,10,10,60],fmt:{1:DT,5:N,6:G2,7:G2}}];
+}
+let _xlsxP=null;
+function _trXlsxLib(){
+  if(window.XLSX)return Promise.resolve(window.XLSX);if(_xlsxP)return _xlsxP;
+  _xlsxP=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload=()=>window.XLSX?res(window.XLSX):rej(new Error('the Excel maker did not load'));
+    s.onerror=()=>{_xlsxP=null;rej(new Error('the Excel maker did not load — check the internet'));};document.head.appendChild(s);});
+  return _xlsxP;
+}
+async function trXlsx(btn){
+  if(typeof _historyReady!=='undefined'&&!_historyReady){toast('The archive is still loading — try again in a minute','er');return;}
+  const lab=btn&&btn.textContent;if(btn){btn.disabled=true;btn.textContent='Making the file…';}
+  try{
+    const [X,L]=await Promise.all([_trXlsxLib(),_trRead()]);
+    const T=trBuild(L),S=trSheets(T),wb=X.utils.book_new();
+    S.forEach(sh=>{const ws=X.utils.aoa_to_sheet(sh.rows);
+      Object.entries(sh.fmt||{}).forEach(([ci,z])=>{for(let r=sh.head;r<sh.rows.length;r++){const c=ws[X.utils.encode_cell({r,c:+ci})];if(c&&c.t==='n')c.z=z;}});
+      (sh.cz||[]).forEach(([r,ci,z])=>{const c=ws[X.utils.encode_cell({r,c:ci})];if(c&&c.t==='n')c.z=z;});
+      ws['!cols']=(sh.w||[]).map(w=>({wch:w}));
+      if(sh.filter&&sh.rows.length>1)ws['!autofilter']={ref:X.utils.encode_range({s:{r:0,c:0},e:{r:sh.rows.length-1,c:sh.rows[0].length-1}})};
+      X.utils.book_append_sheet(wb,ws,sh.name);});
+    X.writeFile(wb,`Stock-on-its-way-to-us-${T.today}.xlsx`,{compression:true});
+    toast('Downloaded — every day since we started','ok');
+  }catch(e){console.warn('[on its way] excel',e);toast('Could not make the file: '+((e&&e.message)||e),'er');}
+  finally{if(btn){btn.disabled=false;btn.textContent=lab;}}
+}
+
 function openData(){
   $('lav3Mod2').className='mod slim';
   $('lav3Mod2').innerHTML=`<div class="mh"><h3>Data</h3><button class="x" onclick="LV3.cm('lav3Ov2')">&#10005;</button></div>
@@ -12886,6 +13259,10 @@ function openData(){
       <tr><td>Components</td><td>${fmt(D.components.length)}</td></tr>
       <tr><td>Purchase rows</td><td>${fmt(D.purchases.length)}</td></tr>
       <tr><td>Movements logged</td><td>${fmt(D.log.length)}</td></tr></tbody></table>
+    <div class="lab" style="margin:16px 0 6px">Stock on its way to us</div>
+    ${(()=>{try{const n=trNow();return `<div style="font-size:12.5px;line-height:1.5;margin-bottom:8px">Right now: <b>£${fmt(Math.round(n.prepGbp))}</b> Prep Sheet (${fmt(n.prepU)} units) · <b>£${fmt(Math.round(n.plubGbp))}</b> PLUB parts (${fmt(n.plubU)} units) — bought, not checked in yet, at cost.</div>`;}catch(e){return '';}})()}
+    <button class="btn pri" style="width:100%" onclick="LV3.trXlsx(this)">⬇ Every day since we started (Excel)</button>
+    <div class="note info" style="margin-top:8px">Saved every night — the first laptop with PrepHub open saves the day before. The file has every day, month by month, and every order line with how sure its arrival day is.</div>
     <div style="display:flex;flex-direction:column;gap:7px;margin-top:14px">
       <button class="btn" onclick="LV3.exportCsv()">Export components + products as CSV</button>
       <button class="btn dgr" onclick="LV3.clearAll()">Clear everything</button>
@@ -14232,6 +14609,8 @@ async function boot(){
      the hub…", then fills in. */
   hubLoad().then(()=>{try{paint();}catch(e){}}).catch(e=>console.warn('hub sales',e));
   checkStockSafety().then(()=>{try{paint();}catch(e){}});
+  /* b681: stock on its way to us — save the day before, once a day (cheap when done: one comparison) */
+  setTimeout(()=>{trFreeze();},30e3);setInterval(()=>{trFreeze();},120e3);
 }
 /* b675 (Becki, 11 Nov: "it is marginal the amount we get out of the KG … we already know we have a lot more at home";
    Jack: "Yes to A"). A SCOOPED part is tipped into a bin and scooped into bags — nobody counts how many bags a KG makes,
@@ -14272,11 +14651,12 @@ const API={go,render:paint,boot,__needOf:p=>needOf(p),q4SetSort,q4SortPref,dupCo
   openBulkComp,bcPreview,bcSave,bcMode,bcAddRow,bcDelRow,openBulkProd,bpPreview,bpSave,bpMode,bpAddRow,bpDelRow,
   openBulkRecipe,brMode,brPreview,brSave,brAddProd,brDelProd,brAddPart,brDelPart,brMakeMissing,
   openMatrix,mxSetMode,mxRender,mxAddCol,mxSave,mxStep,mxOne,mxAdd,mxPick,mxKey,mxSug,mxOneQty,mxOneDel,
-  openData,exportCsv,backupAll,exportHistory,setHFilter,setHQ,setHWho,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,orderState,ordQty,rcvdQty,outQty,
+  openData,exportCsv,backupAll,trXlsx,trFreeze,__trBuild:(L,S)=>trBuild(L,S),__trOnWay:(T,d)=>trOnWay(T,d),__trRecord:(T,d)=>trDayRecord(T,d),
+  __trParse:l=>_trParse(l),__trWriteMany:r=>_trWriteMany(r),__trRead:()=>_trRead(),__trNow:()=>trNow(),__trSheets:T=>trSheets(T),__whNow:()=>whNow(),exportHistory,setHFilter,setHQ,setHWho,copySql,dbCheck,clearAll,doUndo,gsRun,gsGo,toggleOos,toggleLog,openLogOrder,loFilter,loEta,loDays,loWhy,saveOrder,setEta,setEtaDM,setModeDays,shipModes,modeDraft,modeEdit,modeAdd,modeRemove,modesSave,modesReset,markChased,shortEnd,shortState,writeOffShort,orderState,ordQty,rcvdQty,outQty,
   sendBy,sendState,primeDays,setPrimeDays,workDaysBefore,workDaysBetween,
   undeclareShort,openRepl,saveRepl,damagedLines,dmgEnd,usedIn,usedInBadge,usedInPop,usedInShut,usedInAdd,usedInAddAll,coverSet,coverDaysOf,rsAlso,estCogOf,__D:()=>D,__planComponents:()=>planComponents(),hubSlim,__hubGet:()=>hubGet(),rsPicked,refreshShared,reloadData,rtChange,checkStockSafety,__save:()=>save(),__remRpc:()=>_remRpc,__setRemRpc:v=>{_remRpc=v;},settleIssue,sheetSays,relinkOrphans,openSheetDiff,mergeIntoSheetLine,dropDiffLine,cancelDiffLine,ackDiffLine,sheetDiffItems,__persist:()=>persist(),__pushNow:()=>pushNow(),__PURCH:()=>PURCH,__prefsMerge:_prefsMerge,__savePrefs:()=>savePrefs(),__saveState:()=>saveState(),__prefsBase:()=>_prefsBase,__setPrefsBase:v=>{_prefsBase=v;},__ack:()=>ACK,__hubTest:raw=>{const keep=HUB;try{const sum=()=>JSON.stringify({o:HUB.order,n:HUB.order.map(ym=>HUB.months[ym].rows),u:HUB.order.map(ym=>Object.keys(HUB.months[ym].by).sort().map(a=>a+':'+HUB.months[ym].by[a].units)),all:hubAll()});hubIngest(JSON.parse(JSON.stringify(raw)),false);const a=sum();hubIngest(JSON.parse(JSON.stringify(hubSlim(raw))),true);const b=sum();return{same:a===b,full:JSON.stringify(raw).length,slim:JSON.stringify(hubSlim(raw)).length};}finally{HUB=keep;}},allProducts:()=>D.products,acOnly,supplierIssues,logSupplierIssue,setSupplierIssueField,rcvThatsIt,shortLines,showReview,ghostAllocs,staleDupes,dropDupes,dropOneDupe,dupKeepAll,dupTwin,nameClose,typoOf,openFixLinks,fxFind,fxPick,fxClear,fxSaveAll,buyToggle,revToggle,shipOvConfirm,repairAllocLinks,healthCheck,fixHealth,setSupplierMode,knownSuppliers,dlvArrived,dlvArrivedOrder,dlvPast,openAtAmz,amzParse,amzSave,amzMode,amzGridSum,sold60,openOrderPlan,atAmz,
   hubLoad,hubRefresh,openHubReview,hbFind,hbPick,hbSkip,hbUnskip,hbSaveAll,hubMonth,ymName,hubClashes,
-  sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,amzUnlock,amzLocked,amzSfLast,copyAsin,copyAsinChip,shelfWalk,shareParts,upliftOf,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvFromCases,rcvCqTyped,dlvCs,dlvCsIn,ordCsIn,__casesTxt:(n,cq)=>casesTxt(n,cq),rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
+  sortCol,amzWhen,amzNow,localDT,ukDT,ukStamp,whenTxt,amzUnlock,amzLocked,amzSfLast,copyAsin,copyAsinChip,shelfWalk,shareParts,upliftOf,nextCog,lavShipList,lavShipInfo,amzIn,atAmzAll,sentSince,amzDry,openUseIn,saveUseIn,rsSet,rsQty,rsClear,rsDrop,rsFind,setLead,reorderIn,replenQty,openKilled,revivePurchLine,openMerge,mergeIntoTwin,mergeKeepBoth,restockPlanMulti,rsLogAll,rsToggle,rsToggleTbl,supFind,supToggleAll,alFind,alPick,alKey,openDeliveries,dlvSum,dlvPickOrder,dlvReceive,receiveRow,openReceive,rcvPreview,rcvConfirm,rcvShowDmg,rcvDmgBump,rcvSet,rcvFromCases,rcvCqTyped,dlvCs,dlvCsIn,ordCsIn,__cpBuyCases:(n,cq)=>_cpBuyCases(n,cq),__cpSuppliers:c=>_cpSuppliers(c),__casesTxt:(n,cq)=>casesTxt(n,cq),rcvBump,clearNote,openNotes,toggleHist,ack,ackClear,compOptions,setCol,setPref,
   __setAlloc:(p,a)=>setAlloc(p,a),lastBuy,woList,acSnoozeMenu,acSnoozeTo,acDone,acPause,acUnpause,acDate,acDateSet,__plRow:p=>plAmazonRow(p),sfApplyFromRun,sfApplySalesRun,__sfSalesInto:_sfSalesInto,sfShipPreset,setPlanSeason,planSeasonOf,setCompSupplier,sendUrgency,lossOfRows,lossLine,profitSrcOf,fbaCalDays,priceOf,acCopySend,acJump,sfPace,safetyFor,emptyDaysIn,stockAt,stockLedger,vHealth,coverDaysOf,isWorkDay,workDaysAfter,fbaLearn,primeDays,primeSet,copyAsin,prodLine,sfPace,profitOf,acUkMissing,__plData:()=>plData(),__prodByAsin:a=>_prodByAsin(a),__booted:()=>_booted,shipCheck,shipConsume,shipRestore,extraPlan:(a,u)=>extraPlan(a,u).map(x=>({name:x.name,qty:x.qty,cost:x.cost})),bookExtraForBuild,shipExtra,supplierAsks,leadApplyAll,leadSuggest,noteOverSent,overSentFor,settleOverSent,openOverSent,noteOverride,lavShipSplit,plSet,setPlanDemand,plUnskip,toggleProdTime,setProdTime,plSkip,setRouteGroup,shortMore,openPlanRow,rsDate,rsGoalMode,wlTick,wlUntick,wlWho,ppGo,buySkipSet,ovModel,acSnooze,acUnsnooze,build:()=>BUILD,copyBuyList,lavLateCount,lavLateList,rsCopyList,
   setUplift,upliftCfg,upliftOf,upliftNote,demandBetween,daysCovered,
   ovReasons:()=>OV_REASONS.map(r=>[r[0],r[1]]),

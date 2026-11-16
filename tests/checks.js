@@ -4069,7 +4069,7 @@ window.PrepChecks=(function(){
     try{tfuSort('newest');eq(_tfuSort+'/'+_tfuDir,'days/-1','“Sort: newest first” is the same setting the page now opens on');}
     finally{_tfuSort=keep[0];_tfuDir=keep[1];}
     const ja=src('/js/jack-admin.js');
-    ok(/case 'newest':\{[^}]*Date\.parse\(a\.at/.test(ja),'same-day items on Jack’s page go by the exact time');
+    ok(/case 'newest':\{[^}]*Date\.parse\((a\.at|_T\(a\))/.test(ja),'same-day items on Jack’s page go by the exact time');
   };
 
   /* 148 · b665: a failed save leaves nothing behind; a change made in place is really sent */
@@ -4643,7 +4643,7 @@ window.PrepChecks=(function(){
         ok(r2&&r2.querySelector('.ocSentC .ocSeg.old')&&r2.querySelector('.ocSentC .ocSeg.ok'),'an order split over two boxes: the one before SellerFuse starts says so, the other is ✓');
         ok(r2&&/^8/.test(r2.querySelector('.ocSentC').textContent.trim()),'…and the column shows its total sent');
         ok(r3&&r3.querySelector('.ocSentC .ocDim0'),'the stuck order: 0 sent');
-        ok(/8 more on/.test(c.textContent)&&c.textContent.includes(y3.oid),'the newer order ticked delivered with nothing booked in is named — Send doesn’t touch it');}
+        ok(!/8 more on/.test(c.textContent)&&_ocAsked(y3),'b678: the newer order ticked delivered with nothing booked in joined the check by itself — Jack: “it should do it automatically”');}
       /* a SellerFuse line that differs from PrepHub is red, and the line says how many went with nothing behind them */
       SFRUN.summary.asinBal.by[A][0]=ln('FBA15'+k.slice(0,6)+'A',y1.sku,4);renderJack();await wait(80);
       c=[...document.querySelectorAll('#jackWrap .ocCard')].find(x=>x.textContent.includes(A));
@@ -4689,12 +4689,11 @@ window.PrepChecks=(function(){
       let P=_ocPlan(A);
       ok(!P.squared,'units booked over that nothing explains yet: not squared — every order needs an answer');
       await ocAllDel(A);P=_ocPlan(A);
-      eq(P.lone.length,2,'two orders ticked delivered with nothing booked in are outside the check');
-      ok(!P.ready,'Send waits until they are added');
+      eq(P.lone.length,0,'b678: the two orders ticked delivered with nothing booked in joined the check by themselves');
+      ok(_ocAsked(l1)&&_ocAsked(l2),'b678: both on the check without a press');
       goPage('jack');renderJack();await wait(150);
       let c=[...document.querySelectorAll('#jackWrap .ocCard')].find(x=>x.textContent.includes(A));
-      ok(c&&c.querySelector('.ocJoin button'),'the card offers to add them');
-      ok(c&&/Add the 2 orders above to the check first/.test((c.querySelector('.ocGo')||{}).textContent||''),'…and Send says why it waits');
+      ok(c&&!c.querySelector('.ocJoin button'),'b678: no "Add it to this check" box left to press');
       {const u=c&&c.querySelector('.ocUD');ok(u&&u.textContent.includes(ov.oid)&&/\+168/.test(u.textContent)&&/−120/.test(u.textContent)&&/−36/.test(u.textContent)&&/−9/.test(u.textContent),'up and down, order by order: +168, −120, −36, −9');
         ok(u&&/overall \+3/.test(u.textContent),'…and overall +3');}
       await ocJoin(A);P=_ocPlan(A);
@@ -4735,6 +4734,312 @@ window.PrepChecks=(function(){
         const cardTxt=[...document.querySelectorAll('.jobWhat')].map(x=>x.textContent+' '+((x.nextElementSibling||{}).textContent||'')).join(' | ');
         ok(/Update Purchase Sheet/.test(cardTxt)&&/400 → 96/.test(cardTxt),'a job card says what the job is and why, without opening it');}
     }finally{window._ocPullable=keepPull;window._saveAsinChecks=keepSave;ASIN_CHECKS=keepA;who('Jack');}
+  };
+
+  /* b681 (Jack, 15 Nov: "need it doing daily now") */
+  S['b681: stock on its way to us — every booking dated, any day rebuilt exactly, saved once a night, the Excel adds up']=async()=>{
+    const B=LV3.__trBuild,ON=LV3.__trOnWay,PL=LV3.__trParse,today='2026-11-20';
+    /* 1 · the booking line, at the one door */
+    {const keep=window.logAudit,got=[];window.logAudit=(a,d)=>got.push([a,d]);
+      try{const r={uuid:'abc12345-0000',sku:'SKU1',oid:'202-9',exp:10,rcvd:7,cancelledQty:0};
+        _trBookLog(r,{qty_received:2,rcvd_at:'2026-11-01T10:00:00Z',archived:false},{qty_received:7});
+        ok(got.length===1&&got[0][0]==='Booked in'&&/received 2 → 7 · order 202-9 · row abc12345-0000 · was stamped 2026-11-01T10:00:00Z$/.test(got[0][1]),
+          'a booking writes its own dated line: from, to, the order, the row, the old stamp');
+        const P=PL([{action:'Booked in',detail:got[0][1],created_at:'2026-11-02T10:00:00Z'}]);
+        ok(P.book['abc12345-0000']&&P.book['abc12345-0000'][0].from===2&&P.book['abc12345-0000'][0].to===7&&P.book['abc12345-0000'][0].prevAt==='2026-11-01T10:00:00Z','…and reads back the same');
+        got.length=0;r.archived=true;_trBookLog(r,{qty_received:7,archived:false},{archived:true});
+        ok(got.length===1&&got[0][0]==='Closed — never arrived'&&/— 3 never arrived · order 202-9 · row abc12345-0000$/.test(got[0][1]),'closing with 3 never arrived says so');
+        got.length=0;_trBookLog(r,{qty_received:7},{qty_received:7});_trBookLog(r,{archived:true},{archived:true});ok(!got.length,'nothing changed, nothing written');
+      }finally{window.logAudit=keep;}
+      const src=String(_saveRowNow);ok(/_trBookLog\(r,r\._base,_sent\)[\s\S]*_setBase\(r,Object\.assign/.test(src),'the save writes it before the saved copy moves on');}
+    /* 2 · any day rebuilt exactly */
+    let k=0;const row=o=>Object.assign({uuid:'tr'+(++k)+'-0000',id:'t'+k,date:'01/11',createdISO:'2026-11-01',exp:10,rcvd:0,cancelledQty:0,archived:false,
+      sup:'Amazon UK',acct:'EU 01',prod:'TEST '+k,asin:'B0TEST',oid:'202-'+k,sku:'Amuk_5_0111_0_Jac_10',status:'In-Transit',shipSegments:[],sentDate:''},o);
+    const a=row({rcvd:10,rcvdAt:'2026-11-05T10:00:00Z'});                     /* one go, stamped 5 Nov */
+    const b=row({rcvd:10,rcvdAt:'2026-11-06T10:00:00Z'});                     /* two goes in the booking log: 4 on 3 Nov, 6 on 6 Nov */
+    const c=row({rcvd:7,rcvdAt:'2026-11-02T09:00:00Z'});                      /* 3 still coming */
+    const d=row({rcvd:8,rcvdAt:'2026-11-03T09:00:00Z',archived:true});        /* closed 7 Nov, 2 never came (dated) */
+    const e=row({rcvd:8,rcvdAt:'2026-11-03T09:00:00Z',archived:true});        /* closed before closes were dated */
+    const f=row({rcvd:10,rcvdAt:null,sup:'Argos',shipSegments:[{shipId:'FBA1',units:10,date:'2026-11-02'}]});   /* no stamp: shipped 2 Nov */
+    const logs=PL([
+      {action:'Booked in',detail:`x — received 0 → 4 · order 202-2 · row ${b.uuid}`,created_at:'2026-11-03T10:00:00Z'},
+      {action:'Booked in',detail:`x — received 4 → 10 · order 202-2 · row ${b.uuid} · was stamped 2026-11-03T10:00:00Z`,created_at:'2026-11-06T10:00:00Z'},
+      {action:'Closed — never arrived',detail:`x — 2 never arrived · order 202-4 · row ${d.uuid}`,created_at:'2026-11-07T12:00:00Z'}]);
+    const comps=[{name:'Part A',kind:'component',layers:[
+      {date:'2026-11-02',ord:100,qty:0,rem:0,cost:0.5,sup:'S1',arr:1,rcpts:[{on:'2026-11-04',got:60},{on:'2026-11-08',got:40}]},
+      {date:'2026-11-10',ord:30,qty:30,rem:30,cost:1,sup:'S2',arr:0},
+      {date:'2026-06-01',qty:50,rem:50,cost:1,sup:'Back',arr:1,src:'backstock'},
+      {date:'2026-11-01',ord:20,qty:20,rem:20,cost:1,sup:'S3',arr:0,writtenOff:true}]}];
+    const src={rows:[a,b,c,d,e,f],comps,today},TT=B(logs,src);
+    let o=ON(TT,'2026-11-04');
+    eq(o.prepU,21,'end of 4 Nov: 10 (in on the 5th) + 6 (the second go) + 3 (still coming) + 2 (closed on the 7th)');eq(o.prepGbp,105,'…at £5 a unit');
+    eq(ON(TT,'2026-11-06').prepU,5,'end of 6 Nov: the second go is in — 3 coming + 2 not closed yet');
+    eq(ON(TT,'2026-11-07').prepU,3,'end of 7 Nov: the close stops the 2');
+    eq(ON(TT,today).prepU,3,'today: only what is really still coming');
+    const ff=TT.prep.find(x=>x.prod===f.prod);ok(ff&&ff.arr==='2026-11-02'&&/^Estimated — the day it shipped/.test(ff.how),'no booked-in day: never later than the day it shipped, and it says Estimated');
+    ok(TT.left.some(x=>x.prod===e.prod&&x.units===2)&&TT.left.some(x=>x.part==='Part A'&&x.why==='written off'&&x.units===20),'undated closes and write-offs are left out, and listed');
+    eq(ON(TT,'2026-11-05').plubU,40,'PLUB end of 5 Nov: 60 of 100 in on the 4th, 40 coming');eq(ON(TT,'2026-11-05').plubGbp,20,'…£20');
+    eq(ON(TT,'2026-11-12').plubU,30,'PLUB end of 12 Nov: the first order is in; the new 30 are coming');
+    ok(!TT.plub.some(x=>x.sup==='Back'),'opening stock (backstock) was never on its way');
+    /* 3 · saved once a night, caught up, never twice */
+    let wrote=[];const w=async recs=>{wrote=wrote.concat(recs);return recs.length;};
+    const allTo=(x,y)=>{const s=new Set();for(let t=Date.parse(x);t<=Date.parse(y);t+=864e5)s.add(new Date(t).toISOString().slice(0,10));return s;};
+    let n=await LV3.trFreeze({force:true,today,logs,src,write:w,have:new Set()});
+    eq(n,19,'b682: the first run backdates every day since the first order — 1 to 19 Nov');
+    const y=wrote.find(x=>x.day==='2026-11-19'),old=wrote.find(x=>x.day==='2026-11-04');
+    ok(y&&!y.backdated&&y.prep.units===3&&y.prep.lines.length===1&&y.plub.lines.length===1,'yesterday: the totals and every line still coming');
+    ok(old&&old.backdated&&old.prep.units===21&&old.prep.gbp===105&&!old.prep.lines,'an old day: backdated, the right totals, no lines (they rebuild from the orders)');
+    eq(wrote.filter(x=>x.prep.lines).length,7,'the last 7 days keep every line');
+    wrote=[];n=await LV3.trFreeze({force:true,today,logs,src,write:w,have:allTo('2026-11-01','2026-11-16')});
+    eq(n,3,'nobody in for three days: 17, 18 and 19 are caught up');ok(wrote.every(x=>x.prep.lines),'…with their lines');
+    const gap=allTo('2026-11-01','2026-11-19');gap.delete('2026-11-10');
+    wrote=[];n=await LV3.trFreeze({force:true,today,logs,src,write:w,have:gap});
+    ok(n===1&&wrote[0].day==='2026-11-10','a day missing in the middle is filled');
+    wrote=[];n=await LV3.trFreeze({force:true,today,logs,src,write:w,have:allTo('2026-11-01','2026-11-19')});
+    eq(n,0,'all saved: nothing written');
+    {const own=Object.prototype.hasOwnProperty.call(sb,'from'),orig=sb.from,got=[];let first=true;
+      sb.from=t=>({insert:async rws=>{got.push(rws);if(first){first=false;return {error:{message:'value too long'}};}return {error:null};}});
+      try{const n2=await LV3.__trWriteMany([LV3.__trRecord(TT,'2026-11-19')]);
+        ok(n2===1&&got.length===2,'a refused save is tried again');
+        const r2=JSON.parse(String(got[1][0].detail).split('⟨data⟩')[1]);
+        ok(!r2.prep.lines&&r2.short&&r2.prep.units===3,'…with the totals only — never nothing');
+        eq(got[1][0].created_at,'2026-11-19T12:00:00.000Z','each day is stamped midday on its own day');
+      }finally{if(own)sb.from=orig;else delete sb.from;}}
+    const L2=PL([{action:'On its way — end of day',detail:'x ⟨data⟩'+JSON.stringify({day:'2026-11-03',at:'2026-11-04T05:00:00Z',prep:{gbp:1,units:1,n:1,lines:[]},plub:{gbp:0,units:0,n:0,lines:[]}})},
+                 {action:'On its way — end of day',detail:'x ⟨data⟩'+JSON.stringify({day:'2026-11-03',at:'2026-11-04T05:00:01Z',prep:{gbp:9,units:9,n:1,lines:[]},plub:{gbp:0,units:0,n:0,lines:[]}})}]);
+    ok(L2.days.length===1&&L2.days[0].prep.units===1,'two laptops saving the same night: the first one stands');
+    /* 4 · the Excel adds up */
+    const S2=LV3.__trSheets(Object.assign({},TT,{days:L2.days}));
+    eq(S2.map(s=>s.name).join('|'),'Read me|Daily|Monthly|Prep lines|PLUB lines|Saved each night|Left out','seven sheets');
+    const dl=S2[1].rows;eq(dl.length,21,'Daily: 1 Nov to 20 Nov, one line a day');
+    const ser=s=>Math.round((Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10))-Date.UTC(1899,11,30))/864e5);
+    const r4=dl.find(x=>x[0]===ser('2026-11-04')),r3=dl.find(x=>x[0]===ser('2026-11-03'));
+    ok(r4&&r4[1]===105&&r4[8]==='Rebuilt from the records','a rebuilt day carries its figure and says so');
+    ok(r3&&r3[1]===1&&r3[8]==='Saved that night','a saved day uses what was saved that night');
+    {const S3=LV3.__trSheets(Object.assign({},TT,{days:[Object.assign({},L2.days[0],{backdated:true})]}));
+      ok((S3[1].rows.find(x=>x[0]===ser('2026-11-03'))||[])[8]==='Backdated from the records','a backdated day says so');}
+    eq(S2[3].rows.length,TT.prep.length+1,'Prep lines: every line');eq(S2[6].rows.length,TT.left.length+1,'Left out: every line');
+    /* 5 · on the real data, today matches the page */
+    if(typeof _historyReady==='undefined'||_historyReady){
+      const RT=B(await LV3.__trRead()),now=LV3.__trNow(),t=ON(RT,RT.today);
+      ok(Math.abs(t.prepGbp-now.prepGbp)<0.5&&t.prepU===now.prepU,`the Prep Sheet today matches its open rows (£${Math.round(t.prepGbp)} / £${Math.round(now.prepGbp)})`);
+      ok(Math.abs(t.plubGbp-LV3.__whNow().ordV)<0.5,`PLUB today matches the Warehouse tile's on order (£${Math.round(t.plubGbp)} / £${Math.round(LV3.__whNow().ordV)})`);
+    }
+    ok(/neq\('action','On its way — end of day'\)/.test(String(loadAuditPage)),'the nightly line never clutters the Audit page');
+  };
+
+  /* b680 (Jack, 14 Nov: "refix it so when I push … it's fixed") */
+  S['b680: old cards heal themselves; Not delivered yet parks; Undo goes back to his list; escalations clear; search by order number']=async()=>{
+    const keep={ms:window._mustSave,sr:window.saveRow,wh:window.fireWebhook,oj:window._ocJoinable};
+    try{
+      window._mustSave=async()=>true;window.saveRow=async()=>true;window.fireWebhook=async()=>{};
+      who('Jack');
+      const dm=d=>{const t=ukAddDays(todayISO(),-d);return t.slice(8)+'/'+t.slice(5,7);};
+      const k=String(++_n).padStart(7,'0').slice(-7),A='B0CHK80A'+(++_n);
+      const s1=mkRow({asin:A,prod:'CHECK ROW old',date:dm(38),oid:'202-'+k+'-0000001',acct:'EU 03',exp:5,rcvd:0,resolution:asked({ask:'Has Amazon delivered it?'})});
+      mkRow({asin:A,prod:'CHECK ROW old',date:dm(38),oid:'202-'+k+'-0000003',acct:'EU 02',exp:5,rcvd:5,ship:5,sent:'Yes'});
+      await ocStartFromJack(s1.uuid);
+      /* the old version: an order of it Sarah sent over later, and one on nobody's list, both ticked delivered, left outside */
+      const s2=mkRow({asin:A,prod:'CHECK ROW old',date:dm(38),oid:'202-'+k+'-0000002',acct:'EU 01',exp:10,rcvd:5,ship:5,sent:'Yes',resolution:asked({ask:'Has Amazon delivered it?'})});
+      const nb=mkRow({asin:A,prod:'CHECK ROW old',date:dm(30),oid:'202-'+k+'-0000004',acct:'Biz 03 - WM',exp:8,rcvd:0});
+      window._ocJoinable=()=>false;
+      await ocAns(A,s2.oid,'d');await ocAns(A,nb.oid,'d');await ocAllDel(A);
+      window._ocJoinable=keep.oj;
+      let P=_ocPlan(A);eq(P.lone.length,2,'set-up: two short orders outside the card, as on the old version');ok(!P.ready,'…and Send greyed out');
+      ok(_ocJoinable(P),'both can join: one waiting on Jack, one on nobody’s list');
+      goPage('jack');renderJack();await wait(250);
+      P=_ocPlan(A);
+      ok(_ocAsked(s2)&&_ocAsked(nb),'the first time the page draws it, both join by themselves');
+      ok(!P.lone.length&&P.ready,'no yellow box, Send is on');
+      eq(P.M,18,'5 + 5 + 8 really missing');
+      const c=[...document.querySelectorAll('#jackWrap .ocCard')].find(x=>x.textContent.includes(A));
+      ok(c&&!c.querySelector('.ocJoin')&&!c.querySelector('.ocGo[disabled]'),'the card has no "Add it" box and Send is pressable');
+      ok(![...document.querySelectorAll('#jackWrap tbody.jkCards > tr[data-jk]')].some(tr=>tr.dataset.jk===String(s2.uuid)),'Sarah’s single row of it is gone from the list — it is on the card');
+      /* never a row Sarah is working on */
+      const B='B0CHK80B'+(++_n),k2=String(++_n).padStart(7,'0').slice(-7);
+      const b1=mkRow({asin:B,prod:'CHECK ROW old2',date:dm(20),oid:'202-'+k2+'-0000001',acct:'EU 03',exp:2,rcvd:0,resolution:asked({ask:'Has Amazon delivered it?'})});
+      await ocStartFromJack(b1.uuid);
+      const sw=mkRow({asin:B,prod:'CHECK ROW old2',date:dm(20),oid:'202-'+k2+'-0000002',acct:'Biz 02',exp:3,rcvd:0,
+        resolution:{state:'rejected',kind:'check',what:'jack-check',rejectNote:'x',rejectedBy:'Jack',by:'Sarah',at:iso()}});
+      window._ocJoinable=()=>false;await ocAns(B,sw.oid,'d');window._ocJoinable=keep.oj;
+      ok(!_ocJoinable(_ocPlan(B)),'an order Sarah is working on can’t join by itself');
+      renderJack();await wait(200);
+      ok(!_ocAsked(sw)&&_ocPlan(B).lone.length===1,'…and the page leaves it alone — the named box stays');
+      /* 1 · "not delivered yet" on a missing order itself parks it on Amazon's date — never "cancelled" */
+      const C='B0CHK80C'+(++_n),k3=String(++_n).padStart(7,'0').slice(-7);
+      const c1=mkRow({asin:C,prod:'CHECK ROW coming',date:dm(12),oid:'202-'+k3+'-0000001',acct:'EU 01',exp:4,rcvd:2,ship:2,sent:'Yes',resolution:asked({ask:'Has Amazon delivered it?'})});
+      mkRow({asin:C,prod:'CHECK ROW coming',date:dm(12),oid:'202-'+k3+'-0000002',acct:'EU 02',exp:3,rcvd:3,ship:3,sent:'Yes'});
+      await ocStartFromJack(c1.uuid);await ocAns(C,c1.oid,'n');await ocAllDel(C);
+      const due=ukAddDays(todayISO(),5);await ocEta(C,c1.oid,due);
+      let PC=_ocPlan(C);
+      eq(PC.rows[0].route,'park','Not delivered yet on the missing order itself: parked — not cancelled');
+      eq(PC.extra,0,'…and no made-up "more booked in than delivered"');ok(PC.ready,'Send is on once Amazon’s date is in');
+      await ocSend(C);
+      eq(c1.expectedDelivery,due,'parked on Amazon’s date');ok(c1.resolution.what==='in-transit'&&/still coming/.test(c1.resolution.rejectNote||''),'…and the note says it is still coming');
+      ok(!/cancelled/i.test(c1.resolution.rejectNote||''),'nothing says cancelled');
+      /* 2 · Undo on his own card: back on his list exactly as it was */
+      const U='B0CHK80U'+(++_n),k4=String(++_n).padStart(7,'0').slice(-7);
+      const u1=mkRow({asin:U,prod:'CHECK ROW undo',date:dm(12),oid:'202-'+k4+'-0000001',acct:'EU 01',exp:3,rcvd:0,resolution:asked({ask:'Has Amazon delivered it?'})});
+      const before=JSON.stringify(u1.resolution),dBefore=u1.delivered;
+      await ocStartFromJack(u1.uuid);ok(_ocAsked(u1),'on a card');
+      goPage('jack');renderJack();await wait(80);
+      const ub=[...document.querySelectorAll('#jackWrap .ocCard')].find(x=>x.textContent.includes(U));
+      const btn=ub&&[...ub.querySelectorAll('button')].find(b=>/^Undo$/.test(b.textContent.trim()));ok(btn,'the card has Undo');
+      await ocUndo(U,btn);ok(_ocAsked(u1),'one press only arms it');ok(/Press again/.test(btn.textContent),'…and says press again');
+      await ocUndo(U,btn);
+      ok(!_ocAsked(u1)&&u1.resolution.state==='asked'&&u1.resolution.what==='jack-check','Undo: back on his list as the same question');
+      ok(!u1.resolution.amzDelivered&&u1.delivered===dBefore,'his "delivered" answer is taken off — not on Becki’s shelf check');
+      ok(!_isAmzDel(u1)&&onJack(u1),'on Jack’s list, not Becki’s');
+      eq(JSON.stringify(Object.assign({},u1.resolution,{ordChkUndone:undefined,chase:undefined})),JSON.stringify(Object.assign({},JSON.parse(before),{ordChkUndone:undefined,chase:undefined})),'exactly as it was');
+      /* 3 · an escalation clears once the question is answered */
+      const e1=mkRow({exp:2,rcvd:0,resolution:asked({escalation:{why:'test: the check disagrees',by:'Sarah',at:iso()}})});
+      ok(!!_jkEscOf(e1.uuid),'escalated');
+      e1.resolution=Object.assign({},e1.resolution,{state:'asked',what:'amz-claim',at:new Date(Date.now()+300000).toISOString()});
+      eq(_jkEscOf(e1.uuid),'','a newer question on the row: the old escalation no longer pins it');
+      /* 7 · search by an order number on a card */
+      _jkQ=String(nb.oid);renderJack();await wait(60);
+      ok([...document.querySelectorAll('#jackWrap .ocCard')].some(x=>x.textContent.includes(A)),'search finds a card by any of its order numbers');
+      _jkQ='';renderJack();
+    }finally{window._mustSave=keep.ms;window.saveRow=keep.sr;window.fireWebhook=keep.wh;window._ocJoinable=keep.oj;_jkQ='';who('Jack');}
+  };
+
+  /* b679 (Jack, 13 Nov — the Horlicks popup: "add in cases and how much a case is" / "how much is a case from all our suppliers") */
+  S['b679: the part popup — units and cases, a case from each supplier, used-up batches folded, To buy in cases']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D=LV3.__D(),B=LV3.__cpBuyCases;
+    eq(B(1500,30),'50 cases × 30','To buy in cases: 1,500 = 50 cases × 30');
+    eq(B(1510,30),'51 cases × 30 = 1,530','not a whole number of cases: rounded up, and says so');
+    eq(B(1500,0),'','no case size — never guessed');
+    const d=k=>{const t=new Date(Date.now()-k*864e5);return t.toISOString().slice(0,10);};
+    const c={id:'chk-cp-c',name:'CHECK Popup Choc',kind:'component',tag:'complementary',caseQty:30,layers:[
+      {id:'chk-cp-1',src:'',qty:120,rem:0,ord:120,arr:1,date:d(60),sup:'CHECK Prima',oid:'#CHK1',cost:0.33,arrivedOn:d(58)},
+      {id:'chk-cp-2',src:'',qty:780,rem:0,ord:780,arr:1,date:d(40),sup:'CHECK Prima',oid:'#CHK2',cost:0.31,arrivedOn:d(38)},
+      {id:'chk-cp-3',src:'',qty:150,rem:0,ord:150,arr:1,date:d(20),sup:'CHECK Amazon',oid:'203-CHK-3',cost:0.28,arrivedOn:d(18)},
+      {id:'chk-cp-4',src:'',qty:120,rem:28,ord:120,arr:1,date:d(15),sup:'CHECK Amazon',oid:'202-CHK-4',cost:0.30,arrivedOn:d(13)}]};
+    c._src={id:c.id,uuid:null,name:c.name,kind:'component',tag:'complementary',caseQty:30,archived:false};
+    c._src._sig=[c.name,c.kind,c.tag,c.caseQty].join('|');
+    D.components.push(c);
+    try{
+      const S2=LV3.__cpSuppliers(c);
+      eq(S2.map(s=>s.sup+' '+s.last.cost+'/'+s.min).join(' | '),'CHECK Amazon 0.3/0.28 | CHECK Prima 0.31/0.31','each supplier: the latest price and the cheapest — cheapest now first');
+      LV3.openComp(c.id);await wait(120);
+      const m=document.getElementById('lav3Mod1'),txt=m.textContent;
+      ok(/case of 30/.test(txt),'the case size is on the popup');
+      ok(/28 loose — under a case/.test(txt),'On hand says its cases');
+      ok(/A case of 30/.test(txt)&&txt.includes('£9.00'),'the A case tile: £0.30 × 30 = £9.00');
+      const sup=m.querySelector('.cpSupT');ok(sup,'an "A case from each supplier" table');
+      const rows=[...sup.querySelectorAll('tbody tr')].map(tr=>tr.textContent.replace(/\s+/g,' '));
+      ok(/CHECK Amazon/.test(rows[0])&&/cheapest now/i.test(rows[0])&&rows[0].includes('£9.00'),'Amazon first — cheapest now, £9.00 a case');
+      ok(rows[0].includes('£0.28')&&rows[0].includes('£8.40'),'…and the cheapest we have paid them: £0.28, £8.40 a case');
+      ok(/CHECK Prima/.test(rows[1])&&rows[1].includes('£9.30'),'Prima £0.31 × 30 = £9.30 a case');
+      ok(rows[1].includes('900')&&/30 cases/.test(rows[1]),'how much we have bought from each, in cases too');
+      const bat=m.querySelector('.cpBatT');
+      eq(bat.querySelectorAll('tr.cpSpent').length,3,'3 used-up batches');
+      ok(getComputedStyle(bat.querySelector('tr.cpSpent')).display==='none','…folded away to start with');
+      bat.querySelector('.cpTogB').click();
+      ok(getComputedStyle(bat.querySelector('tr.cpSpent')).display!=='none','…and one press shows them');
+      ok(/next out/.test(bat.textContent)&&/4 cases/.test(bat.textContent),'the batch in stock says next out, and 120 = 4 cases');
+      ok(!/cheapest now/i.test(rows[1]),'only the cheaper one is marked');
+      c.layers[1].cost=0.30;LV3.openComp(c.id);await wait(60);
+      ok(!/cheapest now/i.test(document.querySelector('#lav3Mod1 .cpSupT').textContent),'a tie on price: nobody is marked cheapest');
+      c.layers[1].cost=0.31;
+      c.caseQty=0;LV3.openComp(c.id);await wait(80);
+      ok(!/case of 30/.test(m.textContent)&&/\+ case size/.test(m.textContent)&&/set the case size/.test(m.textContent),'no case size: units only, and it offers to set one');
+    }finally{c.caseQty=30;const i=D.components.indexOf(c);if(i>=0)D.components.splice(i,1);try{LV3.cm('lav3Ov1');}catch(e){}}
+  };
+
+  /* b678 (Jack, 13 Nov: "look how unsmooth this is" / "isn't 1 and 2 the same?" / "it should do it automatically" /
+     "did we not send some today?") */
+  S['b678: order checks — the card opens where the row was, its other orders join, delivered-not-booked joins itself, ticks redraw only the card; a ready-to-ship send is on the way']=async()=>{
+    const keep={ms:window._mustSave,sr:window.saveRow,va:window.addVaActions,wh:window.fireWebhook,sf:SFRUN,sort:_jkSort,kind:_jkKind,q:_jkQ};
+    const ships=[];
+    try{
+      window._mustSave=async()=>true;window.saveRow=async()=>true;window.addVaActions=async()=>{};window.fireWebhook=async()=>{};
+      who('Jack');_jkSort='newest';_jkKind='all';_jkQ='';
+      const dm=d=>{const t=ukAddDays(todayISO(),-d);return t.slice(8)+'/'+t.slice(5,7);};
+      const k=String(++_n).padStart(7,'0').slice(-7),A='B0CHK78A'+(++_n);
+      const t0=new Date(Date.now()-864e5-3600e3).toISOString();
+      const other=mkRow({prod:'CHECK ROW other',exp:3,resolution:asked({ask:'Has Amazon delivered it?',at:new Date(Date.now()-3*864e5).toISOString()})});
+      const s1=mkRow({asin:A,prod:'CHECK ROW cel',date:dm(38),oid:'202-'+k+'-0000001',acct:'EU 03',exp:5,rcvd:0,resolution:asked({ask:'Has Amazon delivered it?',at:t0})});
+      const s2=mkRow({asin:A,prod:'CHECK ROW cel',date:dm(38),oid:'202-'+k+'-0000002',acct:'EU 01',exp:10,rcvd:5,ship:5,sent:'Yes',resolution:asked({ask:'Has Amazon delivered it?',at:t0})});
+      const t1=mkRow({asin:A,prod:'CHECK ROW cel',date:dm(38),oid:'202-'+k+'-0000003',acct:'EU 02',exp:5,rcvd:5,ship:5,sent:'Yes'});
+      const lo=mkRow({asin:A,prod:'CHECK ROW cel',date:dm(20),oid:'202-'+k+'-0000004',acct:'Biz 01',exp:4,rcvd:0});
+      goPage('jack');renderJack();await wait(150);
+      const ids=()=>[...document.querySelectorAll('#jackWrap tbody.jkCards > tr[data-jk]')].map(e=>e.dataset.jk);
+      const i1=ids().indexOf(String(s1.uuid)),i2=ids().indexOf(String(s2.uuid));
+      ok(i1>=0&&i2>=0,'both Celebrations-style rows are on his list');
+      await ocStartFromJack(s1.uuid);await wait(200);
+      const L=ids();
+      eq(L.indexOf('oc:'+A),Math.min(i1,i2),'the card opens where the row was — not at the top');
+      ok(!L.includes(String(s1.uuid))&&!L.includes(String(s2.uuid)),'no second row of the same product under it');
+      ok(_ocAsked(s2),'the other order waiting on him is on the card');
+      let P=_ocPlan(A);eq(P.stuck.length,2,'both short orders are on the check');
+      ok(!((P.orders.find(o=>o.oid===s2.oid)||{}).ans||{}).a,'…the one he hasn’t looked at yet is unanswered — his tick is the answer');
+      ok(document.querySelector(`#jackWrap tr.jkFlash[data-jk="oc:${A}"]`),'the card flashes once so the eye lands on it');
+      eq(_jkHold,0,'nothing left holding the page');
+      /* fewer buttons on an order that is fine */
+      const card=()=>document.querySelector(`#jackWrap tr[data-jk="oc:${A}"]`);
+      const orow=oid=>[...card().querySelectorAll('.ocT tbody tr')].find(tr=>tr.textContent.includes(oid));
+      ok(orow(t1.oid).querySelector('.ocMoreBtn')&&!orow(t1.oid).querySelector('.ocMoreW.on'),'an order booked in and sent in full: three answers and "more"');
+      ok(orow(s2.oid).querySelector('.ocMoreW.on')&&!orow(s2.oid).querySelector('.ocMoreBtn'),'a short order shows every answer');
+      ocMoreShow(A,t1.oid,orow(t1.oid).querySelector('.ocMoreBtn'));
+      ok(orow(t1.oid).querySelector('.ocMoreW.on'),'"more" opens the rest in place');
+      /* a tick redraws only its card */
+      const otherTr=document.querySelector(`#jackWrap tr[data-jk="${other.uuid}"]`);ok(otherTr,'another row is on the page');
+      await ocAns(A,t1.oid,'d');await wait(80);
+      ok(otherTr.isConnected,'a tick leaves the rest of the page alone — no full redraw');
+      ok(/2/.test((card().querySelector('.ocCnt b')||{}).textContent||''),'…and the card counts it');
+      ok(orow(t1.oid).querySelector('.ocMoreW.on'),'…and "more" stays open after the tick');
+      /* delivered with nothing booked in joins by itself */
+      await ocAns(A,lo.oid,'d');await wait(120);P=_ocPlan(A);
+      ok(_ocAsked(lo)&&!P.lone.length,'an order he ticks delivered with nothing booked in joins the check by itself');
+      ok(!card().querySelector('.ocJoin'),'…no "Add it to this check" box');
+      {const busy=mkRow({asin:A,prod:'CHECK ROW cel',date:dm(15),oid:'202-'+k+'-0000005',acct:'Biz 02',exp:2,rcvd:0,
+          resolution:{state:'rejected',kind:'check',what:'jack-check',rejectNote:'x',rejectedBy:'Jack',by:'Sarah',at:iso()}});
+        await ocAns(A,busy.oid,'d');await wait(80);
+        ok(!_ocAsked(busy)&&_ocPlan(A).lone.length===1,'an order Sarah is already working on is NOT pulled in by a tick — it keeps the named box');
+        await ocAns(A,busy.oid,'c');}
+      await ocAns(A,s2.oid,'d');P=_ocPlan(A);
+      ok(P.ready&&P.M===14,'all answered: 5 + 5 + 4 really missing');
+      await ocSend(A);await wait(150);
+      ok(!card(),'Send: the card closes');ok(document.querySelector(`#jackWrap tr[data-jk="${other.uuid}"]`),'…the rest of the list is still there');
+      eq(_jkHold,0,'Send leaves nothing holding the page');
+      /* ready to ship at the count = on the way */
+      const D0=LV3.__D(),Z=/(Z|[+-]\d\d:\d\d)$/;
+      const p=D0.products.find(x=>!x.archived&&x.asin&&Z.test(String((D0.settings.atAmzAt||{})[x.asin]||''))&&(LV3.__plRow(x)||{}).state!=='nodata');
+      ok(p,'a product with a SellerFuse count to try it on');
+      const cAt=String(D0.settings.atAmzAt[p.asin]),cMs=Date.parse(cAt),day=cAt.slice(0,10);
+      keep.inb=(D0.settings.atAmzIn||{})[p.asin];keep.mov=(D0.settings.atAmzMov||{})[p.asin];keep.p=p;
+      D0.settings.atAmzIn[p.asin]=0;D0.settings.atAmzMov=D0.settings.atAmzMov||{};D0.settings.atAmzMov[p.asin]=0;
+      const run=Object.assign({},keep.sf||{},{at:new Date(cMs+20e3).toISOString(),shipments:[{id:'FBA-CHK678',status:'SHIPPED',created:day,lines:[{asin:p.asin,units:7,received:0}]}]});
+      SFRUN=run;window.SFRUN=run;
+      const s0={shipId:'FBA-CHK678',asin:p.asin,sku:'',prod:p.name,units:7,cost:0,date:day,at:new Date(cMs-3600e3).toISOString(),__test:1};
+      lavShipments.push(s0);ships.push(s0);
+      const base=LV3.__plRow(p);eq(base.rts,0,'shipped at the count: in Amazon’s own figure, nothing added');
+      run.shipments[0].status='READY_TO_SHIP';
+      let r=LV3.__plRow(p);
+      eq(r.rts,7,'a send made just before the count that Amazon’s figure hasn’t caught up with is on the way');
+      eq(r.inbShip,base.inbShip+7,'…and it is in the on-the-way figure');
+      D0.settings.atAmzIn[p.asin]=7;r=LV3.__plRow(p);
+      eq(r.rts,0,'“ready to ship” but Amazon already lists it (FBA15MWP6DP0) — not counted twice');
+      D0.settings.atAmzIn[p.asin]=3;r=LV3.__plRow(p);
+      eq(r.rts,4,'Amazon lists part of it — only the part it doesn’t');
+      D0.settings.atAmzIn[p.asin]=0;
+      run.shipments[0].status='SHIPPED';r=LV3.__plRow(p);
+      eq(r.rts,0,'once Amazon has it as shipped, its own figure has it — not counted twice');
+      run.shipments[0].status='READY_TO_SHIP';
+      const s3={shipId:'FBA-CHK678',asin:p.asin,sku:'',prod:p.name,units:5,cost:0,date:day,at:new Date(cMs+3600e3).toISOString(),__test:1};
+      lavShipments.push(s3);ships.push(s3);r=LV3.__plRow(p);
+      ok(r.rts===7&&r.since===base.since+5,'a send after the count is counted once, as before — not again as ready to ship');
+      run.at=new Date(cMs+86400e3).toISOString();r=LV3.__plRow(p);
+      eq(r.rts,0,'only when the count is that SellerFuse run');
+    }finally{
+      ships.forEach(s=>{const i=lavShipments.indexOf(s);if(i>=0)lavShipments.splice(i,1);});
+      if(keep.p){const S0=LV3.__D().settings;if(keep.inb===undefined)delete S0.atAmzIn[keep.p.asin];else S0.atAmzIn[keep.p.asin]=keep.inb;
+        if(keep.mov===undefined)delete S0.atAmzMov[keep.p.asin];else S0.atAmzMov[keep.p.asin]=keep.mov;}
+      SFRUN=keep.sf;window.SFRUN=keep.sf;window._mustSave=keep.ms;window.saveRow=keep.sr;window.addVaActions=keep.va;window.fireWebhook=keep.wh;
+      _jkSort=keep.sort;_jkKind=keep.kind;_jkQ=keep.q;_jkHold=0;_ocMoreOpen.clear();who('Jack');
+    }
   };
 
   /* 162 · b675 (Becki, 11 Nov — Kingdom Coffee renumbered on the sheet, hub stock typed in by hand, the COG note rows,

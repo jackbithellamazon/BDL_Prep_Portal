@@ -169,7 +169,7 @@ async function loadAuditPage(reset){
     let q=sb.from('audit_log').select('*').order('created_at',{ascending:false});
     const f=_auditFilters;
     /* click counts (js/usage.js) are read on What gets used, not listed here */
-    q=q.neq('action','Usage');
+    q=q.neq('action','Usage').neq('action','On its way — end of day');   /* b681: the nightly save is data */
     if(f.user!=='all')q=q.eq('user_id',f.user);
     /* PLUB was called Lavarion until 13 Oct 2026 — older audit lines still say that */
     if(f.type==='PLUB')q=q.or('action.ilike.%PLUB%,action.ilike.%Lavarion%');

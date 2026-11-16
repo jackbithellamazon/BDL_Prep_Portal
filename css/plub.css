@@ -3026,3 +3026,29 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .csPair .csIn,.lav3 .csPair .csIn{width:50px;padding:4px 4px;text-align:center;font:800 13px var(--num)!important;
   border-color:rgba(147,197,253,.45);}
 #page-lavarion .csPair .csLoose,.lav3 .csPair .csLoose{color:var(--text3);font-weight:600;}
+/* b679 — the part popup: units and cases, a case from each supplier, used-up batches folded */
+.lav3 .cpTiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-bottom:6px;}
+.lav3 .cpTiles .stat{min-width:0;padding:10px 12px 11px;}
+.lav3 .cpTiles .stat .v{font-size:21px;margin-top:4px;}
+.lav3 .cpCs{margin-top:4px;font:700 11px var(--sans);color:#93c5fd;line-height:1.3;}
+.lav3 .cpSub{margin-top:3px;font:500 11px var(--sans);color:var(--text3);line-height:1.35;}
+.lav3 .cpSec{display:flex;align-items:baseline;gap:10px;margin:18px 0 2px;}
+.lav3 .cpSec .lab{margin:0;}
+.lav3 .cpSec .pmeta{margin:0;}
+.lav3 .cpSec .btn{align-self:center;}
+.lav3 .ltab td .cpCsT{font:600 10.5px var(--sans);color:#93c5fd;margin-top:2px;letter-spacing:0;}
+.lav3 .cpDim{color:var(--text3)!important;}
+.lav3 .ltab td.cpOid{font-size:10.5px;white-space:nowrap;color:var(--text2);}
+.lav3 .cpSupT td.cpCaseP{font-weight:800;color:var(--accent);font-size:13.5px;}
+.lav3 .cpBest{display:inline-block;margin-left:7px;padding:1px 7px;border-radius:999px;font:800 9.5px var(--sans);letter-spacing:.04em;text-transform:uppercase;color:#052e16;background:#4ade80;vertical-align:1px;}
+.lav3 .chip.cpCaseChip{color:#93c5fd;border-color:rgba(147,197,253,.45);background:rgba(147,197,253,.08);}
+.lav3 .ltab tr.cpSpent{display:none;}
+.lav3 .ltab.showSpent tr.cpSpent{display:table-row;}
+.lav3 .ltab tr.cpTog td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);}
+.lav3 .cpTogB{background:none;border:1px dashed var(--border2);color:var(--text3);border-radius:6px;padding:4px 12px;font:700 11px var(--sans);cursor:pointer;}
+.lav3 .cpTogB:hover{color:var(--text);border-color:var(--text3);}
+.lav3 .cpTlMore>summary{list-style:none;cursor:pointer;padding:8px 0 4px;font:700 11px var(--sans);color:var(--text3);}
+.lav3 .cpTlMore>summary::-webkit-details-marker{display:none;}
+.lav3 .cpTlMore>summary:hover{color:var(--text);}
+#page-lavarion .tbCs,.lav3 .tbCs{margin-top:3px;font:700 10.5px var(--sans);color:#93c5fd;line-height:1.25;}
+@media (max-width:760px){.lav3 .cpTiles{grid-template-columns:repeat(2,minmax(0,1fr));}}

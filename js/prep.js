@@ -563,19 +563,21 @@ function _ocPlan(A){
     d.srcs.forEach(s=>{const u=Math.min(left,n(s.n));if(u>0){held[s.key]=(held[s.key]||0)+u;left-=u;}});});
   let D=0,B=0,answered=0,heldN=0;const rws=[];
   orders.forEach(o=>{const a=o.amz?(ans[o.key]||null):null;o.ans=a;if(a)answered++;
-    o.cx=!a?0:(a.a==='c'||a.a==='n')?o.want:a.a==='p'?Math.min(o.want,Math.max(0,n(a.k))):0;
+    /* b680: "not delivered yet" on one of the missing orders itself — only its missing units are still coming (what was
+       booked in came); on a twin the whole order is still coming, as before */
+    o.cx=!a?0:a.a==='c'?o.want:a.a==='n'?(o.stuck.length?Math.min(o.want,o.stuck.reduce((t,s)=>t+_owedUnits(s),0)):o.want):a.a==='p'?Math.min(o.want,Math.max(0,n(a.k))):0;
     o.notYet=!!(a&&a.a==='n');o.eta=o.notYet?String(a.eta||'').slice(0,10):'';   /* b667: Amazon say it's still coming */
     o.del=o.amz?o.want-o.cx:Math.min(o.want,o.booked);D+=o.del;B+=o.booked;
     let left=o.cx,Ss=0;const mine=[];
     o.stuck.forEach(s=>{const ow=_owedUnits(s),c=Math.min(left,ow);left-=c;   /* a cancellation covers the missing units first */
-      const x={r:s,o,owed:ow,cx:c,short:ow-c,srcs:[],moved:0,miss:0};Ss+=x.short;mine.push(x);rws.push(x);});
+      const x={r:s,o,owed:ow,cx:o.notYet?0:c,coming:o.notYet?c:0,short:ow-c,srcs:[],moved:0,miss:0};Ss+=x.short;mine.push(x);rws.push(x);});   /* b680: coming ≠ cancelled */
     const spare=Math.max(0,o.booked-o.del+Ss);let inner=Math.min(Ss,spare);   /* booked here beyond this order's own lines */
     mine.forEach(x=>{const u=Math.min(x.short-x.moved,inner);if(u>0){x.srcs.push({o,n:u,inner:true});x.moved+=u;inner-=u;}});
     const rest=Math.max(0,spare-Math.min(Ss,spare));o.held=Math.min(held[o.key]||0,rest);heldN+=o.held;o.over=rest-o.held;});
   const pool=orders.filter(o=>o.over>0);
   rws.forEach(x=>{let need=x.short-x.moved;
     for(const o of pool){if(need<=0)break;const u=Math.min(need,o.over);if(u>0){x.srcs.push({o,n:u,inner:false});x.moved+=u;o.over-=u;need-=u;}}
-    x.miss=x.short-x.moved;x.route=!x.owed?'none':!x.short?'cancelled':x.miss>0?'missing':x.srcs.some(s=>!s.inner&&s.o.notYet)?'park':'sarah';});
+    x.miss=x.short-x.moved;x.route=!x.owed?'none':!x.short?(x.coming?'park':'cancelled'):x.miss>0?'missing':(x.coming||x.srcs.some(s=>!s.inner&&s.o.notYet))?'park':'sarah';});
   const S=rws.reduce((t,x)=>t+x.short,0),moved=rws.reduce((t,x)=>t+x.moved,0),extra=pool.reduce((t,o)=>t+o.over,0);
   const amzN=orders.filter(o=>o.amz).length,all=amzN>0&&answered===amzN;
   /* b667: squared once nothing is really missing — the orders not ticked yet can't change that. Something really missing
@@ -590,7 +592,7 @@ function _ocPlan(A){
 /* b674 (Jack, 10 Nov — AQUARIAN: "if it's not matching I need to check them all"): the orders he ticked Delivered with
    units not booked in join the check, so units booked over under another order can cover them too. His answers so
    far ride onto the new rows, so nothing he ticked is lost. */
-async function ocJoin(A){
+async function ocJoin(A,auto){
   A=_asinKey(A);const P=_ocPlan(A);if(!P||!(P.lone||[]).length)return;
   if(!(typeof _isJack==='function'&&_isJack())){toast('Only Jack adds these','er');return;}
   const now=new Date().toISOString(),who=_who(),from=String((P.stuck[0]||{}).uuid||(P.stuck[0]||{}).id||'');
@@ -598,12 +600,12 @@ async function ocJoin(A){
   let n=0,bad=false;
   for(const o of P.lone)for(const x of o.rows.filter(y=>!y.archived&&_owedUnits(y)>0&&!_ocAsked(y))){
     const keepR=JSON.parse(JSON.stringify(x.resolution||null)),keepN={n:x.vaNote,b:x.vaNoteBy,a:x.vaNoteAt};
-    _ocIntoJack(x,who,now,from,true);
+    _ocIntoJack(x,who,now,from,true,_ocSortAt(P.stuck));
     x.resolution.ordChk=Object.assign({},x.resolution.ordChk,{ans:Object.assign({},ans,x.resolution.ordChk.ans||{}),joined:true});
     try{await _mustSave(x);n++;}catch(e){x.resolution=keepR;x.vaNote=keepN.n;x.vaNoteBy=keepN.b;x.vaNoteAt=keepN.a;bad=true;break;}
   }
   try{logAudit('Order check — orders added',`${A} — ${n} order line${n===1?'':'s'} ticked delivered with nothing booked in`);}catch(e){}
-  toast(bad?`Stopped after ${n} — a save didn’t go through. Press it again.`:`Added to the check — the card adds it up again`,bad?'er':'ok');
+  toast(bad?`Stopped after ${n} — a save didn’t go through. Press it again.`:auto?`Nothing of that order is booked in either — it’s on this check now`:`Added to the check — the card adds it up again`,bad?'er':'ok');
   renderJack();try{renderAdmin();renderPrep();}catch(e){}
 }
 /* b674 (Jack, 10 Nov: "go to Sarah first to do her changes and then send to Becki"): his order check found units really
@@ -650,34 +652,64 @@ async function ocAsk(rid){
 /* b667 (Jack, 7 Nov: "would it not be easier to get it sent all over to me to start with … before it goes to Becki"):
    Jack's own check — nobody has searched yet (origin 'jack'). His "delivered" answer, when it is on the row, is his tick
    on the row's own order. */
-function _ocIntoJack(x,who,now,from,yes){
+function _ocIntoJack(x,who,now,from,yes,sortAt){
   const q=x.resolution||{},prev={state:q.state,kind:q.kind,what:q.what,ask:q.ask,note:q.note,by:q.by,at:q.at};
   const ch=q.chase?Object.assign({},q.chase):{path:'never-arrived',step:'',due:'',log:[]};
   ch.log=(ch.log||[]).concat([{at:now,by:who,what:'Amazon say delivered — Jack checks every order of this product before anyone searches the shelves'}]);
   const key=String(x.oid||'').trim()||('row:'+(x.uuid||x.id)),ans={};if(yes)ans[key]={a:'d',by:who,at:now};
   x.resolution=Object.assign({},q,{state:'asked',kind:'check',what:'asin-orders',
     ask:'Amazon say delivered, nothing booked in — check every order of this product before anyone searches the shelves',note:'',by:who,at:now,chase:ch,
-    ordChk:{by:who,at:now,from:String(from),prev,ans,origin:'jack'},
+    ordChk:{by:who,at:now,from:String(from),prev,ans,origin:'jack',sortAt:sortAt||undefined},   /* b678: where the card sits — where the row was */
     ordChkHist:q.ordChk?(q.ordChkHist||[]).concat([_ocSlim(q.ordChk)]):q.ordChkHist});
   x.vaNote=((x.vaNote||'').trim()?(x.vaNote.trim()+'\n'):'')+`${who} ${_ddUK(new Date(now))}: Jack is checking every order of this product before the shelf check`;
   x.vaNoteBy=who;x.vaNoteAt=now;x._dirty=true;
 }
+/* b678 (Jack, 13 Nov — the Celebrations: "isn't 1 and 2 the same?"): the other orders of this product still waiting on
+   him as a single "has Amazon delivered it?" — they go onto the same card, unanswered; his tick on the card answers them */
+function _ocJackPending(A,except){
+  return rows.filter(x=>x&&x!==except&&!x.archived&&_asinKey(x.asin)===A&&!_ocAsked(x)&&x.resolution&&x.resolution.state==='asked'
+    &&!['asin-orders','amz-missing','amz-claim'].includes(x.resolution.what)&&!x.resolution.ocClaim
+    &&typeof _amazonRow==='function'&&_amazonRow(x)&&_owedUnits(x)>0
+    &&!(typeof _parkedOnDate==='function'&&_parkedOnDate(x))&&!(typeof _ukQuery==='function'&&_ukQuery(x))
+    &&!(typeof _dupLineOf==='function'&&_dupLineOf(x)));}
+/* b680 (Jack, 14 Nov: "refix it so when I push … it's fixed"): the orders outside a check that can join it without a
+   press — every one of their short rows is on nobody's list, or waiting on Jack as a single check. Never a row Sarah or
+   Becki is working on (an earlier check's move job, say). */
+function _ocJoinable(P){
+  if(!P||!(P.lone||[]).length)return false;
+  return P.lone.every(o=>o.rows.filter(y=>!y.archived&&_owedUnits(y)>0&&!_ocAsked(y)).every(y=>{const q=y.resolution;
+    if(!q||!q.state)return true;
+    return _ocJackPending(_asinKey(y.asin),null).includes(y);}));
+}
+/* the card's place in his list: where the row it started from was */
+function _ocSortAt(st){return (st||[]).map(s=>(((s&&s.resolution)||{}).ordChk||{}).sortAt).filter(Boolean).sort()[0]||null;}
 /* his green "delivered" on an Amazon order with units still owed: record it as always, then the card */
 async function ocStartFromJack(rid){
   const r=_rowById(rid);if(!r)return;
   const can=typeof _amazonRow==='function'&&_amazonRow(r)&&!!_asinKey(r.asin)&&_owedUnits(r)>0&&!_ocAsked(r);
-  const ok=await jackAnswered(rid,'Arrived — YES, the account shows it delivered.');
-  if(ok===false||!can)return ok;
+  /* b678 (Jack, 13 Nov: "look how unsmooth this is"): the card opens where the row was — same place in the list, same
+     spot on the screen — and the page draws once, not twice */
+  const sortAt=(r.resolution||{}).at||null;
+  /* b680: what Undo puts back — the row exactly as it was before he pressed (his "delivered" answer is part of the press) */
+  const undoTo={res:JSON.parse(JSON.stringify(r.resolution||{})),delivered:r.delivered===undefined?null:r.delivered};
+  let top0=null;try{const el=document.querySelector(`#jackWrap tr[data-jk="${_jkSel(rid)}"]`);if(el)top0=el.getBoundingClientRect().top;}catch(e){}
+  if(typeof _jkHoldOn==='function')_jkHoldOn();
+  let ok;try{ok=await jackAnswered(rid,'Arrived — YES, the account shows it delivered.');}finally{if(typeof _jkHoldOff==='function')_jkHoldOff();}
+  if(ok===false||!can){try{renderJack();}catch(e){}return ok;}
   const now=new Date().toISOString(),who=_who(),A=_asinKey(r.asin);
   r.resolution=Object.assign({},r.resolution,{amzDelivered:{by:who,at:now,sentBy:who,how:'jack-yes'}});
   const list=[r].concat(_amzDelRows().filter(x=>x!==r&&_asinKey(x.asin)===A&&_ocCan(x)));
+  _ocJackPending(A,r).forEach(x=>{if(!list.includes(x))list.push(x);});
   for(const x of list){
     const yes=x===r||(typeof _ansMeans==='function'&&_ansMeans(x.resolution||{}).arrivedYes)||x.delivered==='Yes';
-    _ocIntoJack(x,who,now,rid,yes);
+    _ocIntoJack(x,who,now,rid,yes,sortAt);
+    if(x===r)x.resolution.ordChk.undoTo=undoTo;   /* b680 */
     try{await _mustSave(x);}catch(e){toast('Didn’t save — check the connection','er');try{renderJack();}catch(_){}return false;}
   }
   try{logAudit('Order check — Jack’s',`${A} — ${list.length} order${list.length===1?'':'s'}: Amazon say delivered, nothing booked in`);}catch(e){}
-  toast('Delivered — now check every order of this product, on the card at the top','ok');
+  toast(list.length>1?`Delivered — the card is right here, with the other ${list.length-1===1?'order':fmt(list.length-1)+' orders'} of this product waiting on you. Tick each one.`
+    :'Delivered — the card is right here. Tick each order of this product.','ok');
+  if(typeof _jkAnchorSet==='function')_jkAnchorSet('oc:'+A,top0,true);
   renderJack();try{renderAdmin();renderPrep();}catch(e){}
   return true;
 }
@@ -711,7 +743,15 @@ async function ocBringBack(btn){
 }
 /* back exactly where it was before the ask — the ask stays in the row's history */
 function _ocRestore(x,why,now){
-  const q=x.resolution||{},oc=q.ordChk||{},p=oc.prev||{},res=Object.assign({},q);
+  const q=x.resolution||{},oc=q.ordChk||{},p=oc.prev||{};
+  /* b680: a card he started from his own list goes back onto his list exactly as it was — not on to Sarah or Becki */
+  if(oc.undoTo&&oc.undoTo.res){
+    const keep=Object.assign({},oc,{undoneBy:_who(),undoneAt:now,why});delete keep.prev;delete keep.undoTo;
+    const back=Object.assign({},oc.undoTo.res);back.ordChkUndone=(q.ordChkUndone||[]).concat([keep]);
+    if(q.ordChkHist)back.ordChkHist=q.ordChkHist;
+    const ch=back.chase||q.chase;if(ch)back.chase=Object.assign({},ch,{log:(ch.log||[]).concat([{at:now,by:_who(),what:why}])});
+    x.resolution=back;if(oc.undoTo.delivered===null)delete x.delivered;else x.delivered=oc.undoTo.delivered;return;}
+  const res=Object.assign({},q);
   ['state','kind','what','ask','note','by','at'].forEach(k=>{if(p[k]===undefined)delete res[k];else res[k]=p[k];});
   delete res.ordChk;
   const keep=Object.assign({},oc,{undoneBy:_who(),undoneAt:now,why});delete keep.prev;
@@ -719,17 +759,23 @@ function _ocRestore(x,why,now){
   if(res.chase)res.chase=Object.assign({},res.chase,{log:(res.chase.log||[]).concat([{at:now,by:_who(),what:why}])});
   x.resolution=res;
 }
-async function ocUndo(A){
+let _ocUndoArm={A:'',t:0};
+async function ocUndo(A,btn){
   A=_asinKey(A);const list=_ocStuck(A);if(!list.length)return;
-  const now=new Date().toISOString(),dd=_ddUK(new Date());
+  /* b680: the card and its ticks go — one press arms it, the second does it */
+  if(btn&&!(_ocUndoArm.A===A&&Date.now()-_ocUndoArm.t<6000)){_ocUndoArm={A,t:Date.now()};btn.textContent='Press again to undo the card';return;}
+  _ocUndoArm={A:'',t:0};
+  const now=new Date().toISOString(),dd=_ddUK(new Date()),mine=_ocOrigin(list[0])==='jack';
+  const why=mine?'Order check undone — back on Jack’s list as it was':'Order check pulled back — back on the shelf check';
+  let bad=false;
   for(const x of list){
-    _ocRestore(x,'Order check pulled back — back on the shelf check',now);
-    x.vaNote=((x.vaNote||'').trim()?(x.vaNote.trim()+'\n'):'')+`${_who()} ${dd}: order check pulled back — back on the shelf check`;
+    _ocRestore(x,why,now);
+    x.vaNote=((x.vaNote||'').trim()?(x.vaNote.trim()+'\n'):'')+`${_who()} ${dd}: ${mine?'order check undone — back with Jack as it was':'order check pulled back — back on the shelf check'}`;
     x.vaNoteBy=_who();x.vaNoteAt=now;x._dirty=true;
-    try{await _mustSave(x);}catch(e){toast('Didn’t save — check the connection','er');break;}
+    try{await _mustSave(x);}catch(e){toast('Didn’t save — check the connection','er');bad=true;break;}
   }
   try{logAudit('Order check pulled back',A);}catch(e){}
-  toast('Back on the shelf check — Not here is back on the row','ok');
+  if(!bad)toast(mine?'Undone — back on your list as it was':'Back on the shelf check — Not here is back on the row','ok');
   renderPrep();try{renderAdmin();renderJack();}catch(e){}
 }
 /* b661 (Jack: "ok" to an undo): his Send stays undoable for 48 working hours — his approvals' window — while nobody
@@ -750,7 +796,7 @@ function _ocSends(){
     if(!(_workMsSince(d.at)<TM.undoHours*3600e3))return;
     const k=_asinKey(x.asin)+'|'+d.at;(by[k]=by[k]||{A:_asinKey(x.asin),at:d.at,n:d.n,prod:x.prod||x.sku||'',rows:[]}).rows.push(x);});
   return Object.values(by).map(g=>Object.assign(g,{ok:g.rows.every(_ocSendUntouched),
-    tl:g.rows.reduce((t,x)=>{const r=x.resolution.ordChk.done.route;t[r]=(t[r]||0)+1;return t;},{})})).sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+    tl:g.rows.reduce((t,x)=>{const d=x.resolution.ordChk.done,r=d.route==='missing'&&d.toBecki?'becki':d.route;t[r]=(t[r]||0)+1;return t;},{})})).sort((a,b)=>String(b.at).localeCompare(String(a.at)));
 }
 async function ocUndoSend(A,at){
   A=_asinKey(A);const g=_ocSends().find(s=>s.A===A&&s.at===at);if(!g)return;
@@ -786,8 +832,14 @@ function _ocSetAns(A,fn){
   _ocCache[ck]=Object.assign({},ans);
   st.forEach(x=>{x.resolution=Object.assign({},x.resolution,{ordChk:Object.assign({},x.resolution.ordChk||{},{ans:Object.assign({},ans)})});x._dirty=true;});
   const save=()=>Promise.all(st.map(x=>_mustSave(x))).then(()=>true,()=>{toast('Didn’t save — check the connection','er');return false;});
-  _ocQ=_ocQ.then(save,save);
-  renderJack();return _ocQ;
+  /* b678 (Jack, 13 Nov: "it should do it automatically tho shouldn't it"): an order he ticks Delivered with nothing
+     booked in joins the check by itself — no "Add it to this check" box */
+  _ocQ=_ocQ.then(save,save).then(async ok=>{try{const PL=ok&&_ocPlan(A);
+    /* only orders nobody is working on — one already routed by an earlier check (with Sarah to move, say) keeps its box */
+    if(_ocJoinable(PL))await ocJoin(A,true);   /* b680: waiting on Jack counts too */}catch(e){}return ok;});
+  /* b678: a tick redraws its own card only — the rest of the page doesn't move */
+  if(typeof _ocRepaint==='function')_ocRepaint(A);else renderJack();
+  return _ocQ;
 }
 function ocAns(A,key,a,k){
   return _ocSetAns(A,(ans,orders,now)=>{const o=orders.find(x=>x.key===key);if(!o||!o.amz)return;
@@ -808,9 +860,9 @@ async function ocSend(A){
   A=_asinKey(A);if(_ocBusy.has(A))return;   /* b662: a second press while it sends does nothing */
   const P0=_ocPlan(A);if(!P0)return;
   if(!P0.ready){toast(P0.etaMissing?'Put Amazon’s date on the order that isn’t delivered yet':'Answer every order first','er');return;}
-  _ocBusy.add(A);try{renderJack();}catch(e){}
+  _ocBusy.add(A);try{if(typeof _ocRepaint==='function')_ocRepaint(A);else renderJack();}catch(e){}
   let failed=false;const tally={cancelled:0,sarah:0,missing:0,becki:0,park:0};
-  try{
+  try{if(typeof _jkHoldOn==='function')_jkHoldOn();   /* b678 */
     try{await _ocQ;}catch(e){}
     const P=_ocPlan(A);if(!P||!P.ready)return;
     const now=new Date().toISOString(),dd=_ddUK(new Date()),who=_who(),n=P.orders.length,nA=P.amzN,SS=new Set(P.stuck);
@@ -831,7 +883,7 @@ async function ocSend(A){
       const back=()=>{r.resolution=undo;r.vaNote=was.n;r.vaNoteBy=was.b;r.vaNoteAt=was.a;};   /* a failed save leaves the row exactly as it was */
       const srcs=x.srcs.map(s=>({key:s.o.key,oid:s.o.oid,sku:sku1(s.o),n:s.n,inner:!!s.inner,notYet:!!s.o.notYet,eta:s.o.eta||''}));
       const toBecki=x.route==='missing'&&_ocOrigin(r)==='jack';   /* b667: nobody has searched yet */
-      const _eta=x.route==='park'?x.srcs.filter(s=>!s.inner&&s.o.notYet).map(s=>s.o.eta).filter(Boolean).sort().pop()||'':'';
+      const _eta=x.route!=='park'?'':x.coming?String(x.o.eta||''):(x.srcs.filter(s=>!s.inner&&s.o.notYet).map(s=>s.o.eta).filter(Boolean).sort().pop()||'');
       r.resolution=Object.assign({},r.resolution,{
         amzDelivered:Object.assign({},r.resolution.amzDelivered,{done:{by:who,at:now,how:'orders-checked'}}),
         ordChk:Object.assign({},r.resolution.ordChk,{done:{by:who,at:now,n,nA,D:P.D,B:P.B,route:x.route,cx:x.cx,moved:x.moved,miss:x.miss,srcs,answers,undo,jobs:[],tickPrev,
@@ -878,14 +930,17 @@ async function ocSend(A){
       }
       /* b667: the twin isn't delivered yet — this one's units came under it, so this order waits for the twin's parcel */
       if(x.route==='park'){
-        const ns=x.srcs.filter(s=>!s.inner&&s.o.notYet),X=ns.map(s=>s.o.oid||'the other order').join(', '),eta=_eta;
+        const ns=x.srcs.filter(s=>!s.inner&&s.o.notYet),own=!!x.coming&&!ns.length,X=own?(r.oid||'this order'):ns.map(s=>s.o.oid||'the other order').join(', '),eta=_eta;
         const ch=r.resolution.chase?Object.assign({},r.resolution.chase):{path:'never-arrived',step:'',due:'',log:[]};
-        ch.log=(ch.log||[]).concat([{at:now,by:who,what:`Checked every order — the one that came was booked in as ${X}. Amazon say ${X} will arrive ${eta} — parked until then; book the next one in here`}]);
+        ch.log=(ch.log||[]).concat([{at:now,by:who,what:own?`Checked every order — Amazon say ${X} is still coming, due ${eta} — parked until then; book it in when it lands`
+          :`Checked every order — the one that came was booked in as ${X}. Amazon say ${X} will arrive ${eta} — parked until then; book the next one in here`}]);
         ch.step='due-date';ch.due=eta;
         r.resolution=Object.assign({},r.resolution,{state:'approved',kind:'ops',what:'in-transit',answeredBy:who,answeredAt:now,
-          rejectNote:`Amazon say ${X} will arrive ${eta}. The one that came was booked in as ${X} — book the next one in here.`,chase:ch});
+          rejectNote:own?`Amazon say this order is still coming — due ${eta}. Parked until then; book it in when it lands.`
+            :`Amazon say ${X} will arrive ${eta}. The one that came was booked in as ${X} — book the next one in here.`,chase:ch});
         r.sentToJack=null;r.expectedDelivery=eta;r.chaseSnoozeUntil='';if(r.transitAction==='Late — Needs Chasing')r.transitAction='';
-        r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${who} ${dd}: the one that came was booked in as ${X}; ${X} is still coming (Amazon: ${eta}) — book the next one in here`;
+        r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+(own?`${who} ${dd}: Amazon say it is still coming (due ${eta}) — parked; book it in when it lands`
+          :`${who} ${dd}: the one that came was booked in as ${X}; ${X} is still coming (Amazon: ${eta}) — book the next one in here`);
         r.vaNoteBy=who;r.vaNoteAt=now;r._dirty=true;
         try{await _mustSave(r);}catch(e){back();failed=true;break;}
         tally.park++;continue;
@@ -908,7 +963,7 @@ async function ocSend(A){
       try{await _saveAsinChecks(A,stamp);}catch(e){}}
     try{logAudit('Order check answered',`${A} — ${nA} Amazon order${nA===1?'':'s'}: delivered ${P.D}, booked in ${P.B} · `+
       [tally.cancelled?tally.cancelled+' cancelled':'',tally.sarah?tally.sarah+' booked against another order':'',tally.missing?tally.missing+' to raise with Amazon':'',tally.becki?tally.becki+' to Becki’s shelves':'',tally.park?tally.park+' parked on Amazon’s date':''].filter(Boolean).join(', ')+(failed?' — stopped: a save failed':''));}catch(e){}
-  }finally{_ocBusy.delete(A);}
+  }finally{_ocBusy.delete(A);if(typeof _jkHoldOff==='function')_jkHoldOff();}
   if(failed)toast('Stopped — a save didn’t go through, so the rest are still on the card. Check the connection and press Send again.','er');
   else toast(['✓ Checked',tally.cancelled?`${tally.cancelled} cancelled → Sarah`:'',tally.sarah?`${tally.sarah} booked against another order → Sarah`:'',tally.missing?`${tally.missing} to raise with Amazon → your list`:'',tally.becki?`${tally.becki} really missing → Becki checks the shelves`:'',tally.park?`${tally.park} waiting for Amazon’s date`:''].filter(Boolean).join(' · '),'ok');
   renderJack();try{renderAdmin();renderPrep();}catch(e){}

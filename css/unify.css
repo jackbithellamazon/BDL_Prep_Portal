@@ -1328,3 +1328,19 @@ table.recGrid tr.bad td{background:rgba(239,68,68,.07);}
 /* b674: a job says what it is */
 .tfuWhy.jobWhat{color:#e2e8f0;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.4);cursor:default;}
 .tfuRaiseNote.jobDet{border-left-color:#94a3b8;color:var(--text2);}
+
+/* b678 — smoother order checks: fewer buttons on orders that are fine, the new card flashes once where the row was */
+.ocMoreW{display:none;}.ocMoreW.on{display:contents;}
+.ocChip.ocMoreBtn{border-style:dashed;color:var(--text3);}
+.ocChip.ocMoreBtn:hover{color:var(--text);border-color:var(--text3);}
+#jackWrap tr.jkFlash>td>.jkCard{animation:jkFlash 1.8s ease-out;}
+@keyframes jkFlash{0%{box-shadow:0 0 0 2px rgba(34,211,238,.9),0 0 22px rgba(34,211,238,.45);}100%{box-shadow:0 0 0 0 rgba(34,211,238,0),0 0 0 rgba(34,211,238,0);}}
+@media (prefers-reduced-motion:reduce){#jackWrap tr.jkFlash>td>.jkCard{animation:none;}}
+
+/* b680 — on an order-check card he can see what he has ticked */
+.ocChip.plain.on{background:rgba(147,197,253,.16);border-color:rgba(147,197,253,.65);color:#bfdbfe;}
+.ocChip.on::before{content:'\2713\00a0';}
+.ocChip.good:hover:not(.on){background:rgba(52,211,153,.06);border-color:rgba(52,211,153,.35);color:var(--text);}
+.ocChip.warn:hover:not(.on){background:rgba(251,191,36,.06);border-color:rgba(251,191,36,.35);color:var(--text);}
+.ocChip.plain:hover:not(.on){border-color:rgba(147,197,253,.4);color:var(--text);}
+.ocT tr.ocDone>td:not(.ocAns){opacity:.6;}
