@@ -618,7 +618,9 @@ window.PrepChecks=(function(){
   S['prep fees: no request loop, redraw only on a real change']=async()=>{
     const own=Object.prototype.hasOwnProperty.call(sb,'from'),orig=sb.from,asked=[];let reply={data:{value:JSON.stringify(prepFees)},error:null};
     const keepFees=JSON.stringify(prepFees),keepAt=_pfAskedAt;let draws=0;const rd=window.renderDashboard;
-    sb.from=t=>{const q={select:()=>q,eq:(k,v)=>{asked.push(t+':'+v);return q;},maybeSingle:()=>Promise.resolve(reply),
+    /* b683: only the prep-fees question counts — anything else the app asks in the meantime (in a background tab the
+       30 ms wait stretches to a second or more) is not this check's business */
+    sb.from=t=>{const q={select:()=>q,eq:(k,v)=>{if(t==='app_settings'&&v==='prep_fees')asked.push(t+':'+v);return q;},maybeSingle:()=>Promise.resolve(reply),
       upsert:()=>Promise.resolve({error:null})};return q;};
     window.renderDashboard=function(){draws++;};
     try{
@@ -632,7 +634,7 @@ window.PrepChecks=(function(){
       loadPrepFees();await wait(30);eq(asked.length,2,'and the redraw does not ask again');
       _pfAskedAt=0;const before=JSON.stringify(prepFees);let seeded=0;
       sb.from=t=>{const q={select:()=>q,eq:()=>q,maybeSingle:()=>Promise.resolve({data:null,error:{message:'timeout'}}),
-        upsert:()=>{seeded++;return Promise.resolve({error:null});}};return q;};
+        upsert:()=>{if(t==='app_settings')seeded++;return Promise.resolve({error:null});}};return q;};
       loadPrepFees();await wait(30);
       eq(seeded,0,'a failed read never overwrites the shared rates');eq(JSON.stringify(prepFees),before,'rates untouched');
     }finally{
@@ -5061,36 +5063,38 @@ window.PrepChecks=(function(){
     const mine=()=>LV3.__D().purchases.filter(p=>p.sup===SUP);
     const byId=id=>LV3.__D().purchases.find(p=>p.id===id);
     const run=async rows=>{window.__lavSheetRowsHook=t=>t===TAB?rows:null;try{await LV3.syncPurchases();}finally{delete window.__lavSheetRowsHook;}};
+    /* b683: made-up order numbers no real order has — the first version copied the real Kingdom Coffee order
+       (01/10, #1000169069, 300 at 29p) and the rename rule took the real purchase in memory */
     try{
       /* G · two Kingdom Coffee orders renumbered at once, the same two products on both */
       clean();
-      [['chk-a',d1,NM,300,'1000169069'],['chk-b',d2,NM,7500,'invoice number tbc'],['chk-c',d1,NM2,88,'1000169063'],['chk-d',d2,NM2,1518,'invoice number tbc']]
+      [['chk-a',d1,NM,300,'9900169069'],['chk-b',d2,NM,7500,'invoice number tbc'],['chk-c',d1,NM2,88,'9900169063'],['chk-d',d2,NM2,1518,'invoice number tbc']]
         .forEach(([id,d,nm,q,o])=>{D.purchases.push(P(id,d,nm,q,o,true));lay(id,q);});
-      await run([row(d1,NM,300,'#1000169069'),row(d2,NM,7500,'"'),row(d1,NM2,88,'#1000169063'),row(d2,NM2,1518,'"')]);
+      await run([row(d1,NM,300,'#9900169069'),row(d2,NM,7500,'"'),row(d1,NM2,88,'#9900169063'),row(d2,NM2,1518,'"')]);
       eq(mine().length,4,'G: four lines on the sheet, four purchases — nothing doubled');
-      eq((byId('chk-a')||{}).oid,'#1000169069','G: the 01/10 Clipper takes its new order number');
+      eq((byId('chk-a')||{}).oid,'#9900169069','G: the 01/10 Clipper takes its new order number');
       eq((byId('chk-b')||{}).oid,'"','G: the 02/10 Clipper takes its new order number');
       eq((byId('chk-d')||{}).oid,'"','G: the 02/10 marshmallows too');
       ok(mine().every(p=>(p.alloc||[]).length),'G: none waiting to be linked');
       /* H · today's state: an earlier sync already added the edited line as new beside the one holding the stock */
       clean();
-      D.purchases.push(P('chk-a',d1,NM,300,'1000169069',true));lay('chk-a',300);
-      D.purchases.push(P('chk-n',d1,NM,300,'#1000169069',false));
+      D.purchases.push(P('chk-a',d1,NM,300,'9900169069',true));lay('chk-a',300);
+      D.purchases.push(P('chk-n',d1,NM,300,'#9900169069',false));
       const hand0=LV3.__onHand(cc);
-      await run([row(d1,NM,300,'#1000169069')]);
+      await run([row(d1,NM,300,'#9900169069')]);
       eq(mine().length,1,'H: the copy goes — one purchase for one sheet line');
       ok(byId('chk-a')&&!byId('chk-n'),'H: the one that keeps it is the one with the stock');
-      eq(byId('chk-a').oid,'#1000169069','H: it takes the sheet’s order number');
-      const L1=cc.layers.find(l=>l.id==='chkL-chk-a');ok(L1&&L1.src==='P:chk-a'&&L1.oid==='#1000169069','H: its stock stays on it, with the new number');
+      eq(byId('chk-a').oid,'#9900169069','H: it takes the sheet’s order number');
+      const L1=cc.layers.find(l=>l.id==='chkL-chk-a');ok(L1&&L1.src==='P:chk-a'&&L1.oid==='#9900169069','H: its stock stays on it, with the new number');
       eq(LV3.__onHand(cc),hand0,'H: stock unchanged');
       ok(!Object.keys(D.settings.purchKilled||{}).some(k=>/check clipper/.test(k)),'H: nothing is put on the ignore list');
       /* H2 · not certain (two old lines the same) — left exactly as it was */
       clean();
-      D.purchases.push(P('chk-a',d1,NM,300,'1000169069',true));lay('chk-a',300);
-      D.purchases.push(P('chk-b',d1,NM,300,'1000169070',true));lay('chk-b',300);
-      D.purchases.push(P('chk-n',d1,NM,300,'#1000169069',false));
-      await run([row(d1,NM,300,'#1000169069')]);
-      ok(byId('chk-n')&&byId('chk-a').oid==='1000169069'&&byId('chk-b').oid==='1000169070','H2: two old lines it could be — nothing joined, nothing changed');
+      D.purchases.push(P('chk-a',d1,NM,300,'9900169069',true));lay('chk-a',300);
+      D.purchases.push(P('chk-b',d1,NM,300,'9900169070',true));lay('chk-b',300);
+      D.purchases.push(P('chk-n',d1,NM,300,'#9900169069',false));
+      await run([row(d1,NM,300,'#9900169069')]);
+      ok(byId('chk-n')&&byId('chk-a').oid==='9900169069'&&byId('chk-b').oid==='9900169070','H2: two old lines it could be — nothing joined, nothing changed');
       /* I · stock typed in by hand before the line was on the sheet (Black HC 300, Nisbets, 29/09, "transferred over from hub") */
       clean();
       (cc.layers=cc.layers||[]).push({id:'chkL-hub',date:'2026-09-29',qty:300,rem:0,cost:0.24,sup:HUB,oid:'—',loc:'Warehouse',arr:1,src:'backstock',note:'transferred over from hub'});
@@ -5223,6 +5227,87 @@ window.PrepChecks=(function(){
       const ix=D.components.indexOf(c);if(ix>=0)D.components.splice(ix,1);
       try{LV3.cm('lav3Ov2');LV3.cm('lav3Ov1');}catch(e){}
     }
+  };
+
+  /* b683 (Jack, 16 Nov — the Lindt: "23 still on the way — the others out of 50 were all delivered") */
+  S['b683: some still coming, the rest delivered — waits for the part coming, then the rest go to Jack as check every order; a slipped date is Sarah’s']=async()=>{
+    const keep={ms:window._mustSave,sr:window.saveRow,wh:window.fireWebhook};
+    try{
+      window._mustSave=async()=>true;window.saveRow=async()=>true;window.fireWebhook=async()=>{};
+      who('Jack');
+      const dm=d=>{const t=ukAddDays(todayISO(),-d);return t.slice(8)+'/'+t.slice(5,7);};
+      const eta=ukAddDays(todayISO(),4);
+      const k=String(++_n).padStart(7,'0').slice(-7),A='B0CHK83A'+(++_n);
+      const r=mkRow({asin:A,prod:'CHECK ROW lindt',date:dm(41),oid:'202-'+k+'-0000001',acct:'Biz 02',exp:50,rcvd:12,ship:12,sent:'Yes',
+        status:'Sent to Amazon',resolution:asked({ask:'Has Amazon delivered it?'})});
+      ok(/jackPartComing/.test(_jkCheckActs(r,rid(r)))&&/Some still coming, the rest delivered/.test(_jkCheckActs(r,rid(r))),'the button is on his CHECK card');
+      const one=mkRow({asin:'B0CHK83B'+(++_n),exp:2,rcvd:1,resolution:asked({ask:'Has Amazon delivered it?'})});
+      ok(!/jackPartComing/.test(_jkCheckActs(one,rid(one))),'…not when only one unit is missing');
+      eq(await _pcPark(rid(r),38,eta),false,'all 38 still coming is the other button');
+      eq(await _pcPark(rid(r),0,eta),false,'0 refused');eq(await _pcPark(rid(r),23,''),false,'it needs Amazon’s date');
+      ok(!(r.resolution||{}).partComing,'…and a refusal records nothing');
+      /* 23 still coming, the rest delivered */
+      ok(await _pcPark(rid(r),23,eta),'saved');
+      const q=r.resolution;eq(q.state+'|'+q.what,'approved|in-transit','parked, like "still coming"');eq(r.expectedDelivery,eta,'on Amazon’s date');
+      eq([q.partComing.n,q.partComing.rest,q.partComing.r0].join('|'),'23|15|12','23 coming, 15 delivered, counted from the 12 booked in');
+      eq(_rowOwner(r).owner,'none','nobody’s job while it waits');ok(!_rowOwner(r).finished,'…and not finished');
+      ok(!onJack(r),'off his list');const si=sarahItem(r);ok(!si||si.sortedGrace,'not Sarah’s job (at most the grey parked line)');
+      ok(!si||/23 still coming; once they are booked in, the other 15 go to Jack/.test(si.reason||''),'the parked line says what happens next');
+      /* part of the delivery booked in: still waiting */
+      uf(r.id,'rcvd',22);_adminItems();await wait(150);
+      ok(_pcHold(r)&&!_ocAsked(r),'10 of the 23 in — still waiting for the rest of the delivery');
+      /* the rest of the delivery, booked in on the Prep Sheet */
+      uf(r.id,'rcvd',35);await wait(3300);
+      ok(_ocAsked(r),'all 23 in: the row is on his check every order — by itself');
+      ok(!_pcHold(r)&&r.resolution.partComing.done&&r.resolution.partComing.done.rest===15,'the wait is over, 15 to check');
+      const P=_ocPlan(A);ok(P&&P.stuck.includes(r),'the card is there');
+      const o=P.orders.find(x=>x.oid===r.oid);ok(o&&o.ans&&o.ans.a==='d','his own order is already ticked delivered');
+      eq(P.rows.find(x=>x.r===r).owed,15,'the card is about the 15');eq(r.resolution.ordChk.by,'Jack','the card is his');
+      ok(r.expectedDelivery!==eta&&!_parkedOnDate(r),'Amazon’s date is off the row — it isn’t parked any more');
+      goPage('jack');renderJack();await wait(250);
+      ok([...document.querySelectorAll('#jackWrap .ocCard')].some(c=>c.textContent.includes(A)),'the card is on his page');
+      /* Undo on that card: a plain "has Amazon delivered the other 15?" on his list — never back to waiting */
+      await ocUndo(A);
+      eq(r.resolution.state+'|'+r.resolution.what,'asked|jack-check','Undo: a single CHECK on his list');ok(onJack(r),'…on his list');
+      ok(!_pcHold(r)&&/other 15/.test(r.resolution.ask||''),'…asking about the 15, not waiting again');
+      _adminItems();await wait(100);ok(!_ocAsked(r),'…and it doesn’t jump back onto a card by itself');
+      /* everything came, more than the 23: nothing for Jack */
+      const C='B0CHK83C'+(++_n),c=mkRow({asin:C,exp:10,rcvd:2,resolution:asked({ask:'Has Amazon delivered it?'})});
+      ok(await _pcPark(rid(c),3,eta),'saved (3 coming, 5 delivered)');
+      c.rcvd=10;_adminItems();await wait(300);
+      ok(!_ocAsked(c)&&c.resolution.partComing.done&&!onJack(c),'all 8 came: nothing for Jack — it just finishes');
+      /* review 1: Becki over-typed it (10 instead of 5) and puts it right — the row is never "closed" with units owed */
+      eq(c.expectedDelivery,eta,'nothing missing: Amazon’s date stays on the row');
+      c.rcvd=5;eq(_rowOwner(c).owner,'none','count corrected to 5: parked on Amazon’s date again');ok(!_rowOwner(c).finished,'…not finished with 5 owed');
+      c.expectedDelivery=ukAddDays(todayISO(),-1);eq(_rowOwner(c).owner,'sarah','…and Sarah’s if the date slips');
+      /* review 3: an old split never wakes up under a later answer */
+      const F='B0CHK83F'+(++_n),f=mkRow({asin:F,exp:20,rcvd:0,resolution:asked({ask:'Has Amazon delivered it?'})});
+      ok(await _pcPark(rid(f),5,eta),'saved (5 coming)');
+      f.resolution=Object.assign({},f.resolution,{state:'asked',what:'jack-check',ask:'Has Amazon delivered it?'});ok(!_pcHold(f),'asked again: not waiting');
+      f.resolution=Object.assign({},f.resolution,{state:'approved',kind:'ops',what:'in-transit',answeredAt:new Date(Date.now()+1000).toISOString()});
+      ok(!_pcHold(f),'then a plain “still coming”: the old split stays asleep');
+      f.rcvd=5;_adminItems();await wait(150);ok(!_ocAsked(f),'…so 5 booked in sends nothing anywhere');
+      /* review 2: a save that fails leaves the database's copy, never the old one on top */
+      {const src=String(_pcLand);ok(!/back\(\)/.test(src)&&/_pcSavedCopy/.test(src),'a failed save goes back to the saved copy');
+        ok(/_pcSavedCopy/.test(String(_pcPark))&&!/keep\.res/.test(String(_pcPark)),'…the press too');}
+      /* the date passes first: Sarah's chase, and her line says the rest were delivered */
+      const D='B0CHK83D'+(++_n),s=mkRow({asin:D,exp:20,rcvd:0,resolution:asked({ask:'Has Amazon delivered it?'})});
+      ok(await _pcPark(rid(s),5,ukAddDays(todayISO(),2)),'saved (5 coming, 15 delivered)');
+      s.rcvd=3;s.expectedDelivery=ukAddDays(todayISO(),-1);_adminItems();await wait(50);
+      eq(s.resolution.state,'working','the date passed with 3 of the 5 in: back with Sarah');ok(s.resolution.partComing.slipped&&!_pcHold(s),'…the wait is over');
+      const last=String(((s.resolution.chase||{}).log||[]).slice(-1)[0].what||'');
+      ok(/Amazon said 5 more were coming/.test(last)&&/3 booked in since/.test(last)&&/Chase the 2/.test(last)&&/other 15 were delivered/.test(last),'her chase line: 5 coming, 3 in, chase 2, the 15 were delivered');
+      eq(_rowOwner(s).owner,'sarah','her job');ok(onSarahActive(s),'on her list');
+      /* another card of the same product: the row waiting on its delivery never joins it, never holds up Send */
+      const E='B0CHK83E'+(++_n),k3=String(++_n).padStart(7,'0').slice(-7);
+      const w=mkRow({asin:E,prod:'CHECK ROW lindt2',date:dm(30),oid:'202-'+k3+'-0000001',acct:'Biz 02',exp:50,rcvd:12,resolution:asked({ask:'Has Amazon delivered it?'})});
+      ok(await _pcPark(rid(w),23,eta),'saved');
+      const st=mkRow({asin:E,prod:'CHECK ROW lindt2',date:dm(30),oid:'202-'+k3+'-0000002',acct:'EU 01',exp:5,rcvd:0,resolution:asked({ask:'Has Amazon delivered it?'})});
+      await ocStartFromJack(rid(st));ok(_ocAsked(st)&&!_ocAsked(w),'the other order’s card — the waiting row isn’t pulled in');
+      await ocAns(E,w.oid,'d');
+      const P2=_ocPlan(E);eq(P2.lone.length,0,'ticked delivered on that card: still not "outside the check"');ok(!_ocJoinable(P2),'…nothing to join');
+      renderJack();await wait(250);ok(_pcHold(w)&&!_ocAsked(w),'…and the page leaves it waiting');
+    }finally{window._mustSave=keep.ms;window.saveRow=keep.sr;window.fireWebhook=keep.wh;who('Jack');}
   };
 
   async function run(only){

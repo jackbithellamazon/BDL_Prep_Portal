@@ -19,6 +19,7 @@ function _adminItems(){
   const out=[];
   rows.forEach(r=>{
     if(r.archived)return;
+    try{if(typeof _pcTick==='function'&&_pcTick(r))return;}catch(e){}   /* b683: a part still coming is in — the row is changing hands */
     /* v50.5: the one owner rule (js/rules.js) decides "finished" for every page —
        a finished row is nobody's job here, whatever the older tests below say. */
     /* a question about missing stock that the stock has answered — filed, off both pages */
@@ -109,7 +110,7 @@ function _adminItems(){
           sortedGrace:true,sortedAt:at,sortedWhat:(r.resolution.what||''),sev:0,col:'#94a3b8',
           /* a row parked on a promised date is not "sorted" — say what it is */
           reason:(r.expectedDelivery&&new Date(r.expectedDelivery)>today&&(r.resolution.what==='in-transit'))
-            ? ('Parked until '+_dmy(r.expectedDelivery)+(_amazonRow(r)?' — the date Amazon gave':' — the date the supplier gave'))
+            ? ('Parked until '+_dmy(r.expectedDelivery)+(_amazonRow(r)?' — the date Amazon gave':' — the date the supplier gave')+(typeof _pcWhy==='function'?_pcWhy(r):''))
             : 'Sorted — still undoable',
           value:0,waiting:false,delivered:r.delivered||'',wrongSku:r.wrongSku||''});
       }

@@ -1237,6 +1237,10 @@ function _jkCheckActs(r,_id){
       :`<button class="csAct plain" style="border-color:rgba(248,113,113,.5);color:#fca5a5;" onclick="jackAnswered('${_id}','NOT arrived — cancelled or nothing coming. Chase or claim.')" title="Nothing is coming — it goes back to Sarah with your answer and she closes it off">Never arrived &mdash; nothing is coming</button>`);
   }
   B.push(`<button class="csAct go" onclick="jackAmzDate('${_id}',this)" title="${who} gave a date — the row parks on the Prep Sheet with the date on it, off your list and Sarah's, and comes straight back if the date slips.">${got>0?`The other ${fmt(owe)} ${owe===1?'is':'are'} still coming`:'Still coming'}&hellip;</button>`);
+  /* b683 (Jack, 16 Nov — the Lindt: 50 ordered, 12 booked in, "23 still on the way — the others were all delivered"):
+     part still coming AND the rest delivered. The row waits for the part coming (jackPartComing, js/admin-queue.js);
+     the moment that many are booked in, the rest come back to him as "check every order" (_pcTick, js/prep.js). */
+  if(amz&&!_dup&&r.asin&&owe>=2)B.push(`<button class="csAct go" onclick="jackPartComing('${_id}',this)" title="Amazon show some of the ${fmt(owe)} still on the way and the rest delivered. Say how many are coming and Amazon’s date: the row waits for them, off everyone’s list. The moment they are booked in, the rest come back to you as check every order. If the date passes first, Sarah chases.">Some still coming, the rest delivered&hellip;</button>`);
   /* Jack, 10 Sep, on the BioEars: "there's been a mistake with the original
      order quantity — we only ordered 9, not 10. None of the buttons relate to
      this. We need to distinguish a PHYSICAL stock discrepancy from a SYSTEM

@@ -584,7 +584,7 @@ function _ocPlan(A){
      still needs every order. A "not delivered yet" needs Amazon's date. */
   /* b674 (AQUARIAN): an Amazon order he ticked Delivered with units still not booked in, that isn't one of the stuck
      ones — it can join the check (ocJoin); Send waits for it. Squared only when nothing is left over either. */
-  const lone=orders.filter(o=>o.amz&&!o.stuck.length&&o.ans&&o.ans.a==='d'&&o.rows.some(y=>!y.archived&&_owedUnits(y)>0&&!_ocAsked(y)));
+  const lone=orders.filter(o=>o.amz&&!o.stuck.length&&o.ans&&o.ans.a==='d'&&o.rows.some(y=>!y.archived&&_owedUnits(y)>0&&!_ocAsked(y)&&!_pcHold(y)));   /* b683: waiting on its delivery isn't outside the check */
   const etaMissing=orders.some(o=>o.notYet&&!o.eta),squared=!all&&S-moved===0&&extra===0&&!lone.length;
   return{A,stuck,orders,amzN,answered,all,ready:(all||squared)&&!etaMissing&&!lone.length,squared,etaMissing,lone,allDel:all&&orders.every(o=>!o.amz||o.ans.a==='d'),D,B,S,moved,M:S-moved,extra,held:heldN,
     sur:orders.filter(o=>o.over>0||rws.some(x=>x.srcs.some(s=>s.o===o&&!s.inner))),rows:rws};
@@ -598,7 +598,7 @@ async function ocJoin(A,auto){
   const now=new Date().toISOString(),who=_who(),from=String((P.stuck[0]||{}).uuid||(P.stuck[0]||{}).id||'');
   const ans=Object.assign({},_ocAnsAll(A,P.stuck));
   let n=0,bad=false;
-  for(const o of P.lone)for(const x of o.rows.filter(y=>!y.archived&&_owedUnits(y)>0&&!_ocAsked(y))){
+  for(const o of P.lone)for(const x of o.rows.filter(y=>!y.archived&&_owedUnits(y)>0&&!_ocAsked(y)&&!_pcHold(y))){
     const keepR=JSON.parse(JSON.stringify(x.resolution||null)),keepN={n:x.vaNote,b:x.vaNoteBy,a:x.vaNoteAt};
     _ocIntoJack(x,who,now,from,true,_ocSortAt(P.stuck));
     x.resolution.ordChk=Object.assign({},x.resolution.ordChk,{ans:Object.assign({},ans,x.resolution.ordChk.ans||{}),joined:true});
@@ -677,7 +677,7 @@ function _ocJackPending(A,except){
    Becki is working on (an earlier check's move job, say). */
 function _ocJoinable(P){
   if(!P||!(P.lone||[]).length)return false;
-  return P.lone.every(o=>o.rows.filter(y=>!y.archived&&_owedUnits(y)>0&&!_ocAsked(y)).every(y=>{const q=y.resolution;
+  return P.lone.every(o=>o.rows.filter(y=>!y.archived&&_owedUnits(y)>0&&!_ocAsked(y)&&!_pcHold(y)).every(y=>{const q=y.resolution;
     if(!q||!q.state)return true;
     return _ocJackPending(_asinKey(y.asin),null).includes(y);}));
 }
@@ -712,6 +712,81 @@ async function ocStartFromJack(rid){
   if(typeof _jkAnchorSet==='function')_jkAnchorSet('oc:'+A,top0,true);
   renderJack();try{renderAdmin();renderPrep();}catch(e){}
   return true;
+}
+/* b683 (Jack, 16 Nov — the Lindt: "23 still on the way — the others were all delivered"): a row parked by "Some still
+   coming, the rest delivered…" (jackPartComing, js/admin-queue.js). Nobody searches for the rest while it waits, so
+   what is booked in on it meanwhile can only be the delivery: the count is plain — booked in since the press. */
+function _pcHold(r){const q=r&&r.resolution,h=q&&q.partComing;
+  /* b683 review: only the park that press made — a later answer that re-parks the row has its own answeredAt */
+  return (h&&!r.archived&&!h.done&&!h.slipped&&q.state==='approved'&&q.what==='in-transit'&&h.at&&h.at===q.answeredAt)?h:null;}
+function _pcGot(r,h){return Math.max(0,(parseInt(r&&r.rcvd)||0)-(parseInt(h&&h.r0)||0));}
+/* b683 review: a save that didn't go through — _mustSave has already put the row back to what the database holds
+   (on a clash between two laptops that is the OTHER laptop's newer copy); anything else thrown goes back to it too */
+async function _pcSavedCopy(r,e){if(!(e&&e.message==='save-failed')){try{await _saveIdle(r);}catch(_){}try{_rowBackToSaved(r);}catch(_){}}}
+function _pcWhy(r){const h=_pcHold(r);if(!h)return '';const left=Math.max(0,(parseInt(h.n)||0)-_pcGot(r,h));
+  return ` · ${fmt(left)} still coming; once ${left===1?'it is':'they are'} booked in, the other ${fmt(parseInt(h.rest)||0)} go to Jack to check every order`;}
+const _pcBusy=new Set();
+/* run for every row as the lists are drawn (_adminItems) and after a booking-in (uf). true = the row is changing
+   hands right now, so the drawing leaves it out */
+function _pcTick(r){
+  const h=_pcHold(r);if(!h)return false;
+  const id=String(r.uuid||r.id);if(_pcBusy.has(id))return true;
+  const n=parseInt(h.n)||0,got=_pcGot(r,h);
+  if(got>=n){_pcBusy.add(id);
+    setTimeout(()=>{_pcLand(r).catch(e=>console.warn('[b683] part landed',e)).finally(()=>_pcBusy.delete(id));},0);return true;}
+  if(typeof _parkedOnDate==='function'&&!_parkedOnDate(r)){
+    /* Amazon's date passed and not all of it came: Sarah's chase — and she knows the rest were delivered */
+    const now=new Date().toISOString(),rest=parseInt(h.rest)||0,e=String(h.eta||''),nice=e.length>=10?e.slice(8,10)+'/'+e.slice(5,7):e;
+    const ch=Object.assign({},r.resolution.chase||{path:'never-arrived',step:'due-date',due:'',log:[]});
+    ch.step='due-date';ch.due=r.expectedDelivery||h.eta||'';
+    ch.log=(ch.log||[]).concat([{at:now,by:'PrepHub',what:`Amazon said ${n} more were coming by ${nice} — ${got?fmt(got)+' booked in since':'none booked in yet'}. Chase the ${fmt(n-got)}. The other ${fmt(rest)} were delivered (${h.by||'Jack'} checked the account): once the rest are in, send it to Jack to check every order`}]);
+    r.resolution=Object.assign({},r.resolution,{state:'working',slippedAt:now,chase:ch,partComing:Object.assign({},h,{slipped:{at:now,got}})});
+    r._dirty=true;debounce('pcslip_'+id,()=>saveRow(r),2000);
+  }
+  return false;
+}
+function _pcSoon(r){if(!_pcHold(r))return;const id=String(r.uuid||r.id);
+  setTimeout(()=>{try{const x=_rowById(id);if(x)_pcTick(x);}catch(e){}},2500);}
+/* the part coming is in: the rest go to Jack as "check every order" — the state his green "All N were delivered —
+   check every order" press makes, his own order already ticked delivered. Undo on that card gives him a plain "has
+   Amazon delivered the rest?" on his list — never back to waiting. */
+async function _pcLand(r0){
+  const r=_rowById(String(r0.uuid||r0.id));if(!r)return;   /* b683 review: the row as it is now — gone = leave it */
+  const h=_pcHold(r);if(!h)return;
+  const n=parseInt(h.n)||0,got=_pcGot(r,h);if(got<n)return;
+  const now=new Date().toISOString(),id=String(r.uuid||r.id),owe=_owedUnits(r),who=h.by||'Jack';
+  const keepD=r.delivered;
+  const ch=Object.assign({},r.resolution.chase||{path:'never-arrived',step:'',due:'',log:[]});
+  const done=Object.assign({},h,{done:{at:now,got,rest:owe}});
+  if(owe<=0){
+    /* nothing missing: the date STAYS (b683 review) — if the count is corrected down later, it is a plain park on
+       Amazon's date again and comes back to Sarah if it slips, never "closed" with units owed */
+    ch.log=(ch.log||[]).concat([{at:now,by:'PrepHub',what:`The ${n} Amazon said were still coming are booked in — nothing missing`}]);
+    r.resolution=Object.assign({},r.resolution,{partComing:done,chase:ch});r._dirty=true;
+    try{await _mustSave(r);}catch(e){await _pcSavedCopy(r,e);}
+    return;
+  }
+  /* Amazon's date has done its job — off the row, or his list (which hides anything parked on a date) never shows the card */
+  r.expectedDelivery=h.ed0||'';
+  ch.log=(ch.log||[]).concat([{at:now,by:'PrepHub',what:`The ${n} Amazon said were still coming are booked in — the other ${owe} go to ${who} to check every order (the account showed them delivered)`}]);
+  const undoRes=Object.assign({},r.resolution,{state:'asked',kind:'check',what:'jack-check',
+    ask:`The ${n} still coming are in — has Amazon delivered the other ${owe}?`,note:'',by:'PrepHub',at:now,partComing:done,chase:ch});
+  r.resolution=Object.assign({},r.resolution,{partComing:done,chase:ch,amzDelivered:{by:who,at:now,sentBy:'PrepHub',how:'jack-yes'}});
+  _ocIntoJack(r,who,now,id,true,now);
+  r.resolution.ordChk.undoTo={res:JSON.parse(JSON.stringify(undoRes)),delivered:keepD===undefined?null:keepD};
+  r.resolution.ordChk.fromPart={n,got,at:now};
+  r.delivered='Yes';
+  try{await _mustSave(r);}catch(e){await _pcSavedCopy(r,e);return;}
+  /* the rest of the product joins, exactly as his green press does (b678) */
+  const A=_asinKey(r.asin),list=_amzDelRows().filter(x=>x!==r&&_asinKey(x.asin)===A&&_ocCan(x));
+  _ocJackPending(A,r).forEach(x=>{if(!list.includes(x))list.push(x);});
+  for(const x of list){
+    const yes=(typeof _ansMeans==='function'&&_ansMeans(x.resolution||{}).arrivedYes)||x.delivered==='Yes';
+    _ocIntoJack(x,who,now,id,yes,now);
+    try{await _mustSave(x);}catch(e){await _pcSavedCopy(x,e);break;}
+  }
+  try{logAudit('Order check — part still coming landed',`${r.sku||A} — ${got} booked in of the ${n} Amazon said were coming; the other ${owe} to ${who}’s order check`);}catch(e){}
+  try{renderJack();renderAdmin();renderPrep();}catch(e){}
 }
 /* every row waiting on Becki's shelf check that can have an order check */
 function _ocPullable(){
@@ -1491,6 +1566,7 @@ function uf(id,field,val){
   }
   /* the 48-hour part-arrival clock reads this: when did the count last move */
   if(field==='rcvd'&&(parseInt(val)||0)!==(parseInt(r.rcvd)||0))r.rcvdAt=new Date().toISOString();
+  if(field==='rcvd'&&typeof _pcSoon==='function')_pcSoon(r);   /* b683: the part still coming may be in now */
   /* booking anything in moves an In-Transit row to In Warehouse — the same as the count-in popup */
   if(field==='rcvd'&&(parseInt(val)||0)>0&&['In-Transit','Not Arrived','Delivered'].includes(r.status||'')){
     r.status='In Warehouse';try{const _sel=document.querySelector('#row-'+r.id+' select.stSel, #row-'+r.id+' td select');if(_sel)_sel.value='In Warehouse';}catch(e){}}

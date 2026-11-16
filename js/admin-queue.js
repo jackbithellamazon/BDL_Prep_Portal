@@ -954,6 +954,74 @@ function jackAmzDate(rid,btn){
     toast('Parked until '+v+' — back on the list if it slips','ok');
   };
 }
+/* b683 (Jack, 16 Nov — the Lindt Lindor 600g, Biz 02 202-8333449-6708301: 50 ordered, 12 booked in, "23 still on the
+   way — the others out of 50 were all delivered"). One answer for "part still coming, the rest delivered". The row parks
+   on Amazon's date for the part coming — the same park as "still coming…" — and remembers the split (partComing).
+   _pcTick (js/prep.js) watches it: once that many more are booked in, the rest go to Jack as "check every order"; if
+   the date passes first, it is Sarah's chase. One after the other on purpose: a find on the shelf and a delivery are the
+   same booking-in, so while it waits, whatever is booked in can only be the delivery. */
+function jackPartComing(rid,btn){
+  const r=_rowById(rid);if(!r){toast('Row not found','er');return;}
+  const host=btn&&btn.parentElement;if(!host)return;
+  if(host.querySelector('.amzDateBox'))return;
+  const owe=_owedUnits(r);if(owe<2){toast('Only one unit is missing — use “still coming” or “delivered”','er');return;}
+  const _says=_amazonRow(r)?'Amazon':'The supplier';
+  const box=document.createElement('div');
+  box.className='amzDateBox pcBox';
+  box.innerHTML=`<div class="amzDateT">How many are still coming? The rest were delivered.</div>
+    <input type="number" class="amzDateIn pcN" min="1" max="${owe-1}" step="1" inputmode="numeric" placeholder="1 to ${fmt(owe-1)}">
+    <div class="amzDateT" style="margin-top:6px;">When did ${_says==='Amazon'?'Amazon':'the supplier'} say they arrive?</div>
+    <input type="date" class="amzDateIn pcD" min="${todayISO()}" max="2030-12-31">
+    <div class="amzDateHint pcLine"></div>
+    <div class="amzDateActs">
+      <button class="csAct plain" data-x="1">Cancel</button>
+      <button class="csAct good" data-go="1">Save</button>
+    </div>`;
+  host.appendChild(box);
+  const nI=box.querySelector('.pcN'),dI=box.querySelector('.pcD'),line=box.querySelector('.pcLine');
+  const paint=()=>{const t=String(nI.value||'').trim(),n=parseInt(t);
+    line.innerHTML=(/^\d+$/.test(t)&&n>=1&&n<owe)
+      ?`<b>${fmt(n)}</b> wait for ${_says==='Amazon'?'Amazon’s':'the supplier’s'} date, off everyone’s list. The moment ${n===1?'it is':'they are'} booked in, the other <b>${fmt(owe-n)}</b> come back to you as <b>check every order</b>. If the date passes first, Sarah chases.`
+      :`Of the ${fmt(owe)} not booked in, how many are still on the way? (1 to ${fmt(owe-1)})`;};
+  paint();nI.oninput=paint;setTimeout(()=>nI.focus(),30);
+  box.querySelector('[data-x]').onclick=()=>box.remove();
+  box.querySelector('[data-go]').onclick=async()=>{
+    const t=String(nI.value||'').trim(),n=parseInt(t),v=dI.value;
+    if(!(/^\d+$/.test(t)&&n>=1&&n<owe)){toast(`How many are still coming? 1 to ${fmt(owe-1)}`,'er');nI.focus();return;}
+    if(!v||!saneDate(v)){toast(dateBoxMsg(dI,'Pick the date they said first'),'er');return;}
+    box.remove();
+    await _pcPark(rid,n,v);
+  };
+}
+async function _pcPark(rid,n,v){
+  const r=_rowById(rid);if(!r)return false;
+  const owe=_owedUnits(r);n=parseInt(n)||0;
+  if(!(n>=1&&n<owe)||!v||!saneDate(v))return false;
+  const now=new Date().toISOString(),who=_who(),_res=r.resolution||{},_Q=_ukQuery(r),_says=_amazonRow(r)?'Amazon':'The supplier';
+  const _nice=new Date(v).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),rest=owe-n;
+  r.resolution=Object.assign({},_res,{state:'approved',kind:'ops',what:'in-transit',answeredBy:who,answeredAt:now,
+    rejectNote:`${_says} say ${n} of the ${owe} are still coming, due ${v}; the other ${rest} were delivered`,
+    partComing:{n,eta:v,r0:parseInt(r.rcvd)||0,owe0:owe,rest,oid:r.oid||'',by:who,at:now,ed0:r.expectedDelivery||''}});
+  if(_Q){
+    r.resolution.query=Object.assign({},_Q,{answer:'more-coming',answeredAt:now,answeredBy:who,due:v,reply:''});
+    try{_qryReplyNote(r,`${n} more still coming — expected ${_nice}.`);}catch(e){}
+  }
+  const ch=Object.assign({},r.resolution.chase||{path:'never-arrived',step:'',due:'',log:[]});
+  ch.log=(ch.log||[]).concat([{at:now,by:who,what:`${_says} say ${n} still coming, due ${v}; the other ${rest} were delivered — parked until the ${n} are booked in, then the ${rest} go to Jack to check every order`}]);
+  ch.step='due-date';ch.due=v;r.resolution.chase=ch;
+  r.sentToJack=null;r.expectedDelivery=v;r.chaseSnoozeUntil='';
+  if(r.transitAction==='Late — Needs Chasing')r.transitAction='';
+  r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${who} ${_ddUK(new Date())}: ${_says} say ${n} still coming (${_nice}); the other ${rest} were delivered — book the ${n} in when they land, then the ${rest} go to Jack`;
+  r.vaNoteBy=who;r.vaNoteAt=now;r._dirty=true;
+  try{await _mustSave(r);}catch(e){
+    /* b683 review: _mustSave has already put the row back to the database's copy — never our older one on top */
+    if(typeof _pcSavedCopy==='function')await _pcSavedCopy(r,e);
+    toast('Didn’t save — nothing was recorded. Check the connection and try again.','er');return false;}
+  try{logAudit('Part still coming',`${r.sku||r.asin||''} — ${n} of ${owe} due ${v}; the other ${rest} delivered → Jack’s order check once the ${n} are in`);}catch(e){}
+  try{renderJack();renderAdmin();renderPrep();paintJackBadge();}catch(e){}
+  toast(`Parked until ${_nice} for the ${n} — the moment they’re booked in, the other ${rest} come back to you as check every order`,'ok');
+  return true;
+}
 async function setDueDate(rid,val){
   const r=_rowById(rid);if(!r)return;
   if(val&&!saneDate(val))return;         /* half-typed year — let them finish */
