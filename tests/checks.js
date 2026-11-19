@@ -225,10 +225,53 @@ window.PrepChecks=(function(){
       if(o.owner!=='sarah'&&o.owner!=='becki'&&shown.sarah)problems.push('on Sarah’s active list but owner is '+o.owner);
       if(o.owner==='becki'&&!shown.becki)problems.push('owner is Becki but Sarah’s page does not show it with Becki');
       if(o.finished&&(shown.jack||shown.sarah))problems.push('finished ('+o.why+') but still listed');
+      /* b684 (the Canon): a job still open on the row, but the owner rule says done — nobody's name on it */
+      if(o.finished&&typeof _isAmzDel==='function'&&_isAmzDel(r))problems.push('Becki’s shelf check is open but the row counts as done');
       if(problems.length){rowsOut.push({sku:r.sku,status:r.status,exp:r.exp,rcvd:r.rcvd,cx:r.cancelledQty,state:(r.resolution||{}).state||'',owner:o.owner,why:o.why,problems});problems.forEach(p=>{tally[p]=(tally[p]||0)+1;});}
     }
     return {rows:live.length,disagreements:rowsOut.length,tally,list:rowsOut};
   }
+
+  /* b684 · the Canon SELPHY: an open shelf check is Becki's, even on a row closed earlier — and no live row may ever
+     have a job open on it while it counts as done (this one runs on the real rows every build) */
+  S['b684: an open shelf check always has a name — the Canon']=async()=>{
+    const r=mkRow({exp:2,rcvd:1,ship:1,status:'Part Sent',resolution:{state:'approved',kind:'ops',what:'arrived-ok',by:'Sarah',at:iso(),
+      amzDelivered:{by:'Jack',at:iso(),how:'order-check',need:1,sentBy:'Jack'}}});
+    const o=_rowOwner(r);eq(o.owner,'becki','closed "arrived and correct", then Jack’s check sent 1 to the shelves → Becki');ok(!o.finished,'…not finished');
+    ok(_adminItems().some(i=>String(i.rid)===rid(r)&&i.withBecki),'Sarah’s page shows it with Becki');
+    ok(!onJack(r),'not on Jack’s page');
+    r.rcvd=2;ok(!_isAmzDel(r),'Becki finds the 1 and books it in → the shelf check clears');ok(_rowOwner(r).owner!=='becki','…and it is off Becki’s list');
+    r.rcvd=1;r.resolution.amzDelivered.done={by:'Becki',at:iso(),how:'not-here'};ok(_rowOwner(r).finished||_rowOwner(r).owner!=='becki','a finished shelf check is not Becki’s any more');
+    /* the permanent one: every real row */
+    const bad=rows.filter(x=>!x._chk&&!x.archived&&_rowOwner(x).finished&&typeof _isAmzDel==='function'&&_isAmzDel(x));
+    eq(bad.length,0,'no live row has an open shelf check while counting as done'+(bad.length?': '+bad.slice(0,5).map(x=>x.sku).join(', '):''));
+  };
+  /* b684 · the LATE tile: late and not parked in the big number, parked on the small line, click = exactly those rows */
+  S['b684: LATE tile — late and not sorted']=async()=>{
+    const dm=n=>{const x=new Date(Date.now()-n*864e5);return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0');};
+    const d=n=>{const x=new Date();x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
+    const before=_lateTotals();
+    const late=mkRow({exp:7,rcvd:0,status:'In-Transit',date:dm(26)});
+    const parked=mkRow({exp:4,rcvd:0,status:'In-Transit',date:dm(26),expectedDelivery:d(3),resolution:asked({chase:{path:'never-arrived',step:'due-date',due:d(3),log:[]}})});
+    const fresh=mkRow({exp:5,rcvd:0,status:'In-Transit',date:dm(3)});
+    ok(_lateOpen(late)&&!_lateOpen(parked)&&!_lateRow(fresh),'26 days on = late · parked on a date = not in the big number · 3 days = not late');
+    const t=_lateTotals();
+    eq(t.units-before.units,7,'the big number counts the late one');eq(t.parked-before.parked,4,'…the parked one is on the small line');
+    eq(t.by.sarah-before.by.sarah,7,'…with Sarah (the late chase is hers)');
+    ok(_stMatches(late,'__late')&&!_stMatches(parked,'__late')&&!_stMatches(fresh,'__late'),'the tile’s filter is exactly the big number');
+    ok(document.querySelector('#prepStF option[value="__late"]'),'the Prep Sheet filter has the option');
+    {const hs=_histStreaming;try{_histStreaming=false;renderStats();}finally{_histStreaming=hs;}}const tiles=[...document.querySelectorAll('#prepStats .stat')].map(e=>e.textContent.replace(/\s+/g,' ').trim());
+    eq(tiles.length,6,'six tiles');ok(/^COG In Transit/i.test(tiles[1])&&/^Late/i.test(tiles[2])&&/^Sent Today/i.test(tiles[3]),'LATE sits between COG In Transit and Sent Today');
+    ok(!/overdue/i.test(tiles[0]),'In Transit no longer says overdue (said once, on its own tile)');
+    late.rcvd=7;ok(!_lateRow(late),'booked in → off the tile');
+  };
+  /* b684 · Send on a check-every-order card: a failed save leaves the database's copy, never the press's older copy */
+  S['b684: Send — a failed save never puts the old copy back']=async()=>{
+    const src=String(ocSend);
+    ok(!/r\.resolution=undo/.test(src),'no put-back of the copy from before the press');
+    ok(/const back=e=>_pcSavedCopy\(r,e\)/.test(src),'a failed save goes back to the saved copy');
+    ok(!/back\(\);/.test(src),'every failure path uses it');
+  };
 
   /* 18 · every dd/mm stamp is the UK date, whoever's clock wrote it */
   S['date stamps are UK dates']=async()=>{
@@ -3283,9 +3326,9 @@ window.PrepChecks=(function(){
       ok(!/NaN|undefined|Infinity/.test(pg.querySelector('.q4Prog').innerHTML),'no NaN in the chart or tables');
       const wk=pg.querySelector('.q4GW-weeks tbody tr td.q4Cmp small.q4CTot');   /* b670: the running total is the small one */
       eq((wk||{}).textContent,(R.totals.pct==null?'':R.totals.pct+'% total'),'the newest week ends on the Complete tile');
-      ok([...pg.querySelectorAll('.q4Kpis .kpi .k')].some(k=>/All done at your weekly average/.test(k.textContent)),'an All done at your weekly average tile (b644)');
-      {const TR1=LV3.q4Track(R),tp=TR1.avg.avg,e=R.totals.toGo===0?null:tp>0?TR1.etaOf(R.totals.toGo,tp/5):null;
-        const tv=([...pg.querySelectorAll('.q4Kpis .kpi')].find(k=>/All done at your weekly average/.test(k.textContent))||{}).querySelector('.v');
+      ok([...pg.querySelectorAll('.q4Kpis .kpi .k')].some(k=>/Realistic finish/.test(k.textContent)),'an All done at your weekly average tile (b644)');
+      {const TR1=LV3.q4Track(R),tp=TR1.pace.wk,e=R.totals.toGo===0?null:TR1.pace.eta;
+        const tv=([...pg.querySelectorAll('.q4Kpis .kpi')].find(k=>/Realistic finish/.test(k.textContent))||{}).querySelector('.v');
         if(e)ok(tv&&tv.textContent.trim()==='~'+LV3.q4DayY(e),'the tile is the whole page at the weekly average ('+tp+'): '+e);}
     }finally{if(keepBy===undefined)delete D.settings.q4SendBy;else D.settings.q4SendBy=keepBy;
       try{if(keepOpen==null)localStorage.removeItem('lv3.q4.open');else localStorage.setItem('lv3.q4.open',keepOpen);
@@ -3314,7 +3357,7 @@ window.PrepChecks=(function(){
       ok([...box2.querySelectorAll('thead th')].some(th=>/Sold on Amazon/.test(th.textContent)),'a Sold on Amazon column once it comes');
       ok(/123/.test([...box2.querySelectorAll('tbody tr')].find(t=>t.querySelector('td.q4N b').textContent===r0.name).textContent),'…with SellerFuse\'s figure on its line');
       ok(!/NaN|undefined/.test(box2.innerHTML),'no NaN');
-      ok(/a week/.test(([...pg.querySelectorAll('.q4Kpis .kpi')].find(k=>/All done at your weekly average/.test(k.textContent))||{}).textContent||''),'the tile counts weeks (b643: was working days)');
+      ok(/a working day|a day/.test(([...pg.querySelectorAll('.q4Kpis .kpi')].find(k=>/Realistic finish/.test(k.textContent))||{}).textContent||''),'the tile counts working days (b687, Jack: Mon–Fri working days, weekends a bonus)');
       {const all=[...pg.querySelectorAll('.q4 > *')],iRec=all.indexOf(box2),iPri=all.findIndex(e=>e.classList&&e.classList.contains('q4PriPanel'));
         ok(iRec>iPri&&iRec===all.length-1,'the record is the last thing on the page — under the build tables (prep hub first)');}
     }finally{if(keepQ===undefined)delete D.settings.sfQ4;else D.settings.sfQ4=keepQ;
@@ -3416,8 +3459,8 @@ window.PrepChecks=(function(){
       P.forEach(r=>{const w=TR.week(r),c=pg.querySelector(`tr[data-q4r="${r.id}"] td.q4TW b`);
         if(r.target>r.done)ok(c&&c.textContent.replace(/\s+/g,' ').trim()===`${w.sent} of ${w.need}`.replace(/\B(?=(\d{3})+(?!\d))/g,','),r.name+': this week '+w.sent+' of '+w.need);});
       ok(!/a working day|\/day| a day\b/.test(pg.querySelector('table.q4P').textContent),'no per-day figures left in Priority bundles');
-      ok([...pg.querySelectorAll('.q4Kpis .kpi .k')].some(k=>/weekly average/.test(k.textContent)),'the finish tile runs on the weekly average (b644)');
-      const ch=pg.querySelector('.q4Prog .q4Chart');ok(ch&&/weekly average/.test(ch.querySelector('.q4ChartK').textContent),'the chart key says the weekly average (b644)');
+      ok([...pg.querySelectorAll('.q4Kpis .kpi .k')].some(k=>/Realistic finish/.test(k.textContent)),'the finish tile is the realistic finish (b687)');
+      const ch=pg.querySelector('.q4Prog .q4Chart');ok(ch&&/realistic pace/.test(ch.querySelector('.q4ChartK').textContent),'the chart key says the realistic pace (b687)');
       const ceil=100*R.bundles.concat(R.singles).reduce((t,r)=>t+Math.min(r.max,r.done+r.left),0)/T.max;
       if(ceil<100&&ch)ok(!ch.querySelector('svg line.cl')&&!/parts in hand/i.test(ch.textContent),'the chart has no parts in hand line (b651: '+Math.floor(ceil)+'% — parts are bought as needed)');
     }finally{if(keepBy===undefined)delete D.settings.q4SendBy;else D.settings.q4SendBy=keepBy;
@@ -3442,7 +3485,7 @@ window.PrepChecks=(function(){
       const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),TR=LV3.q4Track(R);
       const box=pg.querySelector('section.q4Week');ok(box,'the This week panel');if(!box)return;
       eq(box.querySelectorAll('.q4WkPage .q4WkC').length,(R.progress.weeks||[]).length,'a bar for every week since the start');
-      if(TR.avg.avg>0)ok(box.querySelector('.q4WeekWhy').textContent.includes('~'+String(TR.avg.avg).replace(/\B(?=(\d{3})+(?!\d))/g,',')),'the panel gives the weekly average (~'+TR.avg.avg+')');
+      if(TR.pace.wk>0)ok(box.querySelector('.q4WeekWhy').textContent.includes('~'+String(TR.pace.wk).replace(/\B(?=(\d{3})+(?!\d))/g,',')),'the panel gives the realistic pace (~'+TR.pace.wk+' a week, b687)');
       ok(!box.querySelector('.q4WC .kv.parts.bad, .q4WC .kv.parts.w, .q4WC .kv.parts b.bad'),'no red or amber parts notes on the cards');
       ok(!pg.querySelector('table.q4P td.q4TW small.bad, table.q4P td.q4TW small.w'),'none in This week either');
       ok(![...pg.querySelectorAll('.q4Kpis .kpi .v')].some(v=>/fca5a5|f87171/.test(v.getAttribute('style')||'')),'no tile value in red');
@@ -3463,6 +3506,7 @@ window.PrepChecks=(function(){
         const u=LV3.sendUrgency(z);
         if(!u){ok(!az||/^\d/.test((az.querySelector('b')||{}).textContent||''),nm+': no sales figure — the count only');return;}
         ok(az,nm+': an At Amazon line');if(!az)return;
+        if((+z.sell||0)<=0&&z.movSell){ok(az.classList.contains('w')&&/^0 on shelf/.test((az.querySelector('b')||{}).textContent||''),nm+': 0 on the shelf but moving and still selling — amber, not Out (b685)');return;}
         if((+z.sell||0)<=0){ok(az.classList.contains('bad')&&/^Out/.test((az.querySelector('b')||{}).textContent||''),nm+': out at Amazon now — red');return;}
         const fe=u.firstEmpty!=null?Math.round(u.firstEmpty):null,days=Math.round(u.end),shown=fe!=null&&fe<days?fe:days;
         ok(az.textContent.includes('~'+shown+' day'),nm+': ~'+shown+' days ('+az.textContent+')');
@@ -3819,7 +3863,7 @@ window.PrepChecks=(function(){
       const est=off.reduce((s,x)=>s+x.left,0)/rate,all=tot+est,hpd=LV3.q4HoursDay();
       ok(t.querySelector('.v').textContent.includes('~'+fmtH(all)+' h'),'~'+fmtH(tot)+' h timed + ~'+fmtH(est)+' h estimated = ~'+fmtH(all)+' h ('+t.querySelector('.v').textContent+')');
       ok(t.textContent.includes(fmtH(all/hpd)+' build day'),'≈ '+fmtH(all/hpd)+' build days at '+hpd+' h a day');
-      ok(t.textContent.includes(TR.wdLeft+' working day'),'against the '+TR.wdLeft+' working days left');
+      ok(t.textContent.includes(TR.pace.daysIn+' working day'),'against the '+TR.pace.daysIn+' working days left, today included (b687)');
       if(off.length){ok(t.textContent.includes(fmtH(tot)+' h timed')&&t.textContent.includes('~'+fmtH(est)+' h estimated'),'the split: '+fmtH(tot)+' h timed, ~'+fmtH(est)+' h estimated for the '+off.length+' not timed');
         const s=pg.querySelector('.q4HrSum .q4HrOff');ok(s&&s.textContent.includes('~'+fmtH(est)+' h more'),'the strip under the table gives the same estimate');}
       const fit=all/hpd<=TR.wdLeft;ok(fit?/4ade80/.test(t.getAttribute('style')):/fbbf24/.test(t.getAttribute('style')),fit?'it fits in the days left: green':'more than the days left: amber');
@@ -5308,6 +5352,173 @@ window.PrepChecks=(function(){
       const P2=_ocPlan(E);eq(P2.lone.length,0,'ticked delivered on that card: still not "outside the check"');ok(!_ocJoinable(P2),'…nothing to join');
       renderJack();await wait(250);ok(_pcHold(w)&&!_ocAsked(w),'…and the page leaves it waiting');
     }finally{window._mustSave=keep.ms;window.saveRow=keep.sr;window.fireWebhook=keep.wh;who('Jack');}
+  };
+
+  /* b685 (Jack, 18 Nov — the Gluten Free Tea card: "Send 114" with 54 sent that morning, "EMPTY AT AMAZON" on a day it
+     sold; and the Products table: "how many I need to have in stock overall… better columns and better info") */
+  S['b685: a send earlier on the count’s own day stays on the way; moving-and-still-selling is not "empty"; Stock needed drawn wide + Profit a day']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const D0=LV3.__D(),S0=D0.settings,X=LV3.__b685,Z=/(Z|[+-]\d\d:\d\d)$/,keepSf=window.SFRUN,ships=[];
+    const p=D0.products.find(x=>!x.archived&&x.asin&&Z.test(String((S0.atAmzAt||{})[x.asin]||''))&&((LV3.__plRow(x)||{}).ads>0));
+    ok(p,'a product with a SellerFuse count and a pace to try it on');
+    const A=p.asin,cAt=String(S0.atAmzAt[A]),cMs=Date.parse(cAt),day=cAt.slice(0,10);
+    const sv=k=>{const m=S0[k]=S0[k]||{};return{m,had:Object.prototype.hasOwnProperty.call(m,A),v:m[A]};};
+    const K=[sv('atAmz'),sv('atAmzIn'),sv('atAmzMov'),sv('sfLastSold')];
+    const row=(units,at,date,id)=>{const s={shipId:id===undefined?'FBA-CHK685':id,asin:A,sku:'',prod:p.name,units,cost:0,date:date||day,at,__test:1};lavShipments.push(s);ships.push(s);return s;};
+    const drop=s=>{const i=lavShipments.indexOf(s);if(i>=0)lavShipments.splice(i,1);};
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      S0.atAmzIn[A]=0;S0.atAmzMov[A]=0;
+      const run=Object.assign({},keepSf||{},{at:new Date(cMs+20e3).toISOString(),shipments:[]});
+      SFRUN=run;window.SFRUN=run;
+      const base=LV3.__plRow(p);eq(base.same,0,'nothing sent that day: nothing added');
+      const s0=row(9,new Date(cMs-3600e3).toISOString());
+      let r=LV3.__plRow(p);
+      eq(r.same,9,'sent an hour before the count, on a shipment SellerFuse doesn’t list yet: still on the way');
+      eq(r.inbShip,base.inbShip+9,'…and it is in the on-the-way figure');
+      ok((r.rec||0)<=(base.rec||0),'…so the send it asks for never goes up');
+      S0.atAmzIn[A]=9;r=LV3.__plRow(p);eq(r.same,0,'Amazon’s own on-the-way figure already has 9 nothing else explains — not counted twice');
+      S0.atAmzIn[A]=4;r=LV3.__plRow(p);eq(r.same,5,'Amazon has part of it — only the part it doesn’t');
+      S0.atAmzIn[A]=0;
+      run.shipments=[{id:'FBA-CHK685',status:'READY_TO_SHIP',created:day,lines:[{asin:A,units:9,received:0}]}];r=LV3.__plRow(p);
+      ok(r.same===0&&r.rts===9,'once SellerFuse lists the shipment, the ready-to-ship rule has it — once, not twice');
+      run.shipments[0].status='SHIPPED';r=LV3.__plRow(p);ok(r.same===0&&r.rts===0,'listed as shipped: Amazon’s own figure has it');
+      run.shipments=[];
+      const s1=row(4,new Date(cMs+3600e3).toISOString());r=LV3.__plRow(p);
+      ok(r.same===9&&r.since===base.since+4,'a send after the count is counted once, as before');drop(s1);
+      const s2=row(6,new Date(cMs-90000e3).toISOString(),ukAddDays(day,-1));r=LV3.__plRow(p);
+      eq(r.same,9,'a send from the day before is the count’s business, not this rule’s');drop(s2);
+      const s3=row(3,new Date(cMs-3600e3).toISOString(),day,'');r=LV3.__plRow(p);
+      eq(r.same,9,'a row with no shipment ID is left out');drop(s3);
+      run.at=new Date(cMs+86400e3).toISOString();r=LV3.__plRow(p);eq(r.same,0,'only when the count is that SellerFuse run');
+      drop(s0);SFRUN=keepSf;window.SFRUN=keepSf;
+      /* moving between Amazon's warehouses and still selling */
+      S0.atAmz[A]=0;S0.atAmzIn[A]=12;S0.atAmzMov[A]=12;S0.sfLastSold[A]=ukAddDays(day,-1);
+      r=LV3.__plRow(p);
+      ok(r.movSell&&r.mov===12&&r.lastSold===ukAddDays(day,-1),'0 on the shelf, 12 moving, sold the day before: still selling');
+      ok(!X.shelfEmpty(r),'…so the shelf is not "empty"');
+      const u=X.sendUrgency(r),L=X.lossLine(r,u);
+      ok(!L.empty&&L.emptyDays==null&&L.lostSoFar===0,'no "days empty", no "lost so far"');
+      ok(L.movSell&&L.toLose<=Math.max(0,(u.gap||0)-3)*r.ads*L.pu+0.01,'the days it sells from the moving stock are not counted as lost');
+      S0.sfLastSold[A]=ukAddDays(day,-6);r=LV3.__plRow(p);
+      ok(!r.movSell&&X.shelfEmpty(r),'no sale for six days: empty, as before');
+      S0.sfLastSold[A]=ukAddDays(day,-1);S0.atAmzMov[A]=0;r=LV3.__plRow(p);
+      ok(!r.movSell&&X.shelfEmpty(r),'on the way but not inside Amazon yet: empty, as before');
+      S0.atAmzMov[A]=12;S0.atAmz[A]=3;r=LV3.__plRow(p);ok(!r.movSell,'something counted on the shelf: the ordinary case');
+      K.forEach(k=>{if(k.had)k.m[A]=k.v;else delete k.m[A];});
+      /* the table */
+      const pn=D0.products.find(x=>{const N=LV3.__needOf(x);return !x.archived&&N&&!N.none;});
+      ok(pn,'a product the Planner has a need for');
+      const N=LV3.__needOf(pn),h=X.needCell(pn),d=document.createElement('div');d.innerHTML=h;
+      eq(d.querySelector('.ndN').textContent,N.need.toLocaleString('en-GB'),'the big figure is the Planner’s need');
+      ok(d.querySelector('.ndHave').textContent.includes(N.have.toLocaleString('en-GB')),'what you hold beside it');
+      ok(N.short>0?/short/.test(d.querySelector('.ndV.bad').textContent):!!d.querySelector('.ndV.ok'),'short or spare, said once');
+      eq(d.querySelectorAll('.ndBar i:not(.gap)').length,[N.amz,N.inb,N.build].filter(x=>x>0).length,'the bar has a part for each place the stock is');
+      ok(/until a send lands \+/.test(d.querySelector('.ndWhy').textContent),'the reason is on the page, not in a hover');
+      const Q=X.q4LineOf(pn);eq(!!d.querySelector('.ndQ4'),!!Q,'the Q4 target line only for a Q4 line');
+      if(Q)eq(Q.left,Math.max(0,Q.target-Q.sent),'Q4 to go = target − sent');
+      const pp=D0.products.find(x=>!x.archived&&X.profitDayOf(x)!=null);
+      if(pp){const PLn=X.prodLine(pp);ok(Math.abs(X.profitDayOf(pp,PLn)-PLn.day*(LV3.__b685.profitDayOf(pp)/PLn.day))<1e-6&&/£/.test(X.profitCell(pp,PLn)),'profit a day = units a day × profit a unit');}
+      goPage('lavarion');LV3.go('products');await wait(300);
+      const pg=document.getElementById('page-lavarion'),ths=[...pg.querySelectorAll('.panel.stick thead th')].map(t=>t.textContent.replace(/\s+/g,' ').trim());
+      ok(ths.some(t=>/^Stock needed/.test(t)),'Stock needed is on the table');
+      if((S0.cols||{}).pProfit!==false)ok(ths.some(t=>/^Profit a day/.test(t)),'Profit a day is on the table');
+      if((S0.cols||{}).pNeed!==false)ok(pg.querySelectorAll('.panel.stick tbody .ndC').length>0,'the wide need cell draws');
+      const cut=[...pg.querySelectorAll('.panel.stick tbody .ndTop')].filter(s=>s.offsetParent&&s.scrollWidth>s.clientWidth+1);
+      eq(cut.length,0,'no need line is cut off');
+      ok(!/undefined|NaN/.test(pg.querySelector('.panel.stick').textContent),'no undefined or NaN in the table');
+    }finally{
+      ships.forEach(drop);K.forEach(k=>{if(k.had)k.m[A]=k.v;else delete k.m[A];});
+      SFRUN=keepSf;window.SFRUN=keepSf;
+      try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}
+    }
+  };
+
+  /* b686: the average counts this week as it goes; this week's pace; one needed figure; the daily bars */
+  S['b686: Q4 average updates daily (Mon–Fri, weekend sends count to their week), this week’s pace, one needed figure, daily bars']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      const base=[{id:'a',date:'2026-10-02',units:264},{id:'a',date:'2026-10-13',units:199},{id:'a',date:'2026-10-20',units:619},{id:'a',date:'2026-10-27',units:942}];
+      const mk=extra=>({from:'2026-10-01',totals:{max:9000,done:0},sends:base.concat(extra||[])});
+      const a0=LV3.q4Track(mk(),'2026-11-02').avg;
+      eq(JSON.stringify([a0.avg,a0.wk.days,a0.wk.pace]),JSON.stringify([809,0,null]),'Monday morning, nothing sent yet: the finished weeks alone (809) — never dragged down');
+      const a1=LV3.q4Track(mk([{id:'a',date:'2026-11-02',units:100},{id:'a',date:'2026-11-04',units:50}]),'2026-11-04').avg;
+      eq(JSON.stringify([a1.wk.sent,a1.wk.days,a1.wk.pace,a1.avg]),JSON.stringify([150,3,250,622]),'Wed with a send today: 150 in 3 days = 250 a week, counts 3/5 of a week → 622');
+      const a2=LV3.q4Track(mk([{id:'a',date:'2026-11-02',units:100}]),'2026-11-04').avg;
+      eq(JSON.stringify([a2.wk.days,a2.wk.pace,a2.avg]),JSON.stringify([2,250,668]),'Wed, nothing yet today: Mon–Tue only (2 days) → 668');
+      const a3=LV3.q4Track(mk([{id:'a',date:'2026-11-02',units:100},{id:'a',date:'2026-11-07',units:600}]),'2026-11-08').avg;
+      eq(JSON.stringify([a3.wk.sent,a3.wk.days,a3.wk.pace,a3.avg]),JSON.stringify([700,5,700,759]),'a Saturday send counts to its Mon–Fri week: 700 in 5 days → 759');
+      eq(LV3.q4Track(mk([{id:'a',date:'2026-11-04',units:700}]),'2026-11-09').avg.avg,759,'next Monday morning: the finished week takes over, same figure');
+      goPage('lavarion');LV3.go('q4');await wait(300);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),TR=LV3.q4Track(R);
+      const ch=pg.querySelector('.q4Prog .q4Chart');ok(ch,'the chart');if(!ch)return;
+      const K=ch.querySelector('.q4ChartK').textContent,tile=[...pg.querySelectorAll('.q4Kpis .kpi')].find(k=>/Realistic finish/.test(k.querySelector('.k').textContent));
+      ok(tile,'the finish tile');
+      if(R.totals.toGo>0&&TR.by>todayISO()){
+        const tn=((tile.querySelector('.s').textContent.match(/need ([\d,]+)/)||[])[1]),cn=((K.match(/Needed to finish by \d+ [A-Za-z]+([\d,]+)/)||[])[1]);
+        eq(cn,tn,'one needed figure: the chart key and the tile agree ('+tn+')');
+        ok(!ch.querySelector('svg polyline.sl'),'b687: no line for this week alone — never just this week');
+        ok(/this week/.test(tile.querySelector('.s').textContent),'the tile gives this week');
+      }
+      const days=(R.progress.days||[]).filter(d=>d.start<=todayISO()&&d.units>0).length;
+      eq(ch.querySelectorAll('svg rect.db:not(.z)').length,days,'a bar for every day something went ('+days+')');
+      ok(![...pg.querySelectorAll('.q4Kpis .kpi .v')].some(v=>/fca5a5|f87171/.test(v.getAttribute('style')||'')),'no tile value in red');
+      /* Ideal at Amazon: the Planner's want against at Amazon + on the way */
+      LV3.go('products');await wait(300);
+      const pr=LV3.__D().products.filter(p=>!p.archived).find(p=>LV3.__b686.idealOf(p));
+      if(pr){const I=LV3.__b686.idealOf(pr),R0=LV3.__plRow(pr);eq(I.want,Math.round(R0.want),pr.name+': the aim is the Planner’s ('+I.want+')');eq(I.have,I.amz+I.inb,'…have = at Amazon + on the way');
+        const h=LV3.__b686.idealCell(pr,LV3.prodLine(pr));ok(/short|over|on target/.test(h)&&/have /.test(h.replace(/<[^>]+>/g,' '))===false,'the cell says short / over / on target (have is in the hover)');}
+      ok([...document.querySelectorAll('#page-lavarion th')].some(t=>/Ideal at Amazon/.test(t.textContent)),'the Products table has the Ideal at Amazon column');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* b687: the 2-week pace — 10 working days, weekends a bonus, today counted */
+  S['b687: Q4 finish date at the 2-week pace (10 working days, weekend sends a bonus, today counted), needed a day from today']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'';
+    try{
+      const base=[{id:'a',date:'2026-11-04',units:1000},{id:'a',date:'2026-11-05',units:100},{id:'a',date:'2026-11-08',units:300},{id:'a',date:'2026-11-12',units:600},{id:'a',date:'2026-11-18',units:200}];
+      const mk=(extra,toGo)=>({from:'2026-10-01',totals:{max:9000,done:0,toGo:toGo},sends:base.concat(extra||[])});
+      const t1=LV3.q4Track(mk([],1000),'2026-11-19'),p1=t1.pace;
+      eq(JSON.stringify([p1.from,p1.to,p1.days,p1.units]),JSON.stringify(['2026-11-05','2026-11-18',10,1200]),'Thu 19 Nov: 5–18 Nov is the last 10 working days; the Sunday 300 counts as units, never as a day; 4 Nov is outside → 1,200');
+      eq(JSON.stringify(p1.est.map(x=>[x.k,Math.round(x.v*10)/10])),JSON.stringify([['this week',66.7],['last 2 weeks',120],['last 4 weeks',110]]),'three paces: this week 200 ÷ 3 days, 2 weeks 1,200 ÷ 10, 4 weeks 2,200 ÷ 20');
+      eq(JSON.stringify([p1.day,Math.round(p1.fast),Math.round(p1.slow)]),JSON.stringify([110,120,67]),'the realistic pace is the middle one (110); the range 67–120');
+      eq(p1.eta,'2026-12-03','1,000 to go, nothing sent yet today: 1,000 ÷ 110 = 10 working days from Fri 20 Nov → Thu 3 Dec (the morning starts without today)');
+      ok(p1.etaFast<=p1.eta&&p1.eta<=p1.etaSlow,'…between the fastest ('+p1.etaFast+') and the slowest ('+p1.etaSlow+')');
+      const pH=LV3.q4Track(mk([{id:'a',date:'2026-11-16',units:600},{id:'a',date:'2026-11-17',units:600}],1000),'2026-11-19').pace;
+      ok(pH.day>p1.day,'a big week of help (1,200 more this week) lifts two of the three, so the date comes in ('+pH.eta+')');
+      eq(p1.needDay,Math.ceil(1000/(t1.wdLeft+1)),'needed a working day from today, today included ('+p1.needDay+')');
+      const p2=LV3.q4Track(mk([{id:'a',date:'2026-11-19',units:50}],950),'2026-11-19').pace;
+      eq(Math.round(p2.est[0].v*10)/10,66.7,'this week’s pace with 50 today: still 66.7 (the better of 200 ÷ 3 and 250 ÷ 4) — a send never makes it worse');
+      {let prev=p1.eta;for(const u of [10,50,100,200,400]){const q=LV3.q4Track(mk([{id:'a',date:'2026-11-19',units:u}],1000-u),'2026-11-19').pace;ok(q.eta<=prev,'send '+u+' today: '+q.eta+' — never later than with less');prev=q.eta;}}
+      eq(JSON.stringify([p2.day,p2.todayCap,p2.eta,p2.needDay]),JSON.stringify([110,0,'2026-12-02',p1.needDay]),'50 sent today: the pace stays 110 (a small send never lowers this week’s pace), the date comes in a day to Wed 2 Dec, same need');
+      const p3=LV3.q4Track(mk([{id:'a',date:'2026-11-19',units:300}],700),'2026-11-19').pace;
+      ok(p3.eta<p1.eta&&p3.sentToday>=p3.needDay,'a big day today (300): the date comes in at once ('+p3.eta+') and today’s need is met');
+      const p4=LV3.q4Track(mk([],1000),'2026-11-21').pace;
+      eq(JSON.stringify([p4.wdToday,p4.todayCap,p4.days,p4.from,p4.units]),JSON.stringify([false,0,10,'2026-11-09',800]),'Saturday: not a working day, nothing planned on it; the window is 9–20 Nov');
+      const p5=LV3.q4Track(mk([{id:'a',date:'2026-11-21',units:400}],600),'2026-11-22').pace;
+      ok(p5.units===p4.units+400&&p5.days===10&&p5.eta<p4.eta,'Sunday: Saturday’s 400 is a bonus — in the pace, still ÷ 10 working days, and the date comes in');
+      {const tX=LV3.q4Track(mk([],1000),'2026-12-18');eq(tX.wdIn('2026-12-21','2027-01-05'),2,'22 Dec – 4 Jan are days off: Mon 21 Dec and Tue 5 Jan are the only working days in between');
+        eq(tX.etaOf(2,1),'2027-01-05','…so 2 days of work from Fri 18 Dec finish Tue 5 Jan');}
+      goPage('lavarion');LV3.go('q4');await wait(300);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),TR=LV3.q4Track(R);
+      /* build hours: never faster than one person's day; the units pace is those hours × the units an hour still left */
+      const H=TR.pace.H;if(H){ok(TR.pace.est.every(x=>x.v<=x.raw+1e-9&&(!x.guard||x.h>H.cap)),'the hours check only ever scales a pace DOWN, and only when the timed lines beat one person’s '+H.cap+' h');
+        const P0=LV3.q4Track(Object.assign({},R,{sends:(R.sends||[]).filter(x=>x.date!==TR.pace.to)})).pace;
+        ok(P0.est.every((x,i)=>x.v<=(TR.pace.est[i]||{v:Infinity}).v+1e-9),'a working day with nothing sent counts as a day — every pace goes down, not up');}
+      const tile=[...pg.querySelectorAll('.q4Kpis .kpi')].find(k=>/Realistic finish/.test(k.querySelector('.k').textContent));
+      ok(tile,'the Realistic finish tile');
+      if(tile&&R.totals.toGo>0&&TR.pace.eta)eq(tile.querySelector('.v').textContent.trim(),'~'+LV3.q4DayY(TR.pace.eta),'…its date is the pace’s ('+TR.pace.eta+')');
+      if(tile&&R.totals.toGo>0)ok(/pace ~[\d,]+ a day/.test(tile.querySelector('.s').textContent)&&/this week/.test(tile.querySelector('.s').textContent),'…it gives the pace a working day, and this week');
+      const ch=pg.querySelector('.q4Prog .q4Chart');
+      if(ch&&R.totals.toGo>0&&TR.by>todayISO()){const K=ch.querySelector('.q4ChartK').textContent;
+        ok(/realistic pace/.test(K)&&/a working day from today/.test(K),'the chart key: the realistic pace, needed a working day from today');
+        ok(/Today/.test(K),'…and today');
+        ok(ch.querySelector('svg polyline.nd'),'the needed line steps over the working days');}
+      const wk=pg.querySelector('section.q4Week');ok(!wk||!/weekly average/.test(wk.textContent),'the This week panel speaks of the same pace');
+      ok(!/NaN|undefined|Infinity/.test((pg.querySelector('.q4Kpis')||{}).innerHTML||''),'no NaN in the tiles');
+    }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
 
   async function run(only){

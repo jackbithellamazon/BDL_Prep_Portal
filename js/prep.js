@@ -954,8 +954,11 @@ async function ocSend(A){
     const extraTxt=P.extra>0?` Also: ${fmt(P.extra)} more booked in than delivered on ${P.orders.filter(o=>o.over>0).map(L).join(', ')} — the Purchase Sheet is wrong there.`:'';
     const tickPrev=P.allDel?(ASIN_CHECKS[A]||null):undefined;
     for(const x of P.rows){const r=x.r,id=r.uuid||r.id;
-      const undo=JSON.parse(JSON.stringify(r.resolution||{})),was={n:r.vaNote,b:r.vaNoteBy,a:r.vaNoteAt};
-      const back=()=>{r.resolution=undo;r.vaNote=was.n;r.vaNoteBy=was.b;r.vaNoteAt=was.a;};   /* a failed save leaves the row exactly as it was */
+      const undo=JSON.parse(JSON.stringify(r.resolution||{}));
+      /* b684: a failed save leaves the row as the DATABASE holds it — on a clash between two laptops that is the other
+         laptop's newer copy, so this press's copy from before it was pressed must never go back on top (it would ride
+         out with the next save). _mustSave has already done it; a false from jackAnswered is put back here. */
+      const back=e=>_pcSavedCopy(r,e);
       const srcs=x.srcs.map(s=>({key:s.o.key,oid:s.o.oid,sku:sku1(s.o),n:s.n,inner:!!s.inner,notYet:!!s.o.notYet,eta:s.o.eta||''}));
       const toBecki=x.route==='missing'&&_ocOrigin(r)==='jack';   /* b667: nobody has searched yet */
       const _eta=x.route!=='park'?'':x.coming?String(x.o.eta||''):(x.srcs.filter(s=>!s.inner&&s.o.notYet).map(s=>s.o.eta).filter(Boolean).sort().pop()||'');
@@ -985,7 +988,7 @@ async function ocSend(A){
           note:'',by:who,at:now,chase:ch,ocClaim:{at:now,miss:x.miss,moved:x.moved,cx:x.cx,owed0:x.owed}});
         if(!toBecki)r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${who} ${dd}: checked every order — delivered, not in the warehouse. Jack raises it with Amazon`;
         r.vaNoteBy=who;r.vaNoteAt=now;r._dirty=true;
-        try{await _mustSave(r);}catch(e){back();failed=true;break;}
+        try{await _mustSave(r);}catch(e){await back(e);failed=true;break;}
         /* the move, on the row it was booked against — one job per source, and only those jobs are this Send's */
         if(x.srcs.length&&typeof addVaActions==='function'){const made=[];
           for(const s of x.srcs){const sr=s.o.rows.filter(y=>!SS.has(y)).sort((a,b)=>(parseInt(b.rcvd)||0)-(parseInt(a.rcvd)||0))[0]||s.o.rows[0];if(!sr)continue;
@@ -1000,7 +1003,7 @@ async function ocSend(A){
         r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+`${who} ${dd}: checked every order — the sheet quantity was wrong and is fixed; nothing missing`;
         r.vaNoteBy=who;r.vaNoteAt=now;
         const okN=await jackAnswered(id,`${head} Nothing is missing on this one: the sheet quantity was wrong and has been corrected. Close it.${extraTxt}`,{meant:'qty-fixed'});
-        if(okN===false){back();failed=true;break;}
+        if(okN===false){await back(null);failed=true;break;}
         tally.none=(tally.none||0)+1;continue;
       }
       /* b667: the twin isn't delivered yet — this one's units came under it, so this order waits for the twin's parcel */
@@ -1017,7 +1020,7 @@ async function ocSend(A){
         r.vaNote=((r.vaNote||'').trim()?(r.vaNote.trim()+'\n'):'')+(own?`${who} ${dd}: Amazon say it is still coming (due ${eta}) — parked; book it in when it lands`
           :`${who} ${dd}: the one that came was booked in as ${X}; ${X} is still coming (Amazon: ${eta}) — book the next one in here`);
         r.vaNoteBy=who;r.vaNoteAt=now;r._dirty=true;
-        try{await _mustSave(r);}catch(e){back();failed=true;break;}
+        try{await _mustSave(r);}catch(e){await back(e);failed=true;break;}
         tally.park++;continue;
       }
       const _ba=x.route==='sarah'&&!x.cx&&srcs.length&&srcs.every(s=>s.sku);   /* b667: one tick for Sarah — booked in as X */
@@ -1030,7 +1033,7 @@ async function ocSend(A){
           {meant:'booked-as',bookedAs:{at:now,by:who,srcs}})
         :await jackAnswered(id,`${head} Nothing is missing on this one: ${srcTxt(x)} — ${x.moved===1?'that unit is':'those are'} this order’s. Record ${x.moved===1?'it':'them'} as this order’s (sent under that SKU if already gone) and note any cancelled order on the Purchase Sheet.${x.cx?` ${fmt(x.cx)} of this order ${x.cx===1?'was':'were'} cancelled too.`:''}${extraTxt}`,
           {fromNote:true,meant:'note'});
-      if(ok===false){back();failed=true;break;}
+      if(ok===false){await back(null);failed=true;break;}
       tally[x.route]++;
     }
     /* every Amazon order delivered: his green tick, exactly as the one-press button gives it */

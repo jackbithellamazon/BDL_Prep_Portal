@@ -102,7 +102,8 @@ function _adminItems(){
     /* Jack, 21 Sep, Cadbury: closed "arrived and correct" — but 47 units never
        shipped anywhere. A closed ARRIVAL does not file the row while the units
        are unaccounted for. */
-    if(r.resolution&&r.resolution.state==='approved'&&!_partShip){
+    /* b684 (the Canon): a close made before Becki's shelf check opened is not "sorted" while that check is open */
+    if(r.resolution&&r.resolution.state==='approved'&&!_partShip&&!(typeof _isAmzDel==='function'&&_isAmzDel(r))){
       const at=new Date(r.resolution.approvedAt||r.resolution.at||0).getTime();
       if(!r.resolution.filed&&_workMsSince(at)<TM.undoHours*3600e3){
         out.push({rid:r.uuid||r.id,sku:r.sku,asin:r.asin,prod:r.prod,sup:r.sup,oid:r.oid,

@@ -273,6 +273,11 @@ function _rowOwner(r){
     if(typeof _parkedOnDate==='function'&&_parkedOnDate(r))return{owner:'none',finished:false,why:'parked on a promised date — comes back by itself if it slips'};
     return{owner:'sarah',finished:false,why:'the promised date slipped — Sarah chases'};
   }
+  /* b684 (the Canon SELPHY CP1500, Biz 01 06/10): Sarah closed it "arrived and correct" on 29 Oct; Jack's order check
+     on 10 Nov then sent 1 to Becki's shelves. The close below won, so the row was "finished" and on nobody's list while
+     the Prep Sheet tagged it Becki. An open shelf check is Becki's, whatever was closed before it. */
+  if(st==='approved'&&typeof _isAmzDel==='function'&&_isAmzDel(r))
+    return{owner:'becki',finished:false,why:res.amzDelivered.kind==='leftover'?'booked in, never sent — Becki checks the shelves':'Amazon say delivered — Becki checks the shelves'};
   if(st==='approved'&&!_partShipStale(r))return{owner:'none',finished:true,why:'closed: '+(res.what||'')};
   /* parked on a promised delivery date — off every list until the date slips (Jack, 7 Sep) */
   if(typeof _parkedOnDate==='function'&&_parkedOnDate(r))return{owner:'none',finished:false,why:'parked on a promised date — comes back by itself if it slips'};

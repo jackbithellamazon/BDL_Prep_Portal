@@ -6,8 +6,8 @@ Rollback: upload the previous dated folder the same way.
 b669: four files were renamed (Lavarion → PLUB): js/plub.js, js/plub-bridge.js, css/plub.css, css/plub-overrides.css.
 The old js/lavarion.js, js/lavarion-bridge.js, css/lavarion.css and css/lavarion-overrides.css on GitHub are no longer
 loaded — leave them or delete them, nothing changes either way (they are what a rollback to b668 would use).
-b683 goes on top of b675 (live since 12 Nov) and includes b676, b677, b678, b679, b680, b681 and b682.
-(If any of b680, b681 or b682 is already live, it simply goes on top.)
+b687 goes on top of b675 (live since 12 Nov) and includes b676 to b686.
+(If any of b680 to b686 is already live, it simply goes on top.)
 b676 = cases on the On order list, Receive and Receive several; a part with no case size asks once at check-in.
 b677 = every count box has a CASES box beside the units box, kept in step both ways.
 b678 = smoother order checks on Jack's Admin (the card opens where the row was, every order of the product joins it,
@@ -24,5 +24,21 @@ PLUB → Data → "Every day since we started (Excel)" downloads the lot.
 b682 = the first run backdates and saves every day back to the first order (16 Jan 2026); a missed day is filled.
 b683 = Jack's CHECK card: "Some still coming, the rest delivered…" — the row waits for the part coming on Amazon's
 date; the moment it is booked in, the rest come to Jack as check every order (date passes first = Sarah chases).
+b684 = a LATE tile on the Prep Sheet (between COG In Transit and Sent Today; click it for those rows); an open
+shelf check is always Becki's even on a row closed earlier (the Canon SELPHY); Send on an order-check card never
+puts an older copy back over another laptop's change when a save fails.
+b687 = Q4 Realistic finish: the middle of three paces (this week, last 2 weeks, last 4 weeks) in units a working day,
+hours only as a one-person check on the timed lines (a weekend
+send is a bonus, never a day; a day with nothing sent counts), each morning starts without today and every send brings it in, Mon–Fri only; needed a working day from today; a Today figure; the
+graph's lines step over the working days and run into Feb/Mar if needed; 22 Dec – 4 Jan are days off. No line for this week alone any more.
+Sends recorded on one laptop now show on the others without a reload.
+
+b686 = Q4 chart: the weekly average updates every day (this week counts as it goes, Mon–Fri; a weekend send
+counts to its week), this week's pace + its finish date, one 'needed a week' figure, green only with 3+ days spare,
+daily bars under the chart and a band between the two paces.
+
+b685 = Lavarion: a send made earlier on the day of the count stays counted (Gluten Free Tea said Send 114 with 54
+already gone); 0 on the shelf while stock moves between Amazon's warehouses and still sells is no longer "EMPTY";
+Products table: Stock needed drawn wide (need, have, short or spare, Q4 target) and a Profit a day column.
 No SQL, no settings. After it is live, reload PrepHub once (⌘R) on every laptop.
-Build: v56.4 · lav3 · 2026-11-16 · b683
+Build: v56.4 · lav3 · 2026-11-19 · b687

@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LV3=(function(){
 'use strict';
-const BUILD='v56.4 · lav3 · 2026-11-16 · b683';
+const BUILD='v56.4 · lav3 · 2026-11-19 · b687';
 console.log('[PLUB] build',BUILD);
 
 let READY=false;          // true once the new tables are confirmed to exist
@@ -231,6 +231,12 @@ async function reloadData(){
       const purch=await _allRows('lavarion_purchases','bought_on',false);
       if(window._lv2HasUnsaved())return false;                                    // something changed while reading
       await loadCompsRecipes();
+      /* b687: sends recorded on another laptop — Q4 and Build & send count them without a reload (merged by id, so a
+         row this laptop is holding keeps its own object) */
+      try{if(typeof lavShipments!=='undefined'&&typeof dbToLavShip==='function'){const rows=await _allRows('lavarion_shipments','created_at',true);
+        const was=new Map(lavShipments.filter(x=>x&&x.uuid).map(x=>[x.uuid,x])),seen=new Set();
+        rows.forEach(d=>{const n=dbToLavShip(d);seen.add(n.uuid);const x=was.get(n.uuid);if(x)Object.assign(x,n);else lavShipments.push(n);});
+        for(let i=lavShipments.length-1;i>=0;i--){const x=lavShipments[i];if(x&&x.uuid&&!seen.has(x.uuid))lavShipments.splice(i,1);}}}catch(e){console.warn('[lav3] shipments',e);}
       await loadCloud({layers,purch});
       hydrate();try{paint();}catch(e){}
       return true;
@@ -2560,6 +2566,9 @@ function plSuppliers(){
 }
 
 /* ═══ A. AMAZON REPLENISHMENT (spec §13-14) — build & send? when? how many? */
+/* b685 (Jack, 18 Nov — Gluten Free Tea read "EMPTY AT AMAZON" on a day it sold): 0 on the shelf while units are moving
+   between Amazon's warehouses and it sold in the last two days is NOT an empty shelf — they can still be bought. */
+function shelfEmpty(r){return !!r&&(r.sell||0)<=0&&!r.movSell;}
 function plAmazonRow(p){
   const d=planDemandOf(p);
   /* Q4 uplift (Jack, 29 Oct): a gift / hamper line on a measured pace — every units ↔ days sum below
@@ -2595,6 +2604,23 @@ function plAmazonRow(p){
       .reduce((t,x)=>t+(parseInt(x.units)||0),0);
     const amzOtw=Math.max(0,(amzIn(p)||0)-((D.settings.atAmzMov||{})[p.asin]||0));   /* Amazon's own, without units moving between its warehouses */
     return Math.max(0,Math.min(ours,expect-amzOtw));}catch(e){return 0;}})();
+  /* b685 (Jack, 18 Nov — 54 Gluten Free Tea sent at 07:33, counted at 11:15, the card still said "Send 114"): a send
+     recorded earlier on the count's own day, on a shipment SellerFuse's run doesn't list at all yet (its shipment
+     list stops the day before), is on nobody's figure — not ours ("before the count"), not Amazon's. It stays on
+     the way until the next count. Only when the count IS SellerFuse's latest run, only rows with a shipment ID and
+     a recorded time, and less whatever Amazon's own on-the-way figure holds that its listed shipments don't explain. */
+  const same=(()=>{try{const RN=window.SFRUN;if(!_cAt||!_cMs||!RN||!RN.at||!Array.isArray(RN.shipments)||typeof lavShipments==='undefined')return 0;
+    if(Math.abs(new Date(RN.at).getTime()-_cMs)>3*60e3)return 0;
+    const A=String(p.asin||'').toUpperCase(),moving=/^(WORKING|READY_TO_SHIP|SHIPPED|IN_TRANSIT)$/i;
+    const listed=new Set();let expect=0;
+    RN.shipments.forEach(s=>{listed.add(String(s.id||'').trim().toUpperCase());
+      if(!moving.test(String(s.status||'')))return;
+      (s.lines||[]).forEach(l=>{if(String(l.asin||'').toUpperCase()===A)expect+=Math.max(0,(parseInt(l.units)||0)-(parseInt(l.received)||0));});});
+    const ours=lavShipments.filter(x=>x.asin===p.asin&&x.shipId&&x.at&&String(x.date).slice(0,10)===_cAt&&!_afterCount(x)&&!listed.has(String(x.shipId).trim().toUpperCase()))
+      .reduce((t,x)=>t+(parseInt(x.units)||0),0);
+    if(!ours)return 0;
+    const amzOtw=Math.max(0,(amzIn(p)||0)-((D.settings.atAmzMov||{})[p.asin]||0));
+    return Math.max(0,ours-Math.max(0,amzOtw-expect));}catch(e){return 0;}})();
   /* Jack, 23 Oct: "make sure we don't run out of stock". A count is a moment — by Monday,
      Friday's count of Ube has sold ~20 more. Sends since the count are added above; sales
      since the count come off here, at the planned pace. The Products page still shows the
@@ -2606,9 +2632,12 @@ function plAmazonRow(p){
       if(days>0.25){soldSince=Math.min(counted,Math.round(demandBetween(pu,d.m/30,ukDayISO(t),days)));sell=counted-soldSince;}}}
   /* 26 Oct (SAS rule): on the way = shipping + moving between Amazon warehouses. The moving
      part is sellable in about MOV_DAYS; the shipping part takes the FBA pipeline. */
-  const movQ=Math.min(amzIn(p)||0,(D.settings.atAmzMov||{})[p.asin]||0),shipQ=Math.max(0,(amzIn(p)||0)-movQ)+since+rts;
+  const movQ=Math.min(amzIn(p)||0,(D.settings.atAmzMov||{})[p.asin]||0),shipQ=Math.max(0,(amzIn(p)||0)-movQ)+since+rts+same;
   const inb=movQ+shipQ;
-  const out={p,demand:d,sell,counted,soldSince,inb,since,rts,mov:movQ,inbShip:shipQ,alloc:0,rec:0};
+  /* b685: counted 0, some moving between Amazon's warehouses, and a sale within two days of the count = still selling */
+  const _ls=String((D.settings.sfLastSold||{})[p.asin]||'').slice(0,10);
+  const out={p,demand:d,sell,counted,soldSince,inb,since,rts,same,mov:movQ,inbShip:shipQ,alloc:0,rec:0,
+    movSell:counted===0&&movQ>0&&!!_ls&&!!_cAt&&_ls>=addCalDays(_cAt,-2),lastSold:_ls||null};
   if(!d){out.state='nodata';
     out.why='No sales figure and no planning demand. Nothing is planned for it — type a monthly estimate below and it joins in.';return out;}
   if(d.m===0){out.state='paused';
@@ -3007,9 +3036,9 @@ function _plannerTable(az,buys,gaps,fba,saf,setBox){
       const g=plGapInfo(r);
       if(r.alloc>0)return['SEND '+fmt(r.alloc)+' · '+fmt(r.rec-r.alloc)+' SHORT','#fbbf24'];
       if(g&&g.kind==='intime')return['PARTS LAND '+dshort(g.eta),'#60a5fa'];
-      if(g&&g.kind==='late')return['PARTS LAND '+dshort(g.eta)+' · AFTER AMAZON RUNS OUT',(r.sell||0)<=0?'#ef4444':'#fb923c'];
+      if(g&&g.kind==='late')return['PARTS LAND '+dshort(g.eta)+' · AFTER AMAZON RUNS OUT',shelfEmpty(r)?'#ef4444':'#fb923c'];
       if(g&&g.kind==='noeta')return['ON ORDER · NO DATE','#fbbf24'];
-      return['BUY PARTS',(r.sell||0)<=0?'#ef4444':'#fb923c'];}
+      return['BUY PARTS',shelfEmpty(r)?'#ef4444':'#fb923c'];}
     if(r.state==='waiting')return['NOTHING TO SEND','#60a5fa'];
     if(r.state==='watch')return['WATCH','#fbbf24'];
     return['SAFE','#4ade80'];};
@@ -3025,8 +3054,10 @@ function _plannerTable(az,buys,gaps,fba,saf,setBox){
     const own=r.protDays!=null?r.protDays:r.sell/r.ads,gapQ=r.gapQ||0,gapD=r.gapEta?Math.max(0,dTo(r.gapEta)):null;
     const inT=r.inbInTimeQ||0;
     const segs=[],marks=[];let end,cap;
-    if(gapQ>0&&gapD!=null&&gapD>own){const _gl=daysCovered(r.upP||null,r.ads,gapQ+(r.gapRest||0),today,gapD);segs.push(['ok',0,own],['out',own,gapD],['ok',gapD,gapD+_gl]);end=gapD+_gl;
-      {const gd=Math.max(1,gapD-Math.floor(own));cap=(own>=1?`${nDays(Math.floor(own))} at Amazon${inT?` (incl. ${fmt(inT)} on the way)`:''}, then`:'Empty now,')+` <b class="plRed">~${nDays(gd)} empty</b> until the ${fmt(gapQ)} on the way land ~${dshort(r.gapEta)}${r.gapRest?` (and ${fmt(r.gapRest)} more ~${dshort(r.gapRestEta)})`:''}`;}
+    if(gapQ>0&&gapD!=null&&gapD>own){const _gl=daysCovered(r.upP||null,r.ads,gapQ+(r.gapRest||0),today,gapD);segs.push(['ok',0,own],[r.movSell&&own<1?'mov':'out',own,gapD],['ok',gapD,gapD+_gl]);end=gapD+_gl;
+      {const gd=Math.max(1,gapD-Math.floor(own));
+        if(r.movSell&&own<1)cap=`0 on the shelf — <b style="color:#fbbf24">${fmt(r.mov)} moving between Amazon warehouses, still selling</b> (last sale ${dshort(r.lastSold)}) · back on the shelf ~${dshort(r.gapEta)}${r.gapRest?` (and ${fmt(r.gapRest)} more ~${dshort(r.gapRestEta)})`:''}`;
+        else cap=(own>=1?`${nDays(Math.floor(own))} at Amazon${inT?` (incl. ${fmt(inT)} on the way)`:''}, then`:'Empty now,')+` <b class="plRed">~${nDays(gd)} empty</b> until the ${fmt(gapQ)} on the way land ~${dshort(r.gapEta)}${r.gapRest?` (and ${fmt(r.gapRest)} more ~${dshort(r.gapRestEta)})`:''}`;}
       if(r.state==='waiting')cap+=' · a send now would land after them, so nothing to send';}
     else{end=own+daysCovered(r.upP||null,r.ads,gapQ,today,own);segs.push(['ok',0,end]);
       cap=r.sell<=0&&!(r.inb>0)?'<b class="plRed">Empty at Amazon now</b>':`${nDays(Math.floor(end))} at Amazon${r.inb>0?` (incl. ${fmt(r.inb)} on the way${r.mov?`, ${fmt(r.mov)} of them moving between Amazon warehouses`:''})`:''} — runs out ~${dshort(r.stockout)}`;}
@@ -3794,12 +3825,16 @@ function q4SetSendBy(v){
   try{logIt('edit',`Q4 last send day: ${dshort(was)} → ${dshort(s)}`);}catch(e){}
   q4Redraw();return savePrefs();
 }
+/* b687 (Jack, 19 Nov: "exclude 22 Dec – 4 Jan please"): days nobody preps — never a Q4 working day (the finish
+   date, the pace, what is needed a day and the chart all skip them) */
+const Q4_DAYS_OFF=[['2026-12-22','2027-01-04']];
+function q4Wd(d){d=String(d).slice(0,10);return isWorkDay(new Date(d+'T12:00:00'))&&!Q4_DAYS_OFF.some(([a,b])=>d>=a&&d<=b);}
 function q4Track(R,today){
   today=String(today||dayISO()).slice(0,10);
   const by=q4SendBy(),days=Math.max(0,Math.round((new Date(by+'T00:00:00')-new Date(today+'T00:00:00'))/864e5)),wk=days/7,from=q4AddDays(today,-13);
   /* Jack, 1 Nov: "Mon–Friday working days please" — sends happen on working days (no bank holidays), so the pace,
      what is needed and the finish dates count those */
-  const wdIn=(a,b)=>{let n=0;for(let d=a,i=0;d<=b&&i<800;d=q4AddDays(d,1),i++)if(isWorkDay(new Date(d+'T12:00:00')))n++;return n;};
+  const wdIn=(a,b)=>{let n=0;for(let d=a,i=0;d<=b&&i<800;d=q4AddDays(d,1),i++)if(q4Wd(d))n++;return n;};
   const wdLeft=wdIn(q4AddDays(today,1),by),wdPast=Math.max(1,wdIn(from,today));
   /* units a week over the last 14 days — one line (id), several, or everything on the page (null) — and a working day */
   const paceOf=ids=>{const S=ids==null?null:new Set([].concat(ids).map(String));
@@ -3808,7 +3843,7 @@ function q4Track(R,today){
   /* Jack, 1 Nov: "give us projected dates on getting it all done" — the working day the last of `left` goes at `pace`
      a working day (null when nothing went, or past ~3 years) */
   const etaOf=(left,pace)=>{if(left<=0)return today;if(!(pace>0))return null;let n=Math.ceil(left/pace),d=today;
-    for(let i=0;n>0&&i<1100;i++){d=q4AddDays(d,1);if(isWorkDay(new Date(d+'T12:00:00')))n--;}return n>0?null:d;};
+    for(let i=0;n>0&&i<1100;i++){d=q4AddDays(d,1);if(q4Wd(d))n--;}return n>0?null:d;};
   const line=r=>{const tgt=r.target||0,left=Math.max(0,tgt-r.done),pace=paceWdOf(r.id),reach=r.done+r.left;
     const need=left===0?0:wdLeft>0?left/wdLeft:Infinity;
     const state=left===0?'done':pace*wdLeft>=left?(reach>=tgt?'ok':'parts'):'behind';
@@ -3831,13 +3866,67 @@ function q4Track(R,today){
      weeks running do count — that is a real slowdown. */
   const f0=String(R.from||((R.sends||[]).map(x=>x.date).sort()[0])||today).slice(0,10);
   const weeks=[];for(let w=q4Monday(f0),n=0;w<wkStart&&n<60;w=q4AddDays(w,7),n++){if(w<f0)continue;weeks.push({start:w,units:sumIn(null,w,q4AddDays(w,6))});}
+  /* b686 (Jack, 18 Nov: "it should be updating every day — Mon–Friday are our weeks; sometimes a weekend shipment, but it
+     should count Mon–Fri"): this week counts as it goes — what has gone since Monday (a weekend send counts to its week)
+     over the working days gone, today only once something has gone today (a Monday morning never drags it down) */
+  const wkSent=sumIn(null,wkStart,today),wkSentToday=sumIn(null,today,today);
+  const wkDays=Math.min(5,wdIn(wkStart,q4AddDays(today,-1))+(wkSentToday>0&&q4Wd(today)?1:0));
+  const wkPace=wkDays>0?Math.round(wkSent*5/wkDays):null;
+  /* b687 (Jack, 19 Nov: "10 working days, 2 weeks of data max — Mon–Friday counted only, the weekend's a bonus; we might
+     have a massive week then a slow week"): the pace = units sent over the last 10 working days before today ÷ 10.
+     A weekend send inside that counts as units, the Saturday and Sunday never as days. It rolls on a working day every
+     night, so one big or slow week is only half of it. The finish date: today counts as a working day until it is
+     over, less what has gone today (so it moves with every send and never jumps overnight); then Mon–Fri only.
+     Needed a working day = what was left this morning ÷ the working days left, today included. */
+  /* b687, then Jack again (19 Nov): "if I help it inflates — don't just use hours, use them as a helper so nothing is
+     massively inflated; if I do 5 days a week 8 hours it obviously brings it down — use units and hours and a mix of
+     averages, proper smart code; I'd much rather realistic than hopeful".
+     Then (19 Nov, his answers): "for the untimed ones don't use a rough per hour … a mix of the hours, the averages —
+     you can see how much is done a day … I'd rather it forecast one person than two … 8 hours pure packing".
+     THREE paces in UNITS a working day (a day with nothing sent counts as a day; a weekend send is a bonus, never a
+     day): this week so far (never lowered by a send today), the last 10 working days, the last 20 working days. The
+     realistic pace is the MIDDLE one — one inflated stretch (the Reindeer backstock that a crowd built and sent in one
+     go) or one awful week can't drag it on its own; a week of extra help lifts two of the three, so the date comes in.
+     HOURS are the helper, and only for the lines Jack has timed (his units an hour — never a made-up rate): when a
+     stretch's timed lines alone took more than one person's build hours a day (q4HoursDay, 8), that stretch's pace is
+     scaled down to one person. Fastest and slowest give the range on the chart. */
+  const _wd=d=>q4Wd(d),yday=q4AddDays(today,-1);
+  const back=k=>{let a=null,n=0;for(let d=yday,i=0;n<k&&i<90&&d>=f0;d=q4AddDays(d,-1),i++)if(_wd(d)){n++;a=d;}return{a,n};};
+  const pace=(()=>{const w10=back(10),w20=back(20),sentToday=sumIn(null,today,today),wdToday=_wd(today);
+    const units=w10.n?sumIn(null,w10.a,yday):0,uDay=w10.n?units/w10.n:0,toGo=Math.max(0,+((R.totals||{}).toGo)||0);
+    const H=(()=>{try{if(typeof q4RateOf!=='function')return null;
+      const PL=(R.bundles||[]).filter(r=>r&&r.priority),rt={};PL.forEach(r=>{const x=q4RateOf(r.id);if(x&&x.avg>0)rt[String(r.id)]=x.avg;});
+      if(!Object.keys(rt).length)return null;
+      const hOf=(x,b)=>(R.sends||[]).reduce((t,y)=>t+(y.date>=x&&y.date<=b&&rt[String(y.id)]?(+y.units||0)/rt[String(y.id)]:0),0);
+      const open=PL.filter(r=>(+r.target||0)>(+r.done||0)),lf=r=>Math.max(0,(+r.target||0)-(+r.done||0));
+      const left=open.reduce((t,r)=>t+(rt[String(r.id)]?lf(r)/rt[String(r.id)]:0),0),untimedLeft=open.reduce((t,r)=>t+(rt[String(r.id)]?0:lf(r)),0);
+      return{left,untimedLeft,cap:typeof q4HoursDay==='function'?q4HoursDay():8,hOf,timed:Object.keys(rt).length};}catch(e){return null;}})();
+    /* one pace: units a working day over [x, b] ÷ n working days, scaled to one person if the timed lines alone beat that */
+    const one=(k,x,b,n)=>{const u=sumIn(null,x,b)/n,h=H?H.hOf(x,b)/n:0,g=H&&h>H.cap?H.cap/h:1;return{k,v:u*g,raw:u,h,guard:g<1,days:n};};
+    const est=[],wd0=wdIn(wkStart,yday);
+    if(Math.max(wd0,wkDays)>=2){const A=wd0>0?one('this week',wkStart,yday,wd0):null,B=wkDays>0?one('this week',wkStart,today,wkDays):null;
+      est.push(!A?B:!B?A:(B.v>A.v?B:A));}
+    if(w10.n)est.push(one('last 2 weeks',w10.a,yday,w10.n));
+    if(w20.n>w10.n)est.push(one('last 4 weeks',w20.a,yday,w20.n));
+    const vs=est.map(x=>x.v).sort((x,y)=>x-y);
+    const day=!vs.length?0:vs.length===3?vs[1]:vs.reduce((t,v)=>t+v,0)/vs.length,fast=vs.length?vs[vs.length-1]:0,slow=vs.length?vs[0]:0;
+    /* the date starts each morning WITHOUT today — only what has actually gone today counts, so every send brings it in
+       (or keeps it); working days from tomorrow at the pace */
+    const etaAt=f=>toGo<=0?today:!(f>0)?null:etaOf(toGo,f);
+    const todayCap=0,eta=etaAt(day);
+    const daysIn=wdLeft+(wdToday?1:0),needDay=toGo<=0?0:daysIn>0?Math.ceil((toGo+(wdToday?sentToday:0))/daysIn):null;
+    return{from:w10.a,to:yday,days:w10.n,units,uDay,H,est,day,fast,slow,etaFast:etaAt(fast),etaSlow:etaAt(slow),wk:Math.round(day*5),sentToday,wdToday,todayCap,toGo,eta,needDay,daysIn,
+      spare:eta&&eta<=by?wdIn(q4AddDays(eta,1),by):null,late:eta&&eta>by?wdIn(q4AddDays(by,1),eta):null};})();
   const avg=(()=>{const best=Math.max(0,...weeks.map(w=>w.units)),i0=best>0?weeks.findIndex(w=>w.units>=0.4*best):-1;
     const use=i0<0?[]:weeks.slice(i0),lead=i0<0?weeks.slice():weeks.slice(0,i0);let dropped=null;
     if(use.length>=3){const lo=use.reduce((m,w,k)=>w.units<use[m].units?k:m,0),rest=use.filter((w,k)=>k!==lo),ra=rest.reduce((t,w)=>t+w.units,0)/rest.length;
       if(use[lo].units<0.5*ra)dropped=use[lo];}
     let s=0,sw=0;use.forEach((w,k)=>{if(w===dropped)return;const wt=Math.pow(0.7,use.length-1-k);s+=w.units*wt;sw+=wt;});
-    return{avg:sw>0?Math.round(s/sw):0,use,lead,dropped};})();
-  return{by,days,wk,wdLeft,wdPast,from,wdIn,paceOf,paceWdOf,line,etaOf,wkStart,wkEnd,wkFri,wdFromMon,wdThisWk,weeksLeft,week,weeks,avg};
+    /* b686: this week, as a week (× 5 ÷ days gone), counts as much as the days that have gone — a whole week counts
+       1 ÷ 0.7 next to last week's 1, the same step the finished weeks use; never "a one-off quiet week" */
+    if(wkPace!=null){const wt=(wkDays/5)/0.7;s+=wkPace*wt;sw+=wt;}
+    return{avg:sw>0?Math.round(s/sw):0,use,lead,dropped,wk:{sent:wkSent,days:wkDays,pace:wkPace}};})();
+  return{pace,by,days,wk,wdLeft,wdPast,from,wdIn,paceOf,paceWdOf,line,etaOf,wkStart,wkEnd,wkFri,wdFromMon,wdThisWk,weeksLeft,week,weeks,avg};
 }
 /* one line's sends by Monday–Sunday week since 1 Oct, oldest first — the little chart in its dropdown */
 function q4WeeksOf(R,id,today){
@@ -3877,66 +3966,99 @@ function q4ToggleAll(el){
    b642 (Jack, 2 Nov: "improve it visually"): figures in a key above the plot, a mark where the pace line crosses the last
    send day, no week label under "now", hover any day. b643 (Jack, 2 Nov: "we bulk-do bundles — X a week"): the pace is
    the TEAM's last full week across every line — one line's batches swing its own pace by months. */
-function q4ChartHtml(R,TR,today){
-  today=String(today||dayISO()).slice(0,10);
+function q4ChartHtml(R,TR,today,o){
+  today=String(today||dayISO()).slice(0,10);o=o||{};
   const T=R.totals,max=T.max;if(!(max>0))return '';
   const dd=(a,b)=>Math.round((new Date(b+'T00:00:00Z')-new Date(a+'T00:00:00Z'))/864e5),dl=d=>q4DayLabel(d).replace(/^\S+ /,''),dlY=d=>q4DayY(d,today);
   let c=0;const pts=(R.progress.days||[]).slice().reverse().filter(d=>d.start<=today).map(d=>{c+=d.units;return{d:d.start,p:100*c/max,u:d.units,c};});
   if(!pts.length)return '';
-  const cur=pts[pts.length-1].p,W0=TR.week(null),tp=TR.avg.avg,ppd=tp/5,moving=ppd>0&&cur<100;   /* b644: the weekly average */
-  const eta=cur>=100?today:moving?TR.etaOf(T.toGo,ppd):null;
-  const D0=R.from,cap=q4AddDays(TR.by,56);let end=TR.by>today?TR.by:today;if(eta&&eta>end)end=eta<cap?eta:cap;
+  const cur=pts[pts.length-1].p,W0=TR.week(null),PC=TR.pace||{},ppd=PC.day||0,tp=Math.round(ppd),moving=ppd>0&&cur<100,cap0=PC.todayCap||0;   /* b687: the 2-week pace, a working day */
+  /* b686: this week's own pace beside the average, and ONE needed figure — the tile's (every line's share added up) */
+  const AW=TR.avg.wk||{},spd=null,needWk=o.needWk!=null?o.needWk:W0.perWk;   /* b687: no line for this week alone — Jack: never just this week */
+  const nD=PC.needDay,nLeft0=PC.wdToday&&nD>0?Math.max(0,nD-(PC.sentToday||0)):0;
+  const eta=cur>=100?today:moving?PC.eta:null;
+  const D0=R.from,cap=q4AddDays(TR.by,84);let end=TR.by>today?TR.by:today;if(eta&&eta>end)end=eta<cap?eta:cap;end=q4AddDays(end,5);   /* b687: room right of the last marker for its label */
   const span=Math.max(1,dd(D0,end));
-  const W=1000,H=236,L0=46,R0=34,T0=24,B0=34,pw=W-L0-R0,ph=H-T0-B0;
+  const W=1000,H=296,L0=46,R0=34,T0=24,B0=34,BZ=60,pw=W-L0-R0,ph=H-T0-B0-BZ;   /* b686: BZ = the daily bars under the plot */
   const X=d=>L0+pw*Math.max(0,Math.min(span,dd(D0,d)))/span,Y=p=>T0+ph*(1-Math.max(0,Math.min(100,p))/100),f=v=>v.toFixed(1);
   /* every day on the axis: [day, sent % (to today), at the weekly average % (today → all done), needed % (today → last send), units that day, sent in all] */
   const byD={};pts.forEach(q=>{byD[q.d]=q;});
   const nSpan=dd(today,TR.by),S=[];
   for(let d=D0,i=0,k=0;d<=end&&i<400;d=q4AddDays(d,1),i++){
-    if(d>today&&isWorkDay(new Date(d+'T12:00:00')))k++;
-    const q=byD[d],p=d>=today&&moving&&(!eta||d<=eta)?Math.min(100,cur+100*ppd*k/max):null,n=cur<100&&d>=today&&d<=TR.by&&nSpan>0?cur+(100-cur)*dd(today,d)/nSpan:null;
-    S.push([d,q?+q.p.toFixed(2):null,p==null?null:+p.toFixed(2),n==null?null:+n.toFixed(2),q?q.u:null,q?q.c:null]);}
-  const pjS=S.filter(s=>s[2]!=null),pjLast=pjS.length?pjS[pjS.length-1]:null,pjP=pjLast?pjLast[2]:cur;
+    if(d>today&&q4Wd(d))k++;
+    /* b687: both lines step over the working days (flat at a weekend); the pace line includes what today still has in it */
+    const atP=f=>d>today?f*k:0;
+    const q=byD[d],up=d>today?cap0+ppd*k:0,p=d>=today&&moving&&(!eta||d<=eta)?Math.min(100,cur+100*up/max):null,nu=d>today?nLeft0+(nD||0)*k:0,n=cur<100&&d>=today&&d<=TR.by&&nD>0?Math.min(100,cur+100*nu/max):null;
+    const sl=d>=today&&moving&&PC.fast>0?Math.min(100,cur+100*atP(PC.fast)/max):null,pa=d>=today&&moving&&PC.slow>0?Math.min(100,cur+100*atP(PC.slow)/max):null;   /* b687: fastest / slowest of the three paces */
+    S.push([d,q?+q.p.toFixed(2):null,p==null?null:+p.toFixed(2),n==null?null:+n.toFixed(2),q?q.u:null,q?q.c:null,sl==null?null:+sl.toFixed(2),pa==null?null:+pa.toFixed(2)]);}
+  const ndS=S.filter(s=>s[3]!=null),pjS=S.filter(s=>s[2]!=null),pjLast=pjS.length?pjS[pjS.length-1]:null,pjP=pjLast?pjLast[2]:cur;
   const inView=!!(eta&&eta<=end),doneByLast=inView&&eta<=TR.by,byS=S.find(s=>s[0]===TR.by),pBy=TR.by>today&&moving&&byS&&byS[2]!=null?byS[2]:null;
   const line=pts.map(q=>`${f(X(q.d))},${f(Y(q.p))}`).join(' ');
   const area=`M${f(X(pts[0].d))},${f(Y(0))} L${line.replace(/ /g,' L')} L${f(X(today))},${f(Y(0))} Z`;
   const grid=[0,25,50,75,100].map(p=>`<line class="gl" x1="${L0}" x2="${W-R0}" y1="${f(Y(p))}" y2="${f(Y(p))}"/><text class="ax" x="${L0-8}" y="${f(Y(p)+4)}" text-anchor="end">${p}%</text>`).join('');
   const step=span>90?14:7,ticks=[];
-  for(let w=q4Monday(D0),n=0;w<=end&&n<40;w=q4AddDays(w,step),n++){if(w<D0||Math.abs(dd(w,TR.by))<5)continue;
+  for(let w=q4Monday(D0),n=0;w<=end&&n<40;w=q4AddDays(w,step),n++){if(w<D0||Math.abs(dd(w,TR.by))<5||(inView&&eta>today&&Math.abs(dd(w,eta))<5))continue;
     ticks.push(`<text class="ax" x="${f(X(w))}" y="${H-12}" text-anchor="middle">${dl(w)}</text>`);}
   const lbl=(x,y,t,cl,anc)=>`<text class="vl ${cl||''}" x="${f(x)}" y="${f(y)}" text-anchor="${anc||'start'}">${t}</text>`;
   const xt=X(today),xb=X(TR.by);
+  /* b687: the realistic finish has its own marker; when it sits near the last send day the labels go either side */
+  const showFin=!!(inView&&eta>today&&cur<100&&TR.by>today),xe=showFin?X(eta):null,lateF=showFin&&eta>TR.by,nearF=showFin&&Math.abs(xe-xb)<150;
+  const anB=nearF?(lateF?'end':'start'):'middle',dxB=nearF?(lateF?-6:6):0,anF=nearF?(lateF?'start':'end'):'middle',dxF=nearF?(lateF?6:-6):0;
+  const byEls=`<text class="ax byt" x="${f(xb+dxB)}" y="${T0-9}" text-anchor="${anB}">last send</text><text class="ax by" x="${f(xb+dxB)}" y="${H-12}" text-anchor="${anB}">${dl(TR.by)}</text>`;
+  const finEls=!showFin?'':`<line class="fl" x1="${f(xe)}" x2="${f(xe)}" y1="${T0}" y2="${f(Y(0))}"/><circle class="dot fd" cx="${f(xe)}" cy="${f(Y(100))}" r="5"/><text class="ax flt" x="${f(xe+dxF)}" y="${T0-9}" text-anchor="${anF}">all done ~${dlY(eta)}</text><text class="ax flb" x="${f(xe+dxF)}" y="${H-12}" text-anchor="${anF}">~${dlY(eta)}</text>`;
+  /* b686: units sent each day under the plot — the tallest and today's are labelled; a working day with none is a stub */
+  const yb0=T0+ph+16,yb1=T0+ph+BZ-6,bw=Math.max(2,Math.min(9,pw/span*0.62)),uMax=Math.max(1,...pts.map(q=>q.u||0));
+  const firstSend=(pts.find(q=>q.u>0)||{}).d,pk=pts.reduce((m,q)=>(q.u||0)>(m?m.u:0)?q:m,null),tdQ=byD[today];
+  const bars=pts.map(q=>{const x=X(q.d);
+    if(q.u>0){const h=Math.max(2.5,(yb1-yb0)*q.u/uMax);return `<rect class="db${q.d===today?' t':''}" x="${f(x-bw/2)}" y="${f(yb1-h)}" width="${f(bw)}" height="${f(h)}" rx="1.5"/>`;}
+    return firstSend&&q.d>firstSend&&q.d<=today&&q4Wd(q.d)?`<rect class="db z" x="${f(x-bw/2)}" y="${f(yb1-2)}" width="${f(bw)}" height="2"/>`:'';}).join('');
+  const barLbl=(q,t)=>`<text class="vl xs" x="${f(X(q.d))}" y="${f(yb1-Math.max(2.5,(yb1-yb0)*q.u/uMax)-4)}" text-anchor="middle">${t}</text>`;
+  const barsG=`<line class="gl b" x1="${L0}" x2="${W-R0}" y1="${f(yb1)}" y2="${f(yb1)}"/><text class="ax sm" x="${L0-8}" y="${f(yb1)}" text-anchor="end">a day</text>${bars}`
+    +(pk&&pk.u>0&&pk.d!==today?barLbl(pk,fmt(pk.u)):'')+(tdQ&&tdQ.u>0?barLbl(tdQ,`${fmt(tdQ.u)} today`):'');
+  /* b686: the band between "at your average" and "at this week's pace", and this week's own line */
+  const bandS=S.filter(s=>s[0]>=today&&s[6]!=null&&s[7]!=null&&s[0]<=end);
+  const band=bandS.length>1?`<path class="bd" d="M${bandS.map(s=>`${f(X(s[0]))},${f(Y(s[7]))}`).join(' L')} L${bandS.slice().reverse().map(s=>`${f(X(s[0]))},${f(Y(s[6]))}`).join(' L')} Z"/>`:'';
+  const slS=S.filter(s=>s[6]!=null);
+  const slow='';   /* b687: no line for this week alone — the band is the range */
+  const _slowWas=slS.length>1?`<polyline class="sl" fill="none" points="${slS.map(s=>`${f(X(s[0]))},${f(Y(s[6]))}`).join(' ')}"/>`:'';
+  const slEta=spd>0?TR.etaOf(T.toGo,spd):null,slBy=byS&&byS[6]!=null?byS[6]:null;
+  const slMark=!slow?'':slEta&&slEta<=end?(()=>{const x=X(slEta),y=Y(100);return `<circle class="dot s" cx="${f(x)}" cy="${f(y)}" r="4"/>${lbl(x-8,y+18,`done ~${dlY(slEta)}`,'s','end')}`;})()
+    :slBy!=null&&TR.by>today?`<circle class="dot s" cx="${f(xb)}" cy="${f(Y(slBy))}" r="4"/>`:'';
   /* Sunday dots before today; a label that would sit on "29% now" is left off (the dot stays) */
   const nowT=`${Math.floor(cur)}% now`,nowY=Y(cur)-10,nowX0=xt-8-7.6*nowT.length;
   const wkDots=pts.filter(q=>q.d<today&&new Date(q.d+'T00:00:00Z').getUTCDay()===0).map(q=>{const x=X(q.d),y=Y(q.p)-9,hit=x+12>nowX0&&x-12<xt-6&&Math.abs(y-nowY)<14;
     return `<circle class="dot sm" cx="${f(x)}" cy="${f(Y(q.p))}" r="3.5"/>${hit?'':`<text class="vl sm" x="${f(x)}" y="${f(y)}" text-anchor="middle">${Math.floor(q.p)}%</text>`}`;}).join('');
   /* where the pace line crosses the last send day, and where it ends */
   const nearEnd=!!(pjLast&&pjLast[0]>TR.by&&dd(TR.by,pjLast[0])<=14);   /* the end mark would sit on it — the key gives the % */
-  const byMark=pBy!=null&&!doneByLast&&!nearEnd?`<circle class="dot p" cx="${f(xb)}" cy="${f(Y(pBy))}" r="4.5"/>${lbl(xb+9,Y(pBy)+18,`~${Math.floor(Math.min(100,pBy))}% by ${dl(TR.by)}`)}`:'';
-  const endMark=pjLast&&pjLast[0]!==TR.by&&pjLast[0]!==today?(()=>{const x=X(pjLast[0]),y=Y(pjP),up=y-10>T0+6;
-    return `<circle class="dot p" cx="${f(x)}" cy="${f(y)}" r="4.5"/>${lbl(x-8,up?y-10:y+18,inView?`all done ~${dlY(eta)}`:`~${Math.floor(pjP)}% by ${dlY(pjLast[0])}`,'','end')}`;})():'';
+  const byMark=pBy!=null&&!doneByLast?`<circle class="dot p" cx="${f(xb)}" cy="${f(Y(pBy))}" r="4.5"/>${lbl(xb+8,Y(pBy)+5,`~${Math.floor(Math.min(100,pBy))}%`,'h e','start')}`:'';
+  const endMark=!showFin&&pjLast&&pjLast[0]!==TR.by&&pjLast[0]!==today?(()=>{const x=X(pjLast[0]),y=Y(pjP),up=y-10>T0+6;
+    return `<circle class="dot p" cx="${f(x)}" cy="${f(y)}" r="4.5"/>${(inView?(x<=xb?lbl(Math.min(x+4,xb-44),T0-9,`all done ~${dlY(eta)}`,'h e','end'):lbl(x+4,Y(100)+22,`all done ~${dlY(eta)}`,'h e','end')):lbl(x-8,up?y-10:y+18,`~${Math.floor(pjP)}% by ${dlY(pjLast[0])}`,'h','end'))}`;})():'';
   /* the key: what each line says, as figures (text in ink, the line style beside it) */
   const byT=dl(TR.by),past=TR.by<=today;
   const kSent=`<div class="k"><i></i><span>Sent so far</span><b>${Math.floor(cur)}%</b><small>${fmt(T.done)} of ${fmt(max)}</small></div>`;
-  const kPace=cur>=100?'':`<div class="k p"><i></i><span>At your weekly average (~${fmt(tp)})</span>${!moving?'<b>—</b><small>no full week sent yet</small>'
-    :doneByLast?`<b>~${dlY(eta)}</b><small>all done — in time for ${byT} &#10003;</small>`
-    :pBy!=null?`<b>~${Math.floor(pBy)}%</b><small>by ${byT} · ${inView?`all done ~${dlY(eta)}`:`~${Math.floor(pjP)}% by ${dlY(pjLast[0])}`}</small>`
+  const spare=doneByLast?TR.wdIn(q4AddDays(eta,1),TR.by):null,sCl=spare!=null&&spare>=3?'ok':'warn';
+  const kPace=cur>=100?'':`<div class="k p"><i></i><span>At your realistic pace (~${fmt(tp)} a working day)</span>${!moving?'<b>—</b><small>nothing sent yet</small>'
+    :doneByLast?`<b class="${sCl}">~${dlY(eta)}</b><small>${PC.etaFast&&PC.etaSlow&&PC.etaFast!==PC.etaSlow?`range ${dlY(PC.etaFast)} – ${dlY(PC.etaSlow)} · `:''}${spare>=3?`all done — ${fmt(spare)} working days spare &#10003;`:`in time for ${byT} — only ${fmt(spare)} working day${spare===1?'':'s'} spare`}</small>`
+    :pBy!=null?`<b class="warn">~${Math.floor(pBy)}%</b><small>by ${byT} · ${inView?`all done ~${dlY(eta)}`:`~${Math.floor(pjP)}% by ${dlY(pjLast[0])}`}</small>`
     :inView?`<b>~${dlY(eta)}</b><small>all done</small>`:`<b>~${Math.floor(pjP)}%</b><small>by ${dlY(pjLast[0])}</small>`}</div>`;
-  const kNeed=cur>=100||past?'':`<div class="k n"><i></i><span>Needed to finish by ${byT}</span><b>${fmt(W0.perWk)}</b><small>a week · average ${fmt(tp)}</small></div>`;
+  const slGood=!!(slEta&&slEta<=TR.by&&TR.wdIn(q4AddDays(slEta,1),TR.by)>=3);
+  const sT=PC.sentToday||0,kWeek=cur>=100||past||!(nD>0)?'':`<div class="k t"><i></i><span>Today</span>${PC.wdToday?`<b class="${sT>=nD?'ok':''}">${fmt(sT)}</b><small>of ${fmt(nD)} needed${sT>=nD?' &#10003;':` · ${fmt(nD-sT)} to go`}</small>`:`<b>${fmt(sT)}</b><small>weekend — a bonus, nothing needed</small>`}</div>`;
+  const dGap=nD>0?Math.round(ppd-nD):0;
+  const kNeed=cur>=100||past||!(nD>0)?'':`<div class="k n"><i></i><span>Needed to finish by ${byT}</span><b>${fmt(nD)}</b><small>a working day from today (~${fmt(nD*5)} a week)${moving?(dGap>=0?` · your pace is ${fmt(dGap)} a day over &#10003;`:` · <em class="bh">${fmt(-dGap)} a day short</em>`):''}</small></div>`;
   const M={W,H,L0,T0,pw,ph,span,max,today,by:TR.by,s:S};
   return `<div class="q4Chart" data-q4c="${esc(JSON.stringify(M))}"><div class="q4ChartH"><b>Complete, day by day</b>
-      <span class="q4ChartS">100% = ${fmt(max)} · ${past?`the last send day (${byT}) has gone`:`${fmt(TR.wdLeft)} working day${TR.wdLeft===1?'':'s'} to ${byT}`} · hover a day for its figures</span></div>
-    <div class="q4ChartK">${kSent}${kPace}${kNeed}</div>
-    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Complete per cent by day since ${dl(D0)}: ${Math.floor(cur)}% now${pBy!=null?`; about ${Math.floor(pBy)}% by ${byT} at your weekly average`:''}">${grid}${ticks.join('')}
-      <line class="by" x1="${f(xb)}" x2="${f(xb)}" y1="${T0}" y2="${f(Y(0))}"/><text class="ax byt" x="${f(xb)}" y="${T0-9}" text-anchor="middle">last send</text><text class="ax by" x="${f(xb)}" y="${H-12}" text-anchor="middle">${byT}</text>
+      <span class="q4ChartS">100% = ${fmt(max)} · ${past?`the last send day (${byT}) has gone`:`${fmt(PC.daysIn!=null?PC.daysIn:TR.wdLeft)} working day${(PC.daysIn!=null?PC.daysIn:TR.wdLeft)===1?'':'s'} to ${byT}${PC.wdToday?', today included':''}`} · hover a day for its figures</span></div>
+    <div class="q4ChartK">${kSent}${kPace}${kNeed}${kWeek}${cur>=100||!moving||!PC.etaFast||!PC.etaSlow||PC.etaFast===PC.etaSlow?'':`<div class="k r"><i></i><span>Range</span><b>${dlY(PC.etaFast)} – ${dlY(PC.etaSlow)}</b><small>shaded band — fastest to slowest pace</small></div>`}</div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Complete per cent by day since ${dl(D0)}: ${Math.floor(cur)}% now${pBy!=null?`; about ${Math.floor(pBy)}% by ${byT} at your realistic pace`:''}">${grid}${ticks.join('')}
+      <line class="by" x1="${f(xb)}" x2="${f(xb)}" y1="${T0}" y2="${f(Y(0))}"/>${byEls}${finEls}
       <line class="td" x1="${f(xt)}" x2="${f(xt)}" y1="${T0}" y2="${f(Y(0))}"/>
-      <path class="ar" d="${area}"/><polyline class="ln" points="${line}"/>
-      ${cur<100&&!past?`<line class="nd" x1="${f(xt)}" y1="${f(Y(cur))}" x2="${f(xb)}" y2="${f(Y(100))}"/>`:''}
+      ${barsG}${band}<path class="ar" d="${area}"/><polyline class="ln" points="${line}"/>
+      ${cur<100&&!past&&ndS.length>1?`<polyline class="nd" fill="none" points="${ndS.map(s=>`${f(X(s[0]))},${f(Y(s[3]))}`).join(' ')}"/>`:''}
       ${pjS.length>1?`<polyline class="pj" fill="none" points="${pjS.map(s=>`${f(X(s[0]))},${f(Y(s[2]))}`).join(' ')}"/>`:''}
-      ${endMark}${byMark}
+      ${slow}${endMark}${byMark}${slMark}
       ${wkDots}<circle class="dot" cx="${f(xt)}" cy="${f(Y(cur))}" r="5"/>${lbl(xt-8,nowY,nowT,'','end')}
-      <g class="hov" style="display:none"><line class="hx" y1="${T0}" y2="${f(Y(0))}"/><circle class="ha" r="4.5"/><circle class="hp" r="4"/><circle class="hn" r="3.5"/></g>
-      <rect class="hit" x="${L0}" y="${T0}" width="${pw}" height="${ph}" fill="transparent" onmousemove="LV3.q4ChartHover(event,this)" onmouseleave="LV3.q4ChartHover(null,this)"/>
+      <g class="hov" style="display:none"><line class="hx" y1="${T0}" y2="${f(Y(0))}"/><circle class="ha" r="4.5"/><circle class="hp" r="4"/><circle class="hn" r="3.5"/><circle class="hs" r="3.5"/></g>
+      <rect class="hit" x="${L0}" y="${T0}" width="${pw}" height="${ph+BZ}" fill="transparent" onmousemove="LV3.q4ChartHover(event,this)" onmouseleave="LV3.q4ChartHover(null,this)"/>
     </svg><div class="q4Tip" hidden></div></div>`;
 }
 /* the chart's hover: a line on the day under the pointer and its figures beside it */
@@ -3951,11 +4073,11 @@ function q4ChartHover(ev,el){
   const x=M.L0+M.pw*i/M.span,Y=p=>M.T0+M.ph*(1-Math.max(0,Math.min(100,p))/100);
   const put=(sel,p)=>{const c=g.querySelector(sel);if(p==null){c.style.display='none';return;}c.style.display='';c.setAttribute('cx',x.toFixed(1));c.setAttribute('cy',Y(p).toFixed(1));};
   const hx=g.querySelector('.hx');hx.setAttribute('x1',x.toFixed(1));hx.setAttribute('x2',x.toFixed(1));
-  put('.ha',s[1]);put('.hp',s[1]==null?s[2]:null);put('.hn',s[1]==null?s[3]:null);g.style.display='';
+  put('.ha',s[1]);put('.hp',s[1]==null?s[2]:null);put('.hn',s[1]==null?s[3]:null);if(g.querySelector('.hs'))put('.hs',null);g.style.display='';
   const pc=v=>Math.floor(v)+'%',d=s[0],tag=d===M.today?' · today':d===M.by?' · last send':'';
   tip.innerHTML=`<b>${q4DayLabel(d)}${tag}</b>`+(s[1]!=null
     ?`<span>Sent <b>${s[4]?fmt(s[4]):'none'}</b>${s[4]?' that day':''}</span><span>Complete <b>${pc(s[1])}</b> · ${fmt(s[5])} of ${fmt(M.max)}</span>`
-    :`${s[2]!=null?`<span>At your average <b>~${pc(s[2])}</b></span>`:''}${s[3]!=null?`<span>Needed by then <b>${pc(s[3])}</b></span>`:''}${s[2]==null&&s[3]==null?'<span>—</span>':''}`);
+    :`${s[2]!=null?`<span>At your realistic pace <b>~${pc(s[2])}</b></span>`:''}${s[6]!=null&&s[7]!=null&&Math.floor(s[6])!==Math.floor(s[7])?`<span>Range <b>~${pc(s[7])} – ${pc(s[6])}</b></span>`:''}${s[3]!=null?`<span>Needed by then <b>${pc(s[3])}</b></span>`:''}${s[2]==null&&s[3]==null&&s[6]==null?'<span>—</span>':''}`);
   tip.hidden=false;
   const bx=box.getBoundingClientRect(),px=r.left-bx.left+x*r.width/M.W,tw=tip.offsetWidth;
   tip.style.left=Math.max(4,Math.min(bx.width-tw-4,px+(px+tw+18>bx.width?-tw-14:14)))+'px';
@@ -4256,7 +4378,10 @@ function vQ4(){
   /* Jack, 1 Nov: "are we on or under track" for the last send day — the whole page, at the last 2 weeks' pace */
   /* b643 (Jack, 2 Nov: "we do X amount a week"): the whole page at the TEAM's pace — last week's units across every line.
      Lines go out in batches, so one line's own pace swings by months; the team's week does not. */
-  const W0=TR.week(null),tp=TR.avg.avg,fEta=T.toGo===0?dayISO():tp>0?TR.etaOf(T.toGo,tp/5):null,fGood=T.toGo===0||(!!fEta&&fEta<=TR.by);   /* b644: the weekly average */
+  const W0=TR.week(null),PC=TR.pace,tp=PC.wk,fEta=T.toGo===0?dayISO():PC.eta;   /* b687: the 2-week pace (10 working days), today counted */
+  /* b686: green only with 3+ working days spare before the last send day — one day spare is not "comfortably on course" */
+  const fSpare=fEta&&fEta<=TR.by?TR.wdIn(q4AddDays(fEta,1),TR.by):null,fGood=T.toGo===0||(fSpare!=null&&fSpare>=3);
+  const AW=TR.avg.wk||{},fEtaW=T.toGo>0&&AW.pace>0?TR.etaOf(T.toGo,AW.pace/5):null;
   /* "wanna see the overall and how it's jumped up" — where Complete stood at the end of each day / week */
   const cumOf={};['days','weeks'].forEach(m=>{let c=0;(PG[m]||[]).slice().reverse().forEach(r=>{const b=c;c+=r.units;cumOf[m+r.key]={b,a:c};});});
   const cmpTd=(mode,r)=>{const x=cumOf[mode+r.key]||{b:0,a:0},bp=T.max>0?Math.min(100,100*x.b/T.max):0,ap=T.max>0?Math.min(100,100*x.a/T.max):0;
@@ -4340,8 +4465,8 @@ function vQ4(){
     </tbody></table></div>
     <div class="q4Foot">Since ${day} (${fmt(q4Days)} days). <b>Days out of stock</b> come from the stock-out records — a day SellerFuse saw a sale on never counts. <b>≈ Sales missed</b> = those days × what it sells a day in stock.${SQ?` <b>Sold on Amazon</b> from SellerFuse, ${esc(whenTxt(D.settings.sfQ4.at))} UK.`:''}</div></div></details>`;
   const progHtml=`<details class="panel q4Prog" data-mode="${pp.mode}"${pp.open?' open':''} ontoggle="LV3.q4SetOpen(this.open,'prog')">
-    <summary><span class="q4SetT">Progress ▾</span><span class="q4SetS">now <b>${pc(T.pct)}</b>${T.toGo>0&&fEta?` · at your weekly average <b class="${fGood?'ok':'warn'}">all done ~${dlY(fEta)}</b>`:''}${bw?` · best week <b>${per(bw,'weeks')}</b> ${pts(bw.pts)}`:''}${bd?` · best day <b>${per(bd,'days')}</b> ${pts(bd.pts)}`:''}</span></summary>
-    <div class="q4SetB">${q4ChartHtml(R,TR)}<div class="q4Seg"><button data-m="days" class="${pp.mode==='days'?'on':''}" onclick="LV3.q4SetOpen('days','progMode')">Days</button><button data-m="weeks" class="${pp.mode==='weeks'?'on':''}" onclick="LV3.q4SetOpen('weeks','progMode')">Weeks</button>
+    <summary><span class="q4SetT">Progress ▾</span><span class="q4SetS">now <b>${pc(T.pct)}</b>${T.toGo>0&&fEta?` · realistic finish <b class="${fGood?'ok':'warn'}">all done ~${dlY(fEta)}</b>`:''}${bw?` · best week <b>${per(bw,'weeks')}</b> ${pts(bw.pts)}`:''}${bd?` · best day <b>${per(bd,'days')}</b> ${pts(bd.pts)}`:''}</span></summary>
+    <div class="q4SetB">@@Q4CHART@@<div class="q4Seg"><button data-m="days" class="${pp.mode==='days'?'on':''}" onclick="LV3.q4SetOpen('days','progMode')">Days</button><button data-m="weeks" class="${pp.mode==='weeks'?'on':''}" onclick="LV3.q4SetOpen('weeks','progMode')">Weeks</button>
       <span class="q4SegNote">Newest first · the top row is Q4 so far and stays put as you scroll · <b class="q4X">&#10005;</b> = none of that line went out · hover a number for its % of the target · under each head, how many units make 1% · weeks run Monday to Sunday</span></div>
       ${gTable('days')}${gTable('weeks')}</div></details>`;
   /* b643 (Jack, 2 Nov: "at the top — what to prioritise; we do X a week, done by the Friday"): each target's share of this
@@ -4370,6 +4495,7 @@ function vQ4(){
     const way=inb>0?` + ${fmt(inb)} on the way${land?` (the first lands ~${dmy(land)})`:''}`:'';
     if(!u)return sell>0?{v:fmt(sell),cls:'',tip:`${fmt(sell)} at Amazon${way} — no sales figure yet, so no days`}:null;
     const a=+z.ads||0,perD=a>=2?fmt(Math.round(a)):String(Math.round(a*10)/10),more=z.upP?', more as Christmas nears':'',rate=`selling ~${perD} a day now${more}`,trip=`A send takes ~${fmt(fbaCalDays())} days to land`;
+    if(sell===0&&z.movSell)return {v:`0 on shelf · ${fmt(z.mov)} moving`,cls:'w',tip:`0 on the shelf at the count, but ${fmt(z.mov)} are moving between Amazon's warehouses and can still be bought — last sale ${dmy(z.lastSold)}.${inb>z.mov?` ${fmt(inb-z.mov)} more on the way.`:''} It sells ~${perD} a day${more}.`};
     if(sell===0)return {v:inb&&land?`Out · ${fmt(inb)} land ~${dmy(land)}`:'Out · none on the way',cls:'bad',tip:`None at Amazon now${inb?` — ${fmt(inb)} on the way${land?`, the first lands ~${dmy(land)}`:''}`:', and nothing on the way'}. In stock it sells ~${perD} a day${more}, so every day out is sales missed.`};
     const days=Math.max(0,Math.round(u.end)),fe=u.firstEmpty!=null?Math.max(0,Math.round(u.firstEmpty)):null,gap=fe!=null&&fe<days;
     const shown=gap?fe:days,cls=u.losing?'bad':(u.buffer||gap)?'w':'';
@@ -4389,9 +4515,11 @@ function vQ4(){
     </div>`;};
   /* b644 (Jack, 2 Nov: "track it week on week — see where things jump"): the page's weeks since the start, the ones the
      average leaves out greyed with the reason */
-  const AV=TR.avg,wkRows=(R.progress.weeks||[]).slice().reverse(),wkMx=Math.max(1,...wkRows.map(w=>w.units));
-  const outWhy=w=>w.now?'':AV.dropped&&AV.dropped.start===w.key?'left out of the average — a one-off quiet week':AV.lead.some(x=>x.start===w.key)?'left out of the average — the slow start':w.start<R.from?'a part week — left out of the average':'';
+  const AV={avg:TR.pace.wk,dropped:null,lead:[]},wkRows=(R.progress.weeks||[]).slice().reverse(),wkMx=Math.max(1,...wkRows.map(w=>w.units));
+  const outWhy=w=>'';   /* b687: the pace is the last 2 weeks — no week is "left out of the average" any more */
   const strip=`<div class="q4Wk q4WkPage">${wkRows.map(w=>{const why=outWhy(w);return `<div class="q4WkC${w.now?' now':''}${why?' out':''}" title="${esc(`${q4DayLabel(w.start)} – ${q4DayLabel(w.end)}: ${fmt(w.units)} sent${w.now?' so far':''}${why?` — ${why}`:''}`)}"><b>${w.units?fmt(w.units):'—'}</b><span class="q4WkB"><i style="height:${w.units?Math.max(4,Math.round(100*w.units/wkMx)):0}%"></i></span><small>${w.now?'so far':dmy(w.start)}</small></div>`;}).join('')}</div>`;
+  /* b686: how far this week is behind its own share for the working days gone (the tile and chart key say the same) */
+  const wkBehind=TR.wdThisWk>0&&WK.due?Math.round(WK.due*Math.min(AW.days||0,TR.wdThisWk)/TR.wdThisWk)-WK.sent:0;
   const weekHtml=P.length?`<section class="panel q4Week"><div class="ph"><span class="t">This week</span><span class="sub">${q4DayLabel(TR.wkStart)} – ${q4DayLabel(TR.wkEnd)} · aim to have it out by ${q4DayLabel(TR.wkFri)}</span><div class="r q4Sum">${fmt(WK.sent)} sent of <b>${fmt(WK.due)}</b> due · last week <b>${fmt(W0.last)}</b></div></div>
     <div class="q4WeekTop"><div class="q4WeekTrend"><div class="q4WkT">Week by week</div>${strip}</div>
       <div class="q4WeekMain">
@@ -4402,7 +4530,8 @@ function vQ4(){
           <div class="q4WD shelf${WK.wait.length?' w':''}" title="${esc(WK.wait.length?`Waits on parts: ${WK.wait.map(x=>`${q4Short(x.r.name)} ${fmt(x.n)}`).join(', ')} — bought as needed.`:'The shelf has the parts for all of this week.')}"><div class="k">Can build from the shelf</div><div class="v">${fmt(WK.can)}${WK.toGo?`<span> of ${fmt(WK.toGo)}</span>`:''}</div><div class="s">${WK.wait.length?`waits on parts: ${WK.wait.slice(0,3).map(x=>`<b>${esc(q4Short(x.r.name))}</b> ${fmt(x.n)}`).join(' · ')}${WK.wait.length>3?` +${WK.wait.length-3} more`:''}`:'parts for all of it &#10003;'}</div></div>
         </div>
         <div class="q4WeekWhy">
-          ${AV.avg>0&&WK.due?`<div class="${AV.avg>=WK.due?'ok':'warn'}">${AV.avg>=WK.due?'&#10003;':'&#9888;'} Your weekly average <b>~${fmt(AV.avg)}</b> ${AV.avg>=WK.due?`is above the minimum — on course (last week <b>${fmt(W0.last)}</b>)`:`is <b>${fmt(WK.due-AV.avg)}</b> under the minimum — this week needs a bit more than usual (last week <b>${fmt(W0.last)}</b>)`}</div>`:AV.avg>0?`<div>Your weekly average <b>~${fmt(AV.avg)}</b> <span>— this week's share is all out</span></div>`:'<div><span>No full week sent yet — the average starts after the first one</span></div>'}
+          ${AV.avg>0&&WK.due&&wkBehind>0?`<div class="warn">&#9888; This week <b>${fmt(WK.sent)}</b> in ${fmt(AW.days)} working day${AW.days===1?'':'s'} — <b>~${fmt(wkBehind)}</b> behind for today; <b>${fmt(WK.toGo)}</b> still to go by ${q4DayLabel(TR.wkFri)} (your realistic pace <b>~${fmt(AV.avg)}</b> a week, last week <b>${fmt(W0.last)}</b>)</div>`
+          :AV.avg>0&&WK.due?`<div class="${AV.avg>=WK.due?'ok':'warn'}">${AV.avg>=WK.due?'&#10003;':'&#9888;'} Your realistic pace <b>~${fmt(AV.avg)}</b> a week ${AV.avg>=WK.due?`is above the minimum — on course (last week <b>${fmt(W0.last)}</b>)`:`is <b>${fmt(WK.due-AV.avg)}</b> under the minimum — this week needs a bit more than usual (last week <b>${fmt(W0.last)}</b>)`}</div>`:AV.avg>0?`<div>Your realistic pace <b>~${fmt(AV.avg)}</b> a week <span>— this week's share is all out</span></div>`:'<div><span>Nothing sent in the last 4 weeks yet</span></div>'}
           <div><span>Pro-rated: a line's share = what it had left on Monday ÷ the ${fmt(TR.wdFromMon)} working days to ${byTxt} × the ${fmt(TR.wdThisWk)} this week. A line that's ahead gets less${WK.ahead?` — ${esc(q4Short(WK.ahead.r.name))} sent ${fmt(WK.ahead.w.last)} last week, so it needs just ${fmt(WK.ahead.w.need)} this week`:''}.</span></div>
         </div>
       </div></div>
@@ -4419,9 +4548,9 @@ function vQ4(){
   const hrTile=(()=>{if(!P.length)return '';const K='<div class="k">Hours of prep left</div>';
     if(!HR.open.length)return `<div class="kpi" style="--rail:#4ade80">${K}<div class="v" style="color:#4ade80">None &#10003;</div><div class="s">every target is sent</div></div>`;
     if(!HR.on.length)return `<div class="kpi" style="--rail:#94a3b8">${K}<div class="v">—</div><div class="s">no line timed yet — open a line and type how many you build in an hour</div></div>`;
-    const hpd=q4HoursDay(),fit=HR.all/hpd<=TR.wdLeft;
+    const hpd=q4HoursDay(),wdN=TR.pace.daysIn,fit=HR.all/hpd<=wdN;
     const tip=`${HR.on.map(x=>`${q4Short(x.r.name)}: ${fmt(x.left)} ÷ ${q4Hrs(x.rt.avg)} an hour = ~${q4Hrs(x.left/x.rt.avg)} h`).join('\n')}${HR.off.length?`\nNot timed yet — ${HR.off.map(x=>`${q4Short(x.r.name)} ${fmt(x.left)}`).join(', ')}: ${fmt(HR.offU)} ÷ ${q4Hrs(HR.rate)} an hour (the average of your ${fmt(HR.hrs.length)} timed hour${HR.hrs.length===1?'':'s'}) = ~${q4Hrs(HR.est)} h, an estimate until you time them`:''}\n~${q4Hrs(HR.all)} h ÷ ${q4Hrs(hpd)} h a day ≈ ${q4BDays(HR.all)}; ${fmt(TR.wdLeft)} working day${TR.wdLeft===1?'':'s'} left to ${byTxt}`;
-    return `<div class="kpi" style="--rail:${fit?'#4ade80':'#fbbf24'}" title="${esc(tip)}">${K}<div class="v" style="color:${fit?'#93c5fd':'#fcd34d'}">~${q4Hrs(HR.all)} h</div><div class="s">≈ <b>${q4BDays(HR.all)}</b> at ${q4Hrs(hpd)} h a day<br><b>${fmt(TR.wdLeft)}</b> working day${TR.wdLeft===1?'':'s'} left to ${byTxt}<br>${HR.off.length?`<b>${q4Hrs(HR.tot)} h</b> timed · <b>~${q4Hrs(HR.est)} h</b> estimated`:`timed on all ${fmt(HR.on.length)} lines`}</div></div>`;})();
+    return `<div class="kpi" style="--rail:${fit?'#4ade80':'#fbbf24'}" title="${esc(tip)}">${K}<div class="v" style="color:${fit?'#93c5fd':'#fcd34d'}">~${q4Hrs(HR.all)} h</div><div class="s">≈ <b>${q4BDays(HR.all)}</b> at ${q4Hrs(hpd)} h a day<br><b>${fmt(wdN)}</b> working day${wdN===1?'':'s'} left to ${byTxt}${TR.pace.wdToday?', today included':''}<br>${HR.off.length?`<b>${q4Hrs(HR.tot)} h</b> timed · <b>~${q4Hrs(HR.est)} h</b> estimated`:`timed on all ${fmt(HR.on.length)} lines`}</div></div>`;})();
   const priHtml=P.length
     ?`<div class="q4Scroll q4PScroll"><table class="shT q4T q4T2 q4P">${colsP}${headP}<tbody>${P.map(priRow).join('')}</tbody></table></div>
       ${(()=>{const {open,on,off,tot}=HR;if(!open.length)return '';
@@ -4438,7 +4567,7 @@ function vQ4(){
     <div class="kpi" style="--rail:#a78bfa"><div class="k">Still to send</div><div class="v" style="color:#c4b5fd">${fmt(T.toGo)}</div><div class="s"><b>${fmt(kNow)}</b> can be built now${kOrd?` · <b>${fmt(kOrd)}</b> when orders land`:''}${kShort?` · <b>${fmt(kShort)}</b> need parts bought`:''}</div></div>
     ${hrTile}
     <div class="kpi" style="--rail:${kShort?'#94a3b8':'#4ade80'}" title="Units the targets need that the parts here${ON?' and on order':''} cannot build yet — bought as they are needed; the list below has them"><div class="k">Parts still to buy for</div><div class="v" style="color:${kShort?'var(--text)':'#4ade80'}">${kShort?fmt(kShort):'None'}${kShort?'':' &#10003;'}</div><div class="s">${kShort?`units across ${fmt(shortN)} line${shortN===1?'':'s'} — bought as needed, the list is below`:'every target is covered by parts here or on order'}</div></div>
-    <div class="kpi" style="--rail:${fGood?'#4ade80':'#fbbf24'}" title="${esc(`The whole page at your weekly average of ~${fmt(tp)} — the recent full weeks, the newest counting most (the slow start and a one-off quiet week are left out). ${fmt(T.toGo)} still to send at that = all out ~${fEta?dlY(fEta):'—'}. To finish by ${byTxt}: ${fmt(WK.perWk)} a week (every line's share added up). It assumes the parts are bought as they are needed.`)}"><div class="k">All done at your weekly average</div><div class="v" style="color:${fGood?'#4ade80':'#fcd34d'}">${T.toGo===0?'Done &#10003;':fEta?'~'+dlY(fEta):'—'}</div><div class="s">${T.toGo===0?'':`needs <b>${fmt(WK.perWk)}</b> a week · average <b>${fmt(tp)}</b><br>last week <b>${fmt(W0.last)}</b> · this week so far <b>${fmt(W0.sent)}</b>`}</div></div>
+    <div class="kpi" style="--rail:${fGood?'#4ade80':'#fbbf24'}" title="${esc(`The realistic finish: the middle of three paces, in units a working day (a day with nothing sent counts as a day; a weekend send is a bonus) — ${(PC.est||[]).map(x=>`${x.k} ${fmt(Math.round(x.v))}${x.guard?` (scaled to one person: the timed lines alone were ${q4Hrs(x.h)} h a day)`:''}`).join(' · ')||'nothing sent yet'}. One inflated stretch or one awful week can't drag it on its own; a week with extra help lifts two of the three, so the date comes in. The hours are a check, on the lines you have timed only: a stretch whose timed lines took more than one person's ${PC.H?q4Hrs(PC.H.cap):'8'} h a day is scaled down to one person. Each morning the date starts without today; every send today brings it in (or keeps it)${PC.wdToday?` — ${fmt(PC.sentToday)} gone so far today`:''}. Mon–Fri only; 22 Dec – 4 Jan off. To finish by ${byTxt}: ${fmt(PC.needDay||0)} a working day from today (${fmt(PC.daysIn)} working day${PC.daysIn===1?'':'s'}${PC.wdToday?', today included':''}). It assumes the parts are bought as they are needed.`)}"><div class="k">Realistic finish</div><div class="v" style="color:${fGood?'#4ade80':'#fcd34d'}">${T.toGo===0?'Done &#10003;':fEta?'~'+dlY(fEta):'—'}</div><div class="s">${T.toGo===0?'':`${fEta?(fSpare!=null?(fSpare>=3?`<b>${fmt(fSpare)}</b> working days spare before ${byTxt}`:`in time, but only <b>${fmt(fSpare)}</b> working day${fSpare===1?'':'s'} spare`):`<b>${fmt(TR.wdIn(q4AddDays(TR.by,1),fEta))}</b> working day${TR.wdIn(q4AddDays(TR.by,1),fEta)===1?'':'s'} after ${byTxt}`):'nothing sent in the last 4 weeks'}<br>pace <b>~${fmt(Math.round(PC.day))}</b> a day${(PC.est||[]).length>1?` <span class="q4Mid">(${PC.est.map(x=>`${x.k.replace('this week','this wk').replace('last 2 weeks','2 wks').replace('last 4 weeks','4 wks')} ${fmt(Math.round(x.v))}`).join(' · ')})</span>`:''}<br>need <b>${fmt(PC.needDay||0)}</b> a day · ${PC.wdToday?`today <b>${fmt(PC.sentToday)}</b>${PC.sentToday>=(PC.needDay||0)&&PC.needDay>0?' &#10003;':''}`:'weekend = bonus'} · this week <b>${fmt(W0.sent)}</b>`}</div></div>
   </div>
   ${weekHtml}
   ${(()=>{const S=q4BuyShape(R);if(!S.short.length)return '';
@@ -4460,7 +4589,7 @@ function vQ4(){
   <section class="panel shPanel q4Panel q4PriPanel"><div class="ph"><span class="t">Priority bundles</span><span class="sub">the ones with a target · click one to open it</span>${P.length?`<span class="q4PriNote" title="Bundles with a target are handed shared components first: your first targets before ones added later, then the closest to running out. Every one gets its target before any goes past it; then each may go up to +${fmt(R.over)}%. Everything else then shares what is left.">Priority: oldest targets first, every target before +${fmt(R.over)}%</span>`:''}${P.length?(()=>{const s=sumOf(P),lft=P.reduce((t,r)=>t+Math.max(0,r.target-r.done),0);return `<div class="r q4Sum">${fmt(s.done)} of ${fmt(s.max)} · <span class="q4SumL">${fmt(lft)} left</span> <b class="${s.pct===100?'ok':''}">${pc(s.pct)}</b></div>`;})():''}${P.length>1?sortSel:''}${allBtn(P)}</div>
     ${priHtml}
   </section>
-  ${progHtml}
+  ${progHtml.replace('@@Q4CHART@@',()=>q4ChartHtml(R,TR,null,{needWk:WK.perWk}))}
   <section class="panel shPanel q4Panel"><div class="ph"><span class="t">Other bundles</span><span class="sub">no target — they share what the priority bundles leave</span>${sum(sumOf(O))}${allBtn(oOn)}</div>
     <div class="q4Scroll"><table class="shT q4T q4T2 q4O">${colsO}${headO('Bundle','Build now','When orders land')}<tbody>${oOn.map(othRow).join('')+fold(o0,'nothing to build')||'<tr><td colspan="${ON?5:4}" class="q4None">No other bundles.</td></tr>'}</tbody></table></div>
     <div class="q4Foot"><b>Done</b> = sent ÷ (sent + everything buildable) — buying more parts raises it, so the % drops. Hover "limited by" for the detail. Packaging and untracked parts never limit${R.packaging.length?` (left out as packaging: ${R.packaging.map(x=>esc(x.name)).join(', ')})`:''}.</div>
@@ -4622,15 +4751,15 @@ function ovModel(){
   const send=act.filter(r=>r.alloc>0).slice().sort((a,b)=>a.protDays-b.protDays);
   const sendUnits=send.reduce((t,r)=>t+r.alloc,0);
   const short=act.filter(r=>r.alloc<r.rec);
-  const oosBlocked=short.filter(r=>(r.sell||0)<=0&&r.alloc===0);
-  const oosSendable=act.filter(r=>(r.sell||0)<=0&&r.alloc>0);
+  const oosBlocked=short.filter(r=>shelfEmpty(r)&&r.alloc===0);
+  const oosSendable=act.filter(r=>shelfEmpty(r)&&r.alloc>0);
   /* one row per blocking part — order that ONE part and everything under it
      unblocks; "if stuff is on the way it's n/a" is decided here, once */
   const by={};short.forEach(r=>{const k=r.lim?r.lim.id:'—';(by[k]=by[k]||{part:r.lim||null,rows:[]}).rows.push(r);});
   const parts=Object.keys(by).map(k=>{const g=by[k];
     g.rows.sort((a,b)=>a.protDays-b.protDays);
     g.worst=g.rows[0];g.gap=g.part?plGapInfo(g.worst):null;
-    g.oos=g.rows.some(r=>(r.sell||0)<=0&&r.alloc===0);
+    g.oos=g.rows.some(r=>shelfEmpty(r)&&r.alloc===0);
     g.missing=g.rows.reduce((t,r)=>t+Math.max(0,(r.rec||0)-(r.alloc||0)),0);
     return g;}).sort((a,b)=>(a.oos===b.oos?0:(a.oos?-1:1))||(a.worst.protDays-b.worst.protDays));
   const buysAll=PE.buys.filter(L=>!L.isProd&&L.buyQty>0&&(L.state==='buy'||L.state==='soon'));
@@ -4850,7 +4979,7 @@ function profitSrcOf(p){const m=D.settings.sfProfit||{};if(m[p&&p.asin]>0)return
 function lossLine(r,u){
   const p=r.p,pu=profitOf(p)||0,ads=r.ads||0,today=dayISO();
   const land=Math.max(1,Math.round((new Date(workDaysAfter(today,primeDays())+'T00:00:00')-new Date(today+'T00:00:00'))/864e5));
-  const empty=(r.sell||0)<=0;
+  const empty=shelfEmpty(r);
   let emptyDays=null,emptySince=null,approx=false;
   if(empty){const ls=(D.settings.sfLastSold||{})[p.asin];
     if(ls){emptySince=String(ls).slice(0,10);emptyDays=Math.max(0,daysSince(emptySince));}
@@ -4860,8 +4989,10 @@ function lossLine(r,u){
   const losing=!!(u&&u.losing);
   const cap=60,capped=empty&&emptyDays!=null&&emptyDays>cap;
   const lostSoFar=(empty&&emptyDays!=null)?Math.min(emptyDays,cap)*ads*pu:0;
-  const gap=(u&&u.gap!=null)?((empty||losing)?Math.max(0,u.gap):0):(empty?land:(losing?Math.max(0,land-Math.max(0,u.end)):0));   /* b635: the empty days before a send lands */
-  return{land,empty,emptyDays,emptySince,approx,lostSoFar,capped,toLose:gap*ads*pu,gapDays:Math.round(gap),pu};
+  /* b685: still selling from the units moving between Amazon's warehouses — the days until they are back on the shelf are not empty days */
+  const _mt=r.movSell?(r.tranches||[]).find(x=>x.mov):null,movLead=_mt?Math.max(0,Math.round((new Date(String(_mt.eta).slice(0,10)+'T00:00:00')-new Date(today+'T00:00:00'))/864e5)):0;
+  const gap=Math.max(0,((u&&u.gap!=null)?((empty||losing)?Math.max(0,u.gap):0):(empty?land:(losing?Math.max(0,land-Math.max(0,u.end)):0)))-movLead);   /* b635: the empty days before a send lands */
+  return{land,empty,emptyDays,emptySince,approx,lostSoFar,capped,toLose:gap*ads*pu,gapDays:Math.round(gap),pu,movSell:!!r.movSell};
 }
 function lossOfRows(rows,lead,afterSend){
   /* lost = £ a day now; stake = £ lost before a fix lands (the part's lead, if any, plus the trip
@@ -4871,7 +5002,7 @@ function lossOfRows(rows,lead,afterSend){
      on the shelf is not "£104 lost", it is "order by 13/11". */
   let lost=0,stake=0,worst=null;const fba=fbaCalDays(),fix=(parseInt(lead)||0)+fba;
   (rows||[]).forEach(r=>{if(!r||!r.ads)return;const u=sendUrgency(r);if(!u)return;
-    const empty=(r.sell||0)<=0,pu=profitOf(r.p)||0;
+    const empty=shelfEmpty(r),pu=profitOf(r.p)||0;
     if(afterSend){const end2=(r.alloc>0)?Math.max(u.end,fba)+daysCovered(r.upP||null,r.ads,r.alloc,dayISO(),Math.max(u.end,fba)):u.end;const gap=Math.max(0,fix-end2);
       if(gap>0){lost+=r.ads*pu;stake+=r.ads*pu*gap;}}
     else if(empty||u.losing){lost+=r.ads*pu;stake+=r.ads*pu*Math.max(1,fix-Math.max(0,u.end));}
@@ -4987,14 +5118,15 @@ function vOverview(){
      a day first; then the rest by the last day they can leave; a line already covered by what
      is on its way goes last but stays (a little is better than nothing). Numbered, so the UK
      team works down from the top. (F) Ship opens at the planned number. */
-  M.send.forEach(r=>{const p=r.p,oos=(r.sell||0)<=0,u=sendUrgency(r)||{};
+  M.send.forEach(r=>{const p=r.p,oos=shelfEmpty(r),ms=!!r.movSell,u=sendUrgency(r)||{};
+    const msTip=ms?`0 on the shelf at the count — ${fmt(r.mov)} moving between Amazon's warehouses can still be bought (last sale ${dshort(r.lastSold)})`:'';
     const can=(avail(p)||{}).n,d=r.demand||{},day=r.ads||0;
     const money=x=>x==null?'—':'£'+(x<10?x.toFixed(2):fmt(Math.round(x)));
     const losing=!!u.losing,covered=!losing&&u.slack!=null&&u.slack>fba;
     const L=lossLine(r,u),typical=profitSrcOf(p)==='typical',pc=d.pace||{},spike=!!pc.spike;
     const mov=(D.settings.atAmzMov||{})[p.asin]||0,inbShip=Math.max(0,(r.inb||0)-mov);
     const dayTxt=day>=10?String(Math.round(day)):day.toFixed(1);
-    const fe=u.firstEmpty!=null?u.firstEmpty:(u.end||0),gapNow=(u.gap||0)>0&&!losing;   /* b635 */
+    const fe=ms?(u.end||0):(u.firstEmpty!=null?u.firstEmpty:(u.end||0)),gapNow=(u.gap||0)>0&&!losing;   /* b635 */
     /* the numbers, as chips — Jack, 26 Oct: "improve this UI UX design and context" */
     const st=[];
     if(spike)st.push({v:'↑',l:'selling faster',c:'#c4b5fd',t:`the last 7 days run at ${(pc.p7||0).toFixed(2)} a day against ${(pc.p30||0).toFixed(2)} over 30 — the run-out date uses the faster pace`});
@@ -5003,9 +5135,10 @@ function vOverview(){
     st.push({v:dayTxt,l:'a day',t:paceTip(pc)||esc(d.label||'')});
     if(u.profit!=null)st.push({v:'≈ '+money(u.profit),l:'a day'+(typical?' · typical margin':''),c:losing?'#f87171':null,
       t:`${day.toFixed(2)} a day × £${L.pu.toFixed(2)} a unit${typical?' — no SellerFuse margin for this one yet, so the middle of your PLUB range':''}${u.sales!=null?` · sales ≈ ${money(u.sales)} a day`:''}`});
-    st.push({v:oos?'0':(r.soldSince?'~':'')+fmt(r.sell||0),l:'at Amazon',c:oos?'#f87171':null,
-      t:r.soldSince?`${fmt(r.counted)} counted, ~${fmt(r.soldSince)} sold since at the planned pace`:`${fmt(r.counted||0)} on the shelf at the last count`});
+    st.push({v:oos?'0':(r.soldSince?'~':'')+fmt(r.sell||0),l:ms?'on the shelf':'at Amazon',c:oos?'#f87171':ms?'#fbbf24':null,
+      t:ms?msTip:r.soldSince?`${fmt(r.counted)} counted, ~${fmt(r.soldSince)} sold since at the planned pace`:`${fmt(r.counted||0)} on the shelf at the last count`});
     if(r.inb)st.push({v:'+'+fmt(r.inb),l:'on the way',c:'#93c5fd',t:(r.tranches||[]).map(x=>`${fmt(x.q)} ${x.mov?'moving between Amazon warehouses':'shipping'} · sellable ~${dshort(x.eta)}`).join(' · ')||`${fmt(r.inb)} on the way`});
+    if(ms)st.push({v:dshort(r.lastSold),l:'last sale · still selling',c:'#fbbf24',t:msTip});
     if(L.empty&&L.emptyDays!=null&&!(L.approx&&L.emptyDays<1))st.push({v:(L.approx?fmt(L.emptyDays)+'+':fmt(L.emptyDays)),l:L.emptyDays===1?'day empty':'days empty',c:'#f87171',
       t:L.approx?`empty since at least ${dshort(L.emptySince)} — the first 0 on the count record`:`no sales since ${dshort(L.emptySince)} (SellerFuse)`});
     else if(L.empty){const _sf=sfSoldOf(r.p);st.push(_sf&&!(parseInt(_sf.u30)>0)
@@ -5022,7 +5155,9 @@ function vOverview(){
     const runOut=addCalDays(today,Math.max(0,Math.floor(u.end||0))),sellsFrom=addCalDays(today,L.land);
     const firstEta=((r.tranches||[]).slice().sort((a,b)=>String(a.eta).localeCompare(String(b.eta)))[0]||{}).eta;
     const runOutL=addCalDays(today,Math.max(0,Math.floor(fe))),onWay=r.inb&&firstEta?` ${fmt(r.inb)} on the way, sellable ~${dshort(firstEta)}.`:'';
-    const say=gapNow?`${oos?'Empty at Amazon now':`Runs out ~${dshort(runOutL)}`} —${onWay?onWay.replace(/\.$/,'')+',':''} then it lasts to ~${dshort(runOut)}. Next send by <b>${dshort(u.by)}</b>.`
+    const say=ms?(losing?`0 on the shelf — ${fmt(r.mov)} moving between Amazon's warehouses, still selling (last sale ${dshort(r.lastSold)}). It runs out ~${dshort(runOut)}, before a send today sells (~${dshort(sellsFrom)}) — <b>send it today</b>.`
+        :`0 on the shelf — <b>${fmt(r.mov)} moving between Amazon's warehouses, still selling</b> (last sale ${dshort(r.lastSold)})${r.inbShip?`, and ${fmt(r.inbShip)} more on the way`:''}. It lasts to ~${dshort(runOut)}. Next send by <b>${dshort(u.by)}</b>.`)
+      :gapNow?`${oos?'Empty at Amazon now':`Runs out ~${dshort(runOutL)}`} —${onWay?onWay.replace(/\.$/,'')+',':''} then it lasts to ~${dshort(runOut)}. Next send by <b>${dshort(u.by)}</b>.`
       :covered?`Covered by what is on its way${firstEta?` — sellable from ~${dshort(firstEta)}`:''}. A little more keeps it going.`
       :losing?(oos?`Empty at Amazon${L.emptySince&&!L.approx?` since ${dshort(L.emptySince)}`:(sfSoldOf(p)&&!(parseInt(sfSoldOf(p).u30)>0))?' — no sale in the last 30 days':''}.${onWay} A send today sells from ~${dshort(sellsFrom)}.`
         :`Runs out ~${dshort(runOutL)}.${onWay} A send today sells from ~${dshort(sellsFrom)} — <b>send it today</b>.`)
@@ -5032,12 +5167,13 @@ function vOverview(){
     const cells=[];
     cells.push({l:'Sells a day',v:dayTxt+(spike?' ↑':pc.slow?' ↓':''),s:pc.empty&&pc.empty[7]>0?`empty ${fmt(pc.empty[7])} of 7 days`:spike?'selling faster':pc.slow?'slowing':paceShort(d)||'',
       c:spike?'#c4b5fd':pc.slow?'#fbbf24':null,sc:pc.empty&&pc.empty[7]>0?'#f87171':null,t:paceTip(pc)||esc(d.label||'')});
-    cells.push({l:'At Amazon',v:oos?'0':(r.soldSince?'~':'')+fmt(r.sell||0),c:oos?'#f87171':null,s:r.inb?`+${fmt(r.inb)} on the way`:'none on the way',sc:r.inb?'#93c5fd':null,
-      t:(r.soldSince?`${fmt(r.counted)} counted, ~${fmt(r.soldSince)} sold since at the planned pace`:`${fmt(r.counted||0)} on the shelf at the last count`)+((r.tranches||[]).length?' · '+(r.tranches||[]).map(x=>`${fmt(x.q)} sellable ~${dshort(x.eta)}`).join(' · '):'')});
+    cells.push({l:ms?'On the shelf':'At Amazon',v:oos?'0':(r.soldSince?'~':'')+fmt(r.sell||0),c:oos?'#f87171':ms?'#fbbf24':null,s:r.inb?`+${fmt(r.inb)} on the way`:'none on the way',sc:r.inb?'#93c5fd':null,
+      t:(ms?msTip:r.soldSince?`${fmt(r.counted)} counted, ~${fmt(r.soldSince)} sold since at the planned pace`:`${fmt(r.counted||0)} on the shelf at the last count`)+((r.tranches||[]).length?' · '+(r.tranches||[]).map(x=>`${fmt(x.q)} sellable ~${dshort(x.eta)}`).join(' · '):'')});
     if(L.empty){const _sf=sfSoldOf(p),noSale=_sf&&!(parseInt(_sf.u30)>0);
       cells.push({l:'Empty for',v:L.emptyDays!=null&&!(L.approx&&L.emptyDays<1)?(L.approx?fmt(L.emptyDays)+'+':fmt(L.emptyDays))+(L.emptyDays===1?' day':' days'):noSale?'30+ days':'?',c:'#f87171',
         s:L.emptySince?'since '+dshort(L.emptySince):'',t:L.emptySince?`no sales since ${dshort(L.emptySince)} (SellerFuse)`:'how long comes with the next SellerFuse check'});}
     else cells.push({l:'Stock lasts',v:'~'+fmt(Math.max(0,Math.floor(u.end||0)))+' days',c:losing?'#fdba74':null,s:'runs out ~'+dshort(runOut),t:`a send today is sellable in ${L.land} days`});
+    if(ms)cells.push({l:'Last sale',v:dshort(r.lastSold),c:'#fbbf24',s:`${fmt(r.mov)} moving, still selling`,sc:'#fbbf24',t:msTip});
     if(u.profit!=null)cells.push({l:'Profit a day',v:'≈ '+money(u.profit),c:losing?'#f87171':null,s:typical?'typical margin':'£'+L.pu.toFixed(2)+' a unit',
       t:`${day.toFixed(2)} a day × £${L.pu.toFixed(2)} a unit${typical?' — no SellerFuse margin for this one yet, so the middle of your PLUB range':''}${u.sales!=null?` · sales ≈ ${money(u.sales)} a day`:''}`});
     if(L.lostSoFar>0)cells.push({l:L.capped?'Lost (60 days)':'Lost so far',v:'≈ '+money(L.lostSoFar),c:'#f87171',s:'while empty',t:`${fmt(Math.min(L.emptyDays,60))} days × ${day.toFixed(2)} a day × £${L.pu.toFixed(2)}`});
@@ -5070,7 +5206,7 @@ function vOverview(){
     put('send',{k:'send_'+p.id,urg:losing?0:covered?2:1,
       val:losing?(u.profit!=null?u.profit:day):(-(u.slack||0)*1000+(u.profit||0)),lostDay:lossOfRows([r]).lost,
       chip:losing?[oos?'EMPTY AT AMAZON':'RUNS OUT BEFORE A SEND LANDS','#ef4444']
-        :gapNow?[oos?'EMPTY · STOCK ON ITS WAY':'RUNS OUT · STOCK ON ITS WAY','#fb923c']
+        :gapNow?(ms?[`0 ON THE SHELF · ${fmt(r.mov)} MOVING, STILL SELLING`,'#fbbf24']:[oos?'EMPTY · STOCK ON ITS WAY':'RUNS OUT · STOCK ON ITS WAY','#fb923c'])
         :covered?['COVERED · ON ITS WAY','#60a5fa']
         :[u.slack<0?`SEND NOW · LANDS INSIDE THE ${u.saf}-DAY BUFFER`:u.slack===0?'SEND TODAY':`SEND BY ${dshort(u.by).toUpperCase()}`,u.slack<=3?'#fb923c':'#fbbf24'],
       chip2:losing&&u.profit!=null?[`≈ ${money(u.profit)} a day${oos?'':' until it lands'}`,'#f87171',`${day.toFixed(2)} a day × £${L.pu.toFixed(2)} profit a unit`]:null,
@@ -5353,8 +5489,8 @@ const sortTh=(which,k,label,sub)=>{
     title="Sort by this${on?' — click again to reverse':''}">${label}<span class="thArr">${on?(dir>0?'▲':'▼'):'↕'}</span>
     ${sub?`<span class="thSub">${sub}</span>`:''}</button>`;
 };
-const P_OPT_COLS=['pInb','pLeft','pNeed','pIncoming','pOrdered','pS7','pSold','pIns','pDay','pLast','pSendBy','pCog'];
-const P_SORTS=[['name','Name A–Z'],['reorder','Action — most urgent first'],['left','Fewest days left'],['perday','Fastest selling'],
+const P_OPT_COLS=['pInb','pIdeal','pLeft','pNeed','pIncoming','pOrdered','pS7','pSold','pIns','pDay','pProfit','pLast','pSendBy','pCog'];
+const P_SORTS=[['name','Name A–Z'],['reorder','Action — most urgent first'],['left','Fewest days left'],['perday','Fastest selling'],['profit','Most profit a day'],['ideal','Most short at Amazon'],
                ['avail','Least available'],['atamz','Least at Amazon'],['sold','Best selling'],
                ['cog','Highest COG'],['incoming','Most incoming']];
 const C_SORTS=[['urgent','What needs doing first'],['name','Name A–Z'],['short','Biggest buy first'],['cover','Least cover'],
@@ -5378,6 +5514,8 @@ function sortProducts(rows){
     /* b669: most short first */
     need:(a,b)=>{const x=needOf(a),y=needOf(b);return ((y&&!y.none)?y.short:-1e9)-((x&&!x.none)?x.short:-1e9);},
     perday:(a,b)=>(prodLine(b).day||0)-(prodLine(a).day||0),
+    profit:(a,b)=>(profitDayOf(b)||0)-(profitDayOf(a)||0),   /* b685 */
+    ideal:(a,b)=>{const x=idealOf(a),y=idealOf(b);return (y?y.gap:-1e9)-(x?x.gap:-1e9);},   /* b686: most short at Amazon first */
     last:(a,b)=>String(a.lastSent||'').localeCompare(String(b.lastSent||'')),
     /* numeric, so 2 days sorts above 10 days. DUE NOW keeps its negative value
        internally so the most overdue leads; anything we cannot work out sorts
@@ -5393,7 +5531,7 @@ function sortProducts(rows){
      the bottom whichever way the column is turned, rather than pretending to be
      a zero and topping a "least at Amazon" sort. */
   const blank={atamz:p=>atAmz(p)==null,sold:p=>sold30(p)==null,
-    cog:p=>cogOf(p,1).short,send:p=>!sendBy(p),need:p=>{const n=needOf(p);return !n||!!n.none;}};
+    cog:p=>cogOf(p,1).short,send:p=>!sendBy(p),profit:p=>profitDayOf(p)==null,ideal:p=>idealOf(p)==null,need:p=>{const n=needOf(p);return !n||!!n.none;}};
   const isBlank=blank[pSort],f=by[pSort]||by.name;
   return rows.slice().sort((a,b)=>{
     if(isBlank){const na=isBlank(a),nb=isBlank(b);if(na!==nb)return na?1:-1;}
@@ -5462,7 +5600,7 @@ function vProducts(){
         <button class="btn pri" onclick="LV3.editProduct(null)">+ Add product</button></div>
     </div>
     <div id="selBar"></div>
-    <table><thead><tr>
+    <table class="prodT"><thead><tr>
       <th style="width:30px;text-align:center"><input type="checkbox" onclick="LV3.selAll(this.checked)"></th>
       ${/* No percentage width here. A % column collapses when the table is
            squeezed, and the dead space was never this column being too wide —
@@ -5470,15 +5608,17 @@ function vProducts(){
       <th class="l" style="min-width:240px">${sortTh('p','name','Product')}</th>
       <th style="width:82px" title="Sellable at Amazon now — from the SellerFuse check (Sun, Tue + Thu evenings) or a hand count, whichever is newer.">${sortTh('p','atamz','At Amazon',D.products.filter(x=>!x.archived).every(x=>atAmz(x)==null)?'never counted':'')}</th>
       ${COL('pInb')?`<th style="width:88px" title="Sent and on its way to Amazon, with when it should be sellable.">${sortTh('p','inb','On the way')}</th>`:''}
-      ${COL('pLeft')?`<th style="width:112px" title="Days until Amazon is empty at the planned pace, counting what is on its way if it lands in time. If it lands after, it says how long the shelf sits empty in between.">${sortTh('p','left','Days left')}</th>`:''}
+      ${COL('pIdeal')?`<th style="width:96px" title="The Planner's aim at Amazon: what it wants there when a send lands — its cover days (60, or the product's own) at its pace. Under it: what is at Amazon + on the way, and how short or over that is. Hover for the sum.">${sortTh('p','ideal','Ideal at Amazon')}</th>`:''}
+      ${COL('pLeft')?`<th style="width:104px" title="Days until Amazon is empty at the planned pace, counting what is on its way if it lands in time. If it lands after, it says how long the shelf sits empty in between.">${sortTh('p','left','Days left')}</th>`:''}
       <th style="width:84px" title="What you hold here — buildable from parts, or on the shelf for a private-label product.">${sortTh('p','avail','Can build')}</th>
-      ${COL('pNeed')?`<th style="width:96px" title="What the Planner wants you to hold right now: what sells until a send made today lands, plus its cover days after it lands (60, or the product's own). Under it: what you've got (at Amazon + on the way + can build) and how short or spare that is. Hover a number for the sum.">${sortTh('p','need','Stock needed')}</th>`:''}
+      ${COL('pNeed')?`<th class="ndTh" style="width:240px" title="What the Planner wants you to hold right now: what sells until a send made today lands, plus its cover days after it lands (60, or the product's own). Under it: what you've got (at Amazon + on the way + can build) and how short or spare that is. Hover a number for the sum.">${sortTh('p','need','Stock needed','<i class=&quot;ndK amz&quot;></i>at Amazon <i class=&quot;ndK otw&quot;></i>on the way <i class=&quot;ndK bld&quot;></i>can build'.replace(/&quot;/g,'"'))}</th>`:''}
       ${COL('pIncoming')?`<th style="width:150px">${sortTh('p','incoming','Parts coming')}</th>`:''}
       ${COL('pOrdered')?'<th style="width:84px">Ordered</th>':''}
-      ${COL('pS7')?`<th style="width:90px" title="Units sold in the last 7 days — SellerFuse. Red = days it was empty at Amazon.">${sortTh('p','s7','Sold 7d')}</th>`:''}
-      ${COL('pSold')?`<th style="width:96px" title="Units sold in the last 30 days — SellerFuse. Falls back to the BDL hub's last month when the check has not run.">${sortTh('p','sold','Sold 30d')}</th>`:''}
-      ${COL('pIns')?`<th style="width:96px" title="Days it was in stock at Amazon out of the last 30 — PrepHub's stock-out record, over SellerFuse's 30-day window. Sold 30d only counts those days; Per day leaves the empty ones out.">${sortTh('p','ins','In stock 30d')}</th>`:''}
-      ${COL('pDay')?`<th style="width:112px" title="The pace the planner uses, units a day — sold ÷ the days it was in stock at Amazon, so empty days never drag it down. ▲ selling faster this week, ▼ slower.">${sortTh('p','perday','Per day')}</th>`:''}
+      ${COL('pS7')?`<th style="width:84px" title="Units sold in the last 7 days — SellerFuse. Red = days it was empty at Amazon.">${sortTh('p','s7','Sold 7d')}</th>`:''}
+      ${COL('pSold')?`<th style="width:88px" title="Units sold in the last 30 days — SellerFuse. Falls back to the BDL hub's last month when the check has not run.">${sortTh('p','sold','Sold 30d')}</th>`:''}
+      ${COL('pIns')?`<th style="width:88px" title="Days it was in stock at Amazon out of the last 30 — PrepHub's stock-out record, over SellerFuse's 30-day window. Sold 30d only counts those days; Per day leaves the empty ones out.">${sortTh('p','ins','In stock 30d')}</th>`:''}
+      ${COL('pDay')?`<th style="width:108px" title="The pace the planner uses, units a day — sold ÷ the days it was in stock at Amazon, so empty days never drag it down. ▲ selling faster this week, ▼ slower.">${sortTh('p','perday','Per day')}</th>`:''}
+        ${COL('pProfit')?`<th style="width:100px" title="What it earns a day at the planned pace: units a day × the profit a unit from SellerFuse. 'typical margin' = SellerFuse has no margin for it yet, so the middle of your PLUB range is used.">${sortTh('p','profit','Profit a day')}</th>`:''}
       ${COL('pLast')?`<th style="width:72px">${sortTh('p','last','Last sent')}</th>`:''}
       ${COL('pSendBy')?`<th style="width:140px" title="When to act, the Planner's verdict, how many to send and what stops it. Hover a cell for the days of stock behind it.">${sortTh('p','reorder','Next step')}</th>`:''}
       ${COL('pCog')?`<th style="width:86px">${sortTh('p','cog','COG / unit')}</th>`:''}<th class="acts" style="width:150px"></th>
@@ -5692,22 +5832,24 @@ function prodLine(p){
   const R=(function(){try{return (plData().azBy||{})[p.id]||null;}catch(e){return null;}})();
   const sf=sfSoldOf(p),d=(R&&R.demand)||planDemandOf(p),day=d&&d.m>0?d.m/30:null;
   const sell=atAmz(p),inb=R&&R.inb!=null?R.inb:(amzIn(p)||0),eta=(R&&R.inbEta)||null;
+  const ms=!!(R&&R.movSell);   /* b685: 0 on the shelf, moving between Amazon's warehouses, still selling */
   let left=null,gap=0,leftTip='',trs=(R&&Array.isArray(R.tranches)&&R.tranches.length)?R.tranches:(inb>0&&eta?[{q:inb,eta}]:[]);
   if(day&&sell!=null){
     const W=shelfWalk(sell,day,trs,dayISO());trs=W.tranches;
-    if(inb>0&&W.gap){left=W.own;gap=W.gap;
+    if(ms&&inb>0){left=W.total;leftTip=`0 on the shelf, but ${fmt(R.mov)} are moving between Amazon's warehouses and still selling (last sale ${dshort(R.lastSold)}). With the ${fmt(inb)} on the way in all: ~${Math.floor(W.total)} days at ${day.toFixed(1)} a day.`;}
+    else if(inb>0&&W.gap){left=W.own;gap=W.gap;
       leftTip=`${fmt(sell)} at Amazon last ~${Math.floor(W.own)} days, then about ${fmt(gap)} days empty in all before the last of the ${fmt(inb)} on the way lands (${W.tranches.map(x=>`${fmt(x.q)} ~${dshort(x.eta)}`).join(', ')}) — empty ${W.legs.map(l=>`${dshort(l.from)}–${dshort(l.to)}`).join(' and ')}`;}
     else if(inb>0){left=W.total;leftTip=`${fmt(sell)} at Amazon + ${fmt(inb)} on the way, at ${day.toFixed(1)} a day`;}
     else{left=W.own;leftTip=`${fmt(sell)} at Amazon at ${day.toFixed(1)} a day`;}
   }
   const fba=fbaCalDays(),trig=fba+safetyDays();
-  const leftCol=left==null?'var(--text3)':(gap||left<=fba)?'var(--red)':left<=trig?'var(--amb)':'var(--grn)';
+  const leftCol=left==null?'var(--text3)':ms?(left<=fba?'var(--red)':'var(--amb)'):(gap||left<=fba)?'var(--red)':left<=trig?'var(--amb)':'var(--grn)';
   let trend=null;
   if(sf&&sf.u7!=null){const a30=(parseInt(sf.u30)||0)/30,a7=(parseInt(sf.u7)||0)/7;
     if(a30>0||a7>0){const r=a30>0?a7/a30:9;
       if(r>=1.3)trend={k:'up',t:'▲',tip:`Selling faster: ${fmt(sf.u7)} in the last 7 days vs ${fmt(sf.u30)} in 30`};
-      else if(r<=0.7)trend=(sell===0)?{k:'out',t:'empty',tip:'Slower this week — it is empty at Amazon'}:{k:'down',t:'▼',tip:`Slower: ${fmt(sf.u7)} in the last 7 days vs ${fmt(sf.u30)} in 30`};}}
-  return{R,sf,d,day,sell,inb,eta,trs,left,gap,leftTip,leftCol,trend};
+      else if(r<=0.7)trend=(sell===0&&!ms)?{k:'out',t:'empty',tip:'Slower this week — it is empty at Amazon'}:{k:'down',t:'▼',tip:`Slower: ${fmt(sf.u7)} in the last 7 days vs ${fmt(sf.u30)} in 30`};}}
+  return{R,sf,d,day,sell,inb,eta,trs,left,gap,leftTip,leftCol,trend,ms,mov:R?R.mov||0:0,lastSold:R?R.lastSold||null:null};
 }
 /* b669 (Jack, 8 Nov: "the estimated amount of stock we need full stop — what the normal planner thinks"): what the
    Planner wants you to hold right now = what sells until a send made today lands (landIso) + the cover it wants on
@@ -5728,17 +5870,66 @@ function needOf(p){
     ?Math.max(0,Math.min(...p.recipe.map(r=>{const c=comp(r.c);return c?Math.floor((onHand(c)+onOrder(c))/r.q):0;}))-(a.n||0)):0;
   return{need,toLand,want,land:R.landIso,cov:coverDaysOf(p),have,amz,inb,build,heldFor,short:need-have,coming};
 }
+/* b685 (Jack, 18 Nov: "add in how many I need to have in stock overall… from the planner — loads of space for better
+   columns and better info"): the Q4 target beside the Planner's need — target, sent since the Q4 start, still to go */
+let _q4LnM={k:null,TG:null};
+function q4LineOf(p){
+  try{
+    if(dayISO()>q4SendBy())return null;
+    const k=plData(),s=D.settings||{};
+    if(_q4LnM.k!==k||_q4LnM.s!==s.q4Targets)_q4LnM={k,s:s.q4Targets,TG:q4TargetMap().map};
+    const TG=_q4LnM.TG,t=Math.round(+TG[String(p.id)]);
+    if(!(t>0)||!q4OnPageOf(s.q4Include,TG)(p))return null;
+    const sent=q4SentOf(p.asin);
+    return{target:t,sent,left:Math.max(0,t-sent)};
+  }catch(e){return null;}
+}
+/* Stock needed, drawn wide: the Planner's figure, what you hold against it, short or spare, a bar of where the stock
+   is (at Amazon · on the way · can build — the three columns beside it), and the reason in words, not a hover */
 function needCell(p){
   const N=needOf(p);
   if(!N)return '<span class="dim">&mdash;</span>';
   if(N.none)return `<span class="dim" style="font-size:14px">&mdash;</span><div class="sldSub">${N.none}</div>`;
+  const Q=q4LineOf(p);
   const tip=`The Planner wants ${fmt(N.need)} in all right now: ~${fmt(N.toLand)} to sell before a send made today lands (~${dshort(N.land)}), then ${fmt(N.want)} for ${fmt(N.cov)} days' cover after it lands.\n`
     +`You've got ${fmt(N.have)}: ${fmt(N.amz)} at Amazon now + ${fmt(N.inb)} on the way + ${fmt(N.build)} can build${N.heldFor?` (after the parts kept for ${N.heldFor})`:''}.\n`
-    +(N.short>0?`Short ${fmt(N.short)}${N.coming>0?` — parts on order make ${fmt(N.coming)} more`:''}.`:`Covered, ${fmt(-N.short)} spare.`);
-  const sub=N.short>0
-    ?`<div class="sldSub" style="color:#f87171;font-weight:800">short ${fmt(N.short)}</div>${N.coming>0?`<div class="sldSub">${fmt(Math.min(N.coming,N.short))} with parts coming</div>`:''}`
-    :`<div class="sldSub" style="color:#4ade80;font-weight:700">${N.short===0?'just right':`${fmt(-N.short)} spare`}</div>`;
-  return `<span class="mono b" style="font-size:14px" title="${esc(tip)}">${fmt(N.need)}</span><div class="sldSub" title="${esc(tip)}">have ${fmt(N.have)}</div>${sub}`;
+    +(N.short>0?`Short ${fmt(N.short)}${N.coming>0?` — parts on order make ${fmt(N.coming)} more`:''}.`:`Covered, ${fmt(-N.short)} spare.`)
+    +(Q?`\nQ4 target ${fmt(Q.target)}: ${fmt(Q.sent)} sent since the Q4 start, ${Q.left?fmt(Q.left)+' still to send':'all sent'}.`:'');
+  const scale=Math.max(N.need,N.have,1),w=x=>(Math.max(0,x)/scale*100).toFixed(2);
+  const seg=(c,x)=>x>0?`<i class="${c}" style="flex-basis:${w(x)}%"></i>`:'';
+  const bar=`<div class="ndBar">${seg('amz',N.amz)}${seg('otw',N.inb)}${seg('bld',N.build)}${N.short>0?seg('gap',N.short):''}${N.short<0?`<u style="left:${w(N.need)}%"></u>`:''}</div>`;
+  const verdict=N.short>0?`<span class="ndV bad">short ${fmt(N.short)}</span>`:`<span class="ndV ok">${N.short===0?'just right':fmt(-N.short)+' spare'}</span>`;
+  return `<div class="ndC" title="${esc(tip)}"><div class="ndTop"><span class="mono b ndN">${fmt(N.need)}</span><span class="ndHave">have <b>${fmt(N.have)}</b></span>${verdict}</div>${bar}`
+    +`<div class="ndWhy">${fmt(N.toLand)} until a send lands + ${fmt(N.want)} for ${fmt(N.cov)} days</div>`
+    +(N.short>0&&N.coming>0?`<div class="ndWhy">parts on order make ${fmt(Math.min(N.coming,N.short))} of the short</div>`:'')
+    +(Q?`<div class="ndQ4">Q4 target <b>${fmt(Q.target)}</b> · ${fmt(Q.sent)} sent · ${Q.left?`<b>${fmt(Q.left)}</b> to go`:'all sent'}</div>`:'')+`</div>`;
+}
+/* b686 (Jack, 18 Nov: "how many we ideally have in Amazon"): the Planner's aim at Amazon when a send lands (R.want — its
+   cover days at its pace) against what is there + on the way. Within 10% either way = on target. */
+function idealOf(p){
+  let R=null;try{R=(plData().azBy||{})[p.id]||null;}catch(e){}
+  if(!R||!(R.want>0))return null;
+  const amz=Math.max(0,+atAmz(p)||0),inb=Math.max(0,+(R.inb!=null?R.inb:(amzIn(p)||0))||0),have=amz+inb,want=Math.round(R.want);
+  return{want,amz,inb,have,gap:want-have,cov:coverDaysOf(p)};
+}
+function idealCell(p,PL){
+  const I=idealOf(p);
+  if(!I)return '<span class="dim">&mdash;</span><div class="sldSub">no sales figure</div>';
+  const tol=Math.max(2,Math.round(I.want*0.1)),st=I.gap>tol?'short':I.gap<-tol?'over':'ok';
+  const tip=`The Planner aims for ${fmt(I.want)} at Amazon when a send lands — ${I.cov} days of sales${PL&&PL.day?` at ${PL.day.toFixed(1)} a day`:''}.
+You have ${fmt(I.amz)} at Amazon + ${fmt(I.inb)} on the way = ${fmt(I.have)}.
+`
+    +(st==='short'?`${fmt(I.gap)} short of the aim.`:st==='over'?`${fmt(-I.gap)} more than the aim is there or on its way.`:'On target (within 10%).');
+  return `<span class="mono b" style="font-size:14px" title="${esc(tip)}">${fmt(I.want)}</span><div class="sldSub idS ${st}" title="${esc(tip)}">have ${fmt(I.have)} · ${st==='short'?`<b>${fmt(I.gap)} short</b>`:st==='over'?`${fmt(-I.gap)} over`:'on target &#10003;'}</div>`.replace('>have '+fmt(I.have)+' · ','>');
+}
+/* Profit a day: what the product earns at the planned pace — the money to rank the table by */
+function profitDayOf(p,PL){const day=(PL||prodLine(p)).day,pu=profitOf(p);return (day>0&&pu!=null)?day*pu:null;}
+function profitCell(p,PL){
+  const v=profitDayOf(p,PL);
+  if(v==null)return '<span class="dim">&mdash;</span>';
+  const pu=profitOf(p),src=profitSrcOf(p),typ=src==='typical',a=Math.abs(v);
+  const tip=`${PL.day.toFixed(2)} a day × £${pu.toFixed(2)} a unit`+(typ?' — no SellerFuse margin for this one yet, so the middle of your PLUB range':src==='hist'?' — the margin is an estimate from its own sales history':' — SellerFuse\'s margin');
+  return `<span class="mono b" style="font-size:14px${v<0?';color:var(--red)':''}" title="${esc(tip)}">${v<0?'−':''}£${a<10?a.toFixed(2):fmt(Math.round(a))}</span><div class="sldSub" title="${esc(tip)}">${typ?'typical margin':'£'+pu.toFixed(2)+' a unit'}</div>`;
 }
 /* On the way, when: one date — "lands ~02/11"; in parts — a line each, two at most (the first, then the rest) */
 function inbWhen(PL){
@@ -5773,20 +5964,21 @@ function prodRow(p){
           <span class="pname">${esc(p.name)}</span>
           <span class="chip ${p.type}">${typeLabel(p.type)}</span></div>
         <div class="pmeta mono" onclick="event.stopPropagation()">${asinBtn(p.asin)}${p.sku?' · '+esc(p.sku):''}${p.type==='bundle'?' · '+p.recipe.length+' part'+(p.recipe.length===1?'':'s'):''}</div>
-        ${lim&&a.n===0?`<div class="blocked">out of ${esc(lim.name)}${onOrder(lim)?` · ${fmt(onOrder(lim))} on order`:' · nothing on order'}</div>`
+        ${lim&&a.n===0?`<div class="blocked" title="${esc('out of '+lim.name+(onOrder(lim)?' · '+fmt(onOrder(lim))+' on order':' · nothing on order'))}">out of ${esc(lim.name)}${onOrder(lim)?` · ${fmt(onOrder(lim))} on order`:' · nothing on order'}</div>`
           :lim?`<div class="pmeta" style="color:var(--amb)">${esc(lim.name)} limits it</div>`:''}
       </div></td>
     <td onclick="event.stopPropagation()">${(()=>{const v=atAmz(p),inb=amzIn(p),age=atAmzAge(p);
       if(v==null&&inb==null)return `<span class="dim" style="font-size:14px">—</span>`;
       const stale=age!=null&&age>=14;
       const dry=amzDry(p);
-      return `<span class="mono b" style="font-size:14px;color:${v===0?'var(--red)':dry?'var(--amb)':stale?'var(--amb)':'var(--text)'}">${v==null?'—':fmt(v)}</span>
+      return `<span class="mono b" style="font-size:14px;color:${v===0?(PL.ms?'var(--amb)':'var(--red)'):dry?'var(--amb)':stale?'var(--amb)':'var(--text)'}">${v==null?'—':fmt(v)}</span>
         <div class="sldSub" title="${esc(whenTxt((D.settings.atAmzAt||{})[p.asin]))}">${
           age==null?'counted'
           :stale?`<span style="color:var(--amb)">${age}d old</span>`
           :age===0?esc(whenTxt((D.settings.atAmzAt||{})[p.asin],true)||'today')
-          :`${age}d ago`}</div>`;})()}</td>
+          :`${age}d ago`}</div>${PL.ms?`<div class="sldSub" style="color:var(--amb);font-weight:700" title="${esc(`0 on the shelf at the count — ${fmt(PL.mov)} moving between Amazon's warehouses can still be bought. Last sale ${dshort(PL.lastSold)}.`)}">${fmt(PL.mov)} moving · still selling</div>`:''}`;})()}</td>
     ${COL('pInb')?`<td>${PL.inb>0?`<span class="mono b" style="font-size:14px;color:var(--blu)">${fmt(PL.inb)}</span><div class="sldSub">${inbWhen(PL)}</div>`:'<span class="dim">—</span>'}</td>`:''}
+    ${COL('pIdeal')?`<td>${idealCell(p,PL)}</td>`:''}
     ${COL('pLeft')?`<td title="${esc(PL.leftTip||'')}">${PL.left==null?'<span class="dim">—</span>'
       :`<span class="mono b" style="font-size:14px;color:${PL.leftCol}">${PL.sell===0&&!PL.gap&&!(PL.inb>0)?'empty':fmt(Math.floor(PL.left))+'d'}</span>${PL.gap?`<div class="sldSub" style="color:#f87171;font-weight:800">then ${fmt(PL.gap)}d empty</div>`:PL.inb>0&&PL.left!=null?`<div class="sldSub">incl. on the way</div>`:''}`}</td>`:''}
     <td><span class="num" style="color:${col}">${a.kind==='norecipe'?'—':fmt(a.n)}</span>
@@ -5794,7 +5986,7 @@ function prodRow(p){
       ${(()=>{const R=a.kind==='build'?(plData().azBy||{})[p.id]:null,hf=R&&R.limHeld;   /* b666 */
         return hf&&hf.length&&R.buildCap!=null&&R.buildCap<a.n?`<div class="pmeta" style="color:#7dd3fc;font-weight:600" title="${esc(`${R.lim?R.lim.name:'A part'} is kept for ${hf.join(', ')} first (Q4 tab → Settings ▾ → goes first) — ${fmt(R.buildCap)} can be built once that is kept back.`)}">${fmt(R.buildCap)} after ${esc(hf[0])}</div>`:'';})()}
       </td>
-    ${COL('pNeed')?`<td>${needCell(p)}</td>`:''}
+    ${COL('pNeed')?`<td class="ndTd">${needCell(p)}</td>`:''}
     ${COL('pIncoming')?`<td>${(()=>{
       /* This column used to print a paragraph per line — two product names, two
          dates — in a 130px cell, so it wrapped, clipped and told you nothing at
@@ -5834,7 +6026,8 @@ function prodRow(p){
     ${COL('pIns')?`<td>${insCell(p)}</td>`:''}
     ${COL('pDay')?`<td title="${esc(PL.d?'Planned at '+(PL.day!=null?PL.day.toFixed(2):'—')+' a day — '+PL.d.label:'No sales figure')}">${PL.day?`<span class="mono b" style="font-size:14px">${PL.day>=10?fmt(Math.round(PL.day)):PL.day.toFixed(1)}</span>${PL.trend?`<span class="pTrend ${PL.trend.k}" title="${esc(PL.trend.tip)}">${PL.trend.t}</span>`:''}`:'<span class="dim">—</span>'}
       <div class="sldSub" title="${esc(PL.d&&PL.d.pace?paceTip(PL.d.pace):'')}">${PL.d?esc(paceShort(PL.d).replace(/ · in stock$/,''))+(!PL.trend&&PL.d.pace&&PL.d.pace.slow?' <span style="color:#fbbf24">↓</span>':!PL.trend&&PL.d.pace&&PL.d.pace.spike?' <span style="color:#c4b5fd">↑</span>':'')+pdInStock(PL.d):''}</div></td>`:''}
-    ${COL('pLast')?`<td>${p.lastSent?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(p.lastSent)}</span><div class="sldSub">${fmt(daysSince(p.lastSent))}d ago</div>`:'<span class="dim">never</span>'}</td>`:''}
+    ${COL('pProfit')?`<td>${profitCell(p,PL)}</td>`:''}
+      ${COL('pLast')?`<td>${p.lastSent?`<span class="mono" style="font-size:12.5px;color:var(--text2)">${dshort(p.lastSent)}</span><div class="sldSub">${fmt(daysSince(p.lastSent))}d ago</div>`:'<span class="dim">never</span>'}</td>`:''}
     ${COL('pSendBy')?`<td onclick="event.stopPropagation()">${(()=>{
       const R=(plData().azBy||{})[p.id];
       if(!R)return '<span class="dim">&mdash;</span>';
@@ -13915,7 +14108,7 @@ function vSettings(){
         <div style="padding:12px 14px">
           <div class="lab" style="margin-bottom:7px">Products table</div>
           <div class="colgrid">
-            ${[['pInb','On the way'],['pLeft','Days left'],['pNeed','Stock needed'],['pIncoming','Parts coming'],['pOrdered','Ordered date'],['pS7','Sold 7d'],['pSold','Sold 30d'],['pIns','In stock 30d'],['pDay','Per day'],['pLast','Last sent'],['pSendBy','Next step'],['pCog','COG / unit']]
+            ${[['pInb','On the way'],['pIdeal','Ideal at Amazon'],['pLeft','Days left'],['pNeed','Stock needed'],['pIncoming','Parts coming'],['pOrdered','Ordered date'],['pS7','Sold 7d'],['pSold','Sold 30d'],['pIns','In stock 30d'],['pDay','Per day'],['pProfit','Profit a day'],['pLast','Last sent'],['pSendBy','Next step'],['pCog','COG / unit']]
               .map(([k,l])=>`<label><input type="checkbox" ${COL(k)?'checked':''} onchange="LV3.setCol('${k}',this.checked)"> ${l}</label>`).join('')}
           </div>
           <div class="lab" style="margin:14px 0 7px">Components table</div>
@@ -14643,7 +14836,7 @@ function paint(){
 }
 
 /* everything the page's inline handlers need */
-const API={go,render:paint,boot,__needOf:p=>needOf(p),q4SetSort,q4SortPref,dupConfirm,pdInStock,q4Calc,q4SetTarget,q4SetFirst,q4FirstMap,q4Holds,q4SentOf,q4SetRate,q4RateOf,q4Rates,q4HoursDay,q4SetHoursDay,q4SetOpen,q4BuyFold,q4BuyIsShut,q4Pick,q4History,q4ChartHover,q4Jump,q4ProgPref,q4DayY,compSupplierOf:c=>compSupplier(c),q4RecOpen,q4DayShort:d=>q4DayLabel(d).replace(/^\S+ /,''),q4Toggle,q4ToggleAll,q4SetSendBy,q4Track,q4One,q4SendBy,q4WeeksOf,q4CopyBuy,q4BuyView,q4StaffMsg,q4BuyShape,q4TargetAtMap,__onHand:o=>onHand(o),__parseRows:(rows,tab)=>{const was=_parseSkips;_parseSkips={date:0,qty:0};try{const r=parseSheetRows(rows,tab);return{rows:r,skips:Object.assign({},_parseSkips)};}finally{_parseSkips=was;}},q4PlanFill,q4LimHtml,__layers:()=>LAYERS,__purch:()=>PURCH,
+const API={go,render:paint,boot,__needOf:p=>needOf(p),__b686:{idealOf,idealCell},__b685:{shelfEmpty,lossLine,sendUrgency,prodLine,needCell,profitCell,profitDayOf,q4LineOf},q4SetSort,q4SortPref,dupConfirm,pdInStock,q4Calc,q4SetTarget,q4SetFirst,q4FirstMap,q4Holds,q4SentOf,q4SetRate,q4RateOf,q4Rates,q4HoursDay,q4SetHoursDay,q4SetOpen,q4BuyFold,q4BuyIsShut,q4Pick,q4History,q4ChartHover,q4Jump,q4ProgPref,q4DayY,compSupplierOf:c=>compSupplier(c),q4RecOpen,q4DayShort:d=>q4DayLabel(d).replace(/^\S+ /,''),q4Toggle,q4ToggleAll,q4SetSendBy,q4Track,q4One,q4SendBy,q4WeeksOf,q4CopyBuy,q4BuyView,q4StaffMsg,q4BuyShape,q4TargetAtMap,__onHand:o=>onHand(o),__parseRows:(rows,tab)=>{const was=_parseSkips;_parseSkips={date:0,qty:0};try{const r=parseSheetRows(rows,tab);return{rows:r,skips:Object.assign({},_parseSkips)};}finally{_parseSkips=was;}},q4PlanFill,q4LimHtml,__layers:()=>LAYERS,__purch:()=>PURCH,
   openProduct,editProduct,setType,setSold30,rowMenu,closeRowMenu,dupeAsins,setSort,saveProductForce,addRecipeRow,rcChange,rcSearch,rcPick,rcMake,recipePreview,copyRecipe,saveProduct,delProduct,togRow,setArchived,
   openShip,drawShip,doShip,copyCog,shipSetQty,shipOverride,shipQty,shipFba,setQ,selOne,selAll,selClear,selType,selVat,
   openComp,editComp,saveComp,delComp,pickKind,openAddBatch,abPreview,doAddBatch,selArchive,selDelete,cselOne,cselAll,cselClear,cselKind,cselTrack,cselArchive,cselDelete,markArrived,openAdjust,doAdjust,

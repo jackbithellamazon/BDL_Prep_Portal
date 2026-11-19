@@ -1055,8 +1055,29 @@ function _unitTotals(f){
   rows.forEach(r=>{const n=f(r);if(n>0){units+=n;value+=(parseSKU(r.sku).cogs||0)*n;rr.push(r);}});
   return{rows:rr,units,value,skus:rr.length,asins:new Set(rr.map(r=>r.asin)).size};
 }
+/* b684 (Jack, 16 Nov: "overdue / late / chasing — stuff that should be on the shelf or is late and not sorted yet"):
+   late = past the late clock (20 days, 35 for S&S) or part-arrived with the rest 2 working days overdue. A row parked
+   on a promised date has a plan — it is counted on the small line, not the big number. */
+/* late by age, before any promise is looked at: _prepRowLate leaves out a row parked on a date and one Jack answered
+   "Amazon say it'll arrive…" — here those count as late, and _lateOpen then splits off the ones still parked */
+function _lateByAge(r){if(typeof _prepRowLate!=='function'||!r)return false;const q=r.resolution||null;
+  const promise=!!(q&&q.state==='approved'&&q.what==='in-transit');
+  return _prepRowLate(Object.assign({},r,{expectedDelivery:'',resolution:promise?null:q}));}
+function _lateRow(r){return _toArrive(r)>0&&!!(_lateByAge(r)||(typeof _partOverdue==='function'&&_partOverdue(r)));}
+function _lateOpen(r){return _lateRow(r)&&!(typeof _parkedOnDate==='function'&&_parkedOnDate(r))&&!(typeof _rowOwner==='function'&&_rowOwner(r).finished);}
+function _lateTotals(){
+  const by={becki:0,jack:0,sarah:0,none:0},live=[];let units=0,value=0,parked=0,parkedRows=0,open=0;
+  rows.forEach(r=>{if(!_lateRow(r))return;const n=_toArrive(r);
+    if(typeof _parkedOnDate==='function'&&_parkedOnDate(r)){parked+=n;parkedRows++;return;}
+    if(typeof _rowOwner==='function'&&_rowOwner(r).finished)return;   /* sorted by the owner rule — not late-and-unsorted */
+    units+=n;value+=(parseSKU(r.sku).cogs||0)*n;live.push(r);
+    const o=(typeof _rowOwner==='function')?_rowOwner(r):{owner:'none'};by[o.owner in by?o.owner:'none']+=n;
+    const left=(typeof refundLeft==='function')?refundLeft(r.date,r):null;if(left!==null&&left>=0)open+=n;});
+  return{rows:live,orders:live.length,units,value,by,parked,parkedRows,claimable:open};
+}
 /* the Prep Sheet's status filter, plus three "any status" views that count units, not rows */
 function _stMatches(r,st){
+  if(st==='__late')return _lateOpen(r);
   if(st==='__toArrive')return _toArrive(r)>0;
   if(st==='__onShelf')return _onShelf(r)>0;
   if(st==='__issue')return _issueOpen(r)>0;
@@ -1088,7 +1109,13 @@ function renderStats(){
   
   const inTransitSkus=_T.skus;
   const inTransitAsins=_T.asins;
-  const _tExtra=(_T.overdue?` · <b style="color:#f87171">${fmt(_T.overdue)} units overdue</b>`:'')+(_T.claimed?` · ${fmt(_T.claimed)} units being claimed`:'');
+  /* b684: "overdue" is its own tile now (LATE) — said once, with who has it */
+  const _tExtra=(_T.claimed?` · ${fmt(_T.claimed)} units being claimed`:'');
+  const _LT=_lateTotals();
+  const _ltWho=[['becki','Becki'],['jack','Jack'],['sarah','Sarah'],['none','snoozed']].filter(([k])=>_LT.by[k]>0).map(([k,t])=>`${t} ${fmt(_LT.by[k])}`).join(' · ');
+  const _ltSub=_LT.units?[`${fmt(_LT.orders)} order${_LT.orders===1?'':'s'} · ${fmtGBP2(_LT.value)}`,_ltWho,
+      _LT.parked?`+${fmt(_LT.parked)} parked on a date`:'',_LT.claimable?`<b>${fmt(_LT.claimable)} still claimable</b>`:''].filter(Boolean).join(' · ')
+    :(_LT.parked?`nothing late · ${fmt(_LT.parked)} parked on a date`:'nothing late');
   const sentWeekUnits=weekRoll.units;
   const sentWeekSkus=weekRoll.skus;
   const sentWeekAsins=weekRoll.asins;
@@ -1122,6 +1149,8 @@ function renderStats(){
     /* Jack, 26 Oct: the two small tiles ("On the shelf, not sent" / "Booked in today") — "go back".
        The stock on the shelf still shows on the Dashboard's Active Inventory. */
     mk('COG In Transit',fmtGBP2(inTransitValue),`stock value locked in transit`,'#fbbf24','filter:__toArrive')+
+    /* b684 — between "on its way" and "gone out", as Jack asked */
+    mk('Late — not sorted',fmt(_LT.units)+' units',_ltSub,_LT.units?'#f87171':'#94a3b8',_LT.units?'filter:__late':'')+
     mk('Sent Today',fmt(sentTodayUnits)+' units',`${shipWord(todayRoll.shipments)} · ${fmt(sentTodaySkus)} SKU lines · ${fmtGBP2(valueToday)} COG`,'#4ade80','today')+
     mk('Sent This Week',fmt(sentWeekUnits)+' units',`${shipWord(weekRoll.shipments)} · ${fmt(sentWeekSkus)} SKU lines · ${fmt(sentWeekAsins)} ASINs · ${fmtGBP2(weekRoll.value)} COG`,'#a78bfa','week')+
     mk('Sent This Month',fmt(totalSentMonth)+' units',`${shipWord(monthRoll.shipments)} · ${fmt(monthRoll.skus)} SKU lines · ${fmt(monthRoll.asins)} ASINs · ${fmtGBP2(monthRoll.value)} COG`,'#34d399','mtd');
