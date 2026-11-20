@@ -6,8 +6,8 @@ Rollback: upload the previous dated folder the same way.
 b669: four files were renamed (Lavarion → PLUB): js/plub.js, js/plub-bridge.js, css/plub.css, css/plub-overrides.css.
 The old js/lavarion.js, js/lavarion-bridge.js, css/lavarion.css and css/lavarion-overrides.css on GitHub are no longer
 loaded — leave them or delete them, nothing changes either way (they are what a rollback to b668 would use).
-b687 goes on top of b675 (live since 12 Nov) and includes b676 to b686.
-(If any of b680 to b686 is already live, it simply goes on top.)
+b689 goes on top of b675 (live since 12 Nov) and includes b676 to b688.
+(If any of b680 to b688 is already live, it simply goes on top.)
 b676 = cases on the On order list, Receive and Receive several; a part with no case size asks once at check-in.
 b677 = every count box has a CASES box beside the units box, kept in step both ways.
 b678 = smoother order checks on Jack's Admin (the card opens where the row was, every order of the product joins it,
@@ -27,6 +27,15 @@ date; the moment it is booked in, the rest come to Jack as check every order (da
 b684 = a LATE tile on the Prep Sheet (between COG In Transit and Sent Today; click it for those rows); an open
 shelf check is always Becki's even on a row closed earlier (the Canon SELPHY); Send on an order-check card never
 puts an older copy back over another laptop's change when a save fails.
+b689 = Products tab: the product names are back on laptops. Product always keeps 240px; on a narrower screen the
+other columns shrink evenly so everything still fits with Ship/Open on screen, and on a very narrow one the table
+scrolls sideways with the names pinned on the left. (Since b685 the names went to 0px on a ~1,700px laptop.)
+
+b688 = Q4 'Complete, day by day' chart redesigned: no empty run-out after the finish, the pace line ends on a
+ringed 100% finish marker, the last send day and the finish are named under the axis, the daily bars are a
+'Sent each day' strip scaled to an ordinary day with the need and pace levels across it (weekend sends shaded as a
+bonus), and the key is three figures in one row.
+
 b687 = Q4 Realistic finish: the middle of three paces (this week, last 2 weeks, last 4 weeks) in units a working day,
 hours only as a one-person check on the timed lines (a weekend
 send is a bonus, never a day; a day with nothing sent counts), each morning starts without today and every send brings it in, Mon–Fri only; needed a working day from today; a Today figure; the
@@ -41,4 +50,4 @@ b685 = Lavarion: a send made earlier on the day of the count stays counted (Glut
 already gone); 0 on the shelf while stock moves between Amazon's warehouses and still sells is no longer "EMPTY";
 Products table: Stock needed drawn wide (need, have, short or spare, Q4 target) and a Profit a day column.
 No SQL, no settings. After it is live, reload PrepHub once (⌘R) on every laptop.
-Build: v56.4 · lav3 · 2026-11-19 · b687
+Build: v56.4 · lav3 · 2026-11-20 · b689

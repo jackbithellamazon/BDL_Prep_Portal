@@ -3117,3 +3117,47 @@ button.rsAlso.ok:hover{background:rgba(74,222,128,.14);}
 #page-lavarion .q4Chart .ax.flt{fill:#7dd3fc;font-size:10px;font-weight:700;}
 #page-lavarion .q4Chart .ax.flb{fill:#7dd3fc;font-weight:700;}
 #page-lavarion .q4ChartK .k.r i{height:10px;border:0;background:rgba(56,189,248,.22);border-radius:2px;}
+
+/* b688 · Q4 chart redesign: finish marker, axis names, Sent each day strip */
+#page-lavarion .q4C688 .fl{stroke:#7dd3fc;stroke-width:1.5;stroke-dasharray:3 4;opacity:.8;}
+#page-lavarion .q4C688 .fr{fill:none;stroke:#7dd3fc;stroke-width:2;opacity:.45;}
+#page-lavarion .q4C688 .dot.fd{fill:#7dd3fc;}
+#page-lavarion .q4C688 .ax.by{fill:#fcd34d;font-weight:700;font-size:12px;}
+#page-lavarion .q4C688 .ax.bys{fill:#d6b25a;font-size:10px;font-weight:600;}
+#page-lavarion .q4C688 .ax.flb{fill:#7dd3fc;font-weight:700;font-size:12px;}
+#page-lavarion .q4C688 .ax.fls{fill:#8fb8d4;font-size:10px;font-weight:600;}
+#page-lavarion .q4C688 .db{fill:rgba(56,189,248,.62);}
+#page-lavarion .q4C688 .db.w{fill:rgba(167,139,250,.75);}
+#page-lavarion .q4C688 .db.t{fill:#7dd3fc;}
+#page-lavarion .q4C688 .db.z{fill:rgba(255,255,255,.22);}
+#page-lavarion .q4C688 .dbc{fill:var(--bg2);}
+#page-lavarion .q4C688 .lv{stroke-width:1.3;fill:none;}
+#page-lavarion .q4C688 .lv.n{stroke:#fbbf24;stroke-dasharray:2 4;stroke-linecap:round;opacity:.9;}
+#page-lavarion .q4C688 .lv.p{stroke:#38bdf8;stroke-dasharray:6 4;opacity:.85;}
+#page-lavarion .q4C688 .ax.lvt{font-size:10px;font-weight:700;}
+#page-lavarion .q4C688 .ax.lvt.n{fill:#fcd34d;}
+#page-lavarion .q4C688 .ax.lvt.p{fill:#7dd3fc;}
+#page-lavarion .q4C688 .ax.zh{fill:var(--text2);font-size:11px;font-weight:700;}
+#page-lavarion .q4C688 .ax.zk{fill:var(--text3);font-size:10px;font-weight:600;}
+#page-lavarion .q4C688 .ax.zk .kw{fill:rgba(167,139,250,.85);}
+#page-lavarion .q4C688 .vl.xs.t{fill:#7dd3fc;}
+#page-lavarion .q4C688 .ws{stroke:rgba(255,255,255,.07);stroke-width:1;}
+#page-lavarion .q4C688 .ax.wt{fill:var(--text3);font-size:10px;font-weight:700;}
+#page-lavarion .q4C688 .ax.wt.now{fill:#86efac;}
+#page-lavarion .q4C688 .gh{fill:rgba(251,191,36,.07);stroke:rgba(251,191,36,.35);stroke-width:1;stroke-dasharray:2 2;}
+#page-lavarion .q4C688 .ax.ght{fill:#d6b25a;font-size:10px;font-weight:600;}
+#page-lavarion .q4C688 .wz{fill:rgba(255,255,255,.028);}
+#page-lavarion .q4C688 .ax.wt.fut{fill:#d6b25a;font-weight:600;}
+#page-lavarion .q4C688 .ax.wt.fut.fin{fill:#7dd3fc;font-weight:700;}
+#page-lavarion .q4C688 .ax.wd{fill:var(--text3);font-size:9.5px;font-weight:600;}
+#page-lavarion .q4C688 .ax.wd.now{fill:#86efac;}
+#page-lavarion .q4C688 .ax.dt{fill:var(--text2);font-size:11.5px;}
+
+/* b689 · Products: names never collapse. Narrow screens scroll the panel sideways with the names pinned left. */
+#page-lavarion .panel.pfScroll{overflow-x:auto;}
+#page-lavarion .panel.pfScroll table.prodT td.l,#page-lavarion .panel.pfScroll table.prodT th.l{position:sticky;left:0;z-index:7;
+  background:var(--bg2);box-shadow:10px 0 12px -8px rgba(0,0,0,.85);}
+#page-lavarion .panel.pfScroll table.prodT tr:hover td.l{background:var(--bg3);}
+#page-lavarion .panel.pfScroll table.prodT thead th.l{z-index:14;background:var(--bg3);}
+#page-lavarion table.prodT.pfTight td,#page-lavarion table.prodT.pfTight th{padding-left:5px;padding-right:5px;}
+#page-lavarion table.prodT.pfTight td.l,#page-lavarion table.prodT.pfTight th.l{padding-left:8px;padding-right:8px;}

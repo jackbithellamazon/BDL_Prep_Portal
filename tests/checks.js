@@ -5514,11 +5514,54 @@ window.PrepChecks=(function(){
       const ch=pg.querySelector('.q4Prog .q4Chart');
       if(ch&&R.totals.toGo>0&&TR.by>todayISO()){const K=ch.querySelector('.q4ChartK').textContent;
         ok(/realistic pace/.test(K)&&/a working day from today/.test(K),'the chart key: the realistic pace, needed a working day from today');
-        ok(/Today/.test(K),'…and today');
+        ok(!TR.pace.wdToday||/today [\d,]+ of [\d,]+/.test(K),'…and today against what is needed');
         ok(ch.querySelector('svg polyline.nd'),'the needed line steps over the working days');}
       const wk=pg.querySelector('section.q4Week');ok(!wk||!/weekly average/.test(wk.textContent),'the This week panel speaks of the same pace');
       ok(!/NaN|undefined|Infinity/.test((pg.querySelector('.q4Kpis')||{}).innerHTML||''),'no NaN in the tiles');
     }finally{try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* b688: the chart redesign — ends at the finish, a 100% finish marker, names under the axis, the Sent each day strip */
+  S['b688: Q4 chart — ends just after the finish, a ringed 100% finish marker, last send and finish named under the axis, Sent each day strip']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'',keep=localStorage.getItem('lv3.q4.progress');
+    try{localStorage.removeItem('lv3.q4.progress');goPage('lavarion');LV3.go('q4');await wait(350);
+      const pg=document.getElementById('page-lavarion'),R=LV3.q4Calc(),TR=LV3.q4Track(R),PC=TR.pace;
+      const ch=pg.querySelector('.q4Prog .q4Chart');ok(ch,'the chart');if(!ch)return;
+      const M=JSON.parse(ch.getAttribute('data-q4c')),lastD=M.s[M.s.length-1][0],eta=PC.eta,by=TR.by,later=eta&&eta>by?eta:by;
+      ok(lastD<=new Date(new Date((later>todayISO()?later:todayISO())+'T12:00:00Z').getTime()+3*864e5).toISOString().slice(0,10),'the plot ends 3 days after the later of the last send day and the finish — no empty run-out ('+lastD+')');
+      const inView=eta&&eta>todayISO()&&eta<=lastD;
+      if(R.totals.toGo>0&&inView){ok(ch.querySelector('svg circle.fr')&&ch.querySelector('svg circle.dot.fd'),'the pace line ends on a ringed finish dot');
+        ok([...ch.querySelectorAll('svg text.vl')].some(t=>t.textContent.trim()==='100%'),'…marked 100%');
+        const fb=ch.querySelector('svg text.ax.flb');ok(fb&&fb.textContent.includes(LV3.q4DayY(eta)),'the finish is named under the axis ('+(fb||{}).textContent+')');
+        const bb=ch.querySelector('svg text.ax.by');if(fb&&bb&&fb.getBBox().width&&bb.getBBox().width){const a=fb.getBBox(),b=bb.getBBox();
+          ok(!(a.x<b.x+b.width&&b.x<a.x+a.width),'…and its date doesn’t sit on the last send date');}
+        const pj=ch.querySelector('svg polyline.pj');if(pj){const ps=pj.getAttribute('points').trim().split(' '),lp=ps[ps.length-1].split(',').map(Number),c=ch.querySelector('svg circle.fd');
+          ok(Math.abs(lp[0]-(+c.getAttribute('cx')))<0.6&&Math.abs(lp[1]-(+c.getAttribute('cy')))<0.6,'the pace line finishes exactly on the dot');}}
+      ok(![...ch.querySelectorAll('svg text.vl, svg text.ax')].some(t=>/last send|all done/.test(t.textContent)&&!t.classList.contains('bys')&&!t.classList.contains('fls')&&!t.classList.contains('wt')),'"last send" / "all done" only under the axis, never on the lines');
+      ok([...ch.querySelectorAll('svg text.ax.zh')].some(t=>/Sent each day/.test(t.textContent)),'the Sent each day strip');
+      const need=ch.querySelector('svg text.lvt.n');if(need&&PC.needDay>0)eq(need.textContent,'need '+PC.needDay.toLocaleString('en-GB'),'the strip shows the need a day — the same as the key');
+      eq(ch.querySelectorAll('.q4ChartK .k').length,R.totals.toGo>0&&TR.by>todayISO()?3:ch.querySelectorAll('.q4ChartK .k').length,'the key is three figures');
+      ok(!/NaN|undefined|Infinity/.test(ch.innerHTML),'no NaN');
+    }finally{try{if(keep==null)localStorage.removeItem('lv3.q4.progress');else localStorage.setItem('lv3.q4.progress',keep);}catch(e){}
+      try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
+  };
+
+  /* b689: Products names never collapse on a laptop */
+  S['b689: Products — the Product column keeps its names on a laptop, everything fits, very narrow scrolls with names pinned']=async()=>{
+    let n=0;while(!(window.LV3&&LV3.isReady&&LV3.isReady())&&n++<40)await wait(250);
+    const was=(document.querySelector('.page.active')||{}).id||'',pg=document.getElementById('page-lavarion');
+    try{goPage('lavarion');LV3.go('products');await wait(350);
+      for(const W of [1728,1512,1000]){pg.style.width=W+'px';LV3.prodFit();await wait(120);
+        const t=pg.querySelector('table.prodT'),pan=t.parentElement,nm=t.querySelector('thead th.pNmTh');
+        ok(nm&&nm.getBoundingClientRect().width>=230,W+'px: the Product column keeps its width ('+Math.round(nm.getBoundingClientRect().width)+'px)');
+        const td=t.querySelector('tbody td.l');if(td)ok(td.getBoundingClientRect().width>=230,W+'px: names show in the rows');
+        if(pan.classList.contains('pfScroll')){ok(W<1500,W+'px: only a narrow screen scrolls sideways');
+          ok(getComputedStyle(t.querySelector('thead th.pNmTh')).position==='sticky','…with the names pinned on the left');}
+        else ok(t.getBoundingClientRect().width<=pan.clientWidth+2,W+'px: the whole table fits ('+Math.round(t.getBoundingClientRect().width)+' in '+pan.clientWidth+')');}
+      pg.style.width='';LV3.prodFit();await wait(120);
+      const t=pg.querySelector('table.prodT');ok(!t.parentElement.classList.contains('pfScroll'),'full width: no sideways scroll');
+    }finally{pg.style.width='';try{LV3.prodFit();}catch(e){}try{LV3.go('overview');}catch(e){}if(was)try{goPage(was.replace(/^page-/,''));}catch(e){}}
   };
 
   async function run(only){
